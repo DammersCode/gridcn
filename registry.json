@@ -1282,7 +1282,7 @@
          "name": "data-grid-lazy",
          "type": "registry:block",
          "title": "Data Grid Lazy",
-         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
+         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. useDataGridInfiniteRows does the same for a source with no known total (cursor chain, skeleton rows grow in steps). A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
          "author": "gridcn",
          "dependencies": [],
          "registryDependencies": [
@@ -1298,6 +1298,11 @@
                "path": "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts",
                "type": "registry:component",
                "target": "components/data-grid-lazy/use-data-grid-lazy-rows.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-lazy/use-data-grid-infinite-rows.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-lazy/use-data-grid-infinite-rows.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-lazy/lazy-guard.tsx",
@@ -2299,6 +2304,29 @@
                "path": "registry/default/examples/data-grid-lazy-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-lazy-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-open-ended-demo",
+         "type": "registry:example",
+         "title": "Data Grid Open-Ended Demo",
+         "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridInfiniteRows, and keyset pages with useDataGridPagination({ hasNextPage }).",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-lazy",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-open-ended-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-open-ended-demo.tsx"
             }
          ],
          "categories": [

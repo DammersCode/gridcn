@@ -142,3 +142,9 @@ empty group           -> matches every row (emit no predicate)
 - Treat the whole tree as untrusted input. On the server, check depth (at most 2), group count (at most 16), row count (at most 64), that `columnId` names an allowed column, that `operator` is a known operator, and that every `join` is `"and"` or `"or"`. Cap the request body size.
 - Never build SQL by string concatenation. Bind `value` as a parameter, or escape it with the ORM or driver.
 - Send the tree to the same request as the sort spec and the page or window. Return the filtered `total`.
+
+## No row count (cursor or "has more" APIs)
+
+- Lazy: `useDataGridInfiniteRows({ getRowId, fetchRows: ({ cursor, limit, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source, any other value (including `0`) means more. Pages load in order. Call `rows.reset()` when the sort, filter, or search spec changes (it aborts and restarts at page 1). There is no `evict`.
+- Pagination: `useDataGridPagination({ page, pageSize, hasNextPage, onPageChange })`. `controls.total` is `undefined`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
+- Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

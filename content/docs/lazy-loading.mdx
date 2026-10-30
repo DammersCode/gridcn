@@ -372,6 +372,48 @@ and nothing more.
   that the URL restored. Without both modes, the add-on sorts and filters the partial `data`.
 </Callout>
 
+## A source with no total
+
+<NewBadge />
+
+A keyset or "has more" API gives a next cursor and no row count. `useDataGridInfiniteRows` loads such a
+source. Pages load one after the other, each with the cursor of the one before:
+
+```tsx
+const rows = useDataGridInfiniteRows<Order, string>({
+  getRowId: (row) => row.id,
+  fetchRows: async ({ cursor, limit, signal }) => {
+    const page = await api.orders({ after: cursor, limit, signal });
+    return { rows: page.items, nextCursor: page.next ?? null };
+  },
+});
+
+<DataGridProvider
+  data={rows.gridProps.data}
+  getRowId={rows.gridProps.getRowId}
+  onDataChange={rows.onDataChange}
+  onRenderedRowsChange={rows.gridProps.onRenderedRowsChange}
+>
+```
+
+<ComponentPreview name="data-grid-open-ended-demo" />
+
+- `nextCursor: null` ends the source. Any other value, including `0`, means more rows exist. An API
+  with a "has more" flag returns `hasMore ? start + rows.length : null`.
+- The first call gets `cursor: undefined`. `limit` is `pageSize` (default 50), capped by `maxFetchRows`.
+- A fetch starts when the rendered window comes within `overscan` rows (default 30) of the loaded end.
+- The grid shows the loaded rows plus `pageSize` skeleton rows while more exist, so the scroll height
+  grows in steps. At the end the skeletons go away and `total` holds the final count.
+- Sort, filter, and search stay in your request. Call `rows.reset()` when one changes. It aborts the
+  fetch and starts again at the first page.
+- A failed fetch calls `onError` and stops the chain. The next window report retries it. An empty page
+  ends the source.
+- The hook has no `evict` and no `getLoadedRanges`: a cursor chain cannot refetch an arbitrary range. It keeps
+  every loaded row, so stop returning a cursor when the list must not grow without bound.
+
+Select-all checks the loaded rows and the skeleton rows, so it never means "every matching row".
+Bulk actions over the whole result go to your own endpoint.
+
 <Callout type="warn" title="Select-all includes the unloaded rows">
   The view is `total` rows long, loaded or not, so the two-stage select-all (
   <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.

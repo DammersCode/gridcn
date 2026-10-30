@@ -26,8 +26,8 @@ Record which strategy was picked and why (one sentence) before writing code — 
 ## 2. Wire the chosen strategy
 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
-- `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRenderedRowsChange`.
-- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`useDataGridPagination({ data, pageSize })`, hook slices) vs. server mode (`{ page, pageSize, total, onPageChange }` fully controlled, you fetch).
+- `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRenderedRowsChange`. When the server sends a next cursor and no row count (keyset, "has more"), use `useDataGridInfiniteRows` instead: `fetchRows({ cursor, limit, signal })` resolves `{ rows, nextCursor }`, `nextCursor: null` ends the source, and `reset()` replaces `lazy.reset()` on a spec change.
+- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`useDataGridPagination({ data, pageSize })`, hook slices) vs. server mode (`{ page, pageSize, total, onPageChange }` fully controlled, you fetch; pass `hasNextPage` instead of `total` when the server sends no count).
 - Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/streaming-updates.md. Skip this step if nothing needs live value pushes.
 
 Completion for this step: the grid renders and the chosen hook's `gridProps`/`controls` are spread onto the provider/root exactly as the relevant doc's usage example shows.
@@ -81,6 +81,6 @@ Applies to streaming on top of either:
 
 - Do not mount `data-grid-lazy` and `data-grid-pagination` on one grid.
 - Do not sort a lazy grid on the client. Set `sortMode="server"` and send the spec to `fetchRows`.
-- Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known (the `100_000` in examples is a placeholder).
+- Do not guess `total` when the server has no count. Use `useDataGridInfiniteRows` (lazy) or `hasNextPage` (pagination). Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known (the `100_000` in examples is a placeholder).
 - Do not build your own spinner for range fetches. `lazy.isLoading` is true while any range fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
 - Do not rely on the quick-search box to search server-side. It only highlights rows already in `data`. Send `searchText` to your fetch.

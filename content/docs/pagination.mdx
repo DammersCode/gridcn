@@ -155,6 +155,25 @@ rendering performance, and using the two together is not supported. When to pick
     to your server with the page, and the server returns the filtered `total`. A filter change moves
     back to page 1.
 
+    ### Without a total
+
+    <NewBadge />
+
+    A keyset or "has more" API returns a page and a flag, not a count. Pass `hasNextPage` in place
+    of `total`:
+
+    ```tsx
+    const pager = useDataGridPagination({ page, pageSize, hasNextPage, onPageChange: setPage });
+    ```
+
+    The controls then report `total: undefined`. The footer shows "Page 3" instead of a range, enables
+    Next while `hasNextPage` is `true`, and disables Last. The numbered buttons reach one page past
+    the current one. `reconcilePage` lifts a page below 1 and never clamps the upper end. Keep the
+    cursor of each page in your own state, and reset the chain when the page size, sort, or filter
+    changes.
+
+    <ComponentPreview name="data-grid-open-ended-demo" />
+
     `pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
     current page, so there is nothing left for the hook to slice.
 
