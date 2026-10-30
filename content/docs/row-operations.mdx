@@ -27,7 +27,7 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 `duplicateRow` receives the source row and the data index the copy lands at, and must give the
 copy a distinct id (a spread copy with a fresh `id`), so a duplicate never collides with its
 source row's React key. `createRow` receives the data-space insertion index.
-Both factories may return a promise. <NewBadge /> The grid holds the operation until every row settles, then writes one change.
+Both factories <NewBadge /> may return a promise. The grid holds the operation until every row settles, then writes one change.
 A pending promise blocks a second insert or duplicate. A rejection cancels the operation. The grid drops a late result when it went `readOnly` or when the row it aimed at is gone. Row operations apply
 while an edit session is open: the operation lands and the open edit re-anchors to its row's new view
 position, keeping the typed draft while the row stays in the rendered rows. An operation that

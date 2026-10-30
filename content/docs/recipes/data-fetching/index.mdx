@@ -1,0 +1,38 @@
+---
+title: Data fetching
+description: Pick where the rows come from and where sort, filter, and search run.
+icon: Database
+---
+
+Two choices shape the wiring: where the rows come from, and where sort, filter, and search run.
+The *spec* is what the user chose: sort, filter, search, and page. The mode decides who applies it.
+
+## Pick the strategy for your data
+
+| Your data | Strategy | Page |
+|---|---|---|
+| The whole dataset fits in one payload | Plain `data` on the provider | [Sorting, filtering, search](/docs/sorting-filtering-search) |
+| The user needs bounded, bookmarkable pages | `data-grid-pagination` | [Pagination](/docs/pagination) |
+| One continuous list, too large for one payload | `data-grid-lazy` | [Lazy loading](/docs/lazy-loading) |
+| Values change live | `updateCells` and `updateRows` on any of the above | [Streaming updates](/docs/streaming-updates) |
+
+Streaming adds to a strategy and never replaces it. Do not use lazy loading and pagination on one
+grid.
+
+## Pick where the spec runs
+
+| | Client grid | Server grid |
+|---|---|---|
+| Who computes the view | The grid, over `data` | Your backend. The grid shows the response. |
+| Mode props | The defaults | `sortMode="server"` and `filterMode="server"` |
+| Rows the grid sees | All of `data` | One response: a page or a window |
+| The browser | Sorts, filters, and highlights | Renders, edits, and selects |
+| Limit | About 100k rows | Your backend |
+
+If `data` holds only part of the result set, run the spec on the server. A client sort or filter
+over partial data returns a wrong result and shows no error. Run it on the server also when the
+browser cannot compute the result, such as a sort by a value only your backend has.
+
+Follow [Server-side data](/docs/recipes/data-fetching/server-side) for a server grid.
+[Server round-trip](/docs/recipes/data-fetching/server-round-trip) and
+[TanStack Query](/docs/recipes/data-fetching/tanstack-query) cover writes.

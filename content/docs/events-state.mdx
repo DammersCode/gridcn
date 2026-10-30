@@ -237,7 +237,7 @@ This is the full controlled-pair convention. Omit `sortState` for uncontrolled (
 behavior. The callback still fires on every user-driven change (a header click,
 `actions.toggleSort`, or `setSorts`) either way, but a controlled grid only visibly re-sorts once
 you pass the new value back in as the prop. See
-[Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI this drives.
+[Sorting, filtering & search](/docs/sorting-filtering-search) for the toolbar UI this drives. For a server grid, see [Server-side data](/docs/recipes/data-fetching/server-side).
 
 ## 4. `onFilterChange`
 
@@ -413,7 +413,7 @@ zero-re-render guarantee as the other callbacks on this page.
   The edit then does not start at all, and no other event fires for it. Cells of a type that
   declares `activate` (like `checkbox`) toggle instead of editing, so they never reach
   `onEditStart`.
-- `onEditStart` may return a promise. <NewBadge /> The editor opens when the promise settles. The grid
+- `onEditStart` <NewBadge /> may return a promise. The editor opens when the promise settles. The grid
   opens no editor when the promise is `false`, when the user moved to another cell, or when the grid
   went `readOnly`. A pending promise blocks a second edit start. A rejection cancels the edit start.
 - `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after

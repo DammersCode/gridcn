@@ -1,0 +1,146 @@
+---
+title: Server-side data
+description: Run sort, filter, search, and paging in your backend and show the response in the grid.
+icon: Server
+---
+
+A server grid shows the rows your backend returns. The grid tracks what the user chose, which is
+the *spec*: sort, filter, search, and page. You send the spec to your API. The response becomes
+`data`. Two root props, `sortMode="server"` and `filterMode="server"`, stop the grid from
+sorting and filtering the response a second time.
+
+<ComponentPreview name="data-grid-server-side-demo" />
+
+<InstallCommand item="data-grid-server-side-demo" />
+
+## The contract
+
+1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount.
+2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
+   `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
+3. Send the spec to your API. Make one request for each view state.
+4. Pass the response as `data`. Pass `total` to the pager or to `useDataGridLazyRows`.
+
+Set `headerClickBehavior="sort"`. The default, `"select"`, makes a header click select the column,
+and `onSortChange` never fires.
+
+## Sort
+
+The grid shows the sort indicator and `aria-sort`, and it calls `onSortChange`. It never reorders
+`data`. The order of your response is the displayed order. Refetch when the spec changes:
+
+```tsx
+<DataGridProvider
+  data={rows}
+  columns={columns}
+  getRowId={(row) => row.id}
+  sortMode="server"
+  filterMode="server"
+  headerClickBehavior="sort"
+  onSortChange={setSorts}
+  onFilterChange={setFilters}
+>
+  {/* toolbar, header, body */}
+</DataGridProvider>
+```
+
+A write to a sort column does not mark the view stale under `sortMode="server"`. The server owns
+the order, so your refetch is the only signal that it changed.
+
+## Filter
+
+The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
+indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
+response holds the matching rows. The tree is untrusted input. Check its depth, size, and column
+names before you build a query (the [ORM recipes](/docs/examples/data/orm) show the check).
+
+The header filter popover and the `isAnyOf` input of the filter menu list the values of the
+loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See
+[Server values](/docs/addons/toolbar#server-values).
+
+## Search
+
+The quick-search box highlights and navigates matches in the loaded rows. It never narrows the
+view, in any mode. To search the whole dataset, send `searchText` to your fetch. Read it with
+`useDataGridSearchText`, or use the `searchText` and `onSearchTextChange` pair. Your response
+holds the matching rows, and the box then highlights them.
+
+## Pagination or lazy rows
+
+Both sources take the same spec. They differ in how rows reach the grid.
+
+| | [Pagination](/docs/pagination#server-mode) | [Lazy loading](/docs/lazy-loading) |
+|---|---|---|
+| The grid shows | One page at a time | One continuous list of `total` rows |
+| You send | `page`, `pageSize`, and the spec | `start`, `end`, and the spec |
+| The response holds | The rows of one page and the filtered `total` | The rows of one window |
+| After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
+| Stale responses | Ignore a response for an old request | `fetchRows` receives an `AbortSignal` |
+
+Set `total` to the filtered count on each filter change. The pager clamps its page when `total`
+shrinks. With lazy rows, a changed `total` resets the hook and drops every fetched window. Call
+`lazy.reset()` when `total` stays the same. See
+[Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid) and
+[Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
+
+The grid keeps checked rows by row id across pages. It drops a cell range and the active cell
+when their records leave the view.
+
+## Writes and async gates
+
+An edit calls `onDataChange` with `ops`. Send the `ops` to your API, then refetch. See
+[Server round-trip](/docs/recipes/data-fetching/server-round-trip) and
+[TanStack Query](/docs/recipes/data-fetching/tanstack-query).
+
+[Async gates](/docs/examples/validation/async-gates) hold a paste, an edit start, or a row insert
+until your API answers. The grid drops the result of a gate, with no error, when:
+
+- the grid is `readOnly`,
+- the target row is no longer in `data`, for example after a refetch replaced it,
+- a sort change happens during a pending paste under `sortMode="server"`.
+
+A gate gets no `AbortSignal`. Show a busy state while a gate is pending. The grid ignores a
+second paste, edit start, or insert until the first one settles.
+
+The verdict for a write arrives as the response to your own request. `onDataChange` carries `ops`
+and no verdict. `validateRow` is the exception: it runs after the write commits, and its verdict
+sets the row errors.
+
+## Races and row identity
+
+A second fast gesture must not let the first response land. Cancel the first request, or ignore a
+response whose request is older than the latest:
+
+```tsx
+useEffect(() => {
+  let stale = false;
+  api.rows({ sorts, filters, searchText }).then((res) => {
+    if (!stale) setRows(res.rows);
+  });
+  return () => {
+    stale = true;
+  };
+}, [sorts, filters, searchText]);
+```
+
+Keep `getRowId` stable across fetches. Selection, edit state, and row operations follow row ids.
+
+## URL state
+
+[`DataGridUrlState`](/docs/addons/url-state) writes the spec from the URL into the grid store on
+mount. With both modes set to `"server"`, the store keeps the spec and never sorts or filters the
+response. Your fetch reads the restored spec and loads the rows. With pagination, add
+`useDataGridUrlPagination` for `page` and `pageSize`.
+
+<Callout type="warn">
+  Without both modes set to `"server"`, a URL-restored spec sorts and filters partial data in the
+  browser. The result is wrong, and the grid shows no error.
+</Callout>
+
+## Related
+
+- [Data fetching](/docs/recipes/data-fetching): choose a strategy and a mode.
+- [Sorting, filtering, search](/docs/sorting-filtering-search#controlled-mode-server-side-sortfilter): the spec props.
+- [Pagination](/docs/pagination#server-mode): the server pager.
+- [Lazy loading](/docs/lazy-loading): windows of rows.
+- [ORM & data sources](/docs/examples/data/orm): the query code.

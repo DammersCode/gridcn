@@ -30,7 +30,7 @@ commits**, so a pasted block of Start+End pairs is judged as one state.
 - A later write that makes the row consistent clears the verdict, even when it writes a
   different column than the marked one.
 - It does **not** run on row insert/duplicate (a fresh row is expected to be incomplete), on
-  row deletion, or on a `data` array you replace yourself. It must be **synchronous**.
+  row deletion, or on a `data` array you replace yourself. It may return a promise; see [Async gates](/docs/examples/validation/async-gates).
 
 ## Behavior reference
 

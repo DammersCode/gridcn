@@ -48,14 +48,15 @@ For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unlo
 Applies to `data-grid-lazy`:
 
 - A sort/filter spec change must call `lazy.reset()` before the refetch runs, or already-fetched ranges keep serving the old order/set.
-- `DataGridUrlState` (from `data-grid-url-state`) cannot mount on a lazy grid — it writes URL sort/filter/search into the store on mount, which re-sorts the partial `data` client-side. Keep that spec in your own state instead.
+- `DataGridUrlState` (from `data-grid-url-state`) mounts on a lazy grid only with both `sortMode="server"` and `filterMode="server"`. Then the store keeps the URL spec and never sorts or filters the partial `data`; fetch the rows for the restored spec. Without both modes it re-sorts and re-filters the partial `data`.
+- Filtering a lazy grid takes `filterMode="server"`. Send the spec to `fetchRows` and set `total` to the filtered count; a changed `total` resets the hook, so call `lazy.reset()` only when `total` stays the same.
 - With `sortMode="server"` the header indicator, `aria-sort`, and `DataGridSortList` track the spec and the grid never reorders `data`; a controlled-empty `sortState` is the old workaround and blanks them.
 
 Applies to `data-grid-pagination`:
 
 - A sort, filter, or search change must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
 - Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and pass `reconcilePage: true` if a shrunk `total` should clamp `page` back for you (it fires your `onPageChange` once; it never sets your state itself).
-- Selection survives a page change by index, not by row identity — it will point at different rows on the new page unless you key the provider by page or clear the selection in `onPageChange`.
+- Checked rows follow row id across a page change. Cell ranges and the active cell drop when their records leave the page. Key the provider by page or clear the selection in `onPageChange` to clear everything.
 - Merge a page's edited slice back into the full dataset by row id in `onDataChange` — replacing the whole dataset with just the page's slice silently drops every other row.
 - `useDataGridUrlPagination` only composes with pagination's server mode; client mode's `pageSize` seeds once from local state and can't take a pushed URL value.
 
@@ -80,6 +81,6 @@ Applies to streaming on top of either:
 
 - Do not mount `data-grid-lazy` and `data-grid-pagination` on one grid.
 - Do not sort a lazy grid on the client. Set `sortMode="server"` and send the spec to `fetchRows`.
-- Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known.
+- Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known (the `100_000` in examples is a placeholder).
 - Do not build your own spinner for range fetches. `lazy.isLoading` is true while any range fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
-- Do not rely on `searchText` to search server-side. It only highlights rows already in `data`.
+- Do not rely on the quick-search box to search server-side. It only highlights rows already in `data`. Send `searchText` to your fetch.

@@ -305,10 +305,14 @@ const lazy = useDataGridLazyRows<Order>({
   fetchRows: (start, end, signal) => api.orders({ start, end, filters: applied.filters, signal }),
 });
 
+const latestFilter = useRef(0);
+
 const onFilterChange = async (filters: FilterNode[]) => {
+  const request = ++latestFilter.current;
   const { total } = await api.count({ filters });
+  if (request !== latestFilter.current) return;
+  if (total === applied.total) lazy.reset();
   setApplied({ filters, total });
-  lazy.reset();
 };
 
 <DataGridProvider
@@ -326,14 +330,18 @@ const onFilterChange = async (filters: FilterNode[]) => {
 Two details make this work:
 
 - **A filter change discards loaded rows and sets a new `total`.** Fetched ranges hold rows of the
-  old spec, so call `lazy.reset()`. If `total` stays at the unfiltered count, the view keeps
-  empty rows for the filtered-out rows, and scrolling cannot reach the whole filtered result.
+  old spec. A changed `total` resets the hook. Call `lazy.reset()` when `total` stays the same.
+  If `total` stays at the unfiltered count, the view keeps empty rows for the filtered-out rows,
+  and scrolling cannot reach the whole filtered result.
+- **A newer filter change wins.** The sample ignores the answer of an older `api.count` call.
 - **The header filter lists values from your server.** Pass `fetchFilterValues` to show every
   value of a column, not only the loaded ones. See [Header filter](/docs/addons/toolbar#header-filter).
 
 A spec that exists at mount, from `defaultFilterState` or a controlled `filterState`, never
-triggers `DataGridLazyGuard`. With `filterMode="server"` the grid keeps the identity view for it.
+triggers `DataGridLazyGuard`. With `filterMode="server"` the grid keeps one view row for each data row.
 Without `filterMode="server"`, the grid filters the loaded rows only.
+
+For the full server contract, see [Server-side data](/docs/recipes/data-fetching/server-side).
 
 `searchText` never narrows anything. It only highlights and navigates matches over the
 rows already in `data`, so a search over a partial array highlights matches in the loaded part

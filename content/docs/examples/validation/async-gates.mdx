@@ -24,7 +24,8 @@ the gesture until the promise settles, then writes once.
 | `validateRow` | nothing. The write commits first | is replaced by a newer verdict for the same row | adds no error |
 | `mapColumn` and the import `createRow` | the import dialog | n/a | see [Import & export](/docs/addons/import-export) |
 
-A synchronous result takes the same path as before. The grid adds no microtask for it.
+A synchronous result takes the synchronous path. The grid writes in the same call and awaits
+nothing.
 
 ## What the grid checks when a promise settles
 
@@ -32,17 +33,24 @@ The grid reads its state again after the promise settles. It drops the result wh
 
 - the grid is `readOnly` now,
 - the row the gesture aimed at is gone,
-- a sort or filter changed during a paste.
+- a sort or filter changed during a paste, or the data was refetched and the row left `data`.
+
+The grid drops these results without an error. A gate gets no `AbortSignal`. Show a busy state
+while a gate is pending, because the grid blocks a second gesture of the same kind until the
+promise settles.
 
 A row that moved keeps its gesture: the grid follows the row id, not the old view position.
 `onEditStart` also drops the result when the user moved to another cell.
 
 ## Client and server modes
 
-- A local `data` array: sync gates keep their timing.
+- A local `data` array: a synchronous gate writes in the same call, as without a promise.
 - Controlled `data`: one gesture writes one `onDataChange`, when the promise settles.
 - Pagination and lazy sources: a result for a row that left the loaded rows is dropped.
-- `sortMode="server"`: the grid never reorders rows when a promise settles. The server owns the order.
+- `sortMode="server"`: the grid never reorders rows when a promise settles. The server owns the
+  order. A sort change during a pending paste drops that paste.
+
+For a server grid, see [Server-side data](/docs/recipes/data-fetching/server-side#writes-and-async-gates).
 
 <Callout type="warn" title="Return a promise only from an event-time gate">
   `processCellForClipboard`, command `when`, and the context-menu resolvers stay synchronous. The
@@ -52,6 +60,7 @@ A row that moved keeps its gesture: the grid follows the row id, not the old vie
 
 ## Related
 
+- [Async validation](/docs/examples/validation/async-validation): schemas that return a promise.
 - [Cross-field](/docs/examples/validation/cross-field): `validateRow`.
 - [Clipboard](/docs/clipboard#overrides): `processPaste` and `processCellFromClipboard`.
 - [Row operations](/docs/row-operations): `createRow` and `duplicateRow`.

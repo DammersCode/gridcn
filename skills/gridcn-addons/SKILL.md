@@ -91,9 +91,9 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Find & replace + toolbar search**: with both mounted, `Mod+F` in the grid opens the find panel and the toolbar search yields to it; the Find field and the toolbar search show the same text.
 - **URL state**: exactly one `NuqsAdapter` for the whole app — never nest a second one closer to the
   grid. Wrap the grid in `<Suspense>` if the page is statically prerendered (Next.js requirement,
-  since the adapter calls `useSearchParams()`). Never mount `DataGridUrlState` on a `data-grid-lazy`
-  grid — it writes URL sort/filter/search into the store on mount, which re-sorts the lazy grid's
-  partial `data` client-side; keep that spec in your own state instead and hand it to `fetchRows`.
+  since the adapter calls `useSearchParams()`). On a `data-grid-lazy` grid, mount
+  `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"`; otherwise it
+  re-sorts and re-filters the partial `data` client-side.
 - **Lazy loading + pagination are mutually exclusive.** Neither exists for render performance
   (virtualization already covers that); pick lazy for one continuous infinite-scroll dataset, or
   pagination for bookmarkable pages. Using both together is unsupported.
@@ -111,6 +111,10 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+
+## Async gates
+
+- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`. A gate gets no `AbortSignal`.
 
 ## Bounds and failure reporting
 
@@ -176,7 +180,7 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 
 - Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
 - Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
-- Do not mount `DataGridUrlState` on a `data-grid-lazy` grid, or nest a second `NuqsAdapter`.
+- Do not mount `DataGridUrlState` on a `data-grid-lazy` grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
 - Do not pass a fresh `topRows`/`bottomRows` array per render to `useDataGridPinnedRows`.
 - Do not combine `data-grid-lazy` and `data-grid-pagination`.
