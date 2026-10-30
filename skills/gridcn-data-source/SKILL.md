@@ -56,7 +56,7 @@ Applies to `data-grid-pagination`:
 
 - A sort, filter, or search change must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
 - Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and pass `reconcilePage: true` if a shrunk `total` should clamp `page` back for you (it fires your `onPageChange` once; it never sets your state itself).
-- Checked rows follow row id across a page change. Cell ranges and the active cell drop when their records leave the page. Key the provider by page or clear the selection in `onPageChange` to clear everything.
+- Checked rows, the cell range, and the active cell follow row ids only while the rows stay in `data`; a page change drops those whose rows leave. Key the provider by page or clear the selection in `onPageChange` to clear everything.
 - Merge a page's edited slice back into the full dataset by row id in `onDataChange` — replacing the whole dataset with just the page's slice silently drops every other row.
 - `useDataGridUrlPagination` only composes with pagination's server mode; client mode's `pageSize` seeds once from local state and can't take a pushed URL value.
 

@@ -24,8 +24,7 @@ the gesture until the promise settles, then writes once.
 | `validateRow` | nothing. The write commits first | is replaced by a newer verdict for the same row | adds no error |
 | `mapColumn` and the import `createRow` | the import dialog | n/a | see [Import & export](/docs/addons/import-export) |
 
-A synchronous result takes the synchronous path. The grid writes in the same call and awaits
-nothing.
+A synchronous result writes in the same call.
 
 ## What the grid checks when a promise settles
 
@@ -33,9 +32,9 @@ The grid reads its state again after the promise settles. It drops the result wh
 
 - the grid is `readOnly` now,
 - the row the gesture aimed at is gone,
-- a sort or filter changed during a paste, or the data was refetched and the row left `data`.
+- a sort or filter changed during a paste.
 
-The grid drops these results without an error. A gate gets no `AbortSignal`. Show a busy state
+The grid drops these results without an error, also when a refetch removed the row. A gate gets no `AbortSignal`. Show a busy state
 while a gate is pending, because the grid blocks a second gesture of the same kind until the
 promise settles.
 
@@ -44,11 +43,10 @@ A row that moved keeps its gesture: the grid follows the row id, not the old vie
 
 ## Client and server modes
 
-- A local `data` array: a synchronous gate writes in the same call, as without a promise.
 - Controlled `data`: one gesture writes one `onDataChange`, when the promise settles.
 - Pagination and lazy sources: a result for a row that left the loaded rows is dropped.
 - `sortMode="server"`: the grid never reorders rows when a promise settles. The server owns the
-  order. A sort change during a pending paste drops that paste.
+  order.
 
 For a server grid, see [Server-side data](/docs/recipes/data-fetching/server-side#writes-and-async-gates).
 

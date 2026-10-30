@@ -4,8 +4,6 @@ description: Schemas that resolve asynchronously. Pending editor state, supersed
 icon: Clock4
 ---
 
-Event-time gates such as `validateRow` also take a promise; see [Async gates](/docs/examples/validation/async-gates).
-
 The demo's **SKU** column runs a fake uniqueness check with ~800 ms latency (a hand-rolled
 Standard Schema whose `validate` returns a Promise: the same seam as an async Zod `refine`).
 SKU-001 and SKU-002 are already taken.
@@ -61,3 +59,4 @@ Paste, fill, CSV/XLSX import, and `updateCells` hold the batch while the schema 
   32-way batching
 - [Server errors](/docs/examples/validation/server-errors): the other kind of rejection:
   after commit
+- [Async gates](/docs/examples/validation/async-gates): a promise in `validateRow`, `processPaste`, and the other gates.

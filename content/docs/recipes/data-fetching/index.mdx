@@ -27,7 +27,7 @@ grid.
 | Mode props | The defaults | `sortMode="server"` and `filterMode="server"` |
 | Rows the grid sees | All of `data` | One response: a page or a window |
 | The browser | Sorts, filters, and highlights | Renders, edits, and selects |
-| Limit | About 100k rows | Your backend |
+| Scale | Smooth at 100k+ rows | Your backend |
 
 If `data` holds only part of the result set, run the spec on the server. A client sort or filter
 over partial data returns a wrong result and shows no error. Run it on the server also when the

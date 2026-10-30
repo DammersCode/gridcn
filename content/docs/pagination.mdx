@@ -55,7 +55,7 @@ rendering performance, and using the two together is not supported. When to pick
 
     <Callout type="warn" title="In client mode, everything the grid sees is page-local">
       The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
-      current page's slice alone. A client sort orders the current page only, never the whole dataset. The pager's `total` and page count still reflect the full
+      current page's slice alone. The pager's `total` and page count still reflect the full
       dataset. A search that matches rows on other pages finds nothing here. A pinned totals band
       computed from the grid covers the page slice the same way (see [Pinned rows](/docs/addons/pinned-rows)).
       Use server mode for dataset-wide search, sort, or filter (your backend applies the spec over
@@ -63,10 +63,12 @@ rendering performance, and using the two together is not supported. When to pick
       the grid.
     </Callout>
 
-    <Callout type="warn" title="A page change drops cell ranges">
-      The provider's store outlives a page change. The grid keeps checked rows by row id, so a
-      checked row stays checked when its page returns. It drops a cell range and the active cell
-      when their records are not on the new page. To clear all selection on a page change, key the
+    <Callout type="warn" title="A page change drops selection of absent rows">
+      <NewBadge />
+
+      The provider's store outlives a page change. Checked rows, the cell range, and the active
+      cell follow their row ids while the rows stay in the data. A page change drops each one whose
+      row is not on the new page. To clear all selection on a page change, key the
       provider by page (`key={pager.page}` remounts it), or clear the selection in your
       `onPageChange` handler before the data swap.
     </Callout>

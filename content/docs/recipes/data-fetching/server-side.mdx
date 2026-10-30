@@ -15,7 +15,7 @@ sorting and filtering the response a second time.
 
 ## The contract
 
-1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount.
+1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount, so a spec restored at mount never sorts or filters on the client.
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
@@ -44,8 +44,8 @@ The grid shows the sort indicator and `aria-sort`, and it calls `onSortChange`. 
 </DataGridProvider>
 ```
 
-A write to a sort column does not mark the view stale under `sortMode="server"`. The server owns
-the order, so your refetch is the only signal that it changed.
+An edit to a sorted column shows no re-sort hint under `sortMode="server"`. Refetch to get the
+new order.
 
 ## Filter
 
@@ -77,14 +77,15 @@ Both sources take the same spec. They differ in how rows reach the grid.
 | After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
 | Stale responses | Ignore a response for an old request | `fetchRows` receives an `AbortSignal` |
 
-Set `total` to the filtered count on each filter change. The pager clamps its page when `total`
-shrinks. With lazy rows, a changed `total` resets the hook and drops every fetched window. Call
+Set `total` to the filtered count on each filter change. When `total` shrinks, the pager shows a
+clamped page, but your `page` state changes only with `reconcilePage: true`
+([Server mode](/docs/pagination#server-mode)). With lazy rows, a changed `total` resets the hook and drops every fetched window. Call
 `lazy.reset()` when `total` stays the same. See
 [Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid) and
 [Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
 
-The grid keeps checked rows by row id across pages. It drops a cell range and the active cell
-when their records leave the view.
+Checked rows, the cell range, and the active cell follow their row ids while the rows stay in
+`data`. A page change or refetch that removes a row drops it.
 
 ## Writes and async gates
 
@@ -96,20 +97,18 @@ An edit calls `onDataChange` with `ops`. Send the `ops` to your API, then refetc
 until your API answers. The grid drops the result of a gate, with no error, when:
 
 - the grid is `readOnly`,
-- the target row is no longer in `data`, for example after a refetch replaced it,
-- a sort change happens during a pending paste under `sortMode="server"`.
+- the target row is no longer in `data`, for example after a refetch removed it,
+- the sort or filter spec changes during a pending paste.
 
 A gate gets no `AbortSignal`. Show a busy state while a gate is pending. The grid ignores a
 second paste, edit start, or insert until the first one settles.
 
-The verdict for a write arrives as the response to your own request. `onDataChange` carries `ops`
-and no verdict. `validateRow` is the exception: it runs after the write commits, and its verdict
-sets the row errors.
+`validateRow` runs after the write commits, and its verdict sets the row errors.
 
 ## Races and row identity
 
-A second fast gesture must not let the first response land. Cancel the first request, or ignore a
-response whose request is older than the latest:
+When the spec changes twice fast, the older response can arrive last. Cancel the first request,
+or ignore the older response:
 
 ```tsx
 useEffect(() => {

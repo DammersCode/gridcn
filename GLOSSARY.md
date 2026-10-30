@@ -22,6 +22,9 @@ mirror the change there.
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
+| spec | What the user chose: sort, filter, search, and page. The grid tracks it. The mode decides who applies it. | |
+| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
+| gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 
 ## Keyboard actions
