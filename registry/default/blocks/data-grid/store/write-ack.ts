@@ -3,7 +3,7 @@ import type { DataChange, DataOp } from "../types";
 /** One refusal in a {@link WriteAck}: the row the server refused, and optionally one of its columns. */
 export type WriteRejection = {
   rowId: string;
-  /** Limits the refusal to this column of an update; omitted, every op of the row is refused. */
+  /** Limits the refusal to this column of an update; omitted, every entry of the row is refused. */
   columnId?: string;
   /** Display text for `onWriteRejected`; the grid does not render it. */
   message?: string;
@@ -45,7 +45,7 @@ export function readRejections(change: DataChange<unknown>, ack: WriteAck, error
   return out;
 }
 
-/** The ops of `change` that `rejected` refuses; a cell-level update keeps only its refused cells. */
+/** The `change.ops` entries that `rejected` refuses; a cell-level update keeps only its refused cells. */
 export function refusedOps(change: DataChange<unknown>, rejected: readonly WriteRejection[]): DataOp<unknown>[] {
   const wholeRows = new Set<string>();
   const cellsByRow = new Map<string, Set<string>>();

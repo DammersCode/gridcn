@@ -158,7 +158,7 @@ function refusedRows(ops: DataOp<Order>[], results: PromiseSettledResult<unknown
 - `onWriteRejected({ change, rejected })` runs once per refused change, after the revert. Show the server's `message` there.
 - A `readOnly` grid skips the revert and warns once in development.
 
-Strategy C does not roll back an op the server accepted, which Strategy A does when one request of a batch fails. It needs no `ref` snapshot.
+Strategy C does not roll back a change of `change.ops` that the server accepted, which Strategy A does when one request of a batch fails. It needs no `ref` snapshot.
 
 ## The failure path
 

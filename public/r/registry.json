@@ -246,6 +246,11 @@
           "target": "components/data-grid/interaction/history.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/interaction/rollback.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/interaction/rollback.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/interaction/index.ts",
           "type": "registry:component",
           "target": "components/data-grid/interaction/index.ts"
@@ -574,6 +579,16 @@
           "path": "registry/default/blocks/data-grid/store/hidden-checked-rows.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/hidden-checked-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/selected-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/write-ack.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/write-ack.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/store/row-index.ts",
@@ -1282,7 +1297,7 @@
       "name": "data-grid-lazy",
       "type": "registry:block",
       "title": "Data Grid Lazy",
-      "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
+      "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. useDataGridInfiniteRows does the same for a source with no known total (cursor chain, skeleton rows grow in steps). A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
@@ -1298,6 +1313,11 @@
           "path": "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts",
           "type": "registry:component",
           "target": "components/data-grid-lazy/use-data-grid-lazy-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-lazy/use-data-grid-infinite-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-lazy/use-data-grid-infinite-rows.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-lazy/lazy-guard.tsx",
@@ -2300,6 +2320,71 @@
           "path": "registry/default/examples/data-grid-lazy-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-lazy-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-open-ended-demo",
+      "type": "registry:example",
+      "title": "Data Grid Open-Ended Demo",
+      "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridInfiniteRows, and keyset pages with useDataGridPagination({ hasNextPage }).",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-lazy",
+        "DammersCode/gridcn/data-grid-pagination",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-open-ended-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-open-ended-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-selection-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Selection Demo",
+      "description": "Checked rows that survive page changes and select all matching over a paged result: totalRowCount, actions.selectAllMatching, and useDataGridSelectedRows.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-pagination",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-selection-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-selection-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-write-ack-demo",
+      "type": "registry:example",
+      "title": "Data Grid Write Acknowledgement Demo",
+      "description": "onDataChange returns a promise: rows show saving while it is pending, a refused cell reverts on its own, and onWriteRejected reports the server's message.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-write-ack-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-write-ack-demo.tsx"
         }
       ],
       "categories": [

@@ -88,15 +88,17 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const [loaded, setLoaded] = useState<Loaded<TData>>({ rows: [], hasMore: true });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Written by every state transition below, so a handler reads the latest rows without waiting for a commit.
   const loadedRef = useRef(loaded);
-  loadedRef.current = loaded;
   const cursorRef = useRef<TCursor | undefined>(undefined);
   const controllerRef = useRef<AbortController | null>(null);
   const lastWindowRef = useRef<Range | null>(null);
   const pendingWindowRef = useRef(false);
   const emptyPageWarnedRef = useRef(false);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const limit = Math.max(1, Math.min(pageSize, maxFetchRows === undefined ? Infinity : Math.floor(maxFetchRows)));
 

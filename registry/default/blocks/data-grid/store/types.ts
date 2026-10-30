@@ -1301,4 +1301,6 @@ export type DataGridRowCellState = {
   /** This row's currently-flashing columns (transient write-pulse keys), or null when none — same zero-render contract as `searchMatchCols`. */
   flashingCols: ReadonlySet<number> | null;
   selectedColRanges: readonly ColRange[];
+  /** The write status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
+  writeStatus: RowWriteStatus | undefined;
 };

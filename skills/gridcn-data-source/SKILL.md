@@ -93,5 +93,5 @@ Applies to streaming on top of either:
 
 ## Write acknowledgement
 
-- Prefer returning a promise from `onDataChange` over a hand-written rollback: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message? }] }` to refuse rows or cells, or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused ops (`source: "rollback"`, never acknowledged), and calls `onWriteRejected({ change, rejected })` for the toast.
+- Prefer returning a promise from `onDataChange` over a hand-written rollback: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message? }] }` to refuse rows or cells, or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused entries of `change.ops` (`source: "rollback"`, never acknowledged), and calls `onWriteRejected({ change, rejected })` for the toast.
 - A promise returned by `onDataChange` is always treated as an ack: a rejection reverts the change.

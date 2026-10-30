@@ -246,6 +246,11 @@
                "target": "components/data-grid/interaction/history.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/rollback.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/rollback.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/index.ts"
@@ -574,6 +579,16 @@
                "path": "registry/default/blocks/data-grid/store/hidden-checked-rows.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/hidden-checked-rows.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/selected-rows.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/write-ack.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/write-ack.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/row-index.ts",

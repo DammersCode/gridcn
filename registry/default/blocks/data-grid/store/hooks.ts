@@ -566,7 +566,10 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges };
+  const rowId = s.writeStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
+  const writeStatus = rowId === undefined ? undefined : s.writeStatus.get(rowId);
+
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, writeStatus };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -595,6 +598,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingSession === b.editingSession &&
     a.editingError === b.editingError &&
     a.editingRejectionCount === b.editingRejectionCount &&
+    a.writeStatus === b.writeStatus &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&
