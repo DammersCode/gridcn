@@ -67,6 +67,10 @@ describe("checkParity", () => {
     expect(problems).toEqual(["sort: cell PS evidence tsconfig.json does not mention the mode (version)"]);
   });
 
+  it("skips the mode evidence check for a mode-neutral row", () => {
+    expect(check(matrix({ modeNeutral: true, cells: { L: supported, PS: unrelated } }))).toEqual([]);
+  });
+
   it("fails on a duplicate feature id", () => {
     const m = matrix();
     m.features.push(m.features[0]);

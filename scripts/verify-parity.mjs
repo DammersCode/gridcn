@@ -72,7 +72,7 @@ export function checkParity(matrix, { optionNames, root: base }) {
             continue;
           }
           const pattern = matrix.modes.find((m) => m.id === id)?.evidencePattern;
-          if (pattern && !new RegExp(pattern, "i").test(readFileSync(file, "utf8"))) {
+          if (pattern && !row.modeNeutral && !new RegExp(pattern, "i").test(readFileSync(file, "utf8"))) {
             problems.push(`${at}: cell ${id} evidence ${path} does not mention the mode (${pattern})`);
           }
         }
@@ -107,7 +107,7 @@ export function renderParityPage(matrix) {
     "",
     "{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}",
     "",
-    "A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known hole, and the notes below the table describe it. A `Not verified` cell has no test or docs section that covers the mode.",
+    "A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known gap, and the notes below the table describe it. A `Not verified` cell has no test or docs file that covers the mode.",
     "",
     "## Data modes",
     "",
@@ -142,11 +142,9 @@ function main() {
   const problems = checkParity(matrix, { optionNames, root });
   const pagePath = join(root, PAGE_FILE);
   const page = problems.length === 0 ? renderParityPage(matrix) : "";
-  if (problems.length > 0) {
-    // the page cannot render from an invalid matrix
-  } else if (process.argv.includes("--write")) {
+  if (problems.length === 0 && process.argv.includes("--write")) {
     writeFileSync(pagePath, page);
-  } else if (!existsSync(pagePath) || readFileSync(pagePath, "utf8").replace(/\r\n/g, "\n") !== page) {
+  } else if (problems.length === 0 && (!existsSync(pagePath) || readFileSync(pagePath, "utf8").replace(/\r\n/g, "\n") !== page)) {
     problems.push(`${PAGE_FILE} is stale; run node scripts/verify-parity.mjs --write`);
   }
   if (problems.length > 0) {

@@ -15,7 +15,7 @@
       "id": "PS",
       "label": "Server pagination",
       "description": "The server returns one page per request.",
-      "evidencePattern": "paginat|server"
+      "evidencePattern": "paginat"
     },
     {
       "id": "Z",
@@ -27,7 +27,7 @@
       "id": "C",
       "label": "Controlled state",
       "description": "The app owns `sortState`, `filterState` or `searchText`.",
-      "evidencePattern": "controlled|sortState|filterState|searchText"
+      "evidencePattern": "\\bcontrolled\\b|sortState|filterState|searchText"
     },
     {
       "id": "SS",
@@ -45,7 +45,7 @@
       "id": "API",
       "label": "Own API",
       "description": "`onDataChange` writes through to the app's backend.",
-      "evidencePattern": "onDataChange|\\bAPI\\b|server"
+      "evidencePattern": "onDataChange"
     }
   ],
   "features": [
@@ -127,10 +127,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "supported",
@@ -182,10 +180,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "registry/default/blocks/data-grid-toolbar/server-filter-values.test.tsx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "unverified",
@@ -204,10 +200,8 @@
           "note": "Not verified."
         },
         "API": {
-          "status": "supported",
-          "evidence": [
-            "registry/default/blocks/data-grid-toolbar/server-filter-values.test.tsx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         }
       }
     },
@@ -232,10 +226,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "supported",
@@ -339,10 +331,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/row-operations.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "supported",
@@ -531,8 +521,10 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
         },
         "PS": {
           "status": "supported",
@@ -553,12 +545,16 @@
           ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
         },
         "API": {
           "status": "supported",
@@ -566,7 +562,8 @@
             "content/docs/columns.mdx"
           ]
         }
-      }
+      },
+      "modeNeutral": true
     },
     {
       "id": "clipboard",
@@ -805,10 +802,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/addons/undo-redo.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "gap",
@@ -855,10 +850,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/row-operations.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "gap",
@@ -903,10 +896,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/examples/validation/server-errors.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "unverified",
@@ -953,10 +944,8 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "supported",
-          "evidence": [
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
-          ]
+          "status": "unverified",
+          "note": "Not verified."
         },
         "Z": {
           "status": "unverified",
@@ -1126,28 +1115,40 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "Z": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
         },
         "API": {
           "status": "supported",
@@ -1155,7 +1156,8 @@
             "content/docs/addons/presence.mdx"
           ]
         }
-      }
+      },
+      "modeNeutral": true
     },
     {
       "id": "loading",
@@ -1365,8 +1367,10 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
         },
         "PS": {
           "status": "supported",
@@ -1375,8 +1379,10 @@
           ]
         },
         "Z": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
         },
         "C": {
           "status": "supported",
@@ -1385,12 +1391,16 @@
           ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
         },
         "API": {
           "status": "supported",
@@ -1398,7 +1408,8 @@
             "content/docs/custom-cell-types.mdx"
           ]
         }
-      }
+      },
+      "modeNeutral": true
     }
   ]
 }

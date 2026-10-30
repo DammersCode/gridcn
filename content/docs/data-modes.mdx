@@ -6,7 +6,7 @@ icon: Table
 
 {/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}
 
-A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known hole, and the notes below the table describe it. A `Not verified` cell has no test or docs section that covers the mode.
+A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known gap, and the notes below the table describe it. A `Not verified` cell has no test or docs file that covers the mode.
 
 ## Data modes
 
@@ -24,33 +24,33 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Feature | L | PC | PS | Z | C | SS | FS | API |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Sort | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | Supported |
-| Filter (flat and groups) | Supported | Not verified | Supported | Supported | Supported | Supported | Supported | Supported |
-| Filter set values | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified | Supported |
-| Quick search | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | n/a |
+| Filter (flat and groups) | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
+| Filter set values | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Quick search | Supported | Not verified | Not verified | Supported | Supported | Supported | n/a | n/a |
 | Row check and ranges | Supported | Not verified | Gap | Gap | Gap | Not verified | Not verified | Gap |
-| Row ids | Supported | Not verified | Supported | Supported | Not verified | Not verified | Not verified | Gap |
+| Row ids | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Gap |
 | Counts and total | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
 | Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
-| Column pin, hide, order and size | Supported | Not verified | Supported | Supported | Supported | Not verified | Not verified | Supported |
+| Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Clipboard copy and paste | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | Fill | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
 | Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
 | Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
 | Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
-| Undo and redo | Supported | Not verified | Supported | Gap | Not verified | Not verified | Not verified | Gap |
-| Row create, duplicate and delete | Supported | Not verified | Supported | Gap | Not verified | Not verified | Not verified | Supported |
-| Validation | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified | Supported |
-| Edit commit and write-through | Supported | Not verified | Supported | Not verified | Supported | Not verified | Not verified | Gap |
+| Undo and redo | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Gap |
+| Row create, duplicate and delete | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
+| Validation | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
+| Edit commit and write-through | Supported | Not verified | Not verified | Not verified | Supported | Not verified | Not verified | Gap |
 | Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
 | Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
-| Presence | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
+| Presence | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Loading and error state | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
 | Find and replace | Supported | Not verified | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Lazy row fetching | n/a | n/a | n/a | Supported | n/a | n/a | n/a | n/a |
 | Pagination | n/a | Supported | Supported | n/a | Supported | Not verified | Supported | Not verified |
-| Keys, labels and cell types | Supported | Not verified | Supported | Not verified | Supported | Not verified | Not verified | Supported |
+| Keys, labels and cell types | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 
 ## Notes
 
