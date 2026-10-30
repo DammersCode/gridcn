@@ -14,6 +14,7 @@ import type {
   DataGridApi,
   DataGridPlugin,
   FilterNode,
+  FetchFilterValues,
   GridCommand,
   GridEditEndEvent,
   GridSelection,
@@ -162,6 +163,12 @@ export type DataGridSyncProps<TData = unknown> = {
    * A pending promise blocks a second delete. A throw or a rejection cancels.
    */
   onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>;
+  /**
+   * Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list
+   * per search. Columns with `options.choices` keep their declared list. Without it, both lists come
+   * from the loaded rows.
+   */
+  fetchFilterValues?: FetchFilterValues;
   /** Whole-column selection channel gestures (header click); default true. */
   enableColumnSelection?: boolean;
   /** Multi-cell rectangular range gestures (shift-click/drag, shift+arrow); false collapses to single-cell active only. Default true. */
@@ -223,6 +230,12 @@ export type DataGridSyncProps<TData = unknown> = {
   onSortChange?: (next: SortSpec[]) => void;
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
+  /**
+   * Who filters the rows. `"client"` (default): the grid filters `data` by `filterState`. `"server"`:
+   * the grid only tracks the spec (filter menu, header filters, `data-filtered`, `onFilterChange`) and
+   * never filters `data`; the consumer fetches the matching rows, e.g. with `useDataGridLazyRows`.
+   */
+  filterMode?: "client" | "server";
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
   defaultFilterState?: FilterNode[];
   /** Fires whenever the user (or `actions.setFilters`) would change the filters, controlled or not; see `filterState`. */
@@ -358,8 +371,10 @@ export type DataGridSyncProps<TData = unknown> = {
      */
     onCellClick?: OnCellClick<TData>;
     /**
-     * Fired after a row-window commit with the rendered data-row range `[start, end)` (inclusive
-     * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). Only fires when the
+     * Fired after a row-window commit with the rendered view-row range `[start, end)` (inclusive
+     * start, exclusive end — same convention as `useRowWindow`'s `RowWindow`). It is a data-row range
+     * only while the view is the identity: no client-side sort or filter is active (`sortMode="server"`
+     * and `filterMode="server"` keep it so). Only fires when the
      * range actually changed since the last call, including once for the initial mount commit; a
      * scroll tick that stays within the current window's overscan buffer does not re-fire it.
      * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
@@ -705,6 +720,8 @@ export type DataGridStoreState = Omit<
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
+  /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
+  filterMode: "client" | "server";
   filterState: FilterNode[];
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;

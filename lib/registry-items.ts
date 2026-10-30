@@ -41,6 +41,7 @@ export type RegistryItemName =
   | "data-grid-filter-operators-demo"
   | "data-grid-global-shortcuts-demo"
   | "data-grid-header-filter-demo"
+  | "data-grid-server-filter-demo"
   | "data-grid-history-demo"
   | "data-grid-i18n-demo"
   | "data-grid-io-demo"

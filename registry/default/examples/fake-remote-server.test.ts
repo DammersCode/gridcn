@@ -86,3 +86,31 @@ describe("createRemoteServer filter groups", () => {
     await expect(server.fetchPage({ page: 1, pageSize: 1, filters: groups(17) })).rejects.toThrow("invalid filter group");
   });
 });
+
+describe("createRemoteServer ranges and values", () => {
+  it("returns a window of the filtered list with the filtered total", async () => {
+    const server = createRemoteServer();
+    const filters = [{ columnId: "role", operator: "isAnyOf", value: ["admin"] }];
+    const all = await server.fetchRange({ start: 0, end: 1000, filters });
+    const window = await server.fetchRange({ start: 2, end: 5, filters });
+
+    expect(window.total).toBe(all.total);
+    expect(window.rows.map((row) => row.id)).toEqual(all.rows.slice(2, 5).map((row) => row.id));
+    expect(all.rows.every((row) => row.role === "Admin")).toBe(true);
+  });
+
+  it("counts the distinct values of a column, narrowed by search and by the other filters", async () => {
+    const server = createRemoteServer();
+    const everyone = await server.fetchValues({ columnId: "role", search: "" });
+    const searched = await server.fetchValues({ columnId: "role", search: "ADM" });
+    const narrowed = await server.fetchValues({ columnId: "role", search: "", filters: [{ columnId: "role", operator: "isAnyOf", value: ["Admin"] }] });
+
+    expect(everyone.values.reduce((sum, value) => sum + value.count, 0)).toBe(server.total);
+    expect(searched.values.map((value) => value.label)).toEqual(["Admin"]);
+    expect(narrowed.values.map((value) => value.label)).toEqual(["Admin"]);
+  });
+
+  it("rejects a column outside the allowed set", async () => {
+    await expect(createRemoteServer().fetchValues({ columnId: "secret", search: "" })).rejects.toThrow();
+  });
+});

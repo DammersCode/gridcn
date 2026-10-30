@@ -100,4 +100,22 @@ describe("DataGridFilterValueInput", () => {
     fireEvent.click(options[1]!);
     expect(onValueChange).toHaveBeenCalledWith(["Berlin", "Bonn", "gone"]);
   });
+
+  it("lists the provider values for isAnyOf, keeps selected values the list does not show, and skips the local pass", async () => {
+    const columns: readonly ColumnDef<{ id: string; city: string }, unknown>[] = [{ id: "city", header: "City", accessorKey: "city" }];
+    const fetchFilterValues = vi.fn(async () => ({ values: [{ label: "Paris", count: 4 }, { label: "Rome" }] }));
+    const onValueChange = vi.fn();
+    render(
+      <DataGridProvider data={[{ id: "1", city: "Local" }]} columns={columns} getRowId={(r) => r.id} fetchFilterValues={fetchFilterValues}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isAnyOf" value={["paris", "gone"]} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false"]);
+    expect(options).toHaveLength(2);
+    expect(fetchFilterValues).toHaveBeenCalledWith(expect.objectContaining({ columnId: "city", search: "" }));
+    fireEvent.click(options[1]!);
+    expect(onValueChange).toHaveBeenCalledWith(["Paris", "Rome", "gone"]);
+  });
 });

@@ -97,12 +97,13 @@ rendering performance, and using the two together is not supported. When to pick
     "use client";
 
     import { useEffect, useState } from "react";
-    import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+    import { DataGrid, defineColumns, type FilterNode } from "@/components/data-grid/data-grid";
     import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
     function OrdersGrid() {
       const [page, setPage] = useState(1);
       const [pageSize, setPageSize] = useState(25);
+      const [filters, setFilters] = useState<FilterNode[]>([]);
       const [rows, setRows] = useState<Order[]>([]);
       const [total, setTotal] = useState(0);
 
@@ -110,13 +111,13 @@ rendering performance, and using the two together is not supported. When to pick
         // Guard against stale responses: a page-2 answer arriving after page-3's request
         // must not overwrite page-3's rows (fast page clicks race the network).
         let stale = false;
-        api.orders({ page, pageSize }).then((res) => {
+        api.orders({ page, pageSize, filters }).then((res) => {
           if (stale) return;
           setRows(res.rows);
           setTotal(res.total);
         });
         return () => { stale = true; };
-      }, [page, pageSize]);
+      }, [page, pageSize, filters]);
 
       const pager = useDataGridPagination({
         page,
@@ -128,12 +129,27 @@ rendering performance, and using the two together is not supported. When to pick
 
       return (
         <>
-          <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
+          <DataGrid
+            data={rows}
+            columns={columns}
+            getRowId={(row) => row.id}
+            filterMode="server"
+            onFilterChange={(next) => {
+              setFilters(next);
+              setPage(1);
+            }}
+          />
           <DataGridPaginationBar {...pager.controls} />
         </>
       );
     }
     ```
+
+    <NewBadge />
+
+    `filterMode="server"` keeps the grid from filtering the fetched page again. The filter spec goes
+    to your server with the page, and the server returns the filtered `total`. A filter change moves
+    back to page 1.
 
     `pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
     current page, so there is nothing left for the hook to slice.

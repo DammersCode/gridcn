@@ -13,6 +13,7 @@ import {
 import { resolveFilterValueInput, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { distinctColumnValues } from "./distinct-values";
+import { useServerFilterValues } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 import {
   DropdownMenu,
@@ -166,16 +167,19 @@ function AnyOfValueInput(props: {
   );
 }
 
-function SetValueBody(props: { columnId: string; selected: readonly string[]; onValueChange: (value: string[]) => void }): ReactNode {
-  const { columnId, selected, onValueChange } = props;
+function SetValueBody(props: { column: AnyColumnDef; selected: readonly string[]; onValueChange: (value: string[]) => void }): ReactNode {
+  const { column, selected, onValueChange } = props;
   const labels = useDataGridLabels().toolbar;
   const storeApi = useDataGridStoreApi();
   const listId = useId();
   const search = useDebouncedSearch();
-  const [options] = useState<(SetFilterOption & { text: string })[]>(() =>
-    distinctColumnValues(storeApi.getState(), columnId).values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
+  const server = useServerFilterValues(column, search.query);
+  const [localOptions] = useState<(SetFilterOption & { text: string })[]>(() =>
+    server ? [] : distinctColumnValues(storeApi.getState(), column.id).values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
   );
-  const visible = filterSetOptions(options, search.query);
+  const options = server ? server.options : localOptions;
+  const visible = server ? options : filterSetOptions(options, search.query);
+  const serverLine = server?.status === "error" ? labels.headerFilterError : server?.status === "loading" && options.length === 0 ? labels.headerFilterLoading : null;
   const checked = new Set(selected.map((value) => value.toLowerCase()));
 
   const toggle = (key: string) => {
@@ -195,12 +199,17 @@ function SetValueBody(props: { columnId: string; selected: readonly string[]; on
         className="h-8 w-full"
       />
       <SetFilterList key={search.query} options={visible} checked={checked} onToggle={toggle} onEnter={() => {}} idPrefix={listId} ariaLabel={labels.filterValueAriaLabel} />
+      {serverLine && (
+        <div aria-live="polite" className="text-xs text-muted-foreground">
+          {serverLine}
+        </div>
+      )}
     </>
   );
 }
 
 /** The `isAnyOf`/`isNoneOf` input for a column without `choices`: a popover list of the column's distinct values. Values outside the list stay in the selection. */
-function SetValueInput(props: { columnId: string; selected: readonly string[]; onValueChange: (value: string[]) => void; ariaLabel: string; summary: string }): ReactNode {
+function SetValueInput(props: { column: AnyColumnDef; selected: readonly string[]; onValueChange: (value: string[]) => void; ariaLabel: string; summary: string }): ReactNode {
   const { ariaLabel, summary, ...body } = props;
   return (
     <Popover>
@@ -243,7 +252,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     if (column && choices.length === 0) {
       return (
         <SetValueInput
-          columnId={column.id}
+          column={column}
           selected={selected}
           onValueChange={onValueChange}
           ariaLabel={labels.toolbar.filterValueAriaLabel}

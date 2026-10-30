@@ -8,9 +8,9 @@ export type DistinctValue = { key: string; text: string; label: string; count: n
 
 export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHoles: boolean };
 
-export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState">;
+export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server" };
 
-const isOwnSetFilter = (node: FilterNode, columnId: string) =>
+export const isOwnSetFilter = (node: FilterNode, columnId: string) =>
   !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf");
 
 function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown): string {
@@ -33,7 +33,7 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
   if (!column) return { values: [], capped: false, hasHoles: false };
   const { data } = state;
   const accessor = rowAccessorFor(state.columns, data, state.cellTypes);
-  const passes = makeFilterPredicate(accessor, state.filterState.filter((node) => !isOwnSetFilter(node, columnId)));
+  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId)));
 
   const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;

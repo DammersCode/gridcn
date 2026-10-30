@@ -35,6 +35,7 @@ import {
   clampCursor,
   computeViewIndex,
   viewSorts,
+  viewFilters,
   defHiddenColumnIds,
   flashCellKey,
   flashKeyRowId,
@@ -190,6 +191,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
   const initSortMode = init.sortMode ?? "client";
+  const initFilterMode = init.filterMode ?? "client";
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
@@ -202,7 +204,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     cellTypes: initCellTypes,
     columns: effectiveLayout.columns,
     sortState: viewSorts(initSortMode, initSortState),
-    filterState: initFilterState,
+    filterState: viewFilters(initFilterMode, initFilterState),
     searchText: initSearchText,
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
@@ -502,10 +504,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  if (init.keepCheckedRows && init.keepHiddenCheckedRows && initSortMode === "server") {
-    warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+  if (init.keepCheckedRows && init.keepHiddenCheckedRows && (initSortMode === "server" || initFilterMode === "server")) {
+    warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), initFilterState, undefined, initCellTypes);
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -726,13 +728,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
-          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && s.sortMode === "server") {
-            warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && (s.sortMode === "server" || s.filterMode === "server")) {
+            warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           return {
             ...selectionConfig,
-            ...(s.hiddenCheckedRowIds.size > 0 && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode }) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+            ...(s.hiddenCheckedRowIds.size > 0 && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
+            fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),
             plugins: nextPlugins ?? s.plugins,
             commands: commandsUpdated ? nextCommands : s.commands,
@@ -778,10 +781,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextSortMode = props.sortMode ?? "client";
+          const nextFilterMode = props.filterMode ?? "client";
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
-          const serverSort = nextSortMode === "server";
-          if (serverSort && s.keepCheckedRows && s.keepHiddenCheckedRows) {
-            warnHiddenCheckedIgnored("with sortMode=\"server\" (the grid does not hold every row)");
+          const serverRows = nextSortMode === "server" || nextFilterMode === "server";
+          if (serverRows && s.keepCheckedRows && s.keepHiddenCheckedRows) {
+            warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           const nextSearchText = props.searchText ?? s.searchText;
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
@@ -829,7 +833,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             cellTypes: nextCellTypes,
             columns: nextColumns,
             sortState: nextViewSorts,
-            filterState: nextFilterState,
+            filterState: viewFilters(nextFilterMode, nextFilterState),
             searchText: nextSearchText,
             columnOrder: s.columnOrder,
             hiddenColumns: nextHiddenColumns,
@@ -844,7 +848,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
           const nextViewIndex = unchanged
             ? s.viewIndex
-            : computeViewIndex(nextData, nextColumns, nextViewSorts, nextFilterState, s.viewIndex, nextCellTypes);
+            : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes);
           // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
           // merged over the incoming column state; a new `columns` array re-applies the controlled
           // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
@@ -926,6 +930,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const flagsChanged =
             s.sortControlled !== (props.sortState !== undefined) ||
             s.sortMode !== nextSortMode ||
+            s.filterMode !== nextFilterMode ||
+            s.filterState !== nextFilterState ||
             s.sortState !== nextSortState ||
             s.filterControlled !== (props.filterState !== undefined) ||
             s.searchControlled !== (props.searchText !== undefined);
@@ -955,6 +961,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               (propsColumnsChanged || groupsChanged ? computeColumnLayout(nextColumns, s.columnOrder, s.columnWidths, nextHiddenColumns) : s.columnLayout),
             sortState: nextSortState,
             sortMode: nextSortMode,
+            filterMode: nextFilterMode,
             filterState: nextFilterState,
             searchText: nextSearchText,
             sortControlled: props.sortState !== undefined,
@@ -966,7 +973,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
-            ...(serverSort && s.hiddenCheckedRowIds.size > 0 ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+            ...(serverRows && s.hiddenCheckedRowIds.size > 0 ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
             // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
             ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
@@ -1064,6 +1071,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     columnGroupModel: groupModel,
     sortState: initSortState,
     sortMode: initSortMode,
+    filterMode: initFilterMode,
     filterState: initFilterState,
     searchText: initSearchText,
     searchOptions: initSearchOptions,
@@ -1395,7 +1403,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // Controlled: _syncProps writes the consumer's next `sortState` prop.
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1411,7 +1419,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onSortChange?.(sorts);
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), s2.filterState, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1429,7 +1437,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         s.onFilterChange?.(withIds);
         if (s.filterControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), withIds, s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes);
           resetDeferredRows(dataWrite);
           return {
             filterState: withIds,
@@ -1541,7 +1549,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
   store.subscribe((state, prev) => {
     if (!resultsAnnouncementArmed || !state.announceResults || state.sortMode !== "client") return;
-    if (state.filterState === prev.filterState && state.sortState === prev.sortState) return;
+    const filterMoved = state.filterMode === "client" && state.filterState !== prev.filterState;
+    if (!filterMoved && state.sortState === prev.sortState) return;
     if (sameRows(state.viewIndex, prev.viewIndex) && sortKey(state) === sortKey(prev)) return;
     const loaded = loadedRowCount(state.viewIndex, state.data);
     store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < state.viewIndex.length) });

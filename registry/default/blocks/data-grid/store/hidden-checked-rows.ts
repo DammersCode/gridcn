@@ -8,9 +8,9 @@ export const NO_HIDDEN_CHECKED_ROWS: ReadonlySet<string> = new Set<string>();
 
 type RowIdOf = (row: unknown, index: number) => string;
 
-/** Whether checked rows that a filter hides are remembered: needs `keepCheckedRows` and a client-sorted grid. */
-export function hiddenCheckedRowsActive(s: Pick<DataGridStoreState, "keepCheckedRows" | "keepHiddenCheckedRows" | "sortMode">): boolean {
-  return s.keepCheckedRows && s.keepHiddenCheckedRows && s.sortMode !== "server";
+/** Whether checked rows that a filter hides are remembered: needs `keepCheckedRows` and a client-sorted, client-filtered grid. */
+export function hiddenCheckedRowsActive(s: Pick<DataGridStoreState, "keepCheckedRows" | "keepHiddenCheckedRows" | "sortMode" | "filterMode">): boolean {
+  return s.keepCheckedRows && s.keepHiddenCheckedRows && s.sortMode !== "server" && s.filterMode !== "server";
 }
 
 function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {

@@ -693,6 +693,13 @@ export function viewSorts(mode: "client" | "server", sorts: SortSpec[]): SortSpe
   return mode === "server" ? NO_SORTS : sorts;
 }
 
+const NO_FILTERS: FilterNode[] = [];
+
+/** The filters a view rebuild applies: none in `"server"` mode, where the consumer's rows arrive pre-filtered. */
+export function viewFilters(mode: "client" | "server", filters: FilterNode[]): FilterNode[] {
+  return mode === "server" ? NO_FILTERS : filters;
+}
+
 export function computeViewIndex(
   data: readonly unknown[],
   allColumns: readonly AnyColumnDef[],

@@ -153,8 +153,33 @@ The filter menu uses the same list for `isAnyOf` and `isNoneOf` on a column with
 | `column` | `AnyColumnDef` | required | The column that the button filters. |
 | `index` | `number` | required | The index of the column in the header. |
 
+### Server values
+
+<NewBadge />
+
+Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server. The popover calls it when it opens and once for each debounced search. The `isAnyOf` input of the filter menu calls it the same way.
+
+<ComponentPreview name="data-grid-server-filter-demo" />
+
+| Prop | Type | Default | Meaning |
+|---|---|---|---|
+| `fetchFilterValues` | `(ctx) => Promise<{ values: { label: string; count?: number }[] }>` | none | Returns the values of one column. Without it, the list reads the loaded rows. |
+
+The `ctx` object holds:
+
+| Field | Meaning |
+|---|---|
+| `columnId` | The column of the popover. |
+| `search` | The text of the search box, as typed. The grid never filters the answer with it. Treat it as untrusted input. |
+| `filters` | Every filter except the set filter of this column. Use it to count values over the other filters, or ignore it. |
+| `signal` | Aborts when the search changes, the popover closes, or the grid unmounts. |
+
+The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request shows one error line, and the next open asks again. Set the texts with `toolbar.headerFilterLoading` and `toolbar.headerFilterError`.
+
+A column with `options.choices` keeps its declared list and never calls `fetchFilterValues`. The grid reads at most 1,000 values from an answer and renders each label as text. A header filter over server values stores the checked values with `isAnyOf`, and the popover does not show the "From loaded rows" hint. Checked values stay checked when a search hides them.
+
 <Callout type="warn">
-  With lazy rows or `sortMode="server"`, the list shows only the values of the loaded rows. A value
+  Without `fetchFilterValues`, lazy rows, `sortMode="server"`, or `filterMode="server"` make the list show only the values of the loaded rows. A value
   that exists only on the server is missing from the list. Your server decides which rows the
   grid loads, so it decides which values the list can show. The popover then shows the hint
   "From loaded rows". Server pagination with client sorting loads whole pages, so the hint stays hidden. Set the text with the `toolbar.headerFilterLoadedRowsOnly` label.

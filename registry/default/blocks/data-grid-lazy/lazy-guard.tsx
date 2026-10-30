@@ -25,26 +25,27 @@ let warned = false;
  * controlled. A change to any of the three while holes still exist means either an uncontrolled
  * header-click/filter-menu/search gesture fired (client-side, over incomplete data) or the
  * consumer's controlled `filterState`/`searchText` changed. This guard can't tell those apart, so
- * it warns either way. Sort changes are ignored under `sortMode="server"`, where the server owns
- * the order. Zero cost in production (isDev() short-circuits).
+ * it warns either way. Sort changes are ignored under `sortMode="server"` and filter changes under
+ * `filterMode="server"`, where the server owns the order and the row set. Zero cost in production (isDev() short-circuits).
  */
 export function DataGridLazyGuard({ hasHoles }: DataGridLazyGuardProps): ReactNode {
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
   const searchText = useDataGridSearchText();
   const serverSort = useDataGridSelector((s) => s.sortMode === "server");
+  const serverFilter = useDataGridSelector((s) => s.filterMode === "server");
 
   const prevRef = useRef({ sortState, filterState, searchText });
   useEffect(() => {
     const prev = prevRef.current;
-    const changed = (!serverSort && prev.sortState !== sortState) || prev.filterState !== filterState || prev.searchText !== searchText;
+    const changed = (!serverSort && prev.sortState !== sortState) || (!serverFilter && prev.filterState !== filterState) || prev.searchText !== searchText;
     prevRef.current = { sortState, filterState, searchText };
     if (!isDev() || !changed || !hasHoles || warned) return;
     warned = true;
     console.warn(
-      "[data-grid-lazy] sort/filter/search changed while rows are still unloaded. Client-side sort/filter/search cannot see rows it hasn't fetched — use sortMode=\"server\" with onSortChange for sorting, and hand filterState/searchText to your backend, when using useDataGridLazyRows.",
+      "[data-grid-lazy] sort/filter/search changed while rows are still unloaded. Client-side sort/filter/search cannot see rows it hasn't fetched — use sortMode=\"server\" with onSortChange for sorting, filterMode=\"server\" with onFilterChange for filtering, and hand searchText to your backend, when using useDataGridLazyRows.",
     );
-  }, [sortState, filterState, searchText, serverSort, hasHoles]);
+  }, [sortState, filterState, searchText, serverSort, serverFilter, hasHoles]);
 
   return null;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilterNode, FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planSetFilter } from "./apply-set-filter";
+import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
 
 const BOTH: FilterOperator[] = ["contains", "isAnyOf", "isNoneOf"];
 const keys = ["a", "b", "c", "d", "e", "f"];
@@ -183,5 +183,51 @@ describe("set filter rows inside a group", () => {
 
   it("planSetFilter reports unchanged when only a group holds the column and every value is checked", () => {
     expect(plan(keys, [inGroup])).toEqual({ status: "unchanged" });
+  });
+});
+
+describe("planServerSetFilter", () => {
+  const known = new Map([["a", "A"], ["b", "B"], ["c", "C"]]);
+  const serverPlan = (checked: string[], filters: FilterNode[] = [], allowed: readonly FilterOperator[] = BOTH) =>
+    planServerSetFilter({ filters, columnId: "city", known, checked: new Set(checked), allowed });
+
+  it("stores isAnyOf with the checked texts, never isNoneOf, for a list that may be partial", () => {
+    expect(serverPlan(["a", "b", "c"])).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["A", "B", "C"] }] });
+  });
+
+  it("blocks when nothing is checked", () => {
+    expect(serverPlan([])).toEqual({ status: "blocked", reason: "none-checked" });
+  });
+
+  it("keeps an existing value the list does not show", () => {
+    const existing: FilterNode[] = [{ columnId: "city", operator: "isAnyOf", value: ["a", "zed"] }];
+    expect(serverPlan(["a", "b"], existing)).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["A", "B", "zed"] }] });
+  });
+
+  it("keeps isNoneOf for an existing exclusion and lists the unchecked texts", () => {
+    const existing: FilterNode[] = [{ columnId: "city", operator: "isNoneOf", value: ["b", "zed"] }];
+    expect(serverPlan(["a"], existing)).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isNoneOf", value: ["B", "C", "zed"] }] });
+  });
+
+  it("removes the exclusion when every listed value is checked again and none is hidden", () => {
+    const existing: FilterNode[] = [{ columnId: "city", operator: "isNoneOf", value: ["b"] }];
+    expect(serverPlan(["a", "b", "c"], existing)).toEqual({ status: "apply", filters: [] });
+  });
+
+  it("is unchanged when the entry would not move", () => {
+    const existing: FilterNode[] = [{ columnId: "city", operator: "isAnyOf", value: ["A"] }];
+    expect(serverPlan(["a"], existing)).toEqual({ status: "unchanged" });
+  });
+
+  it("blocks past the entry cap", () => {
+    const many = new Map(Array.from({ length: MAX_SET_FILTER_ENTRIES + 1 }, (_, i) => [`k${i}`, `K${i}`] as const));
+    const result = planServerSetFilter({ filters: [], columnId: "city", known: many, checked: new Set(many.keys()), allowed: BOTH });
+    expect(result).toEqual({ status: "blocked", reason: "too-many" });
+  });
+
+  it("keeps other filters in place", () => {
+    const other: FilterNode = { columnId: "age", operator: "gt", value: "3" };
+    const result = serverPlan(["a"], [other]);
+    expect(result).toEqual({ status: "apply", filters: [other, { columnId: "city", operator: "isAnyOf", value: ["A"] }] });
   });
 });

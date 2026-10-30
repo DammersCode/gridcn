@@ -19,8 +19,9 @@ import {
   useDataGridIsColumnFiltered,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planSetFilter } from "./apply-set-filter";
-import { distinctColumnValues } from "./distinct-values";
+import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
+import { distinctColumnValues, isOwnSetFilter } from "./distinct-values";
+import { useServerFilterValues, useServerFilterValuesEnabled } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 
 /** Props for {@link DataGridHeaderFilter} — matches the core's `renderHeaderFilter` render-prop ctx exactly. */
@@ -39,53 +40,67 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
 
+  const serverEnabled = useServerFilterValuesEnabled(column);
   const [loaded] = useState(() => {
     const state = storeApi.getState();
-    const distinct = distinctColumnValues(state, column.id);
-    const keys = distinct.values.map((value) => value.key);
-    const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
     let inGroup = false;
     for (const node of state.filterState) {
       if (isFilterGroup(node)) forEachFilterSpec([node], (f) => void (inGroup = inGroup || f.columnId === column.id));
     }
-    return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
+    if (serverEnabled) {
+      return { values: [], capped: false, hasHoles: false, inGroup, partial: false, keys: [] as string[], texts: new Map<string, string>(), openFilters: state.filterState, initiallyChecked: new Set<string>() };
+    }
+    const distinct = distinctColumnValues(state, column.id);
+    const keys = distinct.values.map((value) => value.key);
+    const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
+    return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server" || state.filterMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
   });
-  const options = useMemo<SetFilterOption[]>(
+  const search = useDebouncedSearch();
+  const { query } = search;
+  const server = useServerFilterValues(column, query);
+  const localOptions = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
     [loaded.values, labels.headerFilterBlanks],
   );
+  const options: readonly SetFilterOption[] = server ? server.options : localOptions;
 
-  const [checked, setChecked] = useState<ReadonlySet<string>>(loaded.initiallyChecked);
+  const known = server ? server.known : loaded.texts;
+  const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+  const checked = useMemo<ReadonlySet<string>>(() => {
+    // A server list may be partial, so without a set entry nothing starts checked.
+    const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id));
+    const next = server ? (hasEntry ? checkedKeysFromFilters(loaded.openFilters, column.id, [...known.keys()]) : new Set<string>()) : new Set(loaded.initiallyChecked);
+    for (const [key, on] of overrides) {
+      if (on) next.add(key);
+      else next.delete(key);
+    }
+    return next;
+  }, [server, known, loaded.openFilters, loaded.initiallyChecked, column.id, overrides]);
   const [applyBlocked, setApplyBlocked] = useState(false);
-  const search = useDebouncedSearch();
-  const { query } = search;
-  const visible = useMemo(() => filterSetOptions(options, query), [options, query]);
+  const visible = useMemo(() => (server ? options : filterSetOptions(options, query)), [server, options, query]);
   const checkedVisible = visible.reduce((count, option) => count + (checked.has(option.key) ? 1 : 0), 0);
 
   const allowed = resolveFilterOperators(column, cellTypes[column.type ?? "text"]);
-  const plan = planSetFilter({ filters: loaded.openFilters, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed });
+  const planFor = (filters: typeof loaded.openFilters) =>
+    server
+      ? planServerSetFilter({ filters, columnId: column.id, known, checked, allowed })
+      : planSetFilter({ filters, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed });
+  const plan = planFor(loaded.openFilters);
   const tooMany = applyBlocked || (plan.status === "blocked" && plan.reason === "too-many");
   const canApply = plan.status !== "blocked";
 
   const toggle = (key: string) => {
     setApplyBlocked(false);
-    setChecked((current) => {
-      const next = new Set(current);
-      if (!next.delete(key)) next.add(key);
-      return next;
-    });
+    setOverrides((current) => new Map(current).set(key, !checked.has(key)));
   };
 
   const toggleVisible = () => {
     setApplyBlocked(false);
-    const typed = filterSetOptions(options, search.draft);
-    setChecked((current) => {
-      const next = new Set(current);
-      const allChecked = typed.length > 0 && typed.every((option) => next.has(option.key));
-      for (const option of typed) {
-        if (allChecked) next.delete(option.key);
-        else next.add(option.key);
-      }
+    const typed = server ? options : filterSetOptions(options, search.draft);
+    const allChecked = typed.length > 0 && typed.every((option) => checked.has(option.key));
+    setOverrides((current) => {
+      const next = new Map(current);
+      for (const option of typed) next.set(option.key, !allChecked);
       return next;
     });
   };
@@ -93,7 +108,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const apply = () => {
     if (!canApply) return;
     const state = storeApi.getState();
-    const fresh = planSetFilter({ filters: state.filterState, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed });
+    const fresh = planFor(state.filterState);
     if (fresh.status === "blocked") {
       setApplyBlocked(true);
       return;
@@ -118,7 +133,8 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
     }
   };
 
-  const status = tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : loaded.capped ? labels.headerFilterCapped : labels.headerFilterSelectedCount(checkedVisible, visible.length);
+  const serverLine = server?.status === "error" ? labels.headerFilterError : server?.status === "loading" && server.options.length === 0 ? labels.headerFilterLoading : null;
+  const status = serverLine ?? (tooMany ? labels.headerFilterTooManySelected(MAX_SET_FILTER_ENTRIES) : (server ? server.capped : loaded.capped) ? labels.headerFilterCapped : labels.headerFilterSelectedCount(checkedVisible, visible.length));
   const selectAllState = visible.length > 0 && checkedVisible === visible.length ? true : checkedVisible > 0 ? "mixed" : false;
 
   return (

@@ -236,3 +236,7 @@ the canonical definition, and [Recipes](/docs/recipes/data-fetching/server-side-
 server-side pattern.
 
 When `data` holds only part of the result set, set `sortMode="server"`: the grid tracks the sort spec and never reorders `data`. See [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid).
+
+<NewBadge />
+
+`filterMode="server"` is the same switch for filters. The grid tracks `filterState`, shows the filter indicators, and calls `onFilterChange`, but never filters `data`. See [Lazy loading](/docs/lazy-loading#filtering-a-lazy-grid).

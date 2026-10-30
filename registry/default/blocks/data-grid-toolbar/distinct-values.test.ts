@@ -117,3 +117,16 @@ describe("distinctColumnValues", () => {
     expect(summary(result)).toEqual([["", "", 2], ["bonn", "Bonn", 1]]);
   });
 });
+
+describe("distinctColumnValues under filterMode server", () => {
+  it("ignores the filters: the server already applied them", () => {
+    const state = {
+      data: [{ city: "A" }, { city: "B" }],
+      columns: [{ id: "city", header: "City", accessorKey: "city" }],
+      cellTypes: {},
+      filterState: [{ columnId: "city", operator: "equals", value: "A" }],
+      filterMode: "server",
+    } as unknown as Parameters<typeof distinctColumnValues>[0];
+    expect(distinctColumnValues(state, "city").values.map((v) => v.text)).toEqual(["A", "B"]);
+  });
+});

@@ -54,6 +54,17 @@ function ServerSyncedGrid() {
   this. It only removes the header's click and indicator, never the comparator.
 </Callout>
 
+<Callout type="warn" title="A non-empty `filterState` is still applied to `data`">
+  <NewBadge />
+
+  The grid filters `data` by whatever `filterState` holds, unless `filterMode="server"` is set.
+  That is harmless when the server returns the whole filtered result. It is not harmless when
+  `data` holds only part of the result set: a positive filter drops the unloaded rows, and the
+  lazy fetch asks for the wrong rows. `filterMode="server"` stops the local filter. On each filter
+  change, update the total to the filtered count and reset the loaded rows, as in
+  [Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
+</Callout>
+
 <Callout type="idea" title="Client-side sort/filter needs none of this">
   This is the common case, which works well up to the 100k-row comfort target. Omit `sortState`,
   `filterState`, `onSortChange`, and `onFilterChange`, and let the grid own the state
@@ -63,5 +74,6 @@ function ServerSyncedGrid() {
 ## Related
 
 - [Lazy loading](/docs/lazy-loading#sorting-a-lazy-grid): a server-sorted grid that loads rows by window.
+- [Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid): the same grid with a server filter.
 - [Pagination](/docs/pagination): page the server result.
 - [Remember the user's view](/docs/recipes/ui-patterns/remember-view): save the same state between visits.

@@ -286,8 +286,56 @@ Three details make this work:
 Use `lazy.isLoading` to show a busy state while the refetch is in flight, for example to dim
 the grid.
 
-Filtering follows the same rule for the same reason: `filterState` narrows `data` locally when
-set. `searchText` never narrows anything. It only highlights and navigates matches over the
+## Filtering a lazy grid
+
+<NewBadge />
+
+The filter must run on the server. Set `filterMode="server"`: the grid tracks the filter spec
+(the filter menu, the header filters, `data-filtered`) and calls `onFilterChange`, but never
+filters `data`. The view keeps one row per index, so the range from `onRenderedRowsChange` maps to
+data indices. Hold the spec in your own state, send it to `fetchRows`, and set `total` to the
+filtered row count:
+
+```tsx
+const [applied, setApplied] = useState<{ filters: FilterNode[]; total: number }>({ filters: [], total: 100_000 });
+
+const lazy = useDataGridLazyRows<Order>({
+  total: applied.total,
+  getRowId: (row) => row.id,
+  fetchRows: (start, end, signal) => api.orders({ start, end, filters: applied.filters, signal }),
+});
+
+const onFilterChange = async (filters: FilterNode[]) => {
+  const { total } = await api.count({ filters });
+  setApplied({ filters, total });
+  lazy.reset();
+};
+
+<DataGridProvider
+  data={lazy.gridProps.data}
+  getRowId={lazy.gridProps.getRowId}
+  onDataChange={lazy.onDataChange}
+  onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
+  filterMode="server"
+  onFilterChange={onFilterChange}
+>
+```
+
+<ComponentPreview name="data-grid-server-filter-demo" />
+
+Two details make this work:
+
+- **A filter change discards loaded rows and sets a new `total`.** Fetched ranges hold rows of the
+  old spec, so call `lazy.reset()`. If `total` stays at the unfiltered count, the view keeps
+  empty rows for the filtered-out rows, and scrolling cannot reach the whole filtered result.
+- **The header filter lists values from your server.** Pass `fetchFilterValues` to show every
+  value of a column, not only the loaded ones. See [Header filter](/docs/addons/toolbar#header-filter).
+
+A spec that exists at mount, from `defaultFilterState` or a controlled `filterState`, never
+triggers `DataGridLazyGuard`. With `filterMode="server"` the grid keeps the identity view for it.
+Without `filterMode="server"`, the grid filters the loaded rows only.
+
+`searchText` never narrows anything. It only highlights and navigates matches over the
 rows already in `data`, so a search over a partial array highlights matches in the loaded part
 and nothing more.
 
@@ -298,8 +346,10 @@ and nothing more.
   over a partial array.
 
   Mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` (see
-  the usage example above) to get a dev-only console warning if an uncontrolled sort, filter, or
-  search gesture fires while rows are still unloaded. It cannot stop the gesture, but it flags the
+  the usage example above) to get a dev-only console warning, once per page load, if a sort, filter,
+  or search change reaches the store while rows are still unloaded. A controlled `filterState` that
+  changes triggers it too. `sortMode="server"` and `filterMode="server"` exempt the sort and the
+  filter changes. It cannot stop the gesture, but it flags the
   incompatible combination the moment it happens, instead of leaving you to notice wrong-looking
   results later. Clipboard and fill across unloaded ranges are blocked the same way as a
   non-writable column: a plain skip, not an error. Aggregates over a lazy grid are unsupported for
@@ -307,11 +357,11 @@ and nothing more.
   dataset (see [Pinned rows](/docs/addons/pinned-rows)).
 </Callout>
 
-<Callout type="warn" title="DataGridUrlState is incompatible with a lazy grid">
+<Callout type="warn" title="DataGridUrlState needs both server modes on a lazy grid">
   `DataGridUrlState` (from [URL state](/docs/addons/url-state)) writes its URL sort, filter, and
-  search spec into the store on mount. That is the client-side view state a lazy grid keeps out of
-  the store, so the add-on re-sorts the partial `data`. Do not mount it on a lazy grid. Hold the
-  spec in your own state, as above.
+  search spec into the store on mount. With `sortMode="server"` and `filterMode="server"`, the
+  store keeps the spec and never sorts or filters the partial `data`. Fetch the rows for the spec
+  that the URL restored. Without both modes, the add-on sorts and filters the partial `data`.
 </Callout>
 
 <Callout type="warn" title="Select-all includes the unloaded rows">

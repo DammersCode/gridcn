@@ -947,6 +947,11 @@
                "path": "registry/default/blocks/data-grid-toolbar/distinct-values.ts",
                "type": "registry:component",
                "target": "components/data-grid-toolbar/distinct-values.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-toolbar/server-filter-values.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-toolbar/server-filter-values.ts"
             }
          ],
          "categories": [
@@ -2235,6 +2240,38 @@
                "path": "registry/default/examples/data-grid-styling-patterns-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-styling-patterns-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-server-filter-demo",
+         "type": "registry:example",
+         "title": "Data Grid Server Filter Demo",
+         "description": "A lazy grid filtered by a fake server: filterMode=\"server\" keeps the rows as fetched, and the header filter lists the server's values through fetchFilterValues.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-lazy",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-server-filter-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-server-filter-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
             }
          ],
          "categories": [

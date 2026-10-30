@@ -60,6 +60,24 @@ function keepOutsideValues(existing: readonly FilterSpec[], columnId: string, ke
   return noneOutside.length > 0 ? { columnId, operator: "isNoneOf", value: noneOutside } : undefined;
 }
 
+/** Replaces the column's set entries with `entry` at the first one's position (or appends it); `undefined` removes them. */
+function placeSetEntry(filters: readonly FilterNode[], existing: readonly FilterSpec[], entry: FilterSpec | undefined): SetFilterPlan {
+  if (!entry) return existing.length === 0 ? { status: "unchanged" } : { status: "apply", filters: filters.filter((f) => !existing.includes(f as FilterSpec)) };
+  if (existing.length === 1 && existing[0]!.operator === entry.operator && sameList(listOf(existing[0]!), entry.value as string[])) return { status: "unchanged" };
+
+  const next: FilterNode[] = [];
+  let placed = false;
+  for (const filter of filters) {
+    if (!existing.includes(filter as FilterSpec)) next.push(filter);
+    else if (!placed) {
+      next.push(entry);
+      placed = true;
+    }
+  }
+  if (!placed) next.push(entry);
+  return { status: "apply", filters: next };
+}
+
 /**
  * Plans the `setFilters` write for one column's set filter: replaces every `isAnyOf`/`isNoneOf`
  * entry of the column with the shorter of the checked and unchecked lists, using only operators
@@ -75,7 +93,6 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
   if (checkedKeys.length === 0) return { status: "blocked", reason: "none-checked" };
 
   const known = new Set(keys);
-  const isSetEntry = (node: FilterNode) => existing.includes(node as FilterSpec);
   let entry: FilterSpec | undefined;
   if (uncheckedKeys.length === 0) {
     entry = keepOutsideValues(existing, columnId, keys.map(textOf), known);
@@ -88,18 +105,31 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
     entry = { columnId, operator, value };
   }
 
-  if (!entry) return existing.length === 0 ? { status: "unchanged" } : { status: "apply", filters: filters.filter((f) => !isSetEntry(f)) };
-  if (existing.length === 1 && existing[0]!.operator === entry.operator && sameList(listOf(existing[0]!), entry.value as string[])) return { status: "unchanged" };
+  return placeSetEntry(filters, existing, entry);
+}
 
-  const next: FilterNode[] = [];
-  let placed = false;
-  for (const filter of filters) {
-    if (!isSetEntry(filter)) next.push(filter);
-    else if (!placed) {
-      next.push(entry);
-      placed = true;
-    }
-  }
-  if (!placed) next.push(entry);
-  return { status: "apply", filters: next };
+export type ServerSetFilterPlanInput = {
+  filters: readonly FilterNode[];
+  columnId: string;
+  /** Every value a server list showed so far, by key to original text; the full value set is unknown. */
+  known: ReadonlyMap<string, string>;
+  checked: ReadonlySet<string>;
+  allowed: readonly FilterOperator[];
+};
+
+/**
+ * Plans the write for a set filter over a server value list. The list may be partial, so the entry
+ * lists the checked texts (`isAnyOf`), or the unchecked texts when the column already holds one
+ * `isNoneOf` entry. Existing values the lists never showed stay.
+ */
+export function planServerSetFilter(input: ServerSetFilterPlanInput): SetFilterPlan {
+  const { filters, columnId, known, checked, allowed } = input;
+  const existing = filters.filter((f): f is FilterSpec => isSetFilterOf(f, columnId));
+  const operator: SetOperator = existing.length === 1 && existing[0]!.operator === "isNoneOf" && allowed.includes("isNoneOf") ? "isNoneOf" : "isAnyOf";
+  const picked = [...known].filter(([key]) => checked.has(key) === (operator === "isAnyOf")).map(([, text]) => text);
+  const outside = existing.length === 1 && existing[0]!.operator === operator ? outsideValues(existing, new Set(known.keys())) : [];
+  const value = [...picked, ...outside];
+  if (value.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
+  if (operator === "isAnyOf" && value.length === 0) return { status: "blocked", reason: "none-checked" };
+  return placeSetEntry(filters, existing, value.length === 0 ? undefined : { columnId, operator, value });
 }

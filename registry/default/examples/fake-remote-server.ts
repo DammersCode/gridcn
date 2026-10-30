@@ -108,7 +108,7 @@ export function createRemoteServer() {
     }
   };
 
-  async function fetchPage(query: RemoteQuery): Promise<{ rows: DemoRow[]; total: number }> {
+  async function select(query: Pick<RemoteQuery, "search" | "sorts" | "filters" | "signal">): Promise<DemoRow[]> {
     await delay(query.signal);
     let list = order.map((id) => rows.get(id)!);
     if (query.search) {
@@ -137,9 +137,33 @@ export function createRemoteServer() {
         return 0;
       });
     }
-    const total = list.length;
+    return list;
+  }
+
+  async function fetchPage(query: RemoteQuery): Promise<{ rows: DemoRow[]; total: number }> {
+    const list = await select(query);
     const start = (query.page - 1) * query.pageSize;
-    return { rows: list.slice(start, start + query.pageSize), total };
+    return { rows: list.slice(start, start + query.pageSize), total: list.length };
+  }
+
+  /** The rows `[start, end)` of the filtered, sorted list plus its total, for a lazy grid. */
+  async function fetchRange(query: Omit<RemoteQuery, "page" | "pageSize"> & { start: number; end: number }): Promise<{ rows: DemoRow[]; total: number }> {
+    const list = await select(query);
+    return { rows: list.slice(query.start, query.end), total: list.length };
+  }
+
+  /** The distinct values of a column with their row counts, filtered by a case-insensitive `search` and capped at `limit`. */
+  async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { label: string; count: number }[] }> {
+    if (!FILTERABLE_COLUMNS.has(query.columnId)) throw new Error("invalid column");
+    const list = await select({ filters: query.filters, signal: query.signal });
+    const counts = new Map<string, number>();
+    const needle = query.search.toLowerCase();
+    for (const row of list) {
+      const label = cell(row, query.columnId);
+      if (needle === "" || label.toLowerCase().includes(needle)) counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    const values = [...counts].map(([label, count]) => ({ label, count })).sort((a, b) => a.label.localeCompare(b.label));
+    return { values: values.slice(0, query.limit ?? 200) };
   }
 
   function applyOps(ops: DataChange<DemoRow>["ops"]): void {
@@ -149,5 +173,5 @@ export function createRemoteServer() {
     order = next.map((row) => row.id);
   }
 
-  return { total: rows.size, fetchPage, applyOps };
+  return { total: rows.size, fetchPage, fetchRange, fetchValues, applyOps };
 }

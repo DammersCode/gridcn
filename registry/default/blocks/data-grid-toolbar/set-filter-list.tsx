@@ -11,7 +11,7 @@ const VIEWPORT_HEIGHT = SET_FILTER_ROW_HEIGHT * VIEWPORT_ROWS;
 
 const countFormat = new Intl.NumberFormat("en-US");
 
-export type SetFilterOption = { key: string; label: string; count: number };
+export type SetFilterOption = { key: string; label: string; count?: number };
 
 const SEARCH_DEBOUNCE_MS = 150;
 
@@ -145,7 +145,7 @@ type SetFilterRowProps = {
   id: string;
   optionKey: string;
   label: string;
-  count: number;
+  count: number | undefined;
   index: number;
   setSize: number;
   selected: boolean;
@@ -169,7 +169,7 @@ const SetFilterRow = memo(function SetFilterRow({ id, optionKey, label, count, i
     >
       <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{countFormat.format(count)}</span>
+      <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{count === undefined ? null : countFormat.format(count)}</span>
     </div>
   );
 });

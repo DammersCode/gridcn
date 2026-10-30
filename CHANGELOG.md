@@ -9,6 +9,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Server-side filtering. The root prop `filterMode: "client" | "server"` (default `"client"`) is the counterpart of `sortMode`. With `"server"`, the grid tracks `filterState` (filter menu, header filters, `data-filtered`, `onFilterChange`) but never filters `data`, so the view keeps one row per index and the range of `onRenderedRowsChange` maps to data indices on a lazy grid. The filter is skipped in every view rebuild, row operation, and streaming write, and `keepHiddenCheckedRows` and `announceResults` stay inactive like under `sortMode="server"`. The `onRenderedRowsChange` JSDoc now says the range is a view-row range.
+- The root prop `fetchFilterValues({ columnId, search, filters, signal })` supplies the value list of the header filter popover and of the `isAnyOf` input in the filter menu from a backend. A column with `options.choices` keeps its list. The grid keeps at most 1,000 labels per answer, aborts the request on a new search, a column switch, a closed popover, and unmount, and drops stale answers. New labels: `toolbar.headerFilterLoading` and `toolbar.headerFilterError`. New types: `FetchFilterValues`, `FetchFilterValuesContext`, `FilterValue`.
+- `DataGridLazyGuard` no longer warns for filter changes under `filterMode="server"`, and its message names the new prop.
+- Docs: a "Filtering a lazy grid" section with a live demo, the filter counterpart in the server-side sort and filter recipe, a filter spec in the server pagination example, the server values of the header filter, and the URL state note for lazy grids.
+
 ## 1.3.0 - 2026-10-28
 
 - Every data row carries `aria-selected`: `true` when the row is selected, and `false` when it is not and the grid has a checkbox row marker. A screen reader reads the checked state from the row, not only from the marker checkbox. Without a checkbox marker, an unselected row has no attribute.
