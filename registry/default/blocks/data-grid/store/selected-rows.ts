@@ -34,12 +34,13 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
     return { mode: "ids", ids, excludedIds: [], count: ids.length };
   }
   const excluded = new Set(s.hiddenCheckedRowIds);
+  const checked = new Set(rows.toArray());
   for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
     const dataRow = s.viewIndex[viewRow]!;
     const record = s.data[dataRow];
     if (record === undefined) continue;
     const id = s.getRowId(record, dataRow);
-    if (rows.hasIndex(viewRow)) excluded.delete(id);
+    if (checked.has(viewRow)) excluded.delete(id);
     else excluded.add(id);
   }
   const total = s.totalRowCount;

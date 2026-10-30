@@ -87,12 +87,13 @@ export function carryCheckedRows(input: {
 
   if (allMatching) {
     const excluded = new Set(hidden);
+    const checkedBefore = new Set(rows.toArray());
     for (let viewRow = 0; viewRow < prevViewIndex.length; viewRow++) {
       const prevDataRow = prevViewIndex[viewRow]!;
       const record = prevData[prevDataRow];
       if (record === undefined) continue;
       const id = prevGetRowId(record, prevDataRow);
-      if (rows.hasIndex(viewRow)) excluded.delete(id);
+      if (checkedBefore.has(viewRow)) excluded.delete(id);
       else excluded.add(id);
       if (excluded.size > MAX_HIDDEN_CHECKED_ROWS) {
         return { rows: CompactSelection.empty(), hidden: NO_HIDDEN_CHECKED_ROWS, allMatching: false, lazy: false, capped: true };
