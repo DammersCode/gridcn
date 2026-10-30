@@ -209,3 +209,42 @@ describe("useDataGridPagination: server mode, reconcilePage", () => {
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });
+
+describe("useDataGridPagination: server mode, unknown total", () => {
+  const onPageChange = vi.fn();
+
+  it("reports no total, and a page count that reaches one page ahead while hasNextPage", () => {
+    const { result } = renderHook(() => useDataGridPagination({ page: 3, pageSize: 20, hasNextPage: true, onPageChange }));
+    expect(result.current.controls).toMatchObject({ page: 3, pageCount: 4, total: undefined, hasNextPage: true });
+  });
+
+  it("stops the page count at the current page without a next page", () => {
+    const { result } = renderHook(() => useDataGridPagination({ page: 3, pageSize: 20, hasNextPage: false, onPageChange }));
+    expect(result.current.controls).toMatchObject({ pageCount: 3, hasNextPage: false });
+  });
+
+  it("does not clamp a deep page", () => {
+    const { result } = renderHook(() => useDataGridPagination({ page: 500, pageSize: 20, hasNextPage: true, onPageChange }));
+    expect(result.current.controls.page).toBe(500);
+  });
+
+  it("never reconciles the upper bound but still lifts a page below 1", () => {
+    const change = vi.fn();
+    renderHook(() => useDataGridPagination({ page: 500, pageSize: 20, hasNextPage: false, onPageChange: change, reconcilePage: true }));
+    expect(change).not.toHaveBeenCalled();
+    renderHook(() => useDataGridPagination({ page: 0, pageSize: 20, hasNextPage: true, onPageChange: change, reconcilePage: true }));
+    expect(change).toHaveBeenCalledWith(1);
+  });
+
+  it("a known total reports hasNextPage from the page position", () => {
+    const first = renderHook(() => useDataGridPagination({ page: 1, pageSize: 20, total: 30, onPageChange }));
+    expect(first.result.current.controls.hasNextPage).toBe(true);
+    const last = renderHook(() => useDataGridPagination({ page: 2, pageSize: 20, total: 30, onPageChange }));
+    expect(last.result.current.controls.hasNextPage).toBe(false);
+  });
+
+  it("client mode reports hasNextPage too", () => {
+    const { result } = renderHook(() => useDataGridPagination({ data: makeData(30), pageSize: 20 }));
+    expect(result.current.controls.hasNextPage).toBe(true);
+  });
+});

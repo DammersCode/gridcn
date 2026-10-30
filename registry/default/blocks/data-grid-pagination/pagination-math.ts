@@ -4,9 +4,13 @@ export function pageCount(total: number, pageSize: number): number {
   return Math.max(1, Math.ceil(total / pageSize));
 }
 
-/** Clamps `page` (1-based) into `[1, pageCount(total, pageSize)]` — the fallback when data shrinks or pageSize changes out from under the current page. */
-export function clampPage(page: number, total: number, pageSize: number): number {
-  return Math.min(Math.max(1, Math.floor(page)), pageCount(total, pageSize));
+/**
+ * Clamps `page` (1-based) into `[1, pageCount(total, pageSize)]` — the fallback when data shrinks or pageSize changes out from under the current page.
+ * An unknown `total` (`undefined`) clamps the lower bound only.
+ */
+export function clampPage(page: number, total: number | undefined, pageSize: number): number {
+  const lowerBounded = Math.max(1, Math.floor(page));
+  return total === undefined ? lowerBounded : Math.min(lowerBounded, pageCount(total, pageSize));
 }
 
 /** Half-open `[start, end)` row range for `page` (1-based) at `pageSize`, clamped to `total`. */

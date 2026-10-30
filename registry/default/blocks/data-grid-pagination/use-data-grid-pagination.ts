@@ -11,10 +11,14 @@ export const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const;
 /** Controls shared by client and server mode — what `<DataGridPaginationBar {...pager.controls} />` spreads. */
 export type DataGridPaginationControls = {
   page: number;
+  /** Pages the user can reach. With an unknown total it is `page`, plus 1 while `hasNextPage`. */
   pageCount: number;
   pageSize: number;
   pageSizeOptions: readonly number[];
-  total: number;
+  /** Row count across all pages; `undefined` when the server sends no total (`hasNextPage` mode). */
+  total: number | undefined;
+  /** True when a page after the current one exists. */
+  hasNextPage: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 };
@@ -31,20 +35,26 @@ export type UseDataGridPaginationClientOptions<TData> = {
   onPageSizeChange?: (pageSize: number) => void;
 };
 
-/** Server-mode options: consumer owns `page`/`pageSize`/`total` and fetches `pageData` itself — this hook is just the page-window math + controls shape. */
+/**
+ * Server-mode options: consumer owns `page`/`pageSize` and fetches `pageData` itself — this hook is just the page-window math + controls shape.
+ * Pass `total` when the server counts rows, or `hasNextPage` when it only says whether another page exists (keyset and "has more" APIs).
+ */
 export type UseDataGridPaginationServerOptions = {
   page: number;
   pageSize: number;
-  total: number;
   onPageChange: (page: number) => void;
   pageSizeOptions?: readonly number[];
   onPageSizeChange?: (pageSize: number) => void;
   /**
    * Fires your `onPageChange` with the clamped page exactly once when `page` falls outside
-   * `[1, pageCount]` (e.g. `total` shrank), never while `total` is 0. The hook never sets your page state. Default `false`.
+   * `[1, pageCount]` (e.g. `total` shrank), never while `total` is 0. Without a `total` only a page below 1 is reconciled.
+   * The hook never sets your page state. Default `false`.
    */
   reconcilePage?: boolean;
-};
+} & (
+  | { total: number; hasNextPage?: never }
+  | { total?: undefined; hasNextPage: boolean }
+);
 
 export type UseDataGridPaginationResult<TData> = {
   /** The current page's slice — client mode only; server mode returns `undefined` (you already have your own fetched page). */
@@ -55,7 +65,7 @@ export type UseDataGridPaginationResult<TData> = {
 function isServerOptions<TData>(
   options: UseDataGridPaginationClientOptions<TData> | UseDataGridPaginationServerOptions,
 ): options is UseDataGridPaginationServerOptions {
-  return "total" in options;
+  return !("data" in options);
 }
 
 /**
@@ -109,12 +119,14 @@ export function useDataGridPagination<TData>(
 function useServerPagination(options: UseDataGridPaginationServerOptions): DataGridPaginationControls {
   const { page, pageSize, total, onPageChange, pageSizeOptions = DEFAULT_PAGE_SIZES, onPageSizeChange, reconcilePage } = options;
   const clampedPage = clampPage(page, total, pageSize);
+  const lastPage = total === undefined ? undefined : pageCount(total, pageSize);
+  const hasNextPage = lastPage === undefined ? options.hasNextPage === true : clampedPage < lastPage;
 
   // The ref keeps the reconcile fire to one per (page, clamped) pair — no re-fire when the consumer
   // ignores the callback or passes an unstable onPageChange.
   const firedRef = useRef<{ page: number; clamped: number } | null>(null);
   useEffect(() => {
-    if (!reconcilePage || total <= 0) return;
+    if (!reconcilePage || (total !== undefined && total <= 0)) return;
     const clamped = clampPage(page, total, pageSize);
     if (clamped === page) {
       firedRef.current = null;
@@ -128,10 +140,11 @@ function useServerPagination(options: UseDataGridPaginationServerOptions): DataG
 
   return {
     page: clampedPage,
-    pageCount: pageCount(total, pageSize),
+    pageCount: lastPage ?? clampedPage + (hasNextPage ? 1 : 0),
     pageSize,
     pageSizeOptions,
     total,
+    hasNextPage,
     onPageChange,
     onPageSizeChange: onPageSizeChange ?? (() => warnServerPageSizeNoop()),
   };
@@ -164,6 +177,7 @@ function useClientPagination<TData>(options: UseDataGridPaginationClientOptions<
     pageSize,
     pageSizeOptions,
     total: data.length,
+    hasNextPage: page < pageCount(data.length, pageSize),
     onPageChange: setPage,
     onPageSizeChange: (nextSize) => {
       setPageSize(nextSize);

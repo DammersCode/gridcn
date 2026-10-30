@@ -1,5 +1,5 @@
 import { page } from "vitest/browser";
-import { Component, type ReactNode } from "react";
+import { Component, useState, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
@@ -183,5 +183,37 @@ describe("pagination icons in a right-to-left page", () => {
     } finally {
       document.documentElement.dir = "";
     }
+  });
+});
+
+function OpenEndedGrid({ initialPage, hasNextPage }: { initialPage: number; hasNextPage: boolean }) {
+  const [current, setCurrent] = useState(initialPage);
+  const pager = useDataGridPagination({ page: current, pageSize: 25, hasNextPage, onPageChange: setCurrent });
+  return (
+    <div style={{ height: 360, width: 400 }}>
+      <DataGrid data={makeRows(25)} columns={columns} getRowId={(r) => r.id} className="h-72" />
+      <DataGridPaginationBar {...pager.controls} />
+    </div>
+  );
+}
+
+describe("DataGridPaginationBar: unknown total", () => {
+  it("shows the page label instead of a range and disables Last", async () => {
+    await render(<OpenEndedGrid initialPage={3} hasNextPage />);
+    await expect.element(page.getByText("Page 3")).toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "Last page" })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "Next page" })).toBeEnabled();
+  });
+
+  it("disables Next without a next page and keeps Previous", async () => {
+    await render(<OpenEndedGrid initialPage={3} hasNextPage={false} />);
+    await expect.element(page.getByRole("button", { name: "Next page" })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "Previous page" })).toBeEnabled();
+  });
+
+  it("Next advances the page label", async () => {
+    await render(<OpenEndedGrid initialPage={1} hasNextPage />);
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect.element(page.getByText("Page 2")).toBeInTheDocument();
   });
 });
