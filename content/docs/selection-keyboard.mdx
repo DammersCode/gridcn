@@ -194,7 +194,7 @@ await api.deleteOrders(
 );
 ```
 
-The server evaluates the spec and applies the action to every matching row except the excluded ones. The grid sends at most 100,000 ids. Validate and bound the ids and the filter tree again on the server.
+The server evaluates the spec and applies the action to every matching row except the excluded ones. The grid remembers at most 100,000 ids. Validate and bound the ids and the filter tree again on the server.
 
 <Callout type="warn" title="Row operations do nothing while all matching is on">
   Delete rows, Duplicate row, and Move rows (and their menu items) skip the checked rows while `allMatching` is on, because the grid does not hold those rows. `onBeforeDeleteRows` is not called. Run the bulk action through your own endpoint, then call `clearSelection()`.

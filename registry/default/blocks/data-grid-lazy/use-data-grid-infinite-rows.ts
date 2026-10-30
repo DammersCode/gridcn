@@ -84,7 +84,8 @@ function guardCallback(fn: () => void): void {
 export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   options: UseDataGridInfiniteRowsOptions<TData, TCursor>,
 ): UseDataGridInfiniteRowsResult<TData> {
-  const { getRowId, pageSize = DEFAULT_PAGE_SIZE, overscan = DEFAULT_OVERSCAN, maxFetchRows } = options;
+  const { getRowId, overscan = DEFAULT_OVERSCAN, maxFetchRows } = options;
+  const pageSize = Number.isFinite(options.pageSize) && options.pageSize! >= 1 ? Math.floor(options.pageSize!) : DEFAULT_PAGE_SIZE;
   const [loaded, setLoaded] = useState<Loaded<TData>>({ rows: [], hasMore: true });
   const [isLoading, setIsLoading] = useState(false);
 

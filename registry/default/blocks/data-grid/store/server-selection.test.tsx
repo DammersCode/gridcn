@@ -248,6 +248,16 @@ describe("useDataGridSelectedRows", () => {
     expect(m.selected()).toMatchObject({ mode: "allMatching", excludedIds: ["b"], count: 8 });
   });
 
+  it("re-checking an excluded row on its page removes it from excludedIds without a page change", () => {
+    const m = mountWithHook();
+    act(() => m.api().getState().actions.selectAllMatching());
+    act(() => m.api().getState().actions.setRowSelected(1, false));
+    m.rerender({ data: PAGE_TWO });
+    m.rerender({ data: PAGE_ONE });
+    act(() => m.api().getState().actions.setRowSelected(1, true));
+    expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: [], count: 9 });
+  });
+
   it("count is undefined in allMatching mode when the size is unknown", () => {
     const m = mountWithHook({ totalRowCount: null });
     act(() => m.api().getState().actions.selectAllMatching());

@@ -38,6 +38,8 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
+import type { RowWriteStatus, WriteAck, WriteRejectedContext } from "./write-ack";
+export type { RowWriteStatus, WriteAck, WriteRejectedContext, WriteRejection } from "./write-ack";
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -59,9 +61,6 @@ export type AutosizeMeasureContext = {
 };
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
-import type { RowWriteStatus, WriteAck, WriteRejectedContext } from "./write-ack";
-export type { RowWriteStatus, WriteAck, WriteRejectedContext, WriteRejection } from "./write-ack";
-
 export type DataGridSyncProps<TData = unknown> = {
   /**
    * Controlled row array (React `value` semantics): the app owns it, and every mutation
