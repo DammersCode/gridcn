@@ -19,7 +19,10 @@ function shallowEqualRows(a: unknown, b: unknown): boolean {
  */
 export function buildRollback<TData>(change: DataChange<TData>, s: RollbackSource<TData>): DataChange<TData> {
   const rowById = new Map<string, TData>();
-  (s.data as readonly TData[]).forEach((row, i) => rowById.set(s.getRowId(row, i), row));
+  (s.data as readonly TData[]).forEach((row, i) => {
+    const id = s.getRowId(row, i);
+    if (!rowById.has(id)) rowById.set(id, row);
+  });
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const working = new Map<string, TData>();
   const ops: DataChange<TData>["ops"] = [];

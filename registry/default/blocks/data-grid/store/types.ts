@@ -1149,6 +1149,10 @@ export type DataGridInternalActions = {
   _syncPluginClaims(): void;
   /** @internal Frees this store's plugin claims on unmount. Not part of the public hook surface. */
   _releasePluginClaims(): void;
+  /** Marks the grid mounted again after a dev double-mount cleanup. */
+  _armWrites(): void;
+  /** Marks the grid unmounted: a late write acknowledgement does nothing. */
+  _disposeWrites(): void;
   /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
    * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store

@@ -176,3 +176,36 @@ describe("useDataGridInfiniteRows", () => {
     expect(result.current.gridProps.getRowId(undefined as never, 3)).toContain("3");
   });
 });
+
+describe("useDataGridInfiniteRows: option swaps", () => {
+  it("the first page after a reset uses the latest fetchRows", async () => {
+    const oldFetch = source(25);
+    const newFetch = source(25);
+    const { result, rerender } = renderHook(({ fetchRows }: { fetchRows: Fetch }) => useDataGridInfiniteRows(options(fetchRows)), { initialProps: { fetchRows: oldFetch } });
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    rerender({ fetchRows: newFetch });
+    act(() => result.current.reset());
+    await waitFor(() => expect(newFetch).toHaveBeenCalled());
+    expect(newFetch.mock.calls[0]![0].cursor).toBeUndefined();
+  });
+
+  it("an edit made while a page is in flight survives the page", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    const fetchRows = vi.fn<Fetch>(async ({ cursor, limit }) => {
+      if (++calls === 2) await gate;
+      const from = cursor ?? 0;
+      return { rows: rowsOf(from, limit), nextCursor: from + limit };
+    });
+    const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.gridProps.data[0]).toBeDefined());
+    act(() => result.current.gridProps.onRenderedRowsChange(view(10)));
+    act(() => result.current.onDataChange([], { source: "edit", ops: [{ type: "update", rowId: "r0", row: { id: "r0", name: "x" } as Row, prev: { id: "r0" }, index: 0 }] } as never));
+    release();
+    await waitFor(() => expect(result.current.gridProps.data[10]).toBeDefined());
+    expect(result.current.gridProps.data[0]).toMatchObject({ name: "x" });
+  });
+});

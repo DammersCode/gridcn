@@ -41,7 +41,8 @@ onWriteRejected?: (ctx: { change: DataChange; rejected: readonly WriteRejection[
    to the row or `actions.clearWriteStatus()`.
 4. `onWriteRejected({ change, rejected })` runs once per rejected change, after the revert, isolated
    with try/catch. It is the place for a toast. The message of a rejection is for that callback.
-5. A `readOnly` grid at settle skips the revert (no write path may run) and warns once in development;
+5. An ack that settles after the grid unmounted does nothing. Two refused writes to one cell end at the value before the first.
+6. A `readOnly` grid at settle skips the revert (no write path may run) and warns once in development;
    the rows still turn `failed`.
 
 ## Modes

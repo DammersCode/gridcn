@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { Range } from "./range-math";
@@ -96,7 +96,8 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const pendingWindowRef = useRef(false);
   const emptyPageWarnedRef = useRef(false);
   const optionsRef = useRef(options);
-  useEffect(() => {
+  // A layout effect runs before the grid's passive effect that reports the first window, so a reset reads the new `fetchRows`.
+  useLayoutEffect(() => {
     optionsRef.current = options;
   });
 
@@ -127,9 +128,11 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
         console.warn("[data-grid-lazy] fetchRows returned an empty page with a next cursor; an empty page ends the source, so return rows or a null cursor");
       }
       cursorRef.current = result.nextCursor ?? undefined;
-      const next = { rows: [...loadedRef.current.rows, ...result.rows], hasMore: !ended };
-      loadedRef.current = next;
-      setLoaded(next);
+      setLoaded((prev) => {
+        const next = { rows: [...prev.rows, ...result.rows], hasMore: !ended };
+        loadedRef.current = next;
+        return next;
+      });
       pendingWindowRef.current = true;
       if (result.rows.length > 0) guardCallback(() => optionsRef.current.onLoaded?.({ start, end: start + result.rows.length }));
     };

@@ -46,6 +46,7 @@ function mount(onDataChange: Handler, props: Partial<DataGridSyncProps<Row>> = {
   return {
     state,
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree(next)),
+    unmount: () => view.unmount(),
     edit: (rowId: string, columnId: string, value: unknown) => act(() => state().actions.commitCellValue({ rowId, columnId }, value)),
     value: (rowId: string, field: "name" | "note") => (state().data as Row[]).find((r) => r.id === rowId)![field],
     status: (rowId: string) => state().writeStatus.get(rowId),
@@ -272,5 +273,48 @@ describe("write acknowledgement", () => {
     d.resolve({ rejected: Array.from({ length: 10_050 }, (_, i) => ({ rowId: i === 0 ? "a" : `ghost${i}` })) });
     await flush();
     expect((onWriteRejected.mock.calls[0]![0].rejected as unknown[]).length).toBe(10_000);
+  });
+});
+
+describe("write acknowledgement: refusals in sequence", () => {
+  it("two refused writes to one cell end at the original value", async () => {
+    const first = deferred<WriteAck>();
+    const second = deferred<WriteAck>();
+    const queue = [first, second];
+    const m = mount((_next, change) => (change.source === "rollback" ? undefined : queue.shift()!.promise));
+    m.edit("a", "name", "X");
+    m.edit("a", "name", "Z");
+    first.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    second.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+  });
+
+  it("a refused insert leaves no remembered checked id", async () => {
+    const d = deferred<WriteAck>();
+    const m = mount((_next, change) => (change.source === "rollback" ? undefined : d.promise), {
+      createRow: () => ({ id: "n", name: "N", note: "n" }),
+      keepCheckedRows: true,
+      totalRowCount: 9,
+    });
+    act(() => m.state().actions.insertRow(0, "below"));
+    act(() => m.state().actions.setRowSelected(1, true));
+    d.resolve({ rejected: [{ rowId: "n" }] });
+    await flush();
+    expect(m.state().hiddenCheckedRowIds.has("n")).toBe(false);
+  });
+
+  it("a late ack after unmount does not revert", async () => {
+    const d = deferred<WriteAck>();
+    const onWriteRejected = vi.fn();
+    const m = mount(() => d.promise, { onWriteRejected });
+    m.edit("a", "name", "X");
+    const state = m.state;
+    m.unmount();
+    d.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(state().data.find((r) => (r as Row).id === "a")).toMatchObject({ name: "X" });
+    expect(onWriteRejected).not.toHaveBeenCalled();
   });
 });

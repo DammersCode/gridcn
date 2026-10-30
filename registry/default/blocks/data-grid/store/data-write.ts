@@ -31,7 +31,7 @@ import { buildRollback } from "../interaction/rollback";
 import { readRejections, refusedOps, type RowWriteStatus, type WriteAck } from "./write-ack";
 import { EMPTY_WRITE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
-import { withoutHiddenCheckedRows } from "./hidden-checked-rows";
+import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
@@ -88,10 +88,12 @@ export type DataWriteContext = {
   pluginApi: DataGridApi<unknown> | null;
   /** Tracks the promise an `onDataChange` returned; set by {@link createDataWriteActions}. */
   trackWrite: ((change: DataChange<unknown>, result: PromiseLike<WriteAck>) => void) | null;
+  /** Set while the grid is unmounted: a late ack neither reverts nor calls back. */
+  disposed: boolean;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -352,6 +354,22 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   let writeSeq = 0;
   let pendingWrites = 0;
   let warnedReadOnlyRevert = false;
+  // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
+  const refusedPrev = new Map<string, Map<unknown, unknown>>();
+  const MAX_FAILED_ROWS = 10_000;
+  const chainRefusedPrev = (ops: DataOp<unknown>[]): DataOp<unknown>[] =>
+    ops.map((op) => {
+      if (op.type !== "update" || !op.cells) return op;
+      const cells = op.cells.map((cell) => {
+        const key = `${op.rowId}\u0000${cell.columnId}`;
+        const chain = refusedPrev.get(key) ?? new Map<unknown, unknown>();
+        const prev = chain.has(cell.prev) ? chain.get(cell.prev) : cell.prev;
+        chain.set(cell.value, prev);
+        refusedPrev.set(key, chain);
+        return { ...cell, prev };
+      });
+      return { ...op, cells };
+    });
   const publishWriteStatus = (): void => {
     const status = new Map<string, RowWriteStatus>();
     for (const rowId of failedRows) status.set(rowId, "failed");
@@ -370,6 +388,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     pendingWrites += 1;
     publishWriteStatus();
     const settle = (ack: WriteAck, error: unknown, failed: boolean): void => {
+      if (ctx.disposed) return;
       for (const rowId of rowIds) {
         const left = (pendingByRow.get(rowId) ?? 1) - 1;
         if (left > 0) pendingByRow.set(rowId, left);
@@ -388,10 +407,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
         }
       } else {
-        const revert = buildRollback({ ops: refusedOps(change, rejected), source: "rollback" }, s);
+        if (refusedPrev.size > MAX_FAILED_ROWS) refusedPrev.clear();
+        const revert = buildRollback({ ops: chainRefusedPrev(refusedOps(change, rejected)), source: "rollback" }, s);
         if (revert.ops.length > 0) s.actions.commitChange({ ...revert, reverts: change });
       }
-      for (const { rowId } of rejected) if (latestWriteOfRow.get(rowId) === seq) failedRows.add(rowId);
+      for (const { rowId } of rejected) {
+        if (latestWriteOfRow.get(rowId) !== seq) continue;
+        if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
+        failedRows.add(rowId);
+      }
       publishWriteStatus();
       const onWriteRejected = get().onWriteRejected;
       if (!onWriteRejected) return;
@@ -495,6 +519,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...view,
         ...editRemap,
         ...hiddenAfterDelete(s, batch.ops),
+        ...(s.allMatching ? NO_REMEMBERED_ROWS : {}),
       }),
     );
   };
@@ -1124,7 +1149,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...view,
           ...editRemap,
           selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
-          hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
+          hiddenCheckedRowIds: withoutHiddenCheckedRows(
+            carried.hiddenCheckedRowIds,
+            change.ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])),
+          ),
           allMatching: carried.allMatching,
         }),
       );

@@ -174,7 +174,7 @@ rendering performance, and using the two together is not supported. When to pick
 
     <ComponentPreview name="data-grid-open-ended-demo" />
 
-    Checked rows do not survive a page change by default. Pass `totalRowCount={pager.controls.total}` with
+    Checked rows do not survive a page change by default. Pass `totalRowCount={pager.controls.total ?? null}` with
     `keepCheckedRows` to keep them by row id and to select every matching row. See
     [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 

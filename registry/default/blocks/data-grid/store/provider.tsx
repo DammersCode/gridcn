@@ -209,7 +209,11 @@ function useGridStoreCore<TData>(
   });
   useEffect(() => {
     if (externalStore) return;
-    return () => getInternalActions(store)._releasePluginClaims();
+    getInternalActions(store)._armWrites();
+    return () => {
+      getInternalActions(store)._disposeWrites();
+      getInternalActions(store)._releasePluginClaims();
+    };
   }, [store, externalStore]);
 
   // Config phase: the slice that feeds no derived state. The layout timing closes the write

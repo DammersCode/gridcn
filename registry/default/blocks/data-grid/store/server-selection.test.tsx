@@ -261,3 +261,29 @@ describe("useDataGridSelectedRows", () => {
     expect(m.selected().ids).toEqual(["a", "c"]);
   });
 });
+
+describe("select all matching and the result spec", () => {
+  it("a filter or search change leaves allMatching and unchecks the rows", () => {
+    for (const change of [
+      (s: DataGridStoreState) => s.actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "A" }] as never),
+      (s: DataGridStoreState) => s.actions.setSearch("a"),
+    ]) {
+      const m = mount();
+      act(() => m.state().actions.selectAllMatching());
+      act(() => change(m.state()));
+      expect(m.state().allMatching).toBe(false);
+      expect(m.checkedViewRows()).toEqual([]);
+    }
+  });
+
+  it("a programmatic deleteRows leaves allMatching", () => {
+    const m = mount({ onDataChange: () => {} });
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.deleteRows([0]));
+    expect(m.state().allMatching).toBe(false);
+  });
+
+  it("a non-finite or negative totalRowCount counts as unknown", () => {
+    for (const bad of [Number.NaN, -3, Infinity]) expect(mount({ totalRowCount: bad }).state().totalRowCount).toBeNull();
+  });
+});

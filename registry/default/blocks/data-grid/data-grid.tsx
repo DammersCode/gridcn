@@ -150,7 +150,6 @@ export { DEFAULT_KEYMAP } from "./keyboard";
 export { EMPTY_SELECTION_STATE } from "./store/selection-state";
 
 export { applyChange, invertChange } from "./interaction/history";
-export { buildRollback } from "./interaction/rollback";
 
 export {
   DEFAULT_LABELS,

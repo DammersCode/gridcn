@@ -1092,6 +1092,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           commands: mergePluginCommands(resolved.list, lastCommandsProp ?? undefined, pluginWarnOnce),
         });
       },
+      _armWrites() {
+        dataWrite.disposed = false;
+      },
+      _disposeWrites() {
+        dataWrite.disposed = true;
+      },
       _releasePluginClaims() {
         releasePluginClaims?.();
         releasePluginClaims = null;
@@ -1660,6 +1666,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
+  // A new filter or search is a new result: "all matching" meant the old one.
+  let lastSpec = { filterState: store.getState().filterState, searchText: store.getState().searchText };
+  store.subscribe((state) => {
+    if (state.filterState === lastSpec.filterState && state.searchText === lastSpec.searchText) return;
+    lastSpec = { filterState: state.filterState, searchText: state.searchText };
+    if (state.allMatching) store.setState({ selection: { ...state.selection, rows: CompactSelection.empty() }, ...NO_REMEMBERED_ROWS });
+  });
   // Filter and sort settle the view in the same write as the spec change. Speak only when the rows or the sort order changed.
   const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));

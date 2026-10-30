@@ -40,6 +40,8 @@ type SelectedRows =
 - Row operations on checked rows (delete, duplicate, move, and their menu items) do nothing while
   `allMatching` is on. The grid does not hold the rows. The consumer reads the selection and calls its
   own endpoint. `onBeforeDeleteRows` is not called.
+- A change of `filterState` or `searchText`, and a programmatic `deleteRows`, also leave `allMatching` (the selection meant the old result).
+- A `totalRowCount` that is negative or not finite is treated as `null`.
 - Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header
   checkbox set to off clear `allMatching` and the exclusions.
 - The remembered set holds at most `MAX_HIDDEN_CHECKED_ROWS` (100,000). In ids mode the rows beyond
