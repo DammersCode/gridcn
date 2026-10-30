@@ -107,6 +107,7 @@ const CONFIG_KEYS = [
   "enableRowSelection",
   "keepCheckedRows",
   "keepHiddenCheckedRows",
+  "totalRowCount",
   "announceResults",
   "onBeforeDeleteRows",
   "fetchFilterValues",

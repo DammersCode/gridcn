@@ -41,6 +41,7 @@ const EXAMPLES = {
   "data-grid-styling-patterns-demo": dynamic(() => import("@/registry/default/examples/data-grid-styling-patterns-demo")),
   "data-grid-lazy-demo": dynamic(() => import("@/registry/default/examples/data-grid-lazy-demo")),
   "data-grid-open-ended-demo": dynamic(() => import("@/registry/default/examples/data-grid-open-ended-demo")),
+  "data-grid-server-selection-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-selection-demo")),
   "data-grid-pagination-demo": dynamic(() => import("@/registry/default/examples/data-grid-pagination-demo")),
   "data-grid-sort-list-demo": dynamic(() => import("@/registry/default/examples/data-grid-sort-list-demo")),
   "data-grid-header-filter-demo": dynamic(() => import("@/registry/default/examples/data-grid-header-filter-demo")),

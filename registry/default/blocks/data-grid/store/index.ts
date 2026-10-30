@@ -86,5 +86,7 @@ export {
   useDataGridRowReorderEnabled,
   useDataGridSelectionConfig,
   useDataGridHiddenCheckedCount,
+  useDataGridSelectedRows,
   useDataGridAllRowsSelected,
 } from "./hooks";
+export type { DataGridSelectedRows } from "./selected-rows";

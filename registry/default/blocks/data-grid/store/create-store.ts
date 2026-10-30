@@ -65,6 +65,8 @@ import { isDev } from "../is-dev";
 import {
   MAX_HIDDEN_CHECKED_ROWS,
   NO_HIDDEN_CHECKED_ROWS,
+  NO_REMEMBERED_ROWS,
+  windowModeActive,
   carryCheckedRows,
   hiddenCheckedRowsActive,
 } from "./hidden-checked-rows";
@@ -344,8 +346,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     getRowId: (row: unknown, index: number) => string,
     sameRecords: boolean,
     visibleOnly: () => CompactSelectionLike,
-  ): { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string> } => {
-    if (!hiddenCheckedRowsActive(s)) return { rows: visibleOnly(), hiddenCheckedRowIds: s.hiddenCheckedRowIds };
+  ): { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string>; allMatching: boolean } => {
+    if (!hiddenCheckedRowsActive(s)) return { rows: visibleOnly(), hiddenCheckedRowIds: s.hiddenCheckedRowIds, allMatching: s.allMatching };
     const carried = carryCheckedRows({
       rows,
       hidden: s.hiddenCheckedRowIds,
@@ -353,16 +355,23 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       prevViewIndex: s.viewIndex,
       prevGetRowId: s.getRowId,
       nextData: data,
+      nextGetRowId: getRowId,
       nextViewIndex: viewIndex,
       resolveNextRowIds: () => rowIndexCache.resolve(data, getRowId),
       sameRecords,
+      windowMode: windowModeActive(s),
+      allMatching: s.allMatching,
     });
     if (carried.lazy) warnHiddenCheckedIgnored("while the grid holds unloaded rows (a lazy source)");
     if (carried.capped && !warnedHiddenCheckedCap) {
       warnedHiddenCheckedCap = true;
-      warnDev(`keepHiddenCheckedRows remembers at most ${MAX_HIDDEN_CHECKED_ROWS} hidden checked rows; the rest are dropped`);
+      warnDev(
+        s.allMatching && !carried.allMatching
+          ? `select all matching is cleared: more than ${MAX_HIDDEN_CHECKED_ROWS} rows were excluded`
+          : `remembered checked rows are capped at ${MAX_HIDDEN_CHECKED_ROWS}; the rest are dropped`,
+      );
     }
-    return { rows: carried.lazy ? visibleOnly() : carried.rows, hiddenCheckedRowIds: carried.hidden };
+    return { rows: carried.lazy ? visibleOnly() : carried.rows, hiddenCheckedRowIds: carried.hidden, allMatching: carried.allMatching };
   };
   /**
    * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
@@ -417,7 +426,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       }
     }
     const carried = carryRows(s, base.rows, viewIndex, data, getRowId, sameRecords, () => remapRowChannel(base.rows, s.viewIndex, viewIndex, toNextDataRow));
-    const { rows, hiddenCheckedRowIds } = carried;
+    const { rows, hiddenCheckedRowIds, allMatching } = carried;
     const columns = remapColumnChannel(base.columns, s.visibleColumns, visibleColumns);
     const selection = rows === base.rows && columns === base.columns ? base : { ...base, rows, columns };
     return {
@@ -425,6 +434,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...editRemap,
       ...(selection === s.selection ? {} : { selection }),
       ...(hiddenCheckedRowIds === s.hiddenCheckedRowIds ? {} : { hiddenCheckedRowIds }),
+      ...(allMatching === s.allMatching ? {} : { allMatching }),
     };
   };
   // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
@@ -586,7 +596,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  if (init.keepCheckedRows && init.keepHiddenCheckedRows && (initSortMode === "server" || initFilterMode === "server")) {
+  if (init.keepCheckedRows && init.keepHiddenCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes);
@@ -731,11 +741,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _cancelSelection() {
         const s = get();
-        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
+        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
           ...checkedChange(s, emptySelection(), 0),
-          hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
+          ...NO_REMEMBERED_ROWS,
           rowRangeGesture: null,
         });
       },
@@ -810,12 +820,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
-          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && (s.sortMode === "server" || s.filterMode === "server")) {
+          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           return {
             ...selectionConfig,
-            ...(s.hiddenCheckedRowIds.size > 0 && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+            ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
             fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),
@@ -866,7 +876,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterMode = props.filterMode ?? "client";
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";
-          if (serverRows && s.keepCheckedRows && s.keepHiddenCheckedRows) {
+          if (serverRows && s.keepCheckedRows && s.keepHiddenCheckedRows && s.totalRowCount === undefined) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           const nextSearchText = props.searchText ?? s.searchText;
@@ -998,7 +1008,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               if (resolved.grid !== s.selection) {
                 selectionApply = {
                   selection: resolved.grid,
-                  ...(isSelectionEmpty(resolved.grid) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+                  ...(isSelectionEmpty(resolved.grid) ? NO_REMEMBERED_ROWS : {}),
                   ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
                 };
               }
@@ -1055,7 +1065,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
-            ...(serverRows && s.hiddenCheckedRowIds.size > 0 ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+            ...(serverRows && s.hiddenCheckedRowIds.size > 0 && !hiddenCheckedRowsActive({ ...s, sortMode: nextSortMode, filterMode: nextFilterMode }) ? NO_REMEMBERED_ROWS : {}),
             // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
             ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
@@ -1136,7 +1146,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     activeCell: initialActiveCell,
     selection: initialSelection,
     selectAllStage: null,
-    hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
+    ...NO_REMEMBERED_ROWS,
     editing: null,
     editingError: null,
     editingRejectionCount: 0,
@@ -1347,13 +1357,29 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           selection: next,
           ...checkedChange(s, next, checked ? s.hiddenCheckedRowIds.size : 0),
           rowRangeGesture: null,
-          ...(checked ? {} : { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS }),
+          ...(checked ? {} : NO_REMEMBERED_ROWS),
+        });
+      },
+      selectAllMatching() {
+        const s = get();
+        if (!s.enableRowSelection) return;
+        if (!s.keepCheckedRows || s.totalRowCount === undefined) {
+          warnDev("selectAllMatching is a no-op without keepCheckedRows and totalRowCount");
+          return;
+        }
+        const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };
+        set({
+          selection: next,
+          ...checkedChange(s, next, 0),
+          rowRangeGesture: null,
+          hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
+          allMatching: true,
         });
       },
       clearSelection() {
         const s = get();
-        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-        set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
+        if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
+        set({ selection: emptySelection(), ...NO_REMEMBERED_ROWS, rowRangeGesture: null });
       },
       clearCellSelection() {
         const { selection } = get();
@@ -1363,15 +1389,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setSelection(next) {
         const s = get();
         if (next === null) {
-          if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0) return;
-          set({ selection: emptySelection(), hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS, rowRangeGesture: null });
+          if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
+          set({ selection: emptySelection(), ...NO_REMEMBERED_ROWS, rowRangeGesture: null });
           return;
         }
         const resolved = resolveSelectionState(s, rowIndexCache, next, warnedControlledSelection);
         if (resolved.grid === s.selection) return;
         set({
           selection: resolved.grid,
-          ...(isSelectionEmpty(resolved.grid) ? { hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS } : {}),
+          ...(isSelectionEmpty(resolved.grid) ? NO_REMEMBERED_ROWS : {}),
           ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
         });
       },

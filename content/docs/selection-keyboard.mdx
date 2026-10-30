@@ -145,7 +145,7 @@ While every checked row is hidden, Delete rows, Duplicate row, and Move rows do 
 
 The controlled `selection` prop and `onSelectionChange` carry the visible rows only. `useDataGridHiddenCheckedCount()` returns the number of hidden checked rows. `DataGridStatusBar` shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`. The labels are `labels.statusBar.hiddenChecked` and `labels.statusBar.hiddenCheckedOnly`.
 
-The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ignores the option. A grid with unloaded rows (a lazy source) ignores it while its data holds them. Both warn once in development. Switching to `sortMode="server"` clears the hidden checks.
+The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`, a server-sorted grid ignores the option, and a grid with unloaded rows (a lazy source) ignores it while its data holds them. Both warn once in development. [With `totalRowCount`](#selection-over-a-server-result), the grid remembers checked rows in every mode. Switching to `sortMode="server"` clears the hidden checks.
 
 `setSelection` with a non-empty value and a non-empty controlled `selection` change the visible checks and keep the hidden ones.
 
@@ -157,6 +157,54 @@ The grid remembers at most 100,000 hidden checked rows. A server-sorted grid ign
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
 
 `keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `announceResults` reads the row count of the view after a filter or sort change; see [Accessibility](/docs/accessibility). `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
+
+## Selection over a server result
+
+<NewBadge />
+
+A server grid holds one page, or the loaded part of a lazy source. Set `totalRowCount` to the size of the whole result, with `keepCheckedRows`, to declare that `data` is a window of it. Pass `null` when the size is unknown:
+
+```tsx
+<DataGridProvider keepCheckedRows totalRowCount={pager.controls.total ?? null} {...grid} columns={columns}>
+```
+
+With `totalRowCount`:
+
+- A checked row that leaves `data` stays checked by row id. A page change, a lazy eviction, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
+- `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
+- `useDataGridSelectedRows()` reads the selection as a value.
+
+```tsx
+const selected = useDataGridSelectedRows();
+// { mode: "ids", ids: ["a", "d"], excludedIds: [], count: 2 }
+// { mode: "allMatching", ids: [], excludedIds: ["b"], count: 8_999 }
+```
+
+In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unloaded rows have no id and are left out. In `allMatching` mode, `excludedIds` lists the unchecked rows, and `count` is `totalRowCount` minus the exclusions (`undefined` when the size is unknown).
+
+<ComponentPreview name="data-grid-server-selection-demo" />
+
+Send the selection to your server together with the sort, filter, and search spec you already hold:
+
+```tsx
+await api.deleteOrders(
+  selected.mode === "ids"
+    ? { ids: selected.ids }
+    : { filters, search, exceptIds: selected.excludedIds },
+);
+```
+
+The server evaluates the spec and applies the action to every matching row except the excluded ones. The grid sends at most 100,000 ids. Validate and bound the ids and the filter tree again on the server.
+
+<Callout type="warn" title="Row operations do nothing while all matching is on">
+  Delete rows, Duplicate row, and Move rows (and their menu items) skip the checked rows while `allMatching` is on, because the grid does not hold those rows. `onBeforeDeleteRows` is not called. Run the bulk action through your own endpoint, then call `clearSelection()`.
+</Callout>
+
+Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and the header checkbox set to off leave "all matching". The grid remembers at most 100,000 ids. In `ids` mode the rows beyond the cap are dropped. In `allMatching` mode, more than 100,000 exclusions leave "all matching", because dropping an exclusion would select more rows. Both warn once in development. A skeleton row of a lazy source stays checked in `allMatching` mode and cannot be excluded, because it has no id. The status bar and the live region count the loaded checked rows. `useDataGridHiddenCheckedCount()` is `0` while `allMatching` is on.
+
+| Prop | Type | Default |
+|---|---|---|
+| `totalRowCount` <NewBadge /> | `number \| null` | none |
 
 ## Header click behavior
 

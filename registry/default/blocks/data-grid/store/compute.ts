@@ -858,6 +858,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   | "enableRowSelection"
   | "keepCheckedRows"
   | "keepHiddenCheckedRows"
+  | "totalRowCount"
   | "enableColumnSelection"
   | "enableRangeSelection"
   | "enableMultiRange"
@@ -872,6 +873,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
     enableRowSelection: props.enableRowSelection ?? true,
     keepCheckedRows: props.keepCheckedRows ?? false,
     keepHiddenCheckedRows: props.keepHiddenCheckedRows ?? false,
+    totalRowCount: props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,
     enableMultiRange: props.enableMultiRange ?? true,

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import type {
@@ -21,6 +21,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
 
@@ -647,9 +648,28 @@ export function useDataGridSelectionConfig(): {
   );
 }
 
+/**
+ * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
+ * "all matching except these ids" after `actions.selectAllMatching()`. Needs `keepCheckedRows` and `totalRowCount`
+ * to cover rows outside `data`. The value changes only when the selection or the data does.
+ */
+export function useDataGridSelectedRows(): DataGridSelectedRows {
+  const rows = useDataGridStore((s) => s.selection.rows);
+  const hiddenCheckedRowIds = useDataGridStore((s) => s.hiddenCheckedRowIds);
+  const allMatching = useDataGridStore((s) => s.allMatching);
+  const data = useDataGridStore((s) => s.data);
+  const viewIndex = useDataGridStore((s) => s.viewIndex);
+  const getRowId = useDataGridStore((s) => s.getRowId);
+  const totalRowCount = useDataGridStore((s) => s.totalRowCount);
+  return useMemo(
+    () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data, viewIndex, getRowId, totalRowCount }),
+    [rows, hiddenCheckedRowIds, allMatching, data, viewIndex, getRowId, totalRowCount],
+  );
+}
+
 /** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
 export function useDataGridHiddenCheckedCount(): number {
-  return useDataGridStore((s) => s.hiddenCheckedRowIds.size);
+  return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }
 
 /** Half-open row range `[start, end)`. */

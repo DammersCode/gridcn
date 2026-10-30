@@ -2334,6 +2334,28 @@
          ]
       },
       {
+         "name": "data-grid-server-selection-demo",
+         "type": "registry:example",
+         "title": "Data Grid Server Selection Demo",
+         "description": "Checked rows that survive page changes and select all matching over a paged result: totalRowCount, actions.selectAllMatching, and useDataGridSelectedRows.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-server-selection-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-server-selection-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-pagination-demo",
          "type": "registry:example",
          "title": "Data Grid Pagination Demo",

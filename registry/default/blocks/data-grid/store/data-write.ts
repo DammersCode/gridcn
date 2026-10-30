@@ -299,7 +299,7 @@ export type DataWriteDeps = {
     getRowId: (row: unknown, index: number) => string,
     sameRecords: boolean,
     visibleOnly: () => CompactSelectionLike,
-  ) => { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string> };
+  ) => { rows: CompactSelectionLike; hiddenCheckedRowIds: ReadonlySet<string>; allMatching: boolean };
   /** Re-anchors an open edit to the new view position of its rowId/columnId (or cancels it when the row left the view); `data` must be the array `viewIndex` indexes. */
   remapEditing: (
     s: DataGridStoreState,
@@ -1052,6 +1052,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...editRemap,
           selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
           hiddenCheckedRowIds: carried.hiddenCheckedRowIds,
+          allMatching: carried.allMatching,
         }),
       );
     },

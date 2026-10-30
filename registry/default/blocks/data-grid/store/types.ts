@@ -162,6 +162,14 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keepHiddenCheckedRows?: boolean;
   /**
+   * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
+   * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
+   * `keepCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked
+   * again when it returns, and `actions.selectAllMatching()` can check the whole result.
+   * `useDataGridSelectedRows` reads the outcome. Default: `undefined` (`data` is the whole result).
+   */
+  totalRowCount?: number | null;
+  /**
    * Announces the view's row count through the grid's live region after a filter, sort, or
    * filter-group change. Skipped while `sortMode="server"` (the grid does not hold every row);
    * a lazy source counts its loaded rows only. Default `false`.
@@ -616,6 +624,7 @@ export type DataGridStoreState = Omit<
   | "enableRowSelection"
   | "keepCheckedRows"
   | "keepHiddenCheckedRows"
+  | "totalRowCount"
   | "announceResults"
   | "enableColumnSelection"
   | "enableRangeSelection"
@@ -651,6 +660,10 @@ export type DataGridStoreState = Omit<
   announceResults: boolean;
   /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
   hiddenCheckedRowIds: ReadonlySet<string>;
+  /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
+  allMatching: boolean;
+  /** `data` is a window of a larger result of this size (`null`: unknown); `undefined` when `data` is the whole result. */
+  totalRowCount: number | null | undefined;
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
@@ -878,6 +891,11 @@ export type DataGridActions = {
   checkRowRange(target: number, opts?: { commit?: boolean }): void;
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
+  /**
+   * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
+   * No-op with a development warning without `keepCheckedRows` and `totalRowCount`. Read the outcome with `useDataGridSelectedRows`.
+   */
+  selectAllMatching(): void;
   clearSelection(): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;

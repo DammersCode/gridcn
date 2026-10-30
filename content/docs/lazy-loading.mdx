@@ -414,6 +414,8 @@ const rows = useDataGridInfiniteRows<Order, string>({
 Select-all checks the loaded rows and the skeleton rows, so it never means "every matching row".
 Bulk actions over the whole result go to your own endpoint.
 
+To keep checks across evictions and to select every matching row, pass `totalRowCount` to the provider. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
+
 <Callout type="warn" title="Select-all includes the unloaded rows">
   The view is `total` rows long, loaded or not, so the two-stage select-all (
   <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.

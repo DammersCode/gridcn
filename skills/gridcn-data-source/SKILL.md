@@ -84,3 +84,9 @@ Applies to streaming on top of either:
 - Do not guess `total` when the server has no count. Use `useDataGridInfiniteRows` (lazy) or `hasNextPage` (pagination). Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known (the `100_000` in examples is a placeholder).
 - Do not build your own spinner for range fetches. `lazy.isLoading` is true while any range fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
 - Do not rely on the quick-search box to search server-side. It only highlights rows already in `data`. Send `searchText` to your fetch.
+
+## Selection over a server result
+
+- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown) plus `keepCheckedRows`. Checks then survive page changes, evictions, and server sort or filter changes, by row id.
+- "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
+- While `allMatching` is on, Delete rows, Duplicate row, and Move rows skip the checked rows. The grid does not hold them.
