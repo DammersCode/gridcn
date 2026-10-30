@@ -134,6 +134,8 @@ function ServerSideGrid(): ReactNode {
           data={data?.rows ?? []}
           columns={columns}
           getRowId={(row) => row.id}
+          sortMode="server"
+          filterMode="server"
           headerClickBehavior="sort"
           onDataChange={onDataChange}
         >
