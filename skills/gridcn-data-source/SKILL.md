@@ -91,7 +91,8 @@ Applies to streaming on top of either:
 - "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
 - While `allMatching` is on, Delete rows, Duplicate row, and Move rows skip the checked rows. The grid does not hold them.
 
-## Write acknowledgement
+## Saving and refusals
 
-- Prefer returning a promise from `onDataChange` over a hand-written rollback: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message? }] }` to refuse rows or cells, or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused entries of `change.ops` (`source: "rollback"`, never acknowledged), and calls `onWriteRejected({ change, rejected })` for the toast.
-- A promise returned by `onDataChange` is always treated as an ack: a rejection reverts the change.
+- Send changes to the server from `onSave(change)`, not from `onDataChange`. `onDataChange` keeps your state in step and returns nothing; the revert of a refusal reaches it with `source: "rollback"` exactly once.
+- Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused entries, and calls `onWriteRejected({ change, rejected })` for the toast.
+- `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.

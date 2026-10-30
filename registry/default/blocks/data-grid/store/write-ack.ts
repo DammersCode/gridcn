@@ -1,22 +1,28 @@
 import type { DataChange, DataOp } from "../types";
 
 /** One refusal in a {@link WriteAck}: the row the server refused, and optionally one of its columns. */
-export type WriteRejection = {
+export type WriteRejection<TData = unknown> = {
   rowId: string;
   /** Limits the refusal to this column of an update; omitted, every entry of the row is refused. */
   columnId?: string;
   /** Display text for `onWriteRejected`; the grid does not render it. */
   message?: string;
+  /**
+   * The row as the server holds it now. The revert puts this row in place of the refused one, unless a newer
+   * write to the row is pending. A refused delete restores it; a refused insert removes the row. The row's
+   * id must equal `rowId`, otherwise the grid does a plain revert.
+   */
+  current?: TData;
 };
 
-/** What a promise returned by `onDataChange` resolves with. `void` accepts the whole change. */
-export type WriteAck = void | { rejected: readonly WriteRejection[] };
+/** What a promise returned by `onSave` resolves with. `void` accepts the whole change. */
+export type WriteAck<TData = unknown> = void | { rejected?: readonly WriteRejection<TData>[] };
 
 /** Context of `onWriteRejected`. */
 export type WriteRejectedContext<TData> = {
-  /** The change the consumer's `onDataChange` received. */
+  /** The change `onSave` received. */
   change: DataChange<TData>;
-  rejected: readonly WriteRejection[];
+  rejected: readonly WriteRejection<TData>[];
 };
 
 /** Status of a row with an acknowledged write: pending, or refused and reverted. */
@@ -39,8 +45,13 @@ export function readRejections(change: DataChange<unknown>, ack: WriteAck, error
   for (const entry of rejected as readonly unknown[]) {
     if (out.length >= MAX_WRITE_REJECTIONS) break;
     if (typeof entry !== "object" || entry === null || typeof (entry as WriteRejection).rowId !== "string") continue;
-    const { rowId, columnId, message } = entry as WriteRejection;
-    out.push({ rowId, ...(typeof columnId === "string" ? { columnId } : {}), ...(typeof message === "string" ? { message } : {}) });
+    const { rowId, columnId, message, current } = entry as WriteRejection;
+    out.push({
+      rowId,
+      ...(typeof columnId === "string" ? { columnId } : {}),
+      ...(typeof message === "string" ? { message } : {}),
+      ...(current !== undefined && current !== null ? { current } : {}),
+    });
   }
   return out;
 }

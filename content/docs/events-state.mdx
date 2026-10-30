@@ -103,11 +103,11 @@ before the nested write to keep both changes. A write that an `onActiveCellChang
 `onSelectionChange` handler makes during a grid write emits its `onDataChange` after the outer
 one, in gesture order.
 
-### Acknowledging a change
+### Saving a change
 
 <NewBadge />
 
-`onDataChange` may return a promise. It resolves with nothing to accept the change, with `{ rejected: [{ rowId, columnId?, message? }] }` to refuse rows or cells, or rejects to refuse the whole change. The grid marks the rows `saving` while the promise is pending, reverts the refused entries of `change.ops`, and calls `onWriteRejected({ change, rejected })`. The revert is a change with `source: "rollback"` and `reverts` set to the change it undoes; the grid never waits for an answer to it. See [Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change).
+`onSave(change)` sends a change to a server and may return a promise. It resolves with nothing to accept the change, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells, or rejects to refuse the whole change. The grid marks the rows `saving` while the promise is pending, reverts the refused entries through `onDataChange`, and calls `onWriteRejected({ change, rejected })`. The revert is a change with `source: "rollback"` and `reverts` set to the change it undoes. `onSave` never receives a `"rollback"` or a `"stream"` change. See [Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change).
 
 ## 2. `onSelectionChange`
 

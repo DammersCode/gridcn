@@ -25,7 +25,7 @@ const columns = defineColumns<Row>()([
 const initialRows: Row[] = Array.from({ length: 12 }, (_, i) => ({ id: `row-${i}`, name: `Person ${i}`, city: i % 2 ? "Berlin" : "Hamburg" }));
 
 /** A server that refuses a name shorter than three characters and accepts everything else. */
-async function save(change: DataChange<Row>): Promise<WriteAck> {
+async function save(change: DataChange<Row>): Promise<WriteAck<Row>> {
   await new Promise((resolve) => setTimeout(resolve, SAVE_LATENCY_MS));
   const rejected = change.ops.flatMap((op) =>
     op.type === "update" && op.row.name.trim().length < 3 ? [{ rowId: op.rowId, columnId: "name", message: `"${op.row.name}" is too short` }] : [],
@@ -38,7 +38,7 @@ function PendingCount(): ReactNode {
   return <span className="text-sm text-muted-foreground">{pending === 0 ? "All changes saved" : `Saving ${pending} change${pending === 1 ? "" : "s"}…`}</span>;
 }
 
-/** `onDataChange` returns a promise: rows show `saving` while it is pending, and a refused cell reverts on its own. */
+/** `onSave` returns a promise: rows show `saving` while it is pending, and a refused cell reverts on its own. */
 export default function DataGridWriteAckDemo(): ReactNode {
   const [errors, setErrors] = useState<string[]>([]);
   return (
@@ -48,7 +48,7 @@ export default function DataGridWriteAckDemo(): ReactNode {
         defaultData={initialRows}
         columns={columns}
         getRowId={(row) => row.id}
-        onDataChange={(_next, change) => save(change)}
+        onSave={save}
         onWriteRejected={({ rejected }: WriteRejectedContext<Row>) => setErrors((prev) => [...rejected.map((r) => r.message ?? "Refused"), ...prev].slice(0, 3))}
       >
         <div className="[&_[data-write-status=failed]]:bg-destructive/10 [&_[data-write-status=saving]]:opacity-60">

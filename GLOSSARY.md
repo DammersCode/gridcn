@@ -86,4 +86,5 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
+| save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

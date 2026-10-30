@@ -65,8 +65,9 @@ function setupHarness(historyOpts: UseDataGridHistoryOptions<Row> = {}, gridOpts
         plugins={[h.plugin]}
         onDataChange={(next, change) => {
           setData(next);
-          return currentGridOpts.onDataChange?.(next, change) as void;
+          currentGridOpts.onDataChange?.(next, change);
         }}
+        onSave={currentGridOpts.onSave as never}
         readOnly={currentGridOpts.readOnly}
       >
         <DataGridRoot>
@@ -466,7 +467,7 @@ describe("useDataGridHistory readOnly", () => {
     expect(h.history().canRedo).toBe(false);
   });
   it("a refused acknowledged change is reverted by the grid and its history entry is dropped", async () => {
-    const h = setupHarness({}, { onDataChange: ((_next: readonly Row[], change: DataChange<Row>) => (change.source === "rollback" ? undefined : Promise.resolve({ rejected: [{ rowId: "a" }] }))) as never });
+    const h = setupHarness({}, { onSave: (() => Promise.resolve({ rejected: [{ rowId: "a" }] })) as never });
     h.commit(editChange("a", { id: "a", name: "Alicia", age: 30 }, initialRows[0]!));
     expect(h.history().historySize).toBe(1);
     await act(async () => {});

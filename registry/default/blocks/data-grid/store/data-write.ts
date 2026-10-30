@@ -28,7 +28,7 @@ import {
 } from "./commit";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { buildRollback } from "../interaction/rollback";
-import { readRejections, refusedOps, type RowWriteStatus, type WriteAck } from "./write-ack";
+import { readRejections, refusedOps, type RowWriteStatus, type WriteAck, type WriteRejection } from "./write-ack";
 import { EMPTY_WRITE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
@@ -109,8 +109,9 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
 /**
  * Runs `write` and queues its `onDataChange`. The queue flushes FIFO once the outermost write
  * returns, so a write that a store subscriber makes during `write` emits after it, in gesture order.
- * The consumer's `onDataChange` runs first, then each resolved plugin observer — one try/catch
- * per observer, so a throwing observer logs and the rest still run.
+ * The consumer's `onDataChange` runs first, then `onSave` (never for a rollback or a stream), then each
+ * resolved plugin observer. Each runs isolated: a throw in `onDataChange` is rethrown after the rest ran,
+ * a throwing `onSave` refuses the change, and a throwing observer logs.
  */
 export function writeThenEmit(
   ctx: DataWriteContext,
@@ -120,20 +121,35 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   const onDataChange = s.onDataChange;
+  const onSave = change.source === "rollback" || change.source === "stream" ? undefined : s.onSave;
   const observers = s.plugins.observers;
   const pluginApi = ctx.pluginApi;
   ctx.pendingEmits.push(() => {
-    const result = onDataChange ? onDataChange(next, change) : undefined;
-    if (result !== undefined && isThenable(result) && change.source !== "rollback") ctx.trackWrite?.(change, result);
-    if (observers.length === 0 || !pluginApi) return;
-    const observerCtx = { api: pluginApi };
-    for (const observer of observers) {
+    let failure: { error: unknown } | null = null;
+    try {
+      onDataChange?.(next, change);
+    } catch (error) {
+      failure = { error };
+    }
+    if (onSave) {
       try {
-        observer(next, change, observerCtx);
+        const result = onSave(change);
+        if (isThenable(result)) ctx.trackWrite?.(change, result);
       } catch (error) {
-        console.warn("[data-grid] a plugin onDataChange observer threw; the change was applied and the remaining observers still run", error);
+        ctx.trackWrite?.(change, Promise.reject(error));
       }
     }
+    if (observers.length > 0 && pluginApi) {
+      const observerCtx = { api: pluginApi };
+      for (const observer of observers) {
+        try {
+          observer(next, change, observerCtx);
+        } catch (error) {
+          console.warn("[data-grid] a plugin onDataChange observer threw; the change was applied and the remaining observers still run", error);
+        }
+      }
+    }
+    if (failure) throw failure.error;
   });
   ctx.writeDepth += 1;
   try {
@@ -374,6 +390,41 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
       return { ...op, cells };
     });
+  let warnedCurrentRowId = false;
+  /** The `current` rows of the rejections that may replace a row: its id matches, the change holds no insert of it, and no newer write is pending. */
+  const usableCurrentRows = (s: DataGridStoreState, change: DataChange<unknown>, rejected: readonly WriteRejection[]): Map<string, unknown> => {
+    const usable = new Map<string, unknown>();
+    const inserted = new Set(change.ops.flatMap((op) => (op.type === "insert" ? [op.rowId] : [])));
+    for (const { rowId, current } of rejected) {
+      if (current === undefined || inserted.has(rowId) || pendingByRow.has(rowId)) continue;
+      const index = (change.ops.find((op) => op.rowId === rowId && op.type === "delete") as { index: number } | undefined)?.index ?? 0;
+      if (s.getRowId(current, index) !== rowId) {
+        if (!warnedCurrentRowId) {
+          warnedCurrentRowId = true;
+          warnDev(`WriteRejection.current for row "${rowId}" has another id, so it was ignored and the change was reverted in place`);
+        }
+        continue;
+      }
+      usable.set(rowId, current);
+    }
+    return usable;
+  };
+  /** One `change.ops` entry per `current` row: replace the row in the data, or re-insert a deleted row as the server holds it. */
+  const currentRowOps = (s: DataGridStoreState, change: DataChange<unknown>, currentRows: ReadonlyMap<string, unknown>): DataOp<unknown>[] => {
+    if (currentRows.size === 0) return [];
+    const dataIndexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+    const ops: DataOp<unknown>[] = [];
+    for (const [rowId, current] of currentRows) {
+      const index = dataIndexById.get(rowId);
+      if (index !== undefined) {
+        ops.push({ type: "update", rowId, row: current, prev: s.data[index] });
+        continue;
+      }
+      const deleted = change.ops.find((op) => op.rowId === rowId && op.type === "delete");
+      if (deleted?.type === "delete") ops.push({ type: "insert", rowId, row: current, index: deleted.index });
+    }
+    return ops;
+  };
   const publishWriteStatus = (): void => {
     const status = new Map<string, RowWriteStatus>();
     for (const rowId of failedRows) status.set(rowId, "failed");
@@ -415,8 +466,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }
       } else {
         if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
-        const revert = buildRollback({ ops: chainRefusedPrev(refusedOps(change, rejected)), source: "rollback" }, s);
-        if (revert.ops.length > 0) s.actions.commitChange({ ...revert, reverts: change });
+        const currentRows = usableCurrentRows(s, change, rejected);
+        const plain = rejected.filter((entry) => !currentRows.has(entry.rowId));
+        const revert = buildRollback({ ops: chainRefusedPrev(refusedOps(change, plain)), source: "rollback" }, s);
+        const ops = [...revert.ops, ...currentRowOps(s, change, currentRows)];
+        if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change });
       }
       for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
       for (const { rowId } of rejected) {

@@ -6,6 +6,17 @@
 The round-trip recipe rolls back the whole array when one request fails, including the requests the
 server accepted. A cell error from a 422 stays after a whole-row rollback.
 
+## Decision D (supersedes the contract below where they differ)
+
+The state channel and the save channel are separate. `onDataChange(next, change)` returns nothing and
+carries every change of `data` once, rollbacks included. `onSave(change)` is the only place that returns an
+ack; it is never called for `source: "rollback"` or `source: "stream"`. `WriteAck<TData>` and
+`WriteRejection<TData>` carry an optional `current` row: the revert puts it in place of the refused row
+when no newer write to the row is pending; a refused delete restores it, a refused insert removes the row;
+a `current` whose id differs from `rowId` is dropped with one development warning. Order after the
+outermost write: `onDataChange`, `onSave`, observers, each isolated. A `readOnly` grid skips the revert and
+`current`, warns once, and still calls `onWriteRejected`. Undo and redo (`"history"`) reach `onSave`.
+
 ## Contract
 
 `onDataChange` may return a promise of an acknowledgement. A `void` return works as before.

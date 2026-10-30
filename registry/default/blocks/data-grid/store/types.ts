@@ -105,10 +105,18 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keymap?: Keymap;
   /** Fired once per user gesture with the next data array and a row-id-based delta batch, after the grid stores that array. */
-  onDataChange?: ((next: readonly TData[], change: DataChange<TData>) => void) | ((next: readonly TData[], change: DataChange<TData>) => Promise<WriteAck>);
+  onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
-   * Fired once per acknowledged change that the server refused, after the grid reverted it. `onDataChange`
-   * acknowledges a change by returning a promise; see {@link WriteAck}. A throw is logged and isolated.
+   * Saves a change on a server. Runs once per change after `onDataChange`, for every `source` except
+   * `"rollback"` (the revert of a refusal) and `"stream"` (a server push must not echo back). Return a promise
+   * to acknowledge the change: it resolves with nothing (accepted) or `{ rejected }` (see {@link WriteAck}),
+   * or rejects (the whole change is refused). While the promise is pending the rows are `saving`. A refusal
+   * reverts the refused entries through `onDataChange` with `source: "rollback"`.
+   */
+  onSave?: (change: DataChange<TData>) => void | Promise<WriteAck<TData>>;
+  /**
+   * Fired once per acknowledged change that the server refused, after the grid reverted it; see {@link WriteAck}.
+   * A throw is logged and isolated.
    */
   onWriteRejected?: (ctx: WriteRejectedContext<TData>) => void;
   /**

@@ -135,20 +135,20 @@ either hook to change the list:
 const history = useDataGridHistory({ recordSources: ["edit", "paste", "stream"] });
 ```
 
-An undo or redo reaches `onDataChange` with `source: "history"`. If `onDataChange` saves to a
-server, that handler sees the undo as a normal change and saves it.
+An undo or redo reaches `onDataChange` and `onSave` with `source: "history"`. If `onSave` saves to a
+server, it sees the undo as a normal change and saves it.
 
 ## Rolling back a failed save
 
-An `onDataChange` handler that saves to a server sees undo and redo as changes with
-`source: "history"`. When a save fails, call `rollback(change)` with the change the handler
-received:
+An `onSave` handler sees undo and redo as changes with `source: "history"`. When a save
+fails, return the refusal from `onSave` and the grid reverts the change and removes its entry from the
+undo stack (see [Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change)).
+To revert a change yourself, call `rollback(change)` with the change the handler received:
 
 ```tsx
 const history = useDataGridHistory<Row>();
 
-const onDataChange = async (_next: readonly Row[], change: DataChange<Row>) => {
-  if (change.source === "rollback") return; // the server never saw the failed change
+const onSave = async (change: DataChange<Row>) => {
   try {
     await api.save(change);
   } catch {
@@ -158,9 +158,9 @@ const onDataChange = async (_next: readonly Row[], change: DataChange<Row>) => {
 ```
 
 `rollback` applies the inverse change with `source: "rollback"` and removes the entry from the
-undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. Neither `"history"` nor
-`"rollback"` changes are recorded. `createHistory` exposes the same removal as
-`discard(change)`.
+undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. `onSave` never receives a
+`"rollback"` change. Neither `"history"` nor `"rollback"` changes are recorded. `createHistory`
+exposes the same removal as `discard(change)`.
 
 ## Capped stack
 

@@ -210,8 +210,8 @@ export type DataChange<TData> = {
    * imperative `record()` entry (a programmatic change the consumer applied itself).
    * `"replace"` tags a find-and-replace batch (an `updateCells` call the `data-grid-find-replace` add-on makes); `useDataGridHistory` records it.
    * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
-   * change whose save failed. Neither is recorded, so a server-sync handler can skip undo and redo
-   * and still send a rollback (or the reverse).
+   * change whose save failed, and a refusal returned from `onSave` reverts through it as well. Neither is recorded.
+   * `onSave` never receives a `"rollback"` or a `"stream"` change.
    */
   source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */

@@ -838,6 +838,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...selectionConfig,
             ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
+            onSave: props.onSave,
             onWriteRejected: props.onWriteRejected,
             fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),

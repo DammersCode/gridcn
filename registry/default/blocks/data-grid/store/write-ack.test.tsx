@@ -38,7 +38,7 @@ function mount(onDataChange: Handler, props: Partial<DataGridSyncProps<Row>> = {
     return null;
   }
   const tree = (next: Partial<DataGridSyncProps<Row>>) => (
-    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={initial()} onDataChange={onDataChange as never} {...next}>
+    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={initial()} onSave={((change: DataChange<Row>) => onDataChange([] as never, change)) as never} {...next}>
       <Probe />
     </DataGridProvider>
   );
@@ -88,7 +88,7 @@ describe("write acknowledgement", () => {
       m.state().actions.updateCells([
         { rowId: "a", columnId: "name", value: "X" },
         { rowId: "b", columnId: "name", value: "Y" },
-      ]),
+      ], { source: "replace" }),
     );
     d.resolve({ rejected: [{ rowId: "b", message: "taken" }] });
     await flush();
@@ -107,7 +107,7 @@ describe("write acknowledgement", () => {
       m.state().actions.updateCells([
         { rowId: "a", columnId: "name", value: "X" },
         { rowId: "a", columnId: "note", value: "N" },
-      ]),
+      ], { source: "replace" }),
     );
     d.resolve({ rejected: [{ rowId: "a", columnId: "note" }] });
     await flush();
@@ -123,7 +123,7 @@ describe("write acknowledgement", () => {
       m.state().actions.updateCells([
         { rowId: "a", columnId: "name", value: "X" },
         { rowId: "b", columnId: "name", value: "Y" },
-      ]),
+      ], { source: "replace" }),
     );
     d.reject(new Error("offline"));
     await flush();
@@ -166,19 +166,25 @@ describe("write acknowledgement", () => {
     expect(m.status("a")).toBeUndefined();
   });
 
-  it("a revert is one rollback change that is never acknowledged", async () => {
+  it("a revert is one rollback change that onSave never receives", async () => {
     const d = deferred<WriteAck>();
     const changes: DataChange<Row>[] = [];
-    const m = mount((_next, change) => {
-      changes.push(change);
-      return change.source === "rollback" ? (Promise.resolve({ rejected: [{ rowId: "a" }] }) as Promise<WriteAck>) : d.promise;
-    });
+    const saved: DataChange<Row>[] = [];
+    const m = mount(
+      (_next, change) => {
+        saved.push(change);
+        return d.promise;
+      },
+      { onDataChange: (_next: readonly Row[], change: DataChange<Row>) => void changes.push(change) },
+    );
     m.edit("a", "name", "X");
     d.resolve({ rejected: [{ rowId: "a" }] });
     await flush();
     const rollbacks = changes.filter((c) => c.source === "rollback");
     expect(rollbacks).toHaveLength(1);
     expect(rollbacks[0]!.reverts).toBe(changes[0]);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.source).toBe("edit");
     expect(m.state().pendingWriteCount).toBe(0);
     expect(m.value("a", "name")).toBe("A");
   });
@@ -378,10 +384,8 @@ describe("write acknowledgement over controlled and server data", () => {
           columns={columns}
           getRowId={(row: Row) => row.id}
           data={data}
-          onDataChange={((next: readonly Row[], change: DataChange<Row>) => {
-            set(next as Row[]);
-            return handler(change);
-          }) as never}
+          onDataChange={(next: readonly Row[]) => set(next as Row[])}
+          onSave={((change: DataChange<Row>) => handler(change)) as never}
           {...props}
         >
           <Capture />
@@ -448,5 +452,113 @@ describe("write acknowledgement over controlled and server data", () => {
     await flush();
     expect(m.data().map((r) => r.id)).toEqual(["a", "b", "c"]);
     expect(m.data()[1]!.name).toBe("B");
+  });
+});
+
+describe("onSave", () => {
+  it("never receives a stream change, and receives replace and history sources", () => {
+    const saved: string[] = [];
+    const m = mount((_next, change) => void saved.push(change.source));
+    act(() => m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "S" }]));
+    act(() => m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "R" }], { source: "replace" }));
+    act(() => m.state().actions.commitChange({ source: "history", ops: [{ type: "update", rowId: "a", row: { id: "a", name: "H", note: "a" }, prev: { id: "a", name: "R", note: "a" } }] }));
+    expect(saved).toEqual(["replace", "history"]);
+  });
+
+  it("runs after onDataChange and before plugin observers, each isolated", () => {
+    const order: string[] = [];
+    const m = mount(() => void order.push("save"), {
+      onDataChange: () => {
+        order.push("data");
+        throw new Error("consumer threw");
+      },
+      plugins: [{ name: "obs", onDataChange: () => void order.push("observer") }],
+    });
+    expect(() => m.edit("a", "name", "X")).toThrow("consumer threw");
+    expect(order).toEqual(["data", "save", "observer"]);
+  });
+
+  it("a synchronous throw refuses the whole change", async () => {
+    const onWriteRejected = vi.fn();
+    const m = mount(
+      () => {
+        throw new Error("boom");
+      },
+      { onWriteRejected },
+    );
+    m.edit("a", "name", "X");
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+    expect(onWriteRejected.mock.calls[0]![0].rejected[0].message).toBe("boom");
+  });
+
+  it("still fires onWriteRejected on a readOnly grid and keeps the refused value", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = deferred<WriteAck>();
+    const onWriteRejected = vi.fn();
+    const m = mount(() => d.promise, { onWriteRejected });
+    m.edit("a", "name", "X");
+    m.rerender({ readOnly: true, onWriteRejected });
+    d.resolve({ rejected: [{ rowId: "a", current: { id: "a", name: "SERVER", note: "a" } }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("X");
+    expect(onWriteRejected).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("WriteRejection.current", () => {
+  const server = { id: "a", name: "SERVER", note: "server-note" };
+
+  it("replaces the whole row in the same rollback change", async () => {
+    const d = deferred<WriteAck>();
+    const changes: DataChange<Row>[] = [];
+    const m = mount(() => d.promise, { onDataChange: (_n: readonly Row[], c: DataChange<Row>) => void changes.push(c) });
+    m.edit("a", "name", "X");
+    d.resolve({ rejected: [{ rowId: "a", current: server }] });
+    await flush();
+    expect(m.state().data[0]).toEqual(server);
+    expect(changes.filter((c) => c.source === "rollback")).toHaveLength(1);
+  });
+
+  it("a refused delete restores the row as the server holds it", async () => {
+    const d = deferred<WriteAck>();
+    const m = mount(() => d.promise);
+    act(() => m.state().actions.deleteRows([0]));
+    d.resolve({ rejected: [{ rowId: "a", current: server }] });
+    await flush();
+    expect((m.state().data as Row[])[0]).toEqual(server);
+  });
+
+  it("a refused insert removes the row and ignores current", async () => {
+    const d = deferred<WriteAck>();
+    const m = mount(() => d.promise, { createRow: () => ({ id: "n", name: "N", note: "n" }) });
+    act(() => m.state().actions.insertRow(0, "below"));
+    d.resolve({ rejected: [{ rowId: "n", current: { id: "n", name: "SERVER", note: "s" } }] });
+    await flush();
+    expect(m.state().data).toHaveLength(3);
+  });
+
+  it("is ignored with one warning when its id differs, and the change is reverted in place", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = deferred<WriteAck>();
+    const m = mount(() => d.promise);
+    m.edit("a", "name", "X");
+    d.resolve({ rejected: [{ rowId: "a", current: { id: "zzz", name: "BAD", note: "b" } }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("is skipped while a newer write to the row is pending", async () => {
+    const first = deferred<WriteAck>();
+    const second = deferred<WriteAck>();
+    const queue = [first, second];
+    const m = mount(() => queue.shift()!.promise);
+    m.edit("a", "name", "X");
+    m.edit("a", "note", "N");
+    first.resolve({ rejected: [{ rowId: "a", current: server }] });
+    await flush();
+    expect(m.value("a", "note")).toBe("N");
+    expect(m.value("a", "name")).not.toBe("SERVER");
   });
 });
