@@ -13,7 +13,7 @@ export type { ImportDefaults };
 export type DataGridImportButtonProps<TData> = {
   className?: string;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
-  createRow: (index: number) => TData;
+  createRow: (index: number) => TData | Promise<TData>;
   /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). */
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */

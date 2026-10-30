@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
+import type { CellRef, ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
@@ -70,10 +70,11 @@ import {
 } from "./hidden-checked-rows";
 import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
 import { apiHandleOf } from "./api";
+import { createWarnOnce, isThenable } from "./async-gate";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
-import { createRowIndexCache, viewRowOfDataIndex } from "./row-index";
+import { createRowIndexCache, resolveCellRef, viewRowOfDataIndex } from "./row-index";
 import {
   EMPTY_SELECTION_STATE,
   cellRefAtViewCoord,
@@ -435,6 +436,60 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     for (let i = 0; i < data.length; i++) live.add(getRowId(data[i], i));
     for (const rowId of rowValidationKeys.keys()) if (!live.has(rowId)) rowValidationKeys.delete(rowId);
   };
+  const foldRowVerdict = (
+    current: () => ReadonlyMap<string, string>,
+    ensure: () => Map<string, string>,
+    rowId: string,
+    verdict: Record<string, string> | null,
+  ): void => {
+    const prevKeys = rowValidationKeys.get(rowId);
+    if (prevKeys) for (const key of prevKeys) if (current().has(key)) ensure().delete(key);
+    const entries = verdict ? Object.entries(verdict) : [];
+    if (entries.length === 0) {
+      rowValidationKeys.delete(rowId);
+      return;
+    }
+    const keys: string[] = [];
+    for (const [columnId, message] of entries) {
+      const key = cellErrorKey(rowId, columnId);
+      if (current().get(key) !== message) ensure().set(key, message);
+      keys.push(key);
+    }
+    rowValidationKeys.set(rowId, keys);
+  };
+  // rowId -> token of its newest pending async verdict; a newer run for the row supersedes the older one.
+  const pendingRowVerdicts = new Map<string, number>();
+  let rowVerdictSeq = 0;
+  const warnGateOnce = createWarnOnce();
+  const holdRowVerdict = (rowId: string, verdict: PromiseLike<Record<string, string> | null>): void => {
+    const token = ++rowVerdictSeq;
+    pendingRowVerdicts.set(rowId, token);
+    const release = (): boolean => {
+      if (pendingRowVerdicts.get(rowId) !== token) return false;
+      pendingRowVerdicts.delete(rowId);
+      return true;
+    };
+    verdict.then(
+      (resolved) => {
+        if (!release()) return;
+        const s = store.getState();
+        const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(rowId);
+        if (dataRowIndex === undefined) return;
+        let next: Map<string, string> | null = null;
+        foldRowVerdict(
+          () => next ?? s.cellErrors,
+          () => next ?? (next = new Map(s.cellErrors)),
+          rowId,
+          resolved,
+        );
+        const merged = next as Map<string, string> | null;
+        if (merged) store.setState({ cellErrors: merged });
+      },
+      (error: unknown) => {
+        if (release()) warnGateOnce("validateRow", `validateRow rejected, so the row gets no verdict: ${String(error)}`);
+      },
+    );
+  };
   /**
    * Runs `validateRow` once per touched row of a committed write gesture, AFTER `clearErrorsForOps`
    * — the row in `nextData` already has every cell of the gesture applied, which is the whole
@@ -455,26 +510,53 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     const rowIndex = rowIndexCache.resolve(nextData, s.getRowId);
     let next: Map<string, string> | null = null;
     const ensure = () => next ?? (next = new Map(cellErrors));
+    const current = () => next ?? cellErrors;
     for (const rowId of touched) {
       const dataRowIndex = rowIndex.get(rowId);
       if (dataRowIndex === undefined) continue;
-      const verdict = validateRow(nextData[dataRowIndex], rowId);
-      const prevKeys = rowValidationKeys.get(rowId);
-      if (prevKeys) for (const key of prevKeys) if ((next ?? cellErrors).has(key)) ensure().delete(key);
-      const entries = verdict ? Object.entries(verdict) : [];
-      if (entries.length === 0) {
-        rowValidationKeys.delete(rowId);
+      const row = nextData[dataRowIndex];
+      const verdict = validateRow(row, rowId);
+      if (isThenable<Record<string, string> | null>(verdict)) {
+        holdRowVerdict(rowId, verdict);
         continue;
       }
-      const keys: string[] = [];
-      for (const [columnId, message] of entries) {
-        const key = cellErrorKey(rowId, columnId);
-        if ((next ?? cellErrors).get(key) !== message) ensure().set(key, message);
-        keys.push(key);
-      }
-      rowValidationKeys.set(rowId, keys);
+      pendingRowVerdicts.delete(rowId);
+      foldRowVerdict(current, ensure, rowId, verdict);
     }
     return next ?? cellErrors;
+  };
+  let editStartPending = false;
+  const openEditor = (s: DataGridStoreState, coord: ViewCoord, rowId: string, columnId: string, initialText: string | undefined): void => {
+    if (s.editing) store.getState().actions.cancelEditing();
+    store.setState({
+      editing: { coord, rowId, columnId, initialText, session: ++editSessionCount },
+      editingError: null,
+      editingRejectionCount: 0,
+      activeCell: coord,
+    });
+  };
+  const holdEditStart = (s: DataGridStoreState, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
+    editStartPending = true;
+    const askedActive = s.activeCell;
+    verdict.then(
+      (allowed) => {
+        editStartPending = false;
+        if (allowed === false) return;
+        const now = store.getState();
+        if (now.readOnly) return;
+        const coord = resolveCellRef(now, rowIndexCache, ref);
+        if (!coord) return;
+        const target = resolveEditTarget(now, coord);
+        if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
+        const active = now.activeCell;
+        if (active !== askedActive && !(active && active.row === coord.row && active.col === coord.col)) return;
+        openEditor(now, coord, ref.rowId, ref.columnId, initialText);
+      },
+      (error: unknown) => {
+        editStartPending = false;
+        warnGateOnce("onEditStart rejected", `onEditStart rejected, so the edit does not start: ${String(error)}`);
+      },
+    );
   };
   // The session whose end commit/cancel report themselves; the edit-end subscription skips it.
   let selfReportedSession: DataGridStoreState["editing"] = null;
@@ -1471,14 +1553,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (s.readOnly) return;
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
-        if (s.onEditStart?.({ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col }) === false) return;
-        if (s.editing) get().actions.cancelEditing();
-        set({
-          editing: { coord, rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, initialText, session: ++editSessionCount },
-          editingError: null,
-          editingRejectionCount: 0,
-          activeCell: coord,
-        });
+        const rowId = s.getRowId(target.row, target.dataRowIndex);
+        const gate = s.onEditStart;
+        if (gate) {
+          if (editStartPending) return;
+          const verdict = gate({ rowId, columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col });
+          if (verdict === false) return;
+          if (isThenable<boolean | void>(verdict)) {
+            holdEditStart(s, { rowId, columnId: target.column.id }, initialText, verdict);
+            return;
+          }
+        }
+        openEditor(s, coord, rowId, target.column.id, initialText);
       },
       cancelEditing() {
         const s = get();

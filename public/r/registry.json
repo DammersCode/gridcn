@@ -526,6 +526,11 @@
           "target": "components/data-grid/store/api.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/async-gate.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/async-gate.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/commit.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/commit.ts"
@@ -2646,6 +2651,27 @@
           "path": "registry/default/examples/data-grid-validation-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-validation-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-async-gates-demo",
+      "type": "registry:example",
+      "title": "Data Grid Async Gates Demo",
+      "description": "Async gates against a simulated server: processPaste normalizes a paste, validateRow checks a SKU after the edit commits, and createRow waits for a server-assigned id. A promise holds the gesture and the grid writes once when it settles.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "button",
+        "DammersCode/gridcn/data-grid"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-async-gates-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-async-gates-demo.tsx"
         }
       ],
       "categories": [

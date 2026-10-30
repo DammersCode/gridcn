@@ -46,7 +46,7 @@ export type DataGridImportDialogProps<TData> = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
-  createRow: (index: number) => TData;
+  createRow: (index: number) => TData | Promise<TData>;
   /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. */
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */

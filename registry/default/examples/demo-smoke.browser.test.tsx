@@ -10,6 +10,7 @@ import ColumnGroupsDemo from "./data-grid-column-groups-demo";
 import ColumnLayoutDemo from "./data-grid-column-layout-demo";
 import ConditionalStylingDemo from "./data-grid-conditional-styling-demo";
 import ContextMenuDemo from "./data-grid-context-menu-demo";
+import AsyncGatesDemo from "./data-grid-async-gates-demo";
 import CrossFieldDemo from "./data-grid-cross-field-demo";
 import CustomCellDemo from "./data-grid-custom-cell-demo";
 import CustomHeadersDemo from "./data-grid-custom-headers-demo";
@@ -74,6 +75,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["conditional-styling", <ConditionalStylingDemo key="conditional-styling" />],
   ["context-menu", <ContextMenuDemo key="context-menu" />],
   ["cross-field", <CrossFieldDemo key="cross-field" />],
+  ["async-gates", <AsyncGatesDemo key="async-gates" />],
   ["custom-cell", <CustomCellDemo key="custom-cell" />],
   ["custom-headers", <CustomHeadersDemo key="custom-headers" />],
   ["custom-markers", <CustomMarkersDemo key="custom-markers" />],
