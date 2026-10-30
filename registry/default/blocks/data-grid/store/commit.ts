@@ -483,6 +483,24 @@ export function computeDeleteBatch(
 }
 
 /**
+ * Calls `duplicateRow` once per source row (descending, like {@link computeDuplicateBatch}) and keys
+ * each result, a copy or a promise of one, by its source data index. `null` when nothing resolves.
+ */
+export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: readonly number[]): Map<number, unknown> | null {
+  const duplicateRow = s.duplicateRow;
+  const uniqueAscending = Array.from(new Set(dataRowIndexes)).sort((a, b) => a - b);
+  if (!duplicateRow || uniqueAscending.length === 0) return null;
+  const copies = new Map<number, unknown>();
+  for (let i = uniqueAscending.length - 1; i >= 0; i--) {
+    const sourceIndex = uniqueAscending[i]!; // i in-bounds by loop condition
+    const sourceRow = s.data[sourceIndex];
+    if (sourceRow === undefined) continue;
+    copies.set(sourceIndex, duplicateRow(sourceRow, sourceIndex + 1));
+  }
+  return copies.size > 0 ? copies : null;
+}
+
+/**
  * Builds a multi-row duplicate batch: each of `dataRowIndexes` (deduped, ascending) is copied via
  * the required `s.duplicateRow` and spliced immediately after its source row. Processed descending
  * so earlier splices don't shift the still-pending source indexes; operations are returned in ascending
@@ -493,6 +511,7 @@ export function computeDeleteBatch(
 export function computeDuplicateBatch(
   s: DataGridStoreState,
   dataRowIndexes: readonly number[],
+  copies?: ReadonlyMap<number, unknown>,
 ): { nextData: readonly unknown[]; ops: DataOp<unknown>[] } | null {
   const duplicateRow = s.duplicateRow;
   if (!duplicateRow) return null;
@@ -506,7 +525,8 @@ export function computeDuplicateBatch(
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
     const insertAt = sourceIndex + 1;
-    const copy = duplicateRow(sourceRow, insertAt);
+    const copy = copies ? copies.get(sourceIndex) : duplicateRow(sourceRow, insertAt);
+    if (copy === undefined) continue;
     nextData.splice(insertAt, 0, copy);
     opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, insertAt), row: copy, index: insertAt });
   }

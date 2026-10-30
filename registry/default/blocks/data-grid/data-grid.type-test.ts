@@ -332,6 +332,7 @@ assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 import type { StandardSchemaV1 as OfficialStandardSchemaV1 } from "@standard-schema/spec";
 import type { StandardSchemaV1 } from "./types";
 import { type GRID_ATTR } from "./data-grid-sdk";
+import type { ViewCellRef, ViewCoord } from "./types";
 
 function assertVendoredMatchesOfficial<Input, Output>(
   _vendoredToOfficial: (v: StandardSchemaV1<Input, Output>) => OfficialStandardSchemaV1<Input, Output>,
@@ -576,3 +577,20 @@ function useDirectGridSelector() {
 void useDirectGridSelector;
 
 export {};
+
+// --- Async gates: each widened prop accepts the sync and the promise form ----------------------
+assertEqual<((row: Row, rowId: string) => Record<string, string> | null | Promise<Record<string, string> | null>) | undefined, DataGridSyncProps<Row>["validateRow"]>(true);
+assertEqual<((ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false | Promise<string[][] | false>) | undefined, DataGridSyncProps<Row>["processPaste"]>(true);
+assertEqual<((cell: ViewCellRef) => boolean | void | Promise<boolean | void>) | undefined, DataGridSyncProps<Row>["onEditStart"]>(true);
+assertEqual<((index: number) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["createRow"]>(true);
+assertEqual<((row: Row, index: number) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["duplicateRow"]>(true);
+const asyncGateProps: DataGridSyncProps<Row> = {
+  columns: [],
+  processPaste: async ({ cells }) => cells,
+  processCellFromClipboard: async (text) => text,
+  validateRow: async () => null,
+  onEditStart: async () => false,
+  createRow: async () => ({ id: "n", name: "" }) as Row,
+  duplicateRow: async (row) => row,
+};
+void asyncGateProps;

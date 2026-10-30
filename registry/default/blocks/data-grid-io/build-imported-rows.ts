@@ -1,6 +1,6 @@
 import type { AnyColumnDef, CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { isDev, resolveColumnValidate, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, isThenable, resolveColumnValidate, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };
@@ -37,8 +37,8 @@ export type BuildImportedRowsOptions<TData> = {
   // AnyColumnDef doc: validate's function-or-schema union can't stay bivariant as a plain property.
   columns: readonly ColumnDef<TData, unknown, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>;
-  /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
-  createRow: (index: number) => TData;
+  /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. A promise makes the build a Promise; a rejection rejects it. */
+  createRow: (index: number) => TData | Promise<TData>;
   /** Checked between chunks on the large-import path; throws `"import-cancelled"` when true. Ignored below {@link IMPORT_CHUNK_THRESHOLD_ROWS}. */
   signal?: AbortSignal;
 };
@@ -93,7 +93,23 @@ export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData
     return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal);
   }
 
-  const rows = dataRows.map((_, index) => createRow(index));
+  const created = dataRows.map((_, index) => createRow(index));
+  if (created.some((row) => isThenable(row))) {
+    return Promise.all(created).then((rows) => {
+      if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
+      return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, rows);
+    });
+  }
+  return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, created as TData[]);
+}
+
+function finishSmallImport<TData>(
+  dataRows: readonly string[][],
+  activeMappings: readonly ResolvedMapping[],
+  columnsById: ReadonlyMap<string, ColumnDef<TData, unknown, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  cellTypes: Record<string, CellType<TData, unknown, unknown>>,
+  rows: TData[],
+): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const rejected: ImportRejectedCell[] = [];
   const { items, cells } = buildCellsForRange(dataRows, 0, dataRows.length, activeMappings, columnsById, cellTypes, rows);
 
@@ -150,10 +166,11 @@ async function buildImportedRowsChunked<TData>(
   activeMappings: readonly ResolvedMapping[],
   columnsById: ReadonlyMap<string, ColumnDef<TData, unknown, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
-  createRow: (index: number) => TData,
+  createRow: (index: number) => TData | Promise<TData>,
   signal?: AbortSignal,
 ): Promise<BuildImportedRowsResult<TData>> {
-  const rows = dataRows.map((_, index) => createRow(index));
+  const created = dataRows.map((_, index) => createRow(index));
+  const rows = created.some((row) => isThenable(row)) ? await Promise.all(created) : (created as TData[]);
   const rejected: ImportRejectedCell[] = [];
 
   for (let start = 0; start < dataRows.length; start += CHUNK_SIZE) {

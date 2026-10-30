@@ -103,6 +103,22 @@ function processPaste({ cells, target }: { cells: string[][]; target: ViewCoord 
 `processPaste` runs on the paste grid after single-row tiling and before the paste cap. `target`
 is the top-left cell the paste applies to.
 
+`processPaste` and `processCellFromClipboard` also accept a promise. <NewBadge />
+
+```tsx
+<DataGridProvider
+  processPaste={async ({ cells }) => (await normalizeOnServer(cells)) ?? false}
+  {...grid}
+  columns={columns}
+/>
+```
+
+The grid holds the paste until the promise settles, then writes one change. The paste cap applies
+to the settled grid. A pending promise blocks a second paste. A rejection cancels the paste. The
+grid drops a late result when it went `readOnly`, when the row under the paste is gone, or when a
+sort or filter changed. If the row moved, the paste follows it. The
+[Async gates demo](/docs/examples/validation/async-gates) shows the gate.
+
 ## Context menu paste
 
 The [context menu add-on](/docs/addons/context-menu#paste-permission) adds a Paste item to the

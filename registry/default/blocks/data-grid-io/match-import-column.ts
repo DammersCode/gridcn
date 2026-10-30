@@ -1,3 +1,4 @@
+import { isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Minimal column shape the header-matching/preview logic needs — matches `ColumnDef` structurally. */
@@ -19,9 +20,10 @@ export type ImportDefaults = {
   defaultSkipColumns?: readonly (string | number)[];
   /**
    * Override the initial mapping per source column; return undefined to fall back to the
-   * built-in matcher, null to skip. Wins over `defaultSkipColumns`.
+   * built-in matcher, null to skip. Wins over `defaultSkipColumns`. A promise holds the mapping
+   * until it settles; a rejection falls back to the built-in matcher.
    */
-  mapColumn?: (header: string, index: number) => string | null | undefined;
+  mapColumn?: (header: string, index: number) => string | null | undefined | Promise<string | null | undefined>;
 };
 
 /** Column display header for matching: `headerText`, else the string `header`, else the id. */
@@ -67,14 +69,24 @@ function isDefaultSkipped(header: string, index: number, defaultSkipColumns: rea
 export function applyImportOptions(
   importHeaders: readonly string[],
   gridColumns: readonly ImportTargetColumn[],
-  options: Pick<ImportDefaults, "defaultSkipColumns" | "mapColumn"> = {},
+  options: { defaultSkipColumns?: readonly (string | number)[]; mapColumn?: (header: string, index: number) => string | null | undefined } = {},
 ): (string | null)[] {
+  return resolveImportMapping(importHeaders, gridColumns, options) as (string | null)[];
+}
+
+/** {@link applyImportOptions} for a `mapColumn` that may answer with a promise: a Promise when any column does, else the plain array. */
+export function resolveImportMapping(
+  importHeaders: readonly string[],
+  gridColumns: readonly ImportTargetColumn[],
+  options: Pick<ImportDefaults, "defaultSkipColumns" | "mapColumn"> = {},
+): (string | null)[] | Promise<(string | null)[]> {
   const { defaultSkipColumns, mapColumn } = options;
   const matched = matchImportColumns(importHeaders, gridColumns);
-  return matched.map((gridColumnId, index) => {
+  const overridden = matched.map((gridColumnId, index) => {
     const header = importHeaders[index] ?? "";
-    const overridden = defaultSkipColumns && isDefaultSkipped(header, index, defaultSkipColumns) ? null : gridColumnId;
-    const resolved = mapColumn?.(header, index);
-    return resolved === undefined ? overridden : resolved;
+    return defaultSkipColumns && isDefaultSkipped(header, index, defaultSkipColumns) ? null : gridColumnId;
   });
+  const overrides = matched.map((_, index) => mapColumn?.(importHeaders[index] ?? "", index));
+  const combine = (resolved: readonly (string | null | undefined)[]) => overridden.map((kept, index) => (resolved[index] === undefined ? kept : resolved[index]!));
+  return overrides.some((override) => isThenable(override)) ? Promise.all(overrides).then(combine) : combine(overrides as (string | null | undefined)[]);
 }

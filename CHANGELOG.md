@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, and `duplicateRow` accept a promise, and so do the `mapColumn` default and the `createRow` prop of the import add-on. A synchronous result takes the same path as before. A pending promise blocks a second request of the same gate. A rejection cancels with no write. The grid reads its state again when the promise settles and drops a late result for a `readOnly` grid or a row that is gone. `validateRow` does not hold the write: its verdict merges into the cell errors when it settles. Docs: an async gates demo on the validation examples.
+
 ## 1.3.0 - 2026-10-28
 
 - Every data row carries `aria-selected`: `true` when the row is selected, and `false` when it is not and the grid has a checkbox row marker. A screen reader reads the checked state from the row, not only from the marker checkbox. Without a checkbox marker, an unselected row has no attribute.

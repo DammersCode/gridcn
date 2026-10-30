@@ -2,8 +2,9 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FILE_TOO_LARGE_MESSAGE, IMPORT_TOO_MANY_CELLS_MESSAGE, PART_TOO_LARGE_MESSAGE, UNSUPPORTED_EXCEL_FORMAT_MESSAGE, parseImportFile, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
-import { applyImportOptions, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
+import { resolveImportMapping, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import type { ImportColumnMapping } from "./build-imported-rows";
+import { isDev, isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type { ImportTargetColumn, ImportDefaults };
 
@@ -105,6 +106,19 @@ export type UseDataGridImportPreviewOptions = {
   limits?: ImportLimits;
 };
 
+/** Awaits a promised mapping; a rejected `mapColumn` falls back to the built-in match so the dialog still opens. */
+async function settleMapping(
+  mapped: Promise<(string | null)[]>,
+  fallback: () => (string | null)[],
+): Promise<(string | null)[]> {
+  try {
+    return await mapped;
+  } catch (error) {
+    if (isDev()) console.warn("[data-grid-io] mapColumn rejected, so the built-in column match is used", error);
+    return fallback();
+  }
+}
+
 /**
  * Owns the parse -> preview -> column-mapping state for the import dialog. File I/O and header
  * matching are pure functions ({@link parseImportFile}, {@link applyImportOptions}); this hook only
@@ -124,6 +138,8 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
   // generation guard for every async parse (file load, sheet switch, delimiter override): a newer parse or reset wins over a slower older one.
   const parseGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = defaults;
+  // the header-row toggle as the async mapping steps read it; they cannot read a state updater's `prev`.
+  const hasHeaderRowRef = useRef(defaultHeaderRow);
   const { maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes } = limits;
   const limitOptions = useMemo(
     () => ({ maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes }),
@@ -160,8 +176,13 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
       currentFileRef.current = file;
       gridColumnsRef.current = gridColumns;
       const hasHeaderRow = defaultHeaderRow;
+      hasHeaderRowRef.current = hasHeaderRow;
       const importHeaders = computeImportHeaders(parsed.rows, hasHeaderRow, columnFallback);
-      const matched = applyImportOptions(importHeaders, gridColumns, { defaultSkipColumns, mapColumn });
+      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn });
+      const matched = isThenable(mapped)
+        ? await settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[])
+        : mapped;
+      if (generation !== parseGenerationRef.current) return; // superseded while mapColumn was pending
       setPreview({
         fileName: file.name,
         rows: parsed.rows,
@@ -184,8 +205,20 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `defaults` itself may be a fresh object each render.
   }, [columnFallback, defaultHeaderRow, defaultSkipColumns, mapColumn, limitOptions]);
 
+  const mapForReparse = useCallback(
+    (importHeaders: readonly string[]): (string | null)[] | Promise<(string | null)[]> => {
+      const gridColumns = gridColumnsRef.current;
+      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn });
+      return isThenable(mapped)
+        ? settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[])
+        : mapped;
+    },
+    [defaultSkipColumns, mapColumn],
+  );
+
   const setHasHeaderRow = useCallback(
     (hasHeaderRow: boolean) => {
+      hasHeaderRowRef.current = hasHeaderRow;
       setPreview((prev) => {
         if (!prev) return prev;
         const importHeaders = computeImportHeaders(prev.rows, hasHeaderRow, columnFallback);
@@ -206,10 +239,12 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
         const parsed = await parseImportFile(file, { ...limitOptions, csvDelimiter: delimiter }, parseControllerRef.current?.signal);
         if (generation !== parseGenerationRef.current) return; // superseded by a newer file load, sheet switch, or reset
         if (parsed.rows.length === 0) return;
+        const importHeaders = computeImportHeaders(parsed.rows, hasHeaderRowRef.current, columnFallback);
+        const mappedHeaders = mapForReparse(importHeaders);
+        const matched = isThenable(mappedHeaders) ? await mappedHeaders : mappedHeaders;
+        if (generation !== parseGenerationRef.current) return; // superseded while mapColumn was pending
         setPreview((prev) => {
           if (!prev) return prev;
-          const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
-          const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
           return {
             ...prev,
             rows: parsed.rows,
@@ -226,7 +261,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
         if (generation === parseGenerationRef.current) setIsParsing(false);
       }
     },
-    [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
+    [columnFallback, mapForReparse, limitOptions],
   );
 
   const setSheetName = useCallback(
@@ -247,10 +282,12 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
           setError("errorNoRows");
           return;
         }
+        const importHeaders = computeImportHeaders(parsed.rows, hasHeaderRowRef.current, columnFallback);
+        const mappedHeaders = mapForReparse(importHeaders);
+        const matched = isThenable(mappedHeaders) ? await mappedHeaders : mappedHeaders;
+        if (generation !== parseGenerationRef.current) return; // superseded while mapColumn was pending
         setPreview((prev) => {
           if (!prev) return prev;
-          const importHeaders = computeImportHeaders(parsed.rows, prev.hasHeaderRow, columnFallback);
-          const matched = applyImportOptions(importHeaders, gridColumnsRef.current, { defaultSkipColumns, mapColumn });
           return {
             ...prev,
             rows: parsed.rows,
@@ -267,7 +304,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
         if (generation === parseGenerationRef.current) setIsParsing(false);
       }
     },
-    [columnFallback, defaultSkipColumns, mapColumn, limitOptions],
+    [columnFallback, mapForReparse, limitOptions],
   );
 
   const setMapping = useCallback((importColumnIndex: number, gridColumnId: string | null) => {

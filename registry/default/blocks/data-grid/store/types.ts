@@ -109,9 +109,12 @@ export type DataGridSyncProps<TData = unknown> = {
    * gesture's cells applied, so the verdict is independent of column order inside a paste. Return
    * `columnId -> message` to surface errors (they land in `cellErrors`, same display as server
    * errors), `null` when the row is fine. Values still commit either way. Not run on row
-   * insert/duplicate/delete or on consumer `data` replacement. Sync only.
+   * insert/duplicate/delete or on consumer `data` replacement. A promise does not hold the write:
+   * its verdict merges into `cellErrors` when it settles. A newer verdict for the same row
+   * supersedes a pending one, and a verdict for a row that is gone is dropped. A
+   * rejection adds no error.
    */
-  validateRow?: (row: TData, rowId: string) => Record<string, string> | null;
+  validateRow?: (row: TData, rowId: string) => Record<string, string> | null | Promise<Record<string, string> | null>;
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
@@ -122,10 +125,18 @@ export type DataGridSyncProps<TData = unknown> = {
   cellTypes?: Record<string, AnyCellType | null>;
   /** Overrides a cell's clipboard-copy text; falls back to the cell type's `toText`. */
   processCellForClipboard?: (value: unknown, ctx: ClipboardProcessCtx<TData>) => string;
-  /** Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`. */
+  /**
+   * Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`.
+   * A promise holds the paste until every cell settles. A pending promise blocks a second paste.
+   * A rejection cancels the paste.
+   */
   processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
-  /** Runs on the parsed paste grid before it's applied; returning `false` vetoes the paste entirely. */
-  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false;
+  /**
+   * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
+   * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
+   * paste. The cell cap applies to the settled grid.
+   */
+  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false | Promise<string[][] | false>;
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
@@ -187,15 +198,21 @@ export type DataGridSyncProps<TData = unknown> = {
   headerClickBehavior?: HeaderClickBehavior;
   /** Partial i18n override, deep-merged over {@link DEFAULT_LABELS}; see {@link useDataGridLabels}. */
   labels?: DeepPartialLabels;
-  /** Builds a new row for `insertRow`; absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it). */
-  createRow?: (index: number) => TData;
+  /**
+   * Builds a new row for `insertRow` (`index` is the data index at request time); absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it).
+   * A promise holds the insert until every row settles; a pending promise blocks a second insert
+   * and a rejection cancels it.
+   */
+  createRow?: (index: number) => TData | Promise<TData>;
   /**
    * Builds a duplicated row's identity for `duplicateRows`: given the
    * source row and its new data index, returns the row to insert (with a distinct id, e.g. a fresh
    * UUID, so the copy's `getRowId()` never collides with its source's React key). Absent makes
-   * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`.
+   * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`. A promise holds the
+   * duplicate until every copy settles; a pending promise blocks a second duplicate and a
+   * rejection cancels it.
    */
-  duplicateRow?: (row: TData, index: number) => TData;
+  duplicateRow?: (row: TData, index: number) => TData | Promise<TData>;
   /**
    * Consumer-defined keyboard commands keyed by name — the dispatch target of keymap bindings
    * that name no built-in action (see {@link GridCommand}). A name that shadows a built-in action
@@ -331,9 +348,11 @@ export type DataGridSyncProps<TData = unknown> = {
     * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
     * the target cell's ids and view position. Return `false` to VETO the edit — `startEditing`
     * then makes no state change at all (no session, no cursor move). Checkbox cells never start an
-    * edit session, so the veto never applies to them.
+    * edit session, so the veto never applies to them. A promise holds the editor: it opens when
+    * the promise settles, unless the promise is `false`, the user moved to another cell, or the
+    * grid went read-only. A pending promise ignores a second edit start, so keys typed meanwhile add no text. A rejection cancels.
     */
-   onEditStart?: (cell: ViewCellRef) => boolean | void;
+   onEditStart?: (cell: ViewCellRef) => boolean | void | Promise<boolean | void>;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),
@@ -986,14 +1005,14 @@ export type DataGridActions = {
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
   reconcileView(): void;
   /**
-   * Inserts one row built by the `createRow` sync prop above/below `viewRowIndex` (view-index).
+   * Inserts one row built by the `createRow` prop above/below `viewRowIndex` (view-index).
    * External name that maps to the single internal batch path - it runs
    * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
    * and one undo step.
    */
   insertRow(viewRowIndex: number, position: "above" | "below"): void;
   /**
-   * Inserts `count` rows built by the `createRow` sync prop (called with `dataRowIndex + i`)
+   * Inserts `count` rows built by the `createRow` prop (called with `dataRowIndex + i`)
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
@@ -1006,7 +1025,7 @@ export type DataGridActions = {
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
-   * no-op when the `duplicateRow` sync prop is absent — required so
+   * no-op when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
   duplicateRows(viewRowIndexes: number[]): void;

@@ -299,6 +299,10 @@ index. `mapColumn` runs after the built-in header matcher and wins over `default
 Return a grid column id from `mapColumn` to map the column. Return `null` to skip it. Return
 `undefined` to keep the matcher's answer.
 
+`mapColumn` and `createRow` may return a promise. <NewBadge /> The dialog waits for the promise. If
+`mapColumn` rejects, the dialog uses the built-in matcher. If a `createRow` promise rejects, the
+import writes nothing. Cancel stops a pending import.
+
 Each mapping row also has a quick-skip button next to its Select. Click it to skip that column in
 one step. The button hides once the column is already skipped.
 

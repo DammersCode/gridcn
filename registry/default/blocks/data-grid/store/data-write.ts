@@ -20,15 +20,17 @@ import {
   computeRowEditsBatch,
   patchesNeedAsyncCheck,
   prevalidatePatches,
+  startDuplicateCopies,
   type PatchRejection,
   type PrevalidatedPatches,
   warnDev,
 } from "./commit";
+import { createWarnOnce, isThenable } from "./async-gate";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
-import { resolveCellRef, resolveReorder, touchesViewInputs, type RowIndexCache } from "./row-index";
+import { resolveCellRef, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
   offsetSelectionForRows,
@@ -429,12 +431,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   let deleteConfirmPending = false;
-  const warnedDeleteConfirm = new Set<string>();
-  const warnDeleteConfirmOnce = (key: string, message: string): void => {
-    if (warnedDeleteConfirm.has(key)) return;
-    warnedDeleteConfirm.add(key);
-    warnDev(message);
-  };
+  const warnGateOnce = createWarnOnce();
   const requestDelete = (dataRowIndexes: number[]) => {
     const s = get();
     if (s.readOnly) return;
@@ -446,7 +443,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
     if (rowIds.length === 0) return;
     if (deleteConfirmPending) {
-      warnDeleteConfirmOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
+      warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
       return;
     }
     const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
@@ -454,7 +451,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     try {
       verdict = confirm({ rowIds, hiddenCount });
     } catch (error) {
-      warnDeleteConfirmOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
+      warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
       return;
     }
     if (typeof verdict === "boolean") {
@@ -473,11 +470,142 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
       (error: unknown) => {
         deleteConfirmPending = false;
-        warnDeleteConfirmOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+        warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
       },
     );
   };
 
+  const insertDataIndex = (s: DataGridStoreState, viewRowIndex: number, position: "above" | "below"): number =>
+    clampIndex(position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1, s.data.length);
+  const commitInsertedRows = (
+    s: DataGridStoreState,
+    viewRowIndex: number,
+    count: number,
+    position: "above" | "below",
+    dataRowIndex: number,
+    rows: unknown[],
+  ): void => {
+    const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
+    ctx.rowIndexCache.invalidate();
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = batch.nextData;
+    const view = rebuildRowOpView(s, batch.nextData);
+    const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
+    if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+      const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
+      pruneRowValidationKeys(batch.nextData, s.getRowId);
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
+        set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
+      );
+      return;
+    }
+    // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
+    const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
+    pruneRowValidationKeys(batch.nextData, s.getRowId);
+    writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
+      set({
+        data: batch.nextData,
+        rowIdentityVersion: s.rowIdentityVersion + 1,
+        cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+        selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
+        activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
+          ? { ...s.activeCell, row: s.activeCell.row + count }
+          : s.activeCell,
+        ...view,
+        ...editRemap,
+      }),
+    );
+  };
+  const finishDuplicate = (s: DataGridStoreState, viewRowIndexes: number[], copies: ReadonlyMap<number, unknown>): void => {
+    const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
+    const batch = computeDuplicateBatch(s, dataRowIndexes, copies);
+    if (!batch) return;
+    ctx.rowIndexCache.invalidate();
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = batch.nextData;
+    const view = rebuildRowOpView(s, batch.nextData);
+    const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
+    if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
+      const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
+      pruneRowValidationKeys(batch.nextData, s.getRowId);
+      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
+        set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
+      );
+      return;
+    }
+    // Each duplicate lands after its source; ascending offsets let earlier insertions shift later sources.
+    const uniqueAscendingViewRows = Array.from(new Set(viewRowIndexes)).sort((a, b) => a - b);
+    let selection = s.selection;
+    let activeCell = s.activeCell;
+    uniqueAscendingViewRows.forEach((viewRow, i) => {
+      const insertAt = viewRow + 1 + i;
+      selection = offsetSelectionForRows(selection, insertAt, 1);
+      if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
+    });
+    pruneRowValidationKeys(batch.nextData, s.getRowId);
+    writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
+      set({
+        data: batch.nextData,
+        rowIdentityVersion: s.rowIdentityVersion + 1,
+        cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
+        selection,
+        activeCell,
+        ...view,
+        ...editRemap,
+      }),
+    );
+  };
+  let createRowPending = false;
+  let duplicateRowPending = false;
+  const holdInsertedRows = (s: DataGridStoreState, viewRowIndex: number, position: "above" | "below", rows: unknown[]): void => {
+    createRowPending = true;
+    const anchorDataIndex = s.viewIndex[viewRowIndex];
+    const anchorRowId = anchorDataIndex === undefined ? null : s.getRowId(s.data[anchorDataIndex], anchorDataIndex);
+    Promise.all(rows).then(
+      (resolved) => {
+        createRowPending = false;
+        const now = get();
+        if (now.readOnly) return;
+        let anchorViewRow = viewRowIndex;
+        if (anchorRowId !== null) {
+          const dataIndex = ctx.rowIndexCache.resolveOne(now.data, now.getRowId, anchorRowId);
+          anchorViewRow = dataIndex === undefined ? -1 : viewRowOfDataIndex(now.viewIndex, dataIndex);
+          if (anchorViewRow < 0) return;
+        }
+        commitInsertedRows(now, anchorViewRow, resolved.length, position, insertDataIndex(now, anchorViewRow, position), resolved);
+      },
+      (error: unknown) => {
+        createRowPending = false;
+        warnGateOnce("createRow rejected", `createRow rejected, so the insert is cancelled: ${String(error)}`);
+      },
+    );
+  };
+  const holdDuplicateCopies = (s: DataGridStoreState, copies: ReadonlyMap<number, unknown>): void => {
+    duplicateRowPending = true;
+    const sourceIds = Array.from(copies.keys(), (dataIndex) => s.getRowId(s.data[dataIndex], dataIndex));
+    Promise.all(copies.values()).then(
+      (resolved) => {
+        duplicateRowPending = false;
+        const now = get();
+        if (now.readOnly) return;
+        const rowIndex = ctx.rowIndexCache.resolve(now.data, now.getRowId);
+        const settled = new Map<number, unknown>();
+        const viewRows: number[] = [];
+        sourceIds.forEach((rowId, i) => {
+          const dataIndex = rowIndex.get(rowId);
+          const viewRow = dataIndex === undefined ? -1 : viewRowOfDataIndex(now.viewIndex, dataIndex);
+          if (dataIndex === undefined || viewRow < 0) return;
+          settled.set(dataIndex, resolved[i]);
+          viewRows.push(viewRow);
+        });
+        if (viewRows.length > 0) finishDuplicate(now, viewRows, settled);
+      },
+      (error: unknown) => {
+        duplicateRowPending = false;
+        warnGateOnce("duplicateRow rejected", `duplicateRow rejected, so the duplicate is cancelled: ${String(error)}`);
+      },
+    );
+  };
   const canMoveRows = (s: DataGridStoreState): boolean => {
     if (!s.enableRowReorder || s.readOnly) return false;
     if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
@@ -819,42 +947,18 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
         return;
       }
-      const dataRowIndex = clampIndex(
-        position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1,
-        s.data.length,
-      );
-      const rows: unknown[] = [];
-      for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
-      const batch = computeInsertRowsBatch(s, dataRowIndex, rows);
-      ctx.rowIndexCache.invalidate();
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = batch.nextData;
-      const view = rebuildRowOpView(s, batch.nextData);
-      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
-        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
-        pruneRowValidationKeys(batch.nextData, s.getRowId);
-        writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
-        );
+      if (createRowPending) {
+        warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
         return;
       }
-      // unsorted and unfiltered, the new rows land at this view index; shift selection/activeCell to follow them.
-      const viewInsertAt = position === "above" ? viewRowIndex : viewRowIndex + 1;
-      pruneRowValidationKeys(batch.nextData, s.getRowId);
-      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-        set({
-          data: batch.nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection: offsetSelectionForRows(s.selection, viewInsertAt, count),
-          activeCell: s.activeCell && s.activeCell.row >= viewInsertAt
-            ? { ...s.activeCell, row: s.activeCell.row + count }
-            : s.activeCell,
-          ...view,
-          ...editRemap,
-        }),
-      );
+      const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
+      const rows: unknown[] = [];
+      for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
+      if (rows.some((row) => isThenable(row))) {
+        holdInsertedRows(s, viewRowIndex, position, rows);
+        return;
+      }
+      commitInsertedRows(s, viewRowIndex, count, position, dataRowIndex, rows);
     },
     deleteRows(viewRowIndexes) {
       const s = get();
@@ -872,43 +976,18 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return;
       }
-      const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-      const batch = computeDuplicateBatch(s, dataRowIndexes);
-      if (!batch) return;
-      ctx.rowIndexCache.invalidate();
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = batch.nextData;
-      const view = rebuildRowOpView(s, batch.nextData);
-      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-      if (viewSorts(s.sortMode, s.sortState).length > 0 || s.filterState.length > 0) {
-        const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
-        pruneRowValidationKeys(batch.nextData, s.getRowId);
-        writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-          set({ data: batch.nextData, rowIdentityVersion: s.rowIdentityVersion + 1, cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId), ...followed, ...view, ...keepRows(editRemap, followed.selection.rows) }),
-        );
+      if (duplicateRowPending) {
+        warnGateOnce("duplicateRow pending", "a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle");
         return;
       }
-      // Each duplicate lands after its source; ascending offsets let earlier insertions shift later sources.
-      const uniqueAscendingViewRows = Array.from(new Set(viewRowIndexes)).sort((a, b) => a - b);
-      let selection = s.selection;
-      let activeCell = s.activeCell;
-      uniqueAscendingViewRows.forEach((viewRow, i) => {
-        const insertAt = viewRow + 1 + i;
-        selection = offsetSelectionForRows(selection, insertAt, 1);
-        if (activeCell && activeCell.row >= insertAt) activeCell = { ...activeCell, row: activeCell.row + 1 };
-      });
-      pruneRowValidationKeys(batch.nextData, s.getRowId);
-      writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
-        set({
-          data: batch.nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors: pruneCellErrors(s.cellErrors, batch.nextData, s.getRowId),
-          selection,
-          activeCell,
-          ...view,
-          ...editRemap,
-        }),
-      );
+      const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
+      const copies = startDuplicateCopies(s, dataRowIndexes);
+      if (!copies) return;
+      if (Array.from(copies.values()).some((copy) => isThenable(copy))) {
+        holdDuplicateCopies(s, copies);
+        return;
+      }
+      finishDuplicate(s, viewRowIndexes, copies);
     },
     reorderRows(rows, to) {
       const s = get();

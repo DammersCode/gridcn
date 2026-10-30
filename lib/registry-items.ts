@@ -29,6 +29,7 @@ export type RegistryItemName =
   | "data-grid-column-layout-demo"
   | "data-grid-context-menu-demo"
   | "data-grid-context-menu-slots-demo"
+  | "data-grid-async-gates-demo"
   | "data-grid-cross-field-demo"
   | "data-grid-delete-confirm-demo"
   | "data-grid-custom-cell-demo"

@@ -390,7 +390,7 @@ write-up, including how to broadcast your own selection with `onSelectionChange`
 
 ```ts
 onActiveCellChange?: (next: ViewCellRef | null) => void;
-onEditStart?: (cell: ViewCellRef) => boolean | void;
+onEditStart?: (cell: ViewCellRef) => boolean | void | Promise<boolean | void>;
 onEditEnd?: (event: GridEditEndEvent) => void;
 onValidationError?: (event: GridValidationErrorEvent) => void;
 onCellDoubleClick?: (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -413,6 +413,9 @@ zero-re-render guarantee as the other callbacks on this page.
   The edit then does not start at all, and no other event fires for it. Cells of a type that
   declares `activate` (like `checkbox`) toggle instead of editing, so they never reach
   `onEditStart`.
+- `onEditStart` may return a promise. <NewBadge /> The editor opens when the promise settles. The grid
+  opens no editor when the promise is `false`, when the user moved to another cell, or when the grid
+  went `readOnly`. A pending promise blocks a second edit start. A rejection cancels the edit start.
 - `onEditEnd` fires with a `result` of `commit`, `cancel`, or `rejected`. `commit` fires after
   the session closes. `cancel` fires when the draft is discarded: on Escape, when a filter, a
   hidden column, or a data change removes the edited cell from the view, and when a second

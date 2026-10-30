@@ -10,6 +10,7 @@ import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
+import { createWarnOnce, isThenable } from "../store/async-gate";
 import { exportText } from "../cell-types/display-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
@@ -244,8 +245,20 @@ export function targetHeight(s: DataGridStoreState): number {
  * the caller's next step ({@link buildPasteWrites} for the sync answer, `resolveBulkWrites` when a
  * column's schema is async). Exported for direct unit testing; not part of the public hook surface.
  */
-export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): BulkCandidate[] {
+export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): BulkCandidate[] | Promise<BulkCandidate[]> {
+  const { candidates, pending } = collectPasteCandidates(s, cells, target);
+  return pending === 0 ? candidates : settleCandidateValues(candidates);
+}
+
+/** Resolves the promised `value` of every candidate; a rejected value rejects the batch. */
+async function settleCandidateValues(candidates: BulkCandidate[]): Promise<BulkCandidate[]> {
+  const values = await Promise.all(candidates.map((candidate) => candidate.value));
+  return candidates.map((candidate, i) => ({ ...candidate, value: values[i] }));
+}
+
+function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): { candidates: BulkCandidate[]; pending: number } {
   const candidates: BulkCandidate[] = [];
+  let pending = 0;
   const rowCount = s.viewIndex.length;
   const colCount = s.visibleColumns.length;
 
@@ -274,10 +287,11 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
         ? s.processCellFromClipboard(text, { row, column })
         : cellType.fromText(text, column.options);
 
+      if (isThenable(value)) pending++;
       candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
     }
   }
-  return candidates;
+  return { candidates, pending };
 }
 
 /**
@@ -291,7 +305,8 @@ export function buildPasteWrites(
   cells: string[][],
   target: ViewCoord,
 ): BulkResolution | Promise<BulkResolution> {
-  return resolveBulkWrites(buildPasteCandidates(s, cells, target));
+  const candidates = buildPasteCandidates(s, cells, target);
+  return candidates instanceof Promise ? candidates.then((settled) => resolveBulkWrites(settled)) : resolveBulkWrites(candidates);
 }
 
 /**
@@ -317,9 +332,96 @@ function applyParsedPaste(
   if (cells.length === 0) return false;
   const target = resolvePasteTarget(s);
   if (!target) return false;
+  const latch = pasteLatchOf(actions);
+  if (latch.gate) {
+    latch.warnOnce("pending", `a paste was requested while the promise of ${latch.gate} is still pending, so it is ignored; the promise must settle`);
+    return false;
+  }
 
   const tiled = tileToHeight(cells, targetHeight(s));
-  const finalCells = s.processPaste ? s.processPaste({ cells: tiled, target }) : tiled;
+  const gated = s.processPaste ? s.processPaste({ cells: tiled, target }) : tiled;
+  if (!isThenable<string[][] | false>(gated)) return runPaste(s, actions, gated, target, latch, guard, storeApi);
+
+  latch.gate = "processPaste";
+  const token = guard?.begin();
+  const anchor = pasteAnchor(s, target);
+  const snapshot = snapshotBulkBatch(s, anchor ? [anchor.rowId] : []);
+  void gated.then(
+    (final) => {
+      latch.gate = null;
+      const current = storeApi?.getState() ?? s;
+      try {
+        const now = final === false ? null : stillPastable(current, anchor, target, guard, token, snapshot);
+        if (!now) return;
+        runPaste(current, actions, final, now, latch, guard, storeApi, token);
+      } catch (error) {
+        latch.warnOnce("threw", `processCellFromClipboard threw, so the paste is cancelled: ${String(error)}`);
+      }
+    },
+    (error: unknown) => {
+      latch.gate = null;
+      latch.warnOnce("rejected", `processPaste rejected, so the paste is cancelled: ${String(error)}`);
+    },
+  );
+  return true;
+}
+
+type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; warnOnce: (key: string, message: string) => void };
+const pasteLatches = new WeakMap<object, PasteLatch>();
+
+/** One latch per grid: the pending gate blocks a second paste, whatever surface it comes from. */
+function pasteLatchOf(actions: DataGridActions): PasteLatch {
+  let latch = pasteLatches.get(actions);
+  if (!latch) {
+    latch = { gate: null, warnOnce: createWarnOnce() };
+    pasteLatches.set(actions, latch);
+  }
+  return latch;
+}
+
+type PasteAnchor = { rowId: string; columnId: string };
+
+function pasteAnchor(s: DataGridStoreState, target: ViewCoord): PasteAnchor | null {
+  const dataRowIndex = s.viewIndex[target.row];
+  const column = s.visibleColumns[target.col];
+  const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  if (dataRowIndex === undefined || row === undefined || !column) return null;
+  return { rowId: s.getRowId(row, dataRowIndex), columnId: column.id };
+}
+
+/** The paste target as it sits NOW, or `null` when the paste may not land any more. */
+function stillPastable(
+  current: DataGridStoreState,
+  anchor: PasteAnchor | null,
+  target: ViewCoord,
+  guard: BulkGeneration | undefined,
+  token: number | undefined,
+  snapshot: ReturnType<typeof snapshotBulkBatch>,
+): ViewCoord | null {
+  if (current.readOnly || current.editing) return null;
+  if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return null;
+  if (!anchor) return target;
+  const col = current.visibleColumns.findIndex((column) => column.id === anchor.columnId);
+  if (col < 0) return null;
+  for (let viewRow = 0; viewRow < current.viewIndex.length; viewRow++) {
+    const dataRowIndex = current.viewIndex[viewRow]!; // viewRow < length by loop condition
+    const row = current.data[dataRowIndex];
+    if (row !== undefined && current.getRowId(row, dataRowIndex) === anchor.rowId) return { row: viewRow, col };
+  }
+  return null;
+}
+
+/** The part of a paste after `processPaste`: cap, parse cells, validate, one `applyCellUpdates`. */
+function runPaste(
+  s: DataGridStoreState,
+  actions: DataGridActions,
+  finalCells: string[][] | false,
+  target: ViewCoord,
+  latch: PasteLatch,
+  guard?: BulkGeneration,
+  storeApi?: { getState: () => DataGridStoreState },
+  gateToken?: number,
+): boolean {
   if (finalCells === false) return false;
 
   // Cap AFTER processPaste so a consumer hook cannot re-expand a truncated grid past the bound.
@@ -328,15 +430,47 @@ function applyParsedPaste(
     console.warn(`gridcn: paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
   }
 
-  const candidates = buildPasteCandidates(s, cappedCells, target);
-  const resolution = resolveBulkWrites(candidates);
+  const { candidates, pending } = collectPasteCandidates(s, cappedCells, target);
+  if (pending > 0) {
+    latch.gate = "processCellFromClipboard";
+    const token = gateToken ?? guard?.begin();
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
+    void settleCandidateValues(candidates).then(
+      (settled) => {
+        latch.gate = null;
+        const current = storeApi?.getState() ?? s;
+        if (current.readOnly || current.editing) return;
+        if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
+        applyResolution(current, actions, settled, guard, storeApi, token, true);
+      },
+      (error: unknown) => {
+        latch.gate = null;
+        latch.warnOnce("cell rejected", `processCellFromClipboard rejected, so the paste is cancelled: ${String(error)}`);
+      },
+    );
+    return true;
+  }
+  return applyResolution(s, actions, candidates, guard, storeApi, gateToken, false);
+}
+
+/** Validates the candidates and applies them; an async schema holds the batch, still one commit. */
+function applyResolution(
+  s: DataGridStoreState,
+  actions: DataGridActions,
+  candidates: BulkCandidate[],
+  guard: BulkGeneration | undefined,
+  storeApi: { getState: () => DataGridStoreState } | undefined,
+  heldToken: number | undefined,
+  afterAwait: boolean,
+): boolean {
+  const resolution = resolveBulkWrites(afterAwait ? reresolveBulkWrites(s, candidates) : candidates);
   if (!(resolution instanceof Promise)) {
     // rejected cells are reported by the write itself (same source, after the write's emit)
     actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected);
     return true;
   }
 
-  const token = guard?.begin();
+  const token = heldToken ?? guard?.begin();
   const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
   void resolution.then((resolved) => {
     const current = storeApi?.getState() ?? s;
@@ -352,8 +486,8 @@ function applyParsedPaste(
  * -> processPaste -> writes -> applyCellUpdates), for triggers outside a native ClipboardEvent
  * (context-menu Paste, programmatic paste). Text-only — no HTML-table fidelity, since there's no
  * `text/html` payload to prefer; parity with a plain-text native paste. Returns whether a paste
- * started (false when there's no paste target or `processPaste` vetoed it); with an async schema on
- * a touched column the cells commit once it resolves.
+ * started (false when there's no paste target, a sync `processPaste` vetoed it, or an earlier async
+ * gate is still pending); with an async gate or schema the cells commit once it resolves.
  */
 export function pasteText(
   s: DataGridStoreState,
