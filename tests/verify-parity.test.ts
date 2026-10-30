@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { checkParity, renderParityPage } from "../scripts/verify-parity.mjs";
+import { checkParity, extractOptionNames, renderParityPage } from "../scripts/verify-parity.mjs";
 
 const modes = [
-  { id: "L", label: "Local array" },
-  { id: "PS", label: "Server pagination" },
+  { id: "L", label: "Local array", description: "All rows in memory." },
+  { id: "PS", label: "Server pagination", description: "One page per request.", evidencePattern: "version" },
 ];
 
 const supported = { status: "supported", evidence: ["package.json"] };
+const unrelated = { status: "supported", evidence: ["tsconfig.json"] };
 
 function matrix(overrides: Record<string, unknown> = {}) {
   return {
-    modes,
+    modes: structuredClone(modes),
     features: [
       {
         id: "sort",
@@ -61,6 +62,23 @@ describe("checkParity", () => {
     expect(problems).toEqual(["sort: cell L evidence path does not exist: nope/missing.ts"]);
   });
 
+  it("fails on evidence that does not mention the mode", () => {
+    const problems = check(matrix({ cells: { L: supported, PS: unrelated } }));
+    expect(problems).toEqual(["sort: cell PS evidence tsconfig.json does not mention the mode (version)"]);
+  });
+
+  it("fails on a duplicate feature id", () => {
+    const m = matrix();
+    m.features.push(m.features[0]);
+    expect(check(m)).toEqual(["sort: duplicate feature id"]);
+  });
+
+  it("fails on a mode without a description", () => {
+    const m = matrix();
+    delete (m.modes[0] as { description?: string }).description;
+    expect(check(m)).toEqual(["mode L has no description"]);
+  });
+
   it("fails on an n/a cell without a reason", () => {
     const problems = check(matrix({ cells: { L: supported, PS: { status: "n/a" } } }));
     expect(problems).toEqual(["sort: n/a cell PS has no reason"]);
@@ -92,7 +110,26 @@ describe("renderParityPage", () => {
     const page = renderParityPage(matrix());
     expect(page).toBe(renderParityPage(matrix()));
     expect(page).toContain("| Sort |");
-    expect(page).toContain("Gap");
+    expect(page).toContain("| Sort | Supported | Gap |");
+    expect(page).not.toContain("(A)");
     expect(page).toContain("Supported");
+  });
+});
+
+describe("extractOptionNames", () => {
+  it("reads top-level fields and ignores braces inside comments", () => {
+    const source = [
+      "export type Opts<T = unknown> = {",
+      "  /** closes with } and opens { */",
+      "  a?: number;",
+      "  b: (x: { y: 1 }) => void;",
+      "  // c: skipped",
+      "};",
+    ].join(String.fromCharCode(10));
+    expect(extractOptionNames(source, "Opts")).toEqual(["a", "b"]);
+  });
+
+  it("throws when the type is missing", () => {
+    expect(() => extractOptionNames("export type X = {};", "Opts")).toThrow("Opts");
   });
 });

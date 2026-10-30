@@ -4,9 +4,9 @@ description: Which grid features work with which data source, and where a known 
 icon: Table
 ---
 
-<!-- Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. -->
+{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}
 
-Each grid feature behaves differently on a local array, on server pages and on lazy rows. This page lists every feature against every data mode. A `Gap` cell names a known hole and its tracking id. A `Not verified` cell has no proof yet.
+A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known hole, and the notes below the table describe it. A `Not verified` cell has no test or docs section that covers the mode.
 
 ## Data modes
 
@@ -23,34 +23,34 @@ Each grid feature behaves differently on a local array, on server pages and on l
 
 | Feature | L | PC | PS | Z | C | SS | FS | API |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sort | Supported | Supported | Supported | Supported | Supported | Supported | n/a | Supported |
-| Filter (flat and groups) | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Filter set values | Supported | Supported | Supported | Supported | Not verified | Supported | Supported | Supported |
-| Quick search | Supported | Supported | Supported | Supported | Supported | Supported | n/a | n/a |
-| Row check and ranges | Supported | Supported | Gap (D) | Gap (D) | Gap (D) | Not verified | Not verified | Gap (D) |
-| Row ids | Supported | Supported | Supported | Supported | Not verified | Not verified | Not verified | Gap (E) |
-| Counts and total | Supported | Supported | Gap (F) | Gap (F) | Not verified | Not verified | Not verified | Not verified |
-| Row grouping | Gap (#71) | Gap (#71) | Gap (#71) | Gap (#71) | n/a | Gap (#71) | Gap (#71) | Gap (#71) |
-| Pinned rows and aggregates | Supported | Supported | Gap (H) | Gap (H) | Not verified | Not verified | Not verified | Not verified |
-| Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Clipboard copy and paste | Supported | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
-| Fill | Supported | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
-| Import | Supported | Supported | Not verified | Gap (IMP) | Not verified | Not verified | Not verified | Supported |
-| Export | Supported | Supported | Gap (I) | Gap (I) | Not verified | Gap (I) | Gap (I) | Gap (I) |
-| Print | Supported | Supported | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
-| Undo and redo | Supported | Supported | Supported | Gap (W6) | Not verified | Not verified | Not verified | Gap (K) |
-| Row create, duplicate and delete | Supported | Supported | Supported | Gap (J) | Not verified | Not verified | Not verified | Supported |
-| Validation | Supported | Supported | Supported | Not verified | Not verified | Not verified | Not verified | Supported |
-| Edit commit and write-through | Supported | Supported | Supported | Supported | Supported | Supported | Not verified | Gap (K) |
-| Streaming updates | Supported | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
-| URL state | Supported | Supported | Supported | Supported | n/a | Supported | Gap (N2) | Supported |
-| Screen reader announcements | Supported | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
-| Presence | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Loading and error state | Supported | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
-| Find and replace | Supported | Supported | Gap (FR) | Gap (FR) | Not verified | Not verified | Not verified | Not verified |
+| Sort | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | Supported |
+| Filter (flat and groups) | Supported | Not verified | Supported | Supported | Supported | Supported | Supported | Supported |
+| Filter set values | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified | Supported |
+| Quick search | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | n/a |
+| Row check and ranges | Supported | Not verified | Gap | Gap | Gap | Not verified | Not verified | Gap |
+| Row ids | Supported | Not verified | Supported | Supported | Not verified | Not verified | Not verified | Gap |
+| Counts and total | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
+| Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Column pin, hide, order and size | Supported | Not verified | Supported | Supported | Supported | Not verified | Not verified | Supported |
+| Clipboard copy and paste | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Fill | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
+| Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
+| Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
+| Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
+| Undo and redo | Supported | Not verified | Supported | Gap | Not verified | Not verified | Not verified | Gap |
+| Row create, duplicate and delete | Supported | Not verified | Supported | Gap | Not verified | Not verified | Not verified | Supported |
+| Validation | Supported | Not verified | Supported | Not verified | Not verified | Not verified | Not verified | Supported |
+| Edit commit and write-through | Supported | Not verified | Supported | Not verified | Supported | Not verified | Not verified | Gap |
+| Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
+| Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Presence | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
+| Loading and error state | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
+| Find and replace | Supported | Not verified | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Lazy row fetching | n/a | n/a | n/a | Supported | n/a | n/a | n/a | n/a |
-| Pagination | n/a | Supported | Supported | n/a | Supported | Supported | Supported | Not verified |
-| Keys, labels and cell types | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Pagination | n/a | Supported | Supported | n/a | Supported | Not verified | Supported | Not verified |
+| Keys, labels and cell types | Supported | Not verified | Supported | Not verified | Supported | Not verified | Not verified | Supported |
 
 ## Notes
 
@@ -70,48 +70,35 @@ Each grid feature behaves differently on a local array, on server pages and on l
 
 ### Row check and ranges
 
-- **PS**: Gap (D): No check across pages and no select-all-matching.
-- **Z**: Gap (D): No check over unloaded rows and no select-all-matching.
-- **C**: Gap (D): Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Gap (D): A server bulk action cannot learn the checked rows beyond the loaded ones.
+- **PS**: Gap: No check across pages and no select-all-matching.
+- **Z**: Gap: No check over unloaded rows and no select-all-matching.
+- **C**: Gap: Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions.
+- **API**: Gap: A server bulk action cannot learn the checked rows beyond the loaded ones.
 
 ### Row ids
 
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Gap (E): No swap from a client id to the server-assigned id after create.
+- **API**: Gap: No swap from a client id to the server-assigned id after create.
 
 ### Counts and total
 
-- **PS**: Gap (F): `total` is required; no unknown total and no cursor paging.
-- **Z**: Gap (F): `total` is required; no unknown total and no cursor paging.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
+- **PS**: Gap: `total` is required; no unknown total and no cursor paging.
+- **Z**: Gap: `total` is required; no unknown total and no cursor paging.
 
 ### Row grouping
 
-- **L**: Gap (#71): Row grouping is specified, not built.
-- **PC**: Gap (#71): Row grouping is specified, not built.
-- **PS**: Gap (#71): Server grouping is unspecified.
-- **Z**: Gap (#71): Server grouping is unspecified.
+- **L**: Gap: Row grouping is not available.
+- **PC**: Gap: Row grouping is not available.
+- **PS**: Gap: Server grouping is not defined.
+- **Z**: Gap: Server grouping is not defined.
 - **C**: n/a: Grouping has no controlled state.
-- **SS**: Gap (#71): Server grouping is unspecified.
-- **FS**: Gap (#71): Server grouping is unspecified.
-- **API**: Gap (#71): Server grouping is unspecified.
+- **SS**: Gap: Server grouping is not defined.
+- **FS**: Gap: Server grouping is not defined.
+- **API**: Gap: Server grouping is not defined.
 
 ### Pinned rows and aggregates
 
-- **PS**: Gap (H): Aggregates cover the current page or warn; no server totals.
-- **Z**: Gap (H): Aggregates cover loaded rows or warn; no server totals.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
+- **PS**: Gap: Aggregates cover the current page or warn; no server totals.
+- **Z**: Gap: Aggregates cover loaded rows or warn; no server totals.
 
 ### Column pin, hide, order and size
 
@@ -120,96 +107,56 @@ Each grid feature behaves differently on a local array, on server pages and on l
 ### Clipboard copy and paste
 
 - **PS**: Not verified: Paste that adds rows is page-local; not checked.
-- **Z**: Not verified: Holes and paste-adds-rows are not checked.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
+- **Z**: Not verified: Unloaded rows and paste that adds rows are not checked.
 
 ### Fill
 
-- Fill skips lazy holes with a warning.
+- Fill skips rows not loaded yet and warns.
 - **PS**: Not verified: Fill series on a page is page-local; not checked.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
 
 ### Import
 
-- **PS**: Not verified: Not checked in code or tests yet.
-- **Z**: Gap (IMP): Appended rows fight `total`.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
+- **Z**: Gap: Appended rows fight `total`.
 
 ### Export
 
-- **PS**: Gap (I): Exports loaded rows only.
-- **Z**: Gap (I): Exports loaded rows only.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Gap (I): Exports loaded rows only.
-- **FS**: Gap (I): Exports loaded rows only.
-- **API**: Gap (I): Exports loaded rows only.
+- **PS**: Gap: Exports loaded rows only.
+- **Z**: Gap: Exports loaded rows only.
+- **SS**: Gap: Exports loaded rows only.
+- **FS**: Gap: Exports loaded rows only.
+- **API**: Gap: Exports loaded rows only.
 
 ### Print
 
 - **PS**: n/a: Print covers loaded rows by design.
 - **Z**: n/a: Print covers loaded rows by design.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
 
 ### Undo and redo
 
-- **Z**: Gap (W6): Undo warns over lazy holes.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Gap (K): The local undo stack never learns whether the server accepted the write.
+- **Z**: Gap: Undo warns over rows not loaded yet.
+- **API**: Gap: The local undo stack never learns whether the server accepted the write.
 
 ### Row create, duplicate and delete
 
-- **Z**: Gap (J): No guard over unloaded lazy rows.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-
-### Validation
-
-- **Z**: Not verified: Not checked in code or tests yet.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
+- **Z**: Gap: No guard over unloaded lazy rows.
 
 ### Edit commit and write-through
 
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Gap (K): `onDataChange` returns void; no acknowledgement and no pending state.
+- **API**: Gap: `onDataChange` returns void; no acknowledgement and no pending state.
 
 ### Streaming updates
 
-- **PS**: Not verified: Not checked in code or tests yet.
-- **Z**: Not verified: A later block fetch can overwrite streamed values over holes.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
+- **Z**: Not verified: A later block fetch can overwrite streamed values over rows not loaded yet.
 
 ### URL state
 
 - **C**: n/a: URL state drives the controlled props itself.
-- **FS**: Gap (N2): Deep-linked set-filter values outside static `choices` are dropped.
+- **FS**: Gap: Deep-linked set-filter values outside static `choices` are dropped.
 
 ### Screen reader announcements
 
 - **PS**: Not verified: Load and total announcements are not checked.
 - **Z**: Not verified: Load and total announcements are not checked.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
 
 ### Presence
 
@@ -218,19 +165,11 @@ Each grid feature behaves differently on a local array, on server pages and on l
 ### Loading and error state
 
 - **PS**: Not verified: Error overlay for page fetches is not checked.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
 
 ### Find and replace
 
-- **PS**: Gap (FR): Loaded rows only; no server scope.
-- **Z**: Gap (FR): Loaded rows only; no server scope.
-- **C**: Not verified: Not checked in code or tests yet.
-- **SS**: Not verified: Not checked in code or tests yet.
-- **FS**: Not verified: Not checked in code or tests yet.
-- **API**: Not verified: Not checked in code or tests yet.
+- **PS**: Gap: Loaded rows only; no server scope.
+- **Z**: Gap: Loaded rows only; no server scope.
 
 ### Lazy row fetching
 
@@ -246,7 +185,6 @@ Each grid feature behaves differently on a local array, on server pages and on l
 
 - **L**: n/a: No pages.
 - **Z**: n/a: Lazy rows and pagination are exclusive.
-- **API**: Not verified: Not checked in code or tests yet.
 
 ### Keys, labels and cell types
 
