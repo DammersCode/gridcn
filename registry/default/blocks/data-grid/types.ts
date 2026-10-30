@@ -216,6 +216,8 @@ export type DataChange<TData> = {
   source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
+  /** On a `source: "rollback"` change: the change this one reverts. */
+  reverts?: DataChange<TData>;
 };
 
 export type CellRenderProps<TData, TValue, TOptions = unknown> = {

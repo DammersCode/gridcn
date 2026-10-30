@@ -21,6 +21,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import type { RowWriteStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
@@ -665,6 +666,16 @@ export function useDataGridSelectedRows(): DataGridSelectedRows {
     () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data, viewIndex, getRowId, totalRowCount }),
     [rows, hiddenCheckedRowIds, allMatching, data, viewIndex, getRowId, totalRowCount],
   );
+}
+
+/** The write status of a row whose `onDataChange` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
+export function useDataGridRowWriteStatus(rowId: string): RowWriteStatus | undefined {
+  return useDataGridStore((s) => s.writeStatus.get(rowId));
+}
+
+/** The number of acknowledged changes (an `onDataChange` promise) that have not settled. */
+export function useDataGridPendingWriteCount(): number {
+  return useDataGridStore((s) => s.pendingWriteCount);
 }
 
 /** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */

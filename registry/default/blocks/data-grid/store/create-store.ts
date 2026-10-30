@@ -73,6 +73,7 @@ import {
 import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
 import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { EMPTY_WRITE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
@@ -827,6 +828,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...selectionConfig,
             ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
+            onWriteRejected: props.onWriteRejected,
             fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),
             plugins: nextPlugins ?? s.plugins,
@@ -1147,6 +1149,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     selection: initialSelection,
     selectAllStage: null,
     ...NO_REMEMBERED_ROWS,
+    writeStatus: EMPTY_WRITE_STATUS,
+    pendingWriteCount: 0,
     editing: null,
     editingError: null,
     editingRejectionCount: 0,

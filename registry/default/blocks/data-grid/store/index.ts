@@ -87,6 +87,9 @@ export {
   useDataGridSelectionConfig,
   useDataGridHiddenCheckedCount,
   useDataGridSelectedRows,
+  useDataGridRowWriteStatus,
+  useDataGridPendingWriteCount,
   useDataGridAllRowsSelected,
 } from "./hooks";
 export type { DataGridSelectedRows } from "./selected-rows";
+export type { RowWriteStatus, WriteAck, WriteRejectedContext, WriteRejection } from "./write-ack";

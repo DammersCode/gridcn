@@ -134,6 +134,8 @@ export const GRID_ATTR = {
   searchCount: "data-grid-search-count",
   /** data-grid-pagination/pagination-footer.tsx: the pagination footer bar container. */
   pagination: "data-grid-pagination",
+  /** row.tsx: `saving` while the row's `onDataChange` promise is pending, `failed` after the server refused it and the grid reverted it. */
+  writeStatus: "data-write-status",
 } as const;
 
 /** A key of {@link GRID_ATTR}. */

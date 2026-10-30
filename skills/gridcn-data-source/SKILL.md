@@ -90,3 +90,8 @@ Applies to streaming on top of either:
 - A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown) plus `keepCheckedRows`. Checks then survive page changes, evictions, and server sort or filter changes, by row id.
 - "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
 - While `allMatching` is on, Delete rows, Duplicate row, and Move rows skip the checked rows. The grid does not hold them.
+
+## Write acknowledgement
+
+- Prefer returning a promise from `onDataChange` over a hand-written rollback: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message? }] }` to refuse rows or cells, or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused ops (`source: "rollback"`, never acknowledged), and calls `onWriteRejected({ change, rejected })` for the toast.
+- A promise returned by `onDataChange` is always treated as an ack: a rejection reverts the change.

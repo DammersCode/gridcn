@@ -2356,6 +2356,26 @@
          ]
       },
       {
+         "name": "data-grid-write-ack-demo",
+         "type": "registry:example",
+         "title": "Data Grid Write Acknowledgement Demo",
+         "description": "onDataChange returns a promise: rows show saving while it is pending, a refused cell reverts on its own, and onWriteRejected reports the server's message.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-write-ack-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-write-ack-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-pagination-demo",
          "type": "registry:example",
          "title": "Data Grid Pagination Demo",

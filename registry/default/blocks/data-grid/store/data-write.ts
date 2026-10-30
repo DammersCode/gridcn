@@ -27,6 +27,9 @@ import {
   warnDev,
 } from "./commit";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { buildRollback } from "../interaction/rollback";
+import { readRejections, refusedOps, type RowWriteStatus, type WriteAck } from "./write-ack";
+import { EMPTY_WRITE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
@@ -83,10 +86,12 @@ export type DataWriteContext = {
   writeDepth: number;
   /** The grid's imperative handle, handed to plugin `onDataChange` observers; set at store creation, before any write can run. */
   pluginApi: DataGridApi<unknown> | null;
+  /** Tracks the promise an `onDataChange` returned; set by {@link createDataWriteActions}. */
+  trackWrite: ((change: DataChange<unknown>, result: PromiseLike<WriteAck>) => void) | null;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -116,7 +121,8 @@ export function writeThenEmit(
   const observers = s.plugins.observers;
   const pluginApi = ctx.pluginApi;
   ctx.pendingEmits.push(() => {
-    if (onDataChange) onDataChange(next, change);
+    const result = onDataChange ? onDataChange(next, change) : undefined;
+    if (result !== undefined && isThenable(result) && change.source !== "rollback") ctx.trackWrite?.(change, result);
     if (observers.length === 0 || !pluginApi) return;
     const observerCtx = { api: pluginApi };
     for (const observer of observers) {
@@ -331,6 +337,7 @@ export type DataWriteActions = Pick<
   | "reorderRows"
   | "moveRowsBy"
   | "commitChange"
+  | "clearWriteStatus"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
@@ -338,6 +345,67 @@ export type DataWriteActions = Pick<
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
   const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession } = deps;
+
+  const pendingByRow = new Map<string, number>();
+  const latestWriteOfRow = new Map<string, number>();
+  const failedRows = new Set<string>();
+  let writeSeq = 0;
+  let pendingWrites = 0;
+  let warnedReadOnlyRevert = false;
+  const publishWriteStatus = (): void => {
+    const status = new Map<string, RowWriteStatus>();
+    for (const rowId of failedRows) status.set(rowId, "failed");
+    for (const rowId of pendingByRow.keys()) status.set(rowId, "saving");
+    for (const rowId of latestWriteOfRow.keys()) if (!status.has(rowId)) latestWriteOfRow.delete(rowId);
+    set({ writeStatus: status.size === 0 ? EMPTY_WRITE_STATUS : status, pendingWriteCount: pendingWrites });
+  };
+  ctx.trackWrite = (change, result) => {
+    const rowIds = [...new Set(change.ops.map((op) => op.rowId))];
+    const seq = ++writeSeq;
+    for (const rowId of rowIds) {
+      pendingByRow.set(rowId, (pendingByRow.get(rowId) ?? 0) + 1);
+      latestWriteOfRow.set(rowId, seq);
+      failedRows.delete(rowId);
+    }
+    pendingWrites += 1;
+    publishWriteStatus();
+    const settle = (ack: WriteAck, error: unknown, failed: boolean): void => {
+      for (const rowId of rowIds) {
+        const left = (pendingByRow.get(rowId) ?? 1) - 1;
+        if (left > 0) pendingByRow.set(rowId, left);
+        else pendingByRow.delete(rowId);
+      }
+      pendingWrites -= 1;
+      const rejected = readRejections(change, ack, error, failed);
+      if (rejected.length === 0) {
+        publishWriteStatus();
+        return;
+      }
+      const s = get();
+      if (s.readOnly) {
+        if (!warnedReadOnlyRevert) {
+          warnedReadOnlyRevert = true;
+          warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
+        }
+      } else {
+        const revert = buildRollback({ ops: refusedOps(change, rejected), source: "rollback" }, s);
+        if (revert.ops.length > 0) s.actions.commitChange({ ...revert, reverts: change });
+      }
+      for (const { rowId } of rejected) if (latestWriteOfRow.get(rowId) === seq) failedRows.add(rowId);
+      publishWriteStatus();
+      const onWriteRejected = get().onWriteRejected;
+      if (!onWriteRejected) return;
+      try {
+        onWriteRejected({ change, rejected });
+      } catch (callbackError) {
+        console.error("[data-grid] onWriteRejected threw:", callbackError);
+      }
+    };
+    result.then(
+      (ack) => settle(ack, undefined, false),
+      (error: unknown) => settle(undefined, error, true),
+    );
+  };
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
@@ -1008,6 +1076,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (!canMoveRows(s)) return false;
       return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
+    },
+    clearWriteStatus() {
+      if (failedRows.size === 0) return;
+      failedRows.clear();
+      publishWriteStatus();
     },
     commitChange(change) {
       const s = get();

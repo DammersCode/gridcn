@@ -59,6 +59,9 @@ export type AutosizeMeasureContext = {
 };
 
 /** Live props synced from the consumer's render into the store on every change, typed over the consumer's row shape. */
+import type { RowWriteStatus, WriteAck, WriteRejectedContext } from "./write-ack";
+export type { RowWriteStatus, WriteAck, WriteRejectedContext, WriteRejection } from "./write-ack";
+
 export type DataGridSyncProps<TData = unknown> = {
   /**
    * Controlled row array (React `value` semantics): the app owns it, and every mutation
@@ -103,7 +106,12 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keymap?: Keymap;
   /** Fired once per user gesture with the next data array and a row-id-based delta batch, after the grid stores that array. */
-  onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
+  onDataChange?: ((next: readonly TData[], change: DataChange<TData>) => void) | ((next: readonly TData[], change: DataChange<TData>) => Promise<WriteAck>);
+  /**
+   * Fired once per acknowledged change that the server refused, after the grid reverted it. `onDataChange`
+   * acknowledges a change by returning a promise; see {@link WriteAck}. A throw is logged and isolated.
+   */
+  onWriteRejected?: (ctx: WriteRejectedContext<TData>) => void;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
    * (edit, paste, fill, delete-contents, updateCells/updateRows) — the row already has ALL of the
@@ -662,6 +670,10 @@ export type DataGridStoreState = Omit<
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
+  /** Rows with an acknowledged write in flight (`"saving"`) or refused and reverted (`"failed"`). Empty when `onDataChange` returns no promise. */
+  writeStatus: ReadonlyMap<string, RowWriteStatus>;
+  /** Acknowledged changes whose promise has not settled. */
+  pendingWriteCount: number;
   /** `data` is a window of a larger result of this size (`null`: unknown); `undefined` when `data` is the whole result. */
   totalRowCount: number | null | undefined;
   enableColumnSelection: boolean;
@@ -897,6 +909,8 @@ export type DataGridActions = {
    */
   selectAllMatching(): void;
   clearSelection(): void;
+  /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
+  clearWriteStatus(): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;
   /**

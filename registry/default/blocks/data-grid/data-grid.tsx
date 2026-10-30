@@ -84,9 +84,16 @@ export {
   useDataGridSelectionConfig,
   useDataGridHiddenCheckedCount,
   useDataGridSelectedRows,
+  useDataGridRowWriteStatus,
+  useDataGridPendingWriteCount,
   useDataGridAllRowsSelected,
   useDataGridHeaderClickBehavior,
   type DataGridSyncProps,
+  type DataGridSelectedRows,
+  type RowWriteStatus,
+  type WriteAck,
+  type WriteRejectedContext,
+  type WriteRejection,
   type SelectionChangeDetails,
   type SelectLineActionOptions,
   type CellPatch,
@@ -143,6 +150,7 @@ export { DEFAULT_KEYMAP } from "./keyboard";
 export { EMPTY_SELECTION_STATE } from "./store/selection-state";
 
 export { applyChange, invertChange } from "./interaction/history";
+export { buildRollback } from "./interaction/rollback";
 
 export {
   DEFAULT_LABELS,
