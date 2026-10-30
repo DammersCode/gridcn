@@ -402,7 +402,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const rejected = readRejections(change, ack, error, failed);
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
       const refusedRows = new Set(rejected.map((entry) => entry.rowId));
-      for (const rowId of rowIds) if (!refusedRows.has(rowId)) dropChains(rowId);
+      for (const rowId of rowIds) if (!refusedRows.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
       if (rejected.length === 0) {
         publishWriteStatus();
         return;

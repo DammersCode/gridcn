@@ -310,6 +310,25 @@ describe("write acknowledgement: refusals in sequence", () => {
     expect(m.value("a", "name")).toBe("X");
   });
 
+  it("an accepted write to another cell does not end the chain of a pending cell", async () => {
+    const a = deferred<WriteAck>();
+    const b = deferred<WriteAck>();
+    const c = deferred<WriteAck>();
+    const queue = [a, b, c];
+    const m = mount((_next, change) => (change.source === "rollback" ? undefined : queue.shift()!.promise));
+    m.edit("a", "name", "X");
+    m.edit("a", "note", "n2");
+    m.edit("a", "name", "Q");
+    a.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    b.resolve(undefined);
+    await flush();
+    c.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+    expect(m.value("a", "note")).toBe("n2");
+  });
+
   it("a refused insert leaves no remembered checked id", async () => {
     const d = deferred<WriteAck>();
     const m = mount((_next, change) => (change.source === "rollback" ? undefined : d.promise), {
