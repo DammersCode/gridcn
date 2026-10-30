@@ -433,9 +433,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
 
   let deleteConfirmPending = false;
   const warnGateOnce = createWarnOnce();
+  const touchesUnloadedRow = (s: DataGridStoreState, dataRowIndexes: readonly number[], operation: string): boolean => {
+    if (!dataRowIndexes.some((i) => s.data[i] === undefined && i >= 0 && i < s.data.length)) return false;
+    warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (useDataGridLazyRows): load the range first, or delete known ids with deleteRowsById`);
+    return true;
+  };
   const requestDelete = (dataRowIndexes: number[]) => {
     const s = get();
     if (s.readOnly) return;
+    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return;
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
@@ -952,6 +958,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
         return;
       }
+      const anchor = s.viewIndex[viewRowIndex];
+      if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return;
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
       for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
@@ -982,6 +990,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         return;
       }
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
+      if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return;
       const copies = startDuplicateCopies(s, dataRowIndexes);
       if (!copies) return;
       if (Array.from(copies.values()).some((copy) => isThenable(copy))) {

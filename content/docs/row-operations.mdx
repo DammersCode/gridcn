@@ -222,6 +222,19 @@ Selection behavior: insert and duplicate keep the selection, offsetting it aroun
 rows. Delete clears the entire selection and the active cell. All three fire `onDataChange` with
 `source: "row-operation"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export consume.
 
+## Lazy rows
+
+<NewBadge />
+
+A lazy grid holds unloaded rows as holes. `deleteRows`, `deleteRowsById`, `duplicateRows`, `insertRow`,
+and `insertRows` do nothing when their target touches a hole. The target is every row of a delete, every
+source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid
+writes nothing, calls no `onDataChange`, and warns once in development.
+
+Select-all in a lazy grid checks the holes too. To delete rows you know, pass their ids to
+`deleteRowsById`. To delete every row of a filtered server result, call your own endpoint and run
+`lazy.reset()`.
+
 ## Row markers
 
 A pinned-left marker column sits entirely outside the data column index space. It is separate
