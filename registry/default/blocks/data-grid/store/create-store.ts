@@ -119,7 +119,7 @@ function checkedChange(
 
 /** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
 function filterSpecKey(filters: readonly unknown[]): string {
-  return JSON.stringify(filters, (key, value) => (key === "filterId" ? undefined : value));
+  return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" ? undefined : value));
 }
 
 /** The patch that ends "all matching" with the old result: the rows are unchecked and the exclusions forgotten. */
