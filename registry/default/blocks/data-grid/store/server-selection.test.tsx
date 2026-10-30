@@ -276,6 +276,24 @@ describe("select all matching and the result spec", () => {
     }
   });
 
+  it("the last onSelectionChange after a filter change is the cleared selection", () => {
+    const onSelectionChange = vi.fn();
+    const m = mount({ onSelectionChange });
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "A" }] as never));
+    const last = onSelectionChange.mock.calls.at(-1)![0] as { rows?: unknown[] } | undefined;
+    expect(m.state().allMatching).toBe(false);
+    expect(JSON.stringify(last)).not.toContain("[0,1,2]");
+  });
+
+  it("a controlled filterState re-created with equal content keeps allMatching", () => {
+    const filters = () => [{ filterId: `x${Math.random()}`, columnId: "name", operator: "equals", value: "A" }] as never;
+    const m = mount({ filterState: filters(), filterMode: "server" });
+    act(() => m.state().actions.selectAllMatching());
+    m.rerender({ filterState: filters(), filterMode: "server" });
+    expect(m.state().allMatching).toBe(true);
+  });
+
   it("a programmatic deleteRows leaves allMatching", () => {
     const m = mount({ onDataChange: () => {} });
     act(() => m.state().actions.selectAllMatching());

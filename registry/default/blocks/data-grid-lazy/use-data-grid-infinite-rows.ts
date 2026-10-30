@@ -128,11 +128,9 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
         console.warn("[data-grid-lazy] fetchRows returned an empty page with a next cursor; an empty page ends the source, so return rows or a null cursor");
       }
       cursorRef.current = result.nextCursor ?? undefined;
-      setLoaded((prev) => {
-        const next = { rows: [...prev.rows, ...result.rows], hasMore: !ended };
-        loadedRef.current = next;
-        return next;
-      });
+      const next = { rows: [...loadedRef.current.rows, ...result.rows], hasMore: !ended };
+      loadedRef.current = next;
+      setLoaded(next);
       pendingWindowRef.current = true;
       if (result.rows.length > 0) guardCallback(() => optionsRef.current.onLoaded?.({ start, end: start + result.rows.length }));
     };
@@ -187,16 +185,15 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
 
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
-      setLoaded((prev) => {
-        const skeletons = prev.hasMore ? pageSize : 0;
-        const rows =
-          change.ops.length > 0
-            ? (applyChange(prev.rows, change, gridGetRowId) as TData[])
-            : (next.slice(0, Math.max(0, next.length - skeletons)) as TData[]);
-        const merged = { rows, hasMore: prev.hasMore };
-        loadedRef.current = merged;
-        return merged;
-      });
+      const prev = loadedRef.current;
+      const skeletons = prev.hasMore ? pageSize : 0;
+      const rows =
+        change.ops.length > 0
+          ? (applyChange(prev.rows, change, gridGetRowId) as TData[])
+          : (next.slice(0, Math.max(0, next.length - skeletons)) as TData[]);
+      const merged = { rows, hasMore: prev.hasMore };
+      loadedRef.current = merged;
+      setLoaded(merged);
     },
     [gridGetRowId, pageSize],
   );

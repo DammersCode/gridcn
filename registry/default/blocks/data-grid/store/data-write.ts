@@ -357,6 +357,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
   const refusedPrev = new Map<string, Map<unknown, unknown>>();
   const MAX_FAILED_ROWS = 10_000;
+  const MAX_CHAINED_CELLS = 10_000;
+  const dropChains = (rowId: string): void => {
+    for (const key of refusedPrev.keys()) if (key.startsWith(`${rowId}\u0000`)) refusedPrev.delete(key);
+  };
   const chainRefusedPrev = (ops: DataOp<unknown>[]): DataOp<unknown>[] =>
     ops.map((op) => {
       if (op.type !== "update" || !op.cells) return op;
@@ -396,6 +400,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       pendingWrites -= 1;
       const rejected = readRejections(change, ack, error, failed);
+      // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
+      const refusedRows = new Set(rejected.map((entry) => entry.rowId));
+      for (const rowId of rowIds) if (!refusedRows.has(rowId)) dropChains(rowId);
       if (rejected.length === 0) {
         publishWriteStatus();
         return;
@@ -407,10 +414,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
         }
       } else {
-        if (refusedPrev.size > MAX_FAILED_ROWS) refusedPrev.clear();
+        if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
         const revert = buildRollback({ ops: chainRefusedPrev(refusedOps(change, rejected)), source: "rollback" }, s);
         if (revert.ops.length > 0) s.actions.commitChange({ ...revert, reverts: change });
       }
+      for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
       for (const { rowId } of rejected) {
         if (latestWriteOfRow.get(rowId) !== seq) continue;
         if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);

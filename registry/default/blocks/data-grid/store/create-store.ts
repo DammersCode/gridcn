@@ -117,6 +117,16 @@ function checkedChange(
   return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
 
+/** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
+function filterSpecKey(filters: readonly unknown[]): string {
+  return JSON.stringify(filters, (key, value) => (key === "filterId" ? undefined : value));
+}
+
+/** The patch that ends "all matching" with the old result: the rows are unchecked and the exclusions forgotten. */
+function endAllMatching(selection: GridSelection): Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching"> {
+  return { selection: { ...selection, rows: CompactSelection.empty() }, ...NO_REMEMBERED_ROWS };
+}
+
 type ProvidedCellTypes = Record<string, CellType | null> | undefined;
 
 /** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
@@ -1072,6 +1082,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...(unchanged && layoutApply === null
               ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
               : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes, s.searchOptions)),
+            ...(s.allMatching && (nextSearchText !== s.searchText || filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState))
+              ? endAllMatching(followed.selection ?? s.selection)
+              : {}),
             // The controlled values win over the remapped ones.
             ...selectionApply,
           };
@@ -1563,6 +1576,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             viewStale: false,
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+            ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
           };
         });
       },
@@ -1578,6 +1592,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           searchText: nextText,
           searchOptions,
           ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
+          ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
         }));
       },
       startEditing(ref, initialText) {
@@ -1666,13 +1681,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Handed to the plugin onDataChange observers (writeThenEmit); after creation, so the handle's
   // eager state read resolves.
   dataWrite.pluginApi = apiHandleOf(store);
-  // A new filter or search is a new result: "all matching" meant the old one.
-  let lastSpec = { filterState: store.getState().filterState, searchText: store.getState().searchText };
-  store.subscribe((state) => {
-    if (state.filterState === lastSpec.filterState && state.searchText === lastSpec.searchText) return;
-    lastSpec = { filterState: state.filterState, searchText: state.searchText };
-    if (state.allMatching) store.setState({ selection: { ...state.selection, rows: CompactSelection.empty() }, ...NO_REMEMBERED_ROWS });
-  });
   // Filter and sort settle the view in the same write as the spec change. Speak only when the rows or the sort order changed.
   const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));

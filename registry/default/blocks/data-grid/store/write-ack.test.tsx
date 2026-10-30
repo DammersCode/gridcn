@@ -291,6 +291,25 @@ describe("write acknowledgement: refusals in sequence", () => {
     expect(m.value("a", "name")).toBe("A");
   });
 
+  it("a refusal after an accepted write does not revert past it", async () => {
+    const w1 = deferred<WriteAck>();
+    const w2 = deferred<WriteAck>();
+    const w3 = deferred<WriteAck>();
+    const queue = [w1, w2, w3];
+    const m = mount((_next, change) => (change.source === "rollback" ? undefined : queue.shift()!.promise));
+    m.edit("a", "name", "X");
+    w1.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+    m.edit("a", "name", "X");
+    w2.resolve(undefined);
+    await flush();
+    m.edit("a", "name", "Q");
+    w3.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("X");
+  });
+
   it("a refused insert leaves no remembered checked id", async () => {
     const d = deferred<WriteAck>();
     const m = mount((_next, change) => (change.source === "rollback" ? undefined : d.promise), {
