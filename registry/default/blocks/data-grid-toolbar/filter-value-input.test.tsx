@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -149,12 +150,33 @@ describe("DataGridFilterValueInput commits", () => {
 
   it("moving from the from input to the to input inside the wait keeps both values", () => {
     vi.useFakeTimers();
-    const { inputs, onValueChange } = renderBetween();
-    fireEvent.change(inputs()[0]!, { target: { value: "3" } });
-    fireEvent.blur(inputs()[0]!);
-    fireEvent.change(inputs()[1]!, { target: { value: "9" } });
-    fireEvent.blur(inputs()[1]!);
-    expect(onValueChange.mock.calls.at(-1)![0]).toEqual(["3", "9"]);
+    const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "amount", header: "Amount", accessorKey: "amount", type: "number" }];
+    const seen: Array<[string, string]> = [];
+    function Controlled() {
+      const [value, setValue] = useState<[string, string]>(["", ""]);
+      return (
+        <DataGridFilterValueInput
+          column={columns[0] as AnyColumnDef}
+          operator="isBetween"
+          value={value}
+          onValueChange={(next) => {
+            seen.push(next as [string, string]);
+            setValue(next as [string, string]);
+          }}
+        />
+      );
+    }
+    render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <Controlled />
+      </DataGridProvider>,
+    );
+    const [from, to] = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    fireEvent.change(from!, { target: { value: "3" } });
+    fireEvent.blur(from!);
+    fireEvent.change(to!, { target: { value: "9" } });
+    fireEvent.blur(to!);
+    expect(seen.at(-1)).toEqual(["3", "9"]);
     vi.useRealTimers();
   });
 
