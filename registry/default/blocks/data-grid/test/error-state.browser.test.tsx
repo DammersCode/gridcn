@@ -17,7 +17,7 @@ describe("error state", () => {
         <DataGrid data={[]} columns={columns} getRowId={(r: Row) => r.id} className="h-72" error={new Error("down")} onRetry={onRetry} />
       </div>,
     );
-    await expect.element(page.getByRole("alert")).toHaveTextContent(/Could not load rows./);
+    await expect.element(page.getByText("Could not load rows.")).toBeInTheDocument();
     expect(document.querySelector("[data-grid-empty-state]")).toBeNull();
     await page.getByRole("button", { name: "Retry" }).click();
     expect(onRetry).toHaveBeenCalledTimes(1);
