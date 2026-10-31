@@ -267,6 +267,27 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(seen.slice(seen.lastIndexOf("abc")).every((text) => text === "abc")).toBe(true);
   });
 
+  it("an older commit that echoes after a newer commit does not replace the typed text", () => {
+    function TwoCommits() {
+      const [value, setValue] = useState("");
+      const [sent, setSent] = useState<string[]>([]);
+      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      return (
+        <>
+          <input aria-label="two" {...input.inputProps} />
+          <button onClick={() => setValue(sent[0] ?? "")}>echo first</button>
+        </>
+      );
+    }
+    const view = render(<TwoCommits />);
+    type(view.getByLabelText("two"), "ab");
+    act(() => void vi.advanceTimersByTime(300));
+    type(view.getByLabelText("two"), "abc");
+    act(() => void vi.advanceTimersByTime(300));
+    fireEvent.click(view.getByText("echo first"));
+    expect((view.getByLabelText("two") as HTMLInputElement).value).toBe("abc");
+  });
+
   it("shows value again once the parent moves it away from the typed base", () => {
     function Outer() {
       const [value, setValue] = useState("a");

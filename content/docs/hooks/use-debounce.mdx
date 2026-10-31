@@ -43,7 +43,7 @@ A value of `0` commits each keystroke. The hook waits 300 ms by default. The tex
 | Result | Meaning |
 |---|---|
 | `inputProps` | The props of the input: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd`. |
-| `inputValue` | The text in the input. It is what the user typed, or `value` when nothing is pending. |
+| `inputValue` | The text in the input. It is what the user typed while it is pending or until `value` reaches it, otherwise `value`. |
 | `flush()` | Commits a pending value now. |
 | `cancel()` | Drops a pending value and shows `value` again. |
 
@@ -56,7 +56,7 @@ A value of `0` commits each keystroke. The hook waits 300 ms by default. The tex
 - During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
 - A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text. A late echo of an older commit never overwrites what the user types.
 - A commit calls the latest `onCommit`, not the one from the render that scheduled it.
-- After a commit the input keeps the typed text until `value` changes, then shows `value`. A parent that applies the commit a render later never flashes the old text.
+- After a commit the input keeps the typed text until `value` reaches it or moves to a text you did not commit, then shows `value`. A parent that applies a commit later never flashes the old text, and the echo of an older commit never replaces newer typing.
 - A handler you place after the spread (`onKeyDown` or `onChange`) replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself, and call `inputProps.onChange` from your `onChange`.
 
 ## isComposingKey
