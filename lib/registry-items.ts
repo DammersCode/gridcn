@@ -1,6 +1,8 @@
 // Names of every installable registry item. registry.json is the source of truth;
 // tests/registry-items.test.ts fails if this union and registry.json drift apart.
 export type RegistryItemName =
+  | "use-debounce"
+  | "is-composing-key"
   | "data-grid"
   | "data-grid-context-menu"
   | "data-grid-fill"
@@ -50,6 +52,7 @@ export type RegistryItemName =
   | "data-grid-keybindings-demo"
   | "data-grid-large-data-demo"
   | "data-grid-lazy-demo"
+  | "use-debounce-demo"
   | "data-grid-open-ended-demo"
   | "data-grid-server-selection-demo"
   | "data-grid-write-ack-demo"

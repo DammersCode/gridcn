@@ -227,7 +227,7 @@ matcher · **fill** = raw value.
   (`useCommitGuard`).** An editor typically has at least two ways to end an edit: Enter, then a
   blur that follows it, or React StrictMode's mount-cleanup-mount double-invoke in dev. Without
   a guard, the second path fires `commit` or `onChange` again on an edit that already committed.
-  The guard is one `useRef` flag: `tryCommit()` returns `true` once, and `false` after that.
+  The guard is one `useRef` flag: `tryCommit()` returns `true` once, and `false` after that. `reset()` re-arms it, for a retry after an async schema rejected the commit. Import it from `@/components/data-grid/data-grid`.
 - **Honor `pending` and `rejectionCount` if your cell type can carry an async Standard Schema
   `validate`.** `CellEditorProps.pending` is true while an async schema is resolving. Set your
   input `readOnly`, never `disabled` (a disabled input cannot receive Escape or blur, which

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "is-composing-key",
+  "title": "Is Composing Key",
+  "author": "gridcn",
+  "description": "isComposingKey(event): true while a keydown belongs to an IME composition, including the Safari confirming key (keyCode 229) that reports isComposing false. Gate Enter and Escape handlers with it.",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "registry/default/lib/is-composing-key.ts",
+      "content": "import type { KeyboardEvent as ReactKeyboardEvent } from \"react\";\n\n/** Whether a key belongs to an IME composition; Safari sends the confirming Enter with `isComposing` false and keyCode 229. */\nexport function isComposingKey(event: ReactKeyboardEvent | Pick<KeyboardEvent, \"isComposing\" | \"keyCode\">): boolean {\n  const native = \"nativeEvent\" in event ? event.nativeEvent : event;\n  return native.isComposing || native.keyCode === 229;\n}\n",
+      "type": "registry:lib",
+      "target": "components/gridcn/is-composing-key.ts"
+    }
+  ],
+  "categories": [
+    "hooks"
+  ],
+  "type": "registry:lib"
+}

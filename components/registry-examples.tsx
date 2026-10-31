@@ -40,6 +40,7 @@ const EXAMPLES = {
   "data-grid-conditional-styling-demo": dynamic(() => import("@/registry/default/examples/data-grid-conditional-styling-demo")),
   "data-grid-styling-patterns-demo": dynamic(() => import("@/registry/default/examples/data-grid-styling-patterns-demo")),
   "data-grid-lazy-demo": dynamic(() => import("@/registry/default/examples/data-grid-lazy-demo")),
+  "use-debounce-demo": dynamic(() => import("@/registry/default/examples/use-debounce-demo")),
   "data-grid-open-ended-demo": dynamic(() => import("@/registry/default/examples/data-grid-open-ended-demo")),
   "data-grid-server-selection-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-selection-demo")),
   "data-grid-write-ack-demo": dynamic(() => import("@/registry/default/examples/data-grid-write-ack-demo")),

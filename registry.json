@@ -1294,6 +1294,64 @@
          ]
       },
       {
+         "name": "use-debounce",
+         "type": "registry:hook",
+         "title": "Use Debounce",
+         "description": "Grid-free debounce hooks: useDebounce(value, delayMs) returns the debounced value, and useDebouncedInput(value, onCommit, options) drives a text input that shows each keystroke at once and commits when typing pauses, on blur, on Enter, and on unmount, waits for an IME composition, and never lets a late echo overwrite the text being typed.",
+         "author": "gridcn",
+         "dependencies": [],
+         "registryDependencies": [],
+         "files": [
+            {
+               "path": "registry/default/hooks/use-debounce.ts",
+               "type": "registry:hook",
+               "target": "components/gridcn/use-debounce.ts"
+            }
+         ],
+         "categories": [
+            "hooks"
+         ]
+      },
+      {
+         "name": "is-composing-key",
+         "type": "registry:lib",
+         "title": "Is Composing Key",
+         "description": "isComposingKey(event): true while a keydown belongs to an IME composition, including the Safari confirming key (keyCode 229) that reports isComposing false. Gate Enter and Escape handlers with it.",
+         "author": "gridcn",
+         "dependencies": [],
+         "registryDependencies": [],
+         "files": [
+            {
+               "path": "registry/default/lib/is-composing-key.ts",
+               "type": "registry:lib",
+               "target": "components/gridcn/is-composing-key.ts"
+            }
+         ],
+         "categories": [
+            "hooks"
+         ]
+      },
+      {
+         "name": "use-debounce-demo",
+         "type": "registry:example",
+         "title": "Use Debounce Demo",
+         "description": "A text input with useDebouncedInput and a line that shows the committed value: the echo follows once typing pauses, and Enter, blur, and Escape act at once.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/use-debounce"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/use-debounce-demo.tsx",
+               "type": "registry:example",
+               "target": "components/use-debounce-demo.tsx"
+            }
+         ],
+         "categories": [
+            "hooks"
+         ]
+      },
+      {
          "name": "data-grid-lazy",
          "type": "registry:block",
          "title": "Data Grid Lazy",

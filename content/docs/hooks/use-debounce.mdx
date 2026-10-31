@@ -1,0 +1,71 @@
+---
+title: useDebounce
+description: "The use-debounce hook item: useDebounce for a value, useDebouncedInput for a text input that never loses its last keystrokes."
+icon: Timer
+---
+
+<NewBadge />
+
+Typing fires a change on every key. `useDebounce` delays a value until it stops changing. `useDebouncedInput` does the same for a text input and adds the rules that make it safe: no lost text, no commit in the middle of an IME composition. The item has no dependency on the grid.
+
+<ComponentPreview name="use-debounce-demo" />
+
+<InstallCommand item="use-debounce" />
+
+The item installs to `components/gridcn/use-debounce.ts`.
+
+## useDebounce
+
+```tsx
+const [query, setQuery] = useState("");
+const debouncedQuery = useDebounce(query, 300);
+```
+
+`debouncedQuery` follows `query` after `query` stays the same for `delayMs`. With `delayMs` of `0`, it is `query` itself.
+
+## useDebouncedInput
+
+Call the hook with the committed value and a commit callback. Spread the result on the input:
+
+```tsx
+const [name, setName] = useState("");
+const { flush: _flush, cancel: _cancel, ...input } = useDebouncedInput(name, setName);
+
+<input {...input} value={input.inputValue} />
+```
+
+The input shows each keystroke at once. `onCommit` runs when the typing pauses for `delayMs` (default 300).
+
+| Option | Type | Default |
+|---|---|---|
+| `delayMs` | `number` | `300` |
+
+A value of `0` commits each keystroke.
+
+| Result | Meaning |
+|---|---|
+| `inputValue` | The text in the input. It is what the user typed, or `value` when nothing is pending. |
+| `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd` | Handlers for the input. |
+| `flush()` | Commits a pending value now. |
+| `cancel()` | Drops a pending value and shows `value` again. |
+
+### When the value commits
+
+- Blur commits a pending value.
+- Enter commits a pending value.
+- Unmount commits a pending value, so closing a popover inside the wait never loses the last keystrokes.
+- Escape drops a pending value and shows `value` again. Nothing is committed.
+- During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
+- A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text. A late echo of an older commit never overwrites what the user types.
+- A commit calls the latest `onCommit`, not the one from the render that scheduled it.
+
+## isComposingKey
+
+The item `is-composing-key` installs `isComposingKey(event)`. It is true while a key belongs to an IME composition, including the Safari key that confirms a composition with `isComposing` false and `keyCode` 229. Use it in your own `Enter` and `Escape` handlers.
+
+<InstallCommand item="is-composing-key" />
+
+## Related
+
+- [Sorting, filtering & search](/docs/sorting-filtering-search): the grid inputs that use this hook.
+- [Server-side data](/docs/recipes/data-fetching/server-side): throttle a server request inside `fetchRows`.

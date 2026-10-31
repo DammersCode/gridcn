@@ -12,8 +12,9 @@ const outDir = join(root, "public", "r");
 copyFileSync(join(root, "registry.json"), join(outDir, "registry.json"));
 console.log("  synced registry.json -> public/r/registry.json");
 
-const BLOCKS_ALIAS_RE = /@\/registry\/default\/blocks\/([^/"'\s]+)\/([^"'\s]+)/g;
-const toComponentsAlias = (_match, item, rest) => `@/registry/default/components/${item}/${rest}`;
+const BLOCKS_ALIAS_RE = /@\/registry\/default\/(?:blocks\/([^/"'\s]+)\/([^"'\s]+)|(?:hooks|lib)\/([^"'\s]+))/g;
+// Hook and lib items install to components/gridcn/<name>, so their imports rewrite to that folder.
+const toComponentsAlias = (_match, item, rest, standalone) => (standalone ? `@/registry/default/components/gridcn/${standalone}` : `@/registry/default/components/${item}/${rest}`);
 
 let filesChanged = 0;
 let occurrences = 0;
@@ -56,12 +57,12 @@ for (const name of readdirSync(outDir)) {
   if (!name.endsWith(".json") || name === "registry.json") continue;
   const path = join(outDir, name);
   const raw = readFileSync(path, "utf8");
-  if (!raw.includes("@/registry/default/blocks/")) continue;
+  if (!/@\/registry\/default\/(blocks|hooks|lib)\//.test(raw)) continue;
 
   const json = JSON.parse(raw);
   for (const file of json.files ?? []) {
     if (typeof file.content !== "string") continue;
-    const matches = file.content.match(/@\/registry\/default\/blocks\/[^"'\s]+/g);
+    const matches = file.content.match(/@\/registry\/default\/(?:blocks|hooks|lib)\/[^"'\s]+/g);
     if (matches) for (const m of matches) offenders.push(`  public/r/${name} :: ${file.path} :: ${m}`);
   }
 }

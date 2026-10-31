@@ -8,8 +8,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = join(root, "public", "r");
 
 // kept in sync with fix-registry-imports.mjs — the payload stores the rewritten form, not raw source
-const BLOCKS_ALIAS_RE = /@\/registry\/default\/blocks\/([^/"'\s]+)\/([^"'\s]+)/g;
-const toComponentsAlias = (_match, item, rest) => `@/registry/default/components/${item}/${rest}`;
+const BLOCKS_ALIAS_RE = /@\/registry\/default\/(?:blocks\/([^/"'\s]+)\/([^"'\s]+)|(?:hooks|lib)\/([^"'\s]+))/g;
+const toComponentsAlias = (_match, item, rest, standalone) => (standalone ? `@/registry/default/components/gridcn/${standalone}` : `@/registry/default/components/${item}/${rest}`);
 
 const problems = [];
 let filesChecked = 0;

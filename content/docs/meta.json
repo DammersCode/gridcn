@@ -43,6 +43,8 @@
     "addons/find-replace",
     "addons/url-state",
     "addons/import-export",
+    "---[Timer]Hooks---",
+    "hooks/use-debounce",
     "---[Blocks]Architecture---",
     "plugins",
     "performance",
