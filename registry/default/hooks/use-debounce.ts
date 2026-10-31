@@ -2,24 +2,27 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CompositionEvent, type KeyboardEvent } from "react";
 
-type TypedText = { text: string; base: string; seen: string; pending: boolean; sent: string[]; echoed: number };
+/** The text the user typed. `queue` holds the commits the parent has not applied yet; `seen` is the last `value` handled. */
+type TypedText = { text: string; seen: string; pending: boolean; queue: string[] };
 
 /**
- * What the input shows after a render. While text is pending, or until the parent has applied every commit in order
- * (`echoed` counts the commits that came back), the typed text stays. A `value` that is none of the commits means the
- * parent changed it from outside, so the typed text yields.
+ * What the input shows after a render. The typed text stays while it is pending and while commits are queued. It
+ * yields when `value` reaches the typed text (the display does not change then), when the queue is applied, or when
+ * `value` becomes a text that is not queued (the parent changed it from outside). A `value` that matches a queued
+ * commit applies it and every commit before it.
  */
 function settleTyped(typed: TypedText | null, value: string): TypedText | null {
   if (typed === null || typed.pending || value === typed.seen) return typed;
-  const seen = { ...typed, seen: value };
-  const at = typed.sent.findIndex((text, index) => index >= typed.echoed && text === value);
-  if (at !== -1) return at + 1 >= typed.sent.length ? null : { ...seen, echoed: at + 1 };
-  return value === typed.base || typed.sent.includes(value) ? seen : null;
+  if (value === typed.text) return null;
+  const at = typed.queue.indexOf(value);
+  if (at === -1) return null;
+  const rest = typed.queue.slice(at + 1);
+  return rest.length === 0 ? null : { ...typed, seen: value, queue: rest };
 }
 
 const DEFAULT_DELAY_MS = 300;
 /** Commits remembered while the parent has not applied them yet. */
-const MAX_SENT = 8;
+const MAX_QUEUED = 8;
 
 /** The debounced copy of `value`: it follows `value` once `value` has stayed the same for `delayMs`. */
 export function useDebounce<T>(value: T, delayMs: number = DEFAULT_DELAY_MS): T {
@@ -76,9 +79,9 @@ const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?:
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
   const { delayMs = DEFAULT_DELAY_MS } = options;
-  // The input shows the typed text while it is pending, and after the commit until `value` reaches it or moves to
-  // something the user did not commit: a parent that applies a commit a render later never flashes the old text, and
-  // a late echo of an older commit (`sent`) never overwrites what the user types.
+  // The input shows the typed text while it is pending, and after the commit until the parent has applied the commits:
+  // a parent that applies a commit later never flashes the old text, and a late echo of an older commit never
+  // overwrites what the user types.
   const [typed, setTyped] = useState<TypedText | null>(null);
   const onCommitRef = useRef(onCommit);
   const valueRef = useRef(value);
@@ -100,7 +103,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     const next = pendingRef.current;
     pendingRef.current = null;
     if (next === null) return;
-    setTyped((prev) => (prev === null ? prev : { ...prev, base: valueRef.current, seen: valueRef.current, pending: false, sent: [...prev.sent, next].slice(-MAX_SENT) }));
+    setTyped((prev) => (prev === null ? prev : { ...prev, pending: false, queue: [...prev.queue, next].slice(-MAX_QUEUED) }));
     onCommitRef.current(next);
   }, [clearTimer]);
 
@@ -129,7 +132,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
   const onChange = useCallback(
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const next = event.target.value;
-      setTyped((prev) => ({ text: next, base: valueRef.current, seen: prev?.seen ?? valueRef.current, pending: true, sent: prev?.sent ?? [], echoed: prev?.echoed ?? 0 }));
+      setTyped((prev) => ({ text: next, seen: prev?.seen ?? valueRef.current, pending: true, queue: prev?.queue ?? [] }));
       pendingRef.current = next;
       if (composingRef.current) return;
       schedule(next);
@@ -158,7 +161,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
       onCompositionEnd: (event) => {
         composingRef.current = false;
         const next = event.currentTarget.value;
-        setTyped((prev) => ({ text: next, base: valueRef.current, seen: prev?.seen ?? valueRef.current, pending: true, sent: prev?.sent ?? [], echoed: prev?.echoed ?? 0 }));
+        setTyped((prev) => ({ text: next, seen: prev?.seen ?? valueRef.current, pending: true, queue: prev?.queue ?? [] }));
         schedule(next);
       },
     },

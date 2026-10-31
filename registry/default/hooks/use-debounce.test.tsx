@@ -288,7 +288,7 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect((view.getByLabelText("two") as HTMLInputElement).value).toBe("abc");
   });
 
-  it("echoes in order through a repeated text never show an older one", () => {
+  it("echoes in order through a repeated text end on the typed text and never stick", () => {
     function Repeat() {
       const [value, setValue] = useState("");
       const [sent, setSent] = useState<string[]>([]);
@@ -315,11 +315,60 @@ describe("useDebouncedInput with a parent that applies the commit a render later
       act(() => void vi.advanceTimersByTime(300));
     }
     fireEvent.click(view.getByText("apply"));
-    expect(field.value).toBe("a");
+    fireEvent.click(view.getByText("apply"));
     fireEvent.click(view.getByText("apply"));
     expect(field.value).toBe("a");
-    fireEvent.click(view.getByText("apply"));
+  });
+
+  it("a reset to the base after a partial echo shows value, and so does an undo to an echoed text", () => {
+    function Steps() {
+      const [value, setValue] = useState("");
+      const [sent, setSent] = useState<string[]>([]);
+      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      return (
+        <>
+          <input aria-label="st" {...input.inputProps} />
+          <button onClick={() => setValue(sent[0] ?? "")}>first</button>
+          <button onClick={() => setValue("")}>clear</button>
+          <button onClick={() => setValue("a")}>undo</button>
+        </>
+      );
+    }
+    const view = render(<Steps />);
+    const field = view.getByLabelText("st") as HTMLInputElement;
+    type(field, "a");
+    act(() => void vi.advanceTimersByTime(300));
+    type(field, "ab");
+    act(() => void vi.advanceTimersByTime(300));
+    fireEvent.click(view.getByText("first"));
+    expect(field.value).toBe("ab");
+    fireEvent.click(view.getByText("clear"));
+    expect(field.value).toBe("");
+    type(field, "abc");
+    act(() => void vi.advanceTimersByTime(300));
+    fireEvent.click(view.getByText("undo"));
     expect(field.value).toBe("a");
+  });
+
+  it("more commits in flight than the queue holds still end on value", () => {
+    function Many() {
+      const [value, setValue] = useState("");
+      const input = useDebouncedInput(value, () => {});
+      return (
+        <>
+          <input aria-label="many" {...input.inputProps} />
+          <button onClick={() => setValue("outside")}>outside</button>
+        </>
+      );
+    }
+    const view = render(<Many />);
+    const field = view.getByLabelText("many") as HTMLInputElement;
+    for (let i = 0; i < 10; i++) {
+      type(field, `t${i}`);
+      act(() => void vi.advanceTimersByTime(300));
+    }
+    fireEvent.click(view.getByText("outside"));
+    expect(field.value).toBe("outside");
   });
 
   it("useDebounce returns the latest value after the delay changes from 0 to a positive number", () => {

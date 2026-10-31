@@ -56,8 +56,8 @@ A value of `0` commits each keystroke. The hook waits 300 ms by default. The tex
 - During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
 - A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text.
 - A commit calls the latest `onCommit`, not the one from the render that scheduled it.
-- After a commit the input keeps the typed text until `value` has come back through every commit in order, or moves to a text you did not commit. Then it shows `value`. A parent that applies a commit later never flashes the old text, and the echo of an older commit never replaces newer typing.
-- A parent that never applies a commit leaves the typed text in the input until Escape or until `value` changes.
+- After a commit the input keeps the typed text until the parent has applied the commits, or `value` changes to a text that is not a commit of the input. Then it shows `value`. A parent that applies a commit later never flashes the old text, and the echo of an older commit does not replace newer typing. If you type the same text twice, the echo of the first commit can show for a moment.
+- A parent that never applies a commit leaves the typed text in the input until Escape or until `value` changes to a text that is not a commit.
 - A handler you place after the spread (`onKeyDown` or `onChange`) replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself, and call `inputProps.onChange` from your `onChange`.
 
 ## isComposingKey
