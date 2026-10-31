@@ -27,9 +27,9 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Filter (flat and groups) | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
 | Filter set values | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | Quick search | Supported | Not verified | Not verified | Supported | Supported | Supported | n/a | n/a |
-| Row check and ranges | Supported | Not verified | Gap | Gap | Gap | Not verified | Not verified | Gap |
+| Row check and ranges | Supported | Not verified | Supported | Supported | Supported | Supported | Supported | Supported |
 | Row ids | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Gap |
-| Counts and total | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Counts and total | Supported | Supported | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
 | Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
 | Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
@@ -39,9 +39,9 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
 | Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
 | Undo and redo | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Gap |
-| Row create, duplicate and delete | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
+| Row create, duplicate and delete | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Supported |
 | Validation | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
-| Edit commit and write-through | Supported | Not verified | Not verified | Not verified | Supported | Not verified | Not verified | Gap |
+| Edit commit and write-through | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
 | Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
 | Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
@@ -51,6 +51,10 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Lazy row fetching | n/a | n/a | n/a | Supported | n/a | n/a | n/a | n/a |
 | Pagination | n/a | Supported | Supported | n/a | Supported | Not verified | Supported | Not verified |
 | Keys, labels and cell types | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Unknown total and cursor paging | n/a | n/a | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
+| One server data source (`useDataGridServerRows`) | n/a | n/a | Supported | n/a | Supported | Supported | Supported | Not verified |
+| Error state and retry | n/a | n/a | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
+| Debounced text inputs | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 
 ## Notes
 
@@ -68,21 +72,9 @@ A grid feature can behave differently on a local array, on server pages and on l
 - **FS**: n/a: Search highlights loaded rows and never filters.
 - **API**: n/a: Search writes no data.
 
-### Row check and ranges
-
-- **PS**: Gap: No check across pages and no select-all-matching.
-- **Z**: Gap: No check over unloaded rows and no select-all-matching.
-- **C**: Gap: Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions.
-- **API**: Gap: A server bulk action cannot learn the checked rows beyond the loaded ones.
-
 ### Row ids
 
 - **API**: Gap: No swap from a client id to the server-assigned id after create.
-
-### Counts and total
-
-- **PS**: Gap: `total` is required; no unknown total and no cursor paging.
-- **Z**: Gap: `total` is required; no unknown total and no cursor paging.
 
 ### Row grouping
 
@@ -136,14 +128,6 @@ A grid feature can behave differently on a local array, on server pages and on l
 - **Z**: Gap: Undo warns over rows not loaded yet.
 - **API**: Gap: The local undo stack never learns whether the server accepted the write.
 
-### Row create, duplicate and delete
-
-- **Z**: Gap: No guard over unloaded lazy rows.
-
-### Edit commit and write-through
-
-- **API**: Gap: `onDataChange` returns void; no acknowledgement and no pending state.
-
 ### Streaming updates
 
 - **Z**: Not verified: A later block fetch can overwrite streamed values over rows not loaded yet.
@@ -189,6 +173,22 @@ A grid feature can behave differently on a local array, on server pages and on l
 ### Keys, labels and cell types
 
 - Mode-neutral.
+
+### Unknown total and cursor paging
+
+- **L**: n/a: The array holds every row.
+- **PC**: n/a: The length of `data` is the total.
+
+### One server data source (`useDataGridServerRows`)
+
+- **L**: n/a: A local array needs no fetch.
+- **PC**: n/a: Client pagination slices `data`.
+- **Z**: n/a: The hook pages; lazy and infinite rows stay the lower layer.
+
+### Error state and retry
+
+- **L**: n/a: No request can fail.
+- **PC**: n/a: No request can fail.
 
 ## Related
 

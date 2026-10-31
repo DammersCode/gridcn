@@ -270,7 +270,8 @@
         "onSelectionChange",
         "enableRangeSelection",
         "enableMultiRange",
-        "enableColumnSelection"
+        "enableColumnSelection",
+        "totalRowCount"
       ],
       "cells": {
         "L": {
@@ -284,32 +285,40 @@
           "note": "Not verified."
         },
         "PS": {
-          "status": "gap",
-          "track": "D",
-          "note": "No check across pages and no select-all-matching."
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
         },
         "Z": {
-          "status": "gap",
-          "track": "D",
-          "note": "No check over unloaded rows and no select-all-matching."
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
         },
         "C": {
-          "status": "gap",
-          "track": "D",
-          "note": "Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions."
+          "status": "supported",
+          "evidence": [
+            "content/docs/selection-keyboard.mdx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+          ]
         },
         "API": {
-          "status": "gap",
-          "track": "D",
-          "note": "A server bulk action cannot learn the checked rows beyond the loaded ones."
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
         }
       }
     },
@@ -363,7 +372,8 @@
       "id": "counts",
       "feature": "Counts and total",
       "options": [
-        "total"
+        "total",
+        "totalRowCount"
       ],
       "cells": {
         "L": {
@@ -379,14 +389,16 @@
           ]
         },
         "PS": {
-          "status": "gap",
-          "track": "F",
-          "note": "`total` is required; no unknown total and no cursor paging."
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
         },
         "Z": {
-          "status": "gap",
-          "track": "F",
-          "note": "`total` is required; no unknown total and no cursor paging."
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
         },
         "C": {
           "status": "unverified",
@@ -854,9 +866,11 @@
           "note": "Not verified."
         },
         "Z": {
-          "status": "gap",
-          "track": "J",
-          "note": "No guard over unloaded lazy rows."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/lazy-row-op-guard.test.tsx",
+            "content/docs/row-operations.mdx"
+          ]
         },
         "C": {
           "status": "unverified",
@@ -930,7 +944,9 @@
         "data",
         "defaultData",
         "onDataChange",
-        "readOnly"
+        "readOnly",
+        "onSave",
+        "onWriteRejected"
       ],
       "cells": {
         "L": {
@@ -948,8 +964,10 @@
           "note": "Not verified."
         },
         "Z": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+          ]
         },
         "C": {
           "status": "supported",
@@ -958,17 +976,23 @@
           ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+          ]
         },
         "API": {
-          "status": "gap",
-          "track": "K",
-          "note": "`onDataChange` returns void; no acknowledgement and no pending state."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+          ]
         }
       }
     },
@@ -1254,8 +1278,8 @@
       "options": [
         "fetchRows",
         "overscan",
-        "batchSize",
-        "maxFetchRows"
+        "maxFetchRows",
+        "spec"
       ],
       "cells": {
         "L": {
@@ -1406,6 +1430,197 @@
           "status": "supported",
           "evidence": [
             "content/docs/custom-cell-types.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true
+    },
+    {
+      "id": "unknown-total",
+      "feature": "Unknown total and cursor paging",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "The array holds every row."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "The length of `data` is the total."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "server-rows",
+      "feature": "One server data source (`useDataGridServerRows`)",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "A local array needs no fetch."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Client pagination slices `data`."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/examples/data/server-side.mdx"
+          ]
+        },
+        "Z": {
+          "status": "n/a",
+          "reason": "The hook pages; lazy and infinite rows stay the lower layer."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+          ]
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "error-state",
+      "feature": "Error state and retry",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "No request can fail."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "No request can fail."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/examples/data/server-side.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading-advanced.mdx"
+          ]
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "input-debounce",
+      "feature": "Debounced text inputs",
+      "options": [
+        "inputDebounceMs"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/hooks/use-debounce.test.tsx"
           ]
         }
       },
