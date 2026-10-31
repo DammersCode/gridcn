@@ -167,7 +167,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
    * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
    * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`,
-   * and `true` while `totalRowCount` is set.
+   * and `true` while `totalRowCount` is set (a number or `null`).
    */
   keepCheckedRows?: boolean;
   /**
@@ -678,7 +678,7 @@ export type DataGridStoreState = Omit<
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
-  /** Rows with an acknowledged write in flight (`"saving"`) or refused and reverted (`"failed"`). Empty when `onDataChange` returns no promise. */
+  /** Rows with an acknowledged write in flight (`"saving"`) or refused and reverted (`"failed"`). Empty when `onSave` returns no promise. */
   writeStatus: ReadonlyMap<string, RowWriteStatus>;
   /** Acknowledged changes whose promise has not settled. */
   pendingWriteCount: number;

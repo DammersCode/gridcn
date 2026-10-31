@@ -86,7 +86,7 @@ export type DataWriteContext = {
   writeDepth: number;
   /** The grid's imperative handle, handed to plugin `onDataChange` observers; set at store creation, before any write can run. */
   pluginApi: DataGridApi<unknown> | null;
-  /** Tracks the promise an `onDataChange` returned; set by {@link createDataWriteActions}. */
+  /** Tracks the promise `onSave` returned; set by {@link createDataWriteActions}. */
   trackWrite: ((change: DataChange<unknown>, result: PromiseLike<WriteAck>) => void) | null;
   /** Set while the grid is unmounted: a late ack neither reverts nor calls back. */
   disposed: boolean;
@@ -392,13 +392,26 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     });
   let warnedCurrentRowId = false;
   /** The `current` rows of the rejections that may replace a row: its id matches, the change holds no insert of it, and no newer write is pending. */
-  const usableCurrentRows = (s: DataGridStoreState, change: DataChange<unknown>, rejected: readonly WriteRejection[]): Map<string, unknown> => {
+  const usableCurrentRows = (
+    s: DataGridStoreState,
+    change: DataChange<unknown>,
+    rejected: readonly WriteRejection[],
+    seq: number,
+    deleteOps: ReadonlyMap<string, { index: number }>,
+  ): Map<string, unknown> => {
     const usable = new Map<string, unknown>();
     const inserted = new Set(change.ops.flatMap((op) => (op.type === "insert" ? [op.rowId] : [])));
     for (const { rowId, current } of rejected) {
-      if (current === undefined || inserted.has(rowId) || pendingByRow.has(rowId)) continue;
-      const index = (change.ops.find((op) => op.rowId === rowId && op.type === "delete") as { index: number } | undefined)?.index ?? 0;
-      if (s.getRowId(current, index) !== rowId) {
+      // A newer write to the row, pending or already accepted, makes the server's row older than the grid's.
+      if (current === undefined || inserted.has(rowId) || pendingByRow.has(rowId) || latestWriteOfRow.get(rowId) !== seq) continue;
+      const index = deleteOps.get(rowId)?.index ?? 0;
+      let currentId: string | undefined;
+      try {
+        currentId = s.getRowId(current, index);
+      } catch {
+        currentId = undefined;
+      }
+      if (currentId !== rowId) {
         if (!warnedCurrentRowId) {
           warnedCurrentRowId = true;
           warnDev(`WriteRejection.current for row "${rowId}" has another id, so it was ignored and the change was reverted in place`);
@@ -410,7 +423,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return usable;
   };
   /** One `change.ops` entry per `current` row: replace the row in the data, or re-insert a deleted row as the server holds it. */
-  const currentRowOps = (s: DataGridStoreState, change: DataChange<unknown>, currentRows: ReadonlyMap<string, unknown>): DataOp<unknown>[] => {
+  const currentRowOps = (s: DataGridStoreState, currentRows: ReadonlyMap<string, unknown>, deleteOps: ReadonlyMap<string, { index: number }>): DataOp<unknown>[] => {
     if (currentRows.size === 0) return [];
     const dataIndexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
     const ops: DataOp<unknown>[] = [];
@@ -420,8 +433,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ops.push({ type: "update", rowId, row: current, prev: s.data[index] });
         continue;
       }
-      const deleted = change.ops.find((op) => op.rowId === rowId && op.type === "delete");
-      if (deleted?.type === "delete") ops.push({ type: "insert", rowId, row: current, index: deleted.index });
+      const deleted = deleteOps.get(rowId);
+      if (deleted) ops.push({ type: "insert", rowId, row: current, index: deleted.index });
     }
     return ops;
   };
@@ -466,11 +479,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }
       } else {
         if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
-        const currentRows = usableCurrentRows(s, change, rejected);
-        const plain = rejected.filter((entry) => !currentRows.has(entry.rowId));
-        const revert = buildRollback({ ops: chainRefusedPrev(refusedOps(change, plain)), source: "rollback" }, s);
-        const ops = [...revert.ops, ...currentRowOps(s, change, currentRows)];
-        if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change });
+        const deleteOps = new Map(change.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
+        const currentRows = usableCurrentRows(s, change, rejected, seq, deleteOps);
+        // A row with a usable `current` gets its content from it; only its position ops (a move) revert in place.
+        const plainOps = refusedOps(change, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
+        const revert = buildRollback({ ops: chainRefusedPrev(plainOps), source: "rollback" }, s);
+        const ops = [...revert.ops, ...currentRowOps(s, currentRows, deleteOps)];
+        try {
+          if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change });
+        } catch (error) {
+          console.error("[data-grid] the revert of a refused save threw in a callback:", error);
+        }
       }
       for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
       for (const { rowId } of rejected) {

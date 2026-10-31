@@ -41,11 +41,25 @@ export type UseDataGridServerRowsOptions<TData> = {
 
 /** Return value of {@link useDataGridServerRows}. */
 export type UseDataGridServerRowsResult<TData> = {
-  /**
-   * Spread onto `<DataGrid {...server.gridProps} columns={columns} />`. For a composed layout, split off the
-   * root props: `const { loading, error, onRetry, ...providerProps } = server.gridProps`.
-   */
-  gridProps: {
+  /** Spread onto `<DataGrid {...server.gridProps} columns={columns} />`. */
+  gridProps: UseDataGridServerRowsProviderProps<TData> & UseDataGridServerRowsRootProps;
+  /** The part of `gridProps` for `<DataGridProvider>` in a composed layout. */
+  providerProps: UseDataGridServerRowsProviderProps<TData>;
+  /** The part of `gridProps` for `<DataGridRoot>` in a composed layout: the loading flag and the error state. */
+  rootProps: UseDataGridServerRowsRootProps;
+  /** Spread onto `<DataGridPaginationBar {...server.pager} />`. */
+  pager: DataGridPaginationControls;
+  /** The error of the current request, or `null`. It clears when a new request starts. */
+  error: unknown;
+  status: "loading" | "error" | "ready";
+  /** Repeats the request that failed. Does nothing without an error. */
+  retry: () => void;
+  /** Fetches the current page again. */
+  refresh: () => void;
+};
+
+/** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridProvider`. */
+export type UseDataGridServerRowsProviderProps<TData> = {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
     /** Keeps the rows in step with edits, inserts, deletes, and reverts of a refused save. Send changes to your API from `onSave`. */
@@ -61,19 +75,13 @@ export type UseDataGridServerRowsResult<TData> = {
     onSearchTextChange: (next: string) => void;
     /** The row count of the result; `null` when the server sends none. */
     totalRowCount: number | null;
-    loading: boolean;
-    error: unknown;
-    onRetry: () => void;
-  };
-  /** Spread onto `<DataGridPaginationBar {...server.pager} />`. */
-  pager: DataGridPaginationControls;
-  /** The error of the current request, or `null`. It clears when a new request starts. */
+};
+
+/** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */
+export type UseDataGridServerRowsRootProps = {
+  loading: boolean;
   error: unknown;
-  status: "loading" | "error" | "ready";
-  /** Repeats the request that failed. Does nothing without an error. */
-  retry: () => void;
-  /** Fetches the current page again. */
-  refresh: () => void;
+  onRetry: () => void;
 };
 
 type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null; hasNextPage: boolean; error: unknown };
@@ -107,8 +115,8 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchRef
-      .current({ spec, page, pageSize, signal: controller.signal })
+    Promise.resolve()
+      .then(() => fetchRef.current({ spec, page, pageSize, signal: controller.signal }))
       .then((answer) => {
         if (controller.signal.aborted) return;
         if (!Array.isArray(answer?.rows)) throw new TypeError("fetchRows of useDataGridServerRows must resolve with { rows: TData[] }");
@@ -149,8 +157,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
       : { ...common, total: settled.totalRowCount, onPageSizeChange },
   );
 
-  return {
-    gridProps: {
+  const providerProps: UseDataGridServerRowsProviderProps<TData> = {
       data: settled.rows,
       getRowId,
       onDataChange: (next) => setSettled((prev) => ({ ...prev, rows: next as TData[] })),
@@ -173,10 +180,13 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
         setPage(1);
       },
       totalRowCount: settled.totalRowCount,
-      loading,
-      error,
-      onRetry: retry,
-    },
+  };
+  const rootProps: UseDataGridServerRowsRootProps = { loading, error, onRetry: retry };
+
+  return {
+    gridProps: { ...providerProps, ...rootProps },
+    providerProps,
+    rootProps,
     pager: pagerResult.controls,
     error,
     status,

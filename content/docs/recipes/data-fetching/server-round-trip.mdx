@@ -161,11 +161,12 @@ function refusedRows(ops: DataOp<Order>[], results: PromiseSettledResult<unknown
 - `onSave` never receives a change with `source: "rollback"`, so a revert never goes back to the server. It never receives `source: "stream"` either: a server push must not echo back.
 - A promise that resolves with nothing accepts the whole change. A promise that rejects, or a handler that throws, refuses the whole change.
 - `rejected` entries name a `rowId`, and optionally a `columnId` to refuse one cell of an update. The grid reverts a cell only while it still holds the refused value, so a newer edit to the same cell survives.
-- `current` is the row as the server holds it now. The revert puts it in place of the refused row, unless a newer write to the row is pending. A refused delete restores `current`. A refused insert removes the row. If `getRowId(current)` differs from `rowId`, the grid ignores `current` and warns once in development.
+- `current` is the row as the server holds it now. The revert puts it in place of the refused row, unless a newer write to the row is pending or has already settled. A refused move still reverts its position. If `getRowId(current)` throws or differs from `rowId`, the grid ignores `current`. A refused delete restores `current`. A refused insert removes the row. The grid warns once in development when it ignores `current`.
 - While the promise is pending, the row element carries `data-write-status="saving"`. After a refusal it carries `failed` until the next write to the row or `actions.clearWriteStatus()`. `useDataGridRowWriteStatus(rowId)` and `useDataGridPendingWriteCount()` read the same state.
 - The revert is one `onDataChange` call with `source: "rollback"` and `reverts` set to the refused change. The cell errors of the reverted cells clear in the same step. `useDataGridHistory` drops the undone entry.
 - `onWriteRejected({ change, rejected })` runs once per refused change, after the revert. Show the server's `message` there.
 - A `readOnly` grid skips the revert and `current`, warns once in development, and still calls `onWriteRejected`.
+- A refusal that arrives after the data was replaced (a page change) re-inserts a refused delete into the new data. Reload the page in `onWriteRejected` when that matters.
 - The callbacks run after the outermost write in this order: `onDataChange`, `onSave`, plugin observers. A throw in one does not stop the next.
 
 Strategy C does not roll back a change of `change.ops` that the server accepted, which Strategy A does when one request of a batch fails. It needs no `ref` snapshot.

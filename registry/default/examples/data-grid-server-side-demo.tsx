@@ -48,7 +48,6 @@ export default function DataGridServerSideDemo(): ReactNode {
       return { rows: answer.rows, totalRowCount: answer.total };
     },
   });
-  const { loading, error, onRetry, ...providerProps } = server.gridProps;
 
   return (
     <div className="w-full flex flex-col gap-2">
@@ -58,7 +57,7 @@ export default function DataGridServerSideDemo(): ReactNode {
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
-          {...providerProps}
+          {...server.providerProps}
           columns={columns}
           onSave={(change) => {
             remote.applyOps(change.ops);
@@ -70,7 +69,7 @@ export default function DataGridServerSideDemo(): ReactNode {
             <DataGridFilterMenu />
             <DataGridColumnsMenu />
           </DataGridToolbar>
-          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" loading={loading} error={error} onRetry={onRetry}>
+          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

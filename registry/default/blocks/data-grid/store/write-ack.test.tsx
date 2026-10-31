@@ -506,6 +506,64 @@ describe("onSave", () => {
   });
 });
 
+describe("WriteRejection.current: edge cases", () => {
+  const server = { id: "a", name: "SERVER", note: "server-note" };
+
+  it("is ignored when a newer write to the row already settled accepted", async () => {
+    const first = deferred<WriteAck>();
+    const second = deferred<WriteAck>();
+    const queue = [first, second];
+    const m = mount(() => queue.shift()!.promise);
+    m.edit("a", "name", "X");
+    m.edit("a", "note", "N");
+    second.resolve(undefined);
+    await flush();
+    first.resolve({ rejected: [{ rowId: "a", current: server }] });
+    await flush();
+    expect(m.value("a", "note")).toBe("N");
+    expect(m.value("a", "name")).not.toBe("SERVER");
+  });
+
+  it("a current without an id does not stop the settle", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = deferred<WriteAck>();
+    const onWriteRejected = vi.fn();
+    const m = mount(() => d.promise, { onWriteRejected, getRowId: ((row: Row) => {
+      if (!row.id) throw new Error("no id");
+      return row.id;
+    }) as never });
+    m.edit("a", "name", "X");
+    d.resolve({ rejected: [{ rowId: "a", current: {} as never }] });
+    await flush();
+    expect(m.value("a", "name")).toBe("A");
+    expect(m.status("a")).toBe("failed");
+    expect(m.state().pendingWriteCount).toBe(0);
+    expect(onWriteRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it("a throwing onDataChange during the revert does not stop the settle", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const d = deferred<WriteAck>();
+    const onWriteRejected = vi.fn();
+    let first = true;
+    const m = mount(() => d.promise, {
+      onWriteRejected,
+      onDataChange: () => {
+        if (first) {
+          first = false;
+          return;
+        }
+        throw new Error("consumer threw");
+      },
+    });
+    m.edit("a", "name", "X");
+    d.resolve({ rejected: [{ rowId: "a" }] });
+    await flush();
+    expect(m.status("a")).toBe("failed");
+    expect(onWriteRejected).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("WriteRejection.current", () => {
   const server = { id: "a", name: "SERVER", note: "server-note" };
 

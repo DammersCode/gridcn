@@ -13,7 +13,7 @@ carries every change of `data` once, rollbacks included. `onSave(change)` is the
 ack; it is never called for `source: "rollback"` or `source: "stream"`. `WriteAck<TData>` and
 `WriteRejection<TData>` carry an optional `current` row: the revert puts it in place of the refused row
 when no newer write to the row is pending; a refused delete restores it, a refused insert removes the row;
-a `current` whose id differs from `rowId` is dropped with one development warning. Order after the
+a `current` whose id differs from `rowId` (or whose `getRowId` throws) is dropped with one development warning. `current` applies only while the refused change is the latest write to the row: a newer write, pending or already settled, wins. A refused move keeps its position revert; `current` replaces content only. Order after the
 outermost write: `onDataChange`, `onSave`, observers, each isolated. A `readOnly` grid skips the revert and
 `current`, warns once, and still calls `onWriteRejected`. Undo and redo (`"history"`) reach `onSave`.
 

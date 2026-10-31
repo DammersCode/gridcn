@@ -171,6 +171,41 @@ describe("useDataGridServerRows", () => {
     await waitFor(() => expect(result.current.gridProps.data[0]).toEqual({ id: "r10" }));
   });
 
+  it("a synchronous throw in fetchRows is an error, not a crash", async () => {
+    const fetchRows = vi.fn<Fetch>(() => {
+      throw new Error("sync");
+    });
+    const { result } = make(fetchRows);
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+  });
+
+  it("without hasNextPage a full page means another page exists", async () => {
+    const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 10) }));
+    const { result } = make(fetchRows);
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    expect(result.current.pager.hasNextPage).toBe(true);
+  });
+
+  it("the page clamps when the total shrinks below it", async () => {
+    let total = 95;
+    const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => ({ rows: rowsOf((page - 1) * pageSize, 5), totalRowCount: total }));
+    const { result } = make(fetchRows);
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    act(() => result.current.pager.onPageChange(9));
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    total = 20;
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.pager.page).toBe(2));
+  });
+
+  it("exposes the provider and root parts of gridProps", async () => {
+    const { result } = make(server());
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    expect(Object.keys(result.current.rootProps).sort()).toEqual(["error", "loading", "onRetry"]);
+    expect("loading" in result.current.providerProps).toBe(false);
+    expect(result.current.gridProps).toMatchObject({ ...result.current.rootProps });
+  });
+
   it("starts from defaultSpec", async () => {
     const fetchRows = server();
     make(fetchRows, { defaultSpec: { search: "ann" } });

@@ -11,8 +11,8 @@ page and a next cursor, never a count, so it cannot connect.
 - Pagination: server options take `hasNextPage` instead of `total`. No total means no "of z", no
   last page, no page count.
 - Lazy: a second hook, `useDataGridInfiniteRows`, for an open-ended source. `useDataGridLazyRows`
-  keeps its positional `fetchRows(start, end, signal)` and its known `total`. The infinite hook
-  takes `fetchRows({ cursor, start, limit, signal })` and returns `{ rows, nextCursor }`.
+  keeps its known `total` and takes `fetchRows({ start, end, signal, spec })`. The infinite hook
+  takes `fetchRows({ cursor, start, limit, signal, spec })` and returns `{ rows, nextCursor }`.
 
 Two hooks because the contracts differ: a known total fetches any range in any order, a cursor
 chain fetches one page after the other. One hook with both would need a union of two
