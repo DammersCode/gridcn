@@ -304,6 +304,21 @@ describe("select all matching and the result spec", () => {
     expect(m.state().allMatching).toBe(true);
   });
 
+  it("totalRowCount alone turns keepCheckedRows on, so selectAllMatching works", () => {
+    const m = mount({ keepCheckedRows: undefined });
+    expect(m.state().keepCheckedRows).toBe(true);
+    act(() => m.state().actions.selectAllMatching());
+    expect(m.state().allMatching).toBe(true);
+  });
+
+  it("an explicit keepCheckedRows false keeps selectAllMatching off with a warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ keepCheckedRows: false });
+    act(() => m.state().actions.selectAllMatching());
+    expect(m.state().allMatching).toBe(false);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
   it("a programmatic deleteRows leaves allMatching", () => {
     const m = mount({ onDataChange: () => {} });
     act(() => m.state().actions.selectAllMatching());

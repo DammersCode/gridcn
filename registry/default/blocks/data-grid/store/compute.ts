@@ -871,7 +871,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
-    keepCheckedRows: props.keepCheckedRows ?? false,
+    keepCheckedRows: props.keepCheckedRows ?? props.totalRowCount !== undefined,
     keepHiddenCheckedRows: props.keepHiddenCheckedRows ?? false,
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,

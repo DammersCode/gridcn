@@ -330,3 +330,19 @@ describe("liveAnnouncement (Escape, hidden rows, quiet results)", () => {
     expect(api!.getState().liveAnnouncement).toBeNull();
   });
 });
+
+describe("announceResults with totalRowCount", () => {
+  it("announces the server row count when it changes after a gesture", () => {
+    const m = mount({ announceResults: true, totalRowCount: 10, sortMode: "server", filterMode: "server" });
+    act(() => getInternalActions(m.api()!)._armResultsAnnouncement());
+    m.rerender({ totalRowCount: 4_000 });
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "results", count: 4_000 });
+  });
+
+  it("says nothing before a gesture armed the announcement, or without announceResults", () => {
+    const m = mount({ announceResults: false, totalRowCount: 10 });
+    act(() => getInternalActions(m.api()!)._armResultsAnnouncement());
+    m.rerender({ totalRowCount: 20 });
+    expect(m.state().liveAnnouncement).toBeNull();
+  });
+});

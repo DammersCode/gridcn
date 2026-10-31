@@ -269,6 +269,9 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     emptyState,
     loading,
     loadingState,
+    error,
+    onRetry,
+    errorState,
     renderHeaderMenu,
     renderHeaderFilter,
     renderMarker,
@@ -288,6 +291,9 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         columnOverscan={columnOverscan}
         direction={direction}
         emptyState={emptyState}
+        error={error}
+        onRetry={onRetry}
+        errorState={errorState}
         loading={loading}
         loadingState={loadingState}
         renderHeaderMenu={renderHeaderMenu}

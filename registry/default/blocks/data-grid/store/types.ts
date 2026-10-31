@@ -166,7 +166,8 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
    * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
-   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`,
+   * and `true` while `totalRowCount` is set.
    */
   keepCheckedRows?: boolean;
   /**

@@ -52,6 +52,7 @@ import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
 import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
+import { Button } from "@/components/ui/button";
 import { isDev } from "./is-dev";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
@@ -73,6 +74,12 @@ export type EmptyStateRenderer = (ctx: { reason: EmptyStateReason }) => ReactNod
 
 /** Which built-in loading presentation the slot is replacing: the skeleton (zero rows in view) or the header bar (rows present). */
 export type LoadingStateReason = "no-data" | "rows-present";
+
+/** Context of the function form of {@link DataGridRootProps.errorState}. */
+export type ErrorStateContext = { error: unknown; retry: (() => void) | undefined };
+
+/** Function form of {@link DataGridRootProps.errorState}. */
+export type ErrorStateRenderer = (ctx: ErrorStateContext) => ReactNode;
 
 /** Function form of {@link DataGridRootProps.loadingState} — receives which built-in presentation the node replaces. */
 export type LoadingStateRenderer = (ctx: { reason: LoadingStateReason }) => ReactNode;
@@ -121,6 +128,17 @@ export type DataGridRootProps<TData = unknown> = {
    */
   loadingState?: ReactNode | LoadingStateRenderer;
   /**
+   * A failed load. Any value but `undefined` and `null` shows the error state: with zero rows a centered
+   * message with a Retry button, with rows a slim alert bar under the header that keeps the rows visible.
+   * The text is `labels.grid.errorState`; the error itself is never rendered. Presentational only: pair it
+   * with `onRetry` (the server-rows hook passes both through `gridProps`).
+   */
+  error?: unknown;
+  /** Called by the Retry button of the built-in error state. Without it the button is not shown. */
+  onRetry?: () => void;
+  /** Replaces the built-in error state. A node, or a function receiving `{ error, retry }`. */
+  errorState?: ReactNode | ErrorStateRenderer;
+  /**
    * Per-column header menu slot: rendered inline-end in each header cell as a ghost chevron
    * trigger, only when provided. The context-menu add-on's `DataGridHeaderDropdown` is the
    * intended renderer, reusing the same items as the header right-click menu.
@@ -160,6 +178,9 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
   "emptyState",
   "loading",
   "loadingState",
+  "error",
+  "onRetry",
+  "errorState",
   "renderHeaderMenu",
   "renderHeaderFilter",
   "renderMarker",
@@ -195,6 +216,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     emptyState,
     loading = false,
     loadingState,
+    error,
+    onRetry,
+    errorState,
     renderHeaderMenu,
     renderHeaderFilter,
     renderMarker,
@@ -231,6 +255,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const headerHeight = headerRowHeight * headerRowCount;
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
+  const serverFiltered = useDataGridStore((s) => s.filterMode === "server" && (s.filterState.length > 0 || s.searchText !== ""));
+  const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
   const emptyStateLabel = gridLabels.emptyState;
@@ -638,15 +664,41 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 </Fragment>
               ))}
               {/* the empty state never shows while loading — a zero-row loading grid renders the skeleton below instead */}
-              {rowCount === 0 && !loading && (
+              {rowCount === 0 && !loading && !hasError && (
                 <div
                   data-grid-empty-state=""
                   className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground"
                   style={{ insetBlockStart: effectiveHeaderHeight }}
                 >
                   {(typeof emptyState === "function"
-                    ? emptyState({ reason: dataLength === 0 ? "no-data" : "filtered" })
+                    ? emptyState({ reason: dataLength === 0 && !serverFiltered ? "no-data" : "filtered" })
                     : emptyState) ?? emptyStateLabel}
+                </div>
+              )}
+              {hasError && (
+                <div
+                  data-grid-error-state=""
+                  role="alert"
+                  className={cn(
+                    "absolute flex items-center justify-center gap-2 text-sm",
+                    rowCount === 0 ? "inset-x-0 bottom-0 text-muted-foreground" : "inset-x-0 border-b border-destructive/30 bg-destructive/10 px-3 py-1 text-destructive",
+                  )}
+                  style={{ insetBlockStart: effectiveHeaderHeight, zIndex: GRID_LAYER.overlay }}
+                >
+                  {errorState === undefined ? (
+                    <>
+                      <span>{gridLabels.errorState}</span>
+                      {onRetry && (
+                        <Button type="button" variant="outline" size="xs" onClick={onRetry}>
+                          {gridLabels.errorRetry}
+                        </Button>
+                      )}
+                    </>
+                  ) : typeof errorState === "function" ? (
+                    errorState({ error, retry: onRetry })
+                  ) : (
+                    errorState
+                  )}
                 </div>
               )}
               {showLoadingSkeleton &&

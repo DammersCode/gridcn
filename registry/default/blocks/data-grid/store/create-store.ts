@@ -1686,6 +1686,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
   store.subscribe((state, prev) => {
+    if (resultsAnnouncementArmed && state.announceResults && typeof state.totalRowCount === "number" && state.totalRowCount !== prev.totalRowCount) {
+      store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
+      return;
+    }
     if (!resultsAnnouncementArmed || !state.announceResults || state.sortMode !== "client") return;
     const filterMoved = state.filterMode === "client" && state.filterState !== prev.filterState;
     if (!filterMoved && state.sortState === prev.sortState) return;

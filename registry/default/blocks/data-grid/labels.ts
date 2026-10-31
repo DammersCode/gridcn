@@ -187,6 +187,10 @@ export type DataGridMarkerLabels = {
 export type DataGridGridLabels = {
   /** Shown when the view has zero rows (post filter/search); the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
+  /** The built-in error state of `DataGridRoot` (`error`). */
+  errorState: string;
+  /** The Retry button of the built-in error state. */
+  errorRetry: string;
   /** aria-label for the loading skeleton region (`loading && rowCount === 0`); also used as the indeterminate progress bar's aria-label when rows are present. */
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
@@ -532,6 +536,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
   },
   grid: {
     emptyState: "No rows",
+    errorState: "Could not load rows.",
+    errorRetry: "Retry",
     loading: "Loading…",
     datePlaceholder: "yyyy-mm-dd",
     dateCalendarAriaLabel: "Calendar",
