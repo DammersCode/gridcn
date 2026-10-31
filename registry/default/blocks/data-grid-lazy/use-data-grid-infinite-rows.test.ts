@@ -71,6 +71,13 @@ describe("useDataGridInfiniteRows", () => {
     expect(fetchRows).toHaveBeenCalledTimes(3);
   });
 
+  it("gridProps carries totalRowCount: null while more exist, the final count at the end", async () => {
+    const { result } = renderHook(() => useDataGridInfiniteRows(options(source(25))));
+    expect(result.current.gridProps.totalRowCount).toBeNull();
+    act(() => result.current.gridProps.onRenderedRowsChange(view(30)));
+    await waitFor(() => expect(result.current.gridProps.totalRowCount).toBe(25));
+  });
+
   it("treats a cursor of 0 as more rows", async () => {
     const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 10), nextCursor: 0 }));
     const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));

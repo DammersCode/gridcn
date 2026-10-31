@@ -13,6 +13,12 @@ sorting and filtering the response a second time.
 
 <InstallCommand item="data-grid-server-side-demo" />
 
+## One hook for pages
+
+<NewBadge />
+
+For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `pager`, `error`, `retry`, and `refresh`. See [Server side](/docs/examples/data/server-side).
+
 ## The contract
 
 1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount, so a spec restored at mount never sorts or filters on the client.

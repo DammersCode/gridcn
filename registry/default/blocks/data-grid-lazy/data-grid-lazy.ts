@@ -15,4 +15,4 @@ export {
   type InfiniteFetchContext,
   type InfiniteFetchResult,
 } from "./use-data-grid-infinite-rows";
-export { EMPTY_SERVER_SPEC, type ServerSpec } from "./server-spec";
+export { EMPTY_SERVER_SPEC, serverSpecKey, type ServerSpec } from "./server-spec";

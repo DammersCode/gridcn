@@ -1,135 +1,59 @@
 ---
 title: Server side
-description: The full remote contract. Sort, filter, search, and pagination sent to the server in one query per view state.
+description: The full remote contract in one hook. Sort, filter, search, and pagination sent to the server, with a stale-request guard, an error state, and retry.
 icon: Server
 ---
 
-Everything in one place: header-click sort, the filter menu, quick search, and server
-pagination all land in a single request. The view state is the query key, so revisiting a
-state is instant from the cache, and `keepPreviousData` keeps the previous page on screen
-while the next one loads. Nothing is filtered or sorted client-side. The fake server
-applies every operator.
+<NewBadge />
+
+`useDataGridServerRows` owns the sort, filter, search, page, and page size of a server grid. You write the one `fetchRows` function that calls your API. The hook fetches a page for each state, aborts a request that a newer state replaces, goes back to page 1 when the spec or the page size changes, and keeps the last good rows on screen while the next page loads or after an error. Nothing is filtered or sorted client-side.
 
 <ComponentPreview name="data-grid-server-side-demo" />
 
 <InstallCommand item="data-grid-server-side-demo" />
 
-## The contract
-
-The grid's store lives inside the provider, but the provider's `data` prop sits outside it.
-So a small bridge component does both jobs: it reads the store (it has to be inside the
-provider) and reports the fetched page up (the provider needs it).
+## The wiring
 
 ```tsx
-function RemoteStateBridge({ server, page, pageSize, onLoaded }) {
-  const sortState = useDataGridSortState();
-  const filterState = useDataGridFilterState();
-  const searchText = useDataGridSearchText();
+const server = useDataGridServerRows<Order>({
+  getRowId: (row) => row.id,
+  fetchRows: async ({ spec, page, pageSize, signal }) => {
+    const answer = await api.orders({ ...spec, page, pageSize, signal });
+    return { rows: answer.rows, totalRowCount: answer.total };
+  },
+});
 
-  const query = useQuery({
-    queryKey: ["rows", page, pageSize, sortState, filterState, searchText],
-    queryFn: () =>
-      server.fetchPage({
-        page,
-        pageSize,
-        sorts: sortState,
-        filters: filterState,
-        search: searchText,
-      }),
-    placeholderData: keepPreviousData,
-  });
-
-  useEffect(() => {
-    if (query.data) onLoaded(query.data);
-  }, [query.data, onLoaded]);
-
-  return null;
-}
+<DataGrid {...server.gridProps} columns={columns} onSave={(change) => api.save(change.ops)} />
+<DataGridPaginationBar {...server.pager} />
 ```
 
-Notes:
+- `spec` holds `sorts`, `filters`, and `search`. Send them to your API.
+- `fetchRows` resolves `{ rows, totalRowCount }`. A server that sends no count resolves `{ rows, hasNextPage }`, and the footer shows "Page N" with Next and no Last.
+- At most `pageSize` rows are shown. A longer answer warns once in development.
+- `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, `headerClickBehavior="sort"`, the controlled sort, filter, and search pairs, `totalRowCount`, `loading`, `error`, and `onRetry`. `onDataChange` keeps edits in step; the revert of a refused save arrives there too.
+- A composed layout (toolbar, custom root) splits the root props off: `const { loading, error, onRetry, ...providerProps } = server.gridProps`. The demo does this.
 
-- `filters` <NewBadge /> is the filter tree: rows and groups, with no separate join. The top level combines with
-  "and", and a group carries its own `join`.
-- The request body is untrusted. Before you build a query, check that the tree is at most 2 groups
-  deep, holds at most 16 groups and 64 rows, names only allowed columns, and uses `"and"` or `"or"`
-  as every `join`. Cap the request body size too. The [ORM recipes](/docs/examples/data/orm) show the check.
-- The store hooks return **stable references** while the state is unchanged
-  (`useShallow`), so the key only changes when a user actually sorts, filters, or searches
-  (no render-time refetch loop).
-- Pagination uses the **clamped** page from `pager.controls`: when a filter shrinks the
-  result set, the bridge fetches the clamped page, never one past the end.
-- Edits write through and invalidate, same as the pagination pages:
+## Errors and retry
 
-  ```tsx
-  const onDataChange = (_next: readonly Row[], change: DataChange<Row>) => {
-    api.save(change.ops);
-    void queryClient.invalidateQueries({ queryKey: ["rows"] });
-  };
-  ```
+A failed request sets `server.error` and keeps the last good rows visible. `DataGridRoot` shows the error state: a centered message with a Retry button over zero rows, and a slim alert bar under the header with rows present. Replace it with `errorState`, a node or a function receiving `{ error, retry }`. The text is `labels.grid.errorState`; the error itself is never rendered.
 
-## SWR variant
+`server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again, for example after a save. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"`.
 
-Same contract, different cache. The delta is the key/queryFn pair. The key becomes the
-whole serialized view state, and the fetcher reads it positionally:
+## Notes
 
-<CodeBlockTabs defaultValue="react-query">
-  <CodeBlockTabsList>
-    <CodeBlockTabsTrigger value="react-query">React Query</CodeBlockTabsTrigger>
-    <CodeBlockTabsTrigger value="swr">SWR</CodeBlockTabsTrigger>
-  </CodeBlockTabsList>
-  <CodeBlockTab value="react-query">
-    ```tsx
-    const query = useQuery({
-      queryKey: ["rows", page, pageSize, sortState, filterState, searchText],
-      queryFn: () =>
-        api.fetchPage({
-          page,
-          pageSize,
-          sorts: sortState,
-          filters: filterState,
-          search: searchText,
-        }),
-      placeholderData: keepPreviousData,
-    });
-    ```
-  </CodeBlockTab>
-  <CodeBlockTab value="swr">
-    ```tsx
-    const { data } = useSWR(
-      ["rows", page, pageSize, sortState, filterState, searchText],
-      (key) =>
-        api.fetchPage({
-          page: key[1],
-          pageSize: key[2],
-          sorts: key[3],
-          filters: key[4],
-          search: key[5],
-        }),
-    );
-    ```
-  </CodeBlockTab>
-</CodeBlockTabs>
-
-With SWR the previous-page-while-loading behavior has to be kept by hand (last data in a
-ref, or the local-state pattern from the [pagination SWR page](/docs/examples/data/pagination/swr)).
-
-## Shareable state
-
-Wrap the same fetch in [DataGridUrlState](/docs/addons/url-state) and the view state (sort,
-filters, search, page, page size) moves to the URL: reload or share the link and the grid
-rebuilds the exact same request. The bridge's query key then reads the URL-synced state
-instead of the store, and the URL becomes the request itself.
+- `filters` is the filter tree: rows and groups, with no separate join. The top level combines with "and", and a group carries its own `join`.
+- The request is untrusted. Before you build a query, check that the tree is at most 2 groups deep, holds at most 16 groups and 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`. Cap the request body size too. The [ORM recipes](/docs/examples/data/orm) show the check.
+- Keep a query cache in front of the API by calling it inside `fetchRows`, for example `queryClient.fetchQuery({ queryKey: ["rows", spec, page, pageSize], queryFn: () => api.orders(...) })`.
+- To make the state shareable, wrap the grid in [DataGridUrlState](/docs/addons/url-state): the view state moves to the URL.
+- Checks that survive pages and "select all matching" need `totalRowCount`, which `gridProps` already carries. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
 ## Behavior reference
 
-- [Sorting, filtering, search](/docs/sorting-filtering-search): the store state the
-  bridge reads
-- [Pagination](/docs/pagination): the server-mode contract
-- [URL state](/docs/addons/url-state): making the view state shareable
+- [Server-side data](/docs/recipes/data-fetching/server-side): the contract for every source
+- [Pagination](/docs/pagination): the server-mode footer
+- [Sorting, filtering, search](/docs/sorting-filtering-search): the store state
 
 ## Related
 
-- [Server pagination](/docs/examples/data/pagination): pages only, no sort/filter/search
-- [ORM & data sources](/docs/examples/data/orm): this contract in Drizzle, Prisma,
-  Supabase code
+- [Server pagination](/docs/examples/data/pagination): pages only, no sort, filter, or search
+- [ORM & data sources](/docs/examples/data/orm): this contract in Drizzle, Prisma, Supabase code

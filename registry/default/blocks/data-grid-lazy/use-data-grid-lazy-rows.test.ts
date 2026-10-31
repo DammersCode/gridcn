@@ -683,6 +683,14 @@ describe("useDataGridLazyRows", () => {
 
 });
 
+describe("useDataGridLazyRows: gridProps", () => {
+  it("carries totalRowCount, so the provider needs no second count", () => {
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
+    const { result } = renderHook(() => useDataGridLazyRows({ total: 321, fetchRows, getRowId: (r: Row) => r.id }));
+    expect(result.current.gridProps.totalRowCount).toBe(321);
+  });
+});
+
 describe("useDataGridLazyRows: spec and retry", () => {
   const specOf = (search: string): ServerSpec => ({ sorts: [], filters: [], search });
 

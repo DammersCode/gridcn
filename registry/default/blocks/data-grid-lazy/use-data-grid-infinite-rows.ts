@@ -55,6 +55,8 @@ export type UseDataGridInfiniteRowsResult<TData> = {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
     onRenderedRowsChange: (range: Range) => void;
+    /** The final count once the source ended, else `null`, so the provider needs no second count. */
+    totalRowCount: number | null;
   };
   /** Pass as `onDataChange`. Edits, inserts, and deletes of loaded rows merge into the loaded rows. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
@@ -227,7 +229,8 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     return padded;
   }, [loaded, pageSize]);
 
-  const gridProps = useMemo(() => ({ data, getRowId: gridGetRowId, onRenderedRowsChange }), [data, gridGetRowId, onRenderedRowsChange]);
+  const totalRowCount = loaded.hasMore ? null : loaded.rows.length;
+  const gridProps = useMemo(() => ({ data, getRowId: gridGetRowId, onRenderedRowsChange, totalRowCount }), [data, gridGetRowId, onRenderedRowsChange, totalRowCount]);
 
   return {
     gridProps,

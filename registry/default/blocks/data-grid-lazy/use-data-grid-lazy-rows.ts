@@ -72,6 +72,8 @@ export type UseDataGridLazyRowsResult<TData> = {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
     onRenderedRowsChange: (range: Range) => void;
+    /** `total`, so the provider needs no second count. */
+    totalRowCount: number;
   };
   /**
    * Pass as `DataGrid`'s `onDataChange` to let edits on already-loaded rows flow back into the
@@ -348,8 +350,9 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
       data: rows as TData[],
       getRowId: gridGetRowId,
       onRenderedRowsChange,
+      totalRowCount: total,
     }),
-    [rows, gridGetRowId, onRenderedRowsChange],
+    [rows, gridGetRowId, onRenderedRowsChange, total],
   );
 
   // Derived from the loaded-ranges bookkeeping, not a rows.reduce scan: `rows` is a genuinely

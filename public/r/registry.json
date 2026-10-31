@@ -1340,6 +1340,34 @@
       ]
     },
     {
+      "name": "data-grid-server",
+      "type": "registry:block",
+      "title": "Data Grid Server",
+      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard, goes back to page 1 on a spec change, keeps the last good rows on screen, and exposes error, retry and refresh. Returns gridProps for DataGrid and pager controls for the pagination bar.",
+      "author": "gridcn",
+      "dependencies": [],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-lazy",
+        "DammersCode/gridcn/data-grid-pagination"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server/data-grid-server.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/data-grid-server.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/use-data-grid-server-rows.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
       "name": "data-grid-pagination",
       "type": "registry:block",
       "title": "Data Grid Pagination",
@@ -3051,14 +3079,12 @@
       "name": "data-grid-server-side-demo",
       "type": "registry:example",
       "title": "Data Grid Server Side Demo",
-      "description": "The full remote contract: header-click sort, filter menu, quick search and pagination are all sent to the fake server in one useQuery per view state; edits write through and refetch.",
+      "description": "The full remote contract in about fifteen lines of wiring: useDataGridServerRows owns sort, filter, search and page; every change is sent to the fake server, a stale request is aborted, and edits save through onSave and refetch.",
       "author": "gridcn",
-      "dependencies": [
-        "@tanstack/react-query@^5.103.2"
-      ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
         "DammersCode/gridcn/data-grid-pagination",
+        "DammersCode/gridcn/data-grid-server",
         "DammersCode/gridcn/data-grid-toolbar"
       ],
       "files": [
