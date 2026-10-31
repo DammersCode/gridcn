@@ -75,7 +75,7 @@ const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?:
  * A text input that shows each keystroke at once and calls `onCommit` once the typing pauses. `value` is the
  * committed text; when it changes from outside and nothing is pending, the input shows it. A pending value is
  * never lost: it commits on blur, on Enter, and on unmount. An IME composition commits when it ends. After a commit the
- * input keeps the typed text until `value` reaches it or moves to a text the user did not commit, then shows `value`.
+ * input keeps the typed text until `value` reaches it or moves to a text that is not a queued commit, then shows `value`.
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
   const { delayMs = DEFAULT_DELAY_MS } = options;

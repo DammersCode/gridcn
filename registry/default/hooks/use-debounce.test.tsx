@@ -320,7 +320,7 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(field.value).toBe("a");
   });
 
-  it("a reset to the base after a partial echo shows value, and so does an undo to an echoed text", () => {
+  it("a reset to the first value after a partial echo shows value, and so does an undo to an echoed text", () => {
     function Steps() {
       const [value, setValue] = useState("");
       const [sent, setSent] = useState<string[]>([]);
@@ -368,7 +368,28 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(field.value).toBe("t0");
   });
 
-  it("more commits in flight than the queue holds still end on value", () => {
+  it("the queue holds the last 64 commits: the echo of the 65th newest is outside, the 64th newest is not", () => {
+    function Edge() {
+      const [value, setValue] = useState("");
+      const input = useDebouncedInput(value, () => {}, { delayMs: 0 });
+      return (
+        <>
+          <input aria-label="edge" {...input.inputProps} />
+          <button onClick={() => setValue("t6")}>echo t6</button>
+          <button onClick={() => setValue("t5")}>echo t5</button>
+        </>
+      );
+    }
+    const view = render(<Edge />);
+    const field = view.getByLabelText("edge") as HTMLInputElement;
+    for (let i = 0; i < 70; i++) type(field, `t${i}`);
+    fireEvent.click(view.getByText("echo t6"));
+    expect(field.value).toBe("t69");
+    fireEvent.click(view.getByText("echo t5"));
+    expect(field.value).toBe("t5");
+  });
+
+  it("an outside value after many commits in flight shows value", () => {
     function Many() {
       const [value, setValue] = useState("");
       const input = useDebouncedInput(value, () => {});
@@ -396,7 +417,7 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(result.current).toBe("b");
   });
 
-  it("shows value again once the parent moves it away from the typed base", () => {
+  it("shows value again once the parent moves it away from the value the typing started from", () => {
     function Outer() {
       const [value, setValue] = useState("a");
       const input = useDebouncedInput(value, () => {});
