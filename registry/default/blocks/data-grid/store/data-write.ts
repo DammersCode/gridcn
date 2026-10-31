@@ -481,7 +481,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
         const deleteOps = new Map(change.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
         const currentRows = usableCurrentRows(s, change, rejected, seq, deleteOps);
-        // A row with a usable `current` gets its content from it; only its position ops (a move) revert in place.
+        // A row with a usable `current` gets its content from it; only a move of it reverts in place.
         const plainOps = refusedOps(change, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
         const revert = buildRollback({ ops: chainRefusedPrev(plainOps), source: "rollback" }, s);
         const ops = [...revert.ops, ...currentRowOps(s, currentRows, deleteOps)];
