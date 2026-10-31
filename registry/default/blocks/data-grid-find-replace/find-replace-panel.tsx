@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
@@ -16,6 +17,7 @@ import { CaseSensitive, ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAl
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import {
   useDataGridApi,
   useDataGridLabels,
@@ -26,6 +28,7 @@ import {
 import {
   GRID_ATTR,
   isComposingKey,
+  useDataGridInputDebounce,
   useDataGridInstanceId,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
@@ -46,7 +49,6 @@ type PanelProps = { panelStore: PanelStore };
 
 type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | null;
 
-const SEARCH_DEBOUNCE_MS = 150;
 
 export function FindReplacePanel({ panelStore }: PanelProps): ReactNode {
   const { open, mode, openCount } = useSyncExternalStore(panelStore.subscribe, panelStore.getState, panelStore.getState);
@@ -65,15 +67,13 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
 
-  const [find, setFind] = useState(() => api.store.getState().searchText);
-  const pushedTextRef = useRef(find);
+  const delayMs = useDataGridInputDebounce();
   const [replacement, setReplacement] = useState("");
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
   const [cursor, setCursor] = useState(0);
   const [status, setStatus] = useState<Status>(null);
   const [position, setPosition] = useState<{ top: number; end: number; rtl: boolean }>({ top: 8, end: 8, rtl: false });
   const findRef = useRef<HTMLInputElement | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const applyTokenRef = useRef(0);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
@@ -85,17 +85,15 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     findRef.current?.focus();
     findRef.current?.select();
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
       applyTokenRef.current++;
     };
   }, []);
 
+  const findInput = useDebouncedInput(searchedText, (text) => api.actions.setSearch(text, searchOptions), { delayMs });
+  const find = findInput.inputValue;
+
   useEffect(() => {
-    if (searchedText === pushedTextRef.current) return;
-    pushedTextRef.current = searchedText;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     replacedRef.current.clear();
-    setFind(searchedText);
     setStatus(null);
   }, [searchedText]);
 
@@ -128,14 +126,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     };
   }, [instanceId]);
 
-  const runSearch = useCallback(
-    (text: string, options: { matchCase: boolean; wholeCell: boolean }) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      pushedTextRef.current = text;
-      api.actions.setSearch(text, options);
-    },
-    [api],
-  );
+  const runSearch = (text: string, options: { matchCase: boolean; wholeCell: boolean }) => {
+    findInput.cancel();
+    api.actions.setSearch(text, options);
+  };
 
   const goTo = useCallback(
     (index: number) => {
@@ -152,12 +146,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     [api, scrollToCell],
   );
 
-  const onFindChange = (text: string) => {
-    setFind(text);
+  const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
     replacedRef.current.clear();
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSearch(text, searchOptions), SEARCH_DEBOUNCE_MS);
+    findInput.onChange(event);
   };
 
   const toggle = (key: "matchCase" | "wholeCell") => {
@@ -246,7 +238,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onFindKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter" || isComposingKey(event)) return;
     event.preventDefault();
-    if (debounceRef.current) runSearch(find, searchOptions);
+    findInput.flush();
     goTo(cursor + (event.shiftKey ? -1 : 1));
   };
 
@@ -318,7 +310,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             ref={findRef}
             value={find}
             maxLength={MAX_REPLACE_INPUT_LENGTH}
-            onChange={(event) => onFindChange(event.target.value)}
+            onChange={onFindChange}
+            onBlur={findInput.onBlur}
+            onCompositionStart={findInput.onCompositionStart}
+            onCompositionEnd={findInput.onCompositionEnd}
             onKeyDown={onFindKeyDown}
             aria-label={labels.findLabel}
             placeholder={labels.findLabel}

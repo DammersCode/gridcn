@@ -5,12 +5,12 @@ import {
   useEffect,
   useRef,
   useState,
-  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,19 +23,18 @@ import {
 import {
   useDataGridInstanceId,
   GRID_ATTR,
+  isComposingKey,
+  useDataGridInputDebounce,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-
-/** Default debounce (ms) between typing and updating the store's `searchText`. */
-const SEARCH_DEBOUNCE_MS = 200;
 
 /** Props for {@link DataGridSearch}. */
 export type DataGridSearchProps = {
   className?: string;
   placeholder?: string;
   /**
-   * Debounce (ms) between typing and the store's `searchText` update; default 200.
+   * Debounce (ms) between typing and the store's `searchText` update. Default: the provider's `inputDebounceMs` (200).
    */
   debounceMs?: number;
   /**
@@ -68,7 +67,7 @@ function isInsideGridScope(target: EventTarget | null, instanceId: string, input
  * Escape clears the field and the store's search text.
  */
 export function DataGridSearch(props: DataGridSearchProps): ReactNode {
-  const { className, placeholder, captureFindShortcut = true, debounceMs = SEARCH_DEBOUNCE_MS } = props;
+  const { className, placeholder, captureFindShortcut = true, debounceMs } = props;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const searchText = useDataGridSearchText();
@@ -78,16 +77,11 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const scrollToCell = useDataGridScrollToCellAt();
   const instanceId = useDataGridInstanceId();
 
-  // local input value decoupled from the store's debounced searchText, so typing never stalls.
-  const [inputValue, setInputValue] = useState(searchText);
+  const providerDebounceMs = useDataGridInputDebounce();
+  // the input value is decoupled from the store's debounced searchText, so typing never stalls.
+  const input = useDebouncedInput(searchText, (text) => actions.setSearch(text), { delayMs: debounceMs ?? providerDebounceMs });
   const [matchIndex, setMatchIndex] = useState(0);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  // an external clear (e.g. filter reset) should resync the visible input text.
-  useEffect(() => {
-    setInputValue(searchText);
-  }, [searchText]);
 
   // restart navigation at the first hit during render, not in an effect: a shrinking list must not paint an out-of-range index
   const [lastMatches, setLastMatches] = useState(matches);
@@ -95,10 +89,6 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     setLastMatches(matches);
     setMatchIndex(0);
   }
-
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, []);
 
   // No DOM ancestor spans toolbar and root, so listen on document and gate by instance id or the toolbar holding this input.
   useEffect(() => {
@@ -121,14 +111,6 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [captureFindShortcut, instanceId]);
 
-  const commitSearch = useCallback(
-    (value: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => actions.setSearch(value), debounceMs);
-    },
-    [actions, debounceMs],
-  );
-
   const goToMatch = useCallback(
     (index: number) => {
       if (matches.length === 0) return;
@@ -144,32 +126,19 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     [actions, scrollToCell, matches, visibleColumns],
   );
 
-  const onChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setInputValue(event.target.value);
-      commitSearch(event.target.value);
-    },
-    [commitSearch],
-  );
-
-  const clear = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setInputValue("");
-    actions.setSearch("");
-  }, [actions]);
-
-  const onKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        clear();
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        goToMatch(matchIndex + (event.shiftKey ? -1 : 1));
-      }
-    },
-    [clear, goToMatch, matchIndex],
-  );
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (isComposingKey(event)) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      input.cancel();
+      actions.setSearch("");
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      // Text still pending: commit it. The matches of the new text arrive next, so there is nothing to step through yet.
+      if (input.inputValue !== searchText) input.flush();
+      else goToMatch(matchIndex + (event.shiftKey ? -1 : 1));
+    }
+  };
 
   const hasMatches = matches.length > 0;
 
@@ -181,8 +150,11 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
         </InputGroupAddon>
         <InputGroupInput
           ref={inputRef}
-          value={inputValue}
-          onChange={onChange}
+          value={input.inputValue}
+          onChange={input.onChange}
+          onBlur={input.onBlur}
+          onCompositionStart={input.onCompositionStart}
+          onCompositionEnd={input.onCompositionEnd}
           onKeyDown={onKeyDown}
           placeholder={placeholder ?? labels.toolbar.searchPlaceholder}
           aria-label={labels.toolbar.searchAriaLabel}

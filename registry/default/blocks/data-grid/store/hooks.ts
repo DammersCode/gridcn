@@ -675,6 +675,11 @@ export function useDataGridSelectedRows(): DataGridSelectedRows {
   );
 }
 
+/** The grid's `inputDebounceMs`: the wait in ms between the last keystroke and the commit of its text inputs. Default 200. */
+export function useDataGridInputDebounce(): number {
+  return useDataGridStore((s) => s.inputDebounceMs ?? 200);
+}
+
 /** The write status of a row whose `onDataChange` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
 export function useDataGridRowWriteStatus(rowId: string): RowWriteStatus | undefined {
   return useDataGridStore((s) => s.writeStatus.get(rowId));

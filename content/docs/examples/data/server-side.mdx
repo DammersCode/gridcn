@@ -39,6 +39,25 @@ A failed request sets `server.error` and keeps the last good rows visible. `Data
 
 `server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again, for example after a save. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"`.
 
+## Throttle typing
+
+<NewBadge />
+
+The hook sends one request for each state and aborts a replaced one. To also wait for typing to pause, wait inside `fetchRows`. The wait ends early when the signal aborts:
+
+```tsx
+const delay = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => (clearTimeout(timer), reject(signal.reason)), { once: true });
+  });
+
+fetchRows: async ({ spec, page, pageSize, signal }) => {
+  await delay(300, signal);
+  return api.orders({ ...spec, page, pageSize, signal });
+},
+```
+
 ## Notes
 
 - `filters` is the filter tree: rows and groups, with no separate join. The top level combines with "and", and a group carries its own `join`.

@@ -178,6 +178,12 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keepHiddenCheckedRows?: boolean;
   /**
+   * Wait in ms between the last keystroke and the commit of the grid's own text inputs: the toolbar search, the
+   * filter value inputs, the set-filter search, and find & replace. `0` commits each keystroke. A component's own
+   * prop (such as `DataGridSearch debounceMs`) wins. Default 200.
+   */
+  inputDebounceMs?: number;
+  /**
    * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
    * `keepCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked

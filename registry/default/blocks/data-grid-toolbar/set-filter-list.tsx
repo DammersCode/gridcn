@@ -3,6 +3,8 @@
 import { memo, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { useDataGridInputDebounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDebounce } from "@/registry/default/hooks/use-debounce";
 
 export const SET_FILTER_ROW_HEIGHT = 28;
 const OVERSCAN = 8;
@@ -13,19 +15,11 @@ const countFormat = new Intl.NumberFormat("en-US");
 
 export type SetFilterOption = { key: string; label: string; count?: number };
 
-const SEARCH_DEBOUNCE_MS = 150;
-
-/** A search box value plus its debounced `query`; the timer clears on unmount. */
+/** A search box value plus its debounced `query`, waiting the provider's `inputDebounceMs`. */
 export function useDebouncedSearch() {
-  const [draft, setDraft] = useState("");
-  const [query, setQuery] = useState("");
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
-  const onChange = (value: string) => {
-    setDraft(value);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => setQuery(value), SEARCH_DEBOUNCE_MS);
-  };
+  const delayMs = useDataGridInputDebounce();
+  const [draft, onChange] = useState("");
+  const query = useDebounce(draft, delayMs);
   return { draft, query, onChange };
 }
 

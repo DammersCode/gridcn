@@ -92,6 +92,7 @@ export {
   useDataGridCommands,
   useDataGridSelectionPointer,
   useDataGridInstanceId,
+  useDataGridInputDebounce,
   useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
   useDataGridSearchMatches,

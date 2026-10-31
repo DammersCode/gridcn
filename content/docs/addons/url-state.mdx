@@ -102,7 +102,7 @@ group, the rows wrap in one `or` group. The grid never writes `join`, and every 
   the URL: a param the URL no longer has clears its sort, filter, or search. On mount, a
   missing param keeps the grid's initial state.
 - Sort and filter writes are immediate, since they are menu-driven, not keystroke-driven.
-  Search writes are debounced (300ms), so typing does not spam `history.replaceState`.
+  The search input already waits for the typing to pause (`inputDebounceMs`), so the URL write has no wait of its own. The URL adapter coalesces writes, so typing does not spam `history.replaceState`.
 - Every URL write uses `history: "replace"`, never `push`, so typing in search or changing a
   filter does not pollute the browser's back and forward history.
 - The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a

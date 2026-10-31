@@ -330,23 +330,15 @@ describe("DataGridUrlState state -> URL write", () => {
     });
   });
 
-  it("debounces search-text writes to the URL", async () => {
-    vi.useFakeTimers();
+  it("writes the search text to the URL without a wait of its own, and keeps the last value", async () => {
     const onUrlUpdate = vi.fn();
     const { getActions } = renderGrid({ onUrlUpdate });
-    act(() => {
-      getActions().setSearch("a");
-    });
-    act(() => {
-      vi.advanceTimersByTime(299);
-    });
-    expect(onUrlUpdate.mock.calls.find((c) => (c[0] as UrlUpdateEvent).searchParams.get("q") === "a")).toBeUndefined();
     await act(async () => {
-      vi.advanceTimersByTime(1);
-      await vi.runOnlyPendingTimersAsync();
+      getActions().setSearch("a");
+      getActions().setSearch("ab");
     });
-    expect(onUrlUpdate.mock.calls.some((c) => (c[0] as UrlUpdateEvent).searchParams.get("q") === "a")).toBe(true);
-    vi.useRealTimers();
+    const written = onUrlUpdate.mock.calls.map((c) => (c[0] as UrlUpdateEvent).searchParams.get("q")).filter((q) => q !== null);
+    expect(written.at(-1)).toBe("ab");
   });
 
   it("uses history replace, never push, for URL writes", async () => {

@@ -89,6 +89,7 @@ export {
   useDataGridSelectedRows,
   useDataGridRowWriteStatus,
   useDataGridPendingWriteCount,
+  useDataGridInputDebounce,
   useDataGridAllRowsSelected,
 } from "./hooks";
 export type { DataGridSelectedRows } from "./selected-rows";

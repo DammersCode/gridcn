@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -10,7 +11,7 @@ import {
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveFilterValueInput, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveFilterValueInput, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { distinctColumnValues } from "./distinct-values";
 import { useServerFilterValues } from "./server-filter-values";
@@ -24,9 +25,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { operatorIsAnyOf, operatorIsBetween } from "./operators-for-column-type";
 
-/** Debounce (ms) between typing and committing a filter value. */
-const FILTER_VALUE_DEBOUNCE_MS = 200;
-
 /** Props for {@link DataGridFilterValueInput}. */
 export type DataGridFilterValueInputProps = {
   /** The filtered column; its cell type's `filter.valueInput` (or the type-name default) picks the widget. */
@@ -36,31 +34,10 @@ export type DataGridFilterValueInputProps = {
   onValueChange: (value: string | [string, string] | string[]) => void;
 };
 
-/** Debounces a single text/number/date input's keystrokes into one commit. */
-function useDebouncedInput(value: string, onValueChange: (value: string) => void) {
-  const [inputValue, setInputValue] = useState(value);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // an external change (e.g. clear all, column swap) should resync the visible text.
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
-
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, []);
-
-  const onChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const next = event.target.value;
-      setInputValue(next);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => onValueChange(next), FILTER_VALUE_DEBOUNCE_MS);
-    },
-    [onValueChange],
-  );
-
-  return { inputValue, onChange };
+/** Debounces a single text/number/date input's keystrokes into one commit, with the provider's `inputDebounceMs`. */
+function useFilterInput(value: string, onValueChange: (value: string) => void) {
+  const delayMs = useDataGridInputDebounce();
+  return useDebouncedInput(value, onValueChange, { delayMs });
 }
 
 /** A single debounced text/number/date value input, shared by the plain and `isBetween` (two-input) layouts. */
@@ -72,12 +49,16 @@ function SingleValueInput(props: {
   placeholder?: string;
 }) {
   const { type, value, onValueChange, ariaLabel, placeholder } = props;
-  const { inputValue, onChange } = useDebouncedInput(value, onValueChange);
+  const { inputValue, onChange, onBlur, onKeyDown, onCompositionStart, onCompositionEnd } = useFilterInput(value, onValueChange);
   return (
     <Input
       type={type}
       value={inputValue}
       onChange={onChange}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      onCompositionStart={onCompositionStart}
+      onCompositionEnd={onCompositionEnd}
       placeholder={placeholder}
       aria-label={ariaLabel}
       className="h-8 w-full"
@@ -101,21 +82,22 @@ function BetweenValueInput(props: {
   toAriaLabel: string;
 }) {
   const { type, from, to, onValueChange, fromAriaLabel, toAriaLabel } = props;
-  const fromRef = useRef(from);
-  const toRef = useRef(to);
-  fromRef.current = from;
-  toRef.current = to;
+  // Each commit sends the other side as the user sees it, pending text included, so two quick edits keep both values.
+  const typedFromRef = useRef(from);
+  const typedToRef = useRef(to);
+  const fromInput = useFilterInput(from, (next) => onValueChange([next, typedToRef.current]));
+  const toInput = useFilterInput(to, (next) => onValueChange([typedFromRef.current, next]));
+  useEffect(() => {
+    typedFromRef.current = fromInput.inputValue;
+    typedToRef.current = toInput.inputValue;
+  });
 
-  const commitFrom = useCallback((next: string) => onValueChange([next, toRef.current]), [onValueChange]);
-  const commitTo = useCallback((next: string) => onValueChange([fromRef.current, next]), [onValueChange]);
-
-  const fromInput = useDebouncedInput(from, commitFrom);
-  const toInput = useDebouncedInput(to, commitTo);
-
+  const { inputValue: fromValue, flush: _fromFlush, cancel: _fromCancel, ...fromHandlers } = fromInput;
+  const { inputValue: toValue, flush: _toFlush, cancel: _toCancel, ...toHandlers } = toInput;
   return (
     <div className="flex items-center gap-1.5">
-      <Input type={type} value={fromInput.inputValue} onChange={fromInput.onChange} aria-label={fromAriaLabel} className="h-8 w-full" />
-      <Input type={type} value={toInput.inputValue} onChange={toInput.onChange} aria-label={toAriaLabel} className="h-8 w-full" />
+      <Input type={type} value={fromValue} {...fromHandlers} aria-label={fromAriaLabel} className="h-8 w-full" />
+      <Input type={type} value={toValue} {...toHandlers} aria-label={toAriaLabel} className="h-8 w-full" />
     </div>
   );
 }

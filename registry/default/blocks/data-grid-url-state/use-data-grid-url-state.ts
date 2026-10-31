@@ -20,8 +20,6 @@ import { prefixedKey } from "./prefixed-key";
 /** Smallest `isAnyOf` / `isNoneOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
 const MIN_CHOICE_BOUND = 64;
 
-/** Debounce (ms) between typing in the quick-search box and writing `searchText` to the URL. */
-const SEARCH_WRITE_DEBOUNCE_MS = 300;
 
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
 
@@ -222,16 +220,10 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [columnLayout, layoutParts]);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
     if (!appliedRef.current) return;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      void setSearchParamRef.current(searchText || null);
-    }, SEARCH_WRITE_DEBOUNCE_MS);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    void setSearchParamRef.current(searchText || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 

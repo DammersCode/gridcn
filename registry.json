@@ -905,7 +905,8 @@
             "badge",
             "select",
             "checkbox",
-            "input-group"
+            "input-group",
+            "DammersCode/gridcn/use-debounce"
          ],
          "files": [
             {
@@ -1545,7 +1546,8 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "button",
-            "input"
+            "input",
+            "DammersCode/gridcn/use-debounce"
          ],
          "files": [
             {

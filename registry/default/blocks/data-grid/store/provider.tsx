@@ -110,6 +110,7 @@ const CONFIG_KEYS = [
   "totalRowCount",
   "announceResults",
   "onBeforeDeleteRows",
+  "inputDebounceMs",
   "onSave",
   "onWriteRejected",
   "fetchFilterValues",

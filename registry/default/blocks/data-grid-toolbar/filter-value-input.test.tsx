@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cellTypes,
@@ -117,5 +117,42 @@ describe("DataGridFilterValueInput", () => {
     expect(fetchFilterValues).toHaveBeenCalledWith(expect.objectContaining({ columnId: "city", search: "" }));
     fireEvent.click(options[1]!);
     expect(onValueChange).toHaveBeenCalledWith(["Paris", "Rome", "gone"]);
+  });
+});
+
+describe("DataGridFilterValueInput commits", () => {
+  function renderBetween(onValueChange = vi.fn(), inputDebounceMs?: number) {
+    const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "amount", header: "Amount", accessorKey: "amount", type: "number" }];
+    const view = render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id} inputDebounceMs={inputDebounceMs}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isBetween" value={undefined} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    return { view, onValueChange, inputs: () => screen.getAllByRole("spinbutton") as HTMLInputElement[] };
+  }
+
+  it("two quick edits in the from and to inputs keep both values", () => {
+    vi.useFakeTimers();
+    const { inputs, onValueChange } = renderBetween();
+    fireEvent.change(inputs()[0]!, { target: { value: "10" } });
+    fireEvent.change(inputs()[1]!, { target: { value: "20" } });
+    act(() => void vi.advanceTimersByTime(200));
+    expect(onValueChange.mock.calls.at(-1)![0]).toEqual(["10", "20"]);
+    vi.useRealTimers();
+  });
+
+  it("blur commits the pending value, and the provider's inputDebounceMs 0 commits each keystroke", () => {
+    const { inputs, onValueChange } = renderBetween(vi.fn(), 0);
+    fireEvent.change(inputs()[0]!, { target: { value: "5" } });
+    expect(onValueChange).toHaveBeenCalledWith(["5", ""]);
+  });
+
+  it("unmounting inside the wait commits the last keystrokes", () => {
+    vi.useFakeTimers();
+    const { view, inputs, onValueChange } = renderBetween();
+    fireEvent.change(inputs()[0]!, { target: { value: "7" } });
+    view.unmount();
+    expect(onValueChange).toHaveBeenCalledWith(["7", ""]);
+    vi.useRealTimers();
   });
 });
