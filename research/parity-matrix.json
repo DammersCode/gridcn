@@ -1,0 +1,1415 @@
+{
+  "modes": [
+    {
+      "id": "L",
+      "label": "Local array",
+      "description": "`data` holds every row in memory."
+    },
+    {
+      "id": "PC",
+      "label": "Client pagination",
+      "description": "`useDataGridPagination` slices `data` into pages.",
+      "evidencePattern": "paginat"
+    },
+    {
+      "id": "PS",
+      "label": "Server pagination",
+      "description": "The server returns one page per request.",
+      "evidencePattern": "paginat"
+    },
+    {
+      "id": "Z",
+      "label": "Lazy rows",
+      "description": "`useDataGridLazyRows` fetches row ranges on scroll.",
+      "evidencePattern": "lazy"
+    },
+    {
+      "id": "C",
+      "label": "Controlled state",
+      "description": "The app owns `sortState`, `filterState` or `searchText`.",
+      "evidencePattern": "\\bcontrolled\\b|sortState|filterState|searchText"
+    },
+    {
+      "id": "SS",
+      "label": "Server sort",
+      "description": "`sortMode=\"server\"`: the grid never reorders `data`.",
+      "evidencePattern": "sortMode"
+    },
+    {
+      "id": "FS",
+      "label": "Server filter",
+      "description": "`filterMode=\"server\"`: the grid never filters `data`.",
+      "evidencePattern": "filterMode"
+    },
+    {
+      "id": "API",
+      "label": "Own API",
+      "description": "`onDataChange` writes through to the app's backend.",
+      "evidencePattern": "onDataChange"
+    }
+  ],
+  "features": [
+    {
+      "id": "sort",
+      "feature": "Sort",
+      "options": [
+        "sortState",
+        "defaultSortState",
+        "onSortChange",
+        "sortMode",
+        "headerClickBehavior"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/sort-filter/index.test.ts"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/sorting-filtering-search.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "n/a",
+          "reason": "Filter mode concerns filters only."
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "filter",
+      "feature": "Filter (flat and groups)",
+      "options": [
+        "filterState",
+        "defaultFilterState",
+        "onFilterChange",
+        "filterMode"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/sort-filter/index.test.ts"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lazy/data-grid-lazy-filter.browser.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/sorting-filtering-search.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "filter-values",
+      "feature": "Filter set values",
+      "options": [
+        "fetchFilterValues"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-toolbar/set-filter-list.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Controlled `filterState` with set values is not checked."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "search",
+      "feature": "Quick search",
+      "options": [
+        "searchText",
+        "defaultSearchText",
+        "onSearchTextChange"
+      ],
+      "note": "Search highlights and navigates loaded rows. It has no server mode by design.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/sorting-filtering-search.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/sorting-filtering-search.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/sorting-filtering-search.mdx"
+          ]
+        },
+        "FS": {
+          "status": "n/a",
+          "reason": "Search highlights loaded rows and never filters."
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "Search writes no data."
+        }
+      }
+    },
+    {
+      "id": "row-check",
+      "feature": "Row check and ranges",
+      "options": [
+        "rowMarkers",
+        "enableRowSelection",
+        "keepCheckedRows",
+        "keepHiddenCheckedRows",
+        "selection",
+        "defaultSelection",
+        "onSelectionChange",
+        "enableRangeSelection",
+        "enableMultiRange",
+        "enableColumnSelection"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/selection/compact-selection.test.ts"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "gap",
+          "track": "D",
+          "note": "No check across pages and no select-all-matching."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "D",
+          "note": "No check over unloaded rows and no select-all-matching."
+        },
+        "C": {
+          "status": "gap",
+          "track": "D",
+          "note": "Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "gap",
+          "track": "D",
+          "note": "A server bulk action cannot learn the checked rows beyond the loaded ones."
+        }
+      }
+    },
+    {
+      "id": "row-ids",
+      "feature": "Row ids",
+      "options": [
+        "getRowId"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/row-operations.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "gap",
+          "track": "E",
+          "note": "No swap from a client id to the server-assigned id after create."
+        }
+      }
+    },
+    {
+      "id": "counts",
+      "feature": "Counts and total",
+      "options": [
+        "total"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "PS": {
+          "status": "gap",
+          "track": "F",
+          "note": "`total` is required; no unknown total and no cursor paging."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "F",
+          "note": "`total` is required; no unknown total and no cursor paging."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "grouping",
+      "feature": "Row grouping",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Row grouping is not available."
+        },
+        "PC": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Row grouping is not available."
+        },
+        "PS": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Server grouping is not defined."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Server grouping is not defined."
+        },
+        "C": {
+          "status": "n/a",
+          "reason": "Grouping has no controlled state."
+        },
+        "SS": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Server grouping is not defined."
+        },
+        "FS": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Server grouping is not defined."
+        },
+        "API": {
+          "status": "gap",
+          "track": "#71",
+          "note": "Server grouping is not defined."
+        }
+      }
+    },
+    {
+      "id": "pinned-rows",
+      "feature": "Pinned rows and aggregates",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/pinned-rows.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/pinned-rows.mdx"
+          ]
+        },
+        "PS": {
+          "status": "gap",
+          "track": "H",
+          "note": "Aggregates cover the current page or warn; no server totals."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "H",
+          "note": "Aggregates cover loaded rows or warn; no server totals."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "columns",
+      "feature": "Column pin, hide, order and size",
+      "options": [
+        "columns",
+        "columnGroups",
+        "columnLayout",
+        "defaultColumnLayout",
+        "onColumnLayoutChange",
+        "onColumnResizing",
+        "autosizeOnMount",
+        "enableColumnResize",
+        "enableColumnReorder",
+        "enableColumnPinning"
+      ],
+      "note": "Mode-neutral. Autosize measures loaded rows only on lazy data and on one page.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/columns.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true
+    },
+    {
+      "id": "clipboard",
+      "feature": "Clipboard copy and paste",
+      "options": [
+        "processCellForClipboard",
+        "processCellFromClipboard",
+        "processPaste",
+        "sanitizeClipboardFormulas"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/clipboard.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Paste that adds rows is page-local; not checked."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Unloaded rows and paste that adds rows are not checked."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "fill",
+      "feature": "Fill",
+      "options": [],
+      "note": "Fill skips rows not loaded yet and warns.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/fill.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Fill series on a page is page-local; not checked."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/fill.mdx"
+          ]
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "import",
+      "feature": "Import",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "IMP",
+          "note": "Appended rows fight `total`."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/import-export.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "export",
+      "feature": "Export",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "gap",
+          "track": "I",
+          "note": "Exports loaded rows only."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "I",
+          "note": "Exports loaded rows only."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "gap",
+          "track": "I",
+          "note": "Exports loaded rows only."
+        },
+        "FS": {
+          "status": "gap",
+          "track": "I",
+          "note": "Exports loaded rows only."
+        },
+        "API": {
+          "status": "gap",
+          "track": "I",
+          "note": "Exports loaded rows only."
+        }
+      }
+    },
+    {
+      "id": "print",
+      "feature": "Print",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "n/a",
+          "reason": "Print covers loaded rows by design."
+        },
+        "Z": {
+          "status": "n/a",
+          "reason": "Print covers loaded rows by design."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "undo-redo",
+      "feature": "Undo and redo",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/undo-redo.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "W6",
+          "note": "Undo warns over rows not loaded yet."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "gap",
+          "track": "K",
+          "note": "The local undo stack never learns whether the server accepted the write."
+        }
+      }
+    },
+    {
+      "id": "row-ops",
+      "feature": "Row create, duplicate and delete",
+      "options": [
+        "createRow",
+        "duplicateRow",
+        "onBeforeDeleteRows",
+        "enableRowReorder"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/row-operations.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "J",
+          "note": "No guard over unloaded lazy rows."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/row-operations.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "validation",
+      "feature": "Validation",
+      "options": [
+        "validateRow"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/examples/validation/server-errors.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "write-through",
+      "feature": "Edit commit and write-through",
+      "options": [
+        "data",
+        "defaultData",
+        "onDataChange",
+        "readOnly"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/events-state.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+          ]
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "gap",
+          "track": "K",
+          "note": "`onDataChange` returns void; no acknowledgement and no pending state."
+        }
+      }
+    },
+    {
+      "id": "streaming",
+      "feature": "Streaming updates",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/streaming-updates.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "A later block fetch can overwrite streamed values over rows not loaded yet."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "url-state",
+      "feature": "URL state",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "C": {
+          "status": "n/a",
+          "reason": "URL state drives the controlled props itself."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "gap",
+          "track": "N2",
+          "note": "Deep-linked set-filter values outside static `choices` are dropped."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "announce",
+      "feature": "Screen reader announcements",
+      "options": [
+        "announceResults"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/accessibility.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Load and total announcements are not checked."
+        },
+        "Z": {
+          "status": "unverified",
+          "note": "Load and total announcements are not checked."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "presence",
+      "feature": "Presence",
+      "options": [],
+      "note": "Mode-neutral by design.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/presence.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true
+    },
+    {
+      "id": "loading",
+      "feature": "Loading and error state",
+      "options": [
+        "onError",
+        "onLoaded"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/examples/appearance/loading-states.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "unverified",
+          "note": "Error overlay for page fetches is not checked."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "find-replace",
+      "feature": "Find and replace",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "PC": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "PS": {
+          "status": "gap",
+          "track": "FR",
+          "note": "Loaded rows only; no server scope."
+        },
+        "Z": {
+          "status": "gap",
+          "track": "FR",
+          "note": "Loaded rows only; no server scope."
+        },
+        "C": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "lazy-fetch",
+      "feature": "Lazy row fetching",
+      "options": [
+        "fetchRows",
+        "overscan",
+        "batchSize",
+        "maxFetchRows"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "n/a",
+          "reason": "The consumer supplies each page."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "C": {
+          "status": "n/a",
+          "reason": "No controlled state."
+        },
+        "SS": {
+          "status": "n/a",
+          "reason": "Not a sort concern."
+        },
+        "FS": {
+          "status": "n/a",
+          "reason": "Not a filter concern."
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "Not a write concern."
+        }
+      }
+    },
+    {
+      "id": "pagination",
+      "feature": "Pagination",
+      "options": [
+        "pageSize",
+        "pageSizeOptions",
+        "page",
+        "onPageChange",
+        "onPageSizeChange",
+        "reconcilePage"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "No pages."
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "Z": {
+          "status": "n/a",
+          "reason": "Lazy rows and pagination are exclusive."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "SS": {
+          "status": "unverified",
+          "note": "Not verified."
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/pagination.mdx"
+          ]
+        },
+        "API": {
+          "status": "unverified",
+          "note": "Not verified."
+        }
+      }
+    },
+    {
+      "id": "mode-neutral",
+      "feature": "Keys, labels and cell types",
+      "options": [
+        "keymap",
+        "labels",
+        "cellTypes",
+        "commands",
+        "plugins"
+      ],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/custom-cell-types.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true
+    }
+  ]
+}

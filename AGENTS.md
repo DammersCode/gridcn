@@ -240,6 +240,9 @@ on the consumer's own server: pagination mode, lazy source, controlled `filterSt
   of scope, the issue says so and links a follow-up issue.
 - Tests cover the client path and the server path. A demo shows both when the feature has a server
   contract.
+- Update the feature's row in `research/parity-matrix.json` in the same commit, then run `node scripts/verify-parity.mjs --write` to regenerate `content/docs/data-modes.mdx` (PR checklist: "matrix row updated").
+- A matrix cell is `supported` with evidence paths that mention the mode, `gap` with a tracking id (an issue number, or a short id such as `J` until the issue exists) and a note, `n/a` with a reason, or `unverified` with a note.
+- A public option in `DataGridSyncProps` or in the lazy and pagination options that sits in no row fails `pnpm lint`.
 
 ### Specs and plans
 

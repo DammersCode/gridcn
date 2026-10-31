@@ -56,3 +56,7 @@ const results = await pipeline(
 - Implementer fails twice on the same task → orchestrator (planner) implements it directly.
 - Reviewer and implementer disagree → orchestrator decides; if it's a spec gap, PLAN.md gets amended first, then the task re-runs.
 - Anything touching public API shape mid-phase → stop, update PLAN.md §5, then continue.
+
+## Release checklist
+
+- No `gap` cell in `research/parity-matrix.json` without a tracked follow-up: an open issue, or a tracking id that an open issue names.

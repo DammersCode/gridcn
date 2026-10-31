@@ -1,0 +1,197 @@
+---
+title: Features and data modes
+description: Which grid features work with which data source, and where a known gap remains.
+icon: Table
+---
+
+{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}
+
+A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known gap, and the notes below the table describe it. A `Not verified` cell has no test or docs file that covers the mode.
+
+## Data modes
+
+- **L**: Local array. `data` holds every row in memory.
+- **PC**: Client pagination. `useDataGridPagination` slices `data` into pages.
+- **PS**: Server pagination. The server returns one page per request.
+- **Z**: Lazy rows. `useDataGridLazyRows` fetches row ranges on scroll.
+- **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
+- **SS**: Server sort. `sortMode="server"`: the grid never reorders `data`.
+- **FS**: Server filter. `filterMode="server"`: the grid never filters `data`.
+- **API**: Own API. `onDataChange` writes through to the app's backend.
+
+## Matrix
+
+| Feature | L | PC | PS | Z | C | SS | FS | API |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Sort | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | Supported |
+| Filter (flat and groups) | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
+| Filter set values | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Quick search | Supported | Not verified | Not verified | Supported | Supported | Supported | n/a | n/a |
+| Row check and ranges | Supported | Not verified | Gap | Gap | Gap | Not verified | Not verified | Gap |
+| Row ids | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Gap |
+| Counts and total | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
+| Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Clipboard copy and paste | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Fill | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
+| Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
+| Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
+| Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
+| Undo and redo | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Gap |
+| Row create, duplicate and delete | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
+| Validation | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
+| Edit commit and write-through | Supported | Not verified | Not verified | Not verified | Supported | Not verified | Not verified | Gap |
+| Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
+| Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Presence | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Loading and error state | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
+| Find and replace | Supported | Not verified | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Lazy row fetching | n/a | n/a | n/a | Supported | n/a | n/a | n/a | n/a |
+| Pagination | n/a | Supported | Supported | n/a | Supported | Not verified | Supported | Not verified |
+| Keys, labels and cell types | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+
+## Notes
+
+### Sort
+
+- **FS**: n/a: Filter mode concerns filters only.
+
+### Filter set values
+
+- **C**: Not verified: Controlled `filterState` with set values is not checked.
+
+### Quick search
+
+- Search highlights and navigates loaded rows. It has no server mode by design.
+- **FS**: n/a: Search highlights loaded rows and never filters.
+- **API**: n/a: Search writes no data.
+
+### Row check and ranges
+
+- **PS**: Gap: No check across pages and no select-all-matching.
+- **Z**: Gap: No check over unloaded rows and no select-all-matching.
+- **C**: Gap: Controlled selection carries visible rows only; hidden checks stay invisible to server bulk actions.
+- **API**: Gap: A server bulk action cannot learn the checked rows beyond the loaded ones.
+
+### Row ids
+
+- **API**: Gap: No swap from a client id to the server-assigned id after create.
+
+### Counts and total
+
+- **PS**: Gap: `total` is required; no unknown total and no cursor paging.
+- **Z**: Gap: `total` is required; no unknown total and no cursor paging.
+
+### Row grouping
+
+- **L**: Gap: Row grouping is not available.
+- **PC**: Gap: Row grouping is not available.
+- **PS**: Gap: Server grouping is not defined.
+- **Z**: Gap: Server grouping is not defined.
+- **C**: n/a: Grouping has no controlled state.
+- **SS**: Gap: Server grouping is not defined.
+- **FS**: Gap: Server grouping is not defined.
+- **API**: Gap: Server grouping is not defined.
+
+### Pinned rows and aggregates
+
+- **PS**: Gap: Aggregates cover the current page or warn; no server totals.
+- **Z**: Gap: Aggregates cover loaded rows or warn; no server totals.
+
+### Column pin, hide, order and size
+
+- Mode-neutral. Autosize measures loaded rows only on lazy data and on one page.
+
+### Clipboard copy and paste
+
+- **PS**: Not verified: Paste that adds rows is page-local; not checked.
+- **Z**: Not verified: Unloaded rows and paste that adds rows are not checked.
+
+### Fill
+
+- Fill skips rows not loaded yet and warns.
+- **PS**: Not verified: Fill series on a page is page-local; not checked.
+
+### Import
+
+- **Z**: Gap: Appended rows fight `total`.
+
+### Export
+
+- **PS**: Gap: Exports loaded rows only.
+- **Z**: Gap: Exports loaded rows only.
+- **SS**: Gap: Exports loaded rows only.
+- **FS**: Gap: Exports loaded rows only.
+- **API**: Gap: Exports loaded rows only.
+
+### Print
+
+- **PS**: n/a: Print covers loaded rows by design.
+- **Z**: n/a: Print covers loaded rows by design.
+
+### Undo and redo
+
+- **Z**: Gap: Undo warns over rows not loaded yet.
+- **API**: Gap: The local undo stack never learns whether the server accepted the write.
+
+### Row create, duplicate and delete
+
+- **Z**: Gap: No guard over unloaded lazy rows.
+
+### Edit commit and write-through
+
+- **API**: Gap: `onDataChange` returns void; no acknowledgement and no pending state.
+
+### Streaming updates
+
+- **Z**: Not verified: A later block fetch can overwrite streamed values over rows not loaded yet.
+
+### URL state
+
+- **C**: n/a: URL state drives the controlled props itself.
+- **FS**: Gap: Deep-linked set-filter values outside static `choices` are dropped.
+
+### Screen reader announcements
+
+- **PS**: Not verified: Load and total announcements are not checked.
+- **Z**: Not verified: Load and total announcements are not checked.
+
+### Presence
+
+- Mode-neutral by design.
+
+### Loading and error state
+
+- **PS**: Not verified: Error overlay for page fetches is not checked.
+
+### Find and replace
+
+- **PS**: Gap: Loaded rows only; no server scope.
+- **Z**: Gap: Loaded rows only; no server scope.
+
+### Lazy row fetching
+
+- **L**: n/a: Rows are in memory.
+- **PC**: n/a: Rows are in memory.
+- **PS**: n/a: The consumer supplies each page.
+- **C**: n/a: No controlled state.
+- **SS**: n/a: Not a sort concern.
+- **FS**: n/a: Not a filter concern.
+- **API**: n/a: Not a write concern.
+
+### Pagination
+
+- **L**: n/a: No pages.
+- **Z**: n/a: Lazy rows and pagination are exclusive.
+
+### Keys, labels and cell types
+
+- Mode-neutral.
+
+## Related
+
+- [Server-side data](/docs/recipes/data-fetching/server-side)
+- [Lazy loading](/docs/lazy-loading)
+- [Pagination](/docs/pagination)
