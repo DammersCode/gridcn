@@ -73,7 +73,7 @@ describe("checkParity", () => {
 
   it("fails on a duplicate feature id", () => {
     const m = matrix();
-    m.features.push(m.features[0]);
+    m.features.push(m.features[0]!);
     expect(check(m)).toEqual(["sort: duplicate feature id"]);
   });
 

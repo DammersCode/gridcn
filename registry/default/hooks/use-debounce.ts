@@ -21,10 +21,10 @@ export type UseDebouncedInputOptions = {
   delayMs?: number;
 };
 
-/** Return value of {@link useDebouncedInput}. Spread everything but `flush` and `cancel` onto the input. */
-export type UseDebouncedInputResult = {
+/** The props of the input that {@link useDebouncedInput} drives. Spread them: `<input {...input.inputProps} />`. */
+export type DebouncedInputProps = {
   /** The text in the input: what the user typed, or `value` when nothing is pending. */
-  inputValue: string;
+  value: string;
   onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   /** Commits a pending value, so a click elsewhere never loses the last keystrokes. */
   onBlur: () => void;
@@ -33,20 +33,28 @@ export type UseDebouncedInputResult = {
   onCompositionStart: () => void;
   /** Schedules the commit of the composed text. */
   onCompositionEnd: (event: CompositionEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+};
+
+/** Return value of {@link useDebouncedInput}. */
+export type UseDebouncedInputResult = {
+  /** The text in the input; the same as `inputProps.value`. */
+  inputValue: string;
+  inputProps: DebouncedInputProps;
   /** Commits a pending value now. */
   flush: () => void;
   /** Drops a pending value and shows `value` again. */
   cancel: () => void;
 };
 
-// Safari confirms an IME composition with keyCode 229 after `isComposing` is already false.
+// Same check as the `is-composing-key` item, copied so this item has no dependency. Safari confirms an IME composition with keyCode 229 after `isComposing` is already false.
 const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?: number } }): boolean =>
   event.nativeEvent.isComposing === true || event.nativeEvent.keyCode === 229;
 
 /**
  * A text input that shows each keystroke at once and calls `onCommit` once the typing pauses. `value` is the
  * committed text; when it changes from outside and nothing is pending, the input shows it. A pending value is
- * never lost: it commits on blur, on Enter, and on unmount. An IME composition commits when it ends.
+ * never lost: it commits on blur, on Enter, and on unmount. An IME composition commits when it ends. After a commit the
+ * input shows `value` again, so update `value` in the same `onCommit` call.
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
   const { delayMs = DEFAULT_DELAY_MS } = options;
@@ -108,24 +116,28 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     [schedule],
   );
 
+  const inputValue = typed ?? value;
   return {
-    inputValue: typed ?? value,
-    onChange,
-    onBlur: flush,
-    onKeyDown: (event) => {
-      if (isComposingKey(event)) return;
-      if (event.key === "Enter") flush();
-      else if (event.key === "Escape") cancel();
-    },
-    onCompositionStart: () => {
-      composingRef.current = true;
-      clearTimer();
-    },
-    onCompositionEnd: (event) => {
-      composingRef.current = false;
-      const next = event.currentTarget.value;
-      setTyped(next);
-      schedule(next);
+    inputValue,
+    inputProps: {
+      value: inputValue,
+      onChange,
+      onBlur: flush,
+      onKeyDown: (event) => {
+        if (isComposingKey(event)) return;
+        if (event.key === "Enter") flush();
+        else if (event.key === "Escape") cancel();
+      },
+      onCompositionStart: () => {
+        composingRef.current = true;
+        clearTimer();
+      },
+      onCompositionEnd: (event) => {
+        composingRef.current = false;
+        const next = event.currentTarget.value;
+        setTyped(next);
+        schedule(next);
+      },
     },
     flush,
     cancel,

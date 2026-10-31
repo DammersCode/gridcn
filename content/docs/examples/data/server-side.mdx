@@ -39,7 +39,7 @@ A failed request sets `server.error` and keeps the last good rows visible. `Data
 
 `server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again, for example after a save. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"`.
 
-## Throttle typing
+## Wait for typing to pause
 
 <NewBadge />
 

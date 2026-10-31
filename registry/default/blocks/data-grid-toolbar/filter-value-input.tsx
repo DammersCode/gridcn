@@ -49,16 +49,11 @@ function SingleValueInput(props: {
   placeholder?: string;
 }) {
   const { type, value, onValueChange, ariaLabel, placeholder } = props;
-  const { inputValue, onChange, onBlur, onKeyDown, onCompositionStart, onCompositionEnd } = useFilterInput(value, onValueChange);
+  const { inputProps } = useFilterInput(value, onValueChange);
   return (
     <Input
       type={type}
-      value={inputValue}
-      onChange={onChange}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      onCompositionStart={onCompositionStart}
-      onCompositionEnd={onCompositionEnd}
+      {...inputProps}
       placeholder={placeholder}
       aria-label={ariaLabel}
       className="h-8 w-full"
@@ -92,12 +87,10 @@ function BetweenValueInput(props: {
     typedToRef.current = toInput.inputValue;
   });
 
-  const { inputValue: fromValue, flush: _fromFlush, cancel: _fromCancel, ...fromHandlers } = fromInput;
-  const { inputValue: toValue, flush: _toFlush, cancel: _toCancel, ...toHandlers } = toInput;
   return (
     <div className="flex items-center gap-1.5">
-      <Input type={type} value={fromValue} {...fromHandlers} aria-label={fromAriaLabel} className="h-8 w-full" />
-      <Input type={type} value={toValue} {...toHandlers} aria-label={toAriaLabel} className="h-8 w-full" />
+      <Input type={type} {...fromInput.inputProps} aria-label={fromAriaLabel} className="h-8 w-full" />
+      <Input type={type} {...toInput.inputProps} aria-label={toAriaLabel} className="h-8 w-full" />
     </div>
   );
 }

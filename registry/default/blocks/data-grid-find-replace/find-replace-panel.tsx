@@ -149,7 +149,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
     replacedRef.current.clear();
-    findInput.onChange(event);
+    findInput.inputProps.onChange(event);
   };
 
   const toggle = (key: "matchCase" | "wholeCell") => {
@@ -231,6 +231,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      findInput.cancel();
       closePanel();
     }
   };
@@ -308,12 +309,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         <div data-find-field="" className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-transparent pe-0.5 focus-within:ring-2 focus-within:ring-ring/50">
           <Input
             ref={findRef}
-            value={find}
             maxLength={MAX_REPLACE_INPUT_LENGTH}
+            {...findInput.inputProps}
             onChange={onFindChange}
-            onBlur={findInput.onBlur}
-            onCompositionStart={findInput.onCompositionStart}
-            onCompositionEnd={findInput.onCompositionEnd}
             onKeyDown={onFindKeyDown}
             aria-label={labels.findLabel}
             placeholder={labels.findLabel}

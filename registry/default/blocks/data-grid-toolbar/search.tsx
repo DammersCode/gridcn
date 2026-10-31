@@ -150,11 +150,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
         </InputGroupAddon>
         <InputGroupInput
           ref={inputRef}
-          value={input.inputValue}
-          onChange={input.onChange}
-          onBlur={input.onBlur}
-          onCompositionStart={input.onCompositionStart}
-          onCompositionEnd={input.onCompositionEnd}
+          {...input.inputProps}
           onKeyDown={onKeyDown}
           placeholder={placeholder ?? labels.toolbar.searchPlaceholder}
           aria-label={labels.toolbar.searchAriaLabel}

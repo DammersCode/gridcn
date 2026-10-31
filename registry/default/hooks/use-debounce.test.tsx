@@ -45,10 +45,9 @@ function Field(props: { onCommit: (next: string) => void; delayMs?: number; valu
     },
     props.delayMs === undefined ? undefined : { delayMs: props.delayMs },
   );
-  const { flush: _flush, cancel: _cancel, ...inputProps } = input;
   return (
     <>
-      <input aria-label="field" {...inputProps} value={input.inputValue} />
+      <input aria-label="field" {...input.inputProps} />
       <output>{committed}</output>
     </>
   );
@@ -148,7 +147,7 @@ describe("useDebouncedInput", () => {
       const input = useDebouncedInput(value, () => {}, { delayMs: 300 });
       return (
         <>
-          <input aria-label="echo" onChange={input.onChange} value={input.inputValue} />
+          <input aria-label="echo" {...input.inputProps} />
           <button onClick={() => setValue("old")}>echo</button>
         </>
       );
@@ -166,7 +165,7 @@ describe("useDebouncedInput", () => {
       const input = useDebouncedInput(value, setValue);
       return (
         <>
-          <input aria-label="o" onChange={input.onChange} value={input.inputValue} />
+          <input aria-label="o" {...input.inputProps} />
           <button onClick={() => setValue("reset")}>reset</button>
         </>
       );
@@ -180,7 +179,7 @@ describe("useDebouncedInput", () => {
     const first = vi.fn();
     const second = vi.fn();
     const { result, rerender } = renderHook(({ cb }) => useDebouncedInput("", cb), { initialProps: { cb: first } });
-    act(() => result.current.onChange({ target: { value: "z" } } as never));
+    act(() => result.current.inputProps.onChange({ target: { value: "z" } } as never));
     rerender({ cb: second });
     act(() => void vi.advanceTimersByTime(300));
     expect(first).not.toHaveBeenCalled();

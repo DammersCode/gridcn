@@ -2,7 +2,7 @@
 
 import { memo, useState, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridIsRowSelected, useDataGridRow, useDataGridRowCellState } from "./store";
+import { useDataGridIsRowChannelSelected, useDataGridRow, useDataGridRowCellState } from "./store";
 import { GRID_ATTR } from "./data-attributes";
 import { markerContent } from "./rows/marker-width";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
@@ -80,7 +80,7 @@ export const DataGridRow = memo(function DataGridRow({
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
   // this memoized row only re-renders when its own active/editing/search/selection state changed.
   const cellState = useDataGridRowCellState(viewRowIndex);
-  const isChecked = useDataGridIsRowSelected(viewRowIndex);
+  const isChecked = useDataGridIsRowChannelSelected(viewRowIndex);
   // marker column occupies grid track 1 when present, so every data column shifts one track right
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   // A hole in `data` (lazy loading): row.tsx renders skeleton cells instead of empty ones.

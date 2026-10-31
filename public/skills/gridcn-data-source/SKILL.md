@@ -102,4 +102,4 @@ Applies to streaming on top of either:
 
 - Ctrl+A is a range action and never checks rows; the header checkbox reads the checked rows only. With `totalRowCount`, `DataGridStatusBar` shows the banner "Select all N matching" once every row of the page is checked; do not build your own button.
 - `inputDebounceMs` on the provider (default 200, `0` = each keystroke) sets the wait of the toolbar search, filter value inputs, set-filter search, and find & replace. For your own debounced text input use `useDebouncedInput` from the `use-debounce` item (commits on blur, Enter, and unmount; waits for an IME composition).
-- To throttle `useDataGridServerRows`, wait inside `fetchRows`: `await delay(300, signal)`.
+- To wait for typing to pause in `useDataGridServerRows`, wait inside `fetchRows`: `await delay(300, signal)`.

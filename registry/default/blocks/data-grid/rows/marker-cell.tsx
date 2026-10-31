@@ -54,7 +54,7 @@ export type DataGridMarkerCellProps = {
 export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, renderMarker, isReorderDragging } = props;
   const actions = useDataGridActions();
-  // chrome (wrapper tint/data-row-selected) and the built-in checkbox keep the any-channel union
+  // chrome (wrapper tint/data-row-selected) keeps the any-channel union; the built-in checkbox shows the checked rows only
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
   // the renderer gets the channels apart: row selection vs cell selection (see MarkerCellRenderCtx)
   const isRowChannelSelected = useDataGridIsRowChannelSelected(viewRowIndex);
@@ -142,9 +142,9 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
                     "after:inset-x-0",
                     showGrip && "cursor-pointer",
                     swapOnHover && "hidden group-hover:flex data-checked:flex",
-                    isSelected && "flex",
+                    isRowChannelSelected && "flex",
                   )}
-                  checked={isSelected}
+                  checked={isRowChannelSelected}
                   tabIndex={-1}
                   onCheckedChange={(checked, details) => {
                     // a pointer Shift press already extended the range in onCheckboxPointerDown
@@ -163,7 +163,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
                     "select-none text-xs tabular-nums text-muted-foreground",
                     showGrip && "cursor-default",
                     swapOnHover && "group-hover:hidden",
-                    swapOnHover && isSelected && "hidden",
+                    swapOnHover && isRowChannelSelected && "hidden",
                   )}
                 >
                   {viewRowIndex + 1}

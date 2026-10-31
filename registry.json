@@ -1339,7 +1339,8 @@
          "description": "A text input with useDebouncedInput and a line that shows the committed value: the echo follows once typing pauses, and Enter, blur, and Escape act at once.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/use-debounce"
+            "DammersCode/gridcn/use-debounce",
+            "input"
          ],
          "files": [
             {

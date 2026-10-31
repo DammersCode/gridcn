@@ -29,9 +29,9 @@ Call the hook with the committed value and a commit callback. Spread the result 
 
 ```tsx
 const [name, setName] = useState("");
-const { flush: _flush, cancel: _cancel, ...input } = useDebouncedInput(name, setName);
+const input = useDebouncedInput(name, setName);
 
-<input {...input} value={input.inputValue} />
+<input {...input.inputProps} />
 ```
 
 The input shows each keystroke at once. `onCommit` runs when the typing pauses for `delayMs` (default 300).
@@ -44,8 +44,8 @@ A value of `0` commits each keystroke.
 
 | Result | Meaning |
 |---|---|
+| `inputProps` | The props of the input: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd`. |
 | `inputValue` | The text in the input. It is what the user typed, or `value` when nothing is pending. |
-| `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd` | Handlers for the input. |
 | `flush()` | Commits a pending value now. |
 | `cancel()` | Drops a pending value and shows `value` again. |
 
@@ -58,6 +58,7 @@ A value of `0` commits each keystroke.
 - During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
 - A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text. A late echo of an older commit never overwrites what the user types.
 - A commit calls the latest `onCommit`, not the one from the render that scheduled it.
+- After a commit the input shows `value` again. Update `value` in the same `onCommit` call.
 
 ## isComposingKey
 

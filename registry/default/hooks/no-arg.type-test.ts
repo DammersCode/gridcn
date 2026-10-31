@@ -4,6 +4,6 @@ import { useDebounce, useDebouncedInput } from "./use-debounce";
 export function noOptions() {
   const debounced: string = useDebounce("a");
   const input = useDebouncedInput("", (next: string) => void next);
-  const text: string = input.inputValue;
+  const text: string = input.inputProps.value;
   return [debounced, text, input.flush, input.cancel] as const;
 }

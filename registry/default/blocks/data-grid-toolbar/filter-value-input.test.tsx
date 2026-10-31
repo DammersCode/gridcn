@@ -147,6 +147,17 @@ describe("DataGridFilterValueInput commits", () => {
     expect(onValueChange).toHaveBeenCalledWith(["5", ""]);
   });
 
+  it("moving from the from input to the to input inside the wait keeps both values", () => {
+    vi.useFakeTimers();
+    const { inputs, onValueChange } = renderBetween();
+    fireEvent.change(inputs()[0]!, { target: { value: "3" } });
+    fireEvent.blur(inputs()[0]!);
+    fireEvent.change(inputs()[1]!, { target: { value: "9" } });
+    fireEvent.blur(inputs()[1]!);
+    expect(onValueChange.mock.calls.at(-1)![0]).toEqual(["3", "9"]);
+    vi.useRealTimers();
+  });
+
   it("unmounting inside the wait commits the last keystrokes", () => {
     vi.useFakeTimers();
     const { view, inputs, onValueChange } = renderBetween();
