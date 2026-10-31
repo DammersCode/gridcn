@@ -61,13 +61,7 @@ function SingleValueInput(props: {
   );
 }
 
-/**
- * The `isBetween` two-input range layout. Each side debounces independently (same as a lone value
- * input), but both commits read the OTHER side's value from a ref at commit time rather than closing
- * over the render-time value — two edits within the same debounce window (e.g. filling "from" then
- * "to" quickly) would otherwise race: whichever debounce fires last overwrites the other's edit with
- * the stale value it captured 200ms earlier.
- */
+/** The `isBetween` two-input range layout. Each side debounces on its own and commits with the other side's typed text. */
 function BetweenValueInput(props: {
   type: "text" | "number" | "date";
   from: string;

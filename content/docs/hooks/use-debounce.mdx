@@ -4,8 +4,6 @@ description: "The use-debounce hook item: useDebounce for a value, useDebouncedI
 icon: Timer
 ---
 
-<NewBadge />
-
 Typing fires a change on every key. `useDebounce` delays a value until it stops changing. `useDebouncedInput` does the same for a text input and adds the rules that make it safe: no lost text, no commit in the middle of an IME composition. The item has no dependency on the grid.
 
 <ComponentPreview name="use-debounce-demo" />
@@ -40,7 +38,7 @@ The input shows each keystroke at once. `onCommit` runs when the typing pauses f
 |---|---|---|
 | `delayMs` | `number` | `300` |
 
-A value of `0` commits each keystroke.
+A value of `0` commits each keystroke. The hook waits 300 ms by default. The text inputs of the grid wait the provider prop `inputDebounceMs`, which is 200 ms by default.
 
 | Result | Meaning |
 |---|---|
@@ -59,6 +57,7 @@ A value of `0` commits each keystroke.
 - A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text. A late echo of an older commit never overwrites what the user types.
 - A commit calls the latest `onCommit`, not the one from the render that scheduled it.
 - After a commit the input shows `value` again. Update `value` in the same `onCommit` call.
+- A handler you place after the spread (`onKeyDown` or `onChange`) replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself, and call `inputProps.onChange` from your `onChange`.
 
 ## isComposingKey
 
@@ -69,4 +68,4 @@ The item `is-composing-key` installs `isComposingKey(event)`. It is true while a
 ## Related
 
 - [Sorting, filtering & search](/docs/sorting-filtering-search): the grid inputs that use this hook.
-- [Server-side data](/docs/recipes/data-fetching/server-side): throttle a server request inside `fetchRows`.
+- [Server side](/docs/examples/data/server-side#wait-for-typing-to-pause): wait for typing to pause inside `fetchRows`.

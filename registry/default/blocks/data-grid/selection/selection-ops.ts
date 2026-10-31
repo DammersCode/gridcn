@@ -34,13 +34,6 @@ export function extendTo(selection: GridSelection, coord: ViewCoord): GridSelect
   };
 }
 
-/** True when `row` is covered by the rows channel or any cell range — the state a marker checkbox shows. */
-export function isRowChecked(selection: GridSelection, row: number): boolean {
-  const { current } = selection;
-  const covers = (r: GridRect) => row >= r.y && row < r.y + r.height;
-  return selection.rows.hasIndex(row) || (!!current && (covers(current.range) || current.rangeStack.some(covers)));
-}
-
 /** Removes `row` from the rows channel and from every cell range, splitting a range that spans it; the piece holding the anchor stays primary. `selection` itself comes back when the row is in neither channel. */
 export function removeRowFromSelection(selection: GridSelection, row: number, options: { multiRange?: boolean } = {}): GridSelection {
   const { multiRange = true } = options;

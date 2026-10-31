@@ -7,6 +7,7 @@ import {
   type DataChange,
   type GridValidationErrorEvent,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/use-data-grid-history";
 import { useDataGridFindReplace } from "./use-data-grid-find-replace";
 
@@ -29,6 +30,11 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
   let findReplace!: ReturnType<typeof useDataGridFindReplace>;
+  let storeApi!: ReturnType<typeof useDataGridStoreApi>;
+  function Probe() {
+    storeApi = useDataGridStoreApi();
+    return null;
+  }
   function Harness() {
     history = useDataGridHistory<Row>();
     findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit });
@@ -45,12 +51,13 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
           changes.push(change);
         }}
       >
+        <Probe />
         <DataGridRoot />
       </DataGridProvider>
     );
   }
   render(<Harness />);
-  return { data: () => data, changes, history: () => history, findReplace: () => findReplace };
+  return { data: () => data, changes, history: () => history, findReplace: () => findReplace, searchText: () => storeApi.getState().searchText };
 }
 
 async function search(find: string, replacement: string) {
@@ -128,6 +135,23 @@ describe("useDataGridFindReplace", () => {
     fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+  it("Escape drops find text that is still waiting, and closing another way searches it", () => {
+    vi.useFakeTimers();
+    const first = setup();
+    act(() => first.findReplace().open());
+    fireEvent.change(screen.getByLabelText("Find"), { target: { value: "ali" } });
+    fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Escape" });
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(first.searchText()).toBe("");
+    cleanup();
+    const second = setup();
+    act(() => second.findReplace().open());
+    fireEvent.change(screen.getByLabelText("Find"), { target: { value: "ali" } });
+    act(() => second.findReplace().close());
+    expect(second.searchText()).toBe("ali");
+    vi.useRealTimers();
+  });
+
   it("settles the status when an async validator rejects every cell", async () => {
     const rejectAll = {
       "~standard": { version: 1, vendor: "test", validate: async () => ({ issues: [{ message: "no" }] }) },

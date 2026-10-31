@@ -13,7 +13,6 @@ import {
   extendSelection,
   pushRange,
   removeRowFromSelection,
-  isRowChecked,
   selectionContainsCell,
   selectionRects,
   selectRow,
@@ -578,6 +577,13 @@ describe("selectAllProgression", () => {
     expect(stage).toBe("region");
   });
 });
+
+/** True when `row` is in the rows channel or any cell range. */
+function isRowChecked(selection: GridSelection, row: number): boolean {
+  const { current } = selection;
+  const covers = (r: { y: number; height: number }) => row >= r.y && row < r.y + r.height;
+  return selection.rows.hasIndex(row) || (!!current && (covers(current.range) || current.rangeStack.some(covers)));
+}
 
 describe("removeRowFromSelection", () => {
   const at = (row: number, height = 1) => ({ x: 0, y: row, width: 2, height });

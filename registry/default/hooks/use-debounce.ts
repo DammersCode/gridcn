@@ -46,7 +46,7 @@ export type UseDebouncedInputResult = {
   cancel: () => void;
 };
 
-// Same check as the `is-composing-key` item, copied so this item has no dependency. Safari confirms an IME composition with keyCode 229 after `isComposing` is already false.
+// Copy of the `is-composing-key` item, so this item has no dependency. Safari confirms a composition with keyCode 229.
 const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?: number } }): boolean =>
   event.nativeEvent.isComposing === true || event.nativeEvent.keyCode === 229;
 
@@ -58,9 +58,8 @@ const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?:
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
   const { delayMs = DEFAULT_DELAY_MS } = options;
-  const [typed, setTyped] = useState<string | null>(null);
   // While text is pending the input shows it, so a late echo of an older commit never overwrites what the user types.
-
+  const [typed, setTyped] = useState<string | null>(null);
   const onCommitRef = useRef(onCommit);
   useEffect(() => {
     onCommitRef.current = onCommit;

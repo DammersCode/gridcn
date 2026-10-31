@@ -966,7 +966,7 @@ export function getRangeValues(s: DataGridStoreState, rect: GridRect): unknown[]
 /**
  * Row ids for every selected row, in view order, across BOTH selection channels: the row channel
  * (marker checkboxes) and any cell range, including the ctrl-click `rangeStack` — the same union
- * `useDataGridIsRowSelected` reports per row, so a bulk action agrees with the checkmarks on screen.
+ * `useDataGridIsRowSelected` reports per row (the row highlight). The marker checkboxes show the row channel only.
  */
 export function getSelectedRowIds(s: DataGridStoreState): string[] {
   const out: string[] = [];

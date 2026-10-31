@@ -239,8 +239,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onFindKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter" || isComposingKey(event)) return;
     event.preventDefault();
-    findInput.flush();
-    goTo(cursor + (event.shiftKey ? -1 : 1));
+    // Text still pending: commit it. The matches of the new text arrive next, so there is nothing to step through yet.
+    if (findInput.inputValue !== searchedText) findInput.flush();
+    else goTo(cursor + (event.shiftKey ? -1 : 1));
   };
 
   const onReplaceKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {

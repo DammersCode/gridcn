@@ -152,14 +152,14 @@ Its filters match the stored value. Full semantics on
 [custom cell types](/docs/custom-cell-types#value-pipeline).
 
 It debounces typing before it writes the store's search text. The wait is the provider prop
-`inputDebounceMs` (default 200 ms, `0` commits each keystroke). The same wait applies to the filter
+`inputDebounceMs` <NewBadge /> (default 200 ms, `0` commits each keystroke). The same wait applies to the filter
 value inputs, the set-filter search, and the [find & replace](/docs/addons/find-replace) field.
 Pass `debounceMs` to `DataGridSearch` to override it for one search box.
 
-Typed text is never lost. Blur, Enter, and closing the popover or search box commit text that is
-still waiting. Escape drops it. While an IME composes, nothing commits; the composed text commits
-after the composition ends. These rules come from the [`useDebouncedInput`](/docs/hooks/use-debounce) hook.
-<NewBadge />
+Typed text <NewBadge /> in the search box, the filter value inputs, and the find & replace field is never lost.
+Blur, Enter, and closing the popover or search box commit text that is still waiting. Escape drops it. While an IME
+composes, nothing commits; the composed text commits after the composition ends. These rules come from the
+[`useDebouncedInput`](/docs/hooks/use-debounce) hook. The set-filter search only waits `inputDebounceMs`.
 
 `actions.setSearch(text, { matchCase, wholeCell })` sets the search options. `matchCase` respects
 letter case and `wholeCell` matches only cells that equal the search text. Both default to

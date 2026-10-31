@@ -72,7 +72,7 @@ affected cells (a bounded, guarded re-render. See [Performance](/docs/performanc
 invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
 reader reads. The overlay is the visual signal for sighted users. The two agree on the same state.
 
-Each data row carries `aria-selected` too <NewBadge />. A selected row reads `aria-selected="true"`. With a checkbox row marker (`rowMarkers="checkbox"` or `"both"`), an unselected row reads `aria-selected="false"`. Without one, an unselected row has no `aria-selected`. A screen reader then learns the state of a row from the row itself, not only from the marker checkbox.
+Each data row carries `aria-selected` too <NewBadge />. A checked row reads `aria-selected="true"`. A cell range does not set it. With a checkbox row marker (`rowMarkers="checkbox"` or `"both"`), an unselected row reads `aria-selected="false"`. Without one, an unselected row has no `aria-selected`. A screen reader then learns the state of a row from the row itself, not only from the marker checkbox.
 
 ### Editor focus behavior
 

@@ -14,8 +14,9 @@ function Probe() {
   return null;
 }
 
-const mount = () =>
-  render(
+const mount = () => {
+  actions = null;
+  return render(
     <div style={{ height: 300, width: 400 }}>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox">
         <Probe />
@@ -26,6 +27,7 @@ const mount = () =>
       </DataGridProvider>
     </div>,
   );
+};
 
 const dataRows = () => [...document.querySelectorAll('[role="row"]')].filter((r) => r.querySelector('[role="gridcell"]'));
 
@@ -34,18 +36,16 @@ describe("a cell range is not a checked row", () => {
     await mount();
     await expect.element(page.getByText("a", { exact: true })).toBeInTheDocument();
     actions!.selectAll();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(dataRows().length).toBe(3);
-    expect(dataRows().map((r) => r.getAttribute("aria-selected"))).toEqual(["false", "false", "false"]);
+    await expect.poll(() => dataRows().length).toBe(3);
+    await expect.poll(() => dataRows().map((r) => r.getAttribute("aria-selected"))).toEqual(["false", "false", "false"]);
     const checked = [...document.querySelectorAll('[role="checkbox"]')].filter((c) => c.getAttribute("aria-checked") === "true" || c.hasAttribute("data-checked"));
     expect(checked).toHaveLength(0);
   });
 
-  it("checking a row marker checks only that row", async () => {
+  it("checking a row checks only that row", async () => {
     await mount();
     await expect.element(page.getByText("a", { exact: true })).toBeInTheDocument();
     actions!.setRowSelected(1, true);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(dataRows().map((r) => r.getAttribute("aria-selected"))).toEqual(["false", "true", "false"]);
+    await expect.poll(() => dataRows().map((r) => r.getAttribute("aria-selected"))).toEqual(["false", "true", "false"]);
   });
 });

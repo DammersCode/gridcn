@@ -102,6 +102,10 @@ A sort or filter on a replaced column does not move rows while the panel is open
 reconciles on the next sort or filter change. See `reorder` in
 [Streaming updates](/docs/streaming-updates).
 
+## Typing
+
+The Find field waits `inputDebounceMs` (default 200 ms) after the last keystroke before it searches. Enter and blur search at once, and closing the panel with anything but Escape searches the waiting text.
+
 ## Keyboard
 
 | Key | Where | Action |
@@ -112,7 +116,7 @@ reconciles on the next sort or filter change. See `reorder` in
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Find | Goes to the previous match. |
 | <kbd>Enter</kbd> | Replace | Replaces the current match. |
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Replace | Replaces all matches. |
-| <kbd>Escape</kbd> | panel | Closes the panel. Focus returns to the grid when the panel opened while the grid had focus. |
+| <kbd>Escape</kbd> | panel | Closes the panel and drops find text that is still waiting. Focus returns to the grid when the panel opened while the grid had focus. |
 
 <kbd>Ctrl</kbd> is the physical Ctrl key on every platform. <kbd>Cmd</kbd>+<kbd>H</kbd> hides the
 app on macOS, and a page cannot take it. <kbd>Mod</kbd> is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd>

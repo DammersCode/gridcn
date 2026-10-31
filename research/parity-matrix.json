@@ -1618,10 +1618,8 @@
           ]
         },
         "API": {
-          "status": "supported",
-          "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
-          ]
+          "status": "n/a",
+          "reason": "The inputs write no data."
         }
       },
       "modeNeutral": true
