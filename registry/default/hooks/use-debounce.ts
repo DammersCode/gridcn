@@ -54,15 +54,18 @@ const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?:
  * A text input that shows each keystroke at once and calls `onCommit` once the typing pauses. `value` is the
  * committed text; when it changes from outside and nothing is pending, the input shows it. A pending value is
  * never lost: it commits on blur, on Enter, and on unmount. An IME composition commits when it ends. After a commit the
- * input shows `value` again, so update `value` in the same `onCommit` call.
+ * input keeps the typed text until `value` changes, then shows `value`.
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
   const { delayMs = DEFAULT_DELAY_MS } = options;
-  // While text is pending the input shows it, so a late echo of an older commit never overwrites what the user types.
-  const [typed, setTyped] = useState<string | null>(null);
+  // The input shows the typed text while it is pending, and after the commit until the parent moves `value`: a parent
+  // that applies the commit a render later never flashes the old text, and a late echo never overwrites what the user types.
+  const [typed, setTyped] = useState<{ text: string; base: string; pending: boolean } | null>(null);
   const onCommitRef = useRef(onCommit);
+  const valueRef = useRef(value);
   useEffect(() => {
     onCommitRef.current = onCommit;
+    valueRef.current = value;
   });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<string | null>(null);
@@ -78,7 +81,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     const next = pendingRef.current;
     pendingRef.current = null;
     if (next === null) return;
-    setTyped(null);
+    setTyped((prev) => (prev === null ? prev : { ...prev, pending: false }));
     onCommitRef.current(next);
   }, [clearTimer]);
 
@@ -107,7 +110,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
   const onChange = useCallback(
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const next = event.target.value;
-      setTyped(next);
+      setTyped({ text: next, base: valueRef.current, pending: true });
       pendingRef.current = next;
       if (composingRef.current) return;
       schedule(next);
@@ -115,7 +118,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     [schedule],
   );
 
-  const inputValue = typed ?? value;
+  const inputValue = typed !== null && (typed.pending || value === typed.base) ? typed.text : value;
   return {
     inputValue,
     inputProps: {
@@ -134,7 +137,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
       onCompositionEnd: (event) => {
         composingRef.current = false;
         const next = event.currentTarget.value;
-        setTyped(next);
+        setTyped({ text: next, base: valueRef.current, pending: true });
         schedule(next);
       },
     },

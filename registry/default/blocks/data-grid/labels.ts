@@ -199,6 +199,8 @@ export type DataGridGridLabels = {
   dateCalendarAriaLabel: string;
   /** Polite live-region announcement after the checked rows change; `count` is the new number of checked rows. */
   rowsChecked: (count: number) => string;
+  /** Live-region text after "select all matching" when the size of the result is unknown. */
+  allMatchingChecked: string;
   /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
   resultsCount: (count: number) => string;
   /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
@@ -549,6 +551,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     datePlaceholder: "yyyy-mm-dd",
     dateCalendarAriaLabel: "Calendar",
     rowsChecked: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} checked`,
+    allMatchingChecked: "All matching rows checked",
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
   },

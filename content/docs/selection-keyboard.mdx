@@ -313,8 +313,8 @@ The <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> chord opens the column 
 </Callout>
 
 <Callout title="Ctrl+A selects cells, not checked rows">
-  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A is a range action. It never checks rows, so it does not
-  change `useDataGridSelectedRows()` or `selectAllMatching()`. The header checkbox <NewBadge /> reads only the
+  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A <NewBadge /> is a range action. It never checks rows, so it does not
+  change `useDataGridSelectedRows()` or `selectAllMatching()`. The header checkbox reads only the
   checked rows: a cell range over every row leaves it unchecked, and so do the row markers and `aria-selected`. The header
   checkbox and the row markers check rows. The header checkbox checks the loaded rows of the page.
 </Callout>

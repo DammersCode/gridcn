@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -231,6 +232,26 @@ describe("DataGridSearch input rules", () => {
       </DataGridProvider>,
     );
     expect(store.getState().searchText).toBe("bo");
+    vi.useRealTimers();
+  });
+});
+
+describe("DataGridSearch with controlled searchText", () => {
+  it("keeps the typed text after the commit while the parent applies it", () => {
+    vi.useFakeTimers();
+    function Controlled() {
+      const [text, setText] = useState("");
+      return (
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} searchText={text} onSearchTextChange={setText}>
+          <DataGridSearch />
+        </DataGridProvider>
+      );
+    }
+    render(<Controlled />);
+    const input = screen.getByRole("textbox", { name: "Search grid" }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "alice" } });
+    act(() => void vi.advanceTimersByTime(200));
+    expect(input.value).toBe("alice");
     vi.useRealTimers();
   });
 });

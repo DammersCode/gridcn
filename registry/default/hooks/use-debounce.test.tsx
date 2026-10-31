@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook } from "@testing-library/react";
-import { StrictMode, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDebounce, useDebouncedInput } from "./use-debounce";
 
@@ -184,5 +184,45 @@ describe("useDebouncedInput", () => {
     act(() => void vi.advanceTimersByTime(300));
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledWith("z");
+  });
+});
+
+describe("useDebouncedInput with a parent that applies the commit a render later", () => {
+  it("never shows the old text after the commit", () => {
+    const seen: string[] = [];
+    function Late() {
+      const [value, setValue] = useState("");
+      const [queued, setQueued] = useState<string | null>(null);
+      const input = useDebouncedInput(value, (next) => setQueued(next));
+      seen.push(input.inputValue);
+      useEffect(() => {
+        if (queued !== null) setValue(queued);
+      }, [queued]);
+      return <input aria-label="late" {...input.inputProps} />;
+    }
+    const view = render(<Late />);
+    type(view.getByLabelText("late"), "ab");
+    act(() => void vi.advanceTimersByTime(300));
+    expect((view.getByLabelText("late") as HTMLInputElement).value).toBe("ab");
+    expect(seen.slice(seen.indexOf("ab")).every((text) => text === "ab")).toBe(true);
+  });
+
+  it("shows value again once the parent moves it away from the typed base", () => {
+    function Outer() {
+      const [value, setValue] = useState("a");
+      const input = useDebouncedInput(value, () => {});
+      return (
+        <>
+          <input aria-label="x" {...input.inputProps} />
+          <button onClick={() => setValue("reset")}>reset</button>
+        </>
+      );
+    }
+    const view = render(<Outer />);
+    type(view.getByLabelText("x"), "typed");
+    fireEvent.blur(view.getByLabelText("x"));
+    expect((view.getByLabelText("x") as HTMLInputElement).value).toBe("typed");
+    fireEvent.click(view.getByText("reset"));
+    expect((view.getByLabelText("x") as HTMLInputElement).value).toBe("reset");
   });
 });

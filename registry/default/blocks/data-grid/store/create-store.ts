@@ -1395,7 +1395,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };
         set({
           selection: next,
-          liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", typeof s.totalRowCount === "number" ? s.totalRowCount : s.viewIndex.length),
+          liveAnnouncement:
+            typeof s.totalRowCount === "number"
+              ? nextAnnouncement(s.liveAnnouncement, "rowsChecked", s.totalRowCount)
+              : nextAnnouncement(s.liveAnnouncement, "rowsChecked", s.viewIndex.length, true),
           rowRangeGesture: null,
           hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
           allMatching: true,

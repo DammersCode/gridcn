@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
@@ -328,5 +328,18 @@ describe("select all matching and the result spec", () => {
 
   it("a non-finite or negative totalRowCount counts as unknown", () => {
     for (const bad of [Number.NaN, -3, Infinity]) expect(mount({ totalRowCount: bad }).state().totalRowCount).toBeNull();
+  });
+});
+
+describe("selectAllMatching announcement", () => {
+  it("announces the row count of the result, or a count-free text for an unknown size", () => {
+    const known = mount();
+    act(() => known.state().actions.selectAllMatching());
+    expect(known.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 9 });
+    expect(known.state().liveAnnouncement?.partial).toBeUndefined();
+    cleanup();
+    const unknown = mount({ totalRowCount: null });
+    act(() => unknown.state().actions.selectAllMatching());
+    expect(unknown.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", partial: true });
   });
 });

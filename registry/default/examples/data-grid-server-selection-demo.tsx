@@ -49,7 +49,7 @@ export default function DataGridServerSelectionDemo(): ReactNode {
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="m-0 text-sm text-muted-foreground">
-        Check rows on page 1, go to page 3, and check more. Then tick the header checkbox: the bar under the grid offers "Select all {TOTAL} matching". Uncheck a row and change pages.
+        Check rows on page 1, go to page 3, and check more. Then check the header checkbox: the bar under the grid offers "Select all {TOTAL} matching". Uncheck a row and change pages.
       </p>
       <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" totalRowCount={TOTAL}>
         <DataGridRoot className="h-[360px]">

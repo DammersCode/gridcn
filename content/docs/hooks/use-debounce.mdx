@@ -23,7 +23,7 @@ const debouncedQuery = useDebounce(query, 300);
 
 ## useDebouncedInput
 
-Call the hook with the committed value and a commit callback. Spread the result on the input:
+Call the hook with the committed value and a commit callback. Spread `inputProps` on the input:
 
 ```tsx
 const [name, setName] = useState("");
@@ -56,7 +56,7 @@ A value of `0` commits each keystroke. The hook waits 300 ms by default. The tex
 - During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
 - A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text. A late echo of an older commit never overwrites what the user types.
 - A commit calls the latest `onCommit`, not the one from the render that scheduled it.
-- After a commit the input shows `value` again. Update `value` in the same `onCommit` call.
+- After a commit the input keeps the typed text until `value` changes, then shows `value`. A parent that applies the commit a render later never flashes the old text.
 - A handler you place after the spread (`onKeyDown` or `onChange`) replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself, and call `inputProps.onChange` from your `onChange`.
 
 ## isComposingKey
