@@ -81,7 +81,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     const next = pendingRef.current;
     pendingRef.current = null;
     if (next === null) return;
-    setTyped((prev) => (prev === null ? prev : { ...prev, pending: false }));
+    setTyped((prev) => (prev === null ? prev : { ...prev, base: valueRef.current, pending: false }));
     onCommitRef.current(next);
   }, [clearTimer]);
 
@@ -118,6 +118,8 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     [schedule],
   );
 
+  // Once the parent moves `value` off the text it had at the commit, the typed text has served its purpose.
+  if (typed !== null && !typed.pending && value !== typed.base) setTyped(null);
   const inputValue = typed !== null && (typed.pending || value === typed.base) ? typed.text : value;
   return {
     inputValue,

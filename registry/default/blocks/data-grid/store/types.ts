@@ -1198,7 +1198,7 @@ export type DataGridInternalActions = {
 
 export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
 
-/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows. */
+/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
 export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
 
 /** Full store shape: interaction state + the stable actions object. */

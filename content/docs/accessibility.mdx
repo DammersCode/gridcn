@@ -72,7 +72,7 @@ affected cells (a bounded, guarded re-render. See [Performance](/docs/performanc
 invariant wording). The `aria-selected` attribute is the accessibility-tree signal a screen
 reader reads. The overlay is the visual signal for sighted users. The two agree on the same state.
 
-Each data row carries `aria-selected` too <NewBadge />. A checked row reads `aria-selected="true"`. A cell range does not set it. With a checkbox row marker (`rowMarkers="checkbox"` or `"both"`), an unselected row reads `aria-selected="false"`. Without one, an unselected row has no `aria-selected`. A screen reader then learns the state of a row from the row itself, not only from the marker checkbox.
+Each data row carries `aria-selected` <NewBadge /> too. A checked row reads `aria-selected="true"`. A cell range does not set it. With a checkbox row marker (`rowMarkers="checkbox"` or `"both"`), an unselected row reads `aria-selected="false"`. Without one, an unselected row has no `aria-selected`. A screen reader then learns the state of a row from the row itself, not only from the marker checkbox.
 
 ### Editor focus behavior
 
@@ -111,7 +111,7 @@ both popovers: [Toolbar add-on: filter menu keyboard &
 accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 [Sort list: keyboard & accessibility](/docs/addons/sort-list#keyboard--accessibility).
 
-The grid core has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
+The grid core has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). After "select all matching" on a result of unknown size it reads "All matching rows checked" <NewBadge /> (`labels.grid.allMatchingChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
 
 With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source reads its loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). A change that leaves the rows and their order as they were, such as moving a filter row, stays quiet, and so does a filter applied on mount.
 

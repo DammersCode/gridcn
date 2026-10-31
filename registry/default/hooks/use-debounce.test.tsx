@@ -207,6 +207,66 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(seen.slice(seen.indexOf("ab")).every((text) => text === "ab")).toBe(true);
   });
 
+  it("does not bring the typed text back when value later returns to its old base", () => {
+    function Outer() {
+      const [value, setValue] = useState("");
+      const input = useDebouncedInput(value, setValue, { delayMs: 0 });
+      return (
+        <>
+          <input aria-label="y" {...input.inputProps} />
+          <button onClick={() => setValue("")}>clear</button>
+        </>
+      );
+    }
+    const view = render(<Outer />);
+    type(view.getByLabelText("y"), "ab");
+    expect((view.getByLabelText("y") as HTMLInputElement).value).toBe("ab");
+    fireEvent.click(view.getByText("clear"));
+    expect((view.getByLabelText("y") as HTMLInputElement).value).toBe("");
+  });
+
+  it("two inputs sharing one value both follow it", () => {
+    function Pair() {
+      const [value, setValue] = useState("");
+      const first = useDebouncedInput(value, setValue, { delayMs: 0 });
+      const second = useDebouncedInput(value, setValue, { delayMs: 0 });
+      return (
+        <>
+          <input aria-label="one" {...first.inputProps} />
+          <input aria-label="two" {...second.inputProps} />
+        </>
+      );
+    }
+    const view = render(<Pair />);
+    type(view.getByLabelText("one"), "ab");
+    expect((view.getByLabelText("two") as HTMLInputElement).value).toBe("ab");
+    type(view.getByLabelText("two"), "");
+    expect((view.getByLabelText("one") as HTMLInputElement).value).toBe("");
+  });
+
+  it("typing during a slow commit does not flash the older text", () => {
+    const seen: string[] = [];
+    function Slow() {
+      const [value, setValue] = useState("");
+      const [queue, setQueue] = useState<string[]>([]);
+      const input = useDebouncedInput(value, (next) => setQueue((q) => [...q, next]));
+      seen.push(input.inputValue);
+      return (
+        <>
+          <input aria-label="slow" {...input.inputProps} />
+          <button onClick={() => setValue(queue[0] ?? "")}>apply</button>
+        </>
+      );
+    }
+    const view = render(<Slow />);
+    type(view.getByLabelText("slow"), "ab");
+    act(() => void vi.advanceTimersByTime(300));
+    type(view.getByLabelText("slow"), "abc");
+    fireEvent.click(view.getByText("apply"));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(seen.slice(seen.lastIndexOf("abc")).every((text) => text === "abc")).toBe(true);
+  });
+
   it("shows value again once the parent moves it away from the typed base", () => {
     function Outer() {
       const [value, setValue] = useState("a");
