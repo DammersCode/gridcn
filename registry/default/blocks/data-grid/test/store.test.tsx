@@ -2385,7 +2385,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(result.current.state).toBe("unchecked");
   });
 
-  it("useDataGridAllRowsSelected agrees with useDataGridIsRowSelected for a range covering every view row", () => {
+  it("useDataGridAllRowsSelected reads the rows channel only: a cell range over every row leaves the header unchecked", () => {
     // drag-select a cell range over all 3 rows — no marker interaction, selection.rows stays empty.
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
@@ -2407,6 +2407,15 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(result.current.row0Selected).toBe(true);
     expect(result.current.row1Selected).toBe(true);
     expect(result.current.row2Selected).toBe(true);
+    expect(result.current.allRowsState).toBe("unchecked");
+  });
+
+  it("the header turns checked once the rows channel holds every row, and indeterminate for some", () => {
+    const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), allRowsState: useDataGridAllRowsSelected() }), { wrapper });
+    act(() => result.current.actions.setRowSelected(0, true));
+    expect(result.current.allRowsState).toBe("indeterminate");
+    act(() => result.current.actions.setAllRowsSelected(true));
     expect(result.current.allRowsState).toBe("checked");
   });
 

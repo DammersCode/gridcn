@@ -25,24 +25,36 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
   const { rows } = s.selection;
   if (!s.allMatching) {
     const ids: string[] = [];
-    for (const viewRow of rows.toArray()) {
-      const dataRow = s.viewIndex[viewRow];
-      const record = dataRow === undefined ? undefined : s.data[dataRow];
-      if (dataRow !== undefined && record !== undefined) ids.push(s.getRowId(record, dataRow));
+    for (const [start, end] of rows.runs()) {
+      for (let viewRow = start; viewRow < end; viewRow++) {
+        const dataRow = s.viewIndex[viewRow];
+        const record = dataRow === undefined ? undefined : s.data[dataRow];
+        if (dataRow !== undefined && record !== undefined) ids.push(s.getRowId(record, dataRow));
+      }
     }
     for (const id of s.hiddenCheckedRowIds) ids.push(id);
     return { mode: "ids", ids, excludedIds: [], count: ids.length };
   }
   const excluded = new Set(s.hiddenCheckedRowIds);
-  const checked = new Set(rows.toArray());
-  for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
-    const dataRow = s.viewIndex[viewRow]!;
-    const record = s.data[dataRow];
-    if (record === undefined) continue;
-    const id = s.getRowId(record, dataRow);
-    if (checked.has(viewRow)) excluded.delete(id);
-    else excluded.add(id);
+  // Walk the checked runs and the gaps between them; the unchecked rows are the gaps.
+  const uncheckedGap = (start: number, end: number): void => {
+    for (let viewRow = start; viewRow < end; viewRow++) {
+      const dataRow = s.viewIndex[viewRow]!;
+      const record = s.data[dataRow];
+      if (record !== undefined) excluded.add(s.getRowId(record, dataRow));
+    }
+  };
+  let cursor = 0;
+  for (const [start, end] of rows.runs()) {
+    uncheckedGap(cursor, Math.min(start, s.viewIndex.length));
+    for (let viewRow = start; viewRow < Math.min(end, s.viewIndex.length); viewRow++) {
+      const dataRow = s.viewIndex[viewRow]!;
+      const record = s.data[dataRow];
+      if (record !== undefined && excluded.size > 0) excluded.delete(s.getRowId(record, dataRow));
+    }
+    cursor = Math.max(cursor, end);
   }
+  uncheckedGap(cursor, s.viewIndex.length);
   const total = s.totalRowCount;
   return { mode: "allMatching", ids: [], excludedIds: [...excluded], count: typeof total === "number" ? Math.max(0, total - excluded.size) : undefined };
 }

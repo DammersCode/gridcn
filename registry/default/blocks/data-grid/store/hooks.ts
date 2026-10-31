@@ -696,69 +696,16 @@ export function useDataGridHiddenCheckedCount(): number {
 }
 
 /** Half-open row range `[start, end)`. */
-type RowRange = readonly [start: number, end: number];
-
-/** Inserts `[start, end)` into `ranges` (sorted, non-overlapping), merging any overlap/adjacency — same algorithm as `mergeRange` in selected-col-ranges-for-row.ts, on the row axis instead of columns. */
-function mergeRowRange(ranges: RowRange[], start: number, end: number): void {
-  if (start >= end) return;
-  let i = 0;
-  while (i < ranges.length && ranges[i]![1] < start) i++;
-  let mergedStart = start;
-  let mergedEnd = end;
-  while (i < ranges.length && ranges[i]![0] <= mergedEnd) {
-    mergedStart = Math.min(mergedStart, ranges[i]![0]);
-    mergedEnd = Math.max(mergedEnd, ranges[i]![1]);
-    ranges.splice(i, 1);
-  }
-  ranges.splice(i, 0, [mergedStart, mergedEnd]);
-}
-
 /**
- * Select-all header-marker checkbox tri-state: 'checked' (every view row selected), 'indeterminate'
- * (some), 'unchecked' (none). Empty grid reads 'unchecked'.
- *
- * O(rangeStack) instead of O(rowCount): the old implementation looped every view row calling
- * `hasIndex`/range-membership per row — a six-figure loop at the 100k-row floor, on every store
- * write, in any grid with marker columns. Coverage
- * is derived from the range channel's rectangles (merged into row intervals, same technique
- * `selectedColRangesForRow` uses on the column axis) unioned against the rows channel, which answers
- * "is this whole span selected" via `CompactSelection.hasAll` in O(its own run count) rather than by
- * scanning every row.
+ * Select-all header-marker checkbox tri-state: 'checked' (every view row is checked), 'indeterminate'
+ * (some), 'unchecked' (none). It reads the rows channel only: a cell range (Ctrl+A) is not a checked row.
+ * An empty grid reads 'unchecked'. `CompactSelection.hasAll` answers in O(its own run count).
  */
 export function allRowsSelectedState(s: DataGridStoreState): "checked" | "indeterminate" | "unchecked" {
   const rowCount = s.viewIndex.length;
-  if (rowCount === 0) return "unchecked";
-  const { selection } = s;
-  const rowsChannelEmpty = selection.rows.length === 0;
-  if (rowsChannelEmpty && !selection.current) return "unchecked";
-  if (selection.rows.hasAll([0, rowCount])) return "checked";
-
-  const rangeCoverage: RowRange[] = [];
-  if (selection.current) {
-    const { range, rangeStack } = selection.current;
-    mergeRowRange(rangeCoverage, Math.max(0, range.y), Math.min(rowCount, range.y + range.height));
-    for (const rect of rangeStack) {
-      mergeRowRange(rangeCoverage, Math.max(0, rect.y), Math.min(rowCount, rect.y + rect.height));
-    }
-  }
-
-  // Gaps left by the range channel must each be fully covered by the rows channel for the union
-  // to reach every row — anything less is indeterminate (some selected, not all).
-  let cursor = 0;
-  let fullyCovered = true;
-  for (const [start, end] of rangeCoverage) {
-    if (start > cursor && !selection.rows.hasAll([cursor, start])) {
-      fullyCovered = false;
-      break;
-    }
-    cursor = Math.max(cursor, end);
-  }
-  if (fullyCovered && cursor < rowCount && !selection.rows.hasAll([cursor, rowCount])) fullyCovered = false;
-  if (fullyCovered) return "checked";
-
-  if (!rowsChannelEmpty || rangeCoverage.length > 0) return "indeterminate";
-  return "unchecked";
-
+  const { rows } = s.selection;
+  if (rowCount === 0 || rows.length === 0) return "unchecked";
+  return rows.hasAll([0, rowCount]) ? "checked" : "indeterminate";
 }
 
 /** Reactive {@link allRowsSelectedState}. */

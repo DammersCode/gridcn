@@ -17,6 +17,7 @@ describe("data-grid-server-selection-demo", () => {
 
   it("select all matching counts the whole result and excludes an unchecked row", async () => {
     await render(<DataGridServerSelectionDemo />);
+    await page.getByRole("checkbox", { name: /select all/i }).first().click();
     await page.getByRole("button", { name: "Select all 237 matching" }).click();
     await expect.element(page.getByText("all matching, 237 rows")).toBeInTheDocument();
     await page.getByRole("checkbox", { name: /row 1/i }).first().click();

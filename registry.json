@@ -1506,7 +1506,8 @@
          "description": "Status-bar add-on for the gridcn data grid: <DataGridStatusBar /> shows count, sum, avg, min, and max of the selected cells under the grid (useDataGridSelectionStats is the headless hook). Numbers are detected by value (finite numbers), sums use Neumaier-compensated summation, a single-column selection formats through that column's toDisplayText, and above 200,000 cells the walk caps and flags the values with ≈. New user-facing strings live under labels.statusBar (see data-grid/labels.ts DataGridStatusBarLabels). Zero core changes — purely additive.",
          "author": "gridcn",
          "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
+            "DammersCode/gridcn/data-grid",
+            "button"
          ],
          "files": [
             {
@@ -2450,7 +2451,7 @@
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-pagination",
-            "button"
+            "DammersCode/gridcn/data-grid-status-bar"
          ],
          "files": [
             {

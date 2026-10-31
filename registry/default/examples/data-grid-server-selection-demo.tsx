@@ -1,16 +1,15 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import {
   DataGridBody,
   DataGridHeader,
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  useDataGridActions,
   useDataGridSelectedRows,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridStatusBar } from "@/registry/default/blocks/data-grid-status-bar/data-grid-status-bar";
 import { DataGridPaginationBar, useDataGridPagination } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 
 type Row = { id: string; name: string; email: string };
@@ -27,25 +26,12 @@ const columns = defineColumns<Row>()([
 const rowAt = (index: number): Row => ({ id: `row-${index}`, name: `Person ${index}`, email: `person${index}@example.com` });
 
 function SelectionPanel(): ReactNode {
-  const actions = useDataGridActions();
   const selected = useDataGridSelectedRows();
   const summary = selected.mode === "ids" ? `${selected.count} checked` : `all matching, ${selected.count?.toLocaleString("en-US")} rows`;
   const list = selected.mode === "ids" ? selected.ids : selected.excludedIds;
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-2 text-sm">
-      <div className="flex items-center justify-between gap-2">
-        <span>
-          <strong>{summary}</strong>
-        </span>
-        <div className="flex gap-2">
-          <Button type="button" size="xs" variant="outline" onClick={() => actions.selectAllMatching()}>
-            Select all {TOTAL} matching
-          </Button>
-          <Button type="button" size="xs" variant="outline" onClick={() => actions.clearSelection()}>
-            Clear
-          </Button>
-        </div>
-      </div>
+      <strong>{summary}</strong>
       <code className="block truncate text-xs text-muted-foreground">
         {selected.mode === "ids" ? "ids" : "excludedIds"}: [{list.slice(0, 6).join(", ")}
         {list.length > 6 ? `, +${list.length - 6} more` : ""}]
@@ -63,14 +49,15 @@ export default function DataGridServerSelectionDemo(): ReactNode {
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="m-0 text-sm text-muted-foreground">
-        Check rows on page 1, go to page 3, and check more. Then press "Select all {TOTAL} matching", uncheck a row, and change pages.
+        Check rows on page 1, go to page 3, and check more. Then tick the header checkbox: the bar under the grid offers "Select all {TOTAL} matching". Uncheck a row and change pages.
       </p>
-      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" keepCheckedRows totalRowCount={TOTAL}>
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" totalRowCount={TOTAL}>
         <DataGridRoot className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
         <DataGridPaginationBar {...pager.controls} />
+        <DataGridStatusBar />
         <SelectionPanel />
       </DataGridProvider>
     </div>

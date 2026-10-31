@@ -64,6 +64,7 @@ describe("selectLine", () => {
       hasIndex: (i: number) => i === 1 || i === 2,
       hasAll: () => false,
       toArray: () => [1, 2],
+      runs: () => [[1, 3]] as const,
       equals: () => false,
     };
     const result = selectLine(like, 5, { extendFromLast: true });

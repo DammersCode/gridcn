@@ -195,7 +195,7 @@ describe("row range checking", () => {
     const store = makeStore(12);
     const real = CompactSelection.fromSingleSelection([1, 3]);
     const toArray = vi.fn(() => real.toArray());
-    const like = { length: real.length, hasIndex: (i: number) => real.hasIndex(i), equals: () => false, hasAll: () => false, toArray };
+    const like = { length: real.length, hasIndex: (i: number) => real.hasIndex(i), equals: () => false, hasAll: () => false, toArray, runs: () => real.runs() };
     const selection = { ...store.getState().selection, rows: like };
     const state = store.getState();
     store.setState({

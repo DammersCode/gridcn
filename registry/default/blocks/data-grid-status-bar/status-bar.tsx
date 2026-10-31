@@ -1,15 +1,19 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_LABELS,
+  useDataGridActions,
   useDataGridCellTypes,
   useDataGridHiddenCheckedCount,
   useDataGridLabels,
+  useDataGridSelectedRows,
   useDataGridVisibleColumns,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_STATUS_CELLS } from "./compute-selection-stats";
 import { useDataGridSelectionStats } from "./use-data-grid-selection-stats";
 
@@ -69,7 +73,13 @@ export function DataGridStatusBar({
   }, [stats.numericColumnId, visibleColumns, cellTypes]);
 
   const showStats = stats.cells >= 2;
-  if (!showStats && hiddenChecked === 0) return null;
+  const total = useDataGridSelector((s) => s.totalRowCount);
+  const allMatching = useDataGridSelector((s) => s.allMatching);
+  const pageRows = useDataGridSelector((s) => s.viewIndex.length);
+  const pageChecked = useDataGridSelector((s) => s.viewIndex.length > 0 && s.selection.rows.hasAll([0, s.viewIndex.length]));
+  const actions = useDataGridActions();
+  const escalate = !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
+  if (!showStats && hiddenChecked === 0 && !allMatching && !escalate) return null;
 
   const format = (value: number, aggregate: StatusBarAggregate) =>
     formatValue ? formatValue(value, aggregate) : aggregate !== "count" && displayText ? displayText(value) : fallbackFormat.format(value);
@@ -96,7 +106,29 @@ export function DataGridStatusBar({
         );
       })}
       {hiddenChecked > 0 && <span>{showStats ? mergedLabels.hiddenChecked(hiddenChecked) : mergedLabels.hiddenCheckedOnly(hiddenChecked)}</span>}
+      {escalate && (
+        <span data-grid-select-all-banner="" className="flex items-center gap-1">
+          <span>{mergedLabels.pageSelected(pageRows)}</span>
+          <Button type="button" variant="link" size="xs" onClick={() => actions.selectAllMatching()}>
+            {mergedLabels.selectAllMatching(total ?? null)}
+          </Button>
+        </span>
+      )}
+      {allMatching && (
+        <span data-grid-select-all-banner="" className="flex items-center gap-1">
+          <AllSelectedText allSelected={mergedLabels.allSelected} />
+          <Button type="button" variant="link" size="xs" onClick={() => actions.clearSelection()}>
+            {mergedLabels.clearSelection}
+          </Button>
+        </span>
+      )}
       {children}
     </div>
   );
+}
+
+/** The count after "select all matching"; it reads the selection value, so it mounts only while that mode is on. */
+function AllSelectedText({ allSelected }: { allSelected: (count: number | undefined) => string }): ReactNode {
+  const selected = useDataGridSelectedRows();
+  return <span>{allSelected(selected.count)}</span>;
 }

@@ -167,6 +167,11 @@ export class CompactSelection {
     return new CompactSelection(shifted);
   }
 
+  /** The member indices as sorted, merged, half-open `[start, end)` runs. Cheaper than {@link toArray} for a large selection. */
+  runs(): readonly (readonly [start: number, end: number])[] {
+    return this.slices;
+  }
+
   /** All member indices in ascending order. */
   toArray(): number[] {
     const out: number[] = [];

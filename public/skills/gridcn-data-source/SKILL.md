@@ -97,3 +97,9 @@ Applies to streaming on top of either:
 - Send changes to the server from `onSave(change)`, not from `onDataChange`. `onDataChange` keeps your state in step and returns nothing; the revert of a refusal reaches it with `source: "rollback"` exactly once.
 - Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused entries, and calls `onWriteRejected({ change, rejected })` for the toast.
 - `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.
+
+## Selection UI and text inputs
+
+- Ctrl+A is a range action and never checks rows; the header checkbox reads the checked rows only. With `totalRowCount`, `DataGridStatusBar` shows the banner "Select all N matching" once every row of the page is checked; do not build your own button.
+- `inputDebounceMs` on the provider (default 200, `0` = each keystroke) sets the wait of the toolbar search, filter value inputs, set-filter search, and find & replace. For your own debounced text input use `useDebouncedInput` from the `use-debounce` item (commits on blur, Enter, and unmount; waits for an IME composition).
+- To throttle `useDataGridServerRows`, wait inside `fetchRows`: `await delay(300, signal)`.

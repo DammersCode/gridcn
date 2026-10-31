@@ -412,16 +412,28 @@ const rows = useDataGridInfiniteRows<Order, string>({
 
 Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows, so it never means "every matching row". Pass `totalRowCount={null}` to the provider and the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
-<Callout type="warn" title="Without totalRowCount, select-all includes the unloaded rows">
-  The view is `total` rows long, loaded or not, so the two-stage select-all (
-  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.
-  `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id
-  (`__lazy-unloaded-<index>`), not a real row id. With `totalRowCount`, use
-  [`useDataGridSelectedRows`](/docs/selection-keyboard#selection-over-a-server-result) instead:
-  it lists real ids only. Without it, if a selection must mean "only loaded rows",
-   filter the selected rows through the sparse `data` array yourself (a hole is `undefined`
-   there) or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
-   loaded range. The result is a snapshot that never triggers a render. Call it in an effect
-   or handler. An export of a lazy grid covers only the loaded rows: `buildExportRows` skips
-   holes in every scope (see [Import & export](/docs/addons/import-export)).
-</Callout>
+## Selecting, copying, and exporting
+
+<NewBadge />
+
+A lazy grid holds unloaded rows as holes. The gestures below work on what the grid holds. None of them fetches a row:
+
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice selects the full view, holes included. It selects cells and never checks rows. `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id (`__lazy-unloaded-<index>`), not a real row id.
+- Copy copies the loaded cells of the selection. Unloaded ranges are skipped.
+- Export covers the loaded rows only: `buildExportRows` skips holes in every scope (see [Import & export](/docs/addons/import-export)).
+- The header checkbox and the row markers check rows. With `totalRowCount`, `useDataGridSelectedRows()` lists real ids only.
+
+To act on rows the grid does not hold, ask your server for them. Send the selection value, not the grid's copy:
+
+```tsx
+const selected = useDataGridSelectedRows();
+
+async function exportSelection() {
+  const rows = await api.exportOrders(
+    selected.mode === "ids" ? { ids: selected.ids } : { spec, exceptIds: selected.excludedIds },
+  );
+  download(rows);
+}
+```
+
+Without `totalRowCount`, read only the loaded rows from the sparse `data` array (a hole is `undefined`), or keep the rows whose index falls in `lazy.getLoadedRanges()`. The result is a snapshot that never triggers a render. Call it in an effect or handler.

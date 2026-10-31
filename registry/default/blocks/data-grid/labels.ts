@@ -291,6 +291,13 @@ export type DataGridStatusBarLabels = {
   hiddenChecked: (count: number) => string;
   /** Stand-alone text when fewer than two cells are selected, so the bar has no stats to attach `hiddenChecked` to. */
   hiddenCheckedOnly: (count: number) => string;
+  /** Select-all banner: every row of the page is checked and the result is larger. `count` is the rows on the page. */
+  pageSelected: (count: number) => string;
+  /** Select-all banner button. `total` is `null` when the size of the result is unknown. */
+  selectAllMatching: (total: number | null) => string;
+  /** Select-all banner after "select all matching". `count` is `undefined` when the size of the result is unknown. */
+  allSelected: (count: number | undefined) => string;
+  clearSelection: string;
 };
 
 /** Find-and-replace panel strings. */
@@ -605,6 +612,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
     approximate: (count) => `From the first ${count.toLocaleString("en-US")} cells`,
     hiddenChecked: (count) => `(+${count.toLocaleString("en-US")} hidden)`,
     hiddenCheckedOnly: (count) => `${count.toLocaleString("en-US")} hidden checked ${count === 1 ? "row" : "rows"}`,
+    pageSelected: (count) => `All ${count.toLocaleString("en-US")} on this page are selected.`,
+    selectAllMatching: (total) => (total === null ? "Select all matching" : `Select all ${total.toLocaleString("en-US")} matching`),
+    allSelected: (count) => (count === undefined ? "All matching rows are selected." : `All ${count.toLocaleString("en-US")} selected.`),
+    clearSelection: "Clear selection",
   },
   findReplace: {
     dialogLabel: "Find and replace",

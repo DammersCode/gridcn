@@ -164,6 +164,8 @@ export type CompactSelectionLike = {
   equals(other: CompactSelectionLike): boolean;
   hasAll(range: [number, number]): boolean;
   toArray(): number[];
+  /** The member indices as sorted, merged, half-open `[start, end)` runs. */
+  runs(): readonly (readonly [start: number, end: number])[];
 };
 
 /**

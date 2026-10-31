@@ -162,15 +162,16 @@ The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`,
 
 <NewBadge />
 
-A server grid holds one page, or the loaded part of a lazy source. Set `totalRowCount` to the size of the whole result, with `keepCheckedRows`, to declare that `data` is a window of it. Pass `null` when the size is unknown:
+A server grid holds one page, or the loaded part of a lazy source. Set `totalRowCount` to the size of the whole result to declare that `data` is a window of it. Pass `null` when the size is unknown:
 
 ```tsx
-<DataGridProvider keepCheckedRows totalRowCount={pager.controls.total ?? null} {...grid} columns={columns}>
+<DataGridProvider totalRowCount={pager.controls.total ?? null} {...grid} columns={columns}>
 ```
 
 With `totalRowCount`:
 
 - A checked row that leaves `data` stays checked by row id. A page change, a lazy eviction, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
+- `keepCheckedRows` is on by default while `totalRowCount` is set. Pass `keepCheckedRows={false}` to turn it off.
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
 - `useDataGridSelectedRows()` reads the selection as a value.
 
@@ -183,6 +184,18 @@ const selected = useDataGridSelectedRows();
 In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unloaded rows have no id and are left out. In `allMatching` mode, `excludedIds` lists the unchecked rows, and `count` is `totalRowCount` minus the exclusions (`undefined` when the size is unknown).
 
 <ComponentPreview name="data-grid-server-selection-demo" />
+
+### The select-all banner
+
+<NewBadge />
+
+`DataGridStatusBar` shows a banner under the grid when `totalRowCount` is set:
+
+- When every row of the page is checked and the result is larger, it reads "All 10 on this page are selected." with the button "Select all 237 matching". With an unknown size (`null`) the button reads "Select all matching". The button calls `selectAllMatching()`.
+- After that, it reads "All 237 selected." with the button "Clear selection". The count drops by one for each row you uncheck. With an unknown size it reads "All matching rows are selected."
+- A filter or search change ends "all matching" and unchecks the rows, so the banner starts again from the checked page.
+
+Selecting all matching announces the real count in the grid's live region. The labels are `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`.
 
 Send the selection to your server together with the sort, filter, and search spec you already hold:
 
@@ -200,7 +213,7 @@ The server evaluates the spec and applies the action to every matching row excep
   Delete rows, Duplicate row, and Move rows (and their menu items) skip the checked rows while `allMatching` is on, because the grid does not hold those rows. `onBeforeDeleteRows` is not called. Run the bulk action through your own endpoint, then call `clearSelection()`.
 </Callout>
 
-Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, the header checkbox set to off, a change of the filter or the search text, and `actions.deleteRows` leave "all matching". A `totalRowCount` that is negative or not finite counts as `null`. The grid remembers at most 100,000 ids. In `ids` mode the rows beyond the cap are dropped. In `allMatching` mode, more than 100,000 exclusions leave "all matching", because dropping an exclusion would select more rows. Both warn once in development. A skeleton row of a lazy source stays checked in `allMatching` mode and cannot be excluded, because it has no id. The status bar and the live region count the loaded checked rows. `useDataGridHiddenCheckedCount()` is `0` while `allMatching` is on.
+Escape, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, the header checkbox set to off, a change of the filter or the search text, and `actions.deleteRows` leave "all matching". A `totalRowCount` that is negative or not finite counts as `null`. The grid remembers at most 100,000 ids. In `ids` mode the rows beyond the cap are dropped. In `allMatching` mode, more than 100,000 exclusions leave "all matching", because dropping an exclusion would select more rows. Both warn once in development. A skeleton row of a lazy source stays checked in `allMatching` mode and cannot be excluded, because it has no id. Selecting all matching announces the real count in the live region, and the status bar banner shows it. `useDataGridHiddenCheckedCount()` is `0` while `allMatching` is on.
 
 | Prop | Type | Default |
 |---|---|---|
@@ -297,6 +310,13 @@ The <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> chord opens the column 
 <Callout title="Two-stage select-all">
   The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A selects the current data region. Press it again to
   select the whole grid.
+</Callout>
+
+<Callout title="Ctrl+A selects cells, not checked rows">
+  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A is a range action. It never checks rows, so it does not
+  change `useDataGridSelectedRows()` or `selectAllMatching()`. The header checkbox reads only the
+  checked rows: a cell range over every row leaves it unchecked. <NewBadge /> The header checkbox and
+  the row markers check rows. The header checkbox checks the loaded rows of the page.
 </Callout>
 
 <Callout title="Accessibility">
