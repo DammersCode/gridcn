@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows, type UseDataGridLazyRowsResult } from "./use-data-grid-lazy-rows";
+import { useDataGridLazyRows, type LazyFetchContext, type UseDataGridLazyRowsResult } from "./use-data-grid-lazy-rows";
 import { firstRowHeight, gridElement, mountedRows, originRebased, scrollByTicks } from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet — layout/scroll must be real for skeleton/scroll assertions to mean anything
 import "@/app/global.css";
@@ -30,7 +30,7 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 function LazyGrid(props: {
-  fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<Row[]>;
+  fetchRows: (ctx: LazyFetchContext) => Promise<Row[]>;
   onLazy?: (lazy: UseDataGridLazyRowsResult<Row>) => void;
 }) {
   const lazy = useDataGridLazyRows<Row>({
@@ -38,7 +38,7 @@ function LazyGrid(props: {
     fetchRows: props.fetchRows,
     getRowId: (row) => row.id,
     overscan: 5,
-    batchSize: 20,
+    pageSize: 20,
   });
   useEffect(() => {
     props.onLazy?.(lazy);
@@ -64,7 +64,7 @@ function LazyGrid(props: {
 describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the next scroll refetches", () => {
   it("evicted rows render as skeletons until the refetch resolves", async () => {
     const pending: Array<{ start: number; end: number; resolve: (rows: Row[]) => void }> = [];
-    const fetchRows = vi.fn((start: number, end: number) => {
+    const fetchRows = vi.fn(({ start, end }: LazyFetchContext) => {
       return new Promise<Row[]>((resolve) => {
         pending.push({ start, end, resolve: (rows: Row[]) => resolve(rows) });
       });
@@ -117,7 +117,7 @@ describe("data-grid-lazy: evict() reverts a loaded range to skeletons and the ne
 describe("data-grid-lazy: reset() refetches the visible window without a scroll", () => {
   it("loaded rows return after reset() alone (the core does not re-report an unmoved window)", async () => {
     const pending: Array<{ start: number; end: number; resolve: (rows: Row[]) => void }> = [];
-    const fetchRows = vi.fn((start: number, end: number) => {
+    const fetchRows = vi.fn(({ start, end }: LazyFetchContext) => {
       return new Promise<Row[]>((resolve) => {
         pending.push({ start, end, resolve: (rows: Row[]) => resolve(rows) });
       });
@@ -152,7 +152,7 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
   it("renders skeleton rows for a far scroll target, then fills in real content once the fetch resolves", async () => {
     let resolveFetch: (() => void) | undefined;
     const fetchRows = vi.fn(
-      (start: number, end: number) =>
+      ({ start, end }: LazyFetchContext) =>
         new Promise<Row[]>((resolve) => {
           resolveFetch = () => resolve(makeRows(start, end));
         }),
@@ -189,7 +189,7 @@ describe("data-grid-lazy: scroll into a hole -> skeletons -> data fills in", () 
     let callCount = 0;
     const resolvers: Array<() => void> = [];
     const fetchRows = vi.fn(
-      (start: number, end: number) =>
+      ({ start, end }: LazyFetchContext) =>
         new Promise<Row[]>((resolve, reject) => {
           callCount++;
           const shouldFail = callCount === 1;
@@ -249,14 +249,14 @@ const callbackColumns = defineColumns<Row>()([
 const callbackRowClassName = (row: Row) => `row-${row.id}`;
 
 function CallbacksLazyGrid(props: {
-  fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<Row[]>;
+  fetchRows: (ctx: LazyFetchContext) => Promise<Row[]>;
 }) {
   const lazy = useDataGridLazyRows<Row>({
     total: 10_000,
     fetchRows: props.fetchRows,
     getRowId: (row) => row.id,
     overscan: 5,
-    batchSize: 20,
+    pageSize: 20,
   });
   return (
     <div style={{ height: 360, width: 400 }}>
@@ -283,7 +283,7 @@ describe("data-grid-lazy: function-form callbacks on skeleton rows", () => {
   it("scrolling into an unloaded window renders skeletons without throwing, and loaded rows keep the callback classes", async () => {
     let resolveFetch: (() => void) | undefined;
     const fetchRows = vi.fn(
-      (start: number, end: number) =>
+      ({ start, end }: LazyFetchContext) =>
         new Promise<Row[]>((resolve) => {
           resolveFetch = () => resolve(makeRows(start, end));
         }),
@@ -335,7 +335,7 @@ describe("data-grid-lazy: after a scroll beyond the origin rebase", () => {
   it("keeps skeleton rows and the rows that replace them at their scroll offset, and restores them at the top", async () => {
     const pending: Array<() => void> = [];
     const fetchRows = vi.fn(
-      (start: number, end: number) =>
+      ({ start, end }: LazyFetchContext) =>
         new Promise<Row[]>((resolve) => {
           pending.push(() => resolve(makeRows(start, end)));
         }),

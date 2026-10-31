@@ -3,14 +3,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { EMPTY_SERVER_SPEC, serverSpecKey, type ServerSpec } from "./server-spec";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
 const DEFAULT_OVERSCAN = 30;
 /** Default rounding unit for fetch ranges (spec: "round ranges up so tiny scrolls don't spam requests"). */
-const DEFAULT_BATCH_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
 
 /** Options for {@link useDataGridLazyRows}. */
+export type LazyFetchContext = {
+  /** First row to fetch. */
+  start: number;
+  /** One past the last row to fetch. */
+  end: number;
+  signal: AbortSignal;
+  /** The sort, filter, and search that were current when the request started. */
+  spec: ServerSpec;
+};
+
 export type UseDataGridLazyRowsOptions<TData> = {
   /** Total row count across the whole dataset, loaded or not — sizes the sparse `data` array. */
   total: number;
@@ -22,21 +33,23 @@ export type UseDataGridLazyRowsOptions<TData> = {
    * over-long one has its tail dropped (clamped to `[start, end)`). Either mismatch dev-warns —
    * unclamped, both would poison the range cache permanently.
    */
-  fetchRows: (start: number, end: number, signal: AbortSignal) => Promise<TData[]>;
+  fetchRows: (ctx: LazyFetchContext) => Promise<TData[]>;
   getRowId: (row: TData, index: number) => string;
+  /** The sort, filter, and search of your request, handed back to `fetchRows`. A change of its content resets the hook like `reset()`. */
+  spec?: ServerSpec;
   /** Extra rows fetched per range beyond the visible window; default 30. */
   overscan?: number;
-  /** Rounds fetch ranges to this boundary so small scrolls reuse the same batch; default 50. */
-  batchSize?: number;
+  /** Rounds fetch ranges to this boundary so small scrolls reuse the same page; default 50. */
+  pageSize?: number;
   /**
    * Caps rows per single `fetchRows` call: a gap wider than this is split into consecutive
    * chunks of at most `maxFetchRows` rows, each fetched independently (own dedup, abort, and
-   * failure). Chunk boundaries follow the gap's start, not `batchSize` boundaries. Non-integer
+   * failure). Chunk boundaries follow the gap's start, not `pageSize` boundaries. Non-integer
    * values are rounded down; values below 1 are treated as 1. Default: no cap.
    */
   maxFetchRows?: number;
-  /** Fired when a range fetch throws/rejects; the range reverts to unloaded and is retried next time it's visible. */
-  onError?: (error: unknown, range: Range) => void;
+  /** Fired when a range fetch throws/rejects; the range reverts to unloaded and is retried next time it's visible, or on `retry()`. */
+  onError?: (error: unknown) => void;
   /**
    * Fired once a range fetch resolves and the hook has marked that range loaded, with the range
    * that was actually written — a short response is clamped, so it can be smaller than the
@@ -76,6 +89,8 @@ export type UseDataGridLazyRowsResult<TData> = {
    * invalidated in place (a server-side refresh, a sort spec change). Stable across renders.
    */
   reset: () => void;
+  /** Re-requests the last reported window: the ranges that failed fetch again. Stable across renders. */
+  retry: () => void;
   /**
    * Unloads the loaded rows inside `range`; a partial overlap evicts the intersection only, the
    * rest stays loaded. The next `onRenderedRowsChange` covering the evicted rows re-fetches them.
@@ -126,7 +141,8 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     fetchRows,
     getRowId,
     overscan = DEFAULT_OVERSCAN,
-    batchSize = DEFAULT_BATCH_SIZE,
+    pageSize = DEFAULT_PAGE_SIZE,
+    spec = EMPTY_SERVER_SPEC,
     maxFetchRows,
     onLoaded,
     onError,
@@ -162,6 +178,14 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
     totalRef.current = total;
     reset();
   }
+  const specKey = serverSpecKey(spec);
+  const specKeyRef = useRef(specKey);
+  if (specKeyRef.current !== specKey) {
+    specKeyRef.current = specKey;
+    reset();
+  }
+  const specRef = useRef(spec);
+  specRef.current = spec;
 
   const fetchRowsRef = useRef(fetchRows);
   fetchRowsRef.current = fetchRows;
@@ -241,14 +265,14 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
       if (controller.signal.aborted) return;
       // failed ranges revert to unloaded (never entered loadedRangesRef) so the next
       // onRenderedRowsChange covering them naturally retries — "refetch on next visibility".
-      guardCallback(() => onErrorRef.current?.(error, range));
+      guardCallback(() => onErrorRef.current?.(error));
     };
 
     // try/catch guards a `fetchRows` that throws synchronously instead of returning a rejected
     // promise — inFlightRef is already set above, so without this a sync throw would leave the
     // range stuck "in flight" forever, permanently blocking any future refetch of it.
     try {
-      fetchRowsRef.current(range.start, range.end, controller.signal).then(handleFulfilled, handleRejected).finally(handleSettled);
+      fetchRowsRef.current({ start: range.start, end: range.end, signal: controller.signal, spec: specRef.current }).then(handleFulfilled, handleRejected).finally(handleSettled);
     } catch (error) {
       handleRejected(error);
       handleSettled();
@@ -258,7 +282,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   const onRenderedRowsChange = useCallback(
     (range: Range) => {
       lastWindowRef.current = range;
-      const expanded = expandRange(range, { overscan, batchSize, total: totalRef.current });
+      const expanded = expandRange(range, { overscan, batchSize: pageSize, total: totalRef.current });
       if (rangeSize(expanded) === 0) return;
       const covered = [...loadedRangesRef.current, ...Array.from(inFlightRef.current.values(), (v) => v.range)];
       const gaps = subtractRanges(expanded, covered);
@@ -266,8 +290,13 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
         for (const chunk of chunkRange(gap, maxFetchRows ?? Infinity)) runFetch(chunk);
       }
     },
-    [overscan, batchSize, maxFetchRows, runFetch],
+    [overscan, pageSize, maxFetchRows, runFetch],
   );
+
+  const retry = useCallback(() => {
+    const last = lastWindowRef.current;
+    if (last) onRenderedRowsChange(last);
+  }, [onRenderedRowsChange]);
 
   // No deps: this must observe the flag on every commit, and the flag makes repeat runs a no-op.
   useEffect(() => {
@@ -328,5 +357,5 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   // rather than visiting them as `undefined`, so a scan would undercount every unloaded slot.
   const unloadedCount = totalRef.current - sumRangeSizes(loadedRangesRef.current);
 
-  return { gridProps, onDataChange, unloadedCount, isLoading, reset, evict, getLoadedRanges };
+  return { gridProps, onDataChange, unloadedCount, isLoading, reset, retry, evict, getLoadedRanges };
 }

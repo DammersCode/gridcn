@@ -30,7 +30,7 @@ import {
   type AggregateSpecs,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { useDataGridPresence, type PresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
-import { useDataGridLazyRows, DataGridLazyGuard } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
 import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import {
   DataGridToolbar,
@@ -522,7 +522,7 @@ function LazySortedGrid({
 }): ReactNode {
   const sortsRef = useLatestRef(sorts);
   const fetchSorted = useCallback(
-    (start: number, end: number, signal: AbortSignal) => fetchLazyRows(start, end, signal, sortsRef.current),
+    ({ start, end, signal }: LazyFetchContext) => fetchLazyRows(start, end, signal, sortsRef.current),
     [sortsRef],
   );
   const lazy = useDataGridLazyRows<DemoRow>({

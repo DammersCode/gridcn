@@ -5,7 +5,7 @@ icon: Loader
 ---
 
 The baseline: `useDataGridLazyRows` owns the sparse row array and the range bookkeeping.
-You own `fetchRows(start, end, signal)`. The demo has 100,000 rows. Only the ranges that
+You own `fetchRows({ start, end, signal, spec })`. The demo has 100,000 rows. Only the ranges that
 actually scroll into view are ever fetched, and skeleton rows hold the space until each
 range lands. The two failure buttons show the transient/permanent error split. The third
 page covers what a real fetcher replaces.
@@ -20,8 +20,8 @@ page covers what a real fetcher replaces.
 const lazy = useDataGridLazyRows<Row>({
   total: 100_000,
   getRowId: (row) => row.id,
-  fetchRows: (start, end, signal) => api.fetchRows(start, end, signal),
-  onError: (error, range) => {
+  fetchRows: ({ start, end, signal }) => api.fetchRows({ start, end, signal }),
+  onError: (error) => {
     /* transient: auto-retries on next scroll; permanent: surface a retry button */
   },
 });
@@ -33,8 +33,7 @@ const lazy = useDataGridLazyRows<Row>({
   is ignored, so an abort is not an error. Reject with an `AbortError` and move on.
 - Failed ranges revert to unloaded and the next scroll into them retries automatically
   ("refetch on next visibility"). `onError` still fires, so a permanent failure (an expired
-   token, for example) can surface a manual retry. Re-fire
-   `gridProps.onRenderedRowsChange(range)`, and the range takes the same path as a real scroll.
+   token, for example) can surface a manual retry. Call `lazy.retry()` to request the last window again.
 
 ## Bring your own fetcher
 

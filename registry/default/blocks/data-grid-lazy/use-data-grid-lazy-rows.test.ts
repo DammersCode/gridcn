@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Range } from "./range-math";
-import { useDataGridLazyRows } from "./use-data-grid-lazy-rows";
+import { type ServerSpec } from "./server-spec";
+import { useDataGridLazyRows, type LazyFetchContext } from "./use-data-grid-lazy-rows";
 
 type Row = { id: string; name: string };
 
@@ -13,7 +14,7 @@ function makeRows(start: number, end: number): Row[] {
 
 describe("useDataGridLazyRows", () => {
   it("starts fully unloaded (every slot a hole) at the right length", () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() => useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id }));
     expect(result.current.gridProps.data.length).toBe(1000);
     expect(result.current.unloadedCount).toBe(1000);
@@ -21,9 +22,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("fetches an expanded range (overscan + batchSize rounding) on the first onRenderedRowsChange", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 10, batchSize: 50 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 10, pageSize: 50 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 100, end: 130 }));
@@ -31,16 +32,16 @@ describe("useDataGridLazyRows", () => {
 
     expect(fetchRows).toHaveBeenCalledTimes(1);
     // [100,130) + 10 overscan each side -> [90,140), rounded to 50 -> [50,150)
-    expect(fetchRows).toHaveBeenCalledWith(50, 150, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenCalledWith(expect.objectContaining({ start: 50, end: 150 }));
     expect(result.current.gridProps.data[60]).toEqual({ id: "row-60", name: "Person 60" });
     expect(result.current.gridProps.data[0]).toBeUndefined();
     expect(result.current.unloadedCount).toBe(1000 - 100);
   });
 
   it("never re-fetches an already-loaded range on a subsequent overlapping window", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 50 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 50 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -54,9 +55,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("only fetches the uncovered gap when a window partially overlaps a loaded range", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -66,19 +67,19 @@ describe("useDataGridLazyRows", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(2);
-    expect(fetchRows).toHaveBeenNthCalledWith(2, 50, 75, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(2, expect.objectContaining({ start: 50, end: 75 }));
   });
 
   it("dedups two overlapping in-flight requests fired before either resolves", async () => {
     let resolveFetch: ((rows: Row[]) => void) | undefined;
     const fetchRows = vi.fn(
-      (start: number, end: number) =>
+      ({ start, end }: LazyFetchContext) =>
         new Promise<Row[]>((resolve) => {
           resolveFetch = () => resolve(makeRows(start, end));
         }),
     );
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -94,9 +95,9 @@ describe("useDataGridLazyRows", () => {
 
   it("clamps an over-long fetch response to [start, end) and dev-warns on the mismatch", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end + 10));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end + 10));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -114,7 +115,7 @@ describe("useDataGridLazyRows", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetchRows = vi.fn(async () => makeRows(0, 10));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -130,21 +131,21 @@ describe("useDataGridLazyRows", () => {
 
   it("reverts a failed range to unloaded, calls onError, and refetches it the next time it's visible", async () => {
     let callCount = 0;
-    const fetchRows = vi.fn(async (start: number, end: number) => {
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => {
       callCount++;
       if (callCount === 1) throw new Error("network down");
       return makeRows(start, end);
     });
     const onError = vi.fn();
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onError }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onError }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(onError).toHaveBeenCalledTimes(1);
-    expect(onError).toHaveBeenCalledWith(expect.any(Error), { start: 0, end: 20 });
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
     expect(result.current.unloadedCount).toBe(1000);
     expect(result.current.gridProps.data[5]).toBeUndefined();
 
@@ -158,14 +159,14 @@ describe("useDataGridLazyRows", () => {
 
   it("catches a fetchRows that throws synchronously instead of returning a rejected promise, and still un-sticks the range for a later retry", async () => {
     let callCount = 0;
-    const fetchRows = vi.fn((start: number, end: number) => {
+    const fetchRows = vi.fn(({ start, end }: LazyFetchContext) => {
       callCount++;
       if (callCount === 1) throw new Error("sync boom");
       return Promise.resolve(makeRows(start, end));
     });
     const onError = vi.fn();
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onError }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onError }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -180,17 +181,17 @@ describe("useDataGridLazyRows", () => {
 
   it("aborts every in-flight fetch on unmount", async () => {
     const fetchRows = vi.fn(
-      (_start: number, _end: number, signal: AbortSignal) =>
+      ({ signal }: LazyFetchContext) =>
         new Promise<Row[]>((_resolve, reject) => {
           signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
         }),
     );
     const { result, unmount } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     let capturedSignal: AbortSignal | undefined;
-    fetchRows.mockImplementationOnce((_start, _end, signal: AbortSignal) => {
+    fetchRows.mockImplementationOnce(({ signal }: LazyFetchContext) => {
       capturedSignal = signal;
       return new Promise<Row[]>((_resolve, reject) => {
         signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
@@ -205,9 +206,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("merges adjacent loaded ranges so a later gap-fill query sees one covered span, not two", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 25 }));
@@ -220,14 +221,14 @@ describe("useDataGridLazyRows", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(3);
-    expect(fetchRows).toHaveBeenNthCalledWith(3, 50, 60, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(3, expect.objectContaining({ start: 50, end: 60 }));
   });
 
   it("resets to fully unloaded when total changes", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result, rerender } = renderHook(
       (props: { total: number }) =>
-        useDataGridLazyRows({ total: props.total, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+        useDataGridLazyRows({ total: props.total, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
       { initialProps: { total: 1000 } },
     );
 
@@ -241,9 +242,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("onDataChange merges an edited array back into the sparse rows", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
@@ -258,9 +259,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("onDataChange keeps rows a fetch wrote after the store's snapshot was taken", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
@@ -286,9 +287,9 @@ describe("useDataGridLazyRows", () => {
 
   it("onDataChange dev-warns once when an edit targets a row evicted before the merge, and writes nothing", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -308,9 +309,9 @@ describe("useDataGridLazyRows", () => {
 
   it("onDataChange warns when the eviction and the edit land in the same batch", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -328,9 +329,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("onDataChange applies a length-changing row op (delete) to the latest state, keeping alignment", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
@@ -361,7 +362,7 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("uses an index-derived placeholder id for unloaded rows via gridProps.getRowId", () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
       useDataGridLazyRows({ total: 10, fetchRows, getRowId: (r: Row) => r.id }),
     );
@@ -374,7 +375,7 @@ describe("useDataGridLazyRows", () => {
   // options.getRowId must accept core's 2-arg (row, index) shape, matching
   // DataGrid's own getRowId, so an index-derived fallback id compiles and resolves correctly.
   it("passes the loaded row's real index through to a 2-arg consumer getRowId", () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const indexedGetRowId = (row: Row, index: number) => row.id ?? `row-${index}`;
     const { result } = renderHook(() => useDataGridLazyRows({ total: 10, fetchRows, getRowId: indexedGetRowId }));
 
@@ -383,14 +384,14 @@ describe("useDataGridLazyRows", () => {
 
   it("reset() aborts in-flight fetches, drops all loaded rows, and refetches on the next window", async () => {
     let resolveFetch: ((rows: Row[]) => void) | undefined;
-    const fetchRows = vi.fn((start: number, end: number, signal: AbortSignal) => {
+    const fetchRows = vi.fn(({ signal }: LazyFetchContext) => {
       return new Promise<Row[]>((resolve, reject) => {
         resolveFetch = (rows: Row[]) => resolve(rows);
         signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
       });
     });
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -399,7 +400,7 @@ describe("useDataGridLazyRows", () => {
     act(() => result.current.reset());
     expect(result.current.unloadedCount).toBe(1000);
     expect(result.current.gridProps.data[5]).toBeUndefined();
-    expect(fetchRows.mock.calls[0]![2]!.aborted).toBe(true);
+    expect(fetchRows.mock.calls[0]![0].signal.aborted).toBe(true);
 
     // the old fetch rejects via its abort listener after the reset — it must not write stale rows.
     await act(async () => {
@@ -417,9 +418,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("reset() re-requests the last reported window, so visible rows refetch without a scroll", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -430,14 +431,14 @@ describe("useDataGridLazyRows", () => {
     expect(fetchRows).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(fetchRows).toHaveBeenNthCalledWith(2, 0, 20, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(2, expect.objectContaining({ start: 0, end: 20 }));
     expect(result.current.gridProps.data[5]).toEqual({ id: "row-5", name: "Person 5" });
   });
 
   it("an aborted fetch that settles after a replacement started does not clear the replacement's bookkeeping", async () => {
     let resolveFirst: ((rows: Row[]) => void) | undefined;
     let resolveSecond: ((rows: Row[]) => void) | undefined;
-    const fetchRows = vi.fn((_start: number, _end: number) => {
+    const fetchRows = vi.fn((_ctx: LazyFetchContext) => {
       const call = fetchRows.mock.calls.length;
       return new Promise<Row[]>((resolve) => {
         if (call === 1) resolveFirst = resolve;
@@ -445,7 +446,7 @@ describe("useDataGridLazyRows", () => {
       });
     });
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -475,9 +476,9 @@ describe("useDataGridLazyRows", () => {
     const onLoaded = vi.fn(() => {
       throw new Error("consumer bug");
     });
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onLoaded }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -490,9 +491,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("evict() holes the evicted range (keeping the rest of a partially overlapping loaded range) and refetches on the next window covering it", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 50 }));
@@ -507,19 +508,19 @@ describe("useDataGridLazyRows", () => {
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 12, end: 18 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(2);
-    expect(fetchRows).toHaveBeenNthCalledWith(2, 12, 18, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(2, expect.objectContaining({ start: 12, end: 18 }));
     expect(result.current.gridProps.data[15]).toEqual({ id: "row-15", name: "Person 15" });
   });
 
   it("evict() does not abort an in-flight fetch: its resolution still marks the range loaded", async () => {
     let resolveFetch: ((rows: Row[]) => void) | undefined;
-    const fetchRows = vi.fn((_start: number, _end: number) => {
+    const fetchRows = vi.fn((_ctx: LazyFetchContext) => {
       return new Promise<Row[]>((resolve) => {
         resolveFetch = (rows: Row[]) => resolve(rows);
       });
     });
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -535,9 +536,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("evict() is a no-op for unloaded and out-of-range targets, and clamps to [0, total]", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -556,9 +557,9 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("getLoadedRanges() returns a merged snapshot and a copy, and is empty after reset()", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1 }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1 }),
     );
 
     expect(result.current.getLoadedRanges()).toEqual([]);
@@ -578,10 +579,10 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("onLoaded fires with the actually written range after a fetch resolves", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const onLoaded = vi.fn();
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onLoaded }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -593,10 +594,10 @@ describe("useDataGridLazyRows", () => {
 
   it("onLoaded is clamped for a short response and skipped when nothing was written", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn(async (start: number, _end: number) => (start === 30 ? [] : makeRows(start, start + 5)));
+    const fetchRows = vi.fn(async ({ start }: LazyFetchContext) => (start === 30 ? [] : makeRows(start, start + 5)));
     const onLoaded = vi.fn();
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onLoaded }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -611,14 +612,14 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("onLoaded is not fired for aborted or rejected fetches", async () => {
-    const fetchRows = vi.fn((start: number, end: number, signal: AbortSignal) => {
+    const fetchRows = vi.fn(({ signal }: LazyFetchContext) => {
       return new Promise<Row[]>((_resolve, reject) => {
         signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
       });
     });
     const onLoaded = vi.fn();
     const { result, unmount } = renderHook(() =>
-      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, onLoaded }),
+      useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, onLoaded }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 20 }));
@@ -634,7 +635,7 @@ describe("useDataGridLazyRows", () => {
         fetchRows: failingFetchRows,
         getRowId: (r: Row) => r.id,
         overscan: 0,
-        batchSize: 1,
+        pageSize: 1,
         onLoaded,
       }),
     );
@@ -644,26 +645,26 @@ describe("useDataGridLazyRows", () => {
   });
 
   it("maxFetchRows splits a wide gap into consecutive chunked fetches of at most the cap", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, maxFetchRows: 20 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 45 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(fetchRows).toHaveBeenCalledTimes(3);
-    expect(fetchRows).toHaveBeenNthCalledWith(1, 0, 20, expect.any(AbortSignal));
-    expect(fetchRows).toHaveBeenNthCalledWith(2, 20, 40, expect.any(AbortSignal));
-    expect(fetchRows).toHaveBeenNthCalledWith(3, 40, 45, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(1, expect.objectContaining({ start: 0, end: 20 }));
+    expect(fetchRows).toHaveBeenNthCalledWith(2, expect.objectContaining({ start: 20, end: 40 }));
+    expect(fetchRows).toHaveBeenNthCalledWith(3, expect.objectContaining({ start: 40, end: 45 }));
     expect(result.current.gridProps.data[44]).toEqual({ id: "row-44", name: "Person 44" });
     expect(result.current.unloadedCount).toBe(1000 - 45);
   });
 
   it("maxFetchRows still dedups: covered chunks are never re-fetched, new gaps fetch only their uncovered part", async () => {
-    const fetchRows = vi.fn(async (start: number, end: number) => makeRows(start, end));
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result } = renderHook(() =>
-      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, batchSize: 1, maxFetchRows: 20 }),
+      useDataGridLazyRows({ total: 1000, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 1, maxFetchRows: 20 }),
     );
 
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 45 }));
@@ -677,7 +678,38 @@ describe("useDataGridLazyRows", () => {
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 40, end: 60 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(4);
-    expect(fetchRows).toHaveBeenNthCalledWith(4, 45, 60, expect.any(AbortSignal));
+    expect(fetchRows).toHaveBeenNthCalledWith(4, expect.objectContaining({ start: 45, end: 60 }));
   });
 
+});
+
+describe("useDataGridLazyRows: spec and retry", () => {
+  const specOf = (search: string): ServerSpec => ({ sorts: [], filters: [], search });
+
+  it("hands the spec to fetchRows and resets when its content changes", async () => {
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
+    const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 10, spec }), { initialProps: { spec: specOf("a") } });
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows.mock.calls[0]![0].spec.search).toBe("a");
+    rerender({ spec: specOf("a") });
+    expect(fetchRows).toHaveBeenCalledTimes(1);
+    rerender({ spec: specOf("b") });
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.search).toBe("b"));
+    expect(result.current.gridProps.data[0]).toBeDefined();
+  });
+
+  it("retry fetches the failed window again", async () => {
+    let fail = true;
+    const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => {
+      if (fail) throw new Error("down");
+      return makeRows(start, end);
+    });
+    const { result } = renderHook(() => useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 10, onError: () => {} }));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    fail = false;
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.gridProps.data[0]).toBeDefined());
+  });
 });

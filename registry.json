@@ -1328,6 +1328,11 @@
                "path": "registry/default/blocks/data-grid-lazy/range-math.ts",
                "type": "registry:component",
                "target": "components/data-grid-lazy/range-math.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-lazy/server-spec.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-lazy/server-spec.ts"
             }
          ],
          "categories": [

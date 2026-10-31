@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows, DataGridLazyGuard, type Range } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
 
 const TOTAL_COUNT = 100_000;
 /** A few hundred ms per fetch (spec: "simulated-latency in-memory API") — slow enough that skeleton rows are visibly on-screen during a fast scroll, fast enough the demo stays pleasant. */
@@ -51,7 +51,7 @@ function createSimulatedApi() {
     setFailPermanently(value: boolean): void {
       failPermanently = value;
     },
-    async fetchRows(start: number, end: number, signal: AbortSignal): Promise<LazyRow[]> {
+    async fetchRows({ start, end, signal }: LazyFetchContext): Promise<LazyRow[]> {
       await new Promise((resolve, reject) => {
         const timer = setTimeout(resolve, SIMULATED_LATENCY_MS);
         signal.addEventListener("abort", () => {
@@ -89,17 +89,13 @@ function createSimulatedApi() {
 export default function DataGridLazyDemo(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [failedRange, setFailedRange] = useState<Range | null>(null);
   const [permanentlyBroken, setPermanentlyBroken] = useState(false);
 
   const lazy = useDataGridLazyRows<LazyRow>({
     total: TOTAL_COUNT,
     fetchRows: api.fetchRows,
     getRowId: (row) => row.id,
-    onError: (error, range) => {
-      setLastError(error instanceof Error ? error.message : String(error));
-      setFailedRange(range);
-    },
+    onError: (error) => setLastError(error instanceof Error ? error.message : String(error)),
   });
 
   return (
@@ -143,10 +139,10 @@ export default function DataGridLazyDemo(): ReactNode {
           </Button>
         </div>
       </div>
-      {lastError && failedRange && (
+      {lastError && (
         <div role="alert" className="flex items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-xs">
           <span className="text-destructive">
-            Fetch failed for rows {failedRange.start}–{failedRange.end} ({lastError}).
+            Fetch failed ({lastError}).
             {permanentlyBroken ? " Backend is down — fix it, then retry." : " Will retry automatically on next scroll into view."}
           </span>
           <div className="flex shrink-0 gap-2">
@@ -168,11 +164,8 @@ export default function DataGridLazyDemo(): ReactNode {
               variant="outline"
               size="xs"
               onClick={() => {
-                // re-fires onRenderedRowsChange for the failed range — the same path a real scroll
-                // into it would take; there's no separate imperative retry call (see docs).
-                lazy.gridProps.onRenderedRowsChange(failedRange);
+                lazy.retry();
                 setLastError(null);
-                setFailedRange(null);
               }}
             >
               Retry

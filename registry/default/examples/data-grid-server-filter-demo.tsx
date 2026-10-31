@@ -26,7 +26,8 @@ export default function DataGridServerFilterDemo(): ReactNode {
   const lazy = useDataGridLazyRows<DemoRow>({
     total: applied.total,
     getRowId: (row) => row.id,
-    fetchRows: (start, end, signal) => server.fetchRange({ start, end, filters: applied.filters, signal }).then((page) => page.rows),
+    spec: { sorts: [], filters: applied.filters as FilterNode[], search: "" },
+    fetchRows: ({ start, end, signal, spec }) => server.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal }).then((page) => page.rows),
   });
 
   const onFilterChange = async (next: FilterNode[]) => {

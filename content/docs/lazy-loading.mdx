@@ -4,7 +4,7 @@ description: Fetch row ranges on demand for datasets too large (or too expensive
 icon: CloudDownload
 ---
 
-`data-grid-lazy` gives the grid a `total` and a `fetchRows(start, end)` function, and
+`data-grid-lazy` gives the grid a `total` and a `fetchRows({ start, end, signal, spec })` function, and
 `useDataGridLazyRows` fetches whatever range the grid actually scrolls into.
 
 <ComponentPreview name="data-grid-lazy-demo" />
@@ -51,7 +51,7 @@ shimmer with plain CSS instead of a class override.
     function OrdersGrid({ total }: { total: number }) {
       const lazy = useDataGridLazyRows<Order>({
         total,
-        fetchRows: (start, end, signal) => api.orders({ start, end, signal }), // inclusive-exclusive
+        fetchRows: ({ start, end, signal }) => api.orders({ start, end, signal }), // [start, end)
         getRowId: (row) => row.id,
       });
 
@@ -102,7 +102,7 @@ shimmer with plain CSS instead of a class override.
       selection, edit, or scroll-anchor state worth preserving across that transition.
     - **Fetch ranges are expanded and rounded**, not requested pixel-for-pixel: `overscan` pads
       the visible range on both sides (about 1 viewport by default), then both edges round
-      outward to the nearest `batchSize` boundary, so a small scroll reuses the same in-flight or
+      outward to the nearest `pageSize` boundary, so a small scroll reuses the same in-flight or
       already-loaded batch.
     - **Gaps wider than `maxFetchRows` split into chunks.** Each chunk is a separate request of
       at most `maxFetchRows` rows, with its own dedup, abort, and failure. The default is no
@@ -114,8 +114,8 @@ shimmer with plain CSS instead of a class override.
       fetch still in flight for an old dataset is also aborted if `total` changes out from under
       it.
     - **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
-      `onError(error, range)`. The next time that range comes back into view, `onRenderedRowsChange`
-      naturally re-requests it. There is no separate retry mechanism to wire up. A successful
+      `onError(error)`. The next time that range comes back into view, `onRenderedRowsChange`
+      naturally re-requests it. `retry()` requests the last window again on demand. A successful
       fetch calls `onLoaded(range)` with the range actually written; the rows commit on the next
       render, and `getLoadedRanges()` already includes the range.
   </Tab>
@@ -136,7 +136,7 @@ shimmer with plain CSS instead of a class override.
       total,
       fetchRows,
       getRowId,
-      onError: (error, range) => toast.error(`Failed to load rows ${range.start}–${range.end}`),
+      onError: () => toast.error("Failed to load rows"),
     });
     ```
 
@@ -158,16 +158,16 @@ shimmer with plain CSS instead of a class override.
 
 ## Tuning the fetch range
 
-`overscan`, `batchSize`, and `maxFetchRows` control the size of the ranges that reach
+`overscan`, `pageSize`, and `maxFetchRows` control the size of the ranges that reach
 `fetchRows`:
 
 - `overscan` pads the visible range on both sides (default about one viewport of rows).
-- `batchSize` rounds both edges of the padded range outward to the nearest multiple, so a
+- `pageSize` rounds both edges of the padded range outward to the nearest multiple, so a
   small scroll reuses the same batch.
 - `maxFetchRows` caps the rows of one `fetchRows` call. A wider gap splits into consecutive
   chunks of at most the cap. The default is no cap.
 
-`overscan` and `batchSize` default to values that fit a typical viewport. `maxFetchRows` has no
+`overscan` and `pageSize` default to values that fit a typical viewport. `maxFetchRows` has no
 default cap. Adjust them when the defaults do not fit:
 
 ```tsx
@@ -176,14 +176,14 @@ useDataGridLazyRows({
   fetchRows,
   getRowId,
   overscan: 60,
-  batchSize: 100,
+  pageSize: 100,
   maxFetchRows: 200,
 });
 ```
 
 Set `maxFetchRows` when your backend limits rows per request. Each chunk is an independent
 request with its own dedup, abort, and failure, and chunk boundaries follow the gap's start,
-not `batchSize` boundaries.
+not `pageSize` boundaries.
 
 ## Memory & retention
 
@@ -253,14 +253,12 @@ const [sorts, setSorts] = useState<SortSpec[]>([]);
 const lazy = useDataGridLazyRows<Order>({
   total: 100_000,
   getRowId: (row) => row.id,
-  fetchRows: (start, end, signal) => api.orders({ start, end, sorts, signal }),
+  spec: { sorts, filters: [], search: "" },
+  fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, sorts: spec.sorts, signal }),
 });
 
-const onSortChange = (next: SortSpec[]) => {
-  // a sort change invalidates every fetched range, so drop them before the refetch runs
-  lazy.reset();
-  setSorts(next);
-};
+// a changed spec drops every fetched range and refetches the window in view
+const onSortChange = (next: SortSpec[]) => setSorts(next);
 
 <DataGridProvider
   data={lazy.gridProps.data}
@@ -302,7 +300,8 @@ const [applied, setApplied] = useState<{ filters: FilterNode[]; total: number }>
 const lazy = useDataGridLazyRows<Order>({
   total: applied.total,
   getRowId: (row) => row.id,
-  fetchRows: (start, end, signal) => api.orders({ start, end, filters: applied.filters, signal }),
+  spec: { sorts: [], filters: applied.filters, search: "" },
+  fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, filters: spec.filters, signal }),
 });
 
 const latestFilter = useRef(0);
@@ -311,7 +310,6 @@ const onFilterChange = async (filters: FilterNode[]) => {
   const request = ++latestFilter.current;
   const { total } = await api.count({ filters });
   if (request !== latestFilter.current) return;
-  if (total === applied.total) lazy.reset();
   setApplied({ filters, total });
 };
 

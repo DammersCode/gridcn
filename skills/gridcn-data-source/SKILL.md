@@ -47,7 +47,7 @@ For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unlo
 
 Applies to `data-grid-lazy`:
 
-- A sort/filter spec change must call `lazy.reset()` before the refetch runs, or already-fetched ranges keep serving the old order/set.
+- Pass the spec as `spec: { sorts, filters, search }` so a change resets the hook and `fetchRows` receives it. Without `spec`, a sort/filter change must call `lazy.reset()` before the refetch runs, or already-fetched ranges keep serving the old order/set. `lazy.retry()` repeats the failed window; `onError(error)` has no range.
 - `DataGridUrlState` (from `data-grid-url-state`) mounts on a lazy grid only with both `sortMode="server"` and `filterMode="server"`. Then the store keeps the URL spec and never sorts or filters the partial `data`; fetch the rows for the restored spec. Without both modes it re-sorts and re-filters the partial `data`.
 - Filtering a lazy grid takes `filterMode="server"`. Send the spec to `fetchRows` and set `total` to the filtered count; a changed `total` resets the hook, so call `lazy.reset()` only when `total` stays the same.
 - With `sortMode="server"` the header indicator, `aria-sort`, and `DataGridSortList` track the spec and the grid never reorders `data`; a controlled-empty `sortState` is the old workaround and blanks them.

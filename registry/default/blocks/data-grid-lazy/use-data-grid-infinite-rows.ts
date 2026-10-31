@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { Range } from "./range-math";
+import { EMPTY_SERVER_SPEC, serverSpecKey, type ServerSpec } from "./server-spec";
 
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_OVERSCAN = 30;
@@ -17,6 +18,8 @@ export type InfiniteFetchContext<TCursor> = {
   /** Rows to ask for: `pageSize`, capped by `maxFetchRows`. The server may return fewer or more. */
   limit: number;
   signal: AbortSignal;
+  /** The sort, filter, and search that were current when the request started. */
+  spec: ServerSpec;
 };
 
 /** What `fetchRows` of {@link useDataGridInfiniteRows} resolves with. */
@@ -31,6 +34,8 @@ export type UseDataGridInfiniteRowsOptions<TData, TCursor = unknown> = {
   /** Fetches the page after `cursor`. A rejection or a non-array `rows` calls `onError` and stops the chain until the window next reports. */
   fetchRows: (ctx: InfiniteFetchContext<TCursor>) => Promise<InfiniteFetchResult<TData, TCursor>>;
   getRowId: (row: TData, index: number) => string;
+  /** The sort, filter, and search of your request, handed back to `fetchRows`. A change of its content resets the hook like `reset()`. */
+  spec?: ServerSpec;
   /** Rows requested per fetch, and skeleton rows shown below the loaded rows while more exist. Default 50. */
   pageSize?: number;
   /** A fetch starts when the rendered window comes within this many rows of the loaded end. Default 30. */
@@ -62,6 +67,8 @@ export type UseDataGridInfiniteRowsResult<TData> = {
   isLoading: boolean;
   /** Aborts the fetch, drops every row and the cursor, and requests the first page again. Call it when sort, filter, or search changes. */
   reset: () => void;
+  /** Repeats the fetch that failed. Stable across renders. */
+  retry: () => void;
 };
 
 type Loaded<TData> = { rows: TData[]; hasMore: boolean };
@@ -111,6 +118,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     controllerRef.current = controller;
     setIsLoading(true);
     const start = rows.length;
+    const spec = optionsRef.current.spec ?? EMPTY_SERVER_SPEC;
 
     const settle = () => {
       if (controllerRef.current !== controller) return;
@@ -141,7 +149,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     };
 
     try {
-      optionsRef.current.fetchRows({ cursor: cursorRef.current, start, limit, signal: controller.signal }).then(fulfilled, rejected).finally(settle);
+      optionsRef.current.fetchRows({ cursor: cursorRef.current, start, limit, signal: controller.signal, spec }).then(fulfilled, rejected).finally(settle);
     } catch (error) {
       rejected(error);
       settle();
@@ -182,6 +190,19 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     pendingWindowRef.current = lastWindowRef.current !== null;
   }, []);
 
+  const specKey = serverSpecKey(options.spec ?? EMPTY_SERVER_SPEC);
+  const specKeyRef = useRef(specKey);
+  useLayoutEffect(() => {
+    if (specKeyRef.current === specKey) return;
+    specKeyRef.current = specKey;
+    reset();
+  }, [specKey, reset]);
+
+  const retry = useCallback(() => {
+    const last = lastWindowRef.current;
+    if (last) onRenderedRowsChange(last);
+  }, [onRenderedRowsChange]);
+
   const gridGetRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : getRowId(row, index)), [getRowId]);
 
   const onDataChange = useCallback(
@@ -216,5 +237,6 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     unloadedCount: loaded.hasMore ? pageSize : 0,
     isLoading,
     reset,
+    retry,
   };
 }

@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows, DataGridLazyGuard } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
 
 const TOTAL_COUNT = 10_000;
 const SIMULATED_LATENCY_MS = 300;
@@ -28,7 +28,7 @@ function rowAt(index: number): LazyRow {
 
 function createSimulatedApi() {
   return {
-    async fetchRows(start: number, end: number, signal: AbortSignal): Promise<LazyRow[]> {
+    async fetchRows({ start, end, signal }: LazyFetchContext): Promise<LazyRow[]> {
       await new Promise((resolve, reject) => {
         const timer = setTimeout(resolve, SIMULATED_LATENCY_MS);
         signal.addEventListener("abort", () => {
@@ -63,11 +63,11 @@ function LazyReactQueryGrid(): ReactNode {
   const lazy = useDataGridLazyRows<LazyRow>({
     total: TOTAL_COUNT,
     getRowId: (row) => row.id,
-    fetchRows: (start, end, signal) =>
+    fetchRows: ({ start, end, signal, spec }) =>
       queryClient.fetchQuery({
         queryKey: ["rows", start, end],
         staleTime: Infinity,
-        queryFn: () => api.fetchRows(start, end, signal),
+        queryFn: () => api.fetchRows({ start, end, signal, spec }),
       }),
   });
   const cachedWindows = queryClient.getQueriesData({ queryKey: ["rows"] }).length;

@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows, DataGridLazyGuard } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
 
 const TOTAL_COUNT = 10_000;
 const SIMULATED_LATENCY_MS = 300;
@@ -28,7 +28,7 @@ function rowAt(index: number): LazyRow {
 
 function createSimulatedApi() {
   return {
-    async fetchRows(start: number, end: number, signal: AbortSignal): Promise<LazyRow[]> {
+    async fetchRows({ start, end, signal }: LazyFetchContext): Promise<LazyRow[]> {
       await new Promise((resolve, reject) => {
         const timer = setTimeout(resolve, SIMULATED_LATENCY_MS);
         signal.addEventListener("abort", () => {
@@ -64,8 +64,8 @@ function LazySwrGrid(): ReactNode {
   const lazy = useDataGridLazyRows<LazyRow>({
     total: TOTAL_COUNT,
     getRowId: (row) => row.id,
-    fetchRows: (start, end, signal) =>
-      preload(["rows", start, end] as [string, number, number], (key) => api.fetchRows(key[1], key[2], signal)),
+    fetchRows: ({ start, end, signal, spec }) =>
+      preload(["rows", start, end] as [string, number, number], (key) => api.fetchRows({ start: key[1], end: key[2], signal, spec })),
   });
 
   return (

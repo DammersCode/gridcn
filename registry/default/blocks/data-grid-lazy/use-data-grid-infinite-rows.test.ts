@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_SERVER_SPEC, type ServerSpec } from "./server-spec";
 import { useDataGridInfiniteRows, type InfiniteFetchContext } from "./use-data-grid-infinite-rows";
 
 type Row = { id: string };
@@ -40,7 +41,7 @@ describe("useDataGridInfiniteRows", () => {
     const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
     act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(fetchRows).toHaveBeenCalledWith({ cursor: undefined, start: 0, limit: 10, signal: expect.any(AbortSignal) });
+    expect(fetchRows).toHaveBeenCalledWith({ cursor: undefined, start: 0, limit: 10, signal: expect.any(AbortSignal), spec: EMPTY_SERVER_SPEC });
     expect(result.current.gridProps.data).toHaveLength(20);
     expect(result.current.gridProps.data[9]).toEqual({ id: "r9" });
     expect(result.current.gridProps.data[10]).toBeUndefined();
@@ -207,5 +208,36 @@ describe("useDataGridInfiniteRows: option swaps", () => {
     release();
     await waitFor(() => expect(result.current.gridProps.data[10]).toBeDefined());
     expect(result.current.gridProps.data[0]).toMatchObject({ name: "x" });
+  });
+});
+
+describe("useDataGridInfiniteRows: spec and retry", () => {
+  const specOf = (search: string): ServerSpec => ({ sorts: [], filters: [], search });
+
+  it("hands the spec to fetchRows and restarts at the first page when its content changes", async () => {
+    const fetchRows = source(25);
+    const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridInfiniteRows({ ...options(fetchRows), spec }), { initialProps: { spec: specOf("a") } });
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(fetchRows.mock.calls[0]![0].spec.search).toBe("a");
+    rerender({ spec: specOf("a") });
+    expect(fetchRows).toHaveBeenCalledTimes(1);
+    rerender({ spec: specOf("b") });
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.search).toBe("b"));
+    expect(fetchRows.mock.calls.at(-1)![0].cursor).toBeUndefined();
+  });
+
+  it("retry repeats the fetch that failed", async () => {
+    let fail = true;
+    const fetchRows = vi.fn<Fetch>(async () => {
+      if (fail) throw new Error("down");
+      return { rows: rowsOf(0, 10), nextCursor: null };
+    });
+    const { result } = renderHook(() => useDataGridInfiniteRows({ ...options(fetchRows), onError: () => {} }));
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    fail = false;
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.total).toBe(10));
   });
 });

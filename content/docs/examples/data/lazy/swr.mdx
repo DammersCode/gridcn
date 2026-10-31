@@ -19,9 +19,9 @@ the same key gets the range for free.
 const lazy = useDataGridLazyRows<Row>({
   total: 10_000,
   getRowId: (row) => row.id,
-  fetchRows: (start, end, signal) =>
+  fetchRows: ({ start, end, signal }) =>
     preload(["rows", start, end] as [string, number, number], (key) =>
-      api.fetchRows(key[1], key[2], signal),
+      api.fetchRows({ start: key[1], end: key[2], signal }),
     ),
 });
 ```

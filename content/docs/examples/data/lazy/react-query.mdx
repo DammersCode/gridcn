@@ -21,11 +21,11 @@ const queryClient = useQueryClient();
 const lazy = useDataGridLazyRows<Row>({
   total: 10_000,
   getRowId: (row) => row.id,
-  fetchRows: (start, end, signal) =>
+  fetchRows: ({ start, end, signal }) =>
     queryClient.fetchQuery({
       queryKey: ["rows", start, end],
       staleTime: Infinity,
-      queryFn: () => api.fetchRows(start, end, signal),
+      queryFn: () => api.fetchRows({ start, end, signal }),
     }),
 });
 ```

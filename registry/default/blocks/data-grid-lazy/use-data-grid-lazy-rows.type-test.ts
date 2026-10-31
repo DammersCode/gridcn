@@ -7,7 +7,7 @@
  * not pick it up, matching the repo's other type-test files).
  */
 import type { ColumnDefOf, DataChange, DataGridProps } from "@/registry/default/blocks/data-grid/data-grid";
-import type { Range, UseDataGridLazyRowsOptions, UseDataGridLazyRowsResult } from "./data-grid-lazy";
+import type { LazyFetchContext, Range, UseDataGridLazyRowsOptions, UseDataGridLazyRowsResult } from "./data-grid-lazy";
 
 /** Compile-only check: `Actual` must be identical to `Expected` (both directions assignable). */
 type Equal<Expected, Actual> = (<T>() => T extends Expected ? 1 : 2) extends <T>() => T extends Actual ? 1 : 2
@@ -25,6 +25,7 @@ assertEqual<(next: readonly Row[], change: DataChange<Row>) => void, LazyResult[
 assertEqual<number, LazyResult["unloadedCount"]>(true);
 assertEqual<boolean, LazyResult["isLoading"]>(true);
 assertEqual<() => void, LazyResult["reset"]>(true);
+assertEqual<() => void, LazyResult["retry"]>(true);
 assertEqual<(range: Range) => void, LazyResult["evict"]>(true);
 assertEqual<() => readonly Range[], LazyResult["getLoadedRanges"]>(true);
 assertEqual<
@@ -37,12 +38,12 @@ assertEqual<
 type LazyOptions = UseDataGridLazyRowsOptions<Row>;
 
 assertEqual<number, LazyOptions["total"]>(true);
-assertEqual<(start: number, end: number, signal: AbortSignal) => Promise<Row[]>, LazyOptions["fetchRows"]>(true);
+assertEqual<(ctx: LazyFetchContext) => Promise<Row[]>, LazyOptions["fetchRows"]>(true);
 assertEqual<(row: Row, index: number) => string, LazyOptions["getRowId"]>(true);
 assertEqual<number | undefined, LazyOptions["overscan"]>(true);
-assertEqual<number | undefined, LazyOptions["batchSize"]>(true);
+assertEqual<number | undefined, LazyOptions["pageSize"]>(true);
 assertEqual<number | undefined, LazyOptions["maxFetchRows"]>(true);
-assertEqual<((error: unknown, range: Range) => void) | undefined, LazyOptions["onError"]>(true);
+assertEqual<((error: unknown) => void) | undefined, LazyOptions["onError"]>(true);
 assertEqual<((range: Range) => void) | undefined, LazyOptions["onLoaded"]>(true);
 
 // --- Range identity: an object of the exported Range is exactly the evict param

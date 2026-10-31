@@ -19,13 +19,11 @@ function OrdersGrid({ total }: { total: number }) {
   const lazy = useDataGridLazyRows<Order>({
     total, // fetch the count first
     getRowId: (row) => row.id,
-    fetchRows: (start, end, signal) => api.orders({ start, end, sorts, signal }),
+    spec: { sorts, filters: [], search: "" }, // a changed spec drops the fetched windows and refetches
+    fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, sorts: spec.sorts, signal }),
   });
 
-  const onSortChange = (next: SortSpec[]) => {
-    lazy.reset(); // already-fetched windows hold the old order; drop them before refetching
-    setSorts(next);
-  };
+  const onSortChange = (next: SortSpec[]) => setSorts(next);
 
   return (
     <DataGridProvider
@@ -54,7 +52,7 @@ Rules that make this work, and break silently if skipped:
 - **`sortMode="server"` leaves the order to the server.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`) and calls `onSortChange`, but never reorders `data`. Passing `sortState={sorts}` as well is allowed.
 - **Set `filterMode="server"`** for filtering. The grid tracks the spec (filter menu, header filters, `data-filtered`) and calls `onFilterChange`, but never filters `data`. Hold the spec in your state, send it to `fetchRows`, and set `total` to the filtered count. Pass `fetchFilterValues` to list column values from your server.
 - **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. To search the whole dataset, send `searchText` (read it with `useDataGridSearchText`, or use `searchText` with `onSearchTextChange`) to `fetchRows`.
-- **A sort change must call `lazy.reset()` before (or as part of) updating the spec. A filter change resets through the new `total`; call `lazy.reset()` when `total` stays the same.** Already-fetched windows hold rows in the old order/set; without the reset they keep serving stale data until evicted some other way. Remounting the provider on a key derived from the spec also clears them, but also resets selection/edit/scroll state — heavier.
+- **Pass the spec to the hook (`spec: { sorts, filters, search }`).** A change of its content resets the hook and refetches the window in view; `fetchRows` receives the spec of its request. Without `spec`, call `lazy.reset()` on a sort change (a filter change resets through the new `total`; call `lazy.reset()` when `total` stays the same). Already-fetched windows hold rows in the old order/set; without a reset they keep serving stale data.
 - `DataGridUrlState` mounts on this grid only with both `sortMode="server"` and `filterMode="server"`; the store then keeps the URL spec and never re-sorts or re-filters the partial `data`.
 
 ## `data-grid-pagination` (server mode)
