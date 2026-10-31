@@ -41,7 +41,7 @@ export default function DataGridServerFilterDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-2">
       <p className="text-sm text-muted-foreground">
-        {applied.total.toLocaleString("en-US")} rows match{lazy.isLoading && " · fetching…"}
+        {applied.total.toLocaleString("en-US")} rows match<span className={lazy.isLoading ? undefined : "invisible"}> · fetching…</span>
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
