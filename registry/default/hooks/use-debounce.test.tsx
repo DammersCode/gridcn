@@ -288,6 +288,47 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect((view.getByLabelText("two") as HTMLInputElement).value).toBe("abc");
   });
 
+  it("echoes in order through a repeated text never show an older one", () => {
+    function Repeat() {
+      const [value, setValue] = useState("");
+      const [sent, setSent] = useState<string[]>([]);
+      const [applied, setApplied] = useState(0);
+      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      return (
+        <>
+          <input aria-label="rep" {...input.inputProps} />
+          <button
+            onClick={() => {
+              setValue(sent[applied] ?? "");
+              setApplied((n) => n + 1);
+            }}
+          >
+            apply
+          </button>
+        </>
+      );
+    }
+    const view = render(<Repeat />);
+    const field = view.getByLabelText("rep") as HTMLInputElement;
+    for (const text of ["a", "ab", "a"]) {
+      type(field, text);
+      act(() => void vi.advanceTimersByTime(300));
+    }
+    fireEvent.click(view.getByText("apply"));
+    expect(field.value).toBe("a");
+    fireEvent.click(view.getByText("apply"));
+    expect(field.value).toBe("a");
+    fireEvent.click(view.getByText("apply"));
+    expect(field.value).toBe("a");
+  });
+
+  it("useDebounce returns the latest value after the delay changes from 0 to a positive number", () => {
+    const { result, rerender } = renderHook(({ value, delayMs }) => useDebounce(value, delayMs), { initialProps: { value: "a", delayMs: 0 } });
+    rerender({ value: "b", delayMs: 0 });
+    rerender({ value: "b", delayMs: 100 });
+    expect(result.current).toBe("b");
+  });
+
   it("shows value again once the parent moves it away from the typed base", () => {
     function Outer() {
       const [value, setValue] = useState("a");
