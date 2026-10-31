@@ -21,8 +21,8 @@ function settleTyped(typed: TypedText | null, value: string): TypedText | null {
 }
 
 const DEFAULT_DELAY_MS = 300;
-/** Commits remembered while the parent has not applied them yet. */
-const MAX_QUEUED = 8;
+/** Commits remembered while the parent has not applied them yet. The echo of an older commit counts as an outside change. */
+const MAX_QUEUED = 64;
 
 /** The debounced copy of `value`: it follows `value` once `value` has stayed the same for `delayMs`. */
 export function useDebounce<T>(value: T, delayMs: number = DEFAULT_DELAY_MS): T {

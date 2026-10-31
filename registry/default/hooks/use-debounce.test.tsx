@@ -350,6 +350,24 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(field.value).toBe("a");
   });
 
+  it("the echo of a commit older than the queue counts as a change from outside", () => {
+    function Lag() {
+      const [value, setValue] = useState("");
+      const input = useDebouncedInput(value, () => {}, { delayMs: 0 });
+      return (
+        <>
+          <input aria-label="lag" {...input.inputProps} />
+          <button onClick={() => setValue("t0")}>old echo</button>
+        </>
+      );
+    }
+    const view = render(<Lag />);
+    const field = view.getByLabelText("lag") as HTMLInputElement;
+    for (let i = 0; i < 70; i++) type(field, `t${i}`);
+    fireEvent.click(view.getByText("old echo"));
+    expect(field.value).toBe("t0");
+  });
+
   it("more commits in flight than the queue holds still end on value", () => {
     function Many() {
       const [value, setValue] = useState("");
