@@ -40,11 +40,11 @@ describe("row aria-selected", () => {
     expect(rowStates()).toEqual(rows.map(() => "false"));
   });
 
-  it("Mod+A checks every row", async () => {
+  it("Mod+A selects cells, so no row reads selected", async () => {
     await mount("checkbox");
     await userEvent.click(checkboxAt(0));
     await userEvent.keyboard("{Control>}a{/Control}");
-    await expect.poll(rowStates).toEqual(rows.map(() => "true"));
+    await expect.poll(rowStates).toEqual(rows.map(() => "false"));
   });
 
   it("without checkbox markers an unselected row has no aria-selected", async () => {

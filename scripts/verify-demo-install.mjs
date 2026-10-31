@@ -248,7 +248,8 @@ for (const item of examples) {
       const registryComponentMatch = spec.match(/^@\/registry\/default\/components\/([^/]+)\/(.+)$/);
       if (registryComponentMatch) {
         const [, compItem, rest] = registryComponentMatch;
-        const inClosure = closure.has(compItem);
+        // Hook and lib items install to components/gridcn/<file>; the owning item must be in the closure.
+        const inClosure = compItem === "gridcn" || closure.has(compItem);
         const target = `components/${compItem}/${rest}`;
         const resolves = inClosure && (EXTENSIONS.some((ext) => closureTargets.has(target + ext)) || [...closureTargets].some((t) => t === target + "/index.ts" || t === target + "/index.tsx"));
         if (!resolves) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Writes each registry.json files[] target (blocks/<item>/<rest> -> components/<item>/<rest>, examples flat), so the shadcn CLI keeps the nesting.
+// Writes each registry.json files[] target (blocks/<item>/<rest> -> components/<item>/<rest>, examples flat, hooks and lib -> components/gridcn/<file>), so the shadcn CLI keeps the nesting.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -10,6 +10,7 @@ const registryPath = join(root, "registry.json");
 
 const BLOCKS_RE = /^registry\/default\/blocks\/([^/]+)\/(.+)$/;
 const EXAMPLES_RE = /^registry\/default\/examples\/(.+)$/;
+const STANDALONE_RE = /^registry\/default\/(?:hooks|lib)\/(.+)$/;
 
 export function deriveTarget(path) {
   const blocksMatch = path.match(BLOCKS_RE);
@@ -22,6 +23,8 @@ export function deriveTarget(path) {
     const [, rest] = examplesMatch;
     return `components/${rest}`;
   }
+  const standaloneMatch = path.match(STANDALONE_RE);
+  if (standaloneMatch) return `components/gridcn/${standaloneMatch[1]}`;
   return path;
 }
 

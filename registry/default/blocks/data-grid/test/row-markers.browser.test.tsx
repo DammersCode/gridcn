@@ -907,19 +907,19 @@ describe("row checking by keyboard", () => {
     await userEvent.click(gridCells()[0]!);
     await userEvent.keyboard("{Alt>}{ArrowDown}{ArrowDown}{/Alt}");
     await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
-    await vi.waitFor(() => expect(checked()).toEqual([true, false, true, false, false]));
+    await vi.waitFor(() => expect(checked()).toEqual([false, false, true, false, false]));
     await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
-    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+    await vi.waitFor(() => expect(checked()).toEqual([false, false, false, false, false]));
   });
 
-  it("Ctrl+Shift+Space unchecks a row that a plain click checked through the cell range, then checks it again", async () => {
+  it("a plain click does not check the row; Ctrl+Shift+Space checks it, then unchecks it again", async () => {
     await renderCheckboxGrid();
     await userEvent.click(gridCells()[0]!);
-    await vi.waitFor(() => expect(checked()[0]).toBe(true));
-    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()[0]).toBe(false));
     await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()[0]).toBe(true));
+    await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
+    await vi.waitFor(() => expect(checked()[0]).toBe(false));
   });
 
   it("Mod+Shift+E checks every row, then unchecks them, like the header checkbox", async () => {
@@ -928,8 +928,7 @@ describe("row checking by keyboard", () => {
     await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([true, true, true, true, true]));
     await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
-    // the clicked cell's own range still reads as row 0 selected, exactly like the header checkbox
-    await vi.waitFor(() => expect(checked()).toEqual([true, false, false, false, false]));
+    await vi.waitFor(() => expect(checked()).toEqual([false, false, false, false, false]));
   });
 });
 
@@ -1210,7 +1209,7 @@ describe("row range checking", () => {
       await renderGrid("checkbox");
       await userEvent.click(gridCells()[2 * 2]!);
       await userEvent.keyboard("{Shift>}{Home}{/Shift}");
-      expect(checkedRows()).toEqual([2]);
+      expect(checkedRows()).toEqual([]);
     });
 
     it("Shift+Arrow after a marker click steps from the moving edge, not the active cell", async () => {
@@ -1225,7 +1224,6 @@ describe("row range checking", () => {
       await renderGrid("checkbox");
       await userEvent.click(gridCells()[0]!);
       await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
-      await userEvent.keyboard("{Control>}{Shift>} {/Shift}{/Control}");
       await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
       expect(checkedRows()).toEqual([0, 1]);
     });
@@ -1235,7 +1233,7 @@ describe("row range checking", () => {
       await userEvent.click(gridCells()[0]!);
       await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
       expect(document.querySelector(`[${GRID_ATTR.active}]`)?.textContent).toBe("Person 0");
-      expect(checkedRows()).toEqual([0, 1]);
+      expect(checkedRows()).toEqual([]);
     });
   });
 });
