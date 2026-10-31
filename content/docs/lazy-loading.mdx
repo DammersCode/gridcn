@@ -411,16 +411,15 @@ const rows = useDataGridInfiniteRows<Order, string>({
 - The hook has no `evict` and no `getLoadedRanges`: a cursor chain cannot refetch an arbitrary range. It keeps
   every loaded row, so stop returning a cursor when the list must not grow without bound.
 
-Select-all checks the loaded rows and the skeleton rows, so it never means "every matching row".
-Bulk actions over the whole result go to your own endpoint.
+Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows, so it never means "every matching row". Pass `totalRowCount={null}` to the provider and the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
-To keep checks across evictions and to select every matching row, pass `totalRowCount` to the provider. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
-
-<Callout type="warn" title="Select-all includes the unloaded rows">
+<Callout type="warn" title="Without totalRowCount, select-all includes the unloaded rows">
   The view is `total` rows long, loaded or not, so the two-stage select-all (
   <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice) selects the full view, holes included.
   `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id
-  (`__lazy-unloaded-<index>`), not a real row id. If a selection must mean "only loaded rows",
+  (`__lazy-unloaded-<index>`), not a real row id. With `totalRowCount`, use
+  [`useDataGridSelectedRows`](/docs/selection-keyboard#selection-over-a-server-result) instead:
+  it lists real ids only. Without it, if a selection must mean "only loaded rows",
    filter the selected rows through the sparse `data` array yourself (a hole is `undefined`
    there) or read `lazy.getLoadedRanges()` and keep only the rows whose index falls in a
    loaded range. The result is a snapshot that never triggers a render. Call it in an effect

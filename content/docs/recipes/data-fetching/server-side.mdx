@@ -19,7 +19,7 @@ sorting and filtering the response a second time.
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
-4. Pass the response as `data`. Pass `total` to the pager or to `useDataGridLazyRows`.
+4. Pass the response as `data`. Pass `total` to the pager or to `useDataGridLazyRows`, and pass the same count to the provider as `totalRowCount` (`null` when the server sends none).
 
 Set `headerClickBehavior="sort"`. The default, `"select"`, makes a header click select the column,
 and `onSortChange` never fires.
@@ -84,14 +84,59 @@ clamped page, but your `page` state changes only with `reconcilePage: true`
 [Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid) and
 [Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
 
-Checked rows, the cell range, and the active cell follow their row ids while the rows stay in
-`data`. A page change or refetch that removes a row drops it.
+The cell range and the active cell follow their row ids while the rows stay in `data`. A page
+change or refetch that removes a row drops it from the range. Checked rows depend on `totalRowCount`:
+without it, a checked row that leaves `data` drops out. With it (and `keepCheckedRows`), the grid
+remembers the check by row id and checks the row again when it returns. See
+[Selection and bulk actions](#selection-and-bulk-actions).
 
-## Writes and async gates
+## Row count and unknown totals
 
-An edit calls `onDataChange` with `ops`. Send the `ops` to your API, then refetch. See
-[Server round-trip](/docs/recipes/data-fetching/server-round-trip) and
-[TanStack Query](/docs/recipes/data-fetching/tanstack-query).
+<NewBadge />
+
+Pass the filtered row count to the provider as `totalRowCount`. It sizes the "select all" count and
+marks `data` as a window of a larger result. A server that sends no count has two connections:
+
+- Pages: `useDataGridPagination({ page, pageSize, hasNextPage, onPageChange })`. The footer shows
+  "Page N" and enables Next while `hasNextPage` is true. See [Pagination](/docs/pagination#without-a-total).
+- Scroll: `useDataGridInfiniteRows` loads a cursor chain and grows the list in steps. See
+  [A source with no total](/docs/lazy-loading#a-source-with-no-total). Pass `totalRowCount={null}`.
+
+## Selection and bulk actions
+
+<NewBadge />
+
+Set `keepCheckedRows` and `totalRowCount`. Checks then survive page changes, evictions, and server sort
+or filter changes, and `actions.selectAllMatching()` selects the whole result:
+
+```tsx
+const selected = useDataGridSelectedRows();
+await api.deleteOrders(selected.mode === "ids" ? { ids: selected.ids } : { filters, search, exceptIds: selected.excludedIds });
+```
+
+Send the spec you already hold with the ids. The server evaluates and bounds both. See
+[Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
+
+## Saving and refusals
+
+<NewBadge />
+
+Send an edit to your API from `onSave(change)`. Return a promise that resolves with the rows the server
+refused. The grid marks the rows `saving`, reverts only the refused ones, and calls `onWriteRejected`:
+
+```tsx
+<DataGridProvider
+  onDataChange={(next) => setRows(next as Order[])}
+  onSave={async (change) => ({ rejected: await api.saveOrders(change.ops) })}
+  onWriteRejected={({ rejected }) => toast.error(rejected[0]?.message ?? "Refused")}
+/>
+```
+
+`onSave` never receives the revert (`source: "rollback"`) or a server push (`source: "stream"`). See
+[Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change)
+and [TanStack Query](/docs/recipes/data-fetching/tanstack-query).
+
+## Async gates
 
 [Async gates](/docs/examples/validation/async-gates) hold a paste, an edit start, or a row insert
 until your API answers. The grid drops the result of a gate, with no error, when:
