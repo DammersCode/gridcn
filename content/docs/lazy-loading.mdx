@@ -402,10 +402,10 @@ const rows = useDataGridInfiniteRows<Order, string>({
 
 <ComponentPreview name="data-grid-open-ended-demo" />
 
-- `nextCursor: null` ends the source, and so does a missing `nextCursor` (a warning in development). Any other value, including `0`, means more rows exist. `fetchRows` returns at most `limit` rows; the hook keeps the first `limit` of a longer answer. An API
+- `nextCursor: null` ends the source, and so does a missing `nextCursor` (a warning in development). Any other value, including `0`, means more rows exist. An API
   with a "has more" flag returns `hasMore ? start + rows.length : null`.
 - `rows.gridProps` carries `totalRowCount`: `null` while more rows exist, then the final count. `lazy.gridProps` carries `total` as `totalRowCount`. Spread `gridProps` onto the provider and the count goes in once.
-- The first call gets `cursor: undefined`. `limit` is `pageSize` (default 50), capped by `maxFetchRows`.
+- The first call gets `cursor: undefined`. `limit` is `pageSize` (default 50), capped by `maxFetchRows`. `fetchRows` returns at most `limit` rows; the hook keeps the first `limit` of a longer answer.
 - A fetch starts when the rendered window comes within `overscan` rows (default 30) of the loaded end.
 - The grid shows the loaded rows plus `pageSize` skeleton rows while more exist, so the scroll height
   grows in steps. At the end the skeletons go away and `total` holds the final count.
