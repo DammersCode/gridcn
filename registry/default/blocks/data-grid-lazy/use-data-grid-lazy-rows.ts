@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { EMPTY_SERVER_SPEC, serverSpecKey, type ServerSpec } from "./server-spec";
-import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes, type Range } from "./range-math";
+import { applyChange, serverSpecKey, type DataChange, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { EMPTY_SERVER_SPEC, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 
 /** Default extra rows fetched per range beyond the visible window — ~1 viewport (spec: "default ~1 viewport of rows"). */
 const DEFAULT_OVERSCAN = 30;
@@ -57,7 +56,7 @@ export type UseDataGridLazyRowsOptions<TData> = {
    * inside the callback; `getLoadedRanges()` already includes the range. Not fired for aborted
    * or rejected fetches, nor when the response wrote zero rows.
    */
-  onLoaded?: (range: Range) => void;
+  onLoaded?: (range: RowRange) => void;
 };
 
 /** Return value of {@link useDataGridLazyRows}. */
@@ -71,7 +70,7 @@ export type UseDataGridLazyRowsResult<TData> = {
   gridProps: {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
-    onRenderedRowsChange: (range: Range) => void;
+    onRenderedRowsChange: (range: RowRange) => void;
     /** `total`, so the provider needs no second count. */
     totalRowCount: number;
   };
@@ -101,7 +100,7 @@ export type UseDataGridLazyRowsResult<TData> = {
    * including edits merged through `onDataChange` (this hook does not own persistence). Clamped
    * to `[0, total]`; an empty or out-of-range target is a no-op. Stable across renders.
    */
-  evict: (range: Range) => void;
+  evict: (range: RowRange) => void;
   /**
    * Snapshot of the currently loaded ranges, merged and sorted ascending. Not reactive: the
    * ranges are kept in a ref so a fetch completion never triggers an extra render — the returned
@@ -109,7 +108,7 @@ export type UseDataGridLazyRowsResult<TData> = {
    * render. Call it in effects or event handlers; treat a stale value during render as
    * acceptable. Stable across renders.
    */
-  getLoadedRanges: () => readonly Range[];
+  getLoadedRanges: () => readonly RowRange[];
 };
 
 /** A consumer callback throwing must not escape the fetch's promise chain as an unhandled rejection. */
@@ -156,13 +155,13 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   // onRenderedRowsChange handler (dedup must see the effect of the fetch it just started, same tick,
   // not next render) and mutated from fetch completion callbacks that must not themselves trigger
   // extra renders beyond the one `setRows` already causes.
-  const loadedRangesRef = useRef<Range[]>([]);
-  const inFlightRef = useRef<Map<string, { range: Range; controller: AbortController }>>(new Map());
+  const loadedRangesRef = useRef<RowRange[]>([]);
+  const inFlightRef = useRef<Map<string, { range: RowRange; controller: AbortController }>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   // per-instance once-flag: a persistently broken fetchRows must not re-warn on every fetch
   const lengthMismatchWarnedRef = useRef(false);
   const droppedEditWarnedRef = useRef(false);
-  const lastWindowRef = useRef<Range | null>(null);
+  const lastWindowRef = useRef<RowRange | null>(null);
   const pendingWindowRef = useRef(false);
 
   // In-flight fetches are aborted so a slow resolution of the old dataset can't write stale rows.
@@ -206,12 +205,12 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   }, []);
 
   const evict = useCallback(
-    (range: Range) => {
+    (range: RowRange) => {
       const start = Math.max(0, range.start);
       const end = Math.min(totalRef.current, range.end);
       if (end <= start) return;
       const target = { start, end };
-      const kept: Range[] = [];
+      const kept: RowRange[] = [];
       for (const loaded of loadedRangesRef.current) {
         for (const piece of subtractRanges(loaded, [target])) kept.push(piece);
       }
@@ -227,7 +226,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
 
   const getLoadedRanges = useCallback(() => loadedRangesRef.current.slice(), []);
 
-  const runFetch = useCallback((range: Range) => {
+  const runFetch = useCallback((range: RowRange) => {
     const key = `${range.start}:${range.end}`;
     if (inFlightRef.current.has(key)) return;
     const controller = new AbortController();
@@ -282,7 +281,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
   }, []);
 
   const onRenderedRowsChange = useCallback(
-    (range: Range) => {
+    (range: RowRange) => {
       lastWindowRef.current = range;
       const expanded = expandRange(range, { overscan, batchSize: pageSize, total: totalRef.current });
       if (rangeSize(expanded) === 0) return;

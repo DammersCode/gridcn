@@ -253,7 +253,7 @@ const [sorts, setSorts] = useState<SortSpec[]>([]);
 const lazy = useDataGridLazyRows<Order>({
   total: 100_000,
   getRowId: (row) => row.id,
-  spec: { sorts, filters: [], search: "" },
+  spec: { sorts, filters: [], searchText: "" },
   fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, sorts: spec.sorts, signal }),
 });
 
@@ -281,7 +281,7 @@ Three details make this work:
   derived from the spec clears them too. It also resets the core store (selection, edit state,
   scroll position), so it is the heavier alternative.
 
-The hook compares the spec by content. `serverSpecKey(spec)` <NewBadge /> returns that content as a string, without the generated `filterId`s. Use it as a query key or an effect dependency for your own request:
+The hook compares the spec by content. `serverSpecKey(spec)` <NewBadge /> returns that content as a string, without the generated `filterId`s. `ServerSpec` is `{ sorts, filters, searchText }`, and both `ServerSpec` and `serverSpecKey` import from `data-grid`. Use it as a query key or an effect dependency for your own request:
 
 ```ts
 const queryKey = ["orders", serverSpecKey(spec)];
@@ -306,7 +306,7 @@ const [applied, setApplied] = useState<{ filters: FilterNode[]; total: number }>
 const lazy = useDataGridLazyRows<Order>({
   total: applied.total,
   getRowId: (row) => row.id,
-  spec: { sorts: [], filters: applied.filters, search: "" },
+  spec: { sorts: [], filters: applied.filters, searchText: "" },
   fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, filters: spec.filters, signal }),
 });
 

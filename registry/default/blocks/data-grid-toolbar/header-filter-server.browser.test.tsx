@@ -56,8 +56,8 @@ const open = async (columnId: string) => {
   await vi.waitFor(() => expect(popup()).toBeTruthy());
 };
 
-const serverValues: FetchFilterValues = async ({ search }) => ({
-  values: ["Berlin", "Bonn", "Paris", "Rome"].filter((c) => c.toLowerCase().includes(search.toLowerCase())).map((label, i) => ({ label, count: i + 1 })),
+const serverValues: FetchFilterValues = async ({ query }) => ({
+  values: ["Berlin", "Bonn", "Paris", "Rome"].filter((c) => c.toLowerCase().includes(query.toLowerCase())).map((label, i) => ({ label, count: i + 1 })),
 });
 
 describe("DataGridHeaderFilter with fetchFilterValues", () => {
@@ -88,7 +88,7 @@ describe("DataGridHeaderFilter with fetchFilterValues", () => {
     await vi.waitFor(() => expect(fetchFilterValues).toHaveBeenCalledTimes(1));
     await userEvent.fill(searchInput(), "zzz");
     await vi.waitFor(() => expect(fetchFilterValues).toHaveBeenCalledTimes(2));
-    expect(fetchFilterValues.mock.calls[1]![0].search).toBe("zzz");
+    expect(fetchFilterValues.mock.calls[1]![0].query).toBe("zzz");
     expect(optionLabels()).toEqual(["Fuzzy hit"]);
   });
 

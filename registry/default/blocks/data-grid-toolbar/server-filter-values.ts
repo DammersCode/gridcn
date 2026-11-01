@@ -93,7 +93,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
         const fetchValues = state.fetchFilterValues;
         if (!fetchValues) return;
         const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId));
-        const response = await fetchValues({ columnId, search, filters, signal: controller.signal });
+        const response = await fetchValues({ columnId, query: search, filters, signal: controller.signal });
         if (controller.signal.aborted) return;
         const clean = sanitizeServerValues(response);
         if (!clean) {

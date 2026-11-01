@@ -27,7 +27,7 @@ describe("useDataGridServerRows", () => {
     expect(result.current.gridProps.data).toEqual([]);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(1);
-    expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, pageSize: 10, spec: { sorts: [], filters: [], search: "" } });
+    expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, pageSize: 10, spec: { sorts: [], filters: [], searchText: "" } });
     expect(result.current.gridProps.data).toHaveLength(10);
     expect(result.current.gridProps.totalRowCount).toBe(95);
     expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, total: 95, pageCount: 10 });
@@ -58,7 +58,7 @@ describe("useDataGridServerRows", () => {
     act(() => result.current.gridProps.onSortChange([{ columnId: "id", direction: "desc" }]));
     await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.sorts).toEqual([{ columnId: "id", direction: "desc" }]));
     act(() => result.current.gridProps.onSearchTextChange("zz"));
-    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.search).toBe("zz"));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("zz"));
     expect(result.current.gridProps.sortState).toEqual([{ columnId: "id", direction: "desc" }]);
     expect(result.current.gridProps.searchText).toBe("zz");
   });
@@ -208,8 +208,8 @@ describe("useDataGridServerRows", () => {
 
   it("starts from defaultSpec", async () => {
     const fetchRows = server();
-    make(fetchRows, { defaultSpec: { search: "ann" } });
+    make(fetchRows, { defaultSpec: { searchText: "ann" } });
     await waitFor(() => expect(fetchRows).toHaveBeenCalled());
-    expect(fetchRows.mock.calls[0]![0].spec.search).toBe("ann");
+    expect(fetchRows.mock.calls[0]![0].spec.searchText).toBe("ann");
   });
 });

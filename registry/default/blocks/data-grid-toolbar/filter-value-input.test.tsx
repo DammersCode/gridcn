@@ -115,7 +115,7 @@ describe("DataGridFilterValueInput", () => {
     const options = await screen.findAllByRole("option");
     expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false"]);
     expect(options).toHaveLength(2);
-    expect(fetchFilterValues).toHaveBeenCalledWith(expect.objectContaining({ columnId: "city", search: "" }));
+    expect(fetchFilterValues).toHaveBeenCalledWith(expect.objectContaining({ columnId: "city", query: "" }));
     fireEvent.click(options[1]!);
     expect(onValueChange).toHaveBeenCalledWith(["Paris", "Rome", "gone"]);
   });

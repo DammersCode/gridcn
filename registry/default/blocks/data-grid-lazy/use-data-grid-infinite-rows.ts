@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import type { Range } from "./range-math";
-import { EMPTY_SERVER_SPEC, serverSpecKey, type ServerSpec } from "./server-spec";
+import { applyChange, serverSpecKey, type DataChange, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { EMPTY_SERVER_SPEC, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_OVERSCAN = 30;
@@ -45,7 +43,7 @@ export type UseDataGridInfiniteRowsOptions<TData, TCursor = unknown> = {
   /** Fired when a fetch fails. */
   onError?: (error: unknown) => void;
   /** Fired after a page is merged, with the range it filled. */
-  onLoaded?: (range: Range) => void;
+  onLoaded?: (range: RowRange) => void;
 };
 
 /** Return value of {@link useDataGridInfiniteRows}. */
@@ -54,7 +52,7 @@ export type UseDataGridInfiniteRowsResult<TData> = {
   gridProps: {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
-    onRenderedRowsChange: (range: Range) => void;
+    onRenderedRowsChange: (range: RowRange) => void;
     /** The final count once the source ended, else `null`, so the provider needs no second count. */
     totalRowCount: number | null;
   };
@@ -102,7 +100,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const loadedRef = useRef(loaded);
   const cursorRef = useRef<TCursor | undefined>(undefined);
   const controllerRef = useRef<AbortController | null>(null);
-  const lastWindowRef = useRef<Range | null>(null);
+  const lastWindowRef = useRef<RowRange | null>(null);
   const pendingWindowRef = useRef(false);
   const emptyPageWarnedRef = useRef(false);
   const cutWarnedRef = useRef(false);
@@ -171,7 +169,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   }, [limit]);
 
   const onRenderedRowsChange = useCallback(
-    (range: Range) => {
+    (range: RowRange) => {
       lastWindowRef.current = range;
       if (range.end + overscan >= loadedRef.current.rows.length) fetchNext();
     },

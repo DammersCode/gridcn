@@ -621,6 +621,11 @@
           "target": "components/data-grid/types.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/server-spec.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/server-spec.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/layers.ts",
           "type": "registry:component",
           "target": "components/data-grid/layers.ts"
@@ -1367,11 +1372,6 @@
           "path": "registry/default/blocks/data-grid-lazy/range-math.ts",
           "type": "registry:component",
           "target": "components/data-grid-lazy/range-math.ts"
-        },
-        {
-          "path": "registry/default/blocks/data-grid-lazy/server-spec.ts",
-          "type": "registry:component",
-          "target": "components/data-grid-lazy/server-spec.ts"
         }
       ],
       "categories": [

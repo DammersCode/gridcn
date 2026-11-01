@@ -646,11 +646,11 @@ export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters
 export type FilterValue = { label: string; count?: number };
 
 /**
- * The request `fetchFilterValues` receives. `search` is the raw text of the popover search box (untrusted).
+ * The request `fetchFilterValues` receives. `query` is the raw text of the popover search box (untrusted).
  * `filters` is the open filter tree without the column's own top-level set entry. `signal` aborts when the
  * search changes, the popover closes, or the grid unmounts.
  */
-export type FetchFilterValuesContext = { columnId: string; search: string; filters: readonly FilterNode[]; signal: AbortSignal };
+export type FetchFilterValuesContext = { columnId: string; query: string; filters: readonly FilterNode[]; signal: AbortSignal };
 
 /** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 labels. */
 export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;

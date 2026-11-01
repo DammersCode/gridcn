@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Range } from "./range-math";
-import { type ServerSpec } from "./server-spec";
+import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridLazyRows, type LazyFetchContext } from "./use-data-grid-lazy-rows";
 
 type Row = { id: string; name: string };
@@ -570,7 +570,7 @@ describe("useDataGridLazyRows", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
 
-    const snapshot = result.current.getLoadedRanges() as Range[];
+    const snapshot = result.current.getLoadedRanges() as RowRange[];
     snapshot.push({ start: 90, end: 95 });
     expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
 
@@ -692,18 +692,18 @@ describe("useDataGridLazyRows: gridProps", () => {
 });
 
 describe("useDataGridLazyRows: spec and retry", () => {
-  const specOf = (search: string): ServerSpec => ({ sorts: [], filters: [], search });
+  const specOf = (searchText: string): ServerSpec => ({ sorts: [], filters: [], searchText });
 
   it("hands the spec to fetchRows and resets when its content changes", async () => {
     const fetchRows = vi.fn(async ({ start, end }: LazyFetchContext) => makeRows(start, end));
     const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridLazyRows({ total: 100, fetchRows, getRowId: (r: Row) => r.id, overscan: 0, pageSize: 10, spec }), { initialProps: { spec: specOf("a") } });
     act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(fetchRows.mock.calls[0]![0].spec.search).toBe("a");
+    expect(fetchRows.mock.calls[0]![0].spec.searchText).toBe("a");
     rerender({ spec: specOf("a") });
     expect(fetchRows).toHaveBeenCalledTimes(1);
     rerender({ spec: specOf("b") });
-    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.search).toBe("b"));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("b"));
     expect(result.current.gridProps.data[0]).toBeDefined();
   });
 

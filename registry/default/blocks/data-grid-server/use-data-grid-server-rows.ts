@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FilterNode, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { serverSpecKey, type FilterNode, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { serverSpecKey, type ServerSpec } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
 import { DEFAULT_PAGE_SIZES, useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 
 /** What `fetchRows` of {@link useDataGridServerRows} receives. */
@@ -86,7 +85,7 @@ export type UseDataGridServerRowsRootProps = {
 
 type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null; hasNextPage: boolean; error: unknown };
 
-const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], search: "" };
+const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
 
 /**
  * One server data source for the grid: it owns the sort, filter, search, page, and page size, fetches one page per
@@ -98,13 +97,13 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
   const { getRowId, fetchRows, pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [sorts, setSorts] = useState<SortSpec[]>(() => [...(options.defaultSpec?.sorts ?? EMPTY_SPEC.sorts)]);
   const [filters, setFilters] = useState<FilterNode[]>(() => [...(options.defaultSpec?.filters ?? EMPTY_SPEC.filters)]);
-  const [search, setSearch] = useState(options.defaultSpec?.search ?? EMPTY_SPEC.search);
+  const [search, setSearch] = useState(options.defaultSpec?.searchText ?? EMPTY_SPEC.searchText);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0]);
   const [tick, setTick] = useState(0);
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasNextPage: false, error: null });
 
-  const spec = useMemo<ServerSpec>(() => ({ sorts, filters, search }), [sorts, filters, search]);
+  const spec = useMemo<ServerSpec>(() => ({ sorts, filters, searchText: search }), [sorts, filters, search]);
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
 
   const fetchRef = useRef(fetchRows);

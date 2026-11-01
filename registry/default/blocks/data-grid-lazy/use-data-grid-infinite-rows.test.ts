@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EMPTY_SERVER_SPEC, type ServerSpec } from "./server-spec";
+import type { ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { EMPTY_SERVER_SPEC } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridInfiniteRows, type InfiniteFetchContext } from "./use-data-grid-infinite-rows";
 
 type Row = { id: string };
@@ -239,18 +240,18 @@ describe("useDataGridInfiniteRows: option swaps", () => {
 });
 
 describe("useDataGridInfiniteRows: spec and retry", () => {
-  const specOf = (search: string): ServerSpec => ({ sorts: [], filters: [], search });
+  const specOf = (searchText: string): ServerSpec => ({ sorts: [], filters: [], searchText });
 
   it("hands the spec to fetchRows and restarts at the first page when its content changes", async () => {
     const fetchRows = source(25);
     const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridInfiniteRows({ ...options(fetchRows), spec }), { initialProps: { spec: specOf("a") } });
     act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(fetchRows.mock.calls[0]![0].spec.search).toBe("a");
+    expect(fetchRows.mock.calls[0]![0].spec.searchText).toBe("a");
     rerender({ spec: specOf("a") });
     expect(fetchRows).toHaveBeenCalledTimes(1);
     rerender({ spec: specOf("b") });
-    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.search).toBe("b"));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("b"));
     expect(fetchRows.mock.calls.at(-1)![0].cursor).toBeUndefined();
   });
 

@@ -95,7 +95,7 @@ describe("a source with no row count in mode C (controlled state)", () => {
     expect(grid.state().totalRowCount).toBeNull();
     act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as never));
     act(() => grid.state().actions.setSearch("Name"));
-    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec).toMatchObject({ filters: [{ columnId: "n" }], search: "Name" }));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec).toMatchObject({ filters: [{ columnId: "n" }], searchText: "Name" }));
     await grid.ready();
     expect(grid.state().viewIndex).toHaveLength(10);
   });

@@ -23,7 +23,9 @@ mirror the change there.
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
-| spec | What the user chose: sort, filter, and search. `ServerSpec` carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
+| spec | What the user chose: sort, filter, and search text. `ServerSpec` (`{ sorts, filters, searchText }`) carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
+| row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A lazy request asks for one. | range (a range is a cell selection) |
+| value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | row count | The size of the result. `total` is the option a hook takes; `totalRowCount` is the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |

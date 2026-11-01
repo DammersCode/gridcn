@@ -60,7 +60,7 @@ describe("useServerFilterValues", () => {
     expect(result.current?.options[0]).toMatchObject({ key: "berlin", label: "Berlin", text: "Berlin", count: 2 });
     rerender({ search: "<b>'; DROP" });
     await waitFor(() => expect(fetchFilterValues).toHaveBeenCalledTimes(2));
-    expect(fetchFilterValues.mock.calls[1]![0]).toMatchObject({ columnId: "city", search: "<b>'; DROP" });
+    expect(fetchFilterValues.mock.calls[1]![0]).toMatchObject({ columnId: "city", query: "<b>'; DROP" });
   });
 
   it("sends the open filters without the column's own set entry", async () => {

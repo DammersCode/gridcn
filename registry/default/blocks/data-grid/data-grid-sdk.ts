@@ -114,3 +114,4 @@ export { createHistory, type History, type HistoryOptions } from "./interaction/
 export { buildRollback } from "./interaction/rollback";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
+export { EMPTY_SERVER_SPEC } from "./server-spec";

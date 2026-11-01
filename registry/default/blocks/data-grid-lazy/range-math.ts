@@ -1,13 +1,12 @@
-/** A half-open row range `[start, end)`, matching `onRenderedRowsChange`'s convention. */
-export type Range = { start: number; end: number };
+import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** `end - start`, clamped to 0 for an inverted/empty range. */
-export function rangeSize(range: Range): number {
+export function rangeSize(range: RowRange): number {
   return Math.max(0, range.end - range.start);
 }
 
 /** Whether two half-open ranges overlap or touch at an edge (touching ranges are mergeable). */
-function rangesAdjacentOrOverlapping(a: Range, b: Range): boolean {
+function rangesAdjacentOrOverlapping(a: RowRange, b: RowRange): boolean {
   return a.start <= b.end && b.start <= a.end;
 }
 
@@ -17,7 +16,7 @@ function rangesAdjacentOrOverlapping(a: Range, b: Range): boolean {
  * different range every tick (spec: "round ranges up so tiny scrolls don't spam requests").
  * Clamps to `[0, total]`.
  */
-export function expandRange(range: Range, opts: { overscan: number; batchSize: number; total?: number }): Range {
+export function expandRange(range: RowRange, opts: { overscan: number; batchSize: number; total?: number }): RowRange {
   const { overscan, batchSize, total = Infinity } = opts;
   const withOverscan = { start: range.start - overscan, end: range.end + overscan };
   const batch = Math.max(1, batchSize);
@@ -34,14 +33,14 @@ export function expandRange(range: Range, opts: { overscan: number; batchSize: n
  * `target`, returning the remaining uncovered pieces coalesced into as few ranges as possible —
  * this is the "never re-request a loading/loaded range; merge adjacent gaps" rule as pure math.
  */
-export function subtractRanges(target: Range, covered: readonly Range[]): Range[] {
+export function subtractRanges(target: RowRange, covered: readonly RowRange[]): RowRange[] {
   if (rangeSize(target) === 0) return [];
   const relevant = covered
     .filter((r) => rangeSize(r) > 0 && rangesAdjacentOrOverlapping(r, target))
     .map((r) => ({ start: Math.max(r.start, target.start), end: Math.min(r.end, target.end) }))
     .sort((a, b) => a.start - b.start);
 
-  const merged: Range[] = [];
+  const merged: RowRange[] = [];
   for (const r of relevant) {
     const last = merged[merged.length - 1];
     if (last && r.start <= last.end) {
@@ -51,7 +50,7 @@ export function subtractRanges(target: Range, covered: readonly Range[]): Range[
     }
   }
 
-  const gaps: Range[] = [];
+  const gaps: RowRange[] = [];
   let cursor = target.start;
   for (const r of merged) {
     if (r.start > cursor) gaps.push({ start: cursor, end: r.start });
@@ -62,7 +61,7 @@ export function subtractRanges(target: Range, covered: readonly Range[]): Range[
 }
 
 /** Sum of `rangeSize` across a list of ranges — callers pass an already-merged (disjoint) list so this is a true row count, not a double-count of overlaps. */
-export function sumRangeSizes(ranges: readonly Range[]): number {
+export function sumRangeSizes(ranges: readonly RowRange[]): number {
   return ranges.reduce((total, r) => total + rangeSize(r), 0);
 }
 
@@ -72,11 +71,11 @@ export function sumRangeSizes(ranges: readonly Range[]): number {
  * own: exactly `chunk.end - chunk.start` rows, positionally aligned to `chunk.start`. A
  * fractional `max` is rounded down so every chunk boundary stays an integral row index.
  */
-export function chunkRange(range: Range, max: number): Range[] {
+export function chunkRange(range: RowRange, max: number): RowRange[] {
   const size = rangeSize(range);
   const cap = Math.max(1, Math.floor(max));
   if (size <= cap) return [range];
-  const chunks: Range[] = [];
+  const chunks: RowRange[] = [];
   for (let start = range.start; start < range.end; start += cap) {
     chunks.push({ start, end: Math.min(range.end, start + cap) });
   }
@@ -84,12 +83,12 @@ export function chunkRange(range: Range, max: number): Range[] {
 }
 
 /** Merges a list of ranges (any order/overlap) into the minimal set of disjoint, non-touching ranges. */
-export function mergeRanges(ranges: readonly Range[]): Range[] {
+export function mergeRanges(ranges: readonly RowRange[]): RowRange[] {
   const sorted = ranges
     .filter((r) => rangeSize(r) > 0)
     .slice()
     .sort((a, b) => a.start - b.start);
-  const merged: Range[] = [];
+  const merged: RowRange[] = [];
   for (const r of sorted) {
     const last = merged[merged.length - 1];
     if (last && r.start <= last.end) {
