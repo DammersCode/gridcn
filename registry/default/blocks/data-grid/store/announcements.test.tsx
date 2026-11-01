@@ -220,10 +220,12 @@ describe("liveAnnouncement (announceResults)", () => {
     expect(m.state().liveAnnouncement).toBe(before);
   });
 
-  it("stays quiet with sortMode=\"server\"", () => {
+  it("sortMode=\"server\" keeps a sort quiet and still announces a client filter", () => {
     const m = mount({ announceResults: true, sortMode: "server" });
-    m.filters(onlyD);
+    m.sorts([{ columnId: "name", direction: "asc" }]);
     expect(m.state().liveAnnouncement).toBeNull();
+    m.filters(onlyD);
+    expect(m.state().liveAnnouncement).toMatchObject(results(1));
   });
 
   it("quick search never records (it never filters)", () => {

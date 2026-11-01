@@ -1694,9 +1694,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
       return;
     }
-    if (!resultsAnnouncementArmed || !state.announceResults || state.sortMode !== "client") return;
+    if (!resultsAnnouncementArmed || !state.announceResults) return;
     const filterMoved = state.filterMode === "client" && state.filterState !== prev.filterState;
-    if (!filterMoved && state.sortState === prev.sortState) return;
+    const sortMoved = state.sortMode === "client" && state.sortState !== prev.sortState;
+    if (!filterMoved && !sortMoved) return;
     if (sameRows(state.viewIndex, prev.viewIndex) && sortKey(state) === sortKey(prev)) return;
     const loaded = loadedRowCount(state.viewIndex, state.data);
     store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < state.viewIndex.length) });

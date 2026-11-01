@@ -22,7 +22,7 @@ export const makeRows = (count = 6): Row[] => Array.from({ length: count }, (_, 
 
 export type MountOptions = {
   rows?: Row[];
-  /** Extra provider props; they win over the mode's props. */
+  /** Extra provider props; the mode's own wiring (sort, filter, search state, onSave) wins over them where it sets the same key. */
   props?: Record<string, unknown>;
   /** Called once in the tree root; its result spreads onto the provider (plugins, hooks that feed props). */
   /** A component rendered inside the grid, for hooks that need the provider. */
@@ -54,6 +54,8 @@ export type Mounted = {
   setFilters: (filters: FilterNode[]) => void;
   /** The value of a cell by row id, from the store data. */
   cell: (rowId: string, columnId: string) => unknown;
+  /** Replaces the rows a controlled mode holds, as a server answer with a new page or order would. */
+  replaceData: (rows: readonly Row[]) => void;
   /** Merges provider props after mount, the way a parent re-render does. */
   setProps: (next: Record<string, unknown>) => void;
   /** Moves the pager of the client-pagination mode to a 1-based page. */
@@ -98,6 +100,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   function Controlled({ children, extra, window: windowRows }: { children?: ReactNode; extra?: Record<string, unknown>; window: readonly Row[] }) {
     const [data, setData] = useState<readonly Row[]>(windowRows);
     held = data;
+    dataReplacer = setData;
     return (
       <DataGridProvider
         columns={columns}
@@ -186,6 +189,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     const [full, setFull] = useState<readonly Row[]>(rows);
     const pager = useDataGridPagination({ data: full, pageSize: PAGE });
     pageSetter = pager.controls.onPageChange;
+    const offset = (pager.controls.page - 1) * PAGE;
     const page = pager.pageData ?? [];
     held = page;
     return (
@@ -197,7 +201,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
         totalRowCount={full.length}
         onDataChange={(next: readonly Row[], change: DataChange<Row>) => {
           rec(next, change);
-          setFull((prev) => [...next, ...prev.slice(PAGE)]);
+          setFull((prev) => [...prev.slice(0, offset), ...next, ...prev.slice(offset + PAGE)]);
         }}
         {...extra}
       >
@@ -232,6 +236,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     );
   }
 
+  let dataReplacer: (rows: readonly Row[]) => void = () => {};
   let propsSetter: (next: Record<string, unknown>) => void = () => {};
   let pageSetter: (page: number) => void = () => {};
   let sortSetter: (next: SortSpec[]) => void = () => {};
@@ -274,6 +279,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
       const row = (api!.getState().data as readonly (Row | undefined)[]).find((r) => r?.id === rowId);
       return row ? row[columnId as keyof Row] : undefined;
     },
+    replaceData: (rows) => act(() => dataReplacer(rows)),
     setProps: (next) => act(() => propsSetter(next)),
     goToPage: (page) => act(() => pageSetter(page)),
     load: async (start, end) => {

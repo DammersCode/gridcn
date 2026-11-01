@@ -27,7 +27,7 @@ function LazyGrid() {
   );
 }
 
-describe("URL state with lazy rows", () => {
+describe("URL state in mode Z (lazy rows)", () => {
   it("a deep link seeds the sort and filter spec and no loaded row is reordered or hidden", async () => {
     render(
       <NuqsTestingAdapter searchParams="?sort=n%3Adesc&filter=n%3Agt%3A2">
@@ -41,7 +41,7 @@ describe("URL state with lazy rows", () => {
   });
 });
 
-describe("URL state with sortMode server", () => {
+describe("URL state in mode SS (sortMode server)", () => {
   it("a deep-linked sort is tracked and the server's order stays", async () => {
     render(
       <NuqsTestingAdapter searchParams="?sort=n%3Adesc">
@@ -56,7 +56,7 @@ describe("URL state with sortMode server", () => {
   });
 });
 
-describe("URL state with write-through to your own API", () => {
+describe("URL state in mode API (write-through with onDataChange)", () => {
   it("an edit reaches onDataChange without a URL write, a sort change does write", async () => {
     const onUrlUpdate = vi.fn();
     const onDataChange = vi.fn();
@@ -76,6 +76,6 @@ describe("URL state with write-through to your own API", () => {
     });
     expect(onUrlUpdate).not.toHaveBeenCalled();
     await act(async () => state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
-    await waitFor(() => expect((onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent).searchParams.get("sort")).toBe("n:desc"));
+    await waitFor(() => expect((onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined)?.searchParams.get("sort")).toBe("n:desc"));
   });
 });

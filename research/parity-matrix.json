@@ -69,8 +69,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/view.parity.test.tsx"
           ]
         },
         "PS": {
@@ -128,15 +127,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/view.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/view.parity.test.tsx"
           ]
         },
         "Z": {
@@ -187,36 +184,31 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/filter-values.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/filter-values.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/filter-values.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/filter-values.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/filter-values.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/filter-values.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/filter-values.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/filter-values.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/filter-values.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/filter-values.parity.test.tsx"
           ]
         },
         "FS": {
@@ -250,15 +242,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/view.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/view.parity.test.tsx"
           ]
         },
         "Z": {
@@ -315,8 +305,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-check.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-check.parity.test.tsx"
           ]
         },
         "PS": {
@@ -373,15 +362,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         },
         "Z": {
@@ -393,22 +380,19 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         },
         "API": {
@@ -453,29 +437,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/counts.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/counts.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/counts.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/counts.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         }
       }
@@ -556,29 +536,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         }
       }
@@ -670,50 +646,44 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/clipboard.parity.test.tsx"
           ]
         }
       }
@@ -733,15 +703,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "Z": {
@@ -753,29 +721,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/fill.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/fill.parity.test.tsx"
           ]
         }
       }
@@ -853,8 +817,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/export-print.parity.test.tsx"
           ]
         },
         "SS": {
@@ -900,29 +863,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/export-print.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/export-print.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/export-print.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/export-print.parity.test.tsx"
           ]
         }
       }
@@ -941,15 +900,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         },
         "Z": {
@@ -960,22 +917,19 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         },
         "API": {
@@ -1004,15 +958,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "Z": {
@@ -1025,22 +977,19 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "API": {
@@ -1067,43 +1016,38 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/validation.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/validation.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/validation.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/validation.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/validation.parity.test.tsx"
           ]
         },
         "API": {
@@ -1135,15 +1079,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/write-through.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/write-through.parity.test.tsx"
           ]
         },
         "Z": {
@@ -1193,50 +1135,44 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/streaming.parity.test.tsx"
           ]
         }
       }
@@ -1267,8 +1203,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/url-state.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/url-state.parity.test.tsx"
           ]
         },
         "C": {
@@ -1278,8 +1213,7 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/url-state.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/url-state.parity.test.tsx"
           ]
         },
         "FS": {
@@ -1290,8 +1224,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/url-state.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/url-state.parity.test.tsx"
           ]
         }
       }
@@ -1312,50 +1245,43 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/announce.parity.test.tsx"
           ]
         }
       }
@@ -1434,15 +1360,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "Z": {
@@ -1454,29 +1378,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         }
       }
@@ -1495,8 +1415,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/find-replace.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/find-replace.parity.test.tsx"
           ]
         },
         "PS": {
@@ -1512,29 +1431,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/find-replace.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/find-replace.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/find-replace.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/find-replace.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/find-replace.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/find-replace.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/find-replace.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/find-replace.parity.test.tsx"
           ]
         }
       }
@@ -1626,8 +1541,7 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         },
         "FS": {
@@ -1639,8 +1553,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         }
       }
@@ -1736,29 +1649,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         }
       }
@@ -1807,8 +1716,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/server-rows.parity.test.tsx"
           ]
         }
       }
@@ -1841,29 +1749,25 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx",
-            "tests/parity/modes.tsx"
+            "tests/parity/loading-error.parity.test.tsx"
           ]
         }
       }

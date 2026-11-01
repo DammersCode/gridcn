@@ -30,3 +30,17 @@ describe.each(ALL_MODES)("row ids in mode %s", (mode) => {
     expect(grid.dataIds()).toContain("r1");
   });
 });
+
+describe.each(["PS", "C", "SS", "FS", "API"] as const)("a new page or server order in mode %s", (mode) => {
+  it("the active cell and the checked row follow their row id when the rows are replaced in a new order", async () => {
+    const grid = await mountMode(mode);
+    const row = grid.viewIds().indexOf("r1");
+    grid.act(() => grid.state().actions.selectCellAt({ col: 1, row }));
+    grid.act(() => grid.state().actions.setRowSelected(row, true));
+    const reordered = [...grid.held()].reverse();
+    grid.replaceData(reordered);
+    const view = grid.viewIds();
+    expect(view[grid.state().activeCell!.row]).toBe("r1");
+    expect(grid.state().selection.rows.toArray().map((i) => view[i])).toEqual(["r1"]);
+  });
+});

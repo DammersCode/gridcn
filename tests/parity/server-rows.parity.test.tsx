@@ -7,18 +7,23 @@ import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "
 import type { DataChange } from "@/registry/default/blocks/data-grid/types";
 import { columns, type Row } from "./modes";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  saved.clear();
+});
 
 type Fetch = (ctx: ServerRowsFetchContext) => Promise<ServerRowsPage<Row>>;
 
 const rowsOf = (from: number, count: number): Row[] => Array.from({ length: count }, (_, i) => ({ id: `r${from + i}`, name: `Name ${from + i}`, n: from + i }));
 
-function pagedSource(total: number | undefined) {
+const saved = new Map<string, number>();
+
+function pagedSource(total: number | undefined, honorSpec = true) {
   return vi.fn<Fetch>(async ({ page, pageSize, spec }) => {
     const from = (page - 1) * pageSize;
     const count = Math.max(0, Math.min(pageSize, 95 - from));
-    const rows = rowsOf(from, count);
-    if (spec.sorts[0]?.direction === "desc") rows.reverse();
+    const rows = rowsOf(from, count).map((row) => ({ ...row, n: saved.get(row.id) ?? row.n }));
+    if (honorSpec && spec.sorts[0]?.direction === "desc") rows.reverse();
     return total === undefined ? { rows, hasNextPage: from + count < 95 } : { rows, total };
   });
 }
@@ -49,7 +54,7 @@ async function mountServer(fetchRows: Fetch, onSave?: (change: DataChange<Row>) 
   };
 }
 
-describe("server pagination with sortMode server", () => {
+describe("server pagination in mode SS (sortMode server)", () => {
   it("a sort from page 3 asks for page 1 with the spec and shows the server's order", async () => {
     const fetchRows = pagedSource(95);
     const grid = await mountServer(fetchRows);
@@ -60,9 +65,50 @@ describe("server pagination with sortMode server", () => {
     await grid.ready();
     expect((grid.state().data as Row[]).map((row) => row.id).slice(0, 2)).toEqual(["r9", "r8"]);
   });
+
+  it("the grid never reorders the page, even when the server ignores the sort", async () => {
+    const grid = await mountServer(pagedSource(undefined, false));
+    act(() => grid.state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
+    await grid.ready();
+    expect(grid.state().sortState).toEqual([{ columnId: "n", direction: "desc" }]);
+    expect(grid.state().viewIndex).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
 });
 
-describe("server pagination with write-through to your own API", () => {
+describe("server pagination in mode FS (filterMode server)", () => {
+  it("the grid never filters the page, even when the server ignores the filter", async () => {
+    const fetchRows = pagedSource(undefined, false);
+    const grid = await mountServer(fetchRows);
+    act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "100" }] as never));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.filters).toHaveLength(1));
+    await grid.ready();
+    expect(grid.state().viewIndex).toHaveLength(10);
+  });
+});
+
+describe("a source with no row count in mode C (controlled state)", () => {
+  it("the pager and the grid carry an unknown total while the controlled sort, filter, and search reach the server", async () => {
+    const fetchRows = pagedSource(undefined);
+    const grid = await mountServer(fetchRows);
+    expect(grid.server().pager.total).toBeUndefined();
+    expect(grid.server().pager.hasNextPage).toBe(true);
+    expect(grid.state().totalRowCount).toBeNull();
+    act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as never));
+    act(() => grid.state().actions.setSearch("Name"));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec).toMatchObject({ filters: [{ columnId: "n" }], search: "Name" }));
+    await grid.ready();
+    expect(grid.state().viewIndex).toHaveLength(10);
+  });
+
+  it("the last page ends the pager", async () => {
+    const grid = await mountServer(pagedSource(undefined));
+    act(() => grid.server().pager.onPageChange(10));
+    await grid.ready();
+    expect(grid.server().pager.hasNextPage).toBe(false);
+  });
+});
+
+describe("server pagination in mode API (onSave write-through)", () => {
   it("an edit on page 2 saves once by row id, and a refusal reverts it through onDataChange", async () => {
     const saves: DataChange<Row>[] = [];
     const grid = await mountServer(pagedSource(95), async (change) => {
@@ -77,42 +123,19 @@ describe("server pagination with write-through to your own API", () => {
     await waitFor(() => expect((grid.state().data as Row[]).find((row) => row.id === "r12")?.n).toBe(12));
   });
 
-  it("an accepted save keeps the edit across a refetch of the same page", async () => {
-    const grid = await mountServer(pagedSource(95), async () => undefined);
-    act(() => grid.state().actions.commitCellValue({ rowId: "r1", columnId: "n" }, 55));
-    await waitFor(() => expect((grid.state().data as Row[]).find((row) => row.id === "r1")?.n).toBe(55));
-  });
-});
-
-describe("a source with no row count", () => {
-  it("the pager and the grid carry an unknown total while controlled sort, filter, and search still reach the server", async () => {
-    const fetchRows = pagedSource(undefined);
-    const grid = await mountServer(fetchRows);
-    expect(grid.server().pager.total).toBeUndefined();
-    expect(grid.server().pager.hasNextPage).toBe(true);
-    expect(grid.state().totalRowCount).toBeNull();
-    act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as never));
-    act(() => grid.state().actions.setSearch("Name"));
-    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec).toMatchObject({ filters: [{ columnId: "n" }], search: "Name" }));
-    await grid.ready();
-    expect(grid.state().viewIndex).toHaveLength(10);
-  });
-
-  it("the server order and the unfiltered page survive sortMode and filterMode server", async () => {
-    const grid = await mountServer(pagedSource(undefined));
-    act(() => grid.state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
-    await grid.ready();
-    expect(grid.state().sortMode).toBe("server");
-    expect(grid.state().filterMode).toBe("server");
-  });
-
-  it("an edit saves against the unknown-total page", async () => {
-    const saves: DataChange<Row>[] = [];
-    const grid = await mountServer(pagedSource(undefined), async (change) => {
-      saves.push(change);
-      return undefined;
-    });
-    act(() => grid.state().actions.commitCellValue({ rowId: "r2", columnId: "n" }, 7));
-    await waitFor(() => expect(saves).toHaveLength(1));
+  it("an accepted save survives a refetch of the same page, with and without a row count", async () => {
+    for (const total of [95, undefined]) {
+      saved.clear();
+      cleanup();
+      const grid = await mountServer(pagedSource(total), async (change) => {
+        for (const op of change.ops) if (op.type === "update") saved.set(op.rowId, (op.row as Row).n);
+        return undefined;
+      });
+      act(() => grid.state().actions.commitCellValue({ rowId: "r1", columnId: "n" }, 55));
+      await waitFor(() => expect(saved.get("r1")).toBe(55));
+      act(() => grid.server().refresh());
+      await grid.ready();
+      await waitFor(() => expect((grid.state().data as Row[]).find((row) => row.id === "r1")?.n).toBe(55));
+    }
   });
 });

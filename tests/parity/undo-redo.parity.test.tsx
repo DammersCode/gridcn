@@ -35,7 +35,7 @@ describe.each(ALL_MODES)("undo and redo in mode %s", (mode) => {
     const grid = await mountMode(mode, options);
     grid.act(() => grid.state().actions.commitCellValue({ rowId: "r1", columnId: "n" }, 50));
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
-    grid.setFilters([{ filterId: "f", columnId: "name", operator: "contains", value: "Name" }]);
+    grid.setFilters([{ filterId: "f", columnId: "name", operator: "gt", value: "1" }]);
     grid.act(() => history().undo());
     expect(grid.cell("r1", "n")).toBe(1);
     expect(grid.cell("r0", "n")).toBe(0);
@@ -45,7 +45,7 @@ describe.each(ALL_MODES)("undo and redo in mode %s", (mode) => {
     const { options, history } = withHistory();
     const grid = await mountMode(mode, options);
     grid.act(() => grid.state().actions.commitCellValue({ rowId: "r0", columnId: "n" }, 99));
-    grid.act(() => grid.store().setState({ readOnly: true }));
+    grid.setProps({ readOnly: true });
     grid.act(() => history().undo());
     expect(grid.cell("r0", "n")).toBe(99);
   });

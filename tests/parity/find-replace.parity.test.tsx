@@ -11,7 +11,9 @@ describe.each(ALL_MODES)("replace in mode %s", (mode) => {
     const shown = grid.viewIds();
     const plan = planReplace(grid.state(), "Name", "Item");
     expect(plan.patches.map((patch) => patch.rowId).sort()).toEqual([...shown].sort());
-    grid.act(() => void grid.state().actions.updateCells(plan.patches));
+    grid.act(() => void grid.state().actions.updateCells(plan.patches, { source: "replace", reorder: "defer" }));
+    await grid.settle();
+    if (mode === "API") expect(grid.saves).toHaveLength(1);
     for (const id of shown) expect(grid.cell(id, "name")).toBe(`Item ${id.slice(1)}`);
     const hidden = grid.dataIds().filter((id) => id !== "" && !shown.includes(id));
     for (const id of hidden) expect(grid.cell(id, "name")).toBe(`Name ${id.slice(1)}`);

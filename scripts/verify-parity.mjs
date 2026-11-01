@@ -14,6 +14,8 @@ const OPTION_SOURCES = [
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationClientOptions" },
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationServerOptions" },
 ];
+/** Evidence under this prefix counts for a mode only when the test file runs that mode. */
+const PARITY_TESTS = "tests/parity/";
 const STATUSES = ["supported", "gap", "n/a", "unverified"];
 const UNVERIFIED = "Not verified.";
 const LABELS = { supported: "Supported", gap: "Gap", "n/a": "n/a", unverified: "Not verified" };
@@ -75,7 +77,9 @@ export function checkParity(matrix, { optionNames, root: base }) {
             missing = true;
             continue;
           }
-          if (!pattern || row.modeNeutral || new RegExp(pattern, "i").test(readFileSync(file, "utf8"))) mentioned = true;
+          const text = readFileSync(file, "utf8");
+          const runsMode = path.startsWith(PARITY_TESTS) && (text.includes("ALL_MODES") || text.includes(`mode ${id} `) || text.includes(`mountMode("${id}"`));
+          if (path.startsWith(PARITY_TESTS) ? runsMode : !pattern || row.modeNeutral || new RegExp(pattern, "i").test(text)) mentioned = true;
         }
         if (cell.evidence?.length && !mentioned && !missing) problems.push(`${at}: cell ${id} evidence ${cell.evidence[0]} does not mention the mode (${pattern})`);
       } else if (cell.status === "gap") {

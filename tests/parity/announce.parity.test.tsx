@@ -8,12 +8,19 @@ describe.each(ALL_MODES)("result announcements in mode %s", (mode) => {
     const grid = await mountMode(mode, { props: { announceResults: true } });
     grid.setFilters([...gt1] as never);
     const live = grid.state().liveAnnouncement;
-    if (mode === "SS" || mode === "FS") {
+    if (mode === "FS") {
       expect(live).toBeNull();
       return;
     }
     expect(live).toMatchObject({ kind: "results", count: mode === "PC" || mode === "PS" ? 2 : 4 });
     expect(live?.partial).toBeUndefined();
+  });
+
+  it("a client sort announces the order change, a server sort stays silent", async () => {
+    const grid = await mountMode(mode, { props: { announceResults: true } });
+    grid.setSorts([{ columnId: "n", direction: "desc" }]);
+    if (mode === "SS") expect(grid.state().liveAnnouncement).toBeNull();
+    else expect(grid.state().liveAnnouncement).toMatchObject({ kind: "results" });
   });
 
   it("a new row count from the server is announced as the result count", async () => {

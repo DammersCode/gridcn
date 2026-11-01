@@ -13,7 +13,7 @@ function withAggregate() {
     sumsAll = useDataGridAggregate(specs, { scope: "all" });
     return null;
   }
-  return { Child, view: () => sums.n, all: () => sumsAll.n };
+  return { Child, view: () => sums["n"], all: () => sumsAll["n"] };
 }
 
 describe.each(ALL_MODES)("aggregate band in mode %s", (mode) => {
