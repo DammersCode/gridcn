@@ -138,6 +138,12 @@ describe("renderParityPage", () => {
     expect(page).toContain('Gap: rows {"<"} offset');
   });
 
+  it("leaves a code span in a feature name intact in the row header and heading", () => {
+    const page = renderParityPage(matrix({ feature: "Pager `<DataGridPager>` {x}" }));
+    expect(page).toContain("Pager `<DataGridPager>` {\"{\"}x{\"}\"}");
+    expect(page).toContain("### Pager `<DataGridPager>`");
+  });
+
   it("keeps backticks out of the tooltip note", () => {
     const page = renderParityPage(matrix({ cells: { L: supported, PS: { status: "gap", track: "A", note: "ignores `total`" } } }));
     expect(page).toContain('note={"ignores total"}');

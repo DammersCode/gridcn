@@ -139,7 +139,7 @@ export function renderParityPage(matrix) {
     "  <tbody>",
     ...matrix.features.flatMap((row) => [
       "    <tr>",
-      `      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">${jsxText(row.feature)}</th>`,
+      `      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">${jsxProse(row.feature)}</th>`,
       ...matrix.modes.map((m) => `      <td className="text-center">${parityCell(row.cells[m.id])}</td>`),
       "    </tr>",
     ]),
@@ -158,7 +158,7 @@ export function renderParityPage(matrix) {
     });
     if (row.note) notes.unshift(`- ${jsxProse(row.note)}`);
     if (notes.length === 0) continue;
-    lines.push(`### ${jsxText(row.feature)}`, "", ...notes, "");
+    lines.push(`### ${jsxProse(row.feature)}`, "", ...notes, "");
   }
   lines.push("## Related", "", "- [Server-side data](/docs/recipes/data-fetching/server-side)", "- [Lazy loading](/docs/lazy-loading)", "- [Pagination](/docs/pagination)", "");
   return lines.join("\n");
