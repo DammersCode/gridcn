@@ -99,6 +99,14 @@ export type DataGridCellProps = {
 const SEARCH_MATCH_COLOR =
   "data-[search-match]:[--grid-search-color:var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--color-primary,var(--primary))_var(--grid-search-fallback),var(--color-background,var(--background)))))] data-[search-match]:[--grid-search-fallback:50%] dark:data-[search-match]:[--grid-search-fallback:100%]";
 
+const TEXT_FIELD = 'input:not([type="checkbox"],[type="radio"],[type="button"],[type="submit"],[type="reset"],[type="range"],[type="color"],[type="file"]), textarea';
+
+function keepsFocusOutsideGrid(doc: Document): boolean {
+  const holder = doc.activeElement;
+  if (!(holder instanceof HTMLElement) || holder.closest('[role="grid"]') !== null) return false;
+  return holder.matches(TEXT_FIELD) || holder.isContentEditable || holder.closest(gridAttrSelector("keepFocus")) !== null;
+}
+
 function isEditorEvent(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;
@@ -177,13 +185,11 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   }, [isEditing]);
 
   // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
-  // A text field outside the grid (toolbar search) keeps focus while it moves the active cell.
   useLayoutEffect(() => {
     const focusLeftGrid = focusLeftGridRef.current;
     focusLeftGridRef.current = false;
-    const holder = document.activeElement;
-    const typingOutside = holder instanceof HTMLElement && holder.matches("input, textarea, [contenteditable]") && !holder.closest('[role="grid"]');
-    if (isActive && !isEditing && !focusLeftGrid && !typingOutside) cellRef.current?.focus({ preventScroll: true });
+    if (!isActive || isEditing || focusLeftGrid || !cellRef.current) return;
+    if (!keepsFocusOutsideGrid(cellRef.current.ownerDocument)) cellRef.current.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.

@@ -9,8 +9,8 @@ import {
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridSearch } from "@/registry/default/blocks/data-grid-toolbar/search";
-import { useDataGridFindReplace } from "./use-data-grid-find-replace";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridFindReplace } from "./use-data-grid-find-replace";
 import "@/app/global.css";
 
 type Row = { id: string; name: string };
@@ -74,6 +74,21 @@ describe("find and replace in a browser", () => {
     await userEvent.keyboard("{Shift>}{Enter}{/Shift}");
     await expect.element(status).toHaveTextContent("2 of 3 cells");
     await expect.element(find).toHaveFocus();
+    expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+  });
+
+  it("Next match button keeps focus on the button and opens no editor", async () => {
+    await render(<Harness />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("needle");
+    const next = page.getByRole("button", { name: "Next match" });
+    const status = page.getByRole("dialog").getByRole("status");
+    await next.click();
+    await expect.element(status).toHaveTextContent("2 of 3 cells");
+    await expect.element(next).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(status).toHaveTextContent("3 of 3 cells");
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
   });
 

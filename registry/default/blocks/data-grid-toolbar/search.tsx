@@ -144,7 +144,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
   return (
     <div data-grid-search="" className={cn("flex h-8 items-center gap-1", className)}>
-      <InputGroup className="w-72">
+      <InputGroup className="w-72" {...{ [GRID_ATTR.keepFocus]: "" }}>
         <InputGroupAddon align="inline-start">
           <Search />
         </InputGroupAddon>

@@ -130,6 +130,15 @@ describe("DataGridSearch", () => {
     await expect.element(page.getByText("1/2")).toBeInTheDocument();
     input.element().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 229, isComposing: true, bubbles: true }));
     await expect.element(page.getByText("1/2")).toBeInTheDocument();
+    await userEvent.keyboard("{Enter}");
+    await expect.element(page.getByText("2/2")).toBeInTheDocument();
+  });
+
+  it("clicking a cell while the search has focus moves focus to the cell", async () => {
+    await renderGrid();
+    await page.getByRole("textbox", { name: "Search grid" }).fill("alic");
+    await page.getByRole("gridcell").nth(5).click();
+    expect(document.activeElement?.getAttribute("role")).toBe("gridcell");
   });
 
   it("Escape clears the search", async () => {
