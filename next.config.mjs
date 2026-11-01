@@ -9,7 +9,10 @@ const config = {
   reactCompiler: true,
   // fumadocs LLMs integration: /docs/<page>.md serves the page as raw markdown for AI agents.
   async redirects() {
-    return [{ source: "/docs/windowing", destination: "/docs/virtualization", permanent: true }];
+    return [
+      { source: "/docs/windowing", destination: "/docs/virtualization", permanent: true },
+      { source: "/docs/recipes/data-fetching/server-side-sort-filter", destination: "/docs/recipes/data-fetching/server-side", permanent: true },
+    ];
   },
   async rewrites() {
     return [
