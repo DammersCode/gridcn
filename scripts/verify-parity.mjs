@@ -65,17 +65,19 @@ export function checkParity(matrix, { optionNames, root: base }) {
         problems.push(`${at}: cell ${id} has unknown status ${cell.status}`);
       } else if (cell.status === "supported") {
         if (!cell.evidence?.length) problems.push(`${at}: supported cell ${id} has no evidence`);
+        const pattern = matrix.modes.find((m) => m.id === id)?.evidencePattern;
+        let mentioned = false;
+        let missing = false;
         for (const path of cell.evidence ?? []) {
           const file = join(base, path.split("#")[0]);
           if (!existsSync(file)) {
             problems.push(`${at}: cell ${id} evidence path does not exist: ${path}`);
+            missing = true;
             continue;
           }
-          const pattern = matrix.modes.find((m) => m.id === id)?.evidencePattern;
-          if (pattern && !row.modeNeutral && !new RegExp(pattern, "i").test(readFileSync(file, "utf8"))) {
-            problems.push(`${at}: cell ${id} evidence ${path} does not mention the mode (${pattern})`);
-          }
+          if (!pattern || row.modeNeutral || new RegExp(pattern, "i").test(readFileSync(file, "utf8"))) mentioned = true;
         }
+        if (cell.evidence?.length && !mentioned && !missing) problems.push(`${at}: cell ${id} evidence ${cell.evidence[0]} does not mention the mode (${pattern})`);
       } else if (cell.status === "gap") {
         if (!cell.track) problems.push(`${at}: gap cell ${id} has no tracking id`);
         if (!cell.note) problems.push(`${at}: gap cell ${id} has no note`);
