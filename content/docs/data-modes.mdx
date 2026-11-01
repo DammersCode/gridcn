@@ -44,16 +44,16 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Edit commit and write-through | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Streaming updates | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
-| Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Screen reader announcements | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Presence | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Loading and error state | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
-| Find and replace | Supported | Not verified | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Loading and error state | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Find and replace | Supported | Supported | Gap | Gap | Supported | Supported | Supported | Supported |
 | Lazy row fetching | n/a | n/a | n/a | Supported | n/a | n/a | n/a | n/a |
-| Pagination | n/a | Supported | Supported | n/a | Supported | Not verified | Supported | Not verified |
+| Pagination | n/a | Supported | Supported | n/a | Supported | Supported | Supported | Supported |
 | Keys, labels and cell types | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Unknown total and cursor paging | n/a | n/a | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
-| One server data source (`useDataGridServerRows`) | n/a | n/a | Supported | n/a | Supported | Supported | Supported | Not verified |
-| Error state and retry | n/a | n/a | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
+| Unknown total and cursor paging | n/a | n/a | Supported | Supported | Supported | Supported | Supported | Supported |
+| One server data source (`useDataGridServerRows`) | n/a | n/a | Supported | n/a | Supported | Supported | Supported | Supported |
+| Error state and retry | n/a | n/a | Supported | Supported | Supported | Supported | Supported | Supported |
 | Debounced text inputs | Supported | Supported | Supported | Supported | Supported | Supported | Supported | n/a |
 
 ## Notes
@@ -134,18 +134,9 @@ A grid feature can behave differently on a local array, on server pages and on l
 - **C**: n/a: URL state drives the controlled props itself.
 - **FS**: Gap: Deep-linked set-filter values outside static `choices` are dropped.
 
-### Screen reader announcements
-
-- **PS**: Not verified: Load and total announcements are not checked.
-- **Z**: Not verified: Load and total announcements are not checked.
-
 ### Presence
 
 - Mode-neutral by design.
-
-### Loading and error state
-
-- **PS**: Not verified: Error overlay for page fetches is not checked.
 
 ### Find and replace
 
