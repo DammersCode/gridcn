@@ -320,7 +320,7 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(field.value).toBe("a");
   });
 
-  it("a reset to the first value after a partial echo shows value, and so does an undo to an echoed text", () => {
+  it("a reset to the first value after a partial echo shows value, and so does an undo to an earlier commit", () => {
     function Steps() {
       const [value, setValue] = useState("");
       const [committed, setCommitted] = useState<string[]>([]);
