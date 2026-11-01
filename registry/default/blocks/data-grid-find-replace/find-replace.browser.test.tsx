@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
@@ -18,14 +19,16 @@ type Row = { id: string; name: string };
 const rows: Row[] = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: i % 10 === 5 ? `needle ${i}` : `item ${i}` }));
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit, dir }: { readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection"; replaceAllLimit?: number; dir?: "ltr" | "rtl" } = {}) {
+function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit, dir, controlledSearch = false }: { controlledSearch?: boolean; readOnly?: boolean; withToolbar?: boolean; scope?: "view" | "selection"; replaceAllLimit?: number; dir?: "ltr" | "rtl" } = {}) {
   const findReplace = useDataGridFindReplace({ scope, replaceAllLimit });
+  const [searchText, setSearchText] = useState("");
+  const controlled = controlledSearch ? { searchText, onSearchTextChange: setSearchText } : {};
   return (
     <div style={{ height: 400 }} dir={dir}>
       <button type="button" onClick={() => findReplace.open()}>
         Open find
       </button>
-      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} readOnly={readOnly}>
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} readOnly={readOnly} {...controlled}>
         {withToolbar && <DataGridSearch />}
         <DataGridRoot className="h-[400px]" direction={dir}>
           <DataGridHeader />
@@ -87,6 +90,18 @@ describe("find and replace in a browser", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(status).toHaveTextContent("2 of 3 cells");
     await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
+  });
+
+  it("Enter right after typing jumps to the first match when searchText is controlled", async () => {
+    await render(<Harness controlledSearch />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("needle{Enter}");
+    const status = page.getByRole("dialog").getByRole("status");
+    await expect.element(status).toHaveTextContent("1 of 3 cells");
+    await expect.element(page.getByRole("gridcell", { name: "needle 5" })).toHaveAttribute("tabindex", "0");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(status).toHaveTextContent("2 of 3 cells");
   });
 
   it("Next match button keeps focus on the button and opens no editor", async () => {
