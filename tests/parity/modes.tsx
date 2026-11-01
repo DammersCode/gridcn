@@ -48,6 +48,8 @@ export type Mounted = {
   setFilters: (filters: FilterNode[]) => void;
   /** The value of a cell by row id, from the store data. */
   cell: (rowId: string, columnId: string) => unknown;
+  /** Moves the pager of the client-pagination mode to a 1-based page. */
+  goToPage: (page: number) => void;
   /** Requests the rows `start` to `end` of a lazy mode; a no-op elsewhere. */
   load: (start: number, end: number) => Promise<void>;
 };
@@ -172,6 +174,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   function PagedClient({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
     const [full, setFull] = useState<readonly Row[]>(rows);
     const pager = useDataGridPagination({ data: full, pageSize: PAGE });
+    pageSetter = pager.controls.onPageChange;
     const page = pager.pageData ?? [];
     held = page;
     return (
@@ -217,6 +220,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     );
   }
 
+  let pageSetter: (page: number) => void = () => {};
   let sortSetter: (next: SortSpec[]) => void = () => {};
   let filterSetter: (next: FilterNode[]) => void = () => {};
 
@@ -257,6 +261,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
       const row = (api!.getState().data as readonly (Row | undefined)[]).find((r) => r?.id === rowId);
       return row ? row[columnId as keyof Row] : undefined;
     },
+    goToPage: (page) => act(() => pageSetter(page)),
     load: async (start, end) => {
       if (mode !== "Z") return;
       act(() => loadRows(start, end));

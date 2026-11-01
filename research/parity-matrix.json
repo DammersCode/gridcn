@@ -67,8 +67,11 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/view.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
           "status": "supported",
@@ -123,12 +126,18 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/view.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/view.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
           "status": "supported",
@@ -224,12 +233,18 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/view.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/view.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
           "status": "supported",
@@ -283,8 +298,11 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-check.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
           "status": "supported",
@@ -338,12 +356,18 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-ids.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-ids.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
           "status": "supported",
@@ -352,16 +376,25 @@
           ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-ids.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-ids.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/row-ids.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
           "status": "gap",
