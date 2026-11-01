@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import { DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import type { ColumnDef, DataChange, FilterNode, SortSpec } from "@/registry/default/blocks/data-grid/types";
 import type { WriteAck } from "@/registry/default/blocks/data-grid/store/write-ack";
@@ -23,6 +24,8 @@ export type MountOptions = {
   rows?: Row[];
   /** Extra provider props; they win over the mode's props. */
   props?: Record<string, unknown>;
+  /** Called once in the tree root; its result spreads onto the provider (plugins, hooks that feed props). */
+  useExtra?: () => Record<string, unknown>;
   /** The writes an `onSave` of the `API` mode answers; default accepts everything. */
   saveAnswer?: (change: DataChange<Row>) => Promise<WriteAck<Row>> | WriteAck<Row>;
 };
@@ -43,6 +46,8 @@ export type Mounted = {
   settle: () => Promise<void>;
   setSorts: (sorts: SortSpec[]) => void;
   setFilters: (filters: FilterNode[]) => void;
+  /** The value of a cell by row id, from the store data. */
+  cell: (rowId: string, columnId: string) => unknown;
   /** Requests the rows `start` to `end` of a lazy mode; a no-op elsewhere. */
   load: (start: number, end: number) => Promise<void>;
 };
@@ -58,10 +63,15 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   let held: readonly Row[] = all;
   let loadRows: (start: number, end: number) => void = () => {};
 
-  function Probe(): ReactNode {
+  function Capture(): ReactNode {
     api = useDataGridStoreApi();
     return null;
   }
+  const Probe = () => (
+    <DataGridRoot>
+      <Capture />
+    </DataGridRoot>
+  );
 
   const getRowId = (row: Row) => row.id;
   let created = 0;
@@ -88,7 +98,6 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
           setData(next);
         }}
         {...extra}
-        {...options.props}
       >
         <Probe />
         {children}
@@ -100,6 +109,8 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     const [sorts, setSorts] = useState<SortSpec[]>([]);
     const [filters, setFilters] = useState<FilterNode[]>([]);
     const [search, setSearch] = useState("");
+    const hooked = options.useExtra?.() ?? {};
+    const shared = { ...options.props, ...hooked };
     sortSetter = (next) => setSorts(next);
     filterSetter = (next) => setFilters(next);
 
@@ -112,22 +123,23 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
         {...baseProps}
             defaultData={all}
             onDataChange={(next: readonly Row[], change: DataChange<Row>) => record(next, change)}
-            {...options.props}
+            {...shared}
           >
             <Probe />
           </DataGridProvider>
         );
       case "PC":
-        return <PagedClient all={all} extra={options.props} record={record} />;
+        return <PagedClient all={all} extra={shared} record={record} />;
       case "PS":
-        return <Controlled window={all.slice(0, PAGE)} extra={{ totalRowCount: all.length }} />;
+        return <Controlled window={all.slice(0, PAGE)} extra={{ totalRowCount: all.length, ...shared }} />;
       case "Z":
-        return <Lazy all={all} extra={options.props} record={record} />;
+        return <Lazy all={all} extra={shared} record={record} />;
       case "C":
         return (
           <Controlled
             window={all}
             extra={{
+              ...shared,
               sortState: sorts,
               onSortChange: setSorts,
               filterState: filters,
@@ -138,14 +150,15 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
           />
         );
       case "SS":
-        return <Controlled window={all} extra={{ sortMode: "server", sortState: sorts, onSortChange: setSorts }} />;
+        return <Controlled window={all} extra={{ ...shared, sortMode: "server", sortState: sorts, onSortChange: setSorts }} />;
       case "FS":
-        return <Controlled window={all} extra={{ filterMode: "server", filterState: filters, onFilterChange: setFilters }} />;
+        return <Controlled window={all} extra={{ ...shared, filterMode: "server", filterState: filters, onFilterChange: setFilters }} />;
       case "API":
         return (
           <Controlled
             window={all}
             extra={{
+              ...shared,
               onSave: async (change: DataChange<Row>) => {
                 saves.push(change);
                 return options.saveAnswer ? options.saveAnswer(change) : undefined;
@@ -239,6 +252,10 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     setFilters: (filters) => {
       if (mode === "C" || mode === "FS") act(() => filterSetter(filters));
       else act(() => api!.getState().actions.setFilters(filters));
+    },
+    cell: (rowId, columnId) => {
+      const row = (api!.getState().data as readonly (Row | undefined)[]).find((r) => r?.id === rowId);
+      return row ? row[columnId as keyof Row] : undefined;
     },
     load: async (start, end) => {
       if (mode !== "Z") return;

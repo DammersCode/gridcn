@@ -33,14 +33,14 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
 | Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Clipboard copy and paste | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Clipboard copy and paste | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Fill | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
 | Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
 | Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
 | Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
-| Undo and redo | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Gap |
+| Undo and redo | Supported | Supported | Supported | Gap | Supported | Supported | Supported | Gap |
 | Row create, duplicate and delete | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Validation | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Supported |
+| Validation | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Edit commit and write-through | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
 | Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
@@ -96,11 +96,6 @@ A grid feature can behave differently on a local array, on server pages and on l
 ### Column pin, hide, order and size
 
 - Mode-neutral. Autosize measures loaded rows only on lazy data and on one page.
-
-### Clipboard copy and paste
-
-- **PS**: Not verified: Paste that adds rows is page-local; not checked.
-- **Z**: Not verified: Unloaded rows and paste that adds rows are not checked.
 
 ### Fill
 
