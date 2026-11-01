@@ -13,7 +13,7 @@ function scrollGridToEnd(): void {
 describe("data-grid-open-ended-demo", () => {
   it("loads the first page, then a further page after scrolling to the end", async () => {
     await render(<DataGridOpenEndedDemo />);
-    await expect.element(page.getByText("50 rows so far, more available")).toBeInTheDocument();
+    await expect.element(page.getByText(/50 rows so far, more available/)).toBeInTheDocument();
     scrollGridToEnd();
     await expect
       .poll(() => Number(/(\d+) rows so far/.exec(document.body.textContent ?? "")?.[1] ?? 0), { timeout: 5000 })

@@ -77,7 +77,7 @@ function LazyReactQueryGrid(): ReactNode {
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
           {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
-          {lazy.isLoading && " · fetching…"}
+          <span className={lazy.isLoading ? undefined : "invisible"}> · fetching…</span>
         </span>
         <span>{cachedWindows} windows in the query cache</span>
       </div>

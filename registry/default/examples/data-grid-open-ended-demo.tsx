@@ -65,7 +65,7 @@ function InfiniteScroll(): ReactNode {
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
           {rows.total === undefined ? `${rows.gridProps.data.length - rows.unloadedCount} rows so far, more available` : `${rows.total} rows, end of the list`}
-          {rows.isLoading && " · fetching…"}
+          <span className={rows.isLoading ? undefined : "invisible"}> · fetching…</span>
         </span>
         <Button type="button" variant="outline" size="xs" onClick={rows.reset}>
           Reset
