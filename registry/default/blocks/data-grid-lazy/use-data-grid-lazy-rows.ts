@@ -73,6 +73,7 @@ export type UseDataGridLazyRowsResult<TData> = {
     onRenderedRowsChange: (range: RowRange) => void;
     /** `total`, so the provider needs no second count. */
     totalRowCount: number;
+    keepCheckedRows: true;
   };
   /**
    * Pass as `DataGrid`'s `onDataChange` to let edits on already-loaded rows flow back into the
@@ -350,6 +351,7 @@ export function useDataGridLazyRows<TData>(options: UseDataGridLazyRowsOptions<T
       getRowId: gridGetRowId,
       onRenderedRowsChange,
       totalRowCount: total,
+      keepCheckedRows: true as const,
     }),
     [rows, gridGetRowId, onRenderedRowsChange, total],
   );

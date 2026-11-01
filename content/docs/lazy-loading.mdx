@@ -404,7 +404,7 @@ const rows = useDataGridInfiniteRows<Order, string>({
 
 - `nextCursor: null` ends the source, and so does a missing `nextCursor` (a warning in development). Any other value, including `0`, means more rows exist. An API
   with a "has more" flag returns `hasMore ? start + rows.length : null`.
-- `rows.gridProps` carries `totalRowCount`: `null` while more rows exist, then the final count. `lazy.gridProps` carries `total` as `totalRowCount`. Spread `gridProps` onto the provider and the count goes in once.
+- `rows.gridProps` carries `keepCheckedRows` and `totalRowCount`: `null` while more rows exist, then the final count. `lazy.gridProps` carries `total` as `totalRowCount`. Spread `gridProps` onto the provider and the count goes in once.
 - The first call gets `cursor: undefined`. `limit` is `pageSize` (default 50), capped by `maxFetchRows`. `fetchRows` returns at most `limit` rows; the hook keeps the first `limit` of a longer answer.
 - A fetch starts when the rendered window comes within `overscan` rows (default 30) of the loaded end.
 - The grid shows the loaded rows plus `pageSize` skeleton rows while more exist, so the scroll height
@@ -416,7 +416,7 @@ const rows = useDataGridInfiniteRows<Order, string>({
 - The hook has no `evict` and no `getLoadedRanges`: a cursor chain cannot refetch an arbitrary range. It keeps
   every loaded row, so stop returning a cursor when the list must not grow without bound.
 
-Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows, so it never means "every matching row". Pass `totalRowCount={null}` to the provider and the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
+Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows, so it never means "every matching row". Pass `totalRowCount={null}` and `keepCheckedRows` to the provider and the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
 ## Selecting, copying, and exporting
 

@@ -298,7 +298,7 @@ export type DataGridStatusBarLabels = {
   /** Select-all banner button. `total` is `null` when the size of the result is unknown. */
   selectAllMatching: (total: number | null) => string;
   /** Select-all banner after "select all matching". `count` is `undefined` when the size of the result is unknown. */
-  allSelected: (count: number | undefined) => string;
+  allSelected: (count: number | null) => string;
   clearSelection: string;
 };
 
@@ -617,7 +617,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     hiddenCheckedOnly: (count) => `${count.toLocaleString("en-US")} hidden checked ${count === 1 ? "row" : "rows"}`,
     pageSelected: (count) => `All ${count.toLocaleString("en-US")} on this page are selected.`,
     selectAllMatching: (total) => (total === null ? "Select all matching" : `Select all ${total.toLocaleString("en-US")} matching`),
-    allSelected: (count) => (count === undefined ? "All matching rows are selected." : `All ${count.toLocaleString("en-US")} selected.`),
+    allSelected: (count) => (count === null ? "All matching rows are selected." : `All ${count.toLocaleString("en-US")} selected.`),
     clearSelection: "Clear selection",
   },
   findReplace: {

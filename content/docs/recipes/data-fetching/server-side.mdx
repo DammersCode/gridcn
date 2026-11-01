@@ -112,7 +112,7 @@ marks `data` as a window of a larger result. A server that sends no count has tw
 
 <NewBadge />
 
-Set `keepCheckedRows` and `totalRowCount`. Checks then survive page changes, evictions, and server sort
+Set `keepCheckedRows` and `totalRowCount` (`useDataGridServerRows` sets both). Checks then survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result:
 
 ```tsx

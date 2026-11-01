@@ -74,6 +74,7 @@ export type UseDataGridServerRowsProviderProps<TData> = {
     onSearchTextChange: (next: string) => void;
     /** The row count of the result; `null` when the server sends none. */
     totalRowCount: number | null;
+    keepCheckedRows: true;
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */
@@ -179,6 +180,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
         setPage(1);
       },
       totalRowCount: settled.totalRowCount,
+      keepCheckedRows: true,
   };
   const rootProps: UseDataGridServerRowsRootProps = { loading, error, onRetry: retry };
 

@@ -27,7 +27,7 @@ const rowAt = (index: number): Row => ({ id: `row-${index}`, name: `Person ${ind
 
 function SelectionPanel(): ReactNode {
   const selected = useDataGridSelectedRows();
-  const summary = selected.mode === "ids" ? `${selected.count} checked` : `all matching, ${selected.count?.toLocaleString("en-US")} rows`;
+  const summary = selected.mode === "ids" ? `${selected.count} checked` : `all matching, ${selected.count?.toLocaleString("en-US") ?? "an unknown number of"} rows`;
   const list = selected.mode === "ids" ? selected.ids : selected.excludedIds;
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border p-2 text-sm">
@@ -51,7 +51,7 @@ export default function DataGridServerSelectionDemo(): ReactNode {
       <p className="m-0 text-sm text-muted-foreground">
         Check rows on page 1, go to page 3, and check more. Then check the header checkbox: the bar under the grid offers "Select all {TOTAL} matching". Uncheck a row and change pages.
       </p>
-      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" totalRowCount={TOTAL}>
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" keepCheckedRows totalRowCount={TOTAL}>
         <DataGridRoot className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />

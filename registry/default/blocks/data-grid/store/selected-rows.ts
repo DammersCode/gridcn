@@ -1,3 +1,4 @@
+import type { ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
 
 /** The selection as a value a bulk action sends to a server. */
@@ -14,11 +15,13 @@ export type DataGridSelectedRows =
       ids: readonly [];
       /** Every row of the result is selected except these: the remembered exclusions and the unchecked loaded rows. */
       excludedIds: readonly string[];
-      /** `totalRowCount` minus the exclusions; `undefined` when the size of the result is unknown. */
-      count: number | undefined;
+      /** `totalRowCount` minus the exclusions; `null` when the size of the result is unknown. */
+      count: number | null;
+      /** The sort, filters, and search text the grid held when the value was read. */
+      spec: ServerSpec;
     };
 
-type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount">;
+type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "searchText">;
 
 /** Reads the checked rows as ids, or as "all matching except these ids". */
 export function readSelectedRows(s: Source): DataGridSelectedRows {
@@ -56,5 +59,11 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
   }
   uncheckedGap(cursor, s.viewIndex.length);
   const total = s.totalRowCount;
-  return { mode: "allMatching", ids: [], excludedIds: [...excluded], count: typeof total === "number" ? Math.max(0, total - excluded.size) : undefined };
+  return {
+    mode: "allMatching",
+    ids: [],
+    excludedIds: [...excluded],
+    count: typeof total === "number" ? Math.max(0, total - excluded.size) : null,
+    spec: { sorts: s.sortState, filters: s.filterState, searchText: s.searchText },
+  };
 }

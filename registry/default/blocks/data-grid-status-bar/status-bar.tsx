@@ -128,7 +128,7 @@ export function DataGridStatusBar({
 }
 
 /** The count after "select all matching"; it reads the selection value, so it mounts only while that mode is on. */
-function AllSelectedText({ allSelected }: { allSelected: (count: number | undefined) => string }): ReactNode {
+function AllSelectedText({ allSelected }: { allSelected: (count: number | null) => string }): ReactNode {
   const selected = useDataGridSelectedRows();
   return <span>{allSelected(selected.count)}</span>;
 }

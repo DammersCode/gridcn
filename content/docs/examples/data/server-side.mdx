@@ -30,7 +30,7 @@ const server = useDataGridServerRows<Order>({
 - `spec` holds `sorts`, `filters`, and `search`. Send them to your API.
 - `fetchRows` resolves `{ rows, total }`. A server that sends no count resolves `{ rows, hasNextPage }`, and the footer shows "Page N" with Next and no Last.
 - At most `pageSize` rows are shown. A longer answer warns once in development.
-- `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, `headerClickBehavior="sort"`, the controlled sort, filter, and search pairs, `totalRowCount`, `loading`, `error`, and `onRetry`. `onDataChange` keeps edits in step; the revert of a refused save arrives there too.
+- `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, `headerClickBehavior="sort"`, the controlled sort, filter, and search pairs, `totalRowCount`, `keepCheckedRows`, `loading`, `error`, and `onRetry`. `onDataChange` keeps edits in step; the revert of a refused save arrives there too.
 - A composed layout (toolbar, custom root) spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` (`loading`, `error`, `onRetry`) onto `DataGridRoot`. The demo does this.
 
 ## Errors and retry
@@ -64,7 +64,7 @@ fetchRows: async ({ spec, page, pageSize, signal }) => {
 - The request is untrusted. Before you build a query, check that the tree is at most 2 groups deep, holds at most 16 groups and 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`. Cap the request body size too. The [ORM recipes](/docs/examples/data/orm) show the check.
 - Keep a query cache in front of the API by calling it inside `fetchRows`, for example `queryClient.fetchQuery({ queryKey: ["rows", spec, page, pageSize], queryFn: () => api.orders(...) })`.
 - To make the state shareable, wrap the grid in [DataGridUrlState](/docs/addons/url-state): the view state moves to the URL.
-- Checks that survive pages and "select all matching" need `totalRowCount`, which `gridProps` already carries. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
+- Checks that survive pages and "select all matching" need `totalRowCount` and `keepCheckedRows`, which `gridProps` already carries. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
 ## Behavior reference
 

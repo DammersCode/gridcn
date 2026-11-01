@@ -153,3 +153,10 @@ describe("deepMergeLabels", () => {
     expect(after).toEqual(snapshot);
   });
 });
+
+describe("statusBar.allSelected", () => {
+  it("reads the unknown size as null", () => {
+    expect(DEFAULT_LABELS.statusBar.allSelected(null)).toBe("All matching rows are selected.");
+    expect(DEFAULT_LABELS.statusBar.allSelected(1234)).toBe("All 1,234 selected.");
+  });
+});

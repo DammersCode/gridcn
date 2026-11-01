@@ -12,6 +12,7 @@ type Row = { id: string; name: string };
 const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
 
 const page = (ids: string[]): Row[] => ids.map((id) => ({ id, name: id.toUpperCase() }));
+const NO_SPEC = { sorts: [], filters: [], searchText: "" };
 const PAGE_ONE = page(["a", "b", "c"]);
 const PAGE_TWO = page(["d", "e", "f"]);
 
@@ -243,7 +244,7 @@ describe("useDataGridSelectedRows", () => {
     const m = mountWithHook();
     act(() => m.api().getState().actions.selectAllMatching());
     act(() => m.api().getState().actions.setRowSelected(1, false));
-    expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: ["b"], count: 8 });
+    expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: ["b"], count: 8, spec: NO_SPEC });
     m.rerender({ data: PAGE_TWO });
     expect(m.selected()).toMatchObject({ mode: "allMatching", excludedIds: ["b"], count: 8 });
   });
@@ -255,13 +256,26 @@ describe("useDataGridSelectedRows", () => {
     m.rerender({ data: PAGE_TWO });
     m.rerender({ data: PAGE_ONE });
     act(() => m.api().getState().actions.setRowSelected(1, true));
-    expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: [], count: 9 });
+    expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: [], count: 9, spec: NO_SPEC });
   });
 
-  it("count is undefined in allMatching mode when the size is unknown", () => {
+  it("count is null in allMatching mode when the size is unknown", () => {
     const m = mountWithHook({ totalRowCount: null });
     act(() => m.api().getState().actions.selectAllMatching());
-    expect(m.selected()).toMatchObject({ mode: "allMatching", count: undefined });
+    expect(m.selected()).toMatchObject({ mode: "allMatching", count: null });
+  });
+
+  it("allMatching mode carries the sort, filters, and search text the grid holds", () => {
+    const sorts = [{ columnId: "name", direction: "asc" as const }];
+    const filters = [{ filterId: "f1", columnId: "name", operator: "contains" as const, value: "a" }];
+    const m = mountWithHook({ sortState: sorts, filterState: filters, searchText: "q", sortMode: "server", filterMode: "server" });
+    act(() => m.api().getState().actions.selectAllMatching());
+    expect(m.selected()).toMatchObject({ mode: "allMatching", spec: { sorts, filters, searchText: "q" } });
+  });
+
+  it("a grid with totalRowCount and no keepCheckedRows does not keep checks", () => {
+    const m = mountWithHook({ keepCheckedRows: undefined });
+    expect(m.api().getState().keepCheckedRows).toBe(false);
   });
 
   it("skips skeleton rows in ids", () => {
@@ -304,11 +318,12 @@ describe("select all matching and the result spec", () => {
     expect(m.state().allMatching).toBe(true);
   });
 
-  it("totalRowCount alone turns keepCheckedRows on, so selectAllMatching works", () => {
+  it("totalRowCount alone leaves keepCheckedRows off, so selectAllMatching warns", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ keepCheckedRows: undefined });
-    expect(m.state().keepCheckedRows).toBe(true);
+    expect(m.state().keepCheckedRows).toBe(false);
     act(() => m.state().actions.selectAllMatching());
-    expect(m.state().allMatching).toBe(true);
+    expect(m.state().allMatching).toBe(false);
   });
 
   it("an explicit keepCheckedRows false keeps selectAllMatching off with a warning", () => {

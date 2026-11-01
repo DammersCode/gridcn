@@ -55,6 +55,7 @@ export type UseDataGridInfiniteRowsResult<TData> = {
     onRenderedRowsChange: (range: RowRange) => void;
     /** The final count once the source ended, else `null`, so the provider needs no second count. */
     totalRowCount: number | null;
+    keepCheckedRows: true;
   };
   /** Pass as `onDataChange`. Edits, inserts, and deletes of loaded rows merge into the loaded rows. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
@@ -240,7 +241,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   }, [loaded, pageSize]);
 
   const totalRowCount = loaded.hasNextPage ? null : loaded.rows.length;
-  const gridProps = useMemo(() => ({ data, getRowId: gridGetRowId, onRenderedRowsChange, totalRowCount }), [data, gridGetRowId, onRenderedRowsChange, totalRowCount]);
+  const gridProps = useMemo(() => ({ data, getRowId: gridGetRowId, onRenderedRowsChange, totalRowCount, keepCheckedRows: true as const }), [data, gridGetRowId, onRenderedRowsChange, totalRowCount]);
 
   return {
     gridProps,

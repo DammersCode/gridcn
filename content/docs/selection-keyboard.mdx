@@ -151,7 +151,7 @@ The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`,
 
 | Prop | Type | Default |
 |---|---|---|
-| `keepCheckedRows` | `boolean` | `false` (`true` with `totalRowCount`) |
+| `keepCheckedRows` | `boolean` | `false` |
 | `keepHiddenCheckedRows` | `boolean` | `false` |
 | `announceResults` <NewBadge /> | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
@@ -171,17 +171,17 @@ A server grid holds one page, or the loaded part of a lazy source. Set `totalRow
 With `totalRowCount`:
 
 - A checked row that leaves `data` stays checked by row id. A page change, a lazy eviction, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
-- `keepCheckedRows` is on by default while `totalRowCount` is set. Pass `keepCheckedRows={false}` to turn it off.
+- Pass `keepCheckedRows` together with `totalRowCount`. `totalRowCount` does not turn it on. `useDataGridServerRows` and the lazy hooks set `keepCheckedRows` in `gridProps`. <NewBadge />
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
 - `useDataGridSelectedRows()` reads the selection as a value.
 
 ```tsx
 const selected = useDataGridSelectedRows();
 // { mode: "ids", ids: ["a", "d"], excludedIds: [], count: 2 }
-// { mode: "allMatching", ids: [], excludedIds: ["b"], count: 8_999 }
+// { mode: "allMatching", ids: [], excludedIds: ["b"], count: 8_999, spec: { sorts, filters, searchText } }
 ```
 
-In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unloaded rows have no id and are left out. In `allMatching` mode, `excludedIds` lists the unchecked rows, and `count` is `totalRowCount` minus the exclusions (`undefined` when the size is unknown).
+In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unloaded rows have no id and are left out. In `allMatching` mode, `excludedIds` lists the unchecked rows, and `count` is `totalRowCount` minus the exclusions (`null` when the size is unknown). `spec` holds the sort, the filters, and the search text of the grid at the time of the read. <NewBadge />
 
 <ComponentPreview name="data-grid-server-selection-demo" />
 
@@ -197,13 +197,13 @@ In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unlo
 
 Selecting all matching announces the real count in the grid's live region. The labels are `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`.
 
-Send the selection to your server together with the sort, filter, and search spec you already hold:
+Send the selection to your server together with its spec:
 
 ```tsx
 await api.deleteOrders(
   selected.mode === "ids"
     ? { ids: selected.ids }
-    : { filters, search, exceptIds: selected.excludedIds },
+    : { spec: selected.spec, exceptIds: selected.excludedIds },
 );
 ```
 

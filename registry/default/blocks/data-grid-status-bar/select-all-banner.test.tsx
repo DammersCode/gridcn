@@ -18,7 +18,7 @@ function Probe() {
 
 const mount = (props: { totalRowCount?: number | null } = {}) =>
   render(
-    <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" {...props}>
+    <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" keepCheckedRows {...props}>
       <Probe />
       <DataGridStatusBar />
     </DataGridProvider>,
