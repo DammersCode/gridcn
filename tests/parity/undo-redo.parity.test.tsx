@@ -35,7 +35,7 @@ describe.each(ALL_MODES)("undo and redo in mode %s", (mode) => {
     const grid = await mountMode(mode, options);
     grid.act(() => grid.state().actions.commitCellValue({ rowId: "r1", columnId: "n" }, 50));
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
-    grid.setFilters([{ filterId: "f", columnId: "name", operator: "gt", value: "1" }]);
+    grid.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }]);
     grid.act(() => history().undo());
     expect(grid.cell("r1", "n")).toBe(1);
     expect(grid.cell("r0", "n")).toBe(0);

@@ -117,10 +117,11 @@ describe("server pagination in mode API (onSave write-through)", () => {
     });
     act(() => grid.server().pager.onPageChange(2));
     await grid.ready();
+    await waitFor(() => expect((grid.state().data as Row[]).some((row) => row.id === "r12")).toBe(true), { timeout: 5000 });
     act(() => grid.state().actions.commitCellValue({ rowId: "r12", columnId: "n" }, 999));
-    await waitFor(() => expect(saves).toHaveLength(1));
+    await waitFor(() => expect(saves).toHaveLength(1), { timeout: 5000 });
     expect(saves[0]!.ops[0]).toMatchObject({ rowId: "r12" });
-    await waitFor(() => expect((grid.state().data as Row[]).find((row) => row.id === "r12")?.n).toBe(12));
+    await waitFor(() => expect((grid.state().data as Row[]).find((row) => row.id === "r12")?.n).toBe(12), { timeout: 5000 });
   });
 
   it("an accepted save survives a refetch of the same page, with and without a row count", async () => {

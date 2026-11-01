@@ -25,6 +25,21 @@ describe("sort, filter, and search with client pagination", () => {
   });
 });
 
+describe("writes with client pagination", () => {
+  it("an edit on page 2 lands on its row and leaves page 1 alone", async () => {
+    const grid = await mountMode("PC");
+    grid.goToPage(2);
+    expect(grid.viewIds()).toEqual(["r4", "r5"]);
+    grid.act(() => grid.state().actions.commitCellValue({ rowId: "r5", columnId: "n" }, 55));
+    grid.goToPage(1);
+    expect(grid.viewIds()).toEqual(["r0", "r1", "r2", "r3"]);
+    expect(grid.cell("r0", "n")).toBe(0);
+    grid.goToPage(2);
+    expect(grid.cell("r5", "n")).toBe(55);
+    expect(grid.cell("r4", "n")).toBe(4);
+  });
+});
+
 describe("sort, filter, and search with server pagination", () => {
   it("filterMode server keeps the page whole and tracks the spec", async () => {
     const grid = await mountMode("PS", { props: { filterMode: "server", sortMode: "server" } });

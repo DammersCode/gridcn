@@ -212,6 +212,41 @@ describe("DataGridSearch input rules", () => {
     vi.useRealTimers();
   });
 
+  it("with controlled searchText, Enter after typing still jumps to the first match once the parent applies the text", () => {
+    vi.useFakeTimers();
+    let store: ReturnType<typeof useDataGridStoreApi> | null = null;
+    function Probe() {
+      store = useDataGridStoreApi();
+      return null;
+    }
+    const manyRows: Row[] = [
+      { id: "r0", name: "Beta" },
+      { id: "r1", name: "Alpha one" },
+      { id: "r2", name: "Alpha two" },
+    ];
+    function Controlled() {
+      const [text, setText] = useState("");
+      return (
+        <DataGridProvider data={manyRows} columns={columns} getRowId={(r) => r.id} searchText={text} onSearchTextChange={setText}>
+          <DataGridSearch />
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+            <Probe />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Controlled />);
+    const input = screen.getByRole("textbox", { name: "Search grid" });
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(store!.getState().activeCell).toEqual({ col: 0, row: 1 });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(store!.getState().activeCell).toEqual({ col: 0, row: 2 });
+    vi.useRealTimers();
+  });
+
   it("blur commits the pending text", () => {
     vi.useFakeTimers();
     const { input } = renderWith();

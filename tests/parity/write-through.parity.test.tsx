@@ -7,7 +7,7 @@ const edit = (grid: Awaited<ReturnType<typeof mountMode>>, rowId: string, value:
   grid.act(() => grid.state().actions.commitCellEdit(value));
 };
 
-describe.each(ALL_MODES.filter((mode) => mode !== "API"))("onSave write-through in mode %s", (mode) => {
+describe.each(ALL_MODES)("onSave write-through in mode %s", (mode) => {
   it("an accepted save keeps the edit and sends one change", async () => {
     const onSave = vi.fn(async (_change: DataChange<Row>) => undefined);
     const grid = await mountMode(mode, { props: { onSave } });

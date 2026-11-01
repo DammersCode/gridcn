@@ -91,6 +91,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const findInput = useDebouncedInput(searchedText, (text) => api.actions.setSearch(text, searchOptions), { delayMs });
   const find = findInput.inputValue;
+  const jumpOnCommitRef = useRef<string | null>(null);
 
   useEffect(() => {
     replacedRef.current.clear();
@@ -146,9 +147,17 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     [api, scrollToCell],
   );
 
+  // A controlled parent applies the committed text later, so the first match is known only once searchedText has caught up.
+  useEffect(() => {
+    if (jumpOnCommitRef.current === null || jumpOnCommitRef.current !== searchedText) return;
+    jumpOnCommitRef.current = null;
+    goTo(0);
+  }, [searchedText, matches, goTo]);
+
   const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
     replacedRef.current.clear();
+    jumpOnCommitRef.current = null;
     findInput.inputProps.onChange(event);
   };
 
@@ -240,8 +249,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     if (event.key !== "Enter" || isComposingKey(event)) return;
     event.preventDefault();
     if (findInput.inputValue !== searchedText) {
+      jumpOnCommitRef.current = findInput.inputValue;
       findInput.flush();
-      goTo(0);
     } else goTo(cursor + (event.shiftKey ? -1 : 1));
   };
 

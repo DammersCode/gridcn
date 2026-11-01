@@ -82,6 +82,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const input = useDebouncedInput(searchText, (text) => actions.setSearch(text), { delayMs: debounceMs ?? providerDebounceMs });
   const [matchIndex, setMatchIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const jumpOnCommitRef = useRef<string | null>(null);
 
   // restart navigation at the first hit during render, not in an effect: a shrinking list must not paint an out-of-range index
   const [lastMatches, setLastMatches] = useState(matches);
@@ -127,17 +128,25 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     [actions, scrollToCell, storeApi],
   );
 
+  // A controlled parent applies the committed text later, so the first match is known only once searchText has caught up.
+  useEffect(() => {
+    if (jumpOnCommitRef.current === null || jumpOnCommitRef.current !== searchText) return;
+    jumpOnCommitRef.current = null;
+    goToMatch(0);
+  }, [searchText, matches, goToMatch]);
+
   const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (isComposingKey(event)) return;
     if (event.key === "Escape") {
       event.preventDefault();
+      jumpOnCommitRef.current = null;
       input.cancel();
       actions.setSearch("");
     } else if (event.key === "Enter") {
       event.preventDefault();
       if (input.inputValue !== searchText) {
+        jumpOnCommitRef.current = input.inputValue;
         input.flush();
-        goToMatch(0);
       } else goToMatch(matchIndex + (event.shiftKey ? -1 : 1));
     }
   };
@@ -153,6 +162,10 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
         <InputGroupInput
           ref={inputRef}
           {...input.inputProps}
+          onChange={(event) => {
+            jumpOnCommitRef.current = null;
+            input.inputProps.onChange(event);
+          }}
           onKeyDown={onKeyDown}
           placeholder={placeholder ?? labels.toolbar.searchPlaceholder}
           aria-label={labels.toolbar.searchAriaLabel}

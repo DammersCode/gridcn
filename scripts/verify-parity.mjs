@@ -78,7 +78,7 @@ export function checkParity(matrix, { optionNames, root: base }) {
             continue;
           }
           const text = readFileSync(file, "utf8");
-          const runsMode = path.startsWith(PARITY_TESTS) && (text.includes("ALL_MODES") || text.includes(`mode ${id} `) || text.includes(`mountMode("${id}"`));
+          const runsMode = path.startsWith(PARITY_TESTS) && ((text.includes("ALL_MODES") && !text.includes("ALL_MODES.filter")) || text.includes(`mode ${id} `) || text.includes(`mountMode("${id}"`));
           if (path.startsWith(PARITY_TESTS) ? runsMode : !pattern || row.modeNeutral || new RegExp(pattern, "i").test(text)) mentioned = true;
         }
         if (cell.evidence?.length && !mentioned && !missing) problems.push(`${at}: cell ${id} evidence ${cell.evidence[0]} does not mention the mode (${pattern})`);

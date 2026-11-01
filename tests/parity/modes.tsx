@@ -175,10 +175,12 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
             window={all}
             extra={{
               ...shared,
-              onSave: async (change: DataChange<Row>) => {
-                saves.push(change);
-                return options.saveAnswer ? options.saveAnswer(change) : undefined;
-              },
+              onSave:
+                shared.onSave ??
+                (async (change: DataChange<Row>) => {
+                  saves.push(change);
+                  return options.saveAnswer ? options.saveAnswer(change) : undefined;
+                }),
             }}
           />
         );
