@@ -17,7 +17,7 @@ import {
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
 import { DataGridUrlState, useDataGridUrlPagination } from "@/registry/default/blocks/data-grid-url-state/data-grid-url-state";
-import { useDataGridPagination, DataGridPaginationBar, pageRange } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
@@ -48,9 +48,8 @@ function DataGridUrlStateDemoInner(): ReactNode {
   const rows = useMemo(() => generateDemoRows(60), []);
   // server mode simulates a real fetch: this add-on has nothing to do with the fetch itself, only the page/pageSize wiring.
   const url = useDataGridUrlPagination({ prefix: "demo", defaultPageSize: 10 });
-  const pager = useDataGridPagination({ total: rows.length, ...url });
-  const { start, end } = pageRange(pager.controls.page, pager.controls.pageSize, rows.length);
-  const pageRows = rows.slice(start, end);
+  const { pager } = useDataGridPagination({ totalRowCount: rows.length, ...url });
+  const pageRows = rows.slice((pager.page - 1) * pager.pageSize, pager.page * pager.pageSize);
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -75,7 +74,7 @@ function DataGridUrlStateDemoInner(): ReactNode {
             <DataGridBody />
           </DataGridRoot>
         </DataGridProvider>
-        <DataGridPaginationBar {...pager.controls} />
+        <DataGridPaginationBar {...pager} />
       </div>
     </div>
   );

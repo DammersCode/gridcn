@@ -30,7 +30,7 @@ describe("useDataGridServerRows", () => {
     expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, pageSize: 10, spec: { sorts: [], filters: [], searchText: "" } });
     expect(result.current.gridProps.data).toHaveLength(10);
     expect(result.current.gridProps.totalRowCount).toBe(95);
-    expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, total: 95, pageCount: 10 });
+    expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, totalRowCount: 95, pageCount: 10 });
     expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", headerClickBehavior: "sort" });
   });
 
@@ -131,7 +131,7 @@ describe("useDataGridServerRows", () => {
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(result.current.gridProps.totalRowCount).toBeNull();
-    expect(result.current.pager).toMatchObject({ total: undefined, hasNextPage: true });
+    expect(result.current.pager).toMatchObject({ totalRowCount: null, hasNextPage: true });
   });
 
   it("warns once and keeps only pageSize rows when the answer is longer", async () => {

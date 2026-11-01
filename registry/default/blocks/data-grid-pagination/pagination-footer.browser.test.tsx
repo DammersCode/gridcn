@@ -32,11 +32,11 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 function PaginatedGrid() {
-  const pager = useDataGridPagination({ data: makeRows(101), pageSize: 25 });
+  const { pageData, pager } = useDataGridPagination({ data: makeRows(101), defaultPageSize: 25 });
   return (
     <div style={{ height: 360, width: 400 }}>
-      <DataGrid data={pager.pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGrid data={pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
+      <DataGridPaginationBar {...pager} />
     </div>
   );
 }
@@ -44,21 +44,21 @@ function PaginatedGrid() {
 const slidingRows = makeRows(251);
 
 function SlidingPaginatedGrid({ windowSize }: { windowSize?: number }) {
-  const pager = useDataGridPagination({ data: slidingRows, pageSize: 25 });
+  const { pageData, pager } = useDataGridPagination({ data: slidingRows, defaultPageSize: 25 });
   return (
     <div style={{ height: 360, width: 400 }}>
-      <DataGrid data={pager.pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
-      <DataGridPaginationBar {...pager.controls} windowSize={windowSize} />
+      <DataGrid data={pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
+      <DataGridPaginationBar {...pager} windowSize={windowSize} />
     </div>
   );
 }
 
 function CustomPaginatedGrid() {
-  const pager = useDataGridPagination({ data: makeRows(101), pageSize: 25 });
+  const { pageData, pager } = useDataGridPagination({ data: makeRows(101), defaultPageSize: 25 });
   return (
     <div style={{ height: 360, width: 400 }}>
-      <DataGrid data={pager.pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
-      <DataGridPaginationBar {...pager.controls}>
+      <DataGrid data={pageData!} columns={columns} getRowId={(r) => r.id} className="h-72" />
+      <DataGridPaginationBar {...pager}>
         <DataGridPaginationPrev />
         <DataGridPaginationNext />
       </DataGridPaginationBar>
@@ -188,11 +188,11 @@ describe("pagination icons in a right-to-left page", () => {
 
 function OpenEndedGrid({ initialPage, hasNextPage }: { initialPage: number; hasNextPage: boolean }) {
   const [current, setCurrent] = useState(initialPage);
-  const pager = useDataGridPagination({ page: current, pageSize: 25, hasNextPage, onPageChange: setCurrent });
+  const { pager } = useDataGridPagination({ page: current, pageSize: 25, totalRowCount: null, hasNextPage, onPageChange: setCurrent });
   return (
     <div style={{ height: 360, width: 400 }}>
       <DataGrid data={makeRows(25)} columns={columns} getRowId={(r) => r.id} className="h-72" />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </div>
   );
 }

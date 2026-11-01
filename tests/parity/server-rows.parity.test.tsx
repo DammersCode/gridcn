@@ -90,7 +90,7 @@ describe("a source with no row count in mode C (controlled state)", () => {
   it("the pager and the grid carry an unknown total while the controlled sort, filter, and search reach the server", async () => {
     const fetchRows = pagedSource(undefined);
     const grid = await mountServer(fetchRows);
-    expect(grid.server().pager.total).toBeUndefined();
+    expect(grid.server().pager.totalRowCount).toBeNull();
     expect(grid.server().pager.hasNextPage).toBe(true);
     expect(grid.state().totalRowCount).toBeNull();
     act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as never));

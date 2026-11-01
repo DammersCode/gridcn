@@ -1509,7 +1509,8 @@
         "page",
         "onPageChange",
         "onPageSizeChange",
-        "reconcilePage"
+        "defaultPageSize",
+        "defaultPage"
       ],
       "cells": {
         "L": {
@@ -1624,7 +1625,9 @@
     {
       "id": "unknown-total",
       "feature": "Unknown total and cursor paging",
-      "options": [],
+      "options": [
+        "hasNextPage"
+      ],
       "cells": {
         "L": {
           "status": "n/a",

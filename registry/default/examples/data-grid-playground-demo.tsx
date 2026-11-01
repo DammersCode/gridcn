@@ -368,7 +368,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
 /** The paginated subtree: `DataGridPaginationBar` is standalone and reads no store, so it composes freely with every other toggle. */
 function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const [rows, setRows] = useState(() => generateDemoRows(120));
-  const pager = useDataGridPagination({ data: rows, pageSize: 20 });
+  const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 20 });
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
@@ -388,7 +388,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <DataGridProvider
-        data={pager.pageData!}
+        data={pageData!}
         columns={controls.columns}
         getRowId={(row) => row.id}
         onDataChange={onDataChange}
@@ -418,7 +418,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
           </DataGridRoot>
         </DataGridContextMenu>
       </DataGridProvider>
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </div>
   );
 }

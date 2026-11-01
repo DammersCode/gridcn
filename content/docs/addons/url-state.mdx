@@ -207,14 +207,14 @@ something `<DataGridUrlState>` mounts for you:
 import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
 import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
-function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
+function OrdersGrid({ rows, totalRowCount }: { rows: Order[]; totalRowCount: number }) {
   const url = useDataGridUrlPagination();
-  const pager = useDataGridPagination({ total, ...url });
+  const { pager } = useDataGridPagination({ totalRowCount, ...url });
 
   return (
     <>
       <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </>
   );
 }
@@ -225,16 +225,16 @@ like any other invalid value. `pageSize` is omitted when it equals the configure
 writes use `history: "replace"`, same as this add-on's other params. Options: `prefix` (namespaces
 `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize` (default 25),
 `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default instead of being
-trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `total` (the row count;
+trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `totalRowCount` <NewBadge /> (the row count;
 see below). The result carries the resolved `pageSizeOptions`. Pass them to `useDataGridPagination`
 so the bar's page-size select and the URL's allow-list stay the same list.
 
-When you pass `total`, an out-of-range deep-linked `page` clamps to the last page once `total` is
+When you pass `totalRowCount`, an out-of-range deep-linked `page` clamps to the last page once it is
 positive. This happens on mount or when a late fetch resolves. The hook writes the clamped value
 back to the URL, so a shared link always matches the rendered view:
 
 ```tsx
-const url = useDataGridUrlPagination({ total: rows.length });
+const url = useDataGridUrlPagination({ totalRowCount: rows.length });
 ```
 
 See [Pagination](/docs/pagination#composing-with-data-grid-url-state) for the full composition,

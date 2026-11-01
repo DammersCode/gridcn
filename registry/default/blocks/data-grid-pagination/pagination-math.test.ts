@@ -81,8 +81,8 @@ describe("pageWindow", () => {
 
 describe("clampPage with an unknown total", () => {
   it("clamps only the lower bound", () => {
-    expect(clampPage(0, undefined, 25)).toBe(1);
-    expect(clampPage(999, undefined, 25)).toBe(999);
-    expect(clampPage(3.7, undefined, 25)).toBe(3);
+    expect(clampPage(0, null, 25)).toBe(1);
+    expect(clampPage(999, null, 25)).toBe(999);
+    expect(clampPage(3.7, null, 25)).toBe(3);
   });
 });

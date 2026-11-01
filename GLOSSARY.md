@@ -28,7 +28,7 @@ mirror the change there.
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
-| row count | The size of the result. `total` is the option a hook takes; `totalRowCount` is the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
+| row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. Lazy hooks still take `total`. | row total, count |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | seed | The initial value a `default*` prop gives once, at mount. | |

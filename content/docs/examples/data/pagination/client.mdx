@@ -5,7 +5,7 @@ icon: Table
 ---
 
 Client mode: the demo holds all 240 rows and the hook slices the current page out of them.
-No round trip, and no `total` to manage. You need `pageSize` and, optionally, a controlled page.
+No round trip, and no row count to manage. You need `defaultPageSize` and, optionally, a controlled page.
 
 <ComponentPreview name="data-grid-pagination-demo" />
 
@@ -15,13 +15,13 @@ No round trip, and no `total` to manage. You need `pageSize` and, optionally, a 
 
 ```tsx
 // client mode — the hook slices `data` for you
-const pager = useDataGridPagination({ data: rows, pageSize: 25 });
+const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
 
-// server mode — you own page/pageSize/total and fetch the page yourself
-const pager = useDataGridPagination({
+// server mode — you own page/pageSize/totalRowCount and fetch the page yourself
+const { pager } = useDataGridPagination({
   page,
   pageSize,
-  total: serverTotal,
+  totalRowCount: serverTotal,
   onPageChange: setPage,
   onPageSizeChange: (next) => {
     setPageSize(next);
@@ -30,7 +30,7 @@ const pager = useDataGridPagination({
 });
 ```
 
-Both return the same `controls` shape, so `<DataGridPaginationBar {...pager.controls} />`
+Both return the same `pager` shape, so `<DataGridPaginationBar {...pager} />`
 doesn't need to know which mode it's in. The footer sits outside the provider in both cases,
 so it reads no store.
 

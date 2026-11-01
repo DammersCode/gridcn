@@ -70,22 +70,24 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
     expect(renderHook({ hookOptions: { pageSizeOptions: [5, 15] } }).getResult().pageSizeOptions).toEqual([5, 15]);
   });
 
-  it("clamps an out-of-range deep-linked page to the last page when total is given", () => {
+  it("clamps an out-of-range deep-linked page to the last page when totalRowCount is given", () => {
     // 100 rows, pageSize 25 → last page 4
-    expect(renderHook({ searchParams: "?page=999", hookOptions: { total: 100 } }).getResult().page).toBe(4);
+    expect(renderHook({ searchParams: "?page=999", hookOptions: { totalRowCount: 100 } }).getResult().page).toBe(4);
     cleanup();
-    expect(renderHook({ searchParams: "?page=0", hookOptions: { total: 100 } }).getResult().page).toBe(1);
+    expect(renderHook({ searchParams: "?page=0", hookOptions: { totalRowCount: 100 } }).getResult().page).toBe(1);
     cleanup();
     // valid deep-link is untouched
-    expect(renderHook({ searchParams: "?page=2", hookOptions: { total: 100 } }).getResult().page).toBe(2);
+    expect(renderHook({ searchParams: "?page=2", hookOptions: { totalRowCount: 100 } }).getResult().page).toBe(2);
     cleanup();
     // without total the raw (in-range or not) value passes through, as before
     expect(renderHook({ searchParams: "?page=999" }).getResult().page).toBe(999);
+    cleanup();
+    expect(renderHook({ searchParams: "?page=999", hookOptions: { totalRowCount: null } }).getResult().page).toBe(999);
   });
 
-  it("writes the clamped page back to the URL on mount when total is given", async () => {
+  it("writes the clamped page back to the URL on mount when totalRowCount is given", async () => {
     const onUrlUpdate = vi.fn();
-    renderHook({ searchParams: "?page=999", hookOptions: { total: 100 }, onUrlUpdate });
+    renderHook({ searchParams: "?page=999", hookOptions: { totalRowCount: 100 }, onUrlUpdate });
     await vi.waitFor(() => {
       const last = onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined;
       expect(last?.searchParams.get("page")).toBe("4");
@@ -108,7 +110,7 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
 
     rerender(
       <NuqsTestingAdapter searchParams="?page=999" onUrlUpdate={onUrlUpdate}>
-        <HookProbe options={{ total: 100 }} onResult={(r) => (latest = r)} />
+        <HookProbe options={{ totalRowCount: 100 }} onResult={(r) => (latest = r)} />
       </NuqsTestingAdapter>,
     );
 
@@ -120,7 +122,7 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
 
   it("does not touch the URL on mount when the deep-linked page is already in range", async () => {
     const onUrlUpdate = vi.fn();
-    renderHook({ searchParams: "?page=2", hookOptions: { total: 100 }, onUrlUpdate });
+    renderHook({ searchParams: "?page=2", hookOptions: { totalRowCount: 100 }, onUrlUpdate });
     await act(async () => {});
     expect(onUrlUpdate.mock.calls.filter((c) => (c[0] as UrlUpdateEvent).searchParams.has("page"))).toEqual([]);
   });

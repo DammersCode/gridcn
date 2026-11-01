@@ -40,10 +40,10 @@ function PaginatedReactQueryGrid(): ReactNode {
     placeholderData: keepPreviousData,
   });
 
-  const pager = useDataGridPagination({
+  const { pager } = useDataGridPagination({
     page,
     pageSize,
-    total: query.data?.total ?? server.total,
+    totalRowCount: query.data?.total ?? server.total,
     onPageChange: setPage,
     onPageSizeChange: (next) => {
       setPageSize(next);
@@ -62,7 +62,7 @@ function PaginatedReactQueryGrid(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="text-sm text-muted-foreground">
-        {query.isPending ? "Loading page…" : `Page ${pager.controls.page} of ${pager.controls.pageCount} · ${query.data?.total ?? 0} rows on the server`}
+        {query.isPending ? "Loading page…" : `Page ${pager.page} of ${pager.pageCount} · ${query.data?.total ?? 0} rows on the server`}
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider data={query.data?.rows ?? []} columns={columns} getRowId={(row) => row.id} onDataChange={onDataChange}>
@@ -71,7 +71,7 @@ function PaginatedReactQueryGrid(): ReactNode {
             <DataGridBody />
           </DataGridRoot>
         </DataGridProvider>
-        <DataGridPaginationBar {...pager.controls} />
+        <DataGridPaginationBar {...pager} />
       </div>
     </div>
   );

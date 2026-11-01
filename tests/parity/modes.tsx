@@ -189,10 +189,10 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
 
   function PagedClient({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
     const [full, setFull] = useState<readonly Row[]>(rows);
-    const pager = useDataGridPagination({ data: full, pageSize: PAGE });
-    pageSetter = pager.controls.onPageChange;
-    const offset = (pager.controls.page - 1) * PAGE;
-    const page = pager.pageData ?? [];
+    const { pageData, pager } = useDataGridPagination({ data: full, defaultPageSize: PAGE });
+    pageSetter = pager.onPageChange;
+    const offset = (pager.page - 1) * PAGE;
+    const page = pageData ?? [];
     held = page;
     return (
       <DataGridProvider

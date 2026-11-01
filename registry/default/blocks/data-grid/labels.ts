@@ -273,10 +273,10 @@ export type DataGridPaginationLabels = {
   pageSizeAriaLabel: string;
   /** Option text in the page-size select, e.g. "25 / page". */
   pageSizeOption: (size: number) => string;
-  /** Footer range label, e.g. "1–25 of 240". `total === 0` renders {@link DataGridPaginationLabels.rangeEmpty} instead. */
-  range: (from: number, to: number, total: number) => string;
+  /** Footer range label, e.g. "1–25 of 240". `totalRowCount === 0` renders {@link DataGridPaginationLabels.rangeEmpty} instead. */
+  range: (from: number, to: number, totalRowCount: number) => string;
   rangeEmpty: string;
-  /** Footer range label when the server sends no total, e.g. "Page 3". */
+  /** Footer range label when the server sends no row count, e.g. "Page 3". */
   rangeUnknown: (page: number) => string;
 };
 
@@ -602,7 +602,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pageAriaLabel: (page) => `Go to page ${page}`,
     pageSizeAriaLabel: "Rows per page",
     pageSizeOption: (size) => `${size} / page`,
-    range: (from, to, total) => `${from}–${to} of ${total}`,
+    range: (from, to, totalRowCount) => `${from}–${to} of ${totalRowCount}`,
     rangeEmpty: "0 of 0",
     rangeUnknown: (page) => `Page ${page}`,
   },

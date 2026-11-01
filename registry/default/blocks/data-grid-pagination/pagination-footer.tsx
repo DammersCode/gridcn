@@ -58,8 +58,8 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
  * which mode it's rendering for.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const { page, pageCount, pageSize, pageSizeOptions, total, hasNextPage, onPageChange, onPageSizeChange, className, labels: labelsOverride, windowSize, children } = props;
-  const controls: DataGridPaginationControls = { page, pageCount, pageSize, pageSizeOptions, total, hasNextPage, onPageChange, onPageSizeChange };
+  const { page, pageCount, pageSize, pageSizeOptions, totalRowCount, hasNextPage, onPageChange, onPageSizeChange, className, labels: labelsOverride, windowSize, children } = props;
+  const controls: DataGridPaginationControls = { page, pageCount, pageSize, pageSizeOptions, totalRowCount, hasNextPage, onPageChange, onPageSizeChange };
   const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
 
   return (
@@ -85,15 +85,15 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
   );
 }
 
-/** The "x–y of z" range label, {@link DataGridPaginationLabels.rangeEmpty} when `total` is 0, or {@link DataGridPaginationLabels.rangeUnknown} ("Page 3") when `total` is unknown. */
+/** The "x–y of z" range label, {@link DataGridPaginationLabels.rangeEmpty} when `totalRowCount` is 0, or {@link DataGridPaginationLabels.rangeUnknown} ("Page 3") when `totalRowCount` is `null`. */
 export function DataGridPaginationRange(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationRange");
-  const { page, pageSize, total } = controls;
-  if (total === undefined) return <span className="text-xs tabular-nums text-muted-foreground">{labels.rangeUnknown(page)}</span>;
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+  const { page, pageSize, totalRowCount } = controls;
+  if (totalRowCount === null) return <span className="text-xs tabular-nums text-muted-foreground">{labels.rangeUnknown(page)}</span>;
+  const from = totalRowCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, totalRowCount);
 
-  return <span className="text-xs tabular-nums text-muted-foreground">{total === 0 ? labels.rangeEmpty : labels.range(from, to, total)}</span>;
+  return <span className="text-xs tabular-nums text-muted-foreground">{totalRowCount === 0 ? labels.rangeEmpty : labels.range(from, to, totalRowCount)}</span>;
 }
 
 /** The rows-per-page `Select`. */
@@ -186,13 +186,13 @@ export function DataGridPaginationNext(): ReactNode {
   );
 }
 
-/** Jump to the last page; disabled on the last page and while the total is unknown. */
+/** Jump to the last page; disabled on the last page and while the count is unknown. */
 export function DataGridPaginationLast(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationLast");
   const { page, pageCount, onPageChange } = controls;
 
   return (
-    <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.lastPage} disabled={controls.total === undefined || page >= pageCount} onClick={() => onPageChange(pageCount)}>
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.lastPage} disabled={controls.totalRowCount === null || page >= pageCount} onClick={() => onPageChange(pageCount)}>
       <ChevronsRight className="rtl:rotate-180" />
     </Button>
   );

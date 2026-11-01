@@ -2,7 +2,6 @@
 
 export {
   useDataGridPagination,
-  DEFAULT_PAGE_SIZES,
   type UseDataGridPaginationClientOptions,
   type UseDataGridPaginationServerOptions,
   type UseDataGridPaginationResult,
@@ -20,4 +19,3 @@ export {
   DataGridPaginationNext,
   DataGridPaginationLast,
 } from "./pagination-footer";
-export { pageCount, clampPage, pageRange, pageWindow } from "./pagination-math";

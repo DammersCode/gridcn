@@ -81,13 +81,12 @@ function OrdersGrid() {
     return () => { stale = true; };
   }, [page, pageSize, sorts]);
 
-  const pager = useDataGridPagination({
+  const { pager } = useDataGridPagination({
     page,
     pageSize,
-    total,
+    totalRowCount: total,
     onPageChange: setPage,
     onPageSizeChange: setPageSize,
-    reconcilePage: true, // clamps page and fires onPageChange once if total shrinks under it
   });
 
   const onSortChange = (next: SortSpec[]) => {
@@ -96,7 +95,7 @@ function OrdersGrid() {
   };
 
   const onFilterOrSearchChange = () => {
-    pager.controls.onPageChange(1); // useDataGridUrlPagination needs the same manual reset
+    pager.onPageChange(1); // useDataGridUrlPagination needs the same manual reset
   };
 
   return (
@@ -109,7 +108,7 @@ function OrdersGrid() {
         onSortChange={onSortChange}
         headerClickBehavior="sort"
       />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </>
   );
 }
@@ -119,10 +118,10 @@ Rules:
 
 - The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The lazy-loading rules above apply unchanged: `sortMode="server"`, and `headerClickBehavior="sort"`.
 - The `useEffect`'s `stale` flag is required in server mode: a page-2 response arriving after a page-3 request has already fired must not clobber page 3's rows.
-- `reconcilePage: true` only fires your `onPageChange` once when `total` shrinks below the current page; it never sets state itself. Without it, the bar visually clamps but your `page` state can still request an out-of-range page.
+- The hook fires your `onPageChange` once with the clamped page when `totalRowCount` shrinks below the current page, and never while the count is 0. It never sets state itself.
 - A sort, filter, or search change must call `onPageChange(1)` by hand — the pagination hook has no visibility into filter/search wiring, uncontrolled or through `useDataGridUrlPagination`.
 - Merge edits back into the full dataset by row id in `onDataChange`; do not replace the whole dataset with the page-sliced array.
-- `useDataGridUrlPagination` (from `data-grid-url-state`) composes only with this server mode, spreading `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of local state above — client mode's `pageSize` seeds once and cannot take a pushed URL value.
+- `useDataGridUrlPagination` (from `data-grid-url-state`) composes only with this server mode, spreading `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of local state above — client mode's `defaultPageSize` seeds once and cannot take a pushed URL value.
 
 ## Send filters to the API
 
@@ -144,5 +143,5 @@ empty group           -> matches every row (emit no predicate)
 ## No row count (cursor or "has more" APIs)
 
 - Lazy: `useDataGridInfiniteRows({ getRowId, fetchRows: ({ cursor, limit, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source, and so does a missing `nextCursor`; any other value (including `0`) means more. The hook keeps the first `limit` rows of a longer answer. Pages load in order. Call `rows.reset()` when the sort, filter, or search spec changes (it aborts and restarts at page 1). There is no `evict`.
-- Pagination: `useDataGridPagination({ page, pageSize, hasNextPage, onPageChange })`. `controls.total` is `undefined`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
+- Pagination: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
 - Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

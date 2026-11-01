@@ -100,12 +100,12 @@ function KeysetPages(): ReactNode {
     return () => controller.abort();
   }, [page]);
 
-  const pager = useDataGridPagination({ page, pageSize: PAGE_SIZE, hasNextPage, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
+  const { pager } = useDataGridPagination({ page, pageSize: PAGE_SIZE, totalRowCount: null, hasNextPage, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
   return (
     <div className="flex flex-col gap-2">
       <div className="text-sm text-muted-foreground">{loading ? "Fetching…" : "The server sends a cursor and no total."}</div>
       <Grid data={pageRows} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </div>
   );
 }

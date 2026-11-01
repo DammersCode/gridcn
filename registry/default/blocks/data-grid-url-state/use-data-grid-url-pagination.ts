@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueryState } from "nuqs";
-import { clampPage, DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { clampPage, DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { parsePage, parsePageSize, serializePage, serializePageSize, DEFAULT_URL_PAGE_SIZE } from "./page-param";
 import { prefixedKey } from "./prefixed-key";
 
@@ -14,8 +14,8 @@ export type UseDataGridUrlPaginationOptions = {
   defaultPageSize?: number;
   /** When given, a `pageSize` URL value outside this list falls back to `defaultPageSize` instead of being trusted. */
   pageSizeOptions?: readonly number[];
-  /** The dataset's row count; when given, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL. A 0 total (data loading) suspends both until a positive total arrives. */
-  total?: number;
+  /** The dataset's row count; when a number, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL. A 0 count (data loading) suspends both until a positive total arrives. */
+  totalRowCount?: number | null;
 };
 
 /** Controlled pair spread straight into `useDataGridPagination`'s server mode. */
@@ -33,7 +33,7 @@ export type UseDataGridUrlPaginationResult = {
  * grid's store — pagination has no store slot, so this hook just owns two URL-backed numbers and
  * hands back the controlled pair `useDataGridPagination` already accepts in server mode.
  *
- * Pass `total` so an out-of-range deep-linked `page` clamps to the last page once `total` is
+ * Pass `totalRowCount` so an out-of-range deep-linked `page` clamps to the last page once `totalRowCount` is
  * positive (on mount, or when a late fetch resolves), and the clamped value replaces the raw
  * one in the URL.
  *
@@ -45,10 +45,10 @@ export type UseDataGridUrlPaginationResult = {
  *
  * @example
  * const url = useDataGridUrlPagination();
- * const pager = useDataGridPagination({ total: rows.length, pageSizeOptions: url.pageSizeOptions, ...url });
+ * const pager = useDataGridPagination({ totalRowCount: rows.length, pageSizeOptions: url.pageSizeOptions, ...url });
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
-  const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions, total } = options;
+  const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions, totalRowCount = null } = options;
 
   const [pageParam, setPageParam] = useQueryState(prefixedKey(prefix, "page"), {
     defaultValue: "",
@@ -68,18 +68,18 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   const rawPage = parsePage(pageParam);
   const pageSize = parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions);
   // a 0 total (data loading) must not clamp or write back, or a deep-linked ?page= is wiped before the real total arrives
-  const page = total !== undefined && total > 0 ? clampPage(rawPage, total, pageSize) : rawPage;
+  const page = totalRowCount !== null && totalRowCount > 0 ? clampPage(rawPage, totalRowCount, pageSize) : rawPage;
 
   // normalize once when the first positive total arrives: write the clamped page back so a deep-linked ?page=999 never revives
   const normalizedRef = useRef(false);
   useEffect(() => {
-    if (normalizedRef.current || total === undefined || total <= 0) return;
+    if (normalizedRef.current || totalRowCount === null || totalRowCount <= 0) return;
     normalizedRef.current = true;
-    const clamped = clampPage(parsePage(pageParam), total, parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions));
+    const clamped = clampPage(parsePage(pageParam), totalRowCount, parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions));
     const serialized = serializePage(clamped) || "";
     if (pageParam !== serialized) void setPageParam(serialized || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
+  }, [totalRowCount]);
 
   const onPageChange = useCallback(
     (next: number) => {

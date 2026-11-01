@@ -44,7 +44,7 @@ function SelectionPanel(): ReactNode {
 export default function DataGridServerSelectionDemo(): ReactNode {
   const [page, setPage] = useState(1);
   const rows = useMemo(() => Array.from({ length: PAGE_SIZE }, (_, i) => rowAt((page - 1) * PAGE_SIZE + i)).filter((row) => Number(row.id.slice(4)) < TOTAL), [page]);
-  const pager = useDataGridPagination({ page, pageSize: PAGE_SIZE, total: TOTAL, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
+  const { pager } = useDataGridPagination({ page, pageSize: PAGE_SIZE, totalRowCount: TOTAL, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -56,7 +56,7 @@ export default function DataGridServerSelectionDemo(): ReactNode {
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
-        <DataGridPaginationBar {...pager.controls} />
+        <DataGridPaginationBar {...pager} />
         <DataGridStatusBar />
         <SelectionPanel />
       </DataGridProvider>

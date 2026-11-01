@@ -16,8 +16,8 @@ const TOTAL_ROWS = 101;
 function UrlPaginatedGrid() {
   const url = useDataGridUrlPagination();
   // the url hook owns page/pageSize; only `total` is the consumer's to supply.
-  const pager = useDataGridPagination({ total: TOTAL_ROWS, ...url });
-  return <DataGridPaginationBar {...pager.controls} />;
+  const { pager } = useDataGridPagination({ totalRowCount: TOTAL_ROWS, ...url });
+  return <DataGridPaginationBar {...pager} />;
 }
 
 function renderGrid(options: { searchParams?: string; onUrlUpdate?: (event: UrlUpdateEvent) => void }) {
@@ -35,9 +35,9 @@ function TotalFlipper() {
     const timer = setTimeout(() => setTotal(TOTAL_ROWS), 30);
     return () => clearTimeout(timer);
   }, []);
-  const url = useDataGridUrlPagination({ total });
-  const pager = useDataGridPagination({ total, ...url });
-  return <DataGridPaginationBar {...pager.controls} />;
+  const url = useDataGridUrlPagination({ totalRowCount: total });
+  const { pager } = useDataGridPagination({ totalRowCount: total, ...url });
+  return <DataGridPaginationBar {...pager} />;
 }
 
 describe("useDataGridUrlPagination + useDataGridPagination: composition", () => {

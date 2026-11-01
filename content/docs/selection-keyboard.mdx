@@ -165,7 +165,7 @@ The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`,
 A server grid holds one page, or the loaded part of a lazy source. Set `totalRowCount` to the size of the whole result to declare that `data` is a window of it. Pass `null` when the size is unknown:
 
 ```tsx
-<DataGridProvider totalRowCount={pager.controls.total ?? null} {...grid} columns={columns}>
+<DataGridProvider totalRowCount={pager.totalRowCount} {...grid} columns={columns}>
 ```
 
 With `totalRowCount`:

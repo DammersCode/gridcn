@@ -28,10 +28,10 @@ Record which strategy was picked and why (one sentence) before writing code — 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
 - `data-grid-server`: for a paged server grid, `useDataGridServerRows({ getRowId, fetchRows: ({ spec, page, pageSize, signal }) => ... })` (resolve `{ rows, total }` or `{ rows, hasNextPage }`) owns the spec, page, and page size; spread `server.gridProps` onto `DataGrid` and `server.pager` onto `DataGridPaginationBar`. It aborts stale requests, goes to page 1 on a spec change, keeps the last rows on error, and returns `error`, `retry()`, `refresh()`. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`).
 - `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRenderedRowsChange`. When the server sends a next cursor and no row count (keyset, "has more"), use `useDataGridInfiniteRows` instead: `fetchRows({ cursor, limit, signal })` resolves `{ rows, nextCursor }`, `nextCursor: null` ends the source, and `reset()` replaces `lazy.reset()` on a spec change.
-- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`useDataGridPagination({ data, pageSize })`, hook slices) vs. server mode (`{ page, pageSize, total, onPageChange }` fully controlled, you fetch; pass `hasNextPage` instead of `total` when the server sends no count).
+- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`const { pageData, pager } = useDataGridPagination({ data, defaultPageSize })`, hook slices) vs. server mode (`{ page, pageSize, totalRowCount, onPageChange }` fully controlled, you fetch; pass `totalRowCount: null` with `hasNextPage` when the server sends no count).
 - Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/streaming-updates.md. Skip this step if nothing needs live value pushes.
 
-Completion for this step: the grid renders and the chosen hook's `gridProps`/`controls` are spread onto the provider/root exactly as the relevant doc's usage example shows.
+Completion for this step: the grid renders and the chosen hook's `gridProps`/`pager` are spread onto the provider/root exactly as the relevant doc's usage example shows.
 
 ## 3. Put sort/filter/search on the server if the grid is lazy or paged
 
@@ -56,10 +56,10 @@ Applies to `data-grid-lazy`:
 Applies to `data-grid-pagination`:
 
 - A sort, filter, or search change must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
-- Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and pass `reconcilePage: true` if a shrunk `total` should clamp `page` back for you (it fires your `onPageChange` once; it never sets your state itself).
+- Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and expect the hook to call your `onPageChange` once with the clamped page when a shrunk `totalRowCount` leaves `page` out of range (it never sets your state itself).
 - Checked rows, the cell range, and the active cell follow row ids only while the rows stay in `data`; a page change drops those whose rows leave. Key the provider by page or clear the selection in `onPageChange` to clear everything.
 - Merge a page's edited slice back into the full dataset by row id in `onDataChange` — replacing the whole dataset with just the page's slice silently drops every other row.
-- `useDataGridUrlPagination` only composes with pagination's server mode; client mode's `pageSize` seeds once from local state and can't take a pushed URL value.
+- `useDataGridUrlPagination` only composes with pagination's server mode; client mode's `defaultPageSize` seeds once from local state and can't take a pushed URL value.
 
 Applies to streaming on top of either:
 

@@ -31,19 +31,20 @@ rendering performance, and using the two together is not supported. When to pick
     import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
     function OrdersGrid({ rows }: { rows: Order[] }) {
-      const pager = useDataGridPagination({ data: rows, pageSize: 25 });
+      const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
 
       return (
         <>
-          <DataGrid data={pager.pageData} columns={columns} getRowId={(row) => row.id} />
-          <DataGridPaginationBar {...pager.controls} />
+          <DataGrid data={pageData} columns={columns} getRowId={(row) => row.id} />
+          <DataGridPaginationBar {...pager} />
         </>
       );
     }
     ```
 
-    `pageSize` seeds the page size once; pass `onPageSizeChange` to observe a change from the bar's
-    select.
+    `defaultPageSize` <NewBadge /> seeds the page size once. `defaultPage` seeds the page. Pass `pageSize`
+    with `onPageSizeChange` to control the size yourself, or `onPageSizeChange` alone to observe a
+    change from the bar's select.
 
     <Callout type="warn" title="Edits need a merge step, not a wholesale replace">
       The `onDataChange` of `DataGrid` only ever sees the current page's slice. If rows are
@@ -54,8 +55,8 @@ rendering performance, and using the two together is not supported. When to pick
     </Callout>
 
     <Callout type="warn" title="In client mode, everything the grid sees is page-local">
-      The grid only ever receives `pager.pageData`, so sort, filter, and search operate on the
-      current page's slice alone. The pager's `total` and page count still reflect the full
+      The grid only ever receives `pageData`, so sort, filter, and search operate on the
+      current page's slice alone. The pager's `totalRowCount` and page count still reflect the full
       dataset. A search that matches rows on other pages finds nothing here. A pinned totals band
       computed from the grid covers the page slice the same way (see [Pinned rows](/docs/addons/pinned-rows)).
       Use server mode for dataset-wide search, sort, or filter (your backend applies the spec over
@@ -91,7 +92,7 @@ rendering performance, and using the two together is not supported. When to pick
 
     ## Server mode
 
-    Pass `{ page, pageSize, total, onPageChange }` fully controlled. You own the page index and
+    Pass `{ page, pageSize, totalRowCount, onPageChange }` fully controlled. You own the page index and
     fetch each page's rows yourself. The hook only computes `pageCount` and page-window math, so
     `<DataGridPaginationBar />` renders identically either way:
 
@@ -121,10 +122,10 @@ rendering performance, and using the two together is not supported. When to pick
         return () => { stale = true; };
       }, [page, pageSize, filters]);
 
-      const pager = useDataGridPagination({
+      const { pager } = useDataGridPagination({
         page,
         pageSize,
-        total,
+        totalRowCount: total,
         onPageChange: setPage,
         onPageSizeChange: setPageSize,
       });
@@ -141,7 +142,7 @@ rendering performance, and using the two together is not supported. When to pick
               setPage(1);
             }}
           />
-          <DataGridPaginationBar {...pager.controls} />
+          <DataGridPaginationBar {...pager} />
         </>
       );
     }
@@ -152,40 +153,38 @@ rendering performance, and using the two together is not supported. When to pick
     For the full contract, see [Server-side data](/docs/recipes/data-fetching/server-side).
 
     `filterMode="server"` keeps the grid from filtering the fetched page again. The filter spec goes
-    to your server with the page, and the server returns the filtered `total`. A filter change moves
+    to your server with the page, and the server returns the filtered count. A filter change moves
     back to page 1.
 
     ### Without a total
 
     <NewBadge />
 
-    A keyset or "has more" API returns a page and a flag, not a count. Pass `hasNextPage` in place
-    of `total`:
+    A keyset or "has more" API returns a page and a flag, not a count. Pass `totalRowCount: null` with
+    `hasNextPage`:
 
     ```tsx
-    const pager = useDataGridPagination({ page, pageSize, hasNextPage, onPageChange: setPage });
+    const { pager } = useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange: setPage });
     ```
 
-    The controls then report `total: undefined`. The footer shows "Page 3" instead of a range, enables
+    The pager then reports `totalRowCount: null`. The footer shows "Page 3" instead of a range, enables
     Next while `hasNextPage` is `true`, and disables Last. The numbered buttons reach one page past
-    the current one. `reconcilePage` lifts a page below 1 and never clamps the upper end. Keep the
+    the current one. The hook lifts a page below 1 and never clamps the upper end. Keep the
     cursor of each page in your own state, and reset the chain when the page size, sort, or filter
     changes.
 
     <ComponentPreview name="data-grid-open-ended-demo" />
 
-    Checked rows do not survive a page change by default. Pass `totalRowCount={pager.controls.total ?? null}` with
+    Checked rows do not survive a page change by default. Pass `totalRowCount={pager.totalRowCount}` with
     `keepCheckedRows` to keep them by row id and to select every matching row. See
     [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
-    `pager.pageData` is `undefined` in server mode. You already fetched exactly the rows for the
+    `pageData` is `undefined` in server mode. You already fetched exactly the rows for the
     current page, so there is nothing left for the hook to slice.
 
-    The bar clamps the displayed page when `total` shrinks below it, but your `page` state is
-    yours. If a stale page would fetch the wrong rows, pass `reconcilePage: true`. The hook then
-    fires your `onPageChange` with the clamped page once. The hook never sets your state. While
-    `total` is `0` (your first fetch is still in flight), the hook keeps your page, so a deep link
-    survives until the total arrives.
+    When `totalRowCount` shrinks below `page`, the hook calls your `onPageChange` <NewBadge /> once with the
+    clamped page. The hook never sets your state. While `totalRowCount` is `0` (your first fetch is
+    still in flight), the hook keeps your page, so a deep link survives until the count arrives.
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
     <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
@@ -224,7 +223,7 @@ rendering performance, and using the two together is not supported. When to pick
     only first, prev, next, and last, and no page numbers:
 
     ```tsx
-    <DataGridPaginationBar {...pager.controls}>
+    <DataGridPaginationBar {...pager}>
       <DataGridPaginationRange />
       <div className="flex items-center gap-1">
         <DataGridPaginationFirst />
@@ -262,14 +261,14 @@ accepts, so the two compose with one spread:
 import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
 import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
-function OrdersGrid({ rows, total }: { rows: Order[]; total: number }) {
+function OrdersGrid({ rows, totalRowCount }: { rows: Order[]; totalRowCount: number }) {
   const url = useDataGridUrlPagination();
-  const pager = useDataGridPagination({ total, ...url });
+  const { pager } = useDataGridPagination({ totalRowCount, ...url });
 
   return (
     <>
       <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager.controls} />
+      <DataGridPaginationBar {...pager} />
     </>
   );
 }

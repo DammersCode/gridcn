@@ -45,10 +45,10 @@ function PaginatedSwrGrid(): ReactNode {
     if (data) setRows(data.rows);
   }, [data]);
 
-  const pager = useDataGridPagination({
+  const { pager } = useDataGridPagination({
     page,
     pageSize,
-    total: data?.total ?? server.total,
+    totalRowCount: data?.total ?? server.total,
     onPageChange: setPage,
     onPageSizeChange: (next) => {
       setPageSize(next);
@@ -67,7 +67,7 @@ function PaginatedSwrGrid(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="text-sm text-muted-foreground">
-        {isLoading ? "Loading page…" : `Page ${pager.controls.page} of ${pager.controls.pageCount} · ${data?.total ?? 0} rows on the server`}
+        {isLoading ? "Loading page…" : `Page ${pager.page} of ${pager.pageCount} · ${data?.total ?? 0} rows on the server`}
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} onDataChange={onDataChange}>
@@ -76,7 +76,7 @@ function PaginatedSwrGrid(): ReactNode {
             <DataGridBody />
           </DataGridRoot>
         </DataGridProvider>
-        <DataGridPaginationBar {...pager.controls} />
+        <DataGridPaginationBar {...pager} />
       </div>
     </div>
   );

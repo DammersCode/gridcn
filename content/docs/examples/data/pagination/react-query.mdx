@@ -24,10 +24,10 @@ const query = useQuery({
   placeholderData: keepPreviousData,
 });
 
-const pager = useDataGridPagination({
+const { pager } = useDataGridPagination({
   page,
   pageSize,
-  total: query.data?.total ?? initialTotal,
+  totalRowCount: query.data?.total ?? initialTotal,
   onPageChange: setPage,
   onPageSizeChange: (next) => {
     setPageSize(next);

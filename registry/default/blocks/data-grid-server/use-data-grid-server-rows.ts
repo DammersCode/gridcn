@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type FilterNode, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { DEFAULT_PAGE_SIZES, useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 
 /** What `fetchRows` of {@link useDataGridServerRows} receives. */
 export type ServerRowsFetchContext = {
@@ -146,16 +147,19 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
   };
   const refresh = () => setTick((n) => n + 1);
 
-  const common = { page, pageSize, pageSizeOptions, onPageChange: setPage, reconcilePage: true };
-  const onPageSizeChange = (next: number) => {
+    const onPageSizeChange = (next: number) => {
     setPageSize(next);
     setPage(1);
   };
-  const pagerResult = useDataGridPagination(
-    settled.totalRowCount === null
-      ? { ...common, hasNextPage: settled.hasNextPage, onPageSizeChange }
-      : { ...common, total: settled.totalRowCount, onPageSizeChange },
-  );
+  const { pager } = useDataGridPagination({
+    page,
+    pageSize,
+    pageSizeOptions,
+    totalRowCount: settled.totalRowCount,
+    hasNextPage: settled.hasNextPage,
+    onPageChange: setPage,
+    onPageSizeChange,
+  });
 
   const providerProps: UseDataGridServerRowsProviderProps<TData> = {
       data: settled.rows,
@@ -188,7 +192,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
     gridProps: { ...providerProps, ...rootProps },
     providerProps,
     rootProps,
-    pager: pagerResult.controls,
+    pager,
     error,
     status,
     retry,
