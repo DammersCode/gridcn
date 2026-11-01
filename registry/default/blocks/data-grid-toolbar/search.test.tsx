@@ -260,6 +260,7 @@ describe("DataGridSearch input rules", () => {
         <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
           <DataGridSearch />
           <button onClick={() => setData(first.map((row) => ({ ...row })))}>refetch</button>
+          <button onClick={() => setData(first.slice(0, 2))}>shrink</button>
           <DataGridRoot>
             <DataGridHeader />
             <DataGridBody />
@@ -276,6 +277,10 @@ describe("DataGridSearch input rules", () => {
     expect(screen.getByText("3/3")).toBeInTheDocument();
     fireEvent.click(screen.getByText("refetch"));
     expect(screen.getByText("3/3")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("shrink"));
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("1/2")).toBeInTheDocument();
     vi.useRealTimers();
   });
 

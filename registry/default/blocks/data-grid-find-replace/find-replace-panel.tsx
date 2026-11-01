@@ -70,7 +70,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const delayMs = useDataGridInputDebounce();
   const [replacement, setReplacement] = useState("");
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
-  const [cursor, setCursor] = useState(0);
+  const [storedCursor, setCursor] = useState(0);
+  const cursor = Math.max(0, Math.min(storedCursor, matches.length - 1));
   // restart at the first hit during render when the query changes; a data change keeps the position
   const queryKey = `${JSON.stringify(searchedText)}${searchOptions.matchCase}${searchOptions.wholeCell}`;
   const [lastQueryKey, setLastQueryKey] = useState(queryKey);
@@ -275,7 +276,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
     if (find.trim() === "") return labels.typeToSearch;
     if (searchedText !== find) return "";
-    return hasMatches ? labels.position(Math.min(cursor, matches.length - 1) + 1, matches.length, capped) : labels.noMatches;
+    return hasMatches ? labels.position(cursor + 1, matches.length, capped) : labels.noMatches;
   })();
 
   const optionToggle = (key: "matchCase" | "wholeCell", label: string, icon: ReactNode) => (
