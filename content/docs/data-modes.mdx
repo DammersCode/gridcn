@@ -34,15 +34,15 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
 | Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Clipboard copy and paste | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Fill | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Not verified |
+| Fill | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
 | Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
 | Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
 | Undo and redo | Supported | Supported | Supported | Gap | Supported | Supported | Supported | Gap |
 | Row create, duplicate and delete | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Validation | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Edit commit and write-through | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
-| Streaming updates | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
+| Edit commit and write-through | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Streaming updates | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | URL state | Supported | Supported | Supported | Not verified | n/a | Not verified | Gap | Not verified |
 | Screen reader announcements | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified | Not verified |
 | Presence | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
@@ -100,7 +100,6 @@ A grid feature can behave differently on a local array, on server pages and on l
 ### Fill
 
 - Fill skips rows not loaded yet and warns.
-- **PS**: Not verified: Fill series on a page is page-local; not checked.
 
 ### Import
 
@@ -123,10 +122,6 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 - **Z**: Gap: Undo warns over rows not loaded yet.
 - **API**: Gap: The local undo stack never learns whether the server accepted the write.
-
-### Streaming updates
-
-- **Z**: Not verified: A later block fetch can overwrite streamed values over rows not loaded yet.
 
 ### URL state
 
