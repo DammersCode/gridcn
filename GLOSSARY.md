@@ -18,7 +18,7 @@ mirror the change there.
 | view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
 | data index | A row's position in your `data` array. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
-| data mode | One way the grid gets its rows: local array, client pagination, server pagination, lazy rows, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
+| data mode | One way the grid gets its rows: local array, client pagination, server pagination, scroll rows, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | hidden checked row | A checked row that the current filter hides. `keepHiddenCheckedRows` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
@@ -28,11 +28,11 @@ mirror the change there.
 | block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
-| row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A lazy request asks for one. | range (a range is a cell selection) |
+| row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
-| row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. Lazy hooks still take `total`. | row total, count |
+| row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | seed | The initial value a `default*` prop gives once, at mount. | |

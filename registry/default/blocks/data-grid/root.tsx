@@ -116,7 +116,7 @@ export type DataGridRootProps<TData = unknown> = {
    * Presentational loading flag: zero rows renders viewport-filling
    * skeleton rows instead of the empty state; rows present keeps them visible and adds a slim
    * indeterminate bar under the header. Purely presentational — no data-fetch orchestration of its
-   * own (that's `data-grid-lazy`'s job for per-window skeletons). Default `false`.
+   * own (that's scroll mode's job for per-block skeletons). Default `false`.
    */
   loading?: boolean;
   /**

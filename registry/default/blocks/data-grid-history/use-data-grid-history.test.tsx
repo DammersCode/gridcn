@@ -329,7 +329,7 @@ describe("useDataGridHistory", () => {
 
   it("dev-warns once when undo runs over a sparse (lazy) data array", () => {
     const warn = vi.spyOn(console, "warn");
-    // a hole at index 1, the shape of useDataGridLazyRows' data with one unloaded range
+    // a hole at index 1, the shape of scroll-mode data with one unloaded range
     // (a real hole, not an undefined slot: array literals with `undefined` are dense)
     const sparse = (rowC: Row) => {
       const arr = new Array<Row | undefined>(3);

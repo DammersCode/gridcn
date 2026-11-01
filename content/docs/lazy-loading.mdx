@@ -1,69 +1,76 @@
 ---
 title: Lazy loading
-description: Fetch row ranges on demand for datasets too large (or too expensive) to load up front.
+description: Fetch row blocks on demand for datasets too large (or too expensive) to load up front.
 icon: CloudDownload
 ---
 
-`data-grid-lazy` gives the grid a `total` and a `fetchRows({ start, end, signal, spec })` function, and
-`useDataGridLazyRows` fetches whatever range the grid actually scrolls into.
+`useDataGridServerRows({ mode: "scroll" })` fetches the rows the grid scrolls into. You give it a
+`fetchRows({ start, end, signal, spec })` function that answers with the rows and the row count.
 
 <ComponentPreview name="data-grid-lazy-demo" />
 
-<InstallCommand item="data-grid-lazy" manual manualSlot={<ManualInstall item="data-grid-lazy" />} />
+<InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
 
-Lazy loading gives an infinite-feel single scrollable surface: no page boundary, a grid that
-fills in as the user scrolls. It fits one continuous dataset best.
-Explicit, bookmarkable pages with a bounded per-request payload are
-[Pagination](/docs/pagination). Virtualization renders huge datasets cheaply either way.
-Neither add-on exists for rendering performance. Using both together is not supported.
+Scroll mode gives one continuous scrollable surface: no page boundary, a grid that fills in as the
+user scrolls. It fits one continuous dataset best. Explicit, bookmarkable pages with a bounded
+per-request payload are [Pagination](/docs/pagination). Virtualization renders huge datasets cheaply
+either way. Neither exists for rendering performance. Using scroll mode and pagination on one grid is not supported.
 
-<Callout type="idea" title="loading vs. this add-on">
+<Callout type="idea" title="loading vs. scroll mode">
   The `loading` prop of the core (see [Styling & theming](/docs/styling-theming#loading-state))
   is a whole-grid flag with one skeleton look, for an ordinary fully-controlled fetch, with no
-  per-row granularity and no partial data. Reach for `data-grid-lazy` instead when individual row
-  *ranges* load independently as the user scrolls. Its skeleton cells are per-row, not
-  grid-wide.
+  per-row granularity and no partial data. Use scroll mode when individual row *blocks* load
+  independently as the user scrolls. Its skeleton cells are per-row, not grid-wide.
 
-  `loading` and `lazy.isLoading` are not combined for you. `lazy.isLoading` is `true` while any
-  range fetch is in flight. Pass it as `loading` on `DataGridRoot` to show the slim progress bar
-  under the header. The unloaded rows keep their skeleton cells.
+  `server.rootProps` carries `loading`, `error`, and `onRetry`. `loading` is `true` while any block
+  request is in flight and shows the slim progress bar under the header. The unloaded rows keep
+  their skeleton cells.
 </Callout>
 
 Every unloaded-row skeleton cell carries `data-skeleton` (see
 [Data-attribute contract](/docs/styling-theming#data-attribute-contract)), for restyling the
 shimmer with plain CSS instead of a class override.
 
-## Scroll mode of the server hook
+## Usage
 
 <NewBadge />
 
-`useDataGridServerRows({ mode: "scroll" })` fetches the rows the grid scrolls into. It follows the same
-request and answer contract as the pages mode, and it owns the sort, filter, and search.
-
-<ComponentPreview name="data-grid-server-side-demo" />
-
-The first request is always block 0: rows `[0, blockSize)`. The first answer picks the fetch order. An answer with
-`totalRowCount` and no `nextCursor` gives random access. The hook sizes `data` to that count, and every row without data renders as a skeleton. When the rendered rows move, the
-hook rounds them plus `overscan` out to `blockSize` blocks and fetches each gap, one request per block:
-
 ```tsx
-const server = useDataGridServerRows<Order>({
-  mode: "scroll",
-  getRowId: (row) => row.id,
-  fetchRows: async ({ spec, start, end, signal }) => {
-    const answer = await api.orders({ ...spec, offset: start, limit: end - start, signal });
-    return { rows: answer.rows, totalRowCount: answer.total };
-  },
-});
+"use client";
 
-<DataGrid {...server.gridProps} columns={columns} />
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const answer = await api.orders({ ...spec, offset: start, limit: end - start, signal });
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} />;
+}
 ```
+
+The first request is always block 0: rows `[0, blockSize)`. The first answer picks the fetch order. An
+answer with `totalRowCount` and no `nextCursor` gives random access. The hook sizes `data` to that
+count, and every row without data renders as a skeleton. When the rendered rows move, the hook
+rounds them plus `overscan` out to `blockSize` blocks and fetches each gap, one request per block.
 
 A request holds `{ spec, start, end, cursor, signal }`. `cursor` is `undefined` in random access.
 `signal` aborts when a spec change, a count change, or an unmount replaces the request.
 
+For a composed layout, spread `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto
+`DataGridRoot`. `server.gridProps` is both parts together.
+
+<ComponentPreview name="data-grid-server-side-demo" />
+
 | Option | Default | What it does |
 |---|---|---|
+| `mode` | `"pages"` | `"scroll"` fetches fixed-size blocks as the rendered rows move. |
 | `blockSize` | 50 | Rows per request. Requests align to multiples of it. |
 | `overscan` | 30 | Rows fetched beyond the rendered rows on each side. |
 | `spec`, `defaultSpec`, `onSpecChange` | `{}` | Controls or seeds the sort, filter, and search text. |
@@ -74,187 +81,90 @@ A request holds `{ spec, start, end, cursor, signal }`. `cursor` is `undefined` 
 A server page that you cache by its own size does not split cleanly when `blockSize` differs from it.
 Set `blockSize` to that page size to keep one cache entry per request.
 
+The hook reads the row count from the first answer, so the grid needs no separate count endpoint.
+If your backend counts with a separate call, make that call inside `fetchRows` and return both.
+
 Behavior the grid applies by itself:
 
+- `data` is a sparse array with the length of the count. Loaded indices hold real rows.
+  Unloaded indices are holes (`undefined`), which the core renders as skeleton cells.
+- Function-form row and cell callbacks are skipped on holes. `readOnly(row)`,
+  `getRowClassName`, and the function forms of `getCellClassName` / `column.cellClassName`
+  never receive an `undefined` row. The skeleton row is inert.
+- Placeholder row ids are index-derived for unloaded rows (`getRowId` only runs on rows
+  that exist). This id is unstable. It does not survive a block being unloaded and reloaded
+  with different content at the same index, but this is fine. An unloaded row carries no
+  selection, edit, or scroll-anchor state worth preserving across that transition.
+- Already-loaded and in-flight blocks are never requested again. A window that partly overlaps
+  what is loaded fetches the remaining blocks only. Adjacent loaded blocks merge, so later gap
+  calculations see one covered span.
 - A changed `totalRowCount` in any answer starts the blocks over, like a spec change.
 - A spec change aborts every request, drops the loaded rows, and fetches block 0 again.
 - The hook writes the blocks that land in one frame with one update of `data`.
-- A block that fails stays unloaded. `error` holds the failure, and `gridProps` shows the error bar with a Retry
-  button. `retry()` repeats the failed blocks only.
+- Requests abort on unmount, through the `AbortSignal` passed to `fetchRows`.
+- A block that fails stays unloaded and never counts as loaded. `error` holds the failure, and `gridProps` shows
+  the error bar with a Retry button. The next window report that covers the block requests it again.
+  `retry()` repeats the failed blocks only.
 - `refresh()` fetches the rendered blocks again and keeps them on screen until the answers land. It drops every
   other loaded block.
 - `evict(range)` unloads rows. `getLoadedRanges()` and `unloadedCount` report what is loaded.
 
 <Callout type="warn">
-  An answer without `totalRowCount` ends the source at the rows of the first block. Answer the count with every
-  block.
+  An answer without `totalRowCount` ends the source at the rows of the first block, unless it carries
+  `nextCursor` or `hasMore`. Answer the count with every block.
 </Callout>
 
-<Tabs items={["Basics", "Editing and errors"]}>
-  <Tab value="Basics">
-    ## Usage
+`onRenderedRowsChange` is a core `DataGridProvider` or `DataGrid` prop (see
+[Virtualization](/docs/virtualization)). Scroll mode is the first consumer of it, but the prop is generic and
+available without the hook, for example for analytics or prefetch.
 
-    ```tsx
-    "use client";
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
 
-    import {
-      DataGridProvider,
-      DataGridRoot,
-      DataGridHeader,
-      DataGridBody,
-    } from "@/components/data-grid/data-grid";
-    import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-lazy/data-grid-lazy";
+## Editing loaded rows
 
-    function OrdersGrid({ total }: { total: number }) {
-      const lazy = useDataGridLazyRows<Order>({
-        total,
-        fetchRows: ({ start, end, signal }) => api.orders({ start, end, signal }), // [start, end)
-        getRowId: (row) => row.id,
-      });
+The `onDataChange` of the hook merges the edited array back into the sparse rows it already had loaded.
+`gridProps` already carries it. Put your own handler in the `onDataChange` option, not in a spread
+override, which drops the merge. Send the change to your backend from `onSave`. Editing an unloaded
+row is not reachable in the first place. The skeleton-cell handling of the core blocks entering edit
+mode on a row that does not exist yet.
 
-      return (
-        <DataGridProvider
-          data={lazy.gridProps.data}
-          columns={columns}
-          getRowId={lazy.gridProps.getRowId}
-          onDataChange={lazy.onDataChange}
-          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
-        >
-          <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot loading={lazy.isLoading}>
-            <DataGridHeader />
-            <DataGridBody />
-          </DataGridRoot>
-        </DataGridProvider>
-      );
-    }
-    ```
-
-    `total` is the length of the whole dataset and must be known before the first render. Read it
-    from your server first, for example from a count endpoint or from a `X-Total-Count` response
-    header on a first request of one row. Render the grid when the number has arrived:
-
-    ```tsx
-    const { data: total } = useQuery({ queryKey: ["orders-count"], queryFn: api.orderCount });
-
-    return total === undefined ? <Spinner /> : <OrdersGrid total={total} />;
-    ```
-
-    `onRenderedRowsChange` is a core `DataGridProvider` or `DataGrid` prop (see
-    [Virtualization](/docs/virtualization)). This add-on is the first consumer of it, but the prop
-    is generic and available even without this add-on, for example for analytics or prefetch.
-
-    <AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
-
-    ## How it fetches
-
-    - **`data` is a sparse array**, with length `total`. Loaded indices hold real rows.
-      Unloaded indices are holes (`undefined`), which the core renders as skeleton cells.
-    - **Function-form row and cell callbacks are skipped on holes.** `readOnly(row)`,
-      `getRowClassName`, and the function forms of `getCellClassName` / `column.cellClassName`
-      never receive an `undefined` row. The skeleton row is inert.
-    - **Placeholder row ids are index-derived** for unloaded rows (`getRowId` only runs on rows
-      that exist). This id is unstable. It does not survive a range being unloaded and reloaded
-      with different content at the same index, but this is fine. An unloaded row carries no
-      selection, edit, or scroll-anchor state worth preserving across that transition.
-    - **Fetch ranges are expanded and rounded**, not requested pixel-for-pixel: `overscan` pads
-      the visible range on both sides (about 1 viewport by default), then both edges round
-      outward to the nearest `pageSize` boundary, so a small scroll reuses the same in-flight or
-      already-loaded batch.
-    - **Gaps wider than `maxFetchRows` split into chunks.** Each chunk is a separate request of
-      at most `maxFetchRows` rows, with its own dedup, abort, and failure. The default is no
-      cap.
-    - **Already-loaded and in-flight ranges are never re-requested.** A range that partially
-      overlaps what is already loaded only fetches the remaining gap. Adjacent loaded ranges are
-      merged, so later gap calculations see one covered span, not several.
-    - **Fetches are aborted on unmount**, through the `AbortSignal` passed to `fetchRows`. Any
-      fetch still in flight for an old dataset is also aborted if `total` changes out from under
-      it.
-    - **A failed fetch reverts its range to unloaded** (never marked loaded) and calls
-      `onError(error)`. The next time that range comes back into view, `onRenderedRowsChange`
-      naturally re-requests it. `retry()` requests the last window again on demand. A successful
-      fetch calls `onLoaded(range)` with the range actually written; the rows commit on the next
-      render, and `getLoadedRanges()` already includes the range.
-  </Tab>
-  <Tab value="Editing and errors">
-    ## Editing loaded rows
-
-    `useDataGridLazyRows` does not own a `data` and `setData` pair the way `useDataGridState`
-    does. Pass its `onDataChange` straight to `DataGridProvider` or `DataGrid`, and it merges the
-    edited array back into the sparse rows it already had loaded. What you do with the edit beyond
-    that, whether you persist it to your backend or run it through your own cache, is up to you.
-    Editing an unloaded row is not reachable in the first place. The skeleton-cell handling of the
-    core blocks entering edit mode on a row that does not exist yet.
-
-    ## Errors
-
-    ```tsx
-    useDataGridLazyRows({
-      total,
-      fetchRows,
-      getRowId,
-      onError: () => toast.error("Failed to load rows"),
-    });
-    ```
-
-    `onError` is the only signal that a fetch failed. There is no thrown-error boundary, because
-    a failed range stays a hole, rendered as a skeleton row, and is retried automatically
-    the next time it is scrolled into view. The demo's "Simulate a failed fetch" and "Simulate a
-    permanent failure" buttons show the two cases live. Permanent failures and the retry UI for
-    them are on the next page.
-
-    `onLoaded(range)` is the success counterpart of `onError`. It fires once a range fetch
-    resolves, with the range actually written. The rows commit on the next render.
-    `getLoadedRanges()` includes the range immediately. A short response fires with the smaller
-    range. A zero-row response fires nothing.
-
-    For data-fetch libraries (React Query) and permanently failing ranges, see
-    [Data fetching & failure recovery](/docs/lazy-loading-advanced).
-  </Tab>
-</Tabs>
-
-## Tuning the fetch range
-
-`overscan`, `pageSize`, and `maxFetchRows` control the size of the ranges that reach
-`fetchRows`:
-
-- `overscan` pads the visible range on both sides (default about one viewport of rows).
-- `pageSize` rounds both edges of the padded range outward to the nearest multiple, so a
-  small scroll reuses the same batch.
-- `maxFetchRows` caps the rows of one `fetchRows` call. A wider gap splits into consecutive
-  chunks of at most the cap. The default is no cap.
-
-`overscan` and `pageSize` default to values that fit a typical viewport. `maxFetchRows` has no
-default cap. Adjust them when the defaults do not fit:
+## Errors
 
 ```tsx
-useDataGridLazyRows({
-  total,
+useDataGridServerRows({
+  mode: "scroll",
   fetchRows,
   getRowId,
-  overscan: 60,
-  pageSize: 100,
-  maxFetchRows: 200,
+  onError: () => toast.error("Failed to load rows"),
 });
 ```
 
-Set `maxFetchRows` when your backend limits rows per request. Each chunk is an independent
-request with its own dedup, abort, and failure, and chunk boundaries follow the gap's start,
-not `pageSize` boundaries.
+A failed block stays a hole, rendered as a skeleton row, and the next window report that covers it
+requests it again. `error` and the error bar of `gridProps` are the signal that a block failed. The demo's
+"Simulate a failed fetch" and "Simulate a permanent failure" buttons show the two cases live. A permanent
+failure keeps failing on every scroll, so the Retry button of the error bar is the way out once the cause is
+fixed. `retry()` repeats the failed blocks only.
+
+`onLoaded(range)` is the success counterpart of `onError`. It fires once a block resolves, with the
+range actually written. The rows commit on the next render. `getLoadedRanges()` includes the range
+immediately. A short answer fires with the smaller range. A zero-row answer fires nothing.
+
+For data-fetch libraries (React Query, SWR) and the retry UI, see
+[Data fetching & failure recovery](/docs/lazy-loading-advanced).
 
 ## Memory & retention
 
-Loaded rows stay in the sparse array until a `total` change, a remount, or an explicit call
+<NewBadge />
+
+Loaded rows stay in the sparse array until a spec change, a count change, a remount, or an explicit call
 removes them:
 
-- `lazy.reset()` aborts every in-flight fetch and drops all loaded rows. It is the same reset a
-  `total` change performs. It also re-requests the last reported range, so the visible rows
-  refetch instead of sitting as skeletons. Use it when the dataset behind the same `total` is
-  invalidated in place, for example after a server-side refresh.
-- `lazy.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
+- `server.refresh()` refetches the rendered blocks in place and drops every other loaded block. Use it when
+  the dataset behind the same spec is invalidated, for example after a server-side change.
+- `server.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
   intersection only, and the rest stays loaded. Evicted rows refetch on the next scroll into
-  them.
-- `lazy.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
+  them. A sequential source ignores it.
+- `server.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
   triggers a render. Call it in effects or event handlers.
 
 An eviction policy is a consumer decision. A distance from the visible range is a starting
@@ -264,173 +174,130 @@ point:
 const MIN_DISTANCE = 500;
 
 <DataGridProvider
-  data={lazy.gridProps.data}
+  {...server.providerProps}
   columns={columns}
-  getRowId={lazy.gridProps.getRowId}
   onRenderedRowsChange={(range) => {
-    lazy.gridProps.onRenderedRowsChange(range);
-    for (const loaded of lazy.getLoadedRanges()) {
+    server.providerProps.onRenderedRowsChange(range);
+    for (const loaded of server.getLoadedRanges()) {
       if (range.start - loaded.end > MIN_DISTANCE || loaded.start - range.end > MIN_DISTANCE) {
-        lazy.evict(loaded);
+        server.evict(loaded);
       }
     }
   }}
 >
-  <DataGridRoot>
+  <DataGridRoot {...server.rootProps}>
     <DataGridHeader />
     <DataGridBody />
   </DataGridRoot>
 </DataGridProvider>
 ```
 
-The demo's "Evict loaded rows" button runs `lazy.evict` over the whole range, so every loaded
+The demo's "Evict loaded rows" button runs `server.evict` over the whole range, so every loaded
 row becomes a skeleton and refetches on scroll.
 
 Two behaviors matter when you wire your own policy:
 
-- An in-flight fetch that started before the evict still lands and marks its range loaded. The
-  evicted rows reappear once that fetch resolves.
-- Evicted rows lose edits merged through `onDataChange` that you did not persist. This hook
+- An in-flight request that started before the evict still lands and marks its range loaded. The
+  evicted rows reappear once that request resolves.
+- Evicted rows lose edits merged through `onDataChange` that you did not persist. The hook
   does not own persistence. See [Editing loaded rows](#editing-loaded-rows).
 
-Undo and redo compose with this hook's `onDataChange`. The wiring, the hole-tolerant `getRowId`,
-and the `clear()`-on-`reset()` rule are on the [Undo & redo](/docs/addons/undo-redo#with-data-grid-lazy)
+Undo and redo compose with the `onDataChange` of the hook. The wiring, the hole-tolerant `getRowId`,
+and the `clear()`-on-`refresh()` rule are on the [Undo & redo](/docs/addons/undo-redo#with-scroll-mode)
 page.
 
-## Sorting a lazy grid
+## Sorting a scroll grid
 
-The sort must run on the server. Set `sortMode="server"`: the grid tracks the sort spec (the
+The sort runs on the server. The hook sets `sortMode="server"`: the grid tracks the sort spec (the
 asc → desc → none header cycle, `aria-sort`, the sort indicator, `DataGridSortList`) and calls
-`onSortChange`, but never reorders `data`. Hold the spec in your own state and send it to
-`fetchRows`:
+`onSortChange`, but never reorders `data`. The hook sends the spec to `fetchRows` and starts the blocks
+over when it changes, because fetched blocks hold the *old* order.
 
 ```tsx
-const [sorts, setSorts] = useState<SortSpec[]>([]);
-
-const lazy = useDataGridLazyRows<Order>({
-  total: 100_000,
+const server = useDataGridServerRows<Order>({
+  mode: "scroll",
   getRowId: (row) => row.id,
-  spec: { sorts, filters: [], searchText: "" },
-  fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, sorts: spec.sorts, signal }),
+  fetchRows: async ({ start, end, signal, spec }) => {
+    const answer = await api.orders({ start, end, sorts: spec.sorts, signal });
+    return { rows: answer.rows, totalRowCount: answer.total };
+  },
 });
 
-// a changed spec drops every fetched range and refetches the window in view
-const onSortChange = (next: SortSpec[]) => setSorts(next);
-
-<DataGridProvider
-  data={lazy.gridProps.data}
-  getRowId={lazy.gridProps.getRowId}
-  onDataChange={lazy.onDataChange}
-  sortMode="server"
-  onSortChange={onSortChange}
-  headerClickBehavior="sort"
->
+<DataGrid {...server.gridProps} columns={columns} headerClickBehavior="sort" />
 ```
 
-Three details make this work:
-
-- **`sortMode="server"` leaves the order to the server.** Passing `sortState={sorts}` as well is
-  allowed: the spec shows in the headers, and the fetched rows keep the order the server sent.
-- **A header click sorts only with `headerClickBehavior="sort"`.** The default, `"select"`, selects
-  the column and never calls `onSortChange`.
-- **A sort change discards loaded rows.** Already-fetched ranges hold the *old* order, so
-  `onSortChange` calls `lazy.reset()` before the refetch runs. Remounting the provider on a key
-  derived from the spec clears them too. It also resets the core store (selection, edit state,
-  scroll position), so it is the heavier alternative.
+A header click sorts only with `headerClickBehavior="sort"`. The default, `"select"`, selects the column and
+never changes the spec.
 
 The hook compares the spec by content. `serverSpecKey(spec)` <NewBadge /> returns that content as a string, without the generated `filterId`s. `ServerSpec` is `{ sorts, filters, searchText }`, and both `ServerSpec` and `serverSpecKey` import from `data-grid`. Use it as a query key or an effect dependency for your own request:
 
 ```ts
-const queryKey = ["orders", serverSpecKey(spec)];
+const queryKey = ["orders", serverSpecKey(server.spec)];
 ```
 
-Use `lazy.isLoading` to show a busy state while the refetch is in flight, for example to dim
-the grid.
+Use `server.loading` to show a busy state while a request is in flight, for example to dim the grid.
 
-## Filtering a lazy grid
+## Filtering a scroll grid
 
 <NewBadge />
 
-The filter must run on the server. Set `filterMode="server"`: the grid tracks the filter spec
+The filter runs on the server. The hook sets `filterMode="server"`: the grid tracks the filter spec
 (the filter menu, the header filters, `data-filtered`) and calls `onFilterChange`, but never
 filters `data`. The view keeps one row per index, so the range from `onRenderedRowsChange` maps to
-data indices. Hold the spec in your own state, send it to `fetchRows`, and set `total` to the
-filtered row count:
+data indices. The answer carries the filtered row count as `totalRowCount`:
 
 ```tsx
-const [applied, setApplied] = useState<{ filters: FilterNode[]; total: number }>({ filters: [], total: 100_000 });
-
-const lazy = useDataGridLazyRows<Order>({
-  total: applied.total,
+const server = useDataGridServerRows<Order>({
+  mode: "scroll",
   getRowId: (row) => row.id,
-  spec: { sorts: [], filters: applied.filters, searchText: "" },
-  fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, filters: spec.filters, signal }),
+  fetchRows: async ({ start, end, signal, spec }) => {
+    const answer = await api.orders({ start, end, filters: spec.filters, signal });
+    return { rows: answer.rows, totalRowCount: answer.total };
+  },
 });
 
-const latestFilter = useRef(0);
-
-const onFilterChange = async (filters: FilterNode[]) => {
-  const request = ++latestFilter.current;
-  const { total } = await api.count({ filters });
-  if (request !== latestFilter.current) return;
-  setApplied({ filters, total });
-};
-
-<DataGridProvider
-  data={lazy.gridProps.data}
-  getRowId={lazy.gridProps.getRowId}
-  onDataChange={lazy.onDataChange}
-  onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
-  filterMode="server"
-  onFilterChange={onFilterChange}
->
+<DataGrid
+  {...server.gridProps}
+  columns={columns}
+  fetchFilterValues={({ columnId, query, filters, signal }) => api.values({ columnId, query, filters, signal })}
+/>
 ```
 
 <ComponentPreview name="data-grid-server-filter-demo" />
 
-Two details make this work:
+Three details make this work:
 
-- **A filter change discards loaded rows and sets a new `total`.** Fetched ranges hold rows of the
-  old spec. A changed `total` resets the hook. Call `lazy.reset()` when `total` stays the same.
-  If `total` stays at the unfiltered count, the view keeps empty rows for the filtered-out rows,
-  and scrolling cannot reach the whole filtered result.
-- **A newer filter change wins.** The sample ignores the answer of an older `api.count` call.
+- **A filter change discards loaded rows.** Fetched blocks hold rows of the old spec. The hook starts
+  over at block 0 and takes the new count from the answer.
+- **A newer spec wins.** The hook aborts the requests of the old spec and ignores their answers.
 - **The header filter lists values from your server.** Pass `fetchFilterValues` to show every
   value of a column, not only the loaded ones. See [Header filter](/docs/addons/toolbar#header-filter).
 
-A spec that exists at mount, from `defaultFilterState` or a controlled `filterState`, never
-triggers `DataGridLazyGuard`. With `filterMode="server"` the grid keeps one view row for each data row.
-Without `filterMode="server"`, the grid filters the loaded rows only.
-
 For the full server contract, see [Server-side data](/docs/recipes/data-fetching/server-side).
 
-`searchText` never narrows anything. It only highlights and navigates matches over the
+`searchText` never narrows anything in the grid. It only highlights and navigates matches over the
 rows already in `data`, so a search over a partial array highlights matches in the loaded part
-and nothing more.
+and nothing more. The hook sends `searchText` in the spec, so your backend can search the whole dataset.
 
 <Callout type="warn" title="Client-side sort/filter/search cannot see rows it hasn't fetched">
   Sorting or filtering only reorders or removes rows already in `data`. It has no way to reason
   about the rest of a 100k-row dataset it never loaded. Hand your backend the sort or filter spec,
-  and let it decide which rows to serve, rather than letting the grid sort or filter client-side
-  over a partial array.
+  and let it decide which rows to serve. `useDataGridServerRows` does this by default.
 
-  Mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` (see
-  the usage example above) to get a dev-only console warning, once per page load, if a sort, filter,
-  or search change reaches the store while rows are still unloaded. A controlled `filterState` that
-  changes triggers it too. `sortMode="server"` and `filterMode="server"` exempt the sort and the
-  filter changes. It cannot stop the gesture, but it flags the
-  incompatible combination the moment it happens, instead of leaving you to notice wrong-looking
-  results later. Clipboard and fill across unloaded ranges are blocked the same way as a
-  non-writable column: a plain skip, not an error. Aggregates over a lazy grid are unsupported for
-  the same reason. Use server-side totals, or compute totals outside the grid from the full
-  dataset (see [Pinned rows](/docs/addons/pinned-rows)).
+  A grid with a sparse `data` array that you wire by hand gets a development-only console warning,
+  once per grid, when a client sort or filter changes while rows are still unloaded. The warning
+  cannot stop the gesture, but it flags the incompatible combination the moment it happens.
+  Clipboard and fill across unloaded ranges are blocked the same way as a non-writable column: a
+  plain skip, not an error. Aggregates over a scroll-mode grid are unsupported for the same
+  reason. Use server-side totals, or compute totals outside the grid from the full dataset (see
+  [Pinned rows](/docs/addons/pinned-rows)).
 </Callout>
 
-<Callout type="warn" title="DataGridUrlState needs both server modes on a lazy grid">
+<Callout type="warn" title="DataGridUrlState on a scroll grid">
   `DataGridUrlState` (from [URL state](/docs/addons/url-state)) writes its URL sort, filter, and
-  search spec into the store on mount. With `sortMode="server"` and `filterMode="server"`, the
+  search spec into the store on mount. The hook already sets `sortMode="server"` and `filterMode="server"`, so the
   store keeps the spec and never sorts or filters the partial `data`. Fetch the rows for the spec
-  that the URL restored. Without both modes, the add-on sorts and filters the partial `data`.
+  that the URL restored.
 </Callout>
 
 ## A source with no total
@@ -480,7 +347,7 @@ Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows
 
 <NewBadge />
 
-A lazy grid holds unloaded rows as holes. The gestures below work on what the grid holds. None of them fetches a row:
+A scroll-mode grid holds unloaded rows as holes. The gestures below work on what the grid holds. None of them fetches a row:
 
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> twice selects the full view, holes included. It selects cells and never checks rows. `getRowIds` for an unloaded row in that selection returns its index-derived placeholder id (`__lazy-unloaded-<index>`), not a real row id.
 - Copy copies the loaded cells of the selection. Unloaded ranges are skipped.
@@ -500,4 +367,4 @@ async function exportSelection() {
 }
 ```
 
-Without `totalRowCount`, read only the loaded rows from the sparse `data` array (a hole is `undefined`), or keep the rows whose index falls in `lazy.getLoadedRanges()`. The result is a snapshot that never triggers a render. Call it in an effect or handler.
+Without `totalRowCount`, read only the loaded rows from the sparse `data` array (a hole is `undefined`), or keep the rows whose index falls in `server.getLoadedRanges()`. The result is a snapshot that never triggers a render. Call it in an effect or handler.

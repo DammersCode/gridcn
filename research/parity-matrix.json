@@ -19,9 +19,9 @@
     },
     {
       "id": "Z",
-      "label": "Lazy rows",
-      "description": "`useDataGridLazyRows` fetches row ranges on scroll.",
-      "evidencePattern": "lazy"
+      "label": "Scroll rows",
+      "description": "`useDataGridServerRows` in scroll mode fetches row blocks on scroll.",
+      "evidencePattern": "scroll"
     },
     {
       "id": "C",
@@ -139,7 +139,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-lazy/data-grid-lazy-filter.browser.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
         "C": {
@@ -406,7 +406,6 @@
       "id": "counts",
       "feature": "Counts and total",
       "options": [
-        "total",
         "totalRowCount"
       ],
       "cells": {
@@ -574,7 +573,7 @@
         "enableColumnReorder",
         "enableColumnPinning"
       ],
-      "note": "Mode-neutral. Autosize measures loaded rows only on lazy data and on one page.",
+      "note": "Mode-neutral. Autosize measures loaded rows only on scroll data and on one page.",
       "cells": {
         "L": {
           "status": "supported",
@@ -1091,7 +1090,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx"
           ]
         },
         "C": {
@@ -1457,12 +1457,15 @@
     },
     {
       "id": "lazy-fetch",
-      "feature": "Lazy row fetching",
+      "feature": "Scroll row fetching",
       "options": [
         "fetchRows",
+        "mode",
+        "blockSize",
         "overscan",
-        "maxFetchRows",
-        "spec"
+        "spec",
+        "defaultSpec",
+        "onSpecChange"
       ],
       "cells": {
         "L": {
@@ -1533,7 +1536,7 @@
         },
         "Z": {
           "status": "n/a",
-          "reason": "Lazy rows and pagination are exclusive."
+          "reason": "Scroll rows and pagination are exclusive."
         },
         "C": {
           "status": "supported",

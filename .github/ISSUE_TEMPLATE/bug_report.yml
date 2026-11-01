@@ -32,7 +32,7 @@ body:
         - data-grid-keybindings
         - data-grid-history (undo and redo)
         - data-grid-io (import, export, print)
-        - data-grid-lazy
+        - data-grid-server
         - data-grid-pagination
         - data-grid-url-state
         - data-grid-pinned-rows

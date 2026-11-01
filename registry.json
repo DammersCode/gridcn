@@ -1343,47 +1343,6 @@
          ]
       },
       {
-         "name": "data-grid-lazy",
-         "type": "registry:block",
-         "title": "Data Grid Lazy",
-         "description": "Virtual data fetching add-on for the gridcn data grid: useDataGridLazyRows maintains a sparse data array and fetches row windows on demand from onRenderedRowsChange, with range coalescing, in-flight dedup, abort-on-unmount, and error revert/refetch. useDataGridInfiniteRows does the same for a source with no known total (cursor chain, skeleton rows grow in steps). A dev-only DataGridLazyGuard warns when uncontrolled sort/filter/search fires while rows are still unloaded.",
-         "author": "gridcn",
-         "dependencies": [],
-         "registryDependencies": [
-            "DammersCode/gridcn/data-grid"
-         ],
-         "files": [
-            {
-               "path": "registry/default/blocks/data-grid-lazy/data-grid-lazy.ts",
-               "type": "registry:component",
-               "target": "components/data-grid-lazy/data-grid-lazy.ts"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts",
-               "type": "registry:component",
-               "target": "components/data-grid-lazy/use-data-grid-lazy-rows.ts"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-lazy/use-data-grid-infinite-rows.ts",
-               "type": "registry:component",
-               "target": "components/data-grid-lazy/use-data-grid-infinite-rows.ts"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-lazy/lazy-guard.tsx",
-               "type": "registry:component",
-               "target": "components/data-grid-lazy/lazy-guard.tsx"
-            },
-            {
-               "path": "registry/default/blocks/data-grid-lazy/range-math.ts",
-               "type": "registry:component",
-               "target": "components/data-grid-lazy/range-math.ts"
-            }
-         ],
-         "categories": [
-            "data"
-         ]
-      },
-      {
          "name": "data-grid-server",
          "type": "registry:block",
          "title": "Data Grid Server",
@@ -2387,7 +2346,7 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-lazy",
+            "DammersCode/gridcn/data-grid-server",
             "DammersCode/gridcn/data-grid-toolbar"
          ],
          "files": [
@@ -2419,7 +2378,7 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-lazy",
+            "DammersCode/gridcn/data-grid-server",
             "button"
          ],
          "files": [
@@ -3003,7 +2962,7 @@
             "DammersCode/gridcn/data-grid-fill",
             "DammersCode/gridcn/data-grid-pinned-rows",
             "DammersCode/gridcn/data-grid-presence",
-            "DammersCode/gridcn/data-grid-lazy",
+            "DammersCode/gridcn/data-grid-server",
             "DammersCode/gridcn/data-grid-pagination",
             "DammersCode/gridcn/data-grid-toolbar",
             "DammersCode/gridcn/data-grid-context-menu",
@@ -3044,7 +3003,7 @@
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-lazy"
+            "DammersCode/gridcn/data-grid-server"
          ],
          "files": [
             {
@@ -3068,7 +3027,7 @@
          ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-lazy"
+            "DammersCode/gridcn/data-grid-server"
          ],
          "files": [
             {

@@ -156,12 +156,12 @@ needed. A framework router that exposes its own navigation event (for example
   or install `data-grid-sort-list` for a toolbar sort list.
 </Callout>
 
-<Callout type="warn" title="A lazy grid needs sortMode and filterMode server">
-  `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. On a lazy
+<Callout type="warn" title="A scroll-mode grid needs sortMode and filterMode server">
+  `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. On a scroll-mode
   grid, set `sortMode="server"` and `filterMode="server"`: the store then holds the spec and never
   sorts or filters the partial `data`. Fetch the rows for the restored spec. Without both modes, the
   add-on sorts and filters the partial `data` client-side. See
-  [Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
+  [Filtering a scroll grid](/docs/lazy-loading#filtering-a-scroll-grid).
 </Callout>
 
 ## Column layout

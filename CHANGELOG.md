@@ -14,6 +14,33 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** one word for saving. `onWriteRejected` is `onSaveRejected`, and its context adds `error`: the rejection reason of the `onSave` promise, or `null` when the promise resolved with `{ rejected }`. `WriteAck`, `WriteRejection`, `RowWriteStatus`, `useDataGridRowWriteStatus`, `useDataGridPendingWriteCount`, and `clearWriteStatus` are `SaveAck`, `SaveRejection`, `RowSaveStatus`, `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount`, and `clearSaveStatus`. The row attribute `data-write-status` is `data-save-status`, and the store fields `writeStatus` and `pendingWriteCount` are `saveStatus` and `pendingSaveCount`. The `onSave` JSDoc states the call order. Migration: rename the identifiers.
 - **Breaking:** `keepCheckedRows` no longer turns on when `totalRowCount` is set; pass `keepCheckedRows` yourself. `useDataGridServerRows`, `useDataGridLazyRows`, and `useDataGridInfiniteRows` set it in `gridProps`. `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` instead of `undefined` for an unknown size (a custom label that tests `count === undefined` never matches). `DataGridSelectedRows` in `"allMatching"` mode carries `spec`, the sort, filters, and search text of the grid.
 - **Breaking:** the spec types live in `data-grid`. `ServerSpec`, `serverSpecKey`, and the row range type `RowRange` (was `Range` in `data-grid-lazy`) import from `@/components/data-grid/data-grid`. `ServerSpec.search` is `searchText`, and the `fetchFilterValues` context field `search` is `query`. Migration: rename `spec.search` to `spec.searchText` (also in `defaultSpec` and in `spec` options), read `query` in `fetchFilterValues`, and change `Range` imports to `RowRange` from `data-grid`.
+- **Breaking:** `data-grid-lazy` is removed, with `useDataGridLazyRows`, `useDataGridInfiniteRows`, and `DataGridLazyGuard`. `useDataGridServerRows({ mode: "scroll" })` from `data-grid-server` replaces them. The core warns once per grid in development when a client sort or filter changes over unloaded rows, so the guard has no replacement to mount. The demos `data-grid-lazy-demo`, `data-grid-lazy-react-query-demo`, `data-grid-lazy-swr-demo`, and `data-grid-server-filter-demo` use the new hook. Migration: install `data-grid-server`, drop `DataGridLazyGuard`, and map the options: `total` becomes the `totalRowCount` of the answer, `batchSize` and `pageSize` become `blockSize`, `fetchRows` resolves `{ rows, totalRowCount }` instead of the rows, `nextCursor` and `hasNextPage` become `nextCursor` and `hasMore` in the answer, `reset()` becomes `refresh()`, `isLoading` becomes `loading`, and the hook owns the spec, so pass no `spec`, `sortMode`, `filterMode`, or `onRenderedRowsChange`. `maxFetchRows` is removed; each request covers one block. Spread `server.gridProps` (or `providerProps` and `rootProps`) instead of wiring `data`, `getRowId`, `onDataChange`, and `onRenderedRowsChange` by hand. The type `LazyFetchContext` is `ServerRowsRequest`.
+
+  ```tsx
+  // before
+  const lazy = useDataGridLazyRows<Order>({
+    total,
+    getRowId: (row) => row.id,
+    spec: { sorts, filters, searchText },
+    fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, spec, signal }),
+  });
+  <DataGridProvider data={lazy.gridProps.data} getRowId={lazy.gridProps.getRowId} onDataChange={lazy.onDataChange}
+    onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange} sortMode="server" filterMode="server" columns={columns}>
+    <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
+    <DataGridRoot loading={lazy.isLoading}>{/* ... */}</DataGridRoot>
+  </DataGridProvider>;
+
+  // after
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal, spec }) => {
+      const answer = await api.orders({ start, end, spec, signal });
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+  <DataGrid {...server.gridProps} columns={columns} />;
+  ```
 - `useDataGridServerRows({ mode: "scroll" })` fetches the rows a grid scrolls into. The first request is block 0, the answer carries `totalRowCount`, and the hook sizes `data` from it, fetches `blockSize` blocks (default 50) around the rendered rows plus `overscan` (default 30), writes the blocks that land in one frame with one update of `data`, keeps a failed block unloaded, and shows the error bar with a Retry button that repeats the failed blocks only. `refresh()` fetches the rendered blocks again in place. It returns `unloadedCount`, `getLoadedRanges()`, and `evict(range)`. A changed count or spec starts the blocks over. In development the grid warns once when a client sort or filter changes while `data` holds unloaded rows.
 - Scroll mode of `useDataGridServerRows` loads a source with no count in order. A first answer with `nextCursor`, or with neither `totalRowCount` nor `nextCursor`, makes the source sequential: the request carries the `cursor` of the block before, the grid shows the loaded rows plus one block of skeleton rows, and the next block starts when the rendered rows come within `overscan` of the end. `nextCursor: null`, `hasMore: false`, an empty block, and a cursor that repeats the one just sent end the source (the repeat warns in development); the chain stops at 10,000,000 rows. A first answer with `totalRowCount` and no cursor stays random access. `refresh()` of both scroll engines keeps the rows on screen until the answers land, and it skips rows with a pending save and the row under an edit; `gridProps` carries a `plugins` entry that gives the hook that read access, so put your own plugins after it. The open-ended demo uses it.
 - Fix: with `announceResults` and `sortMode="server"`, a client-side filter announces the result count. The announcement used to stay silent whenever the sort ran on the server.

@@ -130,8 +130,8 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
       and pin the result as a static band row. See [Pagination](/docs/pagination).
     </Callout>
 
-    <Callout type="warn" title="Not supported on a lazy grid">
-      On a `data-grid-lazy` grid, unloaded rows are `undefined` holes. The aggregate skips them (a
+    <Callout type="warn" title="Not supported on a scroll-mode grid">
+      On a `useDataGridServerRows({ mode: "scroll" })` grid, unloaded rows are `undefined` holes. The aggregate skips them (a
       dev warning fires once), so the band covers loaded rows only. Use server-side totals, or
       compute totals outside the grid from the full dataset. See
       [Lazy loading](/docs/lazy-loading).

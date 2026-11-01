@@ -49,7 +49,7 @@ gridRef.current?.actions.selectCell({ rowId: order.id, columnId: "symbol" });
 - `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time. They never
   re-render the calling component.
 - `getViewRowIds` returns one entry per view row, in view order, so entry `i` is always view
-  row `i`. An unloaded row of a lazy grid gives its placeholder id (`__lazy-unloaded-<index>`),
+  row `i`. An unloaded row of a scroll-mode grid gives its placeholder id (`__lazy-unloaded-<index>`),
   the same id `useDataGridRowIds` returns.
 - `setSelection` applies a whole selection (a range, a range stack, row and column channels)
   in stable `CellRef` terms, or clears the selection with `null`. It emits like a gesture:
@@ -354,7 +354,7 @@ cache that applies operations with `applyChange` stays in step with the grid and
 Each add-on's public props follow the same source-of-truth convention. These are the ones you
 will reach for most:
 
-<Tabs items={["State and history", "Toolbar and menus", "Editing and lazy", "Pagination, fill, and pinned"]}>
+<Tabs items={["State and history", "Toolbar and menus", "Editing and scroll mode", "Pagination, fill, and pinned"]}>
   <Tab value="State and history">
 
     ### `DataGridUrlStateProps`
@@ -402,7 +402,7 @@ will reach for most:
     <AutoTypeTable path="./registry/default/blocks/data-grid-sort-list/sort-list.tsx" name="DataGridSortListProps" />
 
   </Tab>
-  <Tab value="Editing and lazy">
+  <Tab value="Editing and scroll mode">
 
     ### `DataGridContextMenuProps`
 
@@ -412,19 +412,23 @@ will reach for most:
 
     <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-button.tsx" name="DataGridExportButtonProps" />
 
-    ### `UseDataGridLazyRowsOptions`
+    ### `UseDataGridServerRowsScrollOptions`
 
-    This is the options object for `useDataGridLazyRows` from `data-grid-lazy`. See
+    <NewBadge />
+
+    This is the options object for `useDataGridServerRows` with `mode: "scroll"` from `data-grid-server`. See
     [Lazy loading](/docs/lazy-loading).
 
-    <AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsOptions" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
 
-    ### `UseDataGridLazyRowsResult`
+    ### `UseDataGridServerRowsScrollResult`
 
-    This is the return shape of `useDataGridLazyRows` from `data-grid-lazy`. See
+    <NewBadge />
+
+    This is the return shape of `useDataGridServerRows` with `mode: "scroll"` from `data-grid-server`. See
     [Lazy loading](/docs/lazy-loading).
 
-    <AutoTypeTable path="./registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts" name="UseDataGridLazyRowsResult" />
+    <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollResult" />
 
   </Tab>
   <Tab value="Pagination, fill, and pinned">

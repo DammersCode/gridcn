@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridServerRows, type ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 
 const TOTAL_COUNT = 10_000;
 const SIMULATED_LATENCY_MS = 300;
@@ -28,7 +28,7 @@ function rowAt(index: number): LazyRow {
 
 function createSimulatedApi() {
   return {
-    async fetchRows({ start, end, signal }: LazyFetchContext): Promise<LazyRow[]> {
+    async fetchRows({ start, end, signal }: Pick<ServerRowsRequest, "start" | "end" | "signal">): Promise<LazyRow[]> {
       await new Promise((resolve, reject) => {
         const timer = setTimeout(resolve, SIMULATED_LATENCY_MS);
         signal.addEventListener("abort", () => {
@@ -51,8 +51,8 @@ const columns = defineColumns<LazyRow>()([
 ] as const);
 
 /**
- * 10,000 rows through a TanStack Query cache: `useDataGridLazyRows` hands each newly scrolled
- * window to `queryClient.fetchQuery`, which dedupes concurrent windows and keeps every fetched
+ * 10,000 rows through a TanStack Query cache: `useDataGridServerRows` in scroll mode hands each newly scrolled
+ * block to `queryClient.fetchQuery`, which dedupes concurrent windows and keeps every fetched
  * window in the query cache for the session (`staleTime: Infinity`), so scrolling back never
  * refetches. The hook's abort signal still cancels the simulated network call when a window
  * leaves view.
@@ -60,15 +60,17 @@ const columns = defineColumns<LazyRow>()([
 function LazyReactQueryGrid(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
   const queryClient = useQueryClient();
-  const lazy = useDataGridLazyRows<LazyRow>({
-    total: TOTAL_COUNT,
+  const server = useDataGridServerRows<LazyRow>({
+    mode: "scroll",
     getRowId: (row) => row.id,
-    fetchRows: ({ start, end, signal, spec }) =>
-      queryClient.fetchQuery({
+    fetchRows: async ({ start, end, signal }) => ({
+      rows: await queryClient.fetchQuery({
         queryKey: ["rows", start, end],
         staleTime: Infinity,
-        queryFn: () => api.fetchRows({ start, end, signal, spec }),
+        queryFn: () => api.fetchRows({ start, end, signal }),
       }),
+      totalRowCount: TOTAL_COUNT,
+    }),
   });
   const cachedWindows = queryClient.getQueriesData({ queryKey: ["rows"] }).length;
 
@@ -76,21 +78,14 @@ function LazyReactQueryGrid(): ReactNode {
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {(TOTAL_COUNT - lazy.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
-          <span className={lazy.isLoading ? undefined : "invisible"}> · fetching…</span>
+          {(TOTAL_COUNT - server.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
+          <span className={server.loading ? undefined : "invisible"}> · fetching…</span>
         </span>
         <span>{cachedWindows} windows in the query cache</span>
       </div>
       <div className="h-[420px] overflow-hidden rounded-md border border-border">
-        <DataGridProvider
-          data={lazy.gridProps.data}
-          columns={columns}
-          getRowId={lazy.gridProps.getRowId}
-          onDataChange={lazy.onDataChange}
-          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
-        >
-          <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-          <DataGridRoot className="h-full rounded-none border-none">
+        <DataGridProvider {...server.providerProps} columns={columns}>
+          <DataGridRoot className="h-full rounded-none border-none" {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

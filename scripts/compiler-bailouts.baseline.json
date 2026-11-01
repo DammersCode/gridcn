@@ -39,11 +39,6 @@
       "Todo: (BuildHIR::lowerStatement) Handle TryStatement with a finalizer ('finally') clause"
     ]
   },
-  "registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows.ts": {
-    "useDataGridLazyRows": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
   "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts": {
     "DataGridAggregateReporter": [
       "Refs: Cannot access refs during render"

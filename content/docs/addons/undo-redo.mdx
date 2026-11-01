@@ -206,42 +206,39 @@ would lose it). Entries recorded before the grid turned read-only keep `canUndo`
 
 The keyboard bindings are gated the same way: on a `readOnly` grid, mod+Z and mod+Y do nothing.
 
-## With data-grid-lazy
+## With scroll mode
 
-`useDataGridLazyRows` owns the `data` array. That array is sparse: loaded indices hold rows, and
-unloaded indices hold `undefined` holes. Pass the lazy hook's own `onDataChange` echo as the
-grid's `onDataChange`, and the history plugin as a `plugins` entry. Every grid write (and
-history's own undo/redo writes) flows through the grid's single write path, so the lazy hook
+`useDataGridServerRows({ mode: "scroll" })` owns the `data` array. That array is sparse: loaded indices hold rows, and
+unloaded indices hold `undefined` holes. Spread the hook's `providerProps` (they carry its `onDataChange` echo), and add the history plugin to the `plugins` entry. Every grid write (and
+history's own undo/redo writes) flows through the grid's single write path, so the hook
 sees every next array through that one echo:
 
 ```tsx
-const lazy = useDataGridLazyRows<Order>({ total, fetchRows, getRowId });
+const server = useDataGridServerRows<Order>({ mode: "scroll", fetchRows, getRowId });
 
 const history = useDataGridHistory({ datasetKey });
 
 <DataGrid
-  data={lazy.gridProps.data}
+  {...server.gridProps}
   columns={columns}
-  getRowId={lazy.gridProps.getRowId}
-  onDataChange={lazy.onDataChange}
-  plugins={[history.plugin]}
+  plugins={[...server.gridProps.plugins, history.plugin]}
 />
 ```
 
-The grid applies a change, emits it, and the lazy hook merges the next array back into its
+The grid applies a change, emits it, and the hook merges the next array back into its
 sparse rows. The history observer records the change from the same emission.
 
 Three rules make the combination safe:
 
 - **The grid's `getRowId` must tolerate holes.** The grid runs `getRowId` on every element of
   the sparse array, including the `undefined` holes. The plain `(row) => row.id` form throws on a
-  hole. The lazy hook's own `getRowId` option only sees loaded rows, and
-  `lazy.gridProps.getRowId` is already wrapped to answer a placeholder id for a hole. Pass the
-  plain form to the hook and `lazy.gridProps.getRowId` to the grid, as in the example.
+  hole. The hook's own `getRowId` option only sees loaded rows, and
+  `server.gridProps.getRowId` is already wrapped to answer a placeholder id for a hole. Pass the
+  plain form to the hook and `server.gridProps.getRowId` to the grid, as in the example.
 - **Evicted rows are silent no-ops.** An entry whose rows were evicted or reset out skips those
   operations and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
   the same rule as the vanished row id skip above.
-- **Clear the stack when the dataset changes.** `lazy.reset()` and a dataset swap drop the
+- **Clear the stack when the dataset changes.** `server.refresh()` and a dataset swap drop the
   loaded rows the stack references. Pass the dataset's identity as `datasetKey`, so the stack
   clears itself on the next render. If your dataset has no stable identity, call `clear()` in
   the same handler.

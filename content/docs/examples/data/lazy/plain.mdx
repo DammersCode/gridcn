@@ -1,13 +1,13 @@
 ---
 title: Plain fetcher
-description: useDataGridLazyRows with a plain simulated-latency fetcher, as the baseline pattern.
+description: useDataGridServerRows in scroll mode with a plain simulated-latency fetcher, as the baseline pattern.
 icon: Loader
 ---
 
-The baseline: `useDataGridLazyRows` owns the sparse row array and the range bookkeeping.
-You own `fetchRows({ start, end, signal, spec })`. The demo has 100,000 rows. Only the ranges that
+The baseline: `useDataGridServerRows({ mode: "scroll" })` owns the sparse row array and the block bookkeeping.
+You own `fetchRows({ start, end, signal, spec })`. The demo has 100,000 rows. Only the blocks that
 actually scroll into view are ever fetched, and skeleton rows hold the space until each
-range lands. The two failure buttons show the transient/permanent error split. The third
+block lands. The two failure buttons show the transient/permanent error split. The third
 page covers what a real fetcher replaces.
 
 <ComponentPreview name="data-grid-lazy-demo" />
@@ -17,37 +17,37 @@ page covers what a real fetcher replaces.
 ## The seam
 
 ```tsx
-const lazy = useDataGridLazyRows<Row>({
-  total: 100_000,
+const server = useDataGridServerRows<Row>({
+  mode: "scroll",
   getRowId: (row) => row.id,
-  fetchRows: ({ start, end, signal }) => api.fetchRows({ start, end, signal }),
+  fetchRows: async ({ start, end, signal }) => ({
+    rows: await api.fetchRows({ start, end, signal }),
+    totalRowCount: 100_000,
+  }),
   onError: (error) => {
-    /* transient: auto-retries on next scroll; permanent: surface a retry button */
+    /* transient: auto-retries on next scroll; permanent: the error bar offers Retry */
   },
 });
 ```
 
-- `fetchRows` resolves exactly the `[start, end)` slice, positionally aligned to `start`.
-  The hook writes it into the sparse array. The core renders real rows over the skeletons.
-- `signal` aborts the in-flight fetch when the range leaves view. A rejection after abort
+- `fetchRows` resolves the `[start, end)` slice as `rows`, positionally aligned to `start`, with the row count as
+  `totalRowCount`. The hook writes the rows into the sparse array. The core renders real rows over the skeletons.
+- `signal` aborts the in-flight request when a spec change, a count change, or an unmount replaces it. A rejection after abort
   is ignored, so an abort is not an error. Reject with an `AbortError` and move on.
-- Failed ranges revert to unloaded and the next scroll into them retries automatically
-  ("refetch on next visibility"). `onError` still fires, so a permanent failure (an expired
-   token, for example) can surface a manual retry. Call `lazy.retry()` to request the last window again.
+- Failed blocks stay unloaded and the next scroll into them retries automatically
+  ("refetch on next visibility"). `onError` still fires, and the error bar of `gridProps` offers Retry for a
+  permanent failure (an expired token, for example). Call `server.retry()` to repeat the failed blocks.
 
 ## Bring your own fetcher
 
-The two library pages wire the same seam to a cache so fetched ranges survive the rest of
+The two library pages wire the same seam to a cache so fetched blocks survive the rest of
 the session: [TanStack Query](/docs/examples/data/lazy/react-query) and
 [SWR](/docs/examples/data/lazy/swr).
 
 ## Behavior reference
 
-- [Lazy loading](/docs/lazy-loading): overscan, batch size, and the uncontrolled
-  sort/filter/search guard
-- [Tuning the fetch range](/docs/lazy-loading#tuning-the-fetch-range): `maxFetchRows` and
-  the other size knobs
-- [Memory & retention](/docs/lazy-loading#memory--retention): `reset`, `evict`, and
+- [Lazy loading](/docs/lazy-loading): `blockSize`, `overscan`, and the server sort and filter
+- [Memory & retention](/docs/lazy-loading#memory--retention): `refresh`, `evict`, and
   `getLoadedRanges`
 
 ## Related

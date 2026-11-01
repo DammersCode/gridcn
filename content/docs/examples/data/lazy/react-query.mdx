@@ -1,13 +1,13 @@
 ---
 title: TanStack Query
-description: Lazy ranges through queryClient.fetchQuery, which dedupes requests and caches each range for the session, so scrolling back never refetches.
+description: Scroll-mode blocks through queryClient.fetchQuery, which dedupes requests and caches each block for the session, so scrolling back never refetches.
 icon: Zap
 ---
 
-Each scrolled range becomes a `fetchQuery`: TanStack Query dedupes concurrent ranges,
-keeps every fetched range in the cache (`staleTime: Infinity`), and the hook's abort signal
-still cancels the network call when a range leaves view. Scrolling back never refetches.
-The "ranges in the query cache" counter in the demo bar makes that visible.
+Each scrolled block becomes a `fetchQuery`: TanStack Query dedupes concurrent blocks,
+keeps every fetched block in the cache (`staleTime: Infinity`), and the hook's abort signal
+still cancels the network call when a spec change replaces the request. Scrolling back never refetches.
+The "windows in the query cache" counter in the demo bar makes that visible.
 
 <ComponentPreview name="data-grid-lazy-react-query-demo" />
 
@@ -18,32 +18,34 @@ The "ranges in the query cache" counter in the demo bar makes that visible.
 ```tsx
 const queryClient = useQueryClient();
 
-const lazy = useDataGridLazyRows<Row>({
-  total: 10_000,
+const server = useDataGridServerRows<Row>({
+  mode: "scroll",
   getRowId: (row) => row.id,
-  fetchRows: ({ start, end, signal }) =>
-    queryClient.fetchQuery({
+  fetchRows: async ({ start, end, signal }) => ({
+    rows: await queryClient.fetchQuery({
       queryKey: ["rows", start, end],
       staleTime: Infinity,
       queryFn: () => api.fetchRows({ start, end, signal }),
     }),
+    totalRowCount: 10_000,
+  }),
 });
 ```
 
-The flow in words: viewport → range (`[start, end)`) → query key → sparse rows. The query
-key **is** the range, so two overlapping scrolls to the same range share one fetch, and
+The flow in words: viewport → block (`[start, end)`) → query key → sparse rows. The query
+key **is** the block, so two overlapping scrolls to the same block share one fetch, and
 the cache entry survives for the session. `staleTime: Infinity` is what keeps a revisited
-range from refetching, because the default (`0`) marks data stale immediately.
+block from refetching, because the default (`0`) marks data stale immediately.
 
 <Callout type="info" title="Why not useInfiniteQuery">
 `useInfiniteQuery` fetches pages sequentially from page 0. A virtualized grid asks for
-arbitrary ranges. Row 9,000 before row 50 exists. So the imperative `fetchQuery` is the
+arbitrary blocks. Row 9,000 before row 50 exists. So the imperative `fetchQuery` is the
 fitting seam: same cache, same dedupe, no page-ordering constraint.
 </Callout>
 
 ## Behavior reference
 
-- [Lazy loading](/docs/lazy-loading): the `useDataGridLazyRows` contract
+- [Lazy loading](/docs/lazy-loading): the scroll-mode contract
 
 ## Related
 

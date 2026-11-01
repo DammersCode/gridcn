@@ -1,59 +1,40 @@
 # Server-mode sort/filter/search wiring
 
-Contents: [`data-grid-lazy`](#data-grid-lazy) · [`data-grid-pagination` (server mode)](#data-grid-pagination-server-mode)
+Contents: [Scroll mode](#scroll-mode-data-grid-server) · [`data-grid-pagination` (server mode)](#data-grid-pagination-server-mode)
 
 Both variants share the same shape: hold the spec outside the grid's store, send it to the fetch, and set `sortMode="server"` so the grid never re-sorts the loaded slice client-side, and pass `filterState` as a stable empty array so it never re-filters it. Without them the grid sorts and filters locally.
 
-## `data-grid-lazy`
+## Scroll mode (`data-grid-server`)
 
 ```tsx
 "use client";
 
-import { useState } from "react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, type SortSpec } from "@/components/data-grid/data-grid";
-import { useDataGridLazyRows, DataGridLazyGuard } from "@/components/data-grid-lazy/data-grid-lazy";
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
-function OrdersGrid({ total }: { total: number }) {
-  const [sorts, setSorts] = useState<SortSpec[]>([]);
-
-  const lazy = useDataGridLazyRows<Order>({
-    total, // fetch the count first
+function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
     getRowId: (row) => row.id,
-    spec: { sorts, filters: [], searchText: "" }, // a changed spec drops the fetched windows and refetches
-    fetchRows: ({ start, end, signal, spec }) => api.orders({ start, end, sorts: spec.sorts, signal }),
+    fetchRows: async ({ start, end, signal, spec }) => {
+      const answer = await api.orders({ start, end, sorts: spec.sorts, filters: spec.filters, search: spec.searchText, signal });
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
   });
 
-  const onSortChange = (next: SortSpec[]) => setSorts(next);
-
-  return (
-    <DataGridProvider
-      data={lazy.gridProps.data}
-      columns={columns}
-      getRowId={lazy.gridProps.getRowId}
-      onDataChange={lazy.onDataChange}
-      onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
-      sortMode="server"
-      onSortChange={onSortChange}
-      headerClickBehavior="sort"
-    >
-      <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
+  return <DataGrid {...server.gridProps} columns={columns} headerClickBehavior="sort" />;
 }
 ```
 
 Rules that make this work, and break silently if skipped:
 
-- **Header clicks sort only with `headerClickBehavior="sort"`.** The default `"select"` selects the column, and `onSortChange` never fires.
-- **`sortMode="server"` leaves the order to the server.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`) and calls `onSortChange`, but never reorders `data`. Passing `sortState={sorts}` as well is allowed.
-- **Set `filterMode="server"`** for filtering. The grid tracks the spec (filter menu, header filters, `data-filtered`) and calls `onFilterChange`, but never filters `data`. Hold the spec in your state, send it to `fetchRows`, and set `total` to the filtered count. Pass `fetchFilterValues` to list column values from your server.
-- **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. To search the whole dataset, send `searchText` (read it with `useDataGridSearchText`, or use `searchText` with `onSearchTextChange`) to `fetchRows`.
-- **Pass the spec to the hook (`spec: { sorts, filters, searchText }`).** A change of its content resets the hook and refetches the window in view; `fetchRows` receives the spec of its request. Without `spec`, call `lazy.reset()` on a sort change (a filter change resets through the new `total`; call `lazy.reset()` when `total` stays the same). Already-fetched windows hold rows in the old order/set; without a reset they keep serving stale data.
-- `DataGridUrlState` mounts on this grid only with both `sortMode="server"` and `filterMode="server"`; the store then keeps the URL spec and never re-sorts or re-filters the partial `data`.
+- **Header clicks sort only with `headerClickBehavior="sort"`.** The default `"select"` selects the column, and the spec never changes.
+- **The hook owns the spec and sets `sortMode="server"` and `filterMode="server"`.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`, filter menu, header filters) and never reorders or filters `data`. Pass `fetchFilterValues` to list column values from your server.
+- **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. The hook sends `searchText` in `spec` to `fetchRows`.
+- **A changed spec starts the blocks over.** `fetchRows` receives the spec of its request. Control it with `spec` and `onSpecChange` (for example from URL state); a content change restarts, an equal spec does not.
+- **Return `totalRowCount` for random access.** A first answer with a cursor, or with neither a count nor a cursor, makes the source sequential: resolve `{ rows, nextCursor }` or `{ rows, hasMore }`.
+- **`server.refresh()` refetches the rendered blocks in place** and keeps rows with a pending save and the row under an edit. `server.retry()` repeats the failed blocks.
+- `DataGridUrlState` mounts on this grid through a controlled `spec`/`onSpecChange` pair; the store keeps the URL spec and never re-sorts or re-filters the partial `data`.
 
 ## `data-grid-pagination` (server mode)
 

@@ -113,7 +113,7 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 | `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/addons/find-replace) |
 | `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/addons/import-export) |
 | `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
-| `data-grid-lazy` | Lazy row loading: fetch rows on demand as the viewport scrolls | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
+| `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
 | `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/pagination) |
 | `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/addons/status-bar) |
 

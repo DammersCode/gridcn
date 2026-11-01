@@ -220,7 +220,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   });
 
   it("skips lazy holes (undefined rows) in every scope without calling accessors on them", () => {
-    // sparse array: holes at indices 1 and 2, as data-grid-lazy produces.
+    // sparse array: holes at indices 1 and 2, as scroll mode produces.
     const data = new Array<Row>(4);
     data[0] = { id: "1", name: "Alice", note: "n1" };
     data[3] = { id: "4", name: "Dora", note: "n4" };

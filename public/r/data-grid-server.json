@@ -12,7 +12,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-server/data-grid-server.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport {\n  useDataGridServerRows,\n  type UseDataGridServerRowsOptions,\n  type UseDataGridServerRowsResult,\n  type ServerRowsPageRequest,\n  type ServerRowsAnswer,\n} from \"./use-data-grid-server-rows\";\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport {\n  useDataGridServerRows,\n  type UseDataGridServerRowsOptions,\n  type UseDataGridServerRowsResult,\n  type ServerRowsPageRequest,\n  type ServerRowsRequest,\n  type ServerRowsAnswer,\n} from \"./use-data-grid-server-rows\";\n",
       "type": "registry:component",
       "target": "components/data-grid-server/data-grid-server.ts"
     },

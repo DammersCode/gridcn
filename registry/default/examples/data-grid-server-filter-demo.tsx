@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, type FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridLazyRows } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useMemo, type ReactNode } from "react";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import type { DemoRow } from "./demo-data";
 import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server";
@@ -14,48 +14,35 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * A lazy grid filtered by a fake server. `filterMode="server"` keeps the view as an identity map, the
- * header filter lists the server's values through `fetchFilterValues`, and a filter change asks the
- * server for the new total before it resets the loaded rows.
+ * A scrolling grid filtered by a fake server. `useDataGridServerRows` sets `filterMode="server"`, so the view keeps the rows as
+ * fetched, the header filter lists the server's values through `fetchFilterValues`, and a filter change starts the blocks over with
+ * the new spec. Each answer carries the matching row count.
  */
 export default function DataGridServerFilterDemo(): ReactNode {
-  const server = useMemo(() => createRemoteServer(), []);
-  const [applied, setApplied] = useState<{ filters: readonly RemoteFilterNode[]; total: number }>({ filters: [], total: server.total });
-  const latestChange = useRef(0);
+  const remote = useMemo(() => createRemoteServer(), []);
 
-  const lazy = useDataGridLazyRows<DemoRow>({
-    total: applied.total,
+  const server = useDataGridServerRows<DemoRow>({
+    mode: "scroll",
     getRowId: (row) => row.id,
-    spec: { sorts: [], filters: applied.filters as FilterNode[], searchText: "" },
-    fetchRows: ({ start, end, signal, spec }) => server.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal }).then((page) => page.rows),
+    fetchRows: async ({ start, end, signal, spec }) => {
+      const page = await remote.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal });
+      return { rows: page.rows, totalRowCount: page.total };
+    },
   });
-
-  const onFilterChange = async (next: FilterNode[]) => {
-    const change = ++latestChange.current;
-    const { total } = await server.fetchRange({ start: 0, end: 0, filters: next as RemoteFilterNode[] });
-    if (change !== latestChange.current) return;
-    setApplied({ filters: next as RemoteFilterNode[], total });
-    lazy.reset();
-  };
 
   return (
     <div className="w-full flex flex-col gap-2">
       <p className="text-sm text-muted-foreground">
-        {applied.total.toLocaleString("en-US")} rows match<span className={lazy.isLoading ? undefined : "invisible"}> · fetching…</span>
+        {(server.totalRowCount ?? remote.total).toLocaleString("en-US")} rows match<span className={server.loading ? undefined : "invisible"}> · fetching…</span>
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
-          data={lazy.gridProps.data}
+          {...server.providerProps}
           columns={columns}
-          getRowId={lazy.gridProps.getRowId}
-          onDataChange={lazy.onDataChange}
-          onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
-          filterMode="server"
-          onFilterChange={onFilterChange}
-          fetchFilterValues={({ columnId, query, filters, signal }) => server.fetchValues({ columnId, search: query, filters: filters as RemoteFilterNode[], signal })}
+          fetchFilterValues={({ columnId, query, filters, signal }) => remote.fetchValues({ columnId, search: query, filters: filters as RemoteFilterNode[], signal })}
           readOnly
         >
-          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
+          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />} {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

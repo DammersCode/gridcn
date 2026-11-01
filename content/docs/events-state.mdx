@@ -331,7 +331,7 @@ onRenderedRowsChange?: (range: { start: number; end: number }) => void;
 ```
 
 This fires after a render, including once for the initial mount, with the rendered
-data-row range. This is the mechanism that `useDataGridLazyRows` of `data-grid-lazy` uses to
+data-row range. This is the mechanism that `useDataGridServerRows` in scroll mode uses to
 fetch only scrolled-into-view rows. It is a prop on `DataGridProvider` and `DataGrid`. See
 [Lazy loading](/docs/lazy-loading).
 

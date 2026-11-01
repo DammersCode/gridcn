@@ -10,7 +10,6 @@ export type RegistryItemName =
   | "data-grid-io"
   | "data-grid-keybindings"
   | "data-grid-find-replace"
-  | "data-grid-lazy"
   | "data-grid-pagination"
   | "data-grid-server"
   | "data-grid-pinned-rows"

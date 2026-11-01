@@ -1,26 +1,26 @@
 ---
 title: "Lazy loading: data fetching & failure recovery"
-description: Wire a fetch/cache library like React Query through fetchRows, and give permanently failing ranges a retry UI.
+description: Wire a fetch/cache library like React Query through fetchRows, and give permanently failing blocks a retry UI.
 icon: RefreshCw
 ---
 
 Follow-up to [Lazy loading](/docs/lazy-loading): how to bring your own cache into `fetchRows`,
-and what to do when a range fails permanently instead of transiently.
+and what to do when a block fails permanently instead of transiently.
 
 ## Wiring a fetch/cache library (React Query)
 
-`fetchRows` is a plain `({ start, end, signal, spec }) => Promise<TData[]>`. Nothing about
-`useDataGridLazyRows` knows or cares whether that promise came from `fetch`, a cache, or a data
-library. Range coalescing already keeps requests infrequent (overscan and `pageSize` rounding,
+`fetchRows` is a plain `({ start, end, signal, spec }) => Promise<{ rows, totalRowCount }>`. Nothing about
+`useDataGridServerRows` knows or cares whether that promise came from `fetch`, a cache, or a data
+library. Block alignment already keeps requests infrequent (`overscan` and `blockSize` rounding,
 in-flight dedup), so most apps do not need one. If you already use
 [React Query](https://tanstack.com/query) elsewhere and want its cache, retry, and dedup behavior
-for these ranges too, wire it through `fetchRows` with a per-range query key:
+for these blocks too, wire it through `fetchRows` with a per-block query key:
 
 <Callout type="idea" title="Consumer wiring, not an add-on dependency">
-  This is a snippet for your own app, not part of `data-grid-lazy`. The add-on has no React Query
+  This is a snippet for your own app, not part of `data-grid-server`. The add-on has no React Query
   dependency, and installing it through `shadcn add` never pulls React Query in. Add
-  `@tanstack/react-query` to your own app first if you want this pattern. For a NON-lazy grid
-  (a plain fetched array, no on-demand loading), see
+  `@tanstack/react-query` to your own app first if you want this pattern. For a grid without
+  on-demand loading (a plain fetched array), see
   [Recipes: TanStack Query wiring](/docs/recipes/data-fetching/tanstack-query) for the `useQuery` +
   `useMutation` shape instead.
 </Callout>
@@ -28,25 +28,27 @@ for these ranges too, wire it through `fetchRows` with a per-range query key:
 ```tsx
 "use client";
 
-import { useMemo } from "react";
 import { QueryClient } from "@tanstack/react-query";
-import { useDataGridLazyRows } from "@/components/data-grid-lazy/data-grid-lazy";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 const queryClient = new QueryClient();
 
-/** One query key per fetched range — same-range requests dedupe/cache instead of re-fetching. */
-function orderRangeKey(start: number, end: number) {
-  return ["orders", "range", start, end] as const;
+/** One query key per fetched block: same-block requests dedupe and cache instead of re-fetching. */
+function orderBlockKey(start: number, end: number) {
+  return ["orders", "block", start, end] as const;
 }
 
 function OrdersGrid() {
-  const lazy = useDataGridLazyRows<Order>({
-    total: 100_000,
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
     getRowId: (row) => row.id,
     fetchRows: ({ start, end, signal }) =>
       queryClient.fetchQuery({
-        queryKey: orderRangeKey(start, end),
-        queryFn: () => api.orders({ start, end, signal }),
+        queryKey: orderBlockKey(start, end),
+        queryFn: async () => {
+          const answer = await api.orders({ start, end, signal });
+          return { rows: answer.rows, totalRowCount: answer.total };
+        },
         staleTime: 60_000,
       }),
   });
@@ -55,64 +57,53 @@ function OrdersGrid() {
 }
 ```
 
-`useDataGridLazyRows` already merges adjacent loaded ranges and never re-requests a covered
-range itself. So the cache of React Query mostly pays off for ranges that get *unloaded* and
-scrolled back into view later. Two cases apply: a failed fetch's range, and a range you unload
-yourself with `lazy.evict(range)`. Use `lazy.getLoadedRanges()` to find the candidates for your
+`useDataGridServerRows` already merges adjacent loaded blocks and never requests a covered
+block itself. So the cache of React Query mostly pays off for blocks that get *unloaded* and
+scrolled back into view later. Two cases apply: a failed block, and a range you unload
+yourself with `server.evict(range)`. Use `server.getLoadedRanges()` to find the candidates for your
 policy. When the evicted range comes back into view, the refetch runs through `fetchRows`. It
 serves from cache instead of the network, as long as it is within `staleTime`.
 
-## When a range fails permanently
+## When a block fails permanently
 
 The base case (see [Errors](/docs/lazy-loading#errors)) is a transient failure. `onError` fires,
-the range stays a hole, and scrolling back over it retries automatically. But the underlying
+the block stays a hole, and scrolling back over it retries automatically. But the underlying
 cause can be permanent instead, for example an expired auth token or a route the backend
-removed. If so, that automatic retry only fails again in the same way every time the range comes
+removed. If so, that automatic retry only fails again in the same way every time the block comes
 back into view.
 
-`useDataGridLazyRows` does not distinguish transient failures from permanent ones. It has no way
+`useDataGridServerRows` does not distinguish transient failures from permanent ones. It has no way
 to, because `fetchRows` is opaque to it. What you get for a permanent failure is exactly what you
 get for a transient one:
 
-- The range's rows revert to holes and render as skeleton cells again. They never left the
-  "unloaded" state, because a failed range is never marked loaded.
-- `onError(error)` fires once per failed attempt.
-- The next time `onRenderedRowsChange` reports a range that covers the failed one, gridcn requests it
-  again. This happens whether you scroll away and back, or the very first fetch failed and the
-  range covers the initial mount range. If the cause is still there, the request fails again.
+- The block's rows stay holes and render as skeleton cells. A failed block is never marked loaded.
+- `onError(error)` fires once per failed attempt, and `error` holds the failure.
+- The next time `onRenderedRowsChange` reports a range that covers the failed block, the hook requests it
+  again. This happens whether you scroll away and back, or the very first request failed. If the cause
+  is still there, the request fails again.
 
-The consumer-side pattern for this is a retry UI driven by `onError`, so a permanently-failing
-range does not retry silently forever every time it is scrolled past. Surface it, and let
-the user force a retry once whatever was wrong is fixed:
+`server.gridProps` shows the error bar with a Retry button, so a permanently failing block does not retry
+silently forever every time it is scrolled past. The user forces a retry once whatever was wrong is fixed.
+For your own retry UI, read `error` and call `retry()`:
 
 ```tsx
 "use client";
 
-import { useState } from "react";
-import { useDataGridLazyRows } from "@/components/data-grid-lazy/data-grid-lazy";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 function OrdersGrid() {
-  const [failed, setFailed] = useState(false);
-
-  const lazy = useDataGridLazyRows<Order>({
-    total: 100_000,
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
     getRowId: (row) => row.id,
-    fetchRows: ({ start, end, signal }) => api.orders({ start, end, signal }),
-    onError: () => setFailed(true),
+    fetchRows,
   });
 
   return (
     <>
-      {failed && (
+      {server.status === "error" && (
         <div role="alert" className="flex items-center justify-between gap-2 border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-sm">
           <span>Couldn't load rows.</span>
-          <button
-            type="button"
-            onClick={() => {
-              lazy.retry();
-              setFailed(false);
-            }}
-          >
+          <button type="button" onClick={server.retry}>
             Retry
           </button>
         </div>
@@ -123,5 +114,4 @@ function OrdersGrid() {
 }
 ```
 
-`lazy.retry()` requests the last window again, rather than waiting for a real scroll. Ranges that
-already loaded stay loaded; only the uncovered ones fetch.
+`server.retry()` repeats the failed blocks only. Blocks that already loaded stay loaded.

@@ -16,7 +16,7 @@ export type DataGridLoadingSkeletonProps = {
 
 /**
  * Grid-wide loading state, empty-data case (`loading && rowCount === 0`). Reuses the
- * `data-grid-lazy` add-on's skeleton-cell visual language (muted `animate-pulse` bar per cell) but
+ * scroll mode's skeleton-cell visual language (muted `animate-pulse` bar per cell) but
  * lives in core as one small component — core cannot import from an add-on, and this needs no real
  * column layout (there's no data yet), just enough rows/bars to fill the viewport.
  */

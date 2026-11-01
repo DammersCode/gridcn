@@ -171,7 +171,7 @@ describe("buildFillWrites over a lazy (sparse) grid", () => {
     const sparse: Row[] = new Array(4);
     sparse[0] = { id: "1", name: "a", qty: 2 };
     sparse[1] = { id: "2", name: "b", qty: 4 };
-    // viewIndex spans the full length (holes included), as the lazy hook's store does
+    // viewIndex spans the full length (holes included), as the scroll-mode store does
     const s = fakeState({ data: sparse, viewIndex: [0, 1, 2, 3] });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 }; // both rows are holes

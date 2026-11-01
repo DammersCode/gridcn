@@ -13,12 +13,11 @@ The *spec* is what the user chose: sort, filter, search, and page. The mode deci
 |---|---|---|
 | The whole dataset fits in one payload | Plain `data` on the provider | [Sorting, filtering, search](/docs/sorting-filtering-search) |
 | The user needs bounded, bookmarkable pages | `data-grid-pagination` | [Pagination](/docs/pagination) |
-| One continuous list, too large for one payload | `data-grid-lazy` | [Lazy loading](/docs/lazy-loading) |
-| A counted result that scrolls in blocks | `useDataGridServerRows({ mode: "scroll" })` <NewBadge /> | [Lazy loading](/docs/lazy-loading#scroll-mode-of-the-server-hook) |
+| One continuous list, too large for one payload, with a row count | `useDataGridServerRows({ mode: "scroll" })` <NewBadge /> | [Lazy loading](/docs/lazy-loading#usage) |
 | A cursor or "has more" source with no count | `useDataGridServerRows({ mode: "scroll" })` <NewBadge /> | [A source with no total](/docs/lazy-loading#a-source-with-no-total) |
 | Values change live | `updateCells` and `updateRows` on any of the above | [Streaming updates](/docs/streaming-updates) |
 
-Streaming adds to a strategy and never replaces it. Do not use lazy loading and pagination on one
+Streaming adds to a strategy and never replaces it. Do not use scroll mode and pagination on one
 grid.
 
 ## Pick where the spec runs

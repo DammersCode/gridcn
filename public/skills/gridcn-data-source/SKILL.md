@@ -1,6 +1,6 @@
 ---
 name: gridcn-data-source
-description: "gridcn data sources: pick plain data, pagination, lazy loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server. Triggers: server-side filtering or sorting, `filterMode`, `sortMode`, `fetchFilterValues`, nested filter groups sent to an API, async gates with a server check."
+description: "gridcn data sources: pick plain data, server pages, scroll loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server. Triggers: server-side filtering or sorting, `filterMode`, `sortMode`, `fetchFilterValues`, nested filter groups sent to an API, async gates with a server check."
 metadata:
   gridcn-version: "1.3.0"
 ---
@@ -15,42 +15,42 @@ Answer in order, stop at the first match:
 
 1. The whole dataset fits in one payload? Pass plain `data` to `DataGridProvider`/`DataGrid`. No add-on.
 2. The user needs bookmarkable, bounded pages (page 2 in the URL, a fixed page size)? Use `data-grid-pagination`.
-3. Otherwise (one continuous dataset, too large to fetch up front, infinite-scroll feel): use `data-grid-lazy`.
+3. Otherwise (one continuous dataset, too large to fetch up front, infinite-scroll feel): use `data-grid-server` in scroll mode (`useDataGridServerRows({ mode: "scroll" })`).
 
 Live value ticks (prices, statuses) are a separate question: streaming (`updateCells`/`updateRows`) layers on top of whichever base the tree picked. It never replaces it.
 
 Record which strategy was picked and why (one sentence) before writing code — this is the completion record step 5 checks for.
 
-**Do not combine lazy loading and pagination.** Both the lazy-loading and pagination docs state they are not supported together. If both a continuous-scroll feel and bookmarkable pages seem needed, pagination is the one to keep — it's the one that gives pages.
+**Do not combine scroll loading and pagination.** Both the lazy-loading and pagination docs state they are not supported together. If both a continuous-scroll feel and bookmarkable pages seem needed, pagination is the one to keep — it's the one that gives pages.
 
 ## 2. Wire the chosen strategy
 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
 - `data-grid-server`: for a paged server grid, `useDataGridServerRows({ getRowId, fetchRows: ({ spec, page, pageSize, start, end, signal }) => ... })` (resolve `{ rows, totalRowCount }` or `{ rows, hasMore }`) owns the spec, page, and page size unless you control them (`spec`/`onSpecChange`, `page`/`onPageChange`, `pageSize`/`onPageSizeChange`; a `useDataGridUrlPagination()` result spreads in); put your `onDataChange` and `getRowId` in its options; spread `server.gridProps` onto `DataGrid` and `server.pager` onto `DataGridPaginationBar`. It aborts stale requests, goes to page 1 on a spec change, keeps the last rows on error, and returns `status`, `loading`, `error`, `retry()`, `refresh()`. It does not set `headerClickBehavior`; pass `"sort"` yourself. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`). For a counted result that scrolls, pass `mode: "scroll"`: `fetchRows({ spec, start, end, signal })` resolves `{ rows, totalRowCount }`, the first request is block 0 (`[0, blockSize)`), the hook fetches `blockSize` blocks (default 50) around the rendered rows, spread `server.gridProps` (it carries `onRenderedRowsChange`, the error bar, and Retry), and it also returns `unloadedCount`, `getLoadedRanges()`, `evict(range)`; `retry()` repeats failed blocks only and `refresh()` refetches the rendered blocks in place. The grid warns in development when a client sort or filter changes over unloaded rows.
-- `data-grid-lazy`: install per https://gridcn.vercel.app/docs/lazy-loading.md, wire `useDataGridLazyRows` + `DataGridLazyGuard` + `onRenderedRowsChange`. When the server sends a next cursor and no row count (keyset, "has more"), use `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })` instead: resolve `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor), `nextCursor: null` ends the source, and a spec change restarts it by itself.
+- Scroll mode with a next cursor and no row count (keyset, "has more"): `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })` resolves `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor); `nextCursor: null` ends the source, and a spec change restarts it by itself. Install per https://gridcn.vercel.app/docs/lazy-loading.md.
 - `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`const { pageData, pager } = useDataGridPagination({ data, defaultPageSize })`, hook slices) vs. server mode (`{ page, pageSize, totalRowCount, onPageChange }` fully controlled, you fetch; pass `totalRowCount: null` with `hasNextPage` when the server sends no count).
 - Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/streaming-updates.md. Skip this step if nothing needs live value pushes.
 
 Completion for this step: the grid renders and the chosen hook's `gridProps`/`pager` are spread onto the provider/root exactly as the relevant doc's usage example shows.
 
-## 3. Put sort/filter/search on the server if the grid is lazy or paged
+## 3. Put sort/filter/search on the server if the grid scrolls or pages
 
-A lazy or paged grid's uncontrolled sort/filter/search only ever sees the rows currently loaded (the sparse array's loaded ranges, or the current page slice) — never a warning, never an error, just a wrong-looking result over part of the dataset. `searchText` is worse: it never narrows rows at all, only highlights matches already in `data`, on any grid.
+A scroll or paged grid's uncontrolled sort/filter/search only ever sees the rows currently loaded (the sparse array's loaded ranges, or the current page slice) — never a warning, never an error, just a wrong-looking result over part of the dataset. `searchText` is worse: it never narrows rows at all, only highlights matches already in `data`, on any grid.
 
 Decide per gesture, for the chosen strategy:
 
-- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange` and `filterMode="server"` plus `onFilterChange`, in lazy and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
+- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange` and `filterMode="server"` plus `onFilterChange`, in scroll and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
 - **Page-local or range-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
 
-For `data-grid-lazy` specifically, mount `<DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />` inside `<DataGridProvider>` regardless of which path is chosen. It only dev-warns (`[data-grid-lazy] sort/filter/search changed while rows are still unloaded...`) when an uncontrolled gesture fires over holes — it does not block the gesture or fix production behavior, so step 3's server-side decision still has to be made by hand for the paths that need full coverage.
+`useDataGridServerRows` sets both server modes and owns the spec, so its grids take this path by default. A hand-wired grid with a sparse `data` array gets a one-time development warning from the core when a client sort or filter changes over unloaded rows; it does not block the gesture or fix production behavior.
 
 ## 4. Handle the gotchas for the chosen strategy
 
-Applies to `data-grid-lazy`:
+Applies to scroll mode:
 
-- Pass the spec as `spec: { sorts, filters, searchText }` so a change resets the hook and `fetchRows` receives it. Without `spec`, a sort/filter change must call `lazy.reset()` before the refetch runs, or already-fetched ranges keep serving the old order/set. `lazy.retry()` repeats the failed window; `onError(error)` has no range.
-- `DataGridUrlState` (from `data-grid-url-state`) mounts on a lazy grid only with both `sortMode="server"` and `filterMode="server"`. Then the store keeps the URL spec and never sorts or filters the partial `data`; fetch the rows for the restored spec. Without both modes it re-sorts and re-filters the partial `data`.
-- Filtering a lazy grid takes `filterMode="server"`. Send the spec to `fetchRows` and set `total` to the filtered count; a changed `total` resets the hook, so call `lazy.reset()` only when `total` stays the same.
+- `useDataGridServerRows` sends `spec` to `fetchRows` and starts the blocks over when its content changes; the hook owns it unless you pass `spec` and `onSpecChange`. `retry()` repeats the failed blocks; `onError(error)` has no range. `refresh()` refetches the rendered blocks in place.
+- `DataGridUrlState` (from `data-grid-url-state`) mounts on a scroll grid through a controlled `spec`/`onSpecChange` pair, or with both `sortMode="server"` and `filterMode="server"`. Fetch the rows for the restored spec.
+- Every answer carries `totalRowCount` for a counted source; a changed count starts the blocks over.
 - With `sortMode="server"` the header indicator, `aria-sort`, and `DataGridSortList` track the spec and the grid never reorders `data`; a controlled-empty `sortState` is the old workaround and blanks them.
 
 Applies to `data-grid-pagination`:
@@ -64,26 +64,25 @@ Applies to `data-grid-pagination`:
 Applies to streaming on top of either:
 
 - A pagination grid silently drops `updateCells`/`updateRows` patches addressed to rows not on the current page (client or server mode) — no error, no verdict entry for it beyond the batch simply not touching that row. Either apply the feed to the full dataset/fetched page before it reaches `data`, or accept that only on-page rows update live.
-- A lazy grid instead reports a `hole` skip reason in the batch verdict (`actions.updateCells(...)` return value) for a patch addressed to an unloaded row — check the verdict if silent loss there matters.
+- A scroll grid instead reports a `hole` skip reason in the batch verdict (`actions.updateCells(...)` return value) for a patch addressed to an unloaded row — check the verdict if silent loss there matters.
 
 ## 5. Done when
 
-- The picked strategy (plus streaming, if used) is written down with its one-sentence reason, and lazy+pagination are not both mounted on the same grid.
+- The picked strategy (plus streaming, if used) is written down with its one-sentence reason, and scroll loading and pagination are not both mounted on the same grid.
 - Every sort/filter/search path either runs server-side against the full dataset (spec sent to the fetch, `sortMode="server"` and `filterMode="server"` per `references/server-mode.md`) or is a deliberate, disclosed page/range-local result — never an accidental partial one.
-- `DataGridLazyGuard` is mounted on every `data-grid-lazy` grid.
-- Pagination's stale-response race, `onPageChange(1)` on filter/search change, and row-id-based edit merge are all handled if pagination is in play; `lazy.reset()` on spec change is handled if lazy loading is in play.
+- Pagination's stale-response race, `onPageChange(1)` on filter/search change, and row-id-based edit merge are all handled if pagination is in play; the hook's spec handling covers scroll loading.
 
 ## Reference
 
-- `references/server-mode.md` — server-mode wiring for lazy loading and pagination, side by side, and how to send a filter tree to an API.
+- `references/server-mode.md` — server-mode wiring for scroll loading and pagination, side by side, and how to send a filter tree to an API.
 - Full docs: `https://gridcn.vercel.app/docs/lazy-loading.md`, `/docs/lazy-loading-advanced.md`, `/docs/pagination.md`, `/docs/streaming-updates.md`, `/docs/events-state.md`.
 
 ## Do not
 
-- Do not mount `data-grid-lazy` and `data-grid-pagination` on one grid.
-- Do not sort a lazy grid on the client. Set `sortMode="server"` and send the spec to `fetchRows`.
-- Do not guess `total` when the server has no count. Use `useDataGridServerRows({ mode: "scroll" })` with `nextCursor` or `hasMore`, or `hasNextPage` (pagination). Do not hard-code `total` for a lazy grid. Fetch the count first and render the grid once it is known (the `100_000` in examples is a placeholder).
-- Do not build your own spinner for range fetches. `lazy.isLoading` is true while any range fetch runs; pass it as `loading` on `DataGridRoot` for the slim progress bar.
+- Do not mount scroll mode and `data-grid-pagination` on one grid.
+- Do not sort a scroll grid on the client. `useDataGridServerRows` sets `sortMode="server"` and sends the spec to `fetchRows`.
+- Do not guess the row count when the server has none. Use `useDataGridServerRows({ mode: "scroll" })` with `nextCursor` or `hasMore`, or `hasNextPage` (pagination). Return the count as `totalRowCount` from `fetchRows`; do not hard-code it.
+- Do not build your own spinner for block fetches. `server.rootProps` carries `loading`, `error`, and `onRetry` for `DataGridRoot`.
 - Do not rely on the quick-search box to search server-side. It only highlights rows already in `data`. Send `searchText` to your fetch.
 
 ## Selection over a server result

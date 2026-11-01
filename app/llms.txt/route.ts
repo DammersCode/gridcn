@@ -31,7 +31,7 @@ const TAIL = [
   '## Registry',
   '',
   `- [Registry index](${BASE}/r/registry.json): All items (core, add-ons, demos) in the shadcn registry schema.`,
-  `- [Core: data-grid](${BASE}/r/data-grid.json): The grid itself; add-ons include data-grid-history, data-grid-fill, data-grid-io, data-grid-lazy.`,
+  `- [Core: data-grid](${BASE}/r/data-grid.json): The grid itself; add-ons include data-grid-history, data-grid-fill, data-grid-io, data-grid-server.`,
   '',
   '## Optional',
   '',

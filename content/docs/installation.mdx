@@ -43,7 +43,7 @@ package: the source files are copied into your project.
         { value: "data-grid-keybindings", label: "Keybindings", defaultChecked: true },
         { value: "data-grid-io", label: "Import / export", defaultChecked: true },
         { value: "data-grid-url-state", label: "URL state", defaultChecked: true },
-        { value: "data-grid-lazy", label: "Lazy loading", defaultChecked: true },
+        { value: "data-grid-server", label: "Server rows", defaultChecked: true },
         { value: "data-grid-pagination", label: "Pagination", defaultChecked: true },
       ]}
     />
@@ -106,9 +106,10 @@ the CLI adds with it. The core is the only item with a hard `tooltip` component 
 | `data-grid-io` | `hucre@1.1.0` (lazy-loaded), `papaparse` (loaded with the item), `lucide-react` | `@types/papaparse` | `dialog`, `select`, `dropdown-menu`, `button` (plus `dropzone`) |
 | `data-grid-find-replace` | `lucide-react` | none | `button`, `input` |
 | `data-grid-url-state` | `nuqs` | none | none (installs `data-grid-pagination`) |
+| `data-grid-server` <NewBadge /> | none | none | none (installs `data-grid-pagination`) |
 | `data-grid-presence`, `data-grid-fill`, `data-grid-pinned-rows` | `zustand` | none | none |
 | `dropzone` | `lucide-react` | none | none |
-| `data-grid-history`, `data-grid-lazy`, `data-grid-status-bar` | none beyond the core | none | none |
+| `data-grid-history`, `data-grid-status-bar` | none beyond the core | none | none |
 | `use-debounce`, `is-composing-key` <NewBadge /> | none (they do not need the grid) | none | none |
 
 The registry pins `hucre` to an exact version. `hucre` limits the unpacked size and the cell

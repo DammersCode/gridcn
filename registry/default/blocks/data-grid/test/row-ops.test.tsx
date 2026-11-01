@@ -562,7 +562,7 @@ describe("reorderRows", () => {
   it("is a no-op with a dev warning while rows are still unloaded (lazy holes)", () => {
     const onDataChange = vi.fn();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // same sparse convention useDataGridLazyRows ships: undefined holes in a dense-length array
+    // same sparse convention scroll mode ships: undefined holes in a dense-length array
     const sparse = [rows()[0], undefined, rows()[2]] as Row[];
     const wrapper = function Wrapper({ children }: { children: ReactNode }) {
       return (

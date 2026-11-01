@@ -25,7 +25,7 @@ For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race g
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
-4. Pass the response as `data`. Pass `totalRowCount` to the pager (or `total` to `useDataGridLazyRows`), and pass the same count to the provider as `totalRowCount` (`null` when the server sends none).
+4. Pass the response as `data`. Pass `totalRowCount` to the pager, and pass the same count to the provider as `totalRowCount` (`null` when the server sends none).
 
 Set `headerClickBehavior="sort"`. The default, `"select"`, makes a header click select the column,
 and `onSortChange` never fires.
@@ -84,10 +84,9 @@ Both sources take the same spec. They differ in how rows reach the grid.
 | Stale responses | Ignore a response for an old request | `fetchRows` receives an `AbortSignal` |
 
 Set `totalRowCount` to the filtered count on each filter change. When it shrinks below `page`, the pager
-calls your `onPageChange` once with the clamped page ([Server mode](/docs/pagination#server-mode)). With lazy rows, a changed `total` resets the hook and drops every fetched window. Call
-`lazy.reset()` when `total` stays the same. See
-[Sorting a lazy grid](/docs/lazy-loading#sorting-a-lazy-grid) and
-[Filtering a lazy grid](/docs/lazy-loading#filtering-a-lazy-grid).
+calls your `onPageChange` once with the clamped page ([Server mode](/docs/pagination#server-mode)). In scroll mode, a changed spec or `totalRowCount` resets the hook and drops every fetched block. See
+[Sorting a scroll grid](/docs/lazy-loading#sorting-a-scroll-grid) and
+[Filtering a scroll grid](/docs/lazy-loading#filtering-a-scroll-grid).
 
 The cell range and the active cell follow their row ids while the rows stay in `data`. A page
 change or refetch that removes a row drops it from the range. Checked rows depend on `totalRowCount`:

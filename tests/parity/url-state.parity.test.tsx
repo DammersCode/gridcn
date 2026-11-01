@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridUrlState } from "@/registry/default/blocks/data-grid-url-state/data-grid-url-state";
-import { useDataGridLazyRows } from "@/registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import { columns, makeRows, type Row } from "./modes";
 
@@ -18,9 +18,14 @@ const state = () => api!.getState();
 const viewIds = () => state().viewIndex.map((i) => (state().data[i] as Row | undefined)?.id ?? "");
 
 function LazyGrid() {
-  const lazy = useDataGridLazyRows<Row>({ total: 6, getRowId: (r) => r.id, pageSize: 6, fetchRows: async ({ start, end }) => makeRows().slice(start, end) });
+  const server = useDataGridServerRows<Row>({
+    mode: "scroll",
+    getRowId: (r) => r.id,
+    blockSize: 6,
+    fetchRows: async ({ start, end }) => ({ rows: makeRows().slice(start, end), totalRowCount: 6 }),
+  });
   return (
-    <DataGridProvider columns={columns} {...lazy.gridProps} onDataChange={lazy.onDataChange} sortMode="server" filterMode="server">
+    <DataGridProvider columns={columns} {...server.providerProps}>
       <DataGridUrlState />
       <Capture />
     </DataGridProvider>
@@ -36,7 +41,7 @@ describe("URL state in mode Z (lazy rows)", () => {
     );
     await waitFor(() => expect(state().sortState).toEqual([{ columnId: "n", direction: "desc" }]));
     expect(state().filterState).toHaveLength(1);
-    expect(state().data).toHaveLength(6);
+    await waitFor(() => expect(state().data).toHaveLength(6));
     expect(state().viewIndex).toEqual([0, 1, 2, 3, 4, 5]);
   });
 });

@@ -10,7 +10,7 @@ Each gridcn add-on is a separate registry item that installs into your own proje
 rules the docs don't spell out as a procedure: which hook output goes where, and the gotchas that
 fail silently instead of erroring.
 
-Scope: installing add-ons and wiring their outputs. Choosing between lazy loading and pagination, or server-side sort and filter → `gridcn-data-source`.
+Scope: installing add-ons and wiring their outputs. Choosing between scroll loading and pagination, or server-side sort and filter → `gridcn-data-source`.
 
 ## 1. Install
 
@@ -32,7 +32,7 @@ npx shadcn add @gridcn/<item>
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
 | URL state | `data-grid-url-state` | `nuqs` |
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
-| Lazy loading | `data-grid-lazy` | none |
+| Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
 | Pagination | `data-grid-pagination` | none |
 | Find & replace | `data-grid-find-replace` | none |
 
@@ -68,7 +68,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
-| Lazy loading | `useDataGridLazyRows` (owns `data`) + `DataGridLazyGuard` | hook above the provider; `DataGridLazyGuard` inside the provider |
+| Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
 | Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
 
 `keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
@@ -91,11 +91,11 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Find & replace + toolbar search**: with both mounted, `Mod+F` in the grid opens the find panel and the toolbar search yields to it; the Find field and the toolbar search show the same text.
 - **URL state**: exactly one `NuqsAdapter` for the whole app — never nest a second one closer to the
   grid. Wrap the grid in `<Suspense>` if the page is statically prerendered (Next.js requirement,
-  since the adapter calls `useSearchParams()`). On a `data-grid-lazy` grid, mount
+  since the adapter calls `useSearchParams()`). On a scroll-mode grid, mount
   `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"`; otherwise it
   re-sorts and re-filters the partial `data` client-side.
-- **Lazy loading + pagination are mutually exclusive.** Neither exists for render performance
-  (virtualization already covers that); pick lazy for one continuous infinite-scroll dataset, or
+- **Scroll mode + pagination are mutually exclusive.** Neither exists for render performance
+  (virtualization already covers that); pick scroll mode for one continuous infinite-scroll dataset, or
   pagination for bookmarkable pages. Using both together is unsupported.
 - **Presence**: call `useDataGridPresence()` exactly once per grid. A second call mints a separate
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
@@ -134,7 +134,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   - `plugin "A" and "B" both define command "C"; the later plugin wins` — a command-name conflict
     between two plugins.
   - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or
-    for a sparse (lazy) `data` array, rather than throwing.
+    for a sparse (scroll mode) `data` array, rather than throwing.
 - **Fill/keyboard fill does nothing**: without the add-on installed, `Ctrl/Cmd+D`/`+R` are genuine
   no-ops (the actions exist in core's keymap, but nothing handles them). A `readOnly` grid also
   disables fill entirely, regardless of `disabled`.
@@ -157,7 +157,7 @@ The add-on's item folder exists under your components path, its npm dependency (
 shows no dev warning, and its documented visible behavior confirms it (drag the fill handle, undo a
 paste, see the pinned band render, see a remote presence highlight, click a toolbar button, right-click
 a cell/header, press `?`, drag a sort row, reload the page and see the URL state restored, import or
-export a file, scroll a lazy grid past the first window, or change pages).
+export a file, scroll a scroll-mode grid past the first block, or change pages).
 
 ## Docs
 
@@ -171,7 +171,7 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 - Context menu: `/docs/addons/context-menu.md` · Keybindings: `/docs/addons/keybindings.md`
 - Find & replace: `/docs/addons/find-replace.md`
 - Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md`
-- Import/export: `/docs/addons/import-export.md` · Lazy loading: `/docs/lazy-loading.md`
+- Import/export: `/docs/addons/import-export.md` · Scroll loading: `/docs/lazy-loading.md`
 - Pagination: `/docs/pagination.md` · Plugin seam: `/docs/plugins.md`
 - Global shortcuts (undo/redo outside the grid): `/docs/global-shortcuts.md`
 - Install & dependency table: `/docs/installation.md`
@@ -180,7 +180,7 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 
 - Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
 - Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
-- Do not mount `DataGridUrlState` on a `data-grid-lazy` grid without both server modes, or nest a second `NuqsAdapter`.
+- Do not mount `DataGridUrlState` on a scroll-mode grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
 - Do not pass a fresh `topRows`/`bottomRows` array per render to `useDataGridPinnedRows`.
-- Do not combine `data-grid-lazy` and `data-grid-pagination`.
+- Do not combine scroll mode and `data-grid-pagination` on one grid.

@@ -271,7 +271,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Who orders the rows. `"client"` (default): the grid sorts `data` by `sortState`. `"server"`:
    * the grid only tracks the spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`)
-   * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridLazyRows`.
+   * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridServerRows`.
    */
   sortMode?: "client" | "server";
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
@@ -283,7 +283,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Who filters the rows. `"client"` (default): the grid filters `data` by `filterState`. `"server"`:
    * the grid only tracks the spec (filter menu, header filters, `data-filtered`, `onFilterChange`) and
-   * never filters `data`; the consumer fetches the matching rows, e.g. with `useDataGridLazyRows`.
+   * never filters `data`; the consumer fetches the matching rows, e.g. with `useDataGridServerRows`.
    */
   filterMode?: "client" | "server";
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */

@@ -609,7 +609,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const warnGateOnce = createWarnOnce();
   const touchesUnloadedRow = (s: DataGridStoreState, dataRowIndexes: readonly number[], operation: string): boolean => {
     if (!dataRowIndexes.some((i) => s.data[i] === undefined && i >= 0 && i < s.data.length)) return false;
-    warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (useDataGridLazyRows): load the range first, or delete known ids with deleteRowsById`);
+    warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (scroll mode): load the range first, or delete known ids with deleteRowsById`);
     return true;
   };
   const requestDelete = (dataRowIndexes: number[]) => {
@@ -812,7 +812,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     for (let i = 0; i < data.length; i++) {
       // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
       if (data[i] === undefined) {
-        warnDev("reorderRows is a no-op while rows are still unloaded (useDataGridLazyRows): load the range first");
+        warnDev("reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first");
         return false;
       }
     }

@@ -140,7 +140,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // `!measured` skips the pre-heal render: useRowWindow heals the no-element fallback to the real
   // window in a pre-paint layout-effect flush, so the fixed {0, min(rowCount,30)} fallback and the
   // real window are two distinct committed ranges; without this guard this fired on both on every
-  // mount — the fallback is never a range a consumer (e.g. data-grid-lazy's fetch-on-window)
+  // mount — the fallback is never a range a consumer (e.g. scroll mode's fetch-on-window)
   // should act on in the first place.
   // The callback is read off the store at fire time (not a dep), so an identity change never re-fires it — only a range change does.
   const lastFiredRangeRef = useRef<{ start: number; end: number } | null>(null);

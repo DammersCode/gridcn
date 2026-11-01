@@ -30,7 +30,7 @@ import {
   type AggregateSpecs,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { useDataGridPresence, type PresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
-import { useDataGridLazyRows, DataGridLazyGuard, type LazyFetchContext } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import {
   DataGridToolbar,
@@ -468,93 +468,43 @@ async function fetchLazyRows(start: number, end: number, signal: AbortSignal, so
   return all.slice(start, end);
 }
 
-/** Controlled-sort prop the lazy subtree holds permanently empty — see {@link LazyGrid}. */
-const NO_CLIENT_SORT: SortSpec[] = [];
-
 /**
  * The lazy subtree: streaming, pinned totals, and import are all disabled here (the docs' "lazy +
  * X is not supported" constraints) — streaming patches rows by id into windows that may not be
  * loaded, aggregate totals over a partially-loaded dataset would mislead, and import replaces
- * `data` wholesale, which this add-on owns.
+ * `data` wholesale, which the server hook owns.
  *
- * Sorting is server-side (lazy-loading.mdx): `onSortChange` hands the spec to the fake API, which
- * returns each window already in that order. `sortState` stays the empty array rather than echoing
- * the spec back, because the store sorts `data` by whatever `sortState` holds — echoing it would
- * re-sort the fetched window client-side over the handful of loaded rows.
+ * Sorting is server-side: `useDataGridServerRows` in scroll mode sends the sort spec to the fake API, which
+ * returns each block already in that order, and starts the blocks over on a sort change.
  */
 function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
-  const [sorts, setSorts] = useState<SortSpec[]>([]);
-
-  // The store's `sortState` is pinned empty (below), so `toggleSort` always reports a first-click
-  // "asc" for the clicked column; the asc -> desc -> none cycle is re-derived here against the spec
-  // this component actually holds.
-  const cycleSort = useCallback((next: SortSpec[]) => {
-    const clicked = next[next.length - 1];
-    setSorts((prev) => {
-      if (!clicked) return [];
-      const current = prev.find((s) => s.columnId === clicked.columnId);
-      const direction = nextSortDirection(current?.direction);
-      return direction === null ? [] : [{ columnId: clicked.columnId, direction }];
-    });
-  }, []);
-
-  // Remount on every sort change: already-fetched windows hold the OLD server order, and the hook
-  // only discards loaded ranges when `total` changes, so a fresh mount is the way to drop them.
-  return <LazySortedGrid key={sortKey(sorts)} controls={controls} sorts={sorts} onSortsChange={cycleSort} />;
-}
-
-function nextSortDirection(current: SortSpec["direction"] | undefined): SortSpec["direction"] | null {
-  return current === undefined ? "asc" : current === "asc" ? "desc" : null;
-}
-
-function sortKey(sorts: readonly SortSpec[]): string {
-  return sorts.map((s) => `${s.columnId}:${s.direction}`).join(",");
-}
-
-function LazySortedGrid({
-  controls,
-  sorts,
-  onSortsChange,
-}: {
-  controls: PlaygroundControls;
-  sorts: readonly SortSpec[];
-  onSortsChange: (next: SortSpec[]) => void;
-}): ReactNode {
-  const sortsRef = useLatestRef(sorts);
-  const fetchSorted = useCallback(
-    ({ start, end, signal }: LazyFetchContext) => fetchLazyRows(start, end, signal, sortsRef.current),
-    [sortsRef],
-  );
-  const lazy = useDataGridLazyRows<DemoRow>({
-    total: LAZY_TOTAL_COUNT,
-    fetchRows: fetchSorted,
+  const server = useDataGridServerRows<DemoRow>({
+    mode: "scroll",
     getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal, spec }) => ({
+      rows: await fetchLazyRows(start, end, signal, spec.sorts),
+      totalRowCount: LAZY_TOTAL_COUNT,
+    }),
   });
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const plugins = useMemo(() => [fillPlugin, presencePlugin], [fillPlugin, presencePlugin]);
+  const plugins = useMemo(() => [...server.providerProps.plugins, fillPlugin, presencePlugin], [server.providerProps.plugins, fillPlugin, presencePlugin]);
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
 
   return (
     <DataGridProvider
-      data={lazy.gridProps.data}
+      {...server.providerProps}
       columns={controls.columns}
-      getRowId={lazy.gridProps.getRowId}
-      onDataChange={lazy.onDataChange}
       plugins={plugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
-      sortState={NO_CLIENT_SORT}
-      onSortChange={onSortsChange}
       enableRowReorder={controls.enableRowReorder}
-      onRenderedRowsChange={lazy.gridProps.onRenderedRowsChange}
       readOnly={controls.readOnly}
     >
-      <DataGridLazyGuard hasHoles={lazy.unloadedCount > 0} />
       <div data-testid="lazy-server-sort" className="px-2 text-xs text-muted-foreground">
-        {sorts.length === 0 ? "Server sort: none" : `Server sort: ${sortKey(sorts)}`}
+        {server.spec.sorts.length === 0 ? "Server sort: none" : `Server sort: ${sortKey(server.spec.sorts)}`}
       </div>
       <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled />
       <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
@@ -567,6 +517,8 @@ function LazySortedGrid({
           density={controls.density}
           direction={controls.direction}
           loading={controls.loading}
+          error={server.rootProps.error}
+          onRetry={server.rootProps.onRetry}
         >
           <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
           <DataGridHeader />
@@ -575,6 +527,10 @@ function LazySortedGrid({
       </DataGridContextMenu>
     </DataGridProvider>
   );
+}
+
+function sortKey(sorts: readonly SortSpec[]): string {
+  return sorts.map((s) => `${s.columnId}:${s.direction}`).join(",");
 }
 
 function ToggleLabel({ disabled, children }: { disabled?: boolean; children: ReactNode }): ReactNode {

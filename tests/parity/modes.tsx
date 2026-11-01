@@ -6,7 +6,7 @@ import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "
 import type { ColumnDef, DataChange, FilterNode, SortSpec } from "@/registry/default/blocks/data-grid/types";
 import type { SaveAck } from "@/registry/default/blocks/data-grid/store/write-ack";
 import { useDataGridPagination } from "@/registry/default/blocks/data-grid-pagination/use-data-grid-pagination";
-import { useDataGridLazyRows } from "@/registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 
 export type ModeId = "L" | "PC" | "PS" | "Z" | "C" | "SS" | "FS" | "API";
 export const ALL_MODES: readonly ModeId[] = ["L", "PC", "PS", "Z", "C", "SS", "FS", "API"];
@@ -213,23 +213,27 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   }
 
   function Lazy({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
-    const lazy = useDataGridLazyRows<Row>({
-      total: rows.length,
+    const server = useDataGridServerRows<Row>({
+      mode: "scroll",
       getRowId,
-      pageSize: options.initialLoad ?? rows.length,
+      blockSize: options.initialLoad ?? rows.length,
       overscan: 0,
-      fetchRows: async ({ start, end }) => rows.slice(start, end),
+      fetchRows: async ({ start, end }) => ({ rows: rows.slice(start, end), totalRowCount: rows.length }),
     });
-    loadRows = (start, end) => lazy.gridProps.onRenderedRowsChange({ start, end });
-    held = lazy.gridProps.data as readonly Row[];
+    const { data, onRenderedRowsChange, totalRowCount } = server.providerProps;
+    loadRows = (start, end) => onRenderedRowsChange({ start, end });
+    held = data as readonly Row[];
     return (
       <DataGridProvider
         columns={columns}
-        {...lazy.gridProps}
+        data={data}
+        getRowId={server.providerProps.getRowId}
+        onRenderedRowsChange={onRenderedRowsChange}
+        totalRowCount={totalRowCount}
         {...baseProps}
         onDataChange={(next: readonly Row[], change: DataChange<Row>) => {
           rec(next, change);
-          lazy.onDataChange(next, change);
+          server.providerProps.onDataChange(next, change);
         }}
         {...extra}
       >

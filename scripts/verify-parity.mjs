@@ -10,7 +10,7 @@ const PAGE_FILE = "content/docs/data-modes.mdx";
 const BLOCKS = "registry/default/blocks";
 const OPTION_SOURCES = [
   { file: `${BLOCKS}/data-grid/store/types.ts`, type: "DataGridSyncProps" },
-  { file: `${BLOCKS}/data-grid-lazy/use-data-grid-lazy-rows.ts`, type: "UseDataGridLazyRowsOptions" },
+  { file: `${BLOCKS}/data-grid-server/scroll-blocks.ts`, type: "UseDataGridServerRowsScrollOptions" },
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationClientOptions" },
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationServerOptions" },
 ];
@@ -118,7 +118,7 @@ export function renderParityPage(matrix) {
     "",
     "{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}",
     "",
-    "A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it." + (present.includes("unverified") ? " A not verified cell has no test or docs file that covers the mode." : ""),
+    "A grid feature can behave differently on a local array, on server pages and on scrolled server rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it." + (present.includes("unverified") ? " A not verified cell has no test or docs file that covers the mode." : ""),
     "",
     "## Data modes",
     "",

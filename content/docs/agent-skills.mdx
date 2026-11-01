@@ -69,9 +69,9 @@ Enter commits and moves down, and Escape keeps the original value.
 ## gridcn-data-source
 
 **What it does.** The skill selects one base for the rows: plain `data`, pagination, or lazy
-loading. It adds streaming on top when values change live. For a lazy or paged grid, it moves
+loading. It adds streaming on top when values change live. For a scroll or paged grid, it moves
 sort, filter, and search to the server. Otherwise these gestures see only the loaded rows. The
-skill also handles stale page responses, `lazy.reset()` on a sort change, and the combinations
+skill also handles stale page responses, the spec reset on a sort change, and the combinations
 that the add-ons do not support.
 
 **When to reach for it.** You connect the grid to an API, the dataset is too large for one

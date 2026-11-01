@@ -6,14 +6,14 @@ icon: Table
 
 {/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}
 
-A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it.
+A grid feature can behave differently on a local array, on server pages and on scrolled server rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it.
 
 ## Data modes
 
 - **L**: Local array. `data` holds every row in memory.
 - **PC**: Client pagination. `useDataGridPagination` slices `data` into pages.
 - **PS**: Server pagination. The server returns one page per request.
-- **Z**: Lazy rows. `useDataGridLazyRows` fetches row ranges on scroll.
+- **Z**: Scroll rows. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
 - **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
 - **SS**: Server sort. `sortMode="server"`: the grid never reorders `data`.
 - **FS**: Server filter. `filterMode="server"`: the grid never filters `data`.
@@ -31,7 +31,7 @@ A grid feature can behave differently on a local array, on server pages and on l
       <th scope="col" title={"Local array"} aria-label={"Local array (L)"} className="text-center">L</th>
       <th scope="col" title={"Client pagination"} aria-label={"Client pagination (PC)"} className="text-center">PC</th>
       <th scope="col" title={"Server pagination"} aria-label={"Server pagination (PS)"} className="text-center">PS</th>
-      <th scope="col" title={"Lazy rows"} aria-label={"Lazy rows (Z)"} className="text-center">Z</th>
+      <th scope="col" title={"Scroll rows"} aria-label={"Scroll rows (Z)"} className="text-center">Z</th>
       <th scope="col" title={"Controlled state"} aria-label={"Controlled state (C)"} className="text-center">C</th>
       <th scope="col" title={"Server sort"} aria-label={"Server sort (SS)"} className="text-center">SS</th>
       <th scope="col" title={"Server filter"} aria-label={"Server filter (FS)"} className="text-center">FS</th>
@@ -315,7 +315,7 @@ A grid feature can behave differently on a local array, on server pages and on l
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Lazy row fetching</th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Scroll row fetching</th>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"The consumer supplies each page."} /></td>
@@ -330,7 +330,7 @@ A grid feature can behave differently on a local array, on server pages and on l
       <td className="text-center"><ParityCell status="n/a" note={"No pages."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Lazy rows and pagination are exclusive."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Scroll rows and pagination are exclusive."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -433,7 +433,7 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 ### Column pin, hide, order and size
 
-- Mode-neutral. Autosize measures loaded rows only on lazy data and on one page.
+- Mode-neutral. Autosize measures loaded rows only on scroll data and on one page.
 
 ### Fill
 
@@ -482,7 +482,7 @@ A grid feature can behave differently on a local array, on server pages and on l
 - **PS**: Gap: Loaded rows only; no server scope.
 - **Z**: Gap: Loaded rows only; no server scope.
 
-### Lazy row fetching
+### Scroll row fetching
 
 - **L**: n/a: Rows are in memory.
 - **PC**: n/a: Rows are in memory.
@@ -495,7 +495,7 @@ A grid feature can behave differently on a local array, on server pages and on l
 ### Pagination
 
 - **L**: n/a: No pages.
-- **Z**: n/a: Lazy rows and pagination are exclusive.
+- **Z**: n/a: Scroll rows and pagination are exclusive.
 
 ### Keys, labels and cell types
 
