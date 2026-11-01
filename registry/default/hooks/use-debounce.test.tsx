@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import { StrictMode, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useDebounce, useDebouncedInput } from "./use-debounce";
@@ -207,7 +207,7 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect(seen.slice(seen.indexOf("ab")).every((text) => text === "ab")).toBe(true);
   });
 
-  it("does not bring the typed text back when value later returns to its old base", () => {
+  it("does not bring the typed text back when value later returns to the value the typing started from", () => {
     function Outer() {
       const [value, setValue] = useState("");
       const input = useDebouncedInput(value, setValue, { delayMs: 0 });
@@ -270,12 +270,12 @@ describe("useDebouncedInput with a parent that applies the commit a render later
   it("an older commit that echoes after a newer commit does not replace the typed text", () => {
     function TwoCommits() {
       const [value, setValue] = useState("");
-      const [sent, setSent] = useState<string[]>([]);
-      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      const [committed, setCommitted] = useState<string[]>([]);
+      const input = useDebouncedInput(value, (next) => setCommitted((list) => [...list, next]));
       return (
         <>
           <input aria-label="two" {...input.inputProps} />
-          <button onClick={() => setValue(sent[0] ?? "")}>echo first</button>
+          <button onClick={() => setValue(committed[0] ?? "")}>echo first</button>
         </>
       );
     }
@@ -291,15 +291,15 @@ describe("useDebouncedInput with a parent that applies the commit a render later
   it("echoes in order through a repeated text end on the typed text and never stick", () => {
     function Repeat() {
       const [value, setValue] = useState("");
-      const [sent, setSent] = useState<string[]>([]);
+      const [committed, setCommitted] = useState<string[]>([]);
       const [applied, setApplied] = useState(0);
-      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      const input = useDebouncedInput(value, (next) => setCommitted((list) => [...list, next]));
       return (
         <>
           <input aria-label="rep" {...input.inputProps} />
           <button
             onClick={() => {
-              setValue(sent[applied] ?? "");
+              setValue(committed[applied] ?? "");
               setApplied((n) => n + 1);
             }}
           >
@@ -323,12 +323,12 @@ describe("useDebouncedInput with a parent that applies the commit a render later
   it("a reset to the first value after a partial echo shows value, and so does an undo to an echoed text", () => {
     function Steps() {
       const [value, setValue] = useState("");
-      const [sent, setSent] = useState<string[]>([]);
-      const input = useDebouncedInput(value, (next) => setSent((list) => [...list, next]));
+      const [committed, setCommitted] = useState<string[]>([]);
+      const input = useDebouncedInput(value, (next) => setCommitted((list) => [...list, next]));
       return (
         <>
           <input aria-label="st" {...input.inputProps} />
-          <button onClick={() => setValue(sent[0] ?? "")}>first</button>
+          <button onClick={() => setValue(committed[0] ?? "")}>first</button>
           <button onClick={() => setValue("")}>clear</button>
           <button onClick={() => setValue("a")}>undo</button>
         </>
@@ -369,24 +369,28 @@ describe("useDebouncedInput with a parent that applies the commit a render later
   });
 
   it("the queue holds the last 64 commits: the echo of the 65th newest is outside, the 64th newest is not", () => {
-    function Edge() {
+    function Edge({ echo }: { echo: string }) {
       const [value, setValue] = useState("");
       const input = useDebouncedInput(value, () => {}, { delayMs: 0 });
       return (
         <>
           <input aria-label="edge" {...input.inputProps} />
-          <button onClick={() => setValue("t6")}>echo t6</button>
-          <button onClick={() => setValue("t5")}>echo t5</button>
+          <button onClick={() => setValue(echo)}>echo</button>
         </>
       );
     }
-    const view = render(<Edge />);
-    const field = view.getByLabelText("edge") as HTMLInputElement;
-    for (let i = 0; i < 70; i++) type(field, `t${i}`);
-    fireEvent.click(view.getByText("echo t6"));
-    expect(field.value).toBe("t69");
-    fireEvent.click(view.getByText("echo t5"));
-    expect(field.value).toBe("t5");
+    const typeSeventy = (view: ReturnType<typeof render>) => {
+      for (let i = 0; i < 70; i++) type(view.getByLabelText("edge"), `t${i}`);
+    };
+    const outside = render(<Edge echo="t5" />);
+    typeSeventy(outside);
+    fireEvent.click(outside.getByText("echo"));
+    expect((outside.getByLabelText("edge") as HTMLInputElement).value).toBe("t5");
+    cleanup();
+    const inside = render(<Edge echo="t6" />);
+    typeSeventy(inside);
+    fireEvent.click(inside.getByText("echo"));
+    expect((inside.getByLabelText("edge") as HTMLInputElement).value).toBe("t69");
   });
 
   it("an outside value after many commits in flight shows value", () => {
