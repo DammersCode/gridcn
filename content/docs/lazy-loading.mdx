@@ -270,6 +270,12 @@ const onSortChange = (next: SortSpec[]) => setSorts(next);
 >
 ```
 
+The hook compares the spec by content. `serverSpecKey(spec)` returns that content as a string, without the generated `filterId`s. Use it as a query key or an effect dependency for your own request: <NewBadge />
+
+```ts
+const queryKey = ["orders", serverSpecKey(spec)];
+```
+
 Three details make this work:
 
 - **`sortMode="server"` leaves the order to the server.** Passing `sortState={sorts}` as well is

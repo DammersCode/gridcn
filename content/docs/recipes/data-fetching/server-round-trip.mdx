@@ -32,7 +32,8 @@ function OrdersGrid() {
     <DataGrid
       data={data}
       columns={columns}
-      onDataChange={(next, change) => handleDataChange(next, change, setData)}
+      onDataChange={setData}
+      onSave={save}
     />
   );
 }
@@ -77,54 +78,41 @@ in the wrong order.
 
 ## Strategy A: optimistic, roll back on failure
 
-Apply the edit locally right away (the grid is controlled, so `setData(next)` is what makes it
-visible), fire the API calls, and revert to the previous array if any of them reject:
+Keep `data` in your state and apply every change at once with `onDataChange`. Send the change from `onSave`. If the returned promise rejects, the grid reverts the whole change:
 
-```ts
-function handleDataChange(
-  next: readonly Order[],
-  change: DataChange<Order>,
-  setData: (rows: Order[]) => void,
-) {
-  const prev = dataRef.current; // keep a ref in sync with `data` for the rollback snapshot
-  setData(next as Order[]);
-
-  Promise.all(opsToRequests(change.ops)).catch((error) => {
-    setData(prev);
+```tsx
+async function save(change: DataChange<Order>) {
+  try {
+    await Promise.all(opsToRequests(change.ops));
+  } catch (error) {
     toast.error("Could not save your change. It has been reverted.");
     reportError(error);
-  });
+    throw error;
+  }
 }
+
+<DataGrid data={data} onDataChange={setData} onSave={save} /* other props */ />
 ```
 
-<Callout type="warn" title="Keep a ref, not just the state variable">
-  The rollback needs the array from BEFORE this change, not the current one. A plain closure over
-  `data` in a `useCallback` captures a stale snapshot across renders. Mirror `data` into a `ref`
-  on every render, and roll back to `ref.current` as it stood at the start of this handler.
-</Callout>
+`onSave` never receives a rollback, stream, or history change, so a revert never goes back to the server.
 
 ## Strategy B: refetch-on-settle
 
-Do not apply `next` at all. Send the request first, then replace `data` with a fresh fetch once
-the server confirms the write. The grid shows the old value until the round-trip completes:
+Send the change from `onSave`, then replace `data` with a fresh fetch once the server confirms the write. Pick it when the server recomputes values:
 
-```ts
-function handleDataChange(_next: readonly Order[], change: DataChange<Order>, setData: (rows: Order[]) => void) {
-  Promise.all(opsToRequests(change.ops))
-    .then(() => api.orders.list())
-    .then(setData)
-    .catch((error) => {
-      toast.error("Could not save your change.");
-      reportError(error);
-    });
+```tsx
+async function save(change: DataChange<Order>) {
+  await Promise.all(opsToRequests(change.ops));
+  setData(await api.orders.list());
 }
+
+<DataGrid data={data} onDataChange={setData} onSave={save} /* other props */ />
 ```
 
 <Callout type="idea" title="Optimistic vs refetch-on-settle">
-  Optimistic feels instant but needs a correct rollback path. Refetch-on-settle is simpler and
-  always shows server-confirmed data, at the cost of a visible delay per edit. Pick optimistic for
-  frequent, low-risk edits (a status toggle). Pick refetch-on-settle for edits a server can
-  reject or recompute (a price that triggers server-side discounts).
+  Both send the change from `onSave`. Optimistic leaves `data` as the grid wrote it. Refetch-on-settle
+  replaces it with server-confirmed data after the round-trip. Use refetch-on-settle for edits a
+  server can recompute (a price that triggers server-side discounts).
 </Callout>
 
 ## Strategy C: acknowledge each change
@@ -178,17 +166,12 @@ GraphQL backend. `actions.setCellErrors` (on the grid's `ref` handle) paints the
 user sees which value is wrong and can fix it in place:
 
 ```ts
-function handleDataChange(
-  next: readonly Order[],
-  change: DataChange<Order>,
-  setData: (rows: Order[]) => void,
-  gridRef: RefObject<DataGridApi<Order> | null>,
-) {
-  setData(next as Order[]);
-
-  Promise.all(opsToRequests(change.ops)).catch((error) => {
+async function save(change: DataChange<Order>, gridRef: RefObject<DataGridApi<Order> | null>) {
+  try {
+    await Promise.all(opsToRequests(change.ops));
+  } catch (error) {
     gridRef.current?.actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
-  });
+  }
 }
 ```
 
