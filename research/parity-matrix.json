@@ -720,12 +720,12 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "Z": {
           "status": "gap",
@@ -733,16 +733,16 @@
           "note": "Appended rows fight `total`."
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "API": {
           "status": "supported",
@@ -764,8 +764,9 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "gap",
+          "track": "I",
+          "note": "Exports the rows of the current page only."
         },
         "PS": {
           "status": "gap",
@@ -778,8 +779,11 @@
           "note": "Exports loaded rows only."
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
           "status": "gap",
@@ -810,8 +814,8 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Print covers loaded rows by design."
         },
         "PS": {
           "status": "n/a",
@@ -822,20 +826,32 @@
           "reason": "Print covers loaded rows by design."
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },

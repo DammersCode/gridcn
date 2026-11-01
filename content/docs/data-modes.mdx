@@ -35,9 +35,9 @@ A grid feature can behave differently on a local array, on server pages and on l
 | Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Clipboard copy and paste | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Fill | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| Import | Supported | Not verified | Not verified | Gap | Not verified | Not verified | Not verified | Supported |
-| Export | Supported | Not verified | Gap | Gap | Not verified | Gap | Gap | Gap |
-| Print | Supported | Not verified | n/a | n/a | Not verified | Not verified | Not verified | Not verified |
+| Import | Supported | n/a | n/a | Gap | n/a | n/a | n/a | Supported |
+| Export | Supported | Gap | Gap | Gap | Supported | Gap | Gap | Gap |
+| Print | Supported | n/a | n/a | n/a | Supported | Supported | Supported | Supported |
 | Undo and redo | Supported | Supported | Supported | Gap | Supported | Supported | Supported | Gap |
 | Row create, duplicate and delete | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Validation | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
@@ -103,10 +103,16 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 ### Import
 
+- **PC**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
+- **PS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
 - **Z**: Gap: Appended rows fight `total`.
+- **C**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
+- **SS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
+- **FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
 
 ### Export
 
+- **PC**: Gap: Exports the rows of the current page only.
 - **PS**: Gap: Exports loaded rows only.
 - **Z**: Gap: Exports loaded rows only.
 - **SS**: Gap: Exports loaded rows only.
@@ -115,6 +121,7 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 ### Print
 
+- **PC**: n/a: Print covers loaded rows by design.
 - **PS**: n/a: Print covers loaded rows by design.
 - **Z**: n/a: Print covers loaded rows by design.
 
