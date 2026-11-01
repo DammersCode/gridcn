@@ -247,6 +247,38 @@ describe("DataGridSearch input rules", () => {
     vi.useRealTimers();
   });
 
+  it("a data change with the same query keeps the match position", () => {
+    vi.useFakeTimers();
+    const first: Row[] = [
+      { id: "r0", name: "Alpha one" },
+      { id: "r1", name: "Alpha two" },
+      { id: "r2", name: "Alpha three" },
+    ];
+    function Live() {
+      const [data, setData] = useState(first);
+      return (
+        <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+          <DataGridSearch />
+          <button onClick={() => setData(first.map((row) => ({ ...row })))}>refetch</button>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Live />);
+    const input = screen.getByRole("textbox", { name: "Search grid" });
+    fireEvent.change(input, { target: { value: "alpha" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("3/3")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("refetch"));
+    expect(screen.getByText("3/3")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it("blur commits the pending text", () => {
     vi.useFakeTimers();
     const { input } = renderWith();

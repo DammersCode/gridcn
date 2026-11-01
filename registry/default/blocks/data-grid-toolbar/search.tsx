@@ -84,10 +84,12 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const jumpOnCommitRef = useRef<string | null>(null);
 
-  // restart navigation at the first hit during render, not in an effect: a shrinking list must not paint an out-of-range index
-  const [lastMatches, setLastMatches] = useState(matches);
-  if (lastMatches !== matches) {
-    setLastMatches(matches);
+  // restart navigation at the first hit during render, not in an effect: a new query must not paint the old index
+  const { matchCase, wholeCell } = storeApi.getState().searchOptions;
+  const queryKey = `${JSON.stringify(searchText)}${matchCase}${wholeCell}`;
+  const [lastQueryKey, setLastQueryKey] = useState(queryKey);
+  if (lastQueryKey !== queryKey) {
+    setLastQueryKey(queryKey);
     setMatchIndex(0);
   }
 
@@ -152,6 +154,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   };
 
   const hasMatches = matches.length > 0;
+  const shownIndex = Math.min(matchIndex, matches.length - 1);
 
   return (
     <div data-grid-search="" className={cn("flex h-8 items-center gap-1", className)}>
@@ -175,8 +178,8 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
             <span data-grid-search-count="" role="status" aria-live="polite" className="min-w-fit text-xs tabular-nums">
               {hasMatches
                 ? capped
-                  ? labels.toolbar.searchMatchesCapped(matchIndex + 1)
-                  : labels.toolbar.searchMatches(matchIndex + 1, matches.length)
+                  ? labels.toolbar.searchMatchesCapped(shownIndex + 1)
+                  : labels.toolbar.searchMatches(shownIndex + 1, matches.length)
                 : labels.toolbar.searchNoMatches}
             </span>
           </InputGroupAddon>
