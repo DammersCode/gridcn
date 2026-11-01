@@ -11,8 +11,8 @@ export type ServerRowsRequest<TCursor = never> = {
   start: number;
   /** One past the last requested row; `end - start` is the limit. */
   end: number;
-  /** The `nextCursor` of the block before; `null` when the source has no cursor. */
-  cursor: TCursor | null;
+  /** Sequential scroll only: the `nextCursor` of the block before; `undefined` for the first block and for every other source. */
+  cursor: TCursor | undefined;
   /** Aborted when a newer request replaces this one, on a spec change, and on unmount. */
   signal: AbortSignal;
 };

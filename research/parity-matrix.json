@@ -1372,7 +1372,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
         "C": {
@@ -1479,7 +1480,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
           ]
         },
         "C": {
@@ -1646,7 +1648,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
           ]
         },
         "C": {
@@ -1695,26 +1698,33 @@
           ]
         },
         "Z": {
-          "status": "n/a",
-          "reason": "The hook pages; lazy and infinite rows stay the lower layer."
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
+          ]
         },
         "C": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.url.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.url.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
         "API": {
@@ -1747,7 +1757,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading-advanced.mdx"
+            "content/docs/lazy-loading-advanced.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
         "C": {

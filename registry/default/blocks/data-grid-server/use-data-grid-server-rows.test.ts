@@ -28,7 +28,7 @@ describe("useDataGridServerRows", () => {
     expect(result.current.gridProps.data).toEqual([]);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(fetchRows).toHaveBeenCalledTimes(1);
-    expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, pageSize: 10, start: 0, end: 10, cursor: null, spec: { sorts: [], filters: [], searchText: "" } });
+    expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, pageSize: 10, start: 0, end: 10, cursor: undefined, spec: { sorts: [], filters: [], searchText: "" } });
     expect(result.current.gridProps.data).toHaveLength(10);
     expect(result.current.gridProps.totalRowCount).toBe(95);
     expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, totalRowCount: 95, pageCount: 10 });
@@ -221,7 +221,7 @@ describe("useDataGridServerRows", () => {
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     act(() => result.current.pager.onPageChange(3));
     await waitFor(() => expect(fetchRows).toHaveBeenCalledTimes(2));
-    expect(fetchRows.mock.calls[1]![0]).toMatchObject({ page: 3, pageSize: 10, start: 20, end: 30, cursor: null });
+    expect(fetchRows.mock.calls[1]![0]).toMatchObject({ page: 3, pageSize: 10, start: 20, end: 30, cursor: undefined });
   });
 
   it("keeps the identity of every callback across renders and after the rows land", async () => {

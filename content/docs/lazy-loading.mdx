@@ -33,6 +33,63 @@ Every unloaded-row skeleton cell carries `data-skeleton` (see
 [Data-attribute contract](/docs/styling-theming#data-attribute-contract)), for restyling the
 shimmer with plain CSS instead of a class override.
 
+## Scroll mode of the server hook
+
+<NewBadge />
+
+`useDataGridServerRows({ mode: "scroll" })` fetches the rows the grid scrolls into. It follows the same
+request and answer contract as the pages mode, and it owns the sort, filter, and search.
+
+<ComponentPreview name="data-grid-server-side-demo" />
+
+The first request is always block 0: rows `[0, blockSize)`. The answer carries `totalRowCount`. The hook then
+sizes `data` to that count, and every row without data renders as a skeleton. When the rendered rows move, the
+hook rounds them plus `overscan` out to `blockSize` blocks and fetches each gap, one request per block:
+
+```tsx
+const server = useDataGridServerRows<Order>({
+  mode: "scroll",
+  getRowId: (row) => row.id,
+  fetchRows: async ({ spec, start, end, signal }) => {
+    const answer = await api.orders({ ...spec, offset: start, limit: end - start, signal });
+    return { rows: answer.rows, totalRowCount: answer.total };
+  },
+});
+
+<DataGrid {...server.gridProps} columns={columns} />
+```
+
+A request holds `{ spec, start, end, cursor, signal }`. `cursor` is always `undefined` in this mode.
+`signal` aborts when a spec change, a count change, or an unmount replaces the request.
+
+| Option | Default | What it does |
+|---|---|---|
+| `blockSize` | 50 | Rows per request. Requests align to multiples of it. |
+| `overscan` | 30 | Rows fetched beyond the rendered rows on each side. |
+| `spec`, `defaultSpec`, `onSpecChange` | `{}` | Controls or seeds the sort, filter, and search text. |
+| `onLoaded` | none | Fires after a block lands, with the range it covers. |
+| `onError` | none | Fires after a request fails. |
+| `onDataChange` | none | Fires after the hook merged an edit, insert, or delete. |
+
+A server page that you cache by its own size does not split cleanly when `blockSize` differs from it.
+Set `blockSize` to that page size to keep one cache entry per request.
+
+Behavior the grid applies by itself:
+
+- A changed `totalRowCount` in any answer starts the blocks over, like a spec change.
+- A spec change aborts every request, drops the loaded rows, and fetches block 0 again.
+- The hook writes the blocks that land in one frame with one update of `data`.
+- A block that fails stays unloaded. `error` holds the failure, and `gridProps` shows the error bar with a Retry
+  button. `retry()` repeats the failed blocks only.
+- `refresh()` fetches the rendered blocks again and keeps them on screen until the answers land. It drops every
+  other loaded block.
+- `evict(range)` unloads rows. `getLoadedRanges()` and `unloadedCount` report what is loaded.
+
+<Callout type="warn">
+  An answer without `totalRowCount` ends the source at the rows of the first block. Answer the count with every
+  block.
+</Callout>
+
 <Tabs items={["Basics", "Editing and errors"]}>
   <Tab value="Basics">
     ## Usage

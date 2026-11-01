@@ -576,6 +576,11 @@
           "target": "components/data-grid/store/internal-actions.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/hole-view-guard.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/hole-view-guard.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/hidden-checked-rows.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/hidden-checked-rows.ts"
@@ -1382,7 +1387,7 @@
       "name": "data-grid-server",
       "type": "registry:block",
       "title": "Data Grid Server",
-      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard, goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
+      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard (pages mode) or fixed-size blocks as the rendered rows move over a counted result (scroll mode), goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
@@ -1396,9 +1401,24 @@
           "target": "components/data-grid-server/data-grid-server.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server/range-math.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/range-math.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/scroll-blocks.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/scroll-blocks.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server/read-answer.ts",
           "type": "registry:component",
           "target": "components/data-grid-server/read-answer.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/server-state.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/server-state.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts",
@@ -3124,13 +3144,14 @@
       "name": "data-grid-server-side-demo",
       "type": "registry:example",
       "title": "Data Grid Server Side Demo",
-      "description": "The full remote contract in about fifteen lines of wiring: useDataGridServerRows owns sort, filter, search and page; every change is sent to the fake server, a stale request is aborted, and edits save through onSave and refetch.",
+      "description": "The full remote contract in about fifteen lines of wiring: useDataGridServerRows owns sort, filter, search and page (or scroll blocks); every change is sent to the fake server, a stale request is aborted, and edits save through onSave and refetch.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
         "DammersCode/gridcn/data-grid-pagination",
         "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "DammersCode/gridcn/data-grid-toolbar",
+        "button"
       ],
       "files": [
         {

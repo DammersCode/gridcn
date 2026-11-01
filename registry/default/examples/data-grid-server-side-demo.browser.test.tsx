@@ -20,4 +20,12 @@ describe("data-grid-server-side-demo", () => {
     await page.getByRole("columnheader", { name: /Name/ }).click();
     await expect.element(page.getByText("Page 1 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
   });
+
+  it("scroll mode sizes the grid from the server count and loads the first block", async () => {
+    await render(<DataGridServerSideDemo />);
+    await page.getByRole("button", { name: "Scroll" }).click();
+    await expect.element(page.getByText(/1000 rows on the server · \d+ not loaded yet/), { timeout: 4000 }).toBeInTheDocument();
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    expect(document.querySelector('[aria-label="Next page"]')).toBeNull();
+  });
 });

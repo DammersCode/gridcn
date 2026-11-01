@@ -54,6 +54,11 @@
       "Refs: Cannot access refs during render"
     ]
   },
+  "registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts": {
+    "useDataGridServerRows": [
+      "Hooks: Hooks must always be called in a consistent order, and may not be called conditionally. See the Rules of Hooks (https://react.dev/warnings/invalid-hook-call-warning)"
+    ]
+  },
   "registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts": {
     "useDataGridUrlState": [
       "Refs: Cannot access refs during render"

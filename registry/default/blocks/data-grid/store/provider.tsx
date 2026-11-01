@@ -9,6 +9,7 @@ import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTyp
 import { holeRowId, rowIdAtViewRow } from "./compute";
 import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
+import { watchClientViewOverHoles } from "./hole-view-guard";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
 import type { ViewCellRef, ViewCoord } from "../types";
@@ -199,6 +200,10 @@ function useGridStoreCore<TData>(
   useEffect(() => {
     if (externalStore) return;
     return subscribeActiveCellChange(store);
+  }, [store, externalStore]);
+  useEffect(() => {
+    if (externalStore) return;
+    return watchClientViewOverHoles(store);
   }, [store, externalStore]);
   useEffect(() => {
     if (externalStore) return;

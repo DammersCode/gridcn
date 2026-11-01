@@ -6,11 +6,16 @@ import { serverSpecKey, type DataChange, type FilterNode, type RowRange, type Se
 import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
+import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
+import { isolate, useControlled, useServerSpec } from "./server-state";
 
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
+export type { UseDataGridServerRowsScrollOptions, UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 
-/** Options for {@link useDataGridServerRows}. */
+/** Options of {@link useDataGridServerRows} in pages mode. */
 export type UseDataGridServerRowsOptions<TData> = {
+  /** `"pages"` fetches one page per state and drives `pager`. Fixed for the life of the hook. Default `"pages"`. */
+  mode?: "pages";
   getRowId: (row: TData, index: number) => string;
   fetchRows: (request: ServerRowsPageRequest) => Promise<ServerRowsAnswer<TData>>;
   /** Rows per page while `pageSize` is not controlled. Default: the first of `pageSizeOptions`. */
@@ -46,6 +51,10 @@ export type UseDataGridServerRowsResult<TData> = {
   providerProps: UseDataGridServerRowsProviderProps<TData>;
   /** The part of `gridProps` for `<DataGridRoot>` in a composed layout: the loading flag and the error state. */
   rootProps: UseDataGridServerRowsRootProps;
+  /** The sort, filter, and search text of the current request. */
+  spec: ServerSpec;
+  /** The row count of the result; `null` when the server sends none. */
+  totalRowCount: number | null;
   /** Spread onto `<DataGridPaginationBar {...server.pager} />`. */
   pager: DataGridPaginationControls;
   /** `"error"` wins over `"loading"`. */
@@ -88,61 +97,44 @@ export type UseDataGridServerRowsRootProps = {
 
 type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown };
 
-const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
-
-function useControlled<T>(controlled: T | undefined, initial: () => T, onChange: ((next: T) => void) | undefined) {
-  const [inner, setInner] = useState(initial);
-  const latest = useRef({ controlled, onChange });
-  useLayoutEffect(() => {
-    latest.current = { controlled, onChange };
-  });
-  const set = useCallback((next: T) => {
-    if (latest.current.controlled === undefined) setInner(next);
-    latest.current.onChange?.(next);
-  }, []);
-  return [controlled ?? inner, set] as const;
-}
-
-function isolate(label: string, call: () => void) {
-  try {
-    call();
-  } catch (error) {
-    console.error(`[data-grid-server] ${label} threw`, error);
-  }
-}
-
 /**
- * One server data source for the grid: it owns the sort, filter, search, page, and page size unless you control them,
- * fetches one page per state, aborts the request a newer state replaces, goes back to page 1 when the spec or the page
- * size changes, and keeps the last good rows on screen while the next page loads or after an error. The state is the
- * grid's controlled state, so it works outside the provider and needs no bridge component.
+ * One server data source for the grid. It owns the sort, filter, and search unless you control them, aborts the request a
+ * newer state replaces, and keeps the last good rows on screen while the next request runs or after an error. The state is
+ * the grid's controlled state, so it works outside the provider and needs no bridge component.
+ *
+ * `mode: "pages"` (default) fetches one page per state and goes back to page 1 when the spec or the page size changes.
+ * `mode: "scroll"` fetches fixed-size blocks as the rendered rows move, for a source that answers `totalRowCount`.
+ * The mode is fixed for the life of the hook.
  */
-export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData> {
+export function useDataGridServerRows<TData>(options: UseDataGridServerRowsScrollOptions<TData>): UseDataGridServerRowsScrollResult<TData>;
+export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData>;
+export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData> | UseDataGridServerRowsScrollOptions<TData>) {
+  // The mode never changes for a mounted hook, so each render calls the same hooks in the same order.
+  // oxlint-disable-next-line react-hooks/rules-of-hooks
+  return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
+}
+
+function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
-  const [spec, setSpec] = useControlled<ServerSpec>(
-    options.spec,
-    () => ({
-      sorts: [...(options.defaultSpec?.sorts ?? EMPTY_SPEC.sorts)],
-      filters: [...(options.defaultSpec?.filters ?? EMPTY_SPEC.filters)],
-      searchText: options.defaultSpec?.searchText ?? EMPTY_SPEC.searchText,
-    }),
-    options.onSpecChange,
-  );
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const page = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
+  const live = useRef({ options, page, pageSize, settledOnce: false, requested: false, error: null as unknown });
+  const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
+    if (live.current.settledOnce) setPage(1);
+  });
   const [tick, setTick] = useState(0);
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
 
-  const live = useRef({ options, spec, page, pageSize, settledOnce: false, requested: false, error: null as unknown });
   const warned = useRef(new Set<string>());
 
   useEffect(() => {
     const controller = new AbortController();
-    const { spec: requestSpec, page: requestPage, pageSize: requestSize } = live.current;
+    const { page: requestPage, pageSize: requestSize } = live.current;
+    const requestSpec = spec;
     const start = (requestPage - 1) * requestSize;
     const range: RowRange = { start, end: start + requestSize };
     const warn = (kind: string, message: string) => {
@@ -156,7 +148,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
     settleMountState
       .then(() => {
         if (controller.signal.aborted) return Promise.reject(controller.signal.reason);
-        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: null, signal: controller.signal });
+        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: undefined, signal: controller.signal });
       })
       .then((answer) => {
         if (controller.signal.aborted) return;
@@ -188,7 +180,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
   const loading = settled.key !== key;
   const error = settled.key === key ? settled.error : null;
   useLayoutEffect(() => {
-    Object.assign(live.current, { options, spec, page, pageSize, error });
+    Object.assign(live.current, { options, page, pageSize, error });
   });
   const status = error !== null ? "error" : loading ? "loading" : "ready";
 
@@ -197,19 +189,6 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
   }, []);
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 
-  const changeSpec = useCallback(
-    (next: Partial<ServerSpec>) => {
-      const merged = { ...live.current.spec, ...next };
-      // Two changes in one effect (a URL restore) merge instead of overwriting each other.
-      live.current.spec = merged;
-      setSpec(merged);
-      if (live.current.settledOnce) setPage(1);
-    },
-    [setSpec, setPage],
-  );
-  const onSortChange = useCallback((sorts: SortSpec[]) => changeSpec({ sorts }), [changeSpec]);
-  const onFilterChange = useCallback((filters: FilterNode[]) => changeSpec({ filters }), [changeSpec]);
-  const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
     setSettled((prev) => ({ ...prev, rows: next as TData[] }));
     live.current.options.onDataChange?.(next, change);
@@ -254,5 +233,5 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  return { gridProps, providerProps, rootProps, pager, status, loading, error, retry, refresh };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: settled.totalRowCount, pager, status, loading, error, retry, refresh };
 }
