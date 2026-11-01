@@ -29,3 +29,17 @@ export function pagesMode() {
   // @ts-expect-error pages mode has no loaded ranges
   void server.getLoadedRanges;
 }
+
+export function sequentialScroll() {
+  const server = useDataGridServerRows<Row, string>({
+    mode: "scroll",
+    getRowId,
+    fetchRows: async ({ cursor, start, end }) => {
+      cursor satisfies string | undefined;
+      return { rows: [] as Row[], nextCursor: end - start > 0 ? `after:${start}` : null };
+    },
+  });
+  server.totalRowCount satisfies number | null;
+  server.refresh();
+  server.gridProps.plugins satisfies readonly unknown[];
+}

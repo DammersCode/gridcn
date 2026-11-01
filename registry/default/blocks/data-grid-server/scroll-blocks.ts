@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChange, serverSpecKey, type DataChange, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { readAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
+import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
+import { useRefreshGuard } from "./refresh-guard";
+import { needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { isolate, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
@@ -12,15 +14,18 @@ const DEFAULT_OVERSCAN = 30;
 const DEFAULT_BLOCK_SIZE = 50;
 
 /** Options of `useDataGridServerRows` in scroll mode. */
-export type UseDataGridServerRowsScrollOptions<TData> = {
+export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   /** `"scroll"` fetches fixed-size blocks as the rendered rows move. Fixed for the life of the hook. */
   mode: "scroll";
   getRowId: (row: TData, index: number) => string;
   /**
-   * Resolves rows `[start, end)` of the result. Answer `totalRowCount` with every block: the grid sizes its rows from it,
-   * and a changed count starts the blocks over.
+   * Resolves rows `[start, end)` of the result. The first answer picks the fetch order:
+   * - `totalRowCount` and no `nextCursor`: random access. The grid sizes its rows from the count, and a changed count starts the blocks over.
+   * - `nextCursor` (with or without a count), or neither: sequential. The grid shows the loaded rows plus one block of skeletons, and
+   *   the next block starts when the rendered rows come near the end. `nextCursor` comes back as `cursor`; `nextCursor: null`,
+   *   `hasMore: false`, or an empty block ends the source. Without a cursor, `hasMore` defaults to a full block.
    */
-  fetchRows: (request: ServerRowsRequest) => Promise<ServerRowsAnswer<TData>>;
+  fetchRows: (request: ServerRowsRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
   /** The sort, filter, and search while `spec` is not controlled. */
   defaultSpec?: Partial<ServerSpec>;
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. A content change starts the blocks over. */
@@ -56,9 +61,11 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   onFilterChange: (next: FilterNode[]) => void;
   searchText: string;
   onSearchTextChange: (next: string) => void;
-  /** The row count of the result; `null` until the first block lands. */
+  /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */
   totalRowCount: number | null;
   keepCheckedRows: true;
+  /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
+  plugins: readonly DataGridPlugin<unknown>[];
 };
 
 /** Return value of `useDataGridServerRows` in scroll mode. */
@@ -71,7 +78,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   rootProps: UseDataGridServerRowsRootProps;
   /** The sort, filter, and search text of the current requests. */
   spec: ServerSpec;
-  /** The row count of the result; `null` until the first block lands. */
+  /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */
   totalRowCount: number | null;
   /** `"error"` wins over `"loading"`. */
   status: "loading" | "error" | "ready";
@@ -81,25 +88,45 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   error: unknown;
   /** Repeats the blocks that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the rendered blocks again and keeps them on screen until the answers land. Drops every other loaded block. */
+  /**
+   * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
+   * source refetches from the first block up to the rendered rows. Rows with a pending save and the row under an edit keep their value.
+   */
   refresh: () => void;
-  /** Rows with no data yet; they render as skeletons. */
+  /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;
   /** The loaded ranges, merged and ascending. Not reactive: read it in an effect or a handler. */
   getLoadedRanges: () => readonly RowRange[];
-  /** Unloads the rows in `range`; the next rendered window that covers them fetches them again. */
+  /** Unloads the rows in `range`; the next rendered window that covers them fetches them again. Does nothing on a sequential source. */
   evict: (range: RowRange) => void;
 };
 
-type Pending<TData> = { start: number; rows: TData[] };
+type Pending<TData> = { start: number; rows: (TData | undefined)[] };
 type InFlight = { range: RowRange; controller: AbortController };
-type Failed = { range: RowRange; error: unknown };
+type Failed = { range: RowRange; cursor: unknown; error: unknown };
+
+type Sequence = {
+  /** The cursor the next block sends. */
+  cursor: unknown;
+  ended: boolean;
+  /** Rows loaded, without the skeleton rows below them. */
+  length: number;
+  /** The count the server sent, if any. */
+  sentCount: number | null;
+  /** A refresh rewrites the rows in place from the first block until the chain passes `keepUntil`. */
+  refresh: { keepUntil: number } | null;
+};
+
+const freshSequence = (): Sequence => ({ cursor: undefined, ended: false, length: 0, sentCount: null, refresh: null });
 
 type Core<TData> = {
   count: number | null;
   /** The first block of the current spec landed. */
   ready: boolean;
   loaded: RowRange[];
+  /** Decided by the first answer of the current spec. */
+  kind: "unknown" | "random" | "sequence";
+  seq: Sequence;
   inFlight: Map<string, InFlight>;
   failed: Map<string, Failed>;
   pending: Pending<TData>[];
@@ -110,7 +137,7 @@ type Core<TData> = {
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set() };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set() };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -138,8 +165,8 @@ function positiveInteger(value: number | undefined, fallback: number, min: numbe
   return typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback;
 }
 
-/** Scroll mode of `useDataGridServerRows`: random access over a result whose size the answers carry. */
-export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptions<TData>): UseDataGridServerRowsScrollResult<TData> {
+/** Scroll mode of `useDataGridServerRows`: random access over a counted result, or a sequential chain of blocks. */
+export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData> {
   const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, noop);
   const coreRef = useRef<Core<TData> | null>(null);
   const getCore = useCallback((): Core<TData> => {
@@ -149,6 +176,8 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
   const [rows, setRows] = useState<(TData | undefined)[]>([]);
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
+  const [skeletons, setSkeletons] = useState<number | null>(null);
+  const { plugins, protectedRows } = useRefreshGuard();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -167,18 +196,31 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
   );
   const blockSize = useCallback(() => positiveInteger(live.current.options.blockSize, DEFAULT_BLOCK_SIZE, 1), []);
   const overscanOf = useCallback(() => positiveInteger(live.current.options.overscan, DEFAULT_OVERSCAN, 0), []);
+  const notifyLoaded = useCallback((start: number, end: number) => {
+    const onLoaded = live.current.options.onLoaded;
+    if (end > start && onLoaded) isolate("onLoaded", () => onLoaded({ start, end }));
+  }, []);
 
   const commit = useCallback(() => {
-    const batch = getCore().pending.splice(0);
+    const core = getCore();
+    const batch = core.pending.splice(0);
     if (batch.length === 0) return;
+    const length = core.kind === "sequence" ? core.rowsLength : null;
+    const guarded = protectedRows();
+    const idOf = live.current.options.getRowId;
     setRows((prev) => {
       const next = prev.slice();
+      if (length !== null) next.length = length;
       for (const write of batch) {
-        for (let i = 0; i < write.rows.length && write.start + i < next.length; i++) next[write.start + i] = write.rows[i];
+        for (let i = 0; i < write.rows.length && write.start + i < next.length; i++) {
+          const existing = next[write.start + i];
+          if (guarded !== null && existing !== undefined && guarded.has(idOf(existing, write.start + i))) continue;
+          next[write.start + i] = write.rows[i];
+        }
       }
       return next;
     });
-  }, [getCore]);
+  }, [getCore, protectedRows]);
 
   // The first landing commits at once; later ones wait for the next frame, so a burst costs one copy of the rows per frame.
   const commitSoon = useCallback(
@@ -197,6 +239,9 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
       const core = getCore();
       const hadRows = core.loaded.length > 0 || core.pending.length > 0;
       abortRequests();
+      core.kind = "unknown";
+      core.seq = freshSequence();
+      setSkeletons(null);
       core.loaded = [];
       core.failed.clear();
       core.pending.length = 0;
@@ -211,18 +256,63 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
 
   const windowRef = useRef<(range: RowRange) => void>(noop);
 
-  const land = useCallback(
-    (range: RowRange, answer: unknown) => {
+  const runFetchRef = useRef<(range: RowRange, cursor?: unknown) => void>(noop);
+
+  const landSequence = useCallback(
+    (range: RowRange, read: ReadAnswer<TData, unknown>, sentCursor: unknown) => {
       const core = getCore();
-      const first = !core.ready;
-      const read = readAnswer<TData>(answer, range, warn);
-      let nextCount: number;
-      if (typeof read.totalRowCount === "number") nextCount = read.totalRowCount;
-      else if (core.count !== null) nextCount = core.count;
-      else {
-        warn("count", "scroll mode needs `totalRowCount` in the answer; without it the source ends at the rows of the first block");
-        nextCount = range.start + read.rows.length;
+      const seq = core.seq;
+      const size = blockSize();
+      core.ready = true;
+      core.kind = "sequence";
+      if (typeof read.totalRowCount === "number") seq.sentCount = read.totalRowCount;
+      else if (read.totalRowCount === null) seq.sentCount = null;
+      const refresh = seq.refresh;
+      const at = refresh ? range.start : seq.length;
+      const written = Math.min(read.rows.length, range.end - range.start);
+      const position = at + written;
+      const step = stepSequence({ read, sentCursor, loaded: position, count: seq.sentCount });
+      if (step.warning) warn(step.warning.kind, step.warning.message);
+      for (const [key, failure] of core.failed) {
+        if (failure.range.start === range.start) core.failed.delete(key);
       }
+      if (core.failed.size === 0) setError(null);
+      seq.cursor = step.cursor;
+      core.pending.push({ start: at, rows: read.rows.slice(0, written) });
+      if (refresh && !step.ended && position < refresh.keepUntil) {
+        core.rowsLength = Math.max(core.rowsLength, position);
+        commitSoon();
+        notifyLoaded(at, position);
+        runFetchRef.current({ start: position, end: position + size }, step.cursor);
+        return;
+      }
+      seq.refresh = null;
+      seq.ended = step.ended;
+      seq.length = position;
+      core.loaded = position > 0 ? [{ start: 0, end: position }] : [];
+      const tail = skeletonCount({ loaded: position, blockSize: size, count: seq.sentCount, ended: step.ended });
+      if (refresh) core.pending.push({ start: position, rows: new Array<TData | undefined>(tail).fill(undefined) });
+      core.rowsLength = position + tail;
+      setLoadedCount(position);
+      setSkeletons(tail);
+      setCount(seq.sentCount ?? (step.ended ? position : null));
+      commitSoon();
+      notifyLoaded(at, position);
+    },
+    [getCore, warn, commitSoon, blockSize, notifyLoaded],
+  );
+
+  const land = useCallback(
+    (range: RowRange, answer: unknown, sentCursor: unknown) => {
+      const core = getCore();
+      const read = readAnswer<TData, unknown>(answer, range, warn);
+      if (core.kind === "unknown") core.kind = startsSequence(read) ? "sequence" : "random";
+      if (core.kind === "sequence") {
+        landSequence(range, read, sentCursor);
+        return;
+      }
+      const first = !core.ready;
+      const nextCount = typeof read.totalRowCount === "number" ? read.totalRowCount : (core.count ?? range.start + read.rows.length);
       const refire = first || nextCount !== core.count;
       if (!first && nextCount !== core.count) {
         abortRequestsExcept(core, range);
@@ -255,16 +345,15 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
         setLoadedCount(sumRangeSizes(core.loaded));
         core.pending.push({ start: range.start, rows: read.rows.slice(0, written) });
         commitSoon();
-        const onLoaded = live.current.options.onLoaded;
-        if (onLoaded) isolate("onLoaded", () => onLoaded({ start: range.start, end: range.start + written }));
+        notifyLoaded(range.start, range.start + written);
       }
       if (refire && core.lastWindow) windowRef.current(core.lastWindow);
     },
-    [getCore, warn, commitSoon],
+    [getCore, warn, commitSoon, landSequence, notifyLoaded],
   );
 
   const runFetch = useCallback(
-    (range: RowRange) => {
+    (range: RowRange, cursor?: unknown) => {
       const core = getCore();
       const key = rangeKey(range);
       if (core.inFlight.has(key)) return;
@@ -280,20 +369,28 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
       const fail = (cause: unknown) => {
         if (controller.signal.aborted) return;
         const failure = cause ?? new Error("fetchRows rejected");
-        core.failed.set(key, { range, error: failure });
+        core.failed.set(key, { range, cursor, error: failure });
         setError(failure);
         const onError = live.current.options.onError;
         if (onError) isolate("onError", () => onError(failure));
       };
-      const request: ServerRowsRequest = { spec: live.current.spec, start: range.start, end: range.end, cursor: undefined, signal: controller.signal };
+      const request = { spec: live.current.spec, start: range.start, end: range.end, cursor, signal: controller.signal } as ServerRowsRequest<TCursor>;
+      let landed = false;
+      // A landed sequential block re-checks the rendered window once its request has settled, so the chain goes on while the window stays near the end.
+      const afterSettle = () => {
+        settle();
+        if (landed && !controller.signal.aborted && core.kind === "sequence" && core.lastWindow) windowRef.current(core.lastWindow);
+      };
       try {
         live.current.options
           .fetchRows(request)
           .then((answer) => {
-            if (!controller.signal.aborted) land(range, answer);
+            if (controller.signal.aborted) return;
+            land(range, answer, cursor);
+            landed = true;
           })
           .catch(fail)
-          .finally(settle);
+          .finally(afterSettle);
       } catch (cause) {
         fail(cause);
         settle();
@@ -301,11 +398,20 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
     },
     [getCore, land],
   );
+  useLayoutEffect(() => {
+    runFetchRef.current = runFetch;
+  }, [runFetch]);
 
   const onRenderedRowsChange = useCallback(
     (range: RowRange) => {
       const core = getCore();
       core.lastWindow = range;
+      if (core.ready && core.kind === "sequence") {
+        const { seq } = core;
+        if (seq.ended || seq.refresh || core.inFlight.size > 0 || !needsNextBlock(range, seq.length, overscanOf())) return;
+        runFetch({ start: seq.length, end: seq.length + blockSize() }, seq.cursor);
+        return;
+      }
       if (!core.ready || core.count === null) return;
       const size = blockSize();
       const expanded = expandRange(range, { overscan: overscanOf(), batchSize: size, total: core.count });
@@ -324,7 +430,12 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
   const specKey = serverSpecKey(spec);
   useLayoutEffect(() => {
     const core = getCore();
-    dropBlocks(core.count ?? 0);
+    const wasSequence = core.kind === "sequence";
+    dropBlocks(wasSequence ? 0 : (core.count ?? 0));
+    if (wasSequence) {
+      core.count = null;
+      setCount(null);
+    }
     core.ready = false;
     setLoading(true);
     setError(null);
@@ -343,15 +454,16 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
   const retry = useCallback(() => {
     const core = getCore();
     if (core.failed.size === 0) return;
-    const ranges = Array.from(core.failed.values(), (failure) => failure.range);
+    const failures = Array.from(core.failed.values());
     core.failed.clear();
     setError(null);
-    for (const range of ranges) runFetch(range);
+    for (const { range, cursor } of failures) runFetch(range, cursor);
   }, [getCore, runFetch]);
 
   const evict = useCallback(
     (range: RowRange) => {
       const core = getCore();
+      if (core.kind === "sequence") return;
       const start = Math.max(0, range.start);
       const end = Math.min(core.count ?? 0, range.end);
       if (end <= start) return;
@@ -371,22 +483,47 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
 
   const refresh = useCallback(() => {
     const core = getCore();
-    if (!core.ready || core.count === null) {
+    if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
       runFetch({ start: 0, end: blockSize() });
       return;
     }
     const size = blockSize();
-    const keep = core.lastWindow ? expandRange(core.lastWindow, { overscan: overscanOf(), batchSize: size, total: core.count }) : { start: 0, end: Math.min(size, core.count) };
+    if (core.kind === "sequence") {
+      abortRequests();
+      core.failed.clear();
+      setError(null);
+      core.seq.refresh = { keepUntil: Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) };
+      runFetch({ start: 0, end: size });
+      return;
+    }
+    const keep = core.lastWindow ? expandRange(core.lastWindow, { overscan: overscanOf(), batchSize: size, total: core.count! }) : { start: 0, end: Math.min(size, core.count!) };
     abortRequests();
     core.failed.clear();
     setError(null);
-    for (const outside of subtractRanges({ start: 0, end: core.count }, [keep])) evict(outside);
+    for (const outside of subtractRanges({ start: 0, end: core.count! }, [keep])) evict(outside);
     for (const block of chunkRange(keep, size)) runFetch(block);
   }, [getCore, runFetch, evict, abortRequests, blockSize, overscanOf]);
 
   const getLoadedRanges = useCallback(() => getCore().loaded.slice(), [getCore]);
 
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
+
+  // An insert or delete moves the end of the loaded rows; the next block starts after it.
+  const followRowOperations = useCallback(
+    (change: DataChange<TData>) => {
+      const core = getCore();
+      const { seq } = core;
+      let delta = 0;
+      for (const op of change.ops) delta += op.type === "insert" ? 1 : op.type === "delete" ? -1 : 0;
+      if (delta === 0) return;
+      seq.length = Math.max(0, seq.length + delta);
+      core.rowsLength = Math.max(0, core.rowsLength + delta);
+      core.loaded = seq.length > 0 ? [{ start: 0, end: seq.length }] : [];
+      setLoadedCount(seq.length);
+      if (seq.ended && seq.sentCount === null) setCount(seq.length);
+    },
+    [getCore],
+  );
 
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
@@ -397,10 +534,11 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
         if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
         return change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
       });
+      if (core.kind === "sequence") followRowOperations(change);
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn],
+    [getCore, commit, getRowId, warn, followRowOperations],
   );
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
@@ -419,14 +557,15 @@ export function useScrollBlocks<TData>(options: UseDataGridServerRowsScrollOptio
       onSearchTextChange,
       totalRowCount: count,
       keepCheckedRows: true,
+      plugins,
     }),
-    [rows, count, spec, getRowId, onDataChange, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange],
+    [rows, count, spec, getRowId, onDataChange, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
-  const unloadedCount = (count ?? 0) - loadedCount;
+  const unloadedCount = skeletons ?? (count ?? 0) - loadedCount;
   return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, unloadedCount, getLoadedRanges, evict };
 }
 

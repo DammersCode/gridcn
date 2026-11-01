@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridInfiniteRows } from "@/registry/default/blocks/data-grid-lazy/data-grid-lazy";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 
 type Row = { id: string; name: string; email: string };
@@ -36,15 +36,16 @@ async function fetchAfter(cursor: string | undefined, limit: number, signal: Abo
   return { rows, nextCursor: to < SERVER_SIZE ? `after:${to - 1}` : null };
 }
 
-function Grid({ data, getRowId, onDataChange, onRenderedRowsChange }: {
+function Grid({ data, getRowId, onDataChange, onRenderedRowsChange, plugins }: {
   data: readonly Row[];
   getRowId: (row: Row, index: number) => string;
   onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void;
   onRenderedRowsChange?: (range: { start: number; end: number }) => void;
+  plugins?: ComponentProps<typeof DataGridProvider<Row>>["plugins"];
 }): ReactNode {
   return (
     <div className="h-[360px] overflow-hidden rounded-md border border-border">
-      <DataGridProvider data={data} columns={columns} getRowId={getRowId} onDataChange={onDataChange} onRenderedRowsChange={onRenderedRowsChange}>
+      <DataGridProvider data={data} columns={columns} getRowId={getRowId} onDataChange={onDataChange} onRenderedRowsChange={onRenderedRowsChange} plugins={plugins}>
         <DataGridRoot className="h-full">
           <DataGridHeader />
           <DataGridBody />
@@ -55,23 +56,25 @@ function Grid({ data, getRowId, onDataChange, onRenderedRowsChange }: {
 }
 
 function InfiniteScroll(): ReactNode {
-  const rows = useDataGridInfiniteRows<Row, string>({
+  const server = useDataGridServerRows<Row, string>({
+    mode: "scroll",
+    blockSize: 50,
     getRowId: (row) => row.id,
-    pageSize: 50,
-    fetchRows: async ({ cursor, limit, signal }) => fetchAfter(cursor, limit, signal),
+    fetchRows: async ({ cursor, start, end, signal }) => fetchAfter(cursor, end - start, signal),
   });
+  const { data, getRowId, onDataChange, onRenderedRowsChange, plugins } = server.providerProps;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {rows.total === undefined ? `${rows.gridProps.data.length - rows.unloadedCount} rows so far, more available` : `${rows.total} rows, end of the list`}
-          <span className={rows.isLoading ? undefined : "invisible"}> · fetching…</span>
+          {server.totalRowCount === null ? `${data.length - server.unloadedCount} rows so far, more available` : `${server.totalRowCount} rows, end of the list`}
+          <span className={server.loading ? undefined : "invisible"}> · fetching…</span>
         </span>
-        <Button type="button" variant="outline" size="xs" onClick={rows.reset}>
-          Reset
+        <Button type="button" variant="outline" size="xs" onClick={server.refresh}>
+          Refresh
         </Button>
       </div>
-      <Grid {...rows.gridProps} onDataChange={rows.onDataChange} />
+      <Grid data={data} getRowId={getRowId} onDataChange={onDataChange} onRenderedRowsChange={onRenderedRowsChange} plugins={plugins} />
     </div>
   );
 }

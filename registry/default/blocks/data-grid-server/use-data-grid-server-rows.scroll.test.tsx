@@ -76,15 +76,6 @@ describe("useDataGridServerRows scroll mode: first block and count", () => {
     expect(result.current.getLoadedRanges()).toEqual([{ start: 200, end: 210 }]);
   });
 
-  it("an answer without a count ends the source at the rows it carries and warns once", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn<Fetch>(async ({ start }) => ({ rows: makeRows(start, start + 4) }));
-    const { result } = await mount(fetchRows);
-    expect(result.current.gridProps.data).toHaveLength(4);
-    expect(result.current.totalRowCount).toBe(4);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("totalRowCount"))).toHaveLength(1);
-  });
-
   it("a hostile count clamps or reads as unknown through the answer reader", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetchRows = vi.fn<Fetch>(async ({ start }) => ({ rows: makeRows(start, start + 3), totalRowCount: -1 }));

@@ -1387,7 +1387,7 @@
       "name": "data-grid-server",
       "type": "registry:block",
       "title": "Data Grid Server",
-      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard (pages mode) or fixed-size blocks as the rendered rows move over a counted result (scroll mode), goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
+      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard (pages mode) or fixed-size blocks as the rendered rows move, random access over a counted result or a sequential cursor chain (scroll mode), goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
@@ -1409,6 +1409,16 @@
           "path": "registry/default/blocks/data-grid-server/scroll-blocks.ts",
           "type": "registry:component",
           "target": "components/data-grid-server/scroll-blocks.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/scroll-sequence.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/scroll-sequence.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/refresh-guard.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-server/refresh-guard.tsx"
         },
         {
           "path": "registry/default/blocks/data-grid-server/read-answer.ts",
@@ -2428,11 +2438,11 @@
       "name": "data-grid-open-ended-demo",
       "type": "registry:example",
       "title": "Data Grid Open-Ended Demo",
-      "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridInfiniteRows, and keyset pages with useDataGridPagination({ hasNextPage }).",
+      "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridServerRows({ mode: \"scroll\" }), and keyset pages with useDataGridPagination({ hasNextPage }).",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-lazy",
+        "DammersCode/gridcn/data-grid-server",
         "DammersCode/gridcn/data-grid-pagination",
         "button"
       ],

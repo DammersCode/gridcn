@@ -142,6 +142,6 @@ empty group           -> matches every row (emit no predicate)
 
 ## No row count (cursor or "has more" APIs)
 
-- Lazy: `useDataGridInfiniteRows({ getRowId, fetchRows: ({ cursor, limit, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source, and so does a missing `nextCursor`; any other value (including `0`) means more. The hook keeps the first `limit` rows of a longer answer. Pages load in order. Call `rows.reset()` when the sort, filter, or search spec changes (it aborts and restarts at page 1). There is no `evict`.
+- Scroll: `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source; any other value (including `0`) means more. Without a cursor, resolve `{ rows, hasMore }`; `hasMore: false` ends the source. The hook keeps the first `end - start` rows of a longer answer. Blocks load in order, one at a time. A spec change restarts at block 0 by itself; `refresh()` refetches from the first block and keeps rows with a pending save. `evict` does nothing.
 - Pagination: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
 - Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

@@ -20,6 +20,14 @@ describe("data-grid-open-ended-demo", () => {
       .toBeGreaterThan(50);
   });
 
+  it("Refresh keeps the loaded rows on screen and loads them again", async () => {
+    await render(<DataGridOpenEndedDemo />);
+    await expect.element(page.getByText(/50 rows so far, more available/)).toBeInTheDocument();
+    await page.getByRole("button", { name: "Refresh" }).click();
+    await expect.element(page.getByText("Person 3", { exact: true })).toBeInTheDocument();
+    await expect.element(page.getByText(/50 rows so far, more available/)).toBeInTheDocument();
+  });
+
   it("the pages tab keeps Next enabled while the server has more and shows no total", async () => {
     await render(<DataGridOpenEndedDemo />);
     await page.getByRole("button", { name: "Pages without a total" }).click();

@@ -42,6 +42,8 @@ export type ReadAnswer<TData, TCursor = never> = {
   /** `undefined` keeps the last known count. */
   totalRowCount: number | null | undefined;
   hasMore: boolean;
+  /** The `hasMore` the answer carried, if any. */
+  hasMoreSent: boolean | undefined;
   nextCursor: TCursor | null | undefined;
 };
 
@@ -80,6 +82,7 @@ export function readAnswer<TData, TCursor = never>(
     rows,
     totalRowCount,
     hasMore: typeof raw.hasMore === "boolean" ? raw.hasMore : rows.length === limit,
+    hasMoreSent: typeof raw.hasMore === "boolean" ? raw.hasMore : undefined,
     nextCursor: raw.nextCursor,
   };
 }

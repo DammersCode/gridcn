@@ -103,12 +103,13 @@ type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null
  * the grid's controlled state, so it works outside the provider and needs no bridge component.
  *
  * `mode: "pages"` (default) fetches one page per state and goes back to page 1 when the spec or the page size changes.
- * `mode: "scroll"` fetches fixed-size blocks as the rendered rows move, for a source that answers `totalRowCount`.
+ * `mode: "scroll"` fetches fixed-size blocks as the rendered rows move. An answer with `totalRowCount` makes it random access;
+ * an answer with `nextCursor`, or with neither, makes it sequential: the loaded rows plus one block of skeletons.
  * The mode is fixed for the life of the hook.
  */
-export function useDataGridServerRows<TData>(options: UseDataGridServerRowsScrollOptions<TData>): UseDataGridServerRowsScrollResult<TData>;
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData>;
 export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData>;
-export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData> | UseDataGridServerRowsScrollOptions<TData>) {
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData> | UseDataGridServerRowsScrollOptions<TData, TCursor>) {
   // The mode never changes for a mounted hook, so each render calls the same hooks in the same order.
   // oxlint-disable-next-line react-hooks/rules-of-hooks
   return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);

@@ -104,8 +104,9 @@ marks `data` as a window of a larger result. A server that sends no count has tw
 
 - Pages: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. The footer shows
   "Page N" and enables Next while `hasNextPage` is true. See [Pagination](/docs/pagination#without-a-total).
-- Scroll: `useDataGridInfiniteRows` loads a cursor chain and grows the list in steps. See
-  [A source with no total](/docs/lazy-loading#a-source-with-no-total). Pass `totalRowCount={null}`.
+- Scroll: `useDataGridServerRows({ mode: "scroll" })` loads a cursor chain and grows the list in steps. Answer
+  `{ rows, nextCursor }`, or `{ rows, hasMore }` without a cursor. See
+  [A source with no total](/docs/lazy-loading#a-source-with-no-total). `gridProps` carries `totalRowCount: null` until the source ends.
 
 ## Selection and bulk actions
 
