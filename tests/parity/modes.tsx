@@ -27,6 +27,8 @@ export type MountOptions = {
   /** Called once in the tree root; its result spreads onto the provider (plugins, hooks that feed props). */
   /** A component rendered inside the grid, for hooks that need the provider. */
   Child?: ComponentType;
+  /** Rows the lazy mode loads at mount; default every row. */
+  initialLoad?: number;
   useExtra?: () => Record<string, unknown>;
   /** The writes an `onSave` of the `API` mode answers; default accepts everything. */
   saveAnswer?: (change: DataChange<Row>) => Promise<WriteAck<Row>> | WriteAck<Row>;
@@ -202,7 +204,8 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     const lazy = useDataGridLazyRows<Row>({
       total: rows.length,
       getRowId,
-      pageSize: rows.length,
+      pageSize: options.initialLoad ?? rows.length,
+      overscan: 0,
       fetchRows: async ({ start, end }) => rows.slice(start, end),
     });
     loadRows = (start, end) => lazy.gridProps.onRenderedRowsChange({ start, end });
@@ -271,6 +274,6 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
       await settle();
     },
   };
-  if (mode === "Z") await mounted.load(0, all.length);
+  if (mode === "Z") await mounted.load(0, options.initialLoad ?? all.length);
   return mounted;
 }

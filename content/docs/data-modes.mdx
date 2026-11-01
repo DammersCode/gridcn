@@ -23,15 +23,15 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 | Feature | L | PC | PS | Z | C | SS | FS | API |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sort | Supported | Not verified | Supported | Supported | Supported | Supported | n/a | Supported |
-| Filter (flat and groups) | Supported | Not verified | Not verified | Supported | Supported | Supported | Supported | Supported |
-| Filter set values | Supported | Not verified | Not verified | Not verified | Not verified | Not verified | Supported | n/a |
-| Quick search | Supported | Not verified | Not verified | Supported | Supported | Supported | n/a | n/a |
-| Row check and ranges | Supported | Not verified | Supported | Supported | Supported | Supported | Supported | Supported |
-| Row ids | Supported | Not verified | Not verified | Supported | Not verified | Not verified | Not verified | Gap |
-| Counts and total | Supported | Supported | Supported | Supported | Not verified | Not verified | Not verified | Not verified |
+| Sort | Supported | Supported | Supported | Supported | Supported | Supported | n/a | Supported |
+| Filter (flat and groups) | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Filter set values | Supported | Supported | Supported | Supported | Supported | Supported | Supported | n/a |
+| Quick search | Supported | Supported | Supported | Supported | Supported | Supported | n/a | n/a |
+| Row check and ranges | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| Row ids | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Gap |
+| Counts and total | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Row grouping | Gap | Gap | Gap | Gap | n/a | Gap | Gap | Gap |
-| Pinned rows and aggregates | Supported | Supported | Gap | Gap | Not verified | Not verified | Not verified | Not verified |
+| Pinned rows and aggregates | Supported | Supported | Gap | Gap | Supported | Supported | Supported | Supported |
 | Column pin, hide, order and size | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Clipboard copy and paste | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
 | Fill | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
@@ -64,7 +64,6 @@ A grid feature can behave differently on a local array, on server pages and on l
 
 ### Filter set values
 
-- **C**: Not verified: Controlled `filterState` with set values is not checked.
 - **API**: n/a: Set values are read-only input of the filter; writes through onDataChange or onSave never read them.
 
 ### Quick search

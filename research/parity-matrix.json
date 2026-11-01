@@ -185,24 +185,39 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/filter-values.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/filter-values.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/filter-values.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Controlled `filterState` with set values is not checked."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/filter-values.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/filter-values.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
           "status": "supported",
