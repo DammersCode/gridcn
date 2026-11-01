@@ -57,7 +57,8 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   });
   const search = useDebouncedSearch();
   const { query } = search;
-  const server = useServerFilterValues(column, query);
+  const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
+  const server = useServerFilterValues(column, query, overrides);
   const localOptions = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
     [loaded.values, labels.headerFilterBlanks],
@@ -65,7 +66,6 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const options: readonly SetFilterOption[] = server ? server.options : localOptions;
 
   const known = server ? server.known : loaded.texts;
-  const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
   const checked = useMemo<ReadonlySet<string>>(() => {
     // A server list may be partial, so without a set entry nothing starts checked.
     const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id));

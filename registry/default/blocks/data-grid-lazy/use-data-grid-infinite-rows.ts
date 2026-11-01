@@ -62,7 +62,7 @@ export type UseDataGridInfiniteRowsResult<TData> = {
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
   /** `undefined` while `hasNextPage`, then the final row count. */
   total: number | undefined;
-  /** True until `fetchRows` returns a `null` cursor (or an empty page). */
+  /** True until `fetchRows` returns a `null` or missing cursor (or an empty page). */
   hasNextPage: boolean;
   /** Skeleton rows below the loaded rows: `pageSize` while `hasNextPage`, else 0. */
   unloadedCount: number;
@@ -105,7 +105,8 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const lastWindowRef = useRef<Range | null>(null);
   const pendingWindowRef = useRef(false);
   const emptyPageWarnedRef = useRef(false);
-  const warnedRef = useRef(false);
+  const cutWarnedRef = useRef(false);
+  const cursorWarnedRef = useRef(false);
   const optionsRef = useRef(options);
   // A layout effect runs before the grid's passive effect that reports the first window, so a reset reads the new `fetchRows`.
   useLayoutEffect(() => {
@@ -135,12 +136,12 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
         return;
       }
       const answered = result.rows.length > limit ? result.rows.slice(0, limit) : result.rows;
-      if (answered !== result.rows && !warnedRef.current && isDev()) {
-        warnedRef.current = true;
+      if (answered !== result.rows && !cutWarnedRef.current && isDev()) {
+        cutWarnedRef.current = true;
         console.warn(`[data-grid-lazy] fetchRows returned ${result.rows.length} rows for a limit of ${limit}; only the first ${limit} are kept`);
       }
-      if (result.nextCursor === undefined && !warnedRef.current && isDev()) {
-        warnedRef.current = true;
+      if (result.nextCursor === undefined && !cursorWarnedRef.current && isDev()) {
+        cursorWarnedRef.current = true;
         console.warn("[data-grid-lazy] fetchRows resolved without nextCursor; resolve nextCursor: null to end the source");
       }
       const nextCursor = result.nextCursor ?? null;

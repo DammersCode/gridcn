@@ -16,7 +16,7 @@ Go controlled (see [Quick start](/docs/quick-start#going-controlled)). Fetch onc
 "use client";
 
 function OrdersGrid() {
-  const [data, setData] = useState<Order[]>([]);
+  const [data, setData] = useState<readonly Order[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,7 +94,7 @@ async function save(change: DataChange<Order>) {
 <DataGrid data={data} onDataChange={setData} onSave={save} /* other props */ />
 ```
 
-`onSave` never receives a rollback, stream, or history change, so a revert never goes back to the server.
+`onSave` never receives a rollback or a stream change, so a revert never goes back to the server.
 
 ## Strategy B: refetch-on-settle
 
@@ -136,7 +136,7 @@ function refusedRows(ops: DataOp<Order>[], results: PromiseSettledResult<unknown
 
 <DataGridProvider
   data={data}
-  onDataChange={(next) => setData(next as Order[])}
+  onDataChange={setData}
   onSave={onSave}
   onWriteRejected={({ rejected }) => toast.error(rejected[0]?.message ?? "Refused")}
   {...grid}
@@ -157,7 +157,7 @@ function refusedRows(ops: DataOp<Order>[], results: PromiseSettledResult<unknown
 - A refusal that arrives after the data was replaced (a page change) re-inserts a refused delete into the new data. Reload the page in `onWriteRejected` when that matters.
 - The callbacks run after the outermost write in this order: `onDataChange`, `onSave`, plugin observers. A throw in one does not stop the next.
 
-Strategy C does not roll back a change of `change.ops` that the server accepted, which Strategy A does when one request of a batch fails. It needs no `ref` snapshot.
+Strategy C does not roll back a change of `change.ops` that the server accepted, which Strategy A does when one request of a batch fails.
 
 ## The failure path
 
@@ -166,12 +166,14 @@ GraphQL backend. `actions.setCellErrors` (on the grid's `ref` handle) paints the
 user sees which value is wrong and can fix it in place:
 
 ```ts
-async function save(change: DataChange<Order>, gridRef: RefObject<DataGridApi<Order> | null>) {
-  try {
-    await Promise.all(opsToRequests(change.ops));
-  } catch (error) {
-    gridRef.current?.actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
-  }
+function createSave(gridRef: RefObject<DataGridApi<Order> | null>) {
+  return async (change: DataChange<Order>) => {
+    try {
+      await Promise.all(opsToRequests(change.ops));
+    } catch (error) {
+      gridRef.current?.actions.setCellErrors(parseFieldErrors(error, change.ops)); // [{ rowId, columnId, message }]
+    }
+  };
 }
 ```
 
@@ -184,8 +186,8 @@ value, through any write path. See
 contract, including `clearCellErrors` and the read hook.
 
 <Callout type="idea" title="Toast and revert, or history undo, still apply">
-  `setCellErrors` does not roll back the value on its own. Pair it with
-  [Strategy A](#strategy-a-optimistic-roll-back-on-failure)'s rollback, or
-  [`data-grid-history`](/docs/addons/undo-redo)'s `undo()`, when leaving the rejected
-  value showing is the wrong choice.
+  `setCellErrors` does not roll back the value on its own. Call
+  [`data-grid-history`](/docs/addons/undo-redo)'s `undo()` when leaving the rejected value
+  showing is the wrong choice. A rejected `onSave` promise reverts the change and clears the cell
+  errors of the reverted cells.
 </Callout>

@@ -128,6 +128,15 @@ describe("mergeKnownValues", () => {
     expect(known.has("p0-0")).toBe(false);
   });
 
+  it("never evicts a pinned value or a value of the current answer", () => {
+    const first = [option("x1"), ...Array.from({ length: MAX_SET_FILTER_ENTRIES - 1 }, (_, i) => option(`a${i}`))];
+    const second = Array.from({ length: MAX_SET_FILTER_ENTRIES }, (_, i) => option(`b${i}`));
+    const known = mergeKnownValues(mergeKnownValues(new Map(), first), second, new Map([["x1", true]]));
+    expect(known.has("x1")).toBe(true);
+    expect(second.every((o) => known.has(o.key))).toBe(true);
+    expect(mergeKnownValues(mergeKnownValues(new Map(), first), second).has("x1")).toBe(false);
+  });
+
   it("keeps the first-seen order when a value comes back", () => {
     const known = mergeKnownValues(new Map([["a", "a"], ["b", "b"]]), [option("a")]);
     expect([...known.keys()]).toEqual(["a", "b"]);

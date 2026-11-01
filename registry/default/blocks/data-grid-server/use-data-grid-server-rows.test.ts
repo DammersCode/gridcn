@@ -11,7 +11,7 @@ type Fetch = (ctx: ServerRowsFetchContext) => Promise<ServerRowsPage<Row>>;
 function server(total = 95) {
   return vi.fn<Fetch>(async ({ page, pageSize }) => {
     const from = (page - 1) * pageSize;
-    return { rows: rowsOf(from, Math.max(0, Math.min(pageSize, total - from))), total: total };
+    return { rows: rowsOf(from, Math.max(0, Math.min(pageSize, total - from))), total };
   });
 }
 
@@ -188,7 +188,7 @@ describe("useDataGridServerRows", () => {
 
   it("the page clamps when the total shrinks below it", async () => {
     let total = 95;
-    const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => ({ rows: rowsOf((page - 1) * pageSize, 5), total: total }));
+    const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => ({ rows: rowsOf((page - 1) * pageSize, 5), total }));
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     act(() => result.current.pager.onPageChange(9));

@@ -270,12 +270,6 @@ const onSortChange = (next: SortSpec[]) => setSorts(next);
 >
 ```
 
-The hook compares the spec by content. `serverSpecKey(spec)` returns that content as a string, without the generated `filterId`s. Use it as a query key or an effect dependency for your own request: <NewBadge />
-
-```ts
-const queryKey = ["orders", serverSpecKey(spec)];
-```
-
 Three details make this work:
 
 - **`sortMode="server"` leaves the order to the server.** Passing `sortState={sorts}` as well is
@@ -286,6 +280,12 @@ Three details make this work:
   `onSortChange` calls `lazy.reset()` before the refetch runs. Remounting the provider on a key
   derived from the spec clears them too. It also resets the core store (selection, edit state,
   scroll position), so it is the heavier alternative.
+
+The hook compares the spec by content. `serverSpecKey(spec)` <NewBadge /> returns that content as a string, without the generated `filterId`s. Use it as a query key or an effect dependency for your own request:
+
+```ts
+const queryKey = ["orders", serverSpecKey(spec)];
+```
 
 Use `lazy.isLoading` to show a busy state while the refetch is in flight, for example to dim
 the grid.
@@ -402,7 +402,7 @@ const rows = useDataGridInfiniteRows<Order, string>({
 
 <ComponentPreview name="data-grid-open-ended-demo" />
 
-- `nextCursor: null` ends the source. Any other value, including `0`, means more rows exist. An API
+- `nextCursor: null` ends the source, and so does a missing `nextCursor` (a warning in development). Any other value, including `0`, means more rows exist. `fetchRows` returns at most `limit` rows; the hook keeps the first `limit` of a longer answer. An API
   with a "has more" flag returns `hasMore ? start + rows.length : null`.
 - `rows.gridProps` carries `totalRowCount`: `null` while more rows exist, then the final count. `lazy.gridProps` carries `total` as `totalRowCount`. Spread `gridProps` onto the provider and the count goes in once.
 - The first call gets `cursor: undefined`. `limit` is `pageSize` (default 50), capped by `maxFetchRows`.
