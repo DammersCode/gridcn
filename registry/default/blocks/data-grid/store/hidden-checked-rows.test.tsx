@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange, SelectionState } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
-import { MAX_HIDDEN_CHECKED_ROWS } from "./hidden-checked-rows";
+import { MAX_HIDDEN_CHECKED_ROWS, carryCheckedRows } from "./hidden-checked-rows";
 import { CompactSelection } from "../selection/compact-selection";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 
@@ -392,5 +392,41 @@ describe("hidden checked rows: sortMode and cap", () => {
     expect(hidden.size).toBe(MAX_HIDDEN_CHECKED_ROWS);
     expect(hidden.has("r0") && hidden.has("r99998")).toBe(true);
     expect(hidden.has("r100004")).toBe(false);
+  });
+});
+
+describe("carryCheckedRows at 100k rows", () => {
+  const N = 100_000;
+  const data = Array.from({ length: N }, (_, i) => ({ id: `r${i}` }));
+  const identity = Array.from({ length: N }, (_, i) => i);
+  const getRowId = (row: unknown) => (row as { id: string }).id;
+  const carry = (allMatching: boolean, spy: () => void) => {
+    const all = CompactSelection.fromSingleSelection([0, N]);
+    const rowsSpy = Object.create(all) as typeof all;
+    rowsSpy.toArray = () => {
+      spy();
+      return all.toArray();
+    };
+    return carryCheckedRows({
+      rows: rowsSpy,
+      hidden: new Set(),
+      prevData: data,
+      prevViewIndex: identity,
+      prevGetRowId: getRowId,
+      nextData: data.slice(),
+      nextGetRowId: getRowId,
+      nextViewIndex: identity,
+      resolveNextRowIds: () => new Map(data.map((row, i) => [row.id, i] as const)),
+      sameRecords: false,
+      windowMode: true,
+      allMatching,
+    });
+  };
+
+  it.each([true, false])("never materializes the row channel (allMatching %s)", (allMatching) => {
+    const toArray = vi.fn();
+    const carried = carry(allMatching, toArray);
+    expect(toArray).not.toHaveBeenCalled();
+    expect(carried.rows.length).toBe(N);
   });
 });

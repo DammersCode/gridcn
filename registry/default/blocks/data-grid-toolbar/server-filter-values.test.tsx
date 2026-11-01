@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataGridProvider, type AnyColumnDef, type ColumnDef, type FetchFilterValues, type FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_SET_FILTER_ENTRIES } from "./apply-set-filter";
-import { sanitizeServerValues, useServerFilterValues } from "./server-filter-values";
+import { mergeKnownValues, sanitizeServerValues, useServerFilterValues } from "./server-filter-values";
 
 type Row = { id: string; city: string };
 
@@ -112,5 +112,24 @@ describe("useServerFilterValues", () => {
       await waitFor(() => expect(result.current?.status).toBe("error"));
       unmount();
     }
+  });
+});
+
+describe("mergeKnownValues", () => {
+  const option = (key: string) => ({ key, text: key, label: key });
+
+  it("keeps the newest MAX_SET_FILTER_ENTRIES entries across searches", () => {
+    let known = new Map<string, string>();
+    for (let page = 0; page < 3; page++) {
+      known = mergeKnownValues(known, Array.from({ length: MAX_SET_FILTER_ENTRIES }, (_, i) => option(`p${page}-${i}`)));
+    }
+    expect(known.size).toBe(MAX_SET_FILTER_ENTRIES);
+    expect(known.has("p2-0")).toBe(true);
+    expect(known.has("p0-0")).toBe(false);
+  });
+
+  it("moves a value that comes back to the newest end", () => {
+    const known = mergeKnownValues(new Map([["a", "a"], ["b", "b"]]), [option("a")]);
+    expect([...known.keys()]).toEqual(["b", "a"]);
   });
 });

@@ -196,12 +196,14 @@
           "note": "Not verified."
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "n/a",
+          "reason": "Set values are read-only input of the filter; writes through onDataChange or onSave never read them."
         }
       }
     },

@@ -87,13 +87,16 @@ export function carryCheckedRows(input: {
 
   if (allMatching) {
     const excluded = new Set(hidden);
-    const checkedBefore = new Set(rows.toArray());
+    const runs = rows.runs();
+    let run = 0;
     for (let viewRow = 0; viewRow < prevViewIndex.length; viewRow++) {
+      while (run < runs.length && runs[run]![1] <= viewRow) run++;
+      const wasChecked = run < runs.length && runs[run]![0] <= viewRow;
       const prevDataRow = prevViewIndex[viewRow]!;
       const record = prevData[prevDataRow];
       if (record === undefined) continue;
       const id = prevGetRowId(record, prevDataRow);
-      if (checkedBefore.has(viewRow)) excluded.delete(id);
+      if (wasChecked) excluded.delete(id);
       else excluded.add(id);
       if (excluded.size > MAX_HIDDEN_CHECKED_ROWS) {
         return { rows: CompactSelection.empty(), hidden: NO_HIDDEN_CHECKED_ROWS, allMatching: false, lazy: false, capped: true };
@@ -132,25 +135,27 @@ export function carryCheckedRows(input: {
     if (nextViewRow >= 0) found.push(nextViewRow);
     else remember(id);
   }
-  for (const viewRow of rows.toArray()) {
-    const prevDataRow = prevViewIndex[viewRow];
-    if (prevDataRow === undefined) continue;
-    const record = prevData[prevDataRow];
-    if (record === undefined) {
-      // A checked unloaded row stays checked at its index; a page load fills the same index.
-      const nextViewRow = windowMode && prevDataRow < nextData.length ? viewRowOfDataRow[prevDataRow]! : -1;
+  for (const [runStart, runEnd] of rows.runs()) {
+    for (let viewRow = runStart; viewRow < runEnd; viewRow++) {
+      const prevDataRow = prevViewIndex[viewRow];
+      if (prevDataRow === undefined) continue;
+      const record = prevData[prevDataRow];
+      if (record === undefined) {
+        // A checked unloaded row stays checked at its index; a page load fills the same index.
+        const nextViewRow = windowMode && prevDataRow < nextData.length ? viewRowOfDataRow[prevDataRow]! : -1;
+        if (nextViewRow >= 0) found.push(nextViewRow);
+        continue;
+      }
+      const id = prevGetRowId(record, prevDataRow);
+      const nextDataRow = dataRowById.get(id);
+      if (nextDataRow === undefined) {
+        if (windowMode) remember(id);
+        continue;
+      }
+      const nextViewRow = viewRowOfDataRow[nextDataRow]!;
       if (nextViewRow >= 0) found.push(nextViewRow);
-      continue;
+      else remember(id);
     }
-    const id = prevGetRowId(record, prevDataRow);
-    const nextDataRow = dataRowById.get(id);
-    if (nextDataRow === undefined) {
-      if (windowMode) remember(id);
-      continue;
-    }
-    const nextViewRow = viewRowOfDataRow[nextDataRow]!;
-    if (nextViewRow >= 0) found.push(nextViewRow);
-    else remember(id);
   }
   const nextRows = CompactSelection.fromArray(found);
   return {

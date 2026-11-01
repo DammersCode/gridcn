@@ -21,6 +21,20 @@ export type ServerFilterValues = {
 };
 
 /** Reads an untrusted provider response: string labels only, one entry per lowercase key, at most {@link MAX_SET_FILTER_ENTRIES}. `null` when the shape is wrong. */
+/** Adds `options` to `known` and drops the oldest entries beyond `MAX_SET_FILTER_ENTRIES`. */
+export function mergeKnownValues(known: ReadonlyMap<string, string>, options: readonly ServerFilterOption[]): Map<string, string> {
+  const merged = new Map(known);
+  for (const option of options) {
+    merged.delete(option.key);
+    merged.set(option.key, option.text);
+  }
+  for (const key of merged.keys()) {
+    if (merged.size <= MAX_SET_FILTER_ENTRIES) break;
+    merged.delete(key);
+  }
+  return merged;
+}
+
 export function sanitizeServerValues(response: unknown): { options: ServerFilterOption[]; capped: boolean } | null {
   const values = (response as { values?: unknown } | null)?.values;
   if (!Array.isArray(values)) return null;
@@ -53,7 +67,7 @@ export function useServerFilterValuesEnabled(column: AnyColumnDef): boolean {
 }
 
 /**
- * The server value list of `column` for `search`, or `null` when the provider is absent or the column has
+ * The server set values of `column` for `search`, or `null` when the provider is absent or the column has
  * `choices`. A new `search`, a column switch, and unmount abort the request in flight; a stale result is dropped.
  */
 export function useServerFilterValues(column: AnyColumnDef, search: string): ServerFilterValues | null {
@@ -84,7 +98,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string): Ser
           status: "ready",
           capped: clean.capped,
           options: clean.options,
-          known: new Map([...previous.known, ...clean.options.map((option) => [option.key, option.text] as const)]),
+          known: mergeKnownValues(previous.known, clean.options),
         }));
       } catch {
         if (!controller.signal.aborted) setResult((previous) => ({ ...previous, status: "error" }));
