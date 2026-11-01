@@ -153,8 +153,9 @@ function main() {
     console.error(`Parity matrix problems:\n${problems.map((p) => `  ${p}`).join("\n")}`);
     process.exit(1);
   }
-  const counts = matrix.features.flatMap((r) => Object.values(r.cells)).reduce((acc, c) => ({ ...acc, [c.status]: (acc[c.status] ?? 0) + 1 }), {});
+  const counts = matrix.features.flatMap((r) => Object.values(r.cells)).reduce((acc, c) => ({ ...acc, [c.status]: (acc[c.status] ?? 0) + 1 }), { supported: 0, gap: 0, "n/a": 0, unverified: 0 });
   console.log(`parity matrix ok: ${JSON.stringify(counts)}`);
+  if (counts.unverified > 0) console.log(`parity matrix: ${counts.unverified} unverified cell(s); a release needs none`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

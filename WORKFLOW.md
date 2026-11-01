@@ -60,3 +60,4 @@ const results = await pipeline(
 ## Release checklist
 
 - No `gap` cell in `research/parity-matrix.json` without a tracked follow-up: an open issue, or a tracking id that an open issue names.
+- No `unverified` cell in `research/parity-matrix.json` and no `gap` cell without a tracking note. `pnpm lint` prints the unverified count.

@@ -1265,16 +1265,22 @@
           ]
         },
         "Z": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/url-state.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "C": {
           "status": "n/a",
           "reason": "URL state drives the controlled props itself."
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/url-state.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
           "status": "gap",
@@ -1282,8 +1288,11 @@
           "note": "Deep-linked set-filter values outside static `choices` are dropped."
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/url-state.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },
