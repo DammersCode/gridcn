@@ -436,20 +436,32 @@
           ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/counts.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/counts.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/counts.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/counts.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },
@@ -527,20 +539,32 @@
           "note": "Aggregates cover loaded rows or warn; no server totals."
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },

@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentType, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
@@ -25,6 +25,8 @@ export type MountOptions = {
   /** Extra provider props; they win over the mode's props. */
   props?: Record<string, unknown>;
   /** Called once in the tree root; its result spreads onto the provider (plugins, hooks that feed props). */
+  /** A component rendered inside the grid, for hooks that need the provider. */
+  Child?: ComponentType;
   useExtra?: () => Record<string, unknown>;
   /** The writes an `onSave` of the `API` mode answers; default accepts everything. */
   saveAnswer?: (change: DataChange<Row>) => Promise<WriteAck<Row>> | WriteAck<Row>;
@@ -72,6 +74,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   const Probe = () => (
     <DataGridRoot>
       <Capture />
+      {options.Child ? <options.Child /> : null}
     </DataGridRoot>
   );
 
