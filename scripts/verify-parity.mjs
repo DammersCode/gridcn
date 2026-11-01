@@ -18,7 +18,6 @@ const OPTION_SOURCES = [
 const PARITY_TESTS = "tests/parity/";
 const STATUSES = ["supported", "gap", "n/a", "unverified"];
 const UNVERIFIED = "Not verified.";
-const LABELS = { supported: "Supported", gap: "Gap", "n/a": "n/a", unverified: "Not verified" };
 
 /** Top-level field names of the exported object type `name` declared in `source`. */
 export function extractOptionNames(source, name) {
@@ -98,12 +97,17 @@ export function checkParity(matrix, { optionNames, root: base }) {
   return problems;
 }
 
-const cellLabel = (cell) => LABELS[cell.status];
-const escapeCell = (text) => text.replaceAll("|", "\\|");
+const ORDER = ["supported", "gap", "n/a", "unverified"];
+const jsxText = (text) => text.replace(/[{}<>&]/g, (c) => `{${JSON.stringify(c)}}`);
+const cellNote = (cell) => (cell.status === "gap" ? cell.note : cell.status === "n/a" ? cell.reason : cell.status === "unverified" && cell.note !== UNVERIFIED ? cell.note : undefined);
+const parityCell = (cell) => {
+  const note = cellNote(cell);
+  return `<ParityCell status="${cell.status}"${note ? ` note={${JSON.stringify(note.replaceAll("`", ""))}}` : ""} />`;
+};
 
 /** The docs page generated from the matrix. */
 export function renderParityPage(matrix) {
-  const header = ["Feature", ...matrix.modes.map((m) => m.id)];
+  const present = [...new Set(matrix.features.flatMap((r) => Object.values(r.cells).map((c) => c.status)))];
   const lines = [
     "---",
     "title: Features and data modes",
@@ -113,7 +117,7 @@ export function renderParityPage(matrix) {
     "",
     "{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}",
     "",
-    "A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A `Gap` cell is a known gap, and the notes below the table describe it. A `Not verified` cell has no test or docs file that covers the mode.",
+    "A grid feature can behave differently on a local array, on server pages and on lazy rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it." + (present.includes("unverified") ? " A not verified cell has no test or docs file that covers the mode." : ""),
     "",
     "## Data modes",
     "",
@@ -121,9 +125,26 @@ export function renderParityPage(matrix) {
     "",
     "## Matrix",
     "",
-    `| ${header.join(" | ")} |`,
-    `| ${header.map(() => "---").join(" | ")} |`,
-    ...matrix.features.map((row) => `| ${[escapeCell(row.feature), ...matrix.modes.map((m) => cellLabel(row.cells[m.id]))].join(" | ")} |`),
+    `<ParityLegend statuses={${JSON.stringify(ORDER.filter((status) => present.includes(status)))}} />`,
+    "",
+    '<div className="max-w-full overflow-x-auto">',
+    '<table className="min-w-max overflow-visible">',
+    "  <thead>",
+    "    <tr>",
+    '      <th scope="col" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-muted">Feature</th>',
+    ...matrix.modes.map((m) => `      <th scope="col" title={${JSON.stringify(m.label)}} aria-label={${JSON.stringify(`${m.label} (${m.id})`)}} className="text-center">${m.id}</th>`),
+    "    </tr>",
+    "  </thead>",
+    "  <tbody>",
+    ...matrix.features.flatMap((row) => [
+      "    <tr>",
+      `      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">${jsxText(row.feature)}</th>`,
+      ...matrix.modes.map((m) => `      <td className="text-center">${parityCell(row.cells[m.id])}</td>`),
+      "    </tr>",
+    ]),
+    "  </tbody>",
+    "</table>",
+    "</div>",
     "",
     "## Notes",
     "",
@@ -136,7 +157,7 @@ export function renderParityPage(matrix) {
     });
     if (row.note) notes.unshift(`- ${row.note}`);
     if (notes.length === 0) continue;
-    lines.push(`### ${row.feature}`, "", ...notes, "");
+    lines.push(`### ${jsxText(row.feature)}`, "", ...notes, "");
   }
   lines.push("## Related", "", "- [Server-side data](/docs/recipes/data-fetching/server-side)", "- [Lazy loading](/docs/lazy-loading)", "- [Pagination](/docs/pagination)", "");
   return lines.join("\n");

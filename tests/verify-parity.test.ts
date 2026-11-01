@@ -113,10 +113,28 @@ describe("renderParityPage", () => {
   it("is deterministic and shows each status", () => {
     const page = renderParityPage(matrix());
     expect(page).toBe(renderParityPage(matrix()));
-    expect(page).toContain("| Sort |");
-    expect(page).toContain("| Sort | Supported | Gap |");
-    expect(page).not.toContain("(A)");
-    expect(page).toContain("Supported");
+    expect(page).toContain('<th scope="row"');
+    expect(page).toContain(">Sort</th>");
+    expect(page).toContain('<ParityCell status="supported" />');
+    expect(page).toContain('<ParityCell status="gap" note={"');
+    expect(page).toContain('title={"Local array"}');
+    expect(page).toContain('<ParityLegend statuses={["supported","gap"]} />');
+  });
+
+  it("escapes hostile names so the generated MDX stays valid", () => {
+    const hostile = matrix({ feature: "Sort {x} <y>" });
+    hostile.modes[0]!.label = String.raw`Local "array" \ path`;
+    const page = renderParityPage(hostile);
+    expect(page).toContain(`title={${JSON.stringify(hostile.modes[0]!.label)}}`);
+    expect(page).toContain('{"{"}x{"}"}');
+    expect(page).toContain("### Sort");
+    expect(page).not.toContain("{x}");
+    expect(page).not.toContain("Sort {x}");
+  });
+
+  it("keeps backticks out of the tooltip note", () => {
+    const page = renderParityPage(matrix({ cells: { L: supported, PS: { status: "gap", track: "A", note: "ignores `total`" } } }));
+    expect(page).toContain('note={"ignores total"}');
   });
 });
 

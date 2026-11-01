@@ -11,6 +11,7 @@ import { InstallCommand } from '@/components/install-command';
 import { ManualInstall } from '@/components/manual-install';
 import { KeymapTable } from '@/components/keymap-table';
 import { NewBadge } from '@/components/new-badge';
+import { ParityCell, ParityLegend } from '@/components/parity-cell';
 import { SkillInstall } from '@/components/skill-install';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -23,6 +24,8 @@ export function getMDXComponents(components?: MDXComponents) {
     KeymapTable,
     SkillInstall,
     NewBadge,
+    ParityCell,
+    ParityLegend,
     Step,
     Steps,
     File,
