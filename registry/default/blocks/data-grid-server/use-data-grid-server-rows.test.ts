@@ -11,7 +11,7 @@ type Fetch = (ctx: ServerRowsFetchContext) => Promise<ServerRowsPage<Row>>;
 function server(total = 95) {
   return vi.fn<Fetch>(async ({ page, pageSize }) => {
     const from = (page - 1) * pageSize;
-    return { rows: rowsOf(from, Math.max(0, Math.min(pageSize, total - from))), totalRowCount: total };
+    return { rows: rowsOf(from, Math.max(0, Math.min(pageSize, total - from))), total: total };
   });
 }
 
@@ -85,9 +85,9 @@ describe("useDataGridServerRows", () => {
     act(() => result.current.pager.onPageChange(2));
     await waitFor(() => expect(fetchRows).toHaveBeenCalledTimes(2));
     expect(signals[0]!.aborted).toBe(true);
-    answers[1]!({ rows: rowsOf(10, 10), totalRowCount: 95 });
+    answers[1]!({ rows: rowsOf(10, 10), total: 95 });
     await waitFor(() => expect(result.current.gridProps.data[0]).toEqual({ id: "r10" }));
-    answers[0]!({ rows: rowsOf(0, 10), totalRowCount: 95 });
+    answers[0]!({ rows: rowsOf(0, 10), total: 95 });
     await act(async () => {});
     expect(result.current.gridProps.data[0]).toEqual({ id: "r10" });
   });
@@ -96,7 +96,7 @@ describe("useDataGridServerRows", () => {
     let fail = false;
     const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => {
       if (fail) throw new Error("down");
-      return { rows: rowsOf((page - 1) * pageSize, pageSize), totalRowCount: 95 };
+      return { rows: rowsOf((page - 1) * pageSize, pageSize), total: 95 };
     });
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
@@ -136,7 +136,7 @@ describe("useDataGridServerRows", () => {
 
   it("warns once and keeps only pageSize rows when the answer is longer", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 15), totalRowCount: 15 }));
+    const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 15), total: 15 }));
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(result.current.gridProps.data).toHaveLength(10);
@@ -188,7 +188,7 @@ describe("useDataGridServerRows", () => {
 
   it("the page clamps when the total shrinks below it", async () => {
     let total = 95;
-    const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => ({ rows: rowsOf((page - 1) * pageSize, 5), totalRowCount: total }));
+    const fetchRows = vi.fn<Fetch>(async ({ page, pageSize }) => ({ rows: rowsOf((page - 1) * pageSize, 5), total: total }));
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     act(() => result.current.pager.onPageChange(9));

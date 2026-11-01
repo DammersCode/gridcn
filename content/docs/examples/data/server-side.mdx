@@ -19,7 +19,7 @@ const server = useDataGridServerRows<Order>({
   getRowId: (row) => row.id,
   fetchRows: async ({ spec, page, pageSize, signal }) => {
     const answer = await api.orders({ ...spec, page, pageSize, signal });
-    return { rows: answer.rows, totalRowCount: answer.total };
+    return { rows: answer.rows, total: answer.total };
   },
 });
 
@@ -28,7 +28,7 @@ const server = useDataGridServerRows<Order>({
 ```
 
 - `spec` holds `sorts`, `filters`, and `search`. Send them to your API.
-- `fetchRows` resolves `{ rows, totalRowCount }`. A server that sends no count resolves `{ rows, hasNextPage }`, and the footer shows "Page N" with Next and no Last.
+- `fetchRows` resolves `{ rows, total }`. A server that sends no count resolves `{ rows, hasNextPage }`, and the footer shows "Page N" with Next and no Last.
 - At most `pageSize` rows are shown. A longer answer warns once in development.
 - `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, `headerClickBehavior="sort"`, the controlled sort, filter, and search pairs, `totalRowCount`, `loading`, `error`, and `onRetry`. `onDataChange` keeps edits in step; the revert of a refused save arrives there too.
 - A composed layout (toolbar, custom root) spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` (`loading`, `error`, `onRetry`) onto `DataGridRoot`. The demo does this.

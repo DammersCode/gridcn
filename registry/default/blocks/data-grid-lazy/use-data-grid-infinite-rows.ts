@@ -50,7 +50,7 @@ export type UseDataGridInfiniteRowsOptions<TData, TCursor = unknown> = {
 
 /** Return value of {@link useDataGridInfiniteRows}. */
 export type UseDataGridInfiniteRowsResult<TData> = {
-  /** Spread onto `<DataGrid />`. `data` is sparse: the last `pageSize` rows are holes while `hasMore`. */
+  /** Spread onto `<DataGrid />`. `data` is sparse: the last `pageSize` rows are holes while `hasNextPage`. */
   gridProps: {
     data: readonly TData[];
     getRowId: (row: TData, index: number) => string;
@@ -60,11 +60,11 @@ export type UseDataGridInfiniteRowsResult<TData> = {
   };
   /** Pass as `onDataChange`. Edits, inserts, and deletes of loaded rows merge into the loaded rows. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  /** `undefined` while `hasMore`, then the final row count. */
+  /** `undefined` while `hasNextPage`, then the final row count. */
   total: number | undefined;
   /** True until `fetchRows` returns a `null` cursor (or an empty page). */
-  hasMore: boolean;
-  /** Skeleton rows below the loaded rows: `pageSize` while `hasMore`, else 0. */
+  hasNextPage: boolean;
+  /** Skeleton rows below the loaded rows: `pageSize` while `hasNextPage`, else 0. */
   unloadedCount: number;
   isLoading: boolean;
   /** Aborts the fetch, drops every row and the cursor, and requests the first page again. Call it when sort, filter, or search changes. */
@@ -73,7 +73,7 @@ export type UseDataGridInfiniteRowsResult<TData> = {
   retry: () => void;
 };
 
-type Loaded<TData> = { rows: TData[]; hasMore: boolean };
+type Loaded<TData> = { rows: TData[]; hasNextPage: boolean };
 
 function guardCallback(fn: () => void): void {
   try {
@@ -95,7 +95,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
 ): UseDataGridInfiniteRowsResult<TData> {
   const { getRowId, overscan = DEFAULT_OVERSCAN, maxFetchRows } = options;
   const pageSize = Number.isFinite(options.pageSize) && options.pageSize! >= 1 ? Math.floor(options.pageSize!) : DEFAULT_PAGE_SIZE;
-  const [loaded, setLoaded] = useState<Loaded<TData>>({ rows: [], hasMore: true });
+  const [loaded, setLoaded] = useState<Loaded<TData>>({ rows: [], hasNextPage: true });
   const [isLoading, setIsLoading] = useState(false);
 
   // Written by every state transition below, so a handler reads the latest rows without waiting for a commit.
@@ -105,6 +105,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const lastWindowRef = useRef<Range | null>(null);
   const pendingWindowRef = useRef(false);
   const emptyPageWarnedRef = useRef(false);
+  const warnedRef = useRef(false);
   const optionsRef = useRef(options);
   // A layout effect runs before the grid's passive effect that reports the first window, so a reset reads the new `fetchRows`.
   useLayoutEffect(() => {
@@ -114,8 +115,8 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const limit = Math.max(1, Math.min(pageSize, maxFetchRows === undefined ? Infinity : Math.floor(maxFetchRows)));
 
   const fetchNext = useCallback(() => {
-    const { rows, hasMore } = loadedRef.current;
-    if (!hasMore || controllerRef.current) return;
+    const { rows, hasNextPage } = loadedRef.current;
+    if (!hasNextPage || controllerRef.current) return;
     const controller = new AbortController();
     controllerRef.current = controller;
     setIsLoading(true);
@@ -133,17 +134,27 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
         rejected(new TypeError("fetchRows of useDataGridInfiniteRows must resolve with { rows: TData[], nextCursor }"));
         return;
       }
-      const ended = result.nextCursor === null || result.rows.length === 0;
-      if (result.rows.length === 0 && result.nextCursor !== null && !emptyPageWarnedRef.current && isDev()) {
+      const answered = result.rows.length > limit ? result.rows.slice(0, limit) : result.rows;
+      if (answered !== result.rows && !warnedRef.current && isDev()) {
+        warnedRef.current = true;
+        console.warn(`[data-grid-lazy] fetchRows returned ${result.rows.length} rows for a limit of ${limit}; only the first ${limit} are kept`);
+      }
+      if (result.nextCursor === undefined && !warnedRef.current && isDev()) {
+        warnedRef.current = true;
+        console.warn("[data-grid-lazy] fetchRows resolved without nextCursor; resolve nextCursor: null to end the source");
+      }
+      const nextCursor = result.nextCursor ?? null;
+      const ended = nextCursor === null || answered.length === 0;
+      if (answered.length === 0 && nextCursor !== null && !emptyPageWarnedRef.current && isDev()) {
         emptyPageWarnedRef.current = true;
         console.warn("[data-grid-lazy] fetchRows returned an empty page with a next cursor; an empty page ends the source, so return rows or a null cursor");
       }
-      cursorRef.current = result.nextCursor ?? undefined;
-      const next = { rows: [...loadedRef.current.rows, ...result.rows], hasMore: !ended };
+      cursorRef.current = nextCursor ?? undefined;
+      const next = { rows: [...loadedRef.current.rows, ...answered], hasNextPage: !ended };
       loadedRef.current = next;
       setLoaded(next);
       pendingWindowRef.current = true;
-      if (result.rows.length > 0) guardCallback(() => optionsRef.current.onLoaded?.({ start, end: start + result.rows.length }));
+      if (answered.length > 0) guardCallback(() => optionsRef.current.onLoaded?.({ start, end: start + answered.length }));
     };
     const rejected = (error: unknown) => {
       if (controller.signal.aborted) return;
@@ -185,7 +196,7 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
     controllerRef.current?.abort();
     controllerRef.current = null;
     cursorRef.current = undefined;
-    const fresh = { rows: [], hasMore: true };
+    const fresh = { rows: [], hasNextPage: true };
     loadedRef.current = fresh;
     setLoaded(fresh);
     setIsLoading(false);
@@ -210,12 +221,12 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
       const prev = loadedRef.current;
-      const skeletons = prev.hasMore ? pageSize : 0;
+      const skeletons = prev.hasNextPage ? pageSize : 0;
       const rows =
         change.ops.length > 0
           ? (applyChange(prev.rows, change, gridGetRowId) as TData[])
           : (next.slice(0, Math.max(0, next.length - skeletons)) as TData[]);
-      const merged = { rows, hasMore: prev.hasMore };
+      const merged = { rows, hasNextPage: prev.hasNextPage };
       loadedRef.current = merged;
       setLoaded(merged);
     },
@@ -223,21 +234,21 @@ export function useDataGridInfiniteRows<TData, TCursor = unknown>(
   );
 
   const data = useMemo(() => {
-    if (!loaded.hasMore) return loaded.rows;
+    if (!loaded.hasNextPage) return loaded.rows;
     const padded = loaded.rows.slice();
     padded.length = loaded.rows.length + pageSize;
     return padded;
   }, [loaded, pageSize]);
 
-  const totalRowCount = loaded.hasMore ? null : loaded.rows.length;
+  const totalRowCount = loaded.hasNextPage ? null : loaded.rows.length;
   const gridProps = useMemo(() => ({ data, getRowId: gridGetRowId, onRenderedRowsChange, totalRowCount }), [data, gridGetRowId, onRenderedRowsChange, totalRowCount]);
 
   return {
     gridProps,
     onDataChange,
-    total: loaded.hasMore ? undefined : loaded.rows.length,
-    hasMore: loaded.hasMore,
-    unloadedCount: loaded.hasMore ? pageSize : 0,
+    total: loaded.hasNextPage ? undefined : loaded.rows.length,
+    hasNextPage: loaded.hasNextPage,
+    unloadedCount: loaded.hasNextPage ? pageSize : 0,
     isLoading,
     reset,
     retry,

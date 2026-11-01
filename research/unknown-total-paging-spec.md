@@ -66,10 +66,10 @@ const rows = useDataGridInfiniteRows<Order, string>({
   return fewer or more rows; an empty page ends the source (a dev warning explains).
 - Pages load one at a time, in order. A fetch starts when the rendered window comes within
   `overscan` rows (default 30) of the end of the loaded rows and none is in flight.
-- The grid gets `loaded rows` plus `pageSize` skeleton rows while `hasMore`, so the scroll height
+- The grid gets `loaded rows` plus `pageSize` skeleton rows while `hasNextPage`, so the scroll height
   grows in steps. At the end the skeletons go away and the length is exact.
-- Result: `{ gridProps, onDataChange, total, hasMore, unloadedCount, isLoading, reset }`.
-  `total` is `undefined` while `hasMore`, then the final count. `unloadedCount` is the skeleton count.
+- Result: `{ gridProps, onDataChange, total, hasNextPage, unloadedCount, isLoading, reset }`.
+  `total` is `undefined` while `hasNextPage`, then the final count. `unloadedCount` is the skeleton count.
 - `reset()` aborts the fetch, drops rows and cursor, and requests the first page again. The
   consumer calls it when sort, filter, or search changes (the spec lives in the consumer's
   request, like known-total lazy).

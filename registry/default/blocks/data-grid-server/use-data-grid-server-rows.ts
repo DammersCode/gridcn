@@ -22,8 +22,8 @@ export type ServerRowsPage<TData> = {
   /** At most `pageSize` rows; the hook drops the rest with a development warning. */
   rows: TData[];
   /** The number of rows that match the spec, across all pages. */
-  totalRowCount?: number;
-  /** Whether a page after this one exists. Used when the server sends no `totalRowCount`; defaults to a full page. */
+  total?: number;
+  /** Whether a page after this one exists. Used when the server sends no `total`; defaults to a full page. */
   hasNextPage?: boolean;
 };
 
@@ -125,7 +125,7 @@ export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptio
           console.warn(`[data-grid-server] fetchRows returned ${answer.rows.length} rows for a page size of ${pageSize}; only the first ${pageSize} are shown`);
         }
         const rows = answer.rows.length > pageSize ? answer.rows.slice(0, pageSize) : answer.rows;
-        const totalRowCount = typeof answer.totalRowCount === "number" && Number.isFinite(answer.totalRowCount) && answer.totalRowCount >= 0 ? answer.totalRowCount : null;
+        const totalRowCount = typeof answer.total === "number" && Number.isFinite(answer.total) && answer.total >= 0 ? answer.total : null;
         setSettled({ key, rows, totalRowCount, hasNextPage: answer.hasNextPage ?? rows.length === pageSize, error: null });
       })
       .catch((error: unknown) => {

@@ -32,7 +32,7 @@ describe("useDataGridInfiniteRows", () => {
     expect(result.current.gridProps.data).toHaveLength(10);
     expect(result.current.unloadedCount).toBe(10);
     expect(result.current.total).toBeUndefined();
-    expect(result.current.hasMore).toBe(true);
+    expect(result.current.hasNextPage).toBe(true);
     expect(fetchRows).not.toHaveBeenCalled();
   });
 
@@ -64,7 +64,7 @@ describe("useDataGridInfiniteRows", () => {
     const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
     act(() => result.current.gridProps.onRenderedRowsChange(view(30)));
     await waitFor(() => expect(result.current.total).toBe(25));
-    expect(result.current.hasMore).toBe(false);
+    expect(result.current.hasNextPage).toBe(false);
     expect(result.current.gridProps.data).toHaveLength(25);
     expect(result.current.unloadedCount).toBe(0);
     act(() => result.current.gridProps.onRenderedRowsChange(view(30)));
@@ -83,7 +83,7 @@ describe("useDataGridInfiniteRows", () => {
     const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
     act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
     await waitFor(() => expect(result.current.gridProps.data[0]).toBeDefined());
-    expect(result.current.hasMore).toBe(true);
+    expect(result.current.hasNextPage).toBe(true);
   });
 
   it("does not fetch while the window stays far from the loaded end (overscan)", async () => {
@@ -101,7 +101,7 @@ describe("useDataGridInfiniteRows", () => {
     const fetchRows = vi.fn<Fetch>(async () => ({ rows: [], nextCursor: 5 }));
     const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
     act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
-    await waitFor(() => expect(result.current.hasMore).toBe(false));
+    await waitFor(() => expect(result.current.hasNextPage).toBe(false));
     expect(result.current.total).toBe(0);
     expect(warn).toHaveBeenCalledTimes(1);
   });
@@ -121,6 +121,26 @@ describe("useDataGridInfiniteRows", () => {
     fail = false;
     act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
     await waitFor(() => expect(result.current.total).toBe(10));
+  });
+
+  it("a missing nextCursor ends the source and warns instead of refetching the first page", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchRows = vi.fn(async () => ({ rows: rowsOf(0, 3) }));
+    const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows as unknown as Fetch)));
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.hasNextPage).toBe(false));
+    expect(result.current.total).toBe(3);
+    expect(fetchRows).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the first limit rows of an answer that is longer than limit and warns", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 15), nextCursor: null }));
+    const { result } = renderHook(() => useDataGridInfiniteRows(options(fetchRows)));
+    act(() => result.current.gridProps.onRenderedRowsChange(view(5)));
+    await waitFor(() => expect(result.current.total).toBe(10));
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("a non-array rows answer counts as a failed fetch", async () => {
