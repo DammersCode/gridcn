@@ -71,10 +71,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [replacement, setReplacement] = useState("");
   const [searchOptions, setSearchOptions] = useState(() => api.store.getState().searchOptions);
   const [cursor, setCursor] = useState(0);
-  // restart at the first hit during render so a shorter list never paints an out-of-range cursor
-  const [lastMatches, setLastMatches] = useState(matches);
-  if (lastMatches !== matches) {
-    setLastMatches(matches);
+  // restart at the first hit during render when the query changes; a data change keeps the position
+  const queryKey = `${JSON.stringify(searchedText)}${searchOptions.matchCase}${searchOptions.wholeCell}`;
+  const [lastQueryKey, setLastQueryKey] = useState(queryKey);
+  if (lastQueryKey !== queryKey) {
+    setLastQueryKey(queryKey);
     setCursor(0);
   }
   const [status, setStatus] = useState<Status>(null);
