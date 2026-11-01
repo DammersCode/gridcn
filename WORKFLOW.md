@@ -51,6 +51,20 @@ const results = await pipeline(
 - Style gate: shadcn tokens only, data-attribute states, one-line why-comments only, JSDoc on exports.
 - Verdict is structured: `{ok, findings: [{file, line, problem, mustFix}]}`. `mustFix` findings block; nits are applied by the fixer but never block twice.
 
+### Reviewer brief
+
+Every review round checks these, beyond the surface of the diff, with `file:line` evidence. The brief names the classes already swept, so the reviewer verifies the sweep.
+
+- Performance at 100k rows: no O(n) work in render, scroll, or selection; no id materialization, spreads, or `toArray`; no per-row `await`; stable memo and identity; bundle size of new files.
+- Security and bounds: untrusted server, file, and URL input is bounded and validated; no `innerHTML`; text goes through `toSafeText`; `readOnly` is checked on every write path.
+- Races: read the store again after an `await`; superseded requests, unmount, StrictMode, and React Compiler.
+- Client and server parity for every touched mode: local, pagination, lazy, controlled, `sortMode` and `filterMode` server, own API.
+- Accessibility: keyboard path, focus, announcements, never color-only.
+- API and DX against `AGENTS.md`: zero-arg common case, naming, defaults, callbacks after the outermost write and isolated, controlled pairs.
+- shadcn styling rules: semantic tokens, radius, `className`, presets.
+- Tests: do they fail without the fix, cover both paths, and run deterministically?
+- Docs, skills, changelog, glossary, parity matrix, and payloads stay in sync; simple English; no phantom contrasts; `<NewBadge />`.
+
 ## Escalation
 
 - Implementer fails twice on the same task → orchestrator (planner) implements it directly.
