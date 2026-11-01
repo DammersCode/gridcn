@@ -4,6 +4,6 @@ export {
   useDataGridServerRows,
   type UseDataGridServerRowsOptions,
   type UseDataGridServerRowsResult,
-  type ServerRowsFetchContext,
-  type ServerRowsPage,
+  type ServerRowsPageRequest,
+  type ServerRowsAnswer,
 } from "./use-data-grid-server-rows";

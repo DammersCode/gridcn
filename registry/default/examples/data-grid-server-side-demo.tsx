@@ -45,7 +45,7 @@ export default function DataGridServerSideDemo(): ReactNode {
     defaultPageSize: 25,
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
-      return { rows: answer.rows, total: answer.total };
+      return { rows: answer.rows, totalRowCount: answer.total };
     },
   });
 
@@ -59,6 +59,7 @@ export default function DataGridServerSideDemo(): ReactNode {
         <DataGridProvider
           {...server.providerProps}
           columns={columns}
+          headerClickBehavior="sort"
           onSave={(change) => {
             remote.applyOps(change.ops);
             server.refresh();

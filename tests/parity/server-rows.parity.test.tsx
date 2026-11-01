@@ -1,7 +1,7 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
-import { useDataGridServerRows, type ServerRowsFetchContext, type ServerRowsPage } from "@/registry/default/blocks/data-grid-server/use-data-grid-server-rows";
+import { useDataGridServerRows, type ServerRowsPageRequest, type ServerRowsAnswer } from "@/registry/default/blocks/data-grid-server/use-data-grid-server-rows";
 import { DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import type { DataChange } from "@/registry/default/blocks/data-grid/types";
@@ -12,7 +12,7 @@ afterEach(() => {
   saved.clear();
 });
 
-type Fetch = (ctx: ServerRowsFetchContext) => Promise<ServerRowsPage<Row>>;
+type Fetch = (ctx: ServerRowsPageRequest) => Promise<ServerRowsAnswer<Row>>;
 
 const rowsOf = (from: number, count: number): Row[] => Array.from({ length: count }, (_, i) => ({ id: `r${from + i}`, name: `Name ${from + i}`, n: from + i }));
 
@@ -24,7 +24,7 @@ function pagedSource(total: number | undefined, honorSpec = true) {
     const count = Math.max(0, Math.min(pageSize, 95 - from));
     const rows = rowsOf(from, count).map((row) => ({ ...row, n: saved.get(row.id) ?? row.n }));
     if (honorSpec && spec.sorts[0]?.direction === "desc") rows.reverse();
-    return total === undefined ? { rows, hasNextPage: from + count < 95 } : { rows, total };
+    return total === undefined ? { rows, hasMore: from + count < 95 } : { rows, totalRowCount: total };
   });
 }
 

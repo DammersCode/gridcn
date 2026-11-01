@@ -1382,12 +1382,11 @@
       "name": "data-grid-server",
       "type": "registry:block",
       "title": "Data Grid Server",
-      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard, goes back to page 1 on a spec change, keeps the last good rows on screen, and exposes error, retry and refresh. Returns gridProps for DataGrid and pager controls for the pagination bar.",
+      "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard, goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-lazy",
         "DammersCode/gridcn/data-grid-pagination"
       ],
       "files": [
@@ -1395,6 +1394,11 @@
           "path": "registry/default/blocks/data-grid-server/data-grid-server.ts",
           "type": "registry:component",
           "target": "components/data-grid-server/data-grid-server.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/read-answer.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/read-answer.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts",

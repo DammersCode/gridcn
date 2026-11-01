@@ -24,6 +24,7 @@ mirror the change there.
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
 | spec | What the user chose: sort, filter, and search text. `ServerSpec` (`{ sorts, filters, searchText }`) carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
+| request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | response, payload |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A lazy request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |

@@ -1,0 +1,85 @@
+import type { RowRange, ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+
+/** Largest row count the server contract accepts; a bigger count clamps to it. */
+export const MAX_ROW_COUNT = 10_000_000;
+
+/** What `fetchRows` receives in every mode. */
+export type ServerRowsRequest<TCursor = never> = {
+  /** The sort, filter, and search of this request. */
+  spec: ServerSpec;
+  /** Index of the first requested row in the result. */
+  start: number;
+  /** One past the last requested row; `end - start` is the limit. */
+  end: number;
+  /** The `nextCursor` of the block before; `null` when the source has no cursor. */
+  cursor: TCursor | null;
+  /** Aborted when a newer request replaces this one, on a spec change, and on unmount. */
+  signal: AbortSignal;
+};
+
+/** Pages mode adds the page address; `start` is `(page - 1) * pageSize`. */
+export type ServerRowsPageRequest = ServerRowsRequest & {
+  /** 1-based page. */
+  page: number;
+  pageSize: number;
+};
+
+/** What `fetchRows` resolves with in every mode. */
+export type ServerRowsAnswer<TData, TCursor = never> = {
+  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. */
+  rows: TData[];
+  /** Row count of the result. Omitted keeps the last known count; `null` declares it unknown. */
+  totalRowCount?: number | null;
+  /** Rows exist after this block. Default: the block came back full. Ignored when a count is known. */
+  hasMore?: boolean;
+  /** Cursor sources: passed back as `cursor`. `null` ends the source. */
+  nextCursor?: TCursor | null;
+};
+
+/** An answer after validation. */
+export type ReadAnswer<TData, TCursor = never> = {
+  rows: TData[];
+  /** `undefined` keeps the last known count. */
+  totalRowCount: number | null | undefined;
+  hasMore: boolean;
+  nextCursor: TCursor | null | undefined;
+};
+
+/**
+ * Validates an untrusted answer: `rows` must be an array and is cut to the requested size, `totalRowCount` must be a
+ * non-negative safe integer (else unknown) and clamps to {@link MAX_ROW_COUNT}. Throws when the answer has no rows array.
+ */
+export function readAnswer<TData, TCursor = never>(
+  answer: unknown,
+  range: RowRange,
+  warn: (kind: string, message: string) => void,
+): ReadAnswer<TData, TCursor> {
+  const raw = answer as Partial<ServerRowsAnswer<TData, TCursor>> | null | undefined;
+  if (!Array.isArray(raw?.rows)) throw new TypeError("fetchRows of useDataGridServerRows must resolve with { rows: TData[] }");
+  const limit = range.end - range.start;
+  let rows = raw.rows;
+  if (rows.length > limit) {
+    warn("long", `fetchRows returned ${rows.length} rows for a request of ${limit}; only the first ${limit} are used`);
+    rows = rows.slice(0, limit);
+  }
+  const legacy = raw as { total?: unknown; hasNextPage?: unknown };
+  if (("total" in legacy && !("totalRowCount" in raw)) || "hasNextPage" in legacy) {
+    warn("legacy", "the answer of fetchRows uses `total` or `hasNextPage`; rename them to `totalRowCount` and `hasMore`");
+  }
+  let totalRowCount: number | null | undefined;
+  if (raw.totalRowCount === undefined) totalRowCount = undefined;
+  else if (raw.totalRowCount === null) totalRowCount = null;
+  else if (typeof raw.totalRowCount === "number" && Number.isSafeInteger(raw.totalRowCount) && raw.totalRowCount >= 0) {
+    totalRowCount = Math.min(raw.totalRowCount, MAX_ROW_COUNT);
+    if (totalRowCount !== raw.totalRowCount) warn("count", `totalRowCount ${raw.totalRowCount} is above ${MAX_ROW_COUNT}; using ${MAX_ROW_COUNT}`);
+  } else {
+    totalRowCount = null;
+    warn("count", "totalRowCount must be a non-negative integer or null; treating the count as unknown");
+  }
+  return {
+    rows,
+    totalRowCount,
+    hasMore: typeof raw.hasMore === "boolean" ? raw.hasMore : rows.length === limit,
+    nextCursor: raw.nextCursor,
+  };
+}

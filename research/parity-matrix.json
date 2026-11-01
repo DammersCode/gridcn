@@ -1701,7 +1701,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.test.ts",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.url.test.tsx"
           ]
         },
         "SS": {
