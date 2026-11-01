@@ -153,7 +153,7 @@ The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`,
 |---|---|---|
 | `keepCheckedRows` | `boolean` | `false` (`true` with `totalRowCount`) |
 | `keepHiddenCheckedRows` | `boolean` | `false` |
-| `announceResults` <NewBadge /> | `boolean` | `false` |
+| `announceResults` | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
 
 `keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `announceResults` reads the row count of the view after a filter or sort change; see [Accessibility](/docs/accessibility). `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
@@ -290,7 +290,7 @@ To check rows that are not next to each other, move with <kbd>Alt</kbd>+<kbd>Arr
 keeps the selection, and press `toggleRow` on each row. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+A
 (`selectAll`) selects cells, not checked rows.
 
-A check or uncheck <NewBadge /> by `toggleRow`, `toggleAllRows`, the Shift+Arrow range keys, a marker checkbox, a marker range drag, or the header checkbox reads the number of checked rows in the grid's live region, for example "3 rows checked" (`labels.grid.rowsChecked`). Escape reads the drop too. The count includes the hidden checked rows that `keepHiddenCheckedRows` holds.
+A check or uncheck by `toggleRow`, `toggleAllRows`, the Shift+Arrow range keys, a marker checkbox, a marker range drag, or the header checkbox reads the number of checked rows in the grid's live region, for example "3 rows checked" (`labels.grid.rowsChecked`). Escape reads the drop too. The count includes the hidden checked rows that `keepHiddenCheckedRows` holds.
 
 ## Moving rows
 

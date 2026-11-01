@@ -54,7 +54,7 @@ The header filter puts a set filter in each column header. See
 whichever list is shorter.
 
 `DataGridFilterMenu` is a popover that lists the filter tree. The top level joins its entries with
-"and". A filter group <NewBadge /> is a bordered box with its own rows. The first row of a group reads
+"and". A filter group is a bordered box with its own rows. The first row of a group reads
 "Where". Every later row shows a select with "And" and "Or". The select sets the join of the whole
 group, so all its rows show the same word. A group with one row has no select yet. A group holds
 one more group at most. Each row shows a column, an operator, a value, a trash button, and a drag
@@ -86,7 +86,7 @@ actions.setFilters([
 A row survives when every top-level node matches. A group with `join: "and"` matches when every
 child matches. A group with `join: "or"` matches when any child matches. A group with any other
 `join` value matches like `"and"`. An empty group matches every row. A flat list of `FilterSpec`
-entries is a valid `filterState`. `setFilters` <NewBadge /> drops a group nested deeper than 2 levels, with its rows.
+entries is a valid `filterState`. `setFilters` drops a group nested deeper than 2 levels, with its rows.
 
 A `FilterSpec` has these fields:
 
@@ -97,7 +97,7 @@ A `FilterSpec` has these fields:
 | `value` | `string`, `[string, string]`, or `string[]` | The text to compare, even for number and date columns. `isBetween` takes `[from, to]`. `isAnyOf` and `isNoneOf` take a list of cell texts. `empty` and `notEmpty` take none. |
 | `filterId` | `string` | Optional. A stable key for the filter row. |
 
-A `FilterGroup` <NewBadge /> has these fields:
+A `FilterGroup` has these fields:
 
 | Field | Type | Meaning |
 |---|---|---|
