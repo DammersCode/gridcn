@@ -1301,32 +1301,53 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Load and total announcements are not checked."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
-          "status": "unverified",
-          "note": "Load and total announcements are not checked."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/announce.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },
@@ -1402,12 +1423,18 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
-          "status": "unverified",
-          "note": "Error overlay for page fetches is not checked."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "Z": {
           "status": "supported",
@@ -1416,20 +1443,32 @@
           ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },
@@ -1445,8 +1484,11 @@
           ]
         },
         "PC": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "PS": {
           "status": "gap",
@@ -1459,20 +1501,32 @@
           "note": "Loaded rows only; no server scope."
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },
@@ -1755,20 +1809,32 @@
           ]
         },
         "C": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "SS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "FS": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         },
         "API": {
-          "status": "unverified",
-          "note": "Not verified."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/loading-error.parity.test.tsx",
+            "tests/parity/modes.tsx"
+          ]
         }
       }
     },

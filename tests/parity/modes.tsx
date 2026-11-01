@@ -27,6 +27,8 @@ export type MountOptions = {
   /** Called once in the tree root; its result spreads onto the provider (plugins, hooks that feed props). */
   /** A component rendered inside the grid, for hooks that need the provider. */
   Child?: ComponentType;
+  /** Props of the `DataGridRoot`. */
+  rootProps?: Record<string, unknown>;
   /** Rows the lazy mode loads at mount; default every row. */
   initialLoad?: number;
   useExtra?: () => Record<string, unknown>;
@@ -52,6 +54,8 @@ export type Mounted = {
   setFilters: (filters: FilterNode[]) => void;
   /** The value of a cell by row id, from the store data. */
   cell: (rowId: string, columnId: string) => unknown;
+  /** Merges provider props after mount, the way a parent re-render does. */
+  setProps: (next: Record<string, unknown>) => void;
   /** Moves the pager of the client-pagination mode to a 1-based page. */
   goToPage: (page: number) => void;
   /** Requests the rows `start` to `end` of a lazy mode; a no-op elsewhere. */
@@ -74,7 +78,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     return null;
   }
   const Probe = () => (
-    <DataGridRoot>
+    <DataGridRoot {...options.rootProps}>
       <Capture />
       {options.Child ? <options.Child /> : null}
     </DataGridRoot>
@@ -117,7 +121,9 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     const [filters, setFilters] = useState<FilterNode[]>([]);
     const [search, setSearch] = useState("");
     const hooked = options.useExtra?.() ?? {};
-    const shared = { ...options.props, ...hooked };
+    const [liveProps, setLiveProps] = useState(options.props);
+    propsSetter = (next) => setLiveProps((prev) => ({ ...prev, ...next }));
+    const shared = { ...liveProps, ...hooked };
     sortSetter = (next) => setSorts(next);
     filterSetter = (next) => setFilters(next);
 
@@ -226,6 +232,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     );
   }
 
+  let propsSetter: (next: Record<string, unknown>) => void = () => {};
   let pageSetter: (page: number) => void = () => {};
   let sortSetter: (next: SortSpec[]) => void = () => {};
   let filterSetter: (next: FilterNode[]) => void = () => {};
@@ -267,6 +274,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
       const row = (api!.getState().data as readonly (Row | undefined)[]).find((r) => r?.id === rowId);
       return row ? row[columnId as keyof Row] : undefined;
     },
+    setProps: (next) => act(() => propsSetter(next)),
     goToPage: (page) => act(() => pageSetter(page)),
     load: async (start, end) => {
       if (mode !== "Z") return;
