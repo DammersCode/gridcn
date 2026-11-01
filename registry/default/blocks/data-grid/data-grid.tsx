@@ -51,7 +51,6 @@ export {
   useDataGridActiveCell,
   useDataGridActiveColumn,
   useDataGridCellTypes,
-  useDataGridHasActiveCell,
   useDataGridSelection,
   useDataGridGetSelectionValues,
   useDataGridEditing,
@@ -66,28 +65,19 @@ export {
   useDataGridSortState,
   useDataGridFilterState,
   useDataGridSearchText,
-  useDataGridIsSearchMatch,
   useDataGridRow,
   useDataGridRowId,
   useDataGridRowIds,
   useDataGridRowIdToViewRow,
-  useDataGridRowCount,
-  useDataGridIsRowSelected,
-  useDataGridIsRowChannelSelected,
-  useDataGridIsRowCellSelected,
   useDataGridCellEditingError,
   useDataGridCellState,
   type DataGridCellState,
   useDataGridRowCellState,
   type DataGridRowCellState,
-  useDataGridRowMarkers,
-  useDataGridSelectionConfig,
   useDataGridHiddenCheckedCount,
   useDataGridSelectedRows,
   useDataGridRowSaveStatus,
   useDataGridPendingSaveCount,
-  useDataGridAllRowsSelected,
-  useDataGridHeaderClickBehavior,
   type DataGridSyncProps,
   type DataGridSelectedRows,
   type RowSaveStatus,
@@ -154,7 +144,6 @@ export { applyChange, invertChange } from "./interaction/history";
 
 export {
   DEFAULT_LABELS,
-  deepMergeLabels,
   type DataGridLabels,
   type DeepPartialLabels,
   type DataGridToolbarLabels,
@@ -227,7 +216,6 @@ export type {
   GridBulkValidationError,
   GridValidationErrorEvent,
 } from "./types";
-export { measureTextWidths } from "./columns/measure-column-text";
 export { createFilterMatcher, type SearchMatch } from "./sort-filter";
 
 /** Props for {@link DataGrid}: the sync props (the store's home) plus the root's render/layout props — a prop lives on exactly one surface, so nothing is hand-forwarded. */

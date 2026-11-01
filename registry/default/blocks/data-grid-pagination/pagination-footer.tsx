@@ -34,7 +34,7 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
   className?: string;
   /**
    * i18n override for this footer's strings, deep-merge semantics like core's `labels` prop
-   * (see `deepMergeLabels`). Standalone default since this component renders outside
+   * (deep-merged like the grid labels). Standalone default since this component renders outside
    * `DataGridProvider` in the spec's usage (`<DataGrid /><DataGridPaginationBar /></>` as siblings)
    * and so has no store to read `useDataGridLabels()` from.
    */

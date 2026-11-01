@@ -97,6 +97,7 @@ export {
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   useDataGridSelector,
+  useDataGridSelectionConfig,
   type DataGridStoreState,
 } from "./store";
 

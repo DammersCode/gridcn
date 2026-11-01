@@ -50,3 +50,26 @@ it("keeps `bindingTokens` off the `data-grid-keybindings` entry point", () => {
   expect(dataGridKeybindings).toHaveProperty("BindingChips");
   expect(dataGridKeybindings).not.toHaveProperty("bindingTokens");
 });
+
+it("keeps the removed core hooks and helpers off the `data-grid` barrel", () => {
+  const removed = [
+    "useDataGridRowCount",
+    "useDataGridHasActiveCell",
+    "useDataGridIsSearchMatch",
+    "useDataGridIsRowSelected",
+    "useDataGridIsRowChannelSelected",
+    "useDataGridIsRowCellSelected",
+    "useDataGridAllRowsSelected",
+    "useDataGridHeaderClickBehavior",
+    "useDataGridRowMarkers",
+    "useDataGridSelectionConfig",
+    "deepMergeLabels",
+    "measureTextWidths",
+  ];
+  for (const name of removed) expect(dataGrid, name).not.toHaveProperty(name);
+  expect(dataGridSdk).toHaveProperty("useDataGridSelectionConfig");
+});
+
+it("lists the runtime names of the `data-grid` barrel so an addition is a visible diff", () => {
+  expect(Object.keys(dataGrid).sort()).toMatchSnapshot();
+});
