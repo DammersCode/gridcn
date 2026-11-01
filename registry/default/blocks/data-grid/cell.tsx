@@ -177,10 +177,13 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   }, [isEditing]);
 
   // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
+  // A text field outside the grid (toolbar search) keeps focus while it moves the active cell.
   useLayoutEffect(() => {
     const focusLeftGrid = focusLeftGridRef.current;
     focusLeftGridRef.current = false;
-    if (isActive && !isEditing && !focusLeftGrid) cellRef.current?.focus({ preventScroll: true });
+    const holder = document.activeElement;
+    const typingOutside = holder instanceof HTMLElement && holder.matches("input, textarea, [contenteditable]") && !holder.closest('[role="grid"]');
+    if (isActive && !isEditing && !focusLeftGrid && !typingOutside) cellRef.current?.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 
   // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.

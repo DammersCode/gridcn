@@ -104,6 +104,34 @@ describe("DataGridSearch", () => {
       .toBe("2");
   });
 
+  it("repeated Enter keeps focus in the search input, walks the matches and opens no editor", async () => {
+    const rows = [0, 1, 2, 3].map((i) => ({ id: `m${i}`, name: `match ${i}`, email: `e${i}@example.com`, age: 20 + i }));
+    await renderGrid(rows);
+    const input = page.getByRole("textbox", { name: "Search grid" });
+    await input.fill("match");
+    await expect.element(page.getByText("1/4")).toBeInTheDocument();
+    const activeRow = () => document.querySelector('[data-testid="active-cell"]')?.getAttribute("data-row");
+    for (const row of ["1", "2", "3"]) {
+      await userEvent.keyboard("{Enter}");
+      await expect.poll(activeRow).toBe(row);
+      expect(document.activeElement).toBe(input.element());
+      expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+    }
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}");
+    await expect.poll(activeRow).toBe("2");
+    expect(document.activeElement).toBe(input.element());
+    expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+  });
+
+  it("Enter does nothing while an IME composition is active", async () => {
+    await renderGrid();
+    const input = page.getByRole("textbox", { name: "Search grid" });
+    await input.fill("alic");
+    await expect.element(page.getByText("1/2")).toBeInTheDocument();
+    input.element().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 229, isComposing: true, bubbles: true }));
+    await expect.element(page.getByText("1/2")).toBeInTheDocument();
+  });
+
   it("Escape clears the search", async () => {
     await renderGrid();
     const input = page.getByRole("textbox", { name: "Search grid" });

@@ -10,6 +10,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridSearch } from "@/registry/default/blocks/data-grid-toolbar/search";
 import { useDataGridFindReplace } from "./use-data-grid-find-replace";
+import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import "@/app/global.css";
 
 type Row = { id: string; name: string };
@@ -55,6 +56,25 @@ describe("find and replace in a browser", () => {
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
     await userEvent.keyboard("{Enter}");
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("2 of 3 cells");
+  });
+
+  it("repeated Enter and Shift+Enter in Find keep focus in the field and open no editor", async () => {
+    await render(<Harness />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("needle");
+    const find = page.getByRole("textbox", { name: "Find" });
+    const status = page.getByRole("dialog").getByRole("status");
+    await expect.element(status).toHaveTextContent("1 of 3 cells");
+    for (const label of ["2 of 3 cells", "3 of 3 cells"]) {
+      await userEvent.keyboard("{Enter}");
+      await expect.element(status).toHaveTextContent(label);
+      await expect.element(find).toHaveFocus();
+    }
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}");
+    await expect.element(status).toHaveTextContent("2 of 3 cells");
+    await expect.element(find).toHaveFocus();
+    expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
   });
 
   it("Escape leaves focus alone when the panel was not opened from the grid", async () => {
