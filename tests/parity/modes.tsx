@@ -176,7 +176,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
             extra={{
               ...shared,
               onSave:
-                shared.onSave ??
+                shared["onSave"] ??
                 (async (change: DataChange<Row>) => {
                   saves.push(change);
                   return options.saveAnswer ? options.saveAnswer(change) : undefined;
