@@ -97,6 +97,7 @@ export function checkParity(matrix, { optionNames, root: base }) {
   return problems;
 }
 
+const jsxProse = (text) => text.split(/(`[^`]*`)/).map((part, i) => (i % 2 === 1 ? part : jsxText(part))).join("");
 const ORDER = ["supported", "gap", "n/a", "unverified"];
 const jsxText = (text) => text.replace(/[{}<>&]/g, (c) => `{${JSON.stringify(c)}}`);
 const cellNote = (cell) => (cell.status === "gap" ? cell.note : cell.status === "n/a" ? cell.reason : cell.status === "unverified" && cell.note !== UNVERIFIED ? cell.note : undefined);
@@ -153,9 +154,9 @@ export function renderParityPage(matrix) {
     const notes = matrix.modes.flatMap((m) => {
       const cell = row.cells[m.id];
       const text = cell.status === "gap" ? `Gap: ${cell.note}` : cell.status === "n/a" ? `n/a: ${cell.reason}` : cell.status === "unverified" && cell.note !== UNVERIFIED ? `Not verified: ${cell.note}` : null;
-      return text ? [`- **${m.id}**: ${text}`] : [];
+      return text ? [`- **${m.id}**: ${jsxProse(text)}`] : [];
     });
-    if (row.note) notes.unshift(`- ${row.note}`);
+    if (row.note) notes.unshift(`- ${jsxProse(row.note)}`);
     if (notes.length === 0) continue;
     lines.push(`### ${jsxText(row.feature)}`, "", ...notes, "");
   }

@@ -132,6 +132,12 @@ describe("renderParityPage", () => {
     expect(page).not.toContain("Sort {x}");
   });
 
+  it("escapes braces and angle brackets in notes but not inside code spans", () => {
+    const page = renderParityPage(matrix({ note: "uses {a} and `{b}`", cells: { L: supported, PS: { status: "gap", track: "A", note: "rows < offset" } } }));
+    expect(page).toContain('- uses {"{"}a{"}"} and `{b}`');
+    expect(page).toContain('Gap: rows {"<"} offset');
+  });
+
   it("keeps backticks out of the tooltip note", () => {
     const page = renderParityPage(matrix({ cells: { L: supported, PS: { status: "gap", track: "A", note: "ignores `total`" } } }));
     expect(page).toContain('note={"ignores total"}');
