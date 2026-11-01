@@ -128,8 +128,8 @@ describe("mergeKnownValues", () => {
     expect(known.has("p0-0")).toBe(false);
   });
 
-  it("moves a value that comes back to the newest end", () => {
+  it("keeps the first-seen order when a value comes back", () => {
     const known = mergeKnownValues(new Map([["a", "a"], ["b", "b"]]), [option("a")]);
-    expect([...known.keys()]).toEqual(["b", "a"]);
+    expect([...known.keys()]).toEqual(["a", "b"]);
   });
 });

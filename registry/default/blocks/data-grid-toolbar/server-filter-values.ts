@@ -21,11 +21,10 @@ export type ServerFilterValues = {
 };
 
 /** Reads an untrusted provider response: string labels only, one entry per lowercase key, at most {@link MAX_SET_FILTER_ENTRIES}. `null` when the shape is wrong. */
-/** Adds `options` to `known` and drops the oldest entries beyond `MAX_SET_FILTER_ENTRIES`. */
+/** Adds `options` to `known` and drops the first-seen entries beyond `MAX_SET_FILTER_ENTRIES`. */
 export function mergeKnownValues(known: ReadonlyMap<string, string>, options: readonly ServerFilterOption[]): Map<string, string> {
   const merged = new Map(known);
   for (const option of options) {
-    merged.delete(option.key);
     merged.set(option.key, option.text);
   }
   for (const key of merged.keys()) {
