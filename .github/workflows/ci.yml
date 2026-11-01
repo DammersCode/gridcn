@@ -73,7 +73,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Unit + coverage (pure-lib branch thresholds enforced)
-        run: npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage
+        run: npx vitest run registry tests --exclude "**/*.browser.test.*" --project unit --coverage
 
   browser:
     name: Browser tests

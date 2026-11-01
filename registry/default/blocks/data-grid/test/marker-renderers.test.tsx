@@ -21,7 +21,11 @@ function makeRows(count: number): Row[] {
   return Array.from({ length: count }, (_, i) => ({ id: String(i), name: `Row ${i}`, qty: i }));
 }
 
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  // a press arms a one-shot document click guard that a timer removes; let it expire before the next test clicks
+  await new Promise((resolve) => setTimeout(resolve, 0));
+});
 
 // jsdom performs no layout; drive useRowWindow's viewport math by stubbing clientHeight.
 beforeAll(() => {

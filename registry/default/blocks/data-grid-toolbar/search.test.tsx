@@ -179,12 +179,36 @@ describe("DataGridSearch input rules", () => {
     expect(screen.getByText("1/1")).toBeInTheDocument();
   });
 
-  it("Enter with text pending commits it and does not step through the old matches", () => {
+  it("Enter with text pending commits it and jumps to the first match of the new text, then steps on", () => {
     vi.useFakeTimers();
-    const { input } = renderWith();
-    fireEvent.change(input, { target: { value: "alice" } });
+    let store: ReturnType<typeof useDataGridStoreApi> | null = null;
+    function Probe() {
+      store = useDataGridStoreApi();
+      return null;
+    }
+    const manyRows: Row[] = [
+      { id: "r0", name: "Beta" },
+      { id: "r1", name: "Alpha one" },
+      { id: "r2", name: "Alpha two" },
+    ];
+    render(
+      <DataGridProvider data={manyRows} columns={columns} getRowId={(r) => r.id}>
+        <DataGridSearch />
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+          <Probe />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    const input = screen.getByRole("textbox", { name: "Search grid" });
+    fireEvent.change(input, { target: { value: "alpha" } });
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+    expect(store!.getState().activeCell).toEqual({ col: 0, row: 1 });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+    expect(store!.getState().activeCell).toEqual({ col: 0, row: 2 });
     vi.useRealTimers();
   });
 

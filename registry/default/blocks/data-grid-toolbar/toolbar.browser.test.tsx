@@ -123,6 +123,19 @@ describe("DataGridSearch", () => {
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
   });
 
+  it("Enter right after typing jumps to the first match of the typed text and keeps focus", async () => {
+    const rows = [0, 1, 2].map((i) => ({ id: `m${i}`, name: `match ${i}`, email: `e${i}@example.com`, age: 20 + i }));
+    await renderGrid(rows);
+    const input = page.getByRole("textbox", { name: "Search grid" });
+    await input.click();
+    await userEvent.keyboard("match{Enter}");
+    await expect.poll(() => document.querySelector('[data-testid="active-cell"]')?.getAttribute("data-row")).toBe("0");
+    expect(document.activeElement).toBe(input.element());
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelector('[data-testid="active-cell"]')?.getAttribute("data-row")).toBe("1");
+    expect(document.activeElement).toBe(input.element());
+  });
+
   it("Enter does nothing while an IME composition is active", async () => {
     await renderGrid();
     const input = page.getByRole("textbox", { name: "Search grid" });

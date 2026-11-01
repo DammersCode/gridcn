@@ -18,10 +18,10 @@ import {
   useDataGridLabels,
   useDataGridScrollToCellAt,
   useDataGridSearchText,
-  useDataGridVisibleColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   useDataGridInstanceId,
+  useDataGridStoreApi,
   GRID_ATTR,
   isComposingKey,
   useDataGridInputDebounce,
@@ -73,9 +73,9 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const searchText = useDataGridSearchText();
   const matches = useDataGridSearchMatches();
   const capped = useDataGridSearchCapped();
-  const visibleColumns = useDataGridVisibleColumns();
   const scrollToCell = useDataGridScrollToCellAt();
   const instanceId = useDataGridInstanceId();
+  const storeApi = useDataGridStoreApi();
 
   const providerDebounceMs = useDataGridInputDebounce();
   // the input value is decoupled from the store's debounced searchText, so typing never stalls.
@@ -113,17 +113,18 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
 
   const goToMatch = useCallback(
     (index: number) => {
-      if (matches.length === 0) return;
-      const wrapped = ((index % matches.length) + matches.length) % matches.length;
+      const { searchMatches, visibleColumns: columns } = storeApi.getState();
+      if (searchMatches.length === 0) return;
+      const wrapped = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length;
       setMatchIndex(wrapped);
-      const match = matches[wrapped]!; // wrapped is modulo'd into [0, matches.length)
-      const col = visibleColumns.findIndex((c) => c.id === match.columnId);
+      const match = searchMatches[wrapped]!; // wrapped is modulo'd into [0, searchMatches.length)
+      const col = columns.findIndex((c) => c.id === match.columnId);
       if (col === -1) return;
       const coord = { col, row: match.row };
       actions.setActiveCellAt(coord);
       scrollToCell(coord);
     },
-    [actions, scrollToCell, matches, visibleColumns],
+    [actions, scrollToCell, storeApi],
   );
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -134,9 +135,10 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
       actions.setSearch("");
     } else if (event.key === "Enter") {
       event.preventDefault();
-      // Text still pending: commit it. The matches of the new text arrive next, so there is nothing to step through yet.
-      if (input.inputValue !== searchText) input.flush();
-      else goToMatch(matchIndex + (event.shiftKey ? -1 : 1));
+      if (input.inputValue !== searchText) {
+        input.flush();
+        goToMatch(0);
+      } else goToMatch(matchIndex + (event.shiftKey ? -1 : 1));
     }
   };
 

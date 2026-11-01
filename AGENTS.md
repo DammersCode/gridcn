@@ -204,7 +204,7 @@ All green before committing — a red gate gets fixed, not committed around. Run
 1. `pnpm types:check`, then `pnpm types:check:ts5` (consumers run TypeScript 5.9, which infers some types differently from the repo's TypeScript 7)
 2. `pnpm lint`
 3. `pnpm lint:typed`
-4. `npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage`
+4. `npx vitest run registry tests --exclude "**/*.browser.test.*" --project unit --coverage`
 5. `npx vitest run --project browser --bail=1` (about 2 minutes; `--bail=1` stops a failure cascade early)
 
 Fast check while you work: `npx vitest run <file> --project unit` for a unit file, `npx vitest run <file> --project browser` for a browser file. Run the full gates before you commit.

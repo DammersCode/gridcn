@@ -77,6 +77,18 @@ describe("find and replace in a browser", () => {
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
   });
 
+  it("Enter right after typing jumps to the first match of the typed text, then steps on", async () => {
+    await render(<Harness />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("needle{Enter}");
+    const status = page.getByRole("dialog").getByRole("status");
+    await expect.element(status).toHaveTextContent("1 of 3 cells");
+    await userEvent.keyboard("{Enter}");
+    await expect.element(status).toHaveTextContent("2 of 3 cells");
+    await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
+  });
+
   it("Next match button keeps focus on the button and opens no editor", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
