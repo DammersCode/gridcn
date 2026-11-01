@@ -6,7 +6,13 @@ icon: Timer
 
 Typing fires a change on every key. `useDebounce` delays a value until it stops changing. `useDebouncedInput` does the same for a text input and adds the rules that make it safe: no lost text, no commit in the middle of an IME composition. The item has no dependency on the grid.
 
-<ComponentPreview name="use-debounce-demo" />
+Pass the input a value and a commit callback, and spread the props:
+
+```tsx
+const input = useDebouncedInput(query, setQuery);
+
+<input {...input.inputProps} />
+```
 
 <InstallCommand item="use-debounce" />
 

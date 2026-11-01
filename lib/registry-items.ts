@@ -52,7 +52,6 @@ export type RegistryItemName =
   | "data-grid-keybindings-demo"
   | "data-grid-large-data-demo"
   | "data-grid-lazy-demo"
-  | "use-debounce-demo"
   | "data-grid-open-ended-demo"
   | "data-grid-server-selection-demo"
   | "data-grid-write-ack-demo"

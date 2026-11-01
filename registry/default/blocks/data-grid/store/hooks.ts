@@ -680,12 +680,12 @@ export function useDataGridInputDebounce(): number {
   return useDataGridStore((s) => s.inputDebounceMs ?? 200);
 }
 
-/** The write status of a row whose `onDataChange` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
+/** The write status of a row whose `onSave` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
 export function useDataGridRowWriteStatus(rowId: string): RowWriteStatus | undefined {
   return useDataGridStore((s) => s.writeStatus.get(rowId));
 }
 
-/** The number of acknowledged changes (an `onDataChange` promise) that have not settled. */
+/** The number of acknowledged changes (an `onSave` promise) that have not settled. */
 export function useDataGridPendingWriteCount(): number {
   return useDataGridStore((s) => s.pendingWriteCount);
 }

@@ -23,8 +23,11 @@ mirror the change there.
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
-| spec | What the user chose: sort, filter, search, and page. The grid tracks it. The mode decides who applies it. | |
+| spec | What the user chose: sort, filter, and search. `ServerSpec` carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
+| result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
+| row count | The size of the result. `total` is the option a hook takes; `totalRowCount` is the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
+| all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 
@@ -87,5 +90,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
+| write acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
+| write status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowWriteStatus` reads it. | save state |
 | save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

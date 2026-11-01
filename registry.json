@@ -1333,17 +1333,6 @@
          ]
       },
       {
-         "name": "use-debounce-demo",
-         "type": "registry:example",
-         "title": "Use Debounce Demo",
-         "description": "A text input with useDebouncedInput and a line that shows the committed value: the echo follows once typing pauses, and Enter, blur, and Escape act at once.",
-         "author": "gridcn",
-         "registryDependencies": [
-            "DammersCode/gridcn/use-debounce",
-            "input"
-         ],
-         "files": [
-            {
                "path": "registry/default/examples/use-debounce-demo.tsx",
                "type": "registry:example",
                "target": "components/use-debounce-demo.tsx"
