@@ -7,10 +7,10 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  useDataGridPendingWriteCount,
+  useDataGridPendingSaveCount,
   type DataChange,
-  type WriteAck,
-  type WriteRejectedContext,
+  type SaveAck,
+  type SaveRejectedContext,
 } from "@/registry/default/blocks/data-grid/data-grid";
 
 type Row = { id: string; name: string; city: string };
@@ -25,7 +25,7 @@ const columns = defineColumns<Row>()([
 const initialRows: Row[] = Array.from({ length: 12 }, (_, i) => ({ id: `row-${i}`, name: `Person ${i}`, city: i % 2 ? "Berlin" : "Hamburg" }));
 
 /** A server that refuses a name shorter than three characters and accepts everything else. */
-async function save(change: DataChange<Row>): Promise<WriteAck<Row>> {
+async function save(change: DataChange<Row>): Promise<SaveAck<Row>> {
   await new Promise((resolve) => setTimeout(resolve, SAVE_LATENCY_MS));
   const rejected = change.ops.flatMap((op) =>
     op.type === "update" && op.row.name.trim().length < 3 ? [{ rowId: op.rowId, columnId: "name", message: `"${op.row.name}" is too short` }] : [],
@@ -34,7 +34,7 @@ async function save(change: DataChange<Row>): Promise<WriteAck<Row>> {
 }
 
 function PendingCount(): ReactNode {
-  const pending = useDataGridPendingWriteCount();
+  const pending = useDataGridPendingSaveCount();
   return <span className="text-sm text-muted-foreground">{pending === 0 ? "All changes saved" : `Saving ${pending} change${pending === 1 ? "" : "s"}…`}</span>;
 }
 
@@ -49,9 +49,9 @@ export default function DataGridWriteAckDemo(): ReactNode {
         columns={columns}
         getRowId={(row) => row.id}
         onSave={save}
-        onWriteRejected={({ rejected }: WriteRejectedContext<Row>) => setErrors((prev) => [...rejected.map((r) => r.message ?? "Refused"), ...prev].slice(0, 3))}
+        onSaveRejected={({ rejected }: SaveRejectedContext<Row>) => setErrors((prev) => [...rejected.map((r) => r.message ?? "Refused"), ...prev].slice(0, 3))}
       >
-        <div className="[&_[data-write-status=failed]]:bg-destructive/10 [&_[data-write-status=saving]]:opacity-60">
+        <div className="[&_[data-save-status=failed]]:bg-destructive/10 [&_[data-save-status=saving]]:opacity-60">
           <DataGridRoot className="h-[320px]">
             <DataGridHeader />
             <DataGridBody />

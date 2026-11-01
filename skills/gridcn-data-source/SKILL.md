@@ -95,7 +95,7 @@ Applies to streaming on top of either:
 ## Saving and refusals
 
 - Send changes to the server from `onSave(change)`, not from `onDataChange`. `onDataChange` keeps your state in step and returns nothing; the revert of a refusal reaches it with `source: "rollback"` exactly once.
-- Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-write-status`), reverts only the refused entries, and calls `onWriteRejected({ change, rejected })` for the toast.
+- Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-save-status`), reverts only the refused entries, and calls `onSaveRejected({ change, rejected })` for the toast.
 - `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.
 
 ## Selection UI and text inputs

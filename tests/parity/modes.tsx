@@ -4,7 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import type { ColumnDef, DataChange, FilterNode, SortSpec } from "@/registry/default/blocks/data-grid/types";
-import type { WriteAck } from "@/registry/default/blocks/data-grid/store/write-ack";
+import type { SaveAck } from "@/registry/default/blocks/data-grid/store/write-ack";
 import { useDataGridPagination } from "@/registry/default/blocks/data-grid-pagination/use-data-grid-pagination";
 import { useDataGridLazyRows } from "@/registry/default/blocks/data-grid-lazy/use-data-grid-lazy-rows";
 
@@ -33,7 +33,7 @@ export type MountOptions = {
   initialLoad?: number;
   useExtra?: () => Record<string, unknown>;
   /** The writes an `onSave` of the `API` mode answers; default accepts everything. */
-  saveAnswer?: (change: DataChange<Row>) => Promise<WriteAck<Row>> | WriteAck<Row>;
+  saveAnswer?: (change: DataChange<Row>) => Promise<SaveAck<Row>> | SaveAck<Row>;
 };
 
 export type Mounted = {

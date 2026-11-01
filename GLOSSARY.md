@@ -92,7 +92,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
-| write acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
-| write status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowWriteStatus` reads it. | save state |
+| save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
+| save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
 | save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

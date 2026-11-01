@@ -1,4 +1,4 @@
-# Write acknowledgement
+# Save acknowledgement
 
 ## Problem
 
@@ -10,22 +10,22 @@ server accepted. A cell error from a 422 stays after a whole-row rollback.
 
 The state channel and the save channel are separate. `onDataChange(next, change)` returns nothing and
 carries every change of `data` once, rollbacks included. `onSave(change)` is the only place that returns an
-ack; it is never called for `source: "rollback"` or `source: "stream"`. `WriteAck<TData>` and
-`WriteRejection<TData>` carry an optional `current` row: the revert puts it in place of the refused row
+ack; it is never called for `source: "rollback"` or `source: "stream"`. `SaveAck<TData>` and
+`SaveRejection<TData>` carry an optional `current` row: the revert puts it in place of the refused row
 when no newer write to the row is pending; a refused delete restores it, a refused insert removes the row;
 a `current` whose id differs from `rowId` (or whose `getRowId` throws) is dropped with one development warning. `current` applies only while the refused change is the latest write to the row: a newer write, pending or already settled, wins. A refused move keeps its position revert; `current` replaces content only. Order after the
 outermost write: `onDataChange`, `onSave`, observers, each isolated. A `readOnly` grid skips the revert and
-`current`, warns once, and still calls `onWriteRejected`. Undo and redo (`"history"`) reach `onSave`.
+`current`, warns once, and still calls `onSaveRejected`. Undo and redo (`"history"`) reach `onSave`.
 
 ## Contract
 
 `onDataChange` may return a promise of an acknowledgement. A `void` return works as before.
 
 ```ts
-type WriteRejection = { rowId: string; columnId?: string; message?: string };
-type WriteAck = void | { rejected: readonly WriteRejection[] };
-onDataChange?: (next, change) => void | Promise<WriteAck>;
-onWriteRejected?: (ctx: { change: DataChange; rejected: readonly WriteRejection[] }) => void;
+type SaveRejection = { rowId: string; columnId?: string; message?: string };
+type SaveAck = void | { rejected: readonly SaveRejection[] };
+onDataChange?: (next, change) => void | Promise<SaveAck>;
+onSaveRejected?: (ctx: { change: DataChange; rejected: readonly SaveRejection[] }) => void;
 ```
 
 - A promise that resolves with `void` or `{ rejected: [] }` accepts the whole change.
@@ -38,8 +38,8 @@ onWriteRejected?: (ctx: { change: DataChange; rejected: readonly WriteRejection[
 
 ## Grid behavior
 
-1. At emit, the rows of the change become `saving`: `data-write-status="saving"` on the row element and
-   `useDataGridRowWriteStatus(rowId)`. `useDataGridPendingWriteCount()` is the number of unsettled
+1. At emit, the rows of the change become `saving`: `data-save-status="saving"` on the row element and
+   `useDataGridRowSaveStatus(rowId)`. `useDataGridPendingSaveCount()` is the number of unsettled
    acknowledged changes. A row with several pending changes stays `saving` until all settle.
 2. At settle, the store is read again. Each rejected op is reverted with the history add-on's
    rollback builder (moved to the core): a cell reverts only while it still holds the rejected
@@ -48,9 +48,9 @@ onWriteRejected?: (ctx: { change: DataChange; rejected: readonly WriteRejection[
    `reverts: change` (the `DataChange` it undoes). It runs the normal pipeline: one `onDataChange`
    (never acknowledged), cell errors of the reverted cells clear in the same step, history ignores it
    except that `useDataGridHistory` drops the entry named by `reverts`.
-3. The rows of a rejected change are marked `failed` (`data-write-status="failed"`) until the next write
-   to the row or `actions.clearWriteStatus()`.
-4. `onWriteRejected({ change, rejected })` runs once per rejected change, after the revert, isolated
+3. The rows of a rejected change are marked `failed` (`data-save-status="failed"`) until the next write
+   to the row or `actions.clearSaveStatus()`.
+4. `onSaveRejected({ change, rejected })` runs once per rejected change, after the revert, isolated
    with try/catch. It is the place for a toast. The message of a rejection is for that callback.
 5. An ack that settles after the grid unmounted does nothing. Two refused writes to one cell end at the value before the first.
 6. A `readOnly` grid at settle skips the revert (no write path may run) and warns once in development;
@@ -78,5 +78,5 @@ render it. Bounds: the grid reads at most 10,000 rejections per ack and ignores 
 
 Unit (store): sync void unchanged; pending then success; partial rejection reverts only the named
 rows; whole rejection; cell-level `columnId`; superseded write survives; readOnly at settle; rollback is
-not acknowledged; `onWriteRejected` and a throwing callback; status map and count; `clearWriteStatus`;
+not acknowledged; `onSaveRejected` and a throwing callback; status map and count; `clearSaveStatus`;
 history entry dropped; a promise that resolves after unmount. Browser: row attribute in the demo.

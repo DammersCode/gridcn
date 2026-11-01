@@ -18,13 +18,13 @@ describe.each(ALL_MODES)("onSave write-through in mode %s", (mode) => {
   });
 
   it("a refused save reverts only the refused row and reports it", async () => {
-    const onWriteRejected = vi.fn();
+    const onSaveRejected = vi.fn();
     const onSave = vi.fn(async () => ({ rejected: [{ rowId: "r1", message: "no" }] }));
-    const grid = await mountMode(mode, { props: { onSave, onWriteRejected } });
+    const grid = await mountMode(mode, { props: { onSave, onSaveRejected } });
     edit(grid, "r1", 31);
     await grid.settle();
     expect(grid.cell("r1", "n")).toBe(1);
-    expect(onWriteRejected).toHaveBeenCalledTimes(1);
+    expect(onSaveRejected).toHaveBeenCalledTimes(1);
     expect(grid.changes.at(-1)?.source).toBe("rollback");
   });
 

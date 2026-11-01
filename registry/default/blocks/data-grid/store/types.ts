@@ -38,8 +38,8 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
-import type { RowWriteStatus, WriteAck, WriteRejectedContext } from "./write-ack";
-export type { RowWriteStatus, WriteAck, WriteRejectedContext, WriteRejection } from "./write-ack";
+import type { RowSaveStatus, SaveAck, SaveRejectedContext } from "./write-ack";
+export type { RowSaveStatus, SaveAck, SaveRejectedContext, SaveRejection } from "./write-ack";
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -109,16 +109,19 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Saves a change on a server. Runs once per change after `onDataChange`, for every `source` except
    * `"rollback"` (the revert of a refusal) and `"stream"` (a server push must not echo back). Return a promise
-   * to acknowledge the change: it resolves with nothing (accepted) or `{ rejected }` (see {@link WriteAck}),
+   * to acknowledge the change: it resolves with nothing (accepted) or `{ rejected }` (see {@link SaveAck}),
    * or rejects (the whole change is refused). While the promise is pending the rows are `saving`. A refusal
    * reverts the refused entries through `onDataChange` with `source: "rollback"`.
+   *
+   * Call order: `onDataChange`, `onSave`, plugin observers. After a refusal: the rollback `onDataChange`,
+   * then `onSaveRejected`.
    */
-  onSave?: (change: DataChange<TData>) => void | Promise<WriteAck<TData>>;
+  onSave?: (change: DataChange<TData>) => void | Promise<SaveAck<TData>>;
   /**
-   * Fired once per acknowledged change that the server refused, after the grid reverted it; see {@link WriteAck}.
+   * Fired once per acknowledged change that the server refused, after the grid reverted it; see {@link SaveAck}.
    * A throw is logged and isolated.
    */
-  onWriteRejected?: (ctx: WriteRejectedContext<TData>) => void;
+  onSaveRejected?: (ctx: SaveRejectedContext<TData>) => void;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
    * (edit, paste, fill, delete-contents, updateCells/updateRows) — the row already has ALL of the
@@ -685,9 +688,9 @@ export type DataGridStoreState = Omit<
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
   /** Rows with an acknowledged write in flight (`"saving"`) or refused and reverted (`"failed"`). Empty when `onSave` returns no promise. */
-  writeStatus: ReadonlyMap<string, RowWriteStatus>;
+  saveStatus: ReadonlyMap<string, RowSaveStatus>;
   /** Acknowledged changes whose promise has not settled. */
-  pendingWriteCount: number;
+  pendingSaveCount: number;
   /** `data` is a window of a larger result of this size (`null`: unknown); `undefined` when `data` is the whole result. */
   totalRowCount: number | null | undefined;
   enableColumnSelection: boolean;
@@ -924,7 +927,7 @@ export type DataGridActions = {
   selectAllMatching(): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
-  clearWriteStatus(): void;
+  clearSaveStatus(): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;
   /**
@@ -1165,7 +1168,7 @@ export type DataGridInternalActions = {
   _releasePluginClaims(): void;
   /** Marks the grid mounted again after a dev double-mount cleanup. */
   _armWrites(): void;
-  /** Marks the grid unmounted: a late write acknowledgement does nothing. */
+  /** Marks the grid unmounted: a late save acknowledgement does nothing. */
   _disposeWrites(): void;
   /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
@@ -1319,6 +1322,6 @@ export type DataGridRowCellState = {
   /** This row's currently-flashing columns (transient write-pulse keys), or null when none — same zero-render contract as `searchMatchCols`. */
   flashingCols: ReadonlySet<number> | null;
   selectedColRanges: readonly ColRange[];
-  /** The write status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
-  writeStatus: RowWriteStatus | undefined;
+  /** The save status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
+  saveStatus: RowSaveStatus | undefined;
 };

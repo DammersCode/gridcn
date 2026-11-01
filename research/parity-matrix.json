@@ -1067,7 +1067,7 @@
         "onDataChange",
         "readOnly",
         "onSave",
-        "onWriteRejected"
+        "onSaveRejected"
       ],
       "cells": {
         "L": {

@@ -28,8 +28,8 @@ import {
 } from "./commit";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { buildRollback } from "../interaction/rollback";
-import { readRejections, refusedOps, type RowWriteStatus, type WriteAck, type WriteRejection } from "./write-ack";
-import { EMPTY_WRITE_STATUS } from "./write-ack";
+import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection } from "./write-ack";
+import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
@@ -87,7 +87,7 @@ export type DataWriteContext = {
   /** The grid's imperative handle, handed to plugin `onDataChange` observers; set at store creation, before any write can run. */
   pluginApi: DataGridApi<unknown> | null;
   /** Tracks the promise `onSave` returned; set by {@link createDataWriteActions}. */
-  trackWrite: ((change: DataChange<unknown>, result: PromiseLike<WriteAck>) => void) | null;
+  trackWrite: ((change: DataChange<unknown>, result: PromiseLike<SaveAck>) => void) | null;
   /** Set while the grid is unmounted: a late ack neither reverts nor calls back. */
   disposed: boolean;
 };
@@ -355,7 +355,7 @@ export type DataWriteActions = Pick<
   | "reorderRows"
   | "moveRowsBy"
   | "commitChange"
-  | "clearWriteStatus"
+  | "clearSaveStatus"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
@@ -368,7 +368,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const latestWriteOfRow = new Map<string, number>();
   const failedRows = new Set<string>();
   let writeSeq = 0;
-  let pendingWrites = 0;
+  let pendingSaves = 0;
   let warnedReadOnlyRevert = false;
   // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
   const refusedPrev = new Map<string, Map<unknown, unknown>>();
@@ -395,7 +395,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const usableCurrentRows = (
     s: DataGridStoreState,
     change: DataChange<unknown>,
-    rejected: readonly WriteRejection[],
+    rejected: readonly SaveRejection[],
     seq: number,
     deleteOps: ReadonlyMap<string, { index: number }>,
   ): Map<string, unknown> => {
@@ -414,7 +414,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (currentId !== rowId) {
         if (!warnedCurrentRowId) {
           warnedCurrentRowId = true;
-          warnDev(`WriteRejection.current for row "${rowId}" has another id, so it was ignored and the change was reverted in place`);
+          warnDev(`SaveRejection.current for row "${rowId}" has another id, so it was ignored and the change was reverted in place`);
         }
         continue;
       }
@@ -438,12 +438,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     return ops;
   };
-  const publishWriteStatus = (): void => {
-    const status = new Map<string, RowWriteStatus>();
+  const publishSaveStatus = (): void => {
+    const status = new Map<string, RowSaveStatus>();
     for (const rowId of failedRows) status.set(rowId, "failed");
     for (const rowId of pendingByRow.keys()) status.set(rowId, "saving");
     for (const rowId of latestWriteOfRow.keys()) if (!status.has(rowId)) latestWriteOfRow.delete(rowId);
-    set({ writeStatus: status.size === 0 ? EMPTY_WRITE_STATUS : status, pendingWriteCount: pendingWrites });
+    set({ saveStatus: status.size === 0 ? EMPTY_SAVE_STATUS : status, pendingSaveCount: pendingSaves });
   };
   ctx.trackWrite = (change, result) => {
     const rowIds = [...new Set(change.ops.map((op) => op.rowId))];
@@ -453,22 +453,22 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       latestWriteOfRow.set(rowId, seq);
       failedRows.delete(rowId);
     }
-    pendingWrites += 1;
-    publishWriteStatus();
-    const settle = (ack: WriteAck, error: unknown, failed: boolean): void => {
+    pendingSaves += 1;
+    publishSaveStatus();
+    const settle = (ack: SaveAck, error: unknown, failed: boolean): void => {
       if (ctx.disposed) return;
       for (const rowId of rowIds) {
         const left = (pendingByRow.get(rowId) ?? 1) - 1;
         if (left > 0) pendingByRow.set(rowId, left);
         else pendingByRow.delete(rowId);
       }
-      pendingWrites -= 1;
+      pendingSaves -= 1;
       const rejected = readRejections(change, ack, error, failed);
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
       const refusedRows = new Set(rejected.map((entry) => entry.rowId));
       for (const rowId of rowIds) if (!refusedRows.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
       if (rejected.length === 0) {
-        publishWriteStatus();
+        publishSaveStatus();
         return;
       }
       const s = get();
@@ -497,13 +497,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
         failedRows.add(rowId);
       }
-      publishWriteStatus();
-      const onWriteRejected = get().onWriteRejected;
-      if (!onWriteRejected) return;
+      publishSaveStatus();
+      const onSaveRejected = get().onSaveRejected;
+      if (!onSaveRejected) return;
       try {
-        onWriteRejected({ change, rejected });
+        onSaveRejected({ change, rejected, error: failed ? error : null });
       } catch (callbackError) {
-        console.error("[data-grid] onWriteRejected threw:", callbackError);
+        console.error("[data-grid] onSaveRejected threw:", callbackError);
       }
     };
     result.then(
@@ -1183,10 +1183,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (!canMoveRows(s)) return false;
       return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
     },
-    clearWriteStatus() {
+    clearSaveStatus() {
       if (failedRows.size === 0) return;
       failedRows.clear();
-      publishWriteStatus();
+      publishSaveStatus();
     },
     commitChange(change) {
       const s = get();

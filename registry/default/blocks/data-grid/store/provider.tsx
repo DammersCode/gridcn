@@ -112,7 +112,7 @@ const CONFIG_KEYS = [
   "onBeforeDeleteRows",
   "inputDebounceMs",
   "onSave",
-  "onWriteRejected",
+  "onSaveRejected",
   "fetchFilterValues",
   "enableColumnSelection",
   "enableRangeSelection",

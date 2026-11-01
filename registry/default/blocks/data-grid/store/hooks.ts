@@ -21,7 +21,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
-import type { RowWriteStatus } from "./write-ack";
+import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
@@ -566,10 +566,10 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  const rowId = s.writeStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
-  const writeStatus = rowId === undefined ? undefined : s.writeStatus.get(rowId);
+  const rowId = s.saveStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
+  const saveStatus = rowId === undefined ? undefined : s.saveStatus.get(rowId);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, writeStatus };
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -598,7 +598,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingSession === b.editingSession &&
     a.editingError === b.editingError &&
     a.editingRejectionCount === b.editingRejectionCount &&
-    a.writeStatus === b.writeStatus &&
+    a.saveStatus === b.saveStatus &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&
@@ -683,14 +683,14 @@ export function useDataGridInputDebounce(): number {
   return useDataGridStore((s) => s.inputDebounceMs ?? 200);
 }
 
-/** The write status of a row whose `onSave` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
-export function useDataGridRowWriteStatus(rowId: string): RowWriteStatus | undefined {
-  return useDataGridStore((s) => s.writeStatus.get(rowId));
+/** The save status of a row whose `onSave` promise is pending (`"saving"`) or was refused and reverted (`"failed"`); `undefined` otherwise. */
+export function useDataGridRowSaveStatus(rowId: string): RowSaveStatus | undefined {
+  return useDataGridStore((s) => s.saveStatus.get(rowId));
 }
 
 /** The number of acknowledged changes (an `onSave` promise) that have not settled. */
-export function useDataGridPendingWriteCount(): number {
-  return useDataGridStore((s) => s.pendingWriteCount);
+export function useDataGridPendingSaveCount(): number {
+  return useDataGridStore((s) => s.pendingSaveCount);
 }
 
 /** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */

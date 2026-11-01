@@ -128,13 +128,13 @@ Send the spec you already hold with the ids. The server evaluates and bounds bot
 <NewBadge />
 
 Send an edit to your API from `onSave(change)`. Return a promise that resolves with the rows the server
-refused. The grid marks the rows `saving`, reverts only the refused ones, and calls `onWriteRejected`:
+refused. The grid marks the rows `saving`, reverts only the refused ones, and calls `onSaveRejected`:
 
 ```tsx
 <DataGridProvider
   onDataChange={(next) => setRows(next as Order[])}
   onSave={async (change) => ({ rejected: await api.saveOrders(change.ops) })}
-  onWriteRejected={({ rejected }) => toast.error(rejected[0]?.message ?? "Refused")}
+  onSaveRejected={({ rejected }) => toast.error(rejected[0]?.message ?? "Refused")}
 />
 ```
 
