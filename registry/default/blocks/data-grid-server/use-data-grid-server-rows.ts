@@ -67,7 +67,7 @@ export type UseDataGridServerRowsResult<TData> = {
   error: unknown;
   /** Repeats the request that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the current page again and keeps the rows on screen until the answer lands. */
+  /** Fetches the current page again and keeps the rows on screen until the answer lands. Rows with a pending save and the row under an edit keep their value, so call it after the `onSave` promise settles to pick up server-computed fields. */
   refresh: () => void;
 };
 

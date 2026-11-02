@@ -90,7 +90,8 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   retry: () => void;
   /**
    * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
-   * source refetches from the first block up to the rendered rows. Rows with a pending save and the row under an edit keep their value.
+   * source refetches from the first block up to the rendered rows. Rows with a pending save and the row under an edit keep their value, so call it after the `onSave` promise settles
+   * (or return the stored row through the save acknowledgement) to pick up server-computed fields.
    */
   refresh: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
@@ -138,12 +139,14 @@ type Core<TData> = {
   warned: Set<string>;
   /** The protected rows of the running refresh; `null` outside one. */
   snapshot: RowSnapshot<TData> | null;
+  /** Request keys the running refresh started; its snapshot lives until none is in flight or failed. */
+  refreshKeys: Set<string>;
   /** Slots a protected row moved away from; `core.loaded` stops claiming them. */
   cleared: Set<number>;
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), snapshot: null, cleared: new Set() };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), snapshot: null, refreshKeys: new Set(), cleared: new Set() };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -156,7 +159,10 @@ function scheduleFrame(callback: () => void): () => void {
 }
 
 function endRefreshWhenSettled<TData>(core: Core<TData>) {
-  if (core.inFlight.size === 0 && core.failed.size === 0 && core.pending.length === 0 && core.seq.refresh === null) core.snapshot = null;
+  if (core.snapshot === null || core.pending.length > 0 || core.seq.refresh !== null) return;
+  for (const key of core.refreshKeys) if (core.inFlight.has(key) || core.failed.has(key)) return;
+  core.snapshot = null;
+  core.refreshKeys.clear();
 }
 
 function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () => void) {
@@ -255,6 +261,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.failed.clear();
       core.pending.length = 0;
       core.snapshot = null;
+      core.refreshKeys.clear();
       core.cleared.clear();
       core.cancelFrame?.();
       core.cancelFrame = null;
@@ -333,6 +340,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         core.failed.clear();
         core.pending.length = 0;
         core.snapshot = null;
+        core.refreshKeys.clear();
         core.cleared.clear();
         core.cancelFrame?.();
         core.cancelFrame = null;
@@ -374,6 +382,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (core.inFlight.has(key)) return;
       const controller = new AbortController();
       core.inFlight.set(key, { range, controller });
+      if (core.seq.refresh !== null) core.refreshKeys.add(key);
       setLoading(true);
       const settle = () => {
         if (core.inFlight.get(key)?.controller !== controller) return;
@@ -430,8 +439,13 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       }
       if (!core.ready || core.count === null) return;
       const size = blockSize();
-      const expanded = expandRange(range, { overscan: overscanOf(), batchSize: size, total: core.count });
+      const expanded = expandRange(range, { overscan: overscanOf(), blockSize: size, total: core.count });
       if (rangeSize(expanded) === 0) return;
+      for (const key of core.refreshKeys) {
+        const failure = core.failed.get(key);
+        if (failure && (failure.range.end <= expanded.start || failure.range.start >= expanded.end)) core.refreshKeys.delete(key);
+      }
+      endRefreshWhenSettled(core);
       const covered = [...core.loaded, ...Array.from(core.inFlight.values(), (entry) => entry.range)];
       for (const gap of subtractRanges(expanded, covered)) {
         for (const block of chunkRange(gap, size)) runFetch(block);
@@ -506,9 +520,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const protectRows = useCallback(
     (core: Core<TData>) => {
       const guarded = protectedRows();
-      const carried: RowSnapshot<TData> = new Map(core.snapshot ?? []);
-      core.snapshot = guarded === null && carried.size === 0 ? null : carried;
-      if (guarded === null) return;
+      core.refreshKeys.clear();
+      if (guarded === null) {
+        core.snapshot = null;
+        return;
+      }
+      const carried: RowSnapshot<TData> = new Map();
+      for (const [id, entry] of core.snapshot ?? []) if (guarded.has(id)) carried.set(id, entry);
+      core.snapshot = carried;
       const idOf = live.current.options.getRowId;
       const ranges = core.loaded;
       setRows((prev) => {
@@ -550,12 +569,15 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       runFetch({ start: 0, end: size });
       return;
     }
-    const keep = core.lastWindow ? expandRange(core.lastWindow, { overscan: overscanOf(), batchSize: size, total: core.count! }) : { start: 0, end: Math.min(size, core.count!) };
+    const keep = core.lastWindow ? expandRange(core.lastWindow, { overscan: overscanOf(), blockSize: size, total: core.count! }) : { start: 0, end: Math.min(size, core.count!) };
     abortRequests();
     core.failed.clear();
     setError(null);
     for (const outside of subtractRanges({ start: 0, end: core.count! }, [keep])) evict(outside);
-    for (const block of chunkRange(keep, size)) runFetch(block);
+    for (const block of chunkRange(keep, size)) {
+      core.refreshKeys.add(rangeKey(block));
+      runFetch(block);
+    }
   }, [getCore, runFetch, evict, abortRequests, blockSize, overscanOf, guardMissing, warn, commit, protectRows]);
 
   const getLoadedRanges = useCallback(() => getCore().loaded.slice(), [getCore]);

@@ -34,7 +34,8 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
   });
   let server!: UseDataGridServerRowsScrollResult<Row>;
   let store!: StoreApi<DataGridStoreState>;
-  const onSave = (_change: DataChange<Row>) => new Promise<void>(() => {});
+  const saves: Array<() => void> = [];
+  const onSave = (_change: DataChange<Row>) => new Promise<void>((resolve) => saves.push(resolve));
   function Probe() {
     store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
     return null;
@@ -54,6 +55,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
     server: () => server,
     state: () => store.getState(),
     held,
+    saves,
     setShift: (next: number) => (shift = next),
     setSuffix: (next: string) => (suffix = next),
     holdAnswers: () => (hold = true),
@@ -164,6 +166,47 @@ describe("a retried refresh block", () => {
     await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
     expect(t.state().saveStatus.get("r3")).toBe("saving");
     expect(t.nameOf("r3")).toBe("Saved");
+  });
+});
+
+describe("the end of a refresh snapshot", () => {
+  it("does not outlive a failed refresh block that nobody retried", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    expect(t.state().saveStatus.get("r3")).toBeUndefined();
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.land(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.nameOf("r3")).toBe("Person 3!"));
+  });
+
+  it("collects nothing for edits made after the refresh settled", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    act(() => t.server().refresh());
+    await t.ready();
+    await waitFor(() => expect(t.server().loading).toBe(false));
+    const collected: unknown[] = [];
+    const original = Map.prototype.set;
+    vi.spyOn(Map.prototype, "set").mockImplementation(function (this: Map<unknown, unknown>, key: unknown, value: unknown) {
+      if (typeof value === "object" && value !== null && "row" in value && "index" in value) collected.push(key);
+      return original.call(this, key, value);
+    });
+    for (let i = 5; i < 15; i++) act(() => t.state().actions.commitCellValue({ rowId: `r${i}`, columnId: "name" }, `Edit ${i}`));
+    expect(collected).toEqual([]);
   });
 });
 

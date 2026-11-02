@@ -12,14 +12,14 @@ function rangesAdjacentOrOverlapping(a: RowRange, b: RowRange): boolean {
 
 /**
  * Expands `range` by `overscan` rows on each side, then rounds outward so both edges land on a
- * `batchSize` boundary — small scrolls request the same batch repeatedly instead of a slightly
+ * `blockSize` boundary — small scrolls request the same batch repeatedly instead of a slightly
  * different range every tick (spec: "round ranges up so tiny scrolls don't spam requests").
  * Clamps to `[0, total]`.
  */
-export function expandRange(range: RowRange, opts: { overscan: number; batchSize: number; total?: number }): RowRange {
-  const { overscan, batchSize, total = Infinity } = opts;
+export function expandRange(range: RowRange, opts: { overscan: number; blockSize: number; total?: number }): RowRange {
+  const { overscan, blockSize, total = Infinity } = opts;
   const withOverscan = { start: range.start - overscan, end: range.end + overscan };
-  const batch = Math.max(1, batchSize);
+  const batch = Math.max(1, blockSize);
   const start = Math.floor(withOverscan.start / batch) * batch;
   const end = Math.ceil(withOverscan.end / batch) * batch;
   return {

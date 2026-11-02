@@ -33,7 +33,7 @@ Rules that make this work, and break silently if skipped:
 - **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. The hook sends `searchText` in `spec` to `fetchRows`.
 - **A changed spec starts the blocks over.** `fetchRows` receives the spec of its request. Control it with `spec` and `onSpecChange` (for example from URL state); a content change restarts, an equal spec does not.
 - **Return `totalRowCount` for random access.** A first answer with a cursor, or with neither a count nor a cursor, makes the source sequential: resolve `{ rows, nextCursor }` or `{ rows, hasMore }`.
-- **`server.refresh()` refetches the rendered blocks in place** and keeps rows with a pending save and the row under an edit. That guard mounts through `gridProps.plugins`: a `plugins` prop of your own replaces it, so write `plugins={[...server.gridProps.plugins, mine]}` (pages mode has the same guard). `server.retry()` repeats the failed blocks.
+- **`server.refresh()` refetches the rendered blocks in place** and keeps rows with a pending save and the row under an edit. That guard mounts through `gridProps.plugins`: a `plugins` prop of your own replaces it, so write `plugins={[...server.gridProps.plugins, mine]}` (pages mode has the same guard). Call it after the `onSave` promise settles, because a row that still shows "saving" keeps its local value and misses server-computed fields; or return the stored row through the save acknowledgement (`current`). `server.retry()` repeats the failed blocks.
 - `DataGridUrlState` mounts on this grid through a controlled `spec`/`onSpecChange` pair; the store keeps the URL spec and never re-sorts or re-filters the partial `data`.
 
 ## `data-grid-pagination` (server mode)

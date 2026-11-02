@@ -13,30 +13,30 @@ describe("rangeSize", () => {
 
 describe("expandRange", () => {
   it("adds overscan on both sides", () => {
-    const r = expandRange({ start: 100, end: 130 }, { overscan: 10, batchSize: 1, total: 1000 });
+    const r = expandRange({ start: 100, end: 130 }, { overscan: 10, blockSize: 1, total: 1000 });
     expect(r).toEqual({ start: 90, end: 140 });
   });
 
-  it("rounds both edges outward to the batchSize boundary", () => {
-    const r = expandRange({ start: 103, end: 127 }, { overscan: 0, batchSize: 50 });
+  it("rounds both edges outward to the blockSize boundary", () => {
+    const r = expandRange({ start: 103, end: 127 }, { overscan: 0, blockSize: 50 });
     expect(r).toEqual({ start: 100, end: 150 });
   });
 
   it("a tiny scroll within the same batch produces the identical expanded range (dedup-friendly)", () => {
-    const a = expandRange({ start: 103, end: 127 }, { overscan: 0, batchSize: 50 });
-    const b = expandRange({ start: 105, end: 129 }, { overscan: 0, batchSize: 50 });
+    const a = expandRange({ start: 103, end: 127 }, { overscan: 0, blockSize: 50 });
+    const b = expandRange({ start: 105, end: 129 }, { overscan: 0, blockSize: 50 });
     expect(a).toEqual(b);
   });
 
   it("clamps to [0, total]", () => {
-    const r = expandRange({ start: 0, end: 20 }, { overscan: 30, batchSize: 1, total: 100 });
+    const r = expandRange({ start: 0, end: 20 }, { overscan: 30, blockSize: 1, total: 100 });
     expect(r.start).toBe(0);
-    const r2 = expandRange({ start: 80, end: 100 }, { overscan: 30, batchSize: 1, total: 100 });
+    const r2 = expandRange({ start: 80, end: 100 }, { overscan: 30, blockSize: 1, total: 100 });
     expect(r2.end).toBe(100);
   });
 
   it("never produces start > end even at small total", () => {
-    const r = expandRange({ start: 0, end: 5 }, { overscan: 50, batchSize: 50, total: 5 });
+    const r = expandRange({ start: 0, end: 5 }, { overscan: 50, blockSize: 50, total: 5 });
     expect(r.start).toBeLessThanOrEqual(r.end);
   });
 });
