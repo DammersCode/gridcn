@@ -35,6 +35,10 @@ describe("stepSequence", () => {
     expect(cursorKey({ a: 1 })).toBe(cursorKey({ a: 1 }));
     expect(cursorKey({ big: "x".repeat(5000) })).toBeNull();
   });
+  it("skips a string cursor too large to key, and keys a short one", () => {
+    expect(cursorKey("x".repeat(1_000_000))).toBeNull();
+    expect(cursorKey("abc")).toBe("string:abc");
+  });
   it("goes on with the new cursor", () => {
     expect(step(answer({ nextCursor: 3 }))).toEqual({ ended: false, cursor: 3, warning: null });
   });

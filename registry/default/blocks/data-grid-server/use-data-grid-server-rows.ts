@@ -136,7 +136,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMounted } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markRowsRendered } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
@@ -199,29 +199,38 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
 
   const specKey = serverSpecKey(spec);
   const seenSpecKey = useRef(specKey);
+  const seenPage = useRef(page);
   useLayoutEffect(() => {
+    const pageMoved = seenPage.current !== page;
+    seenPage.current = page;
     if (seenSpecKey.current === specKey) return;
     seenSpecKey.current = specKey;
     // A spec the consumer changed from outside (browser back) lands here; a grid change already reset the page.
-    if (live.current.settledOnce && live.current.page !== 1) setPage(1);
-  }, [specKey, setPage]);
+    if (live.current.settledOnce && !pageMoved && page !== 1) setPage(1);
+  }, [specKey, page, setPage]);
 
   const retry = useCallback(() => {
     if (live.current.error !== null) setTick((n) => n + 1);
   }, []);
   const refresh = useCallback(() => {
-    if (isDev() && live.current.settledOnce && !guardMounted() && !warned.current.has("guard")) {
+    if (isDev() && live.current.settledOnce && guardMissing() && !warned.current.has("guard")) {
       warned.current.add("guard");
       console.warn(`[data-grid-server] ${GUARD_MISSING_MESSAGE}`);
     }
     setTick((n) => n + 1);
-  }, [guardMounted]);
+  }, [guardMissing]);
 
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
     setSettled((prev) => ({ ...prev, rows: next as TData[] }));
     live.current.options.onDataChange?.(next, change);
   }, []);
-  const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
+  const getRowId = useCallback(
+    (row: TData, index: number) => {
+      markRowsRendered();
+      return live.current.options.getRowId(row, index);
+    },
+    [markRowsRendered],
+  );
 
   const onPageSizeChange = useCallback(
     (next: number) => {

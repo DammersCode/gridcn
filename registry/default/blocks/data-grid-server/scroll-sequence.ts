@@ -13,7 +13,10 @@ export const MAX_SEEN_CURSORS = 10_000;
 /** A stable key for comparing cursors by content; `null` for a cursor too large or not serializable to key. */
 export function cursorKey(cursor: unknown): string | null {
   if (cursor === null || cursor === undefined) return null;
-  if (typeof cursor !== "object") return `${typeof cursor}:${String(cursor)}`;
+  if (typeof cursor !== "object") {
+    const key = `${typeof cursor}:${String(cursor)}`;
+    return key.length <= MAX_CURSOR_KEY_LENGTH ? key : null;
+  }
   try {
     const json = JSON.stringify(cursor);
     return json !== undefined && json.length <= MAX_CURSOR_KEY_LENGTH ? `json:${json}` : null;

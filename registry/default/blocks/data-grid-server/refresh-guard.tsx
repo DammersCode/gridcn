@@ -7,13 +7,18 @@ import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-gr
 /** The rows an answer must not overwrite: a save is pending, or an edit session is open. */
 export type ProtectedRows = ReadonlySet<string> | null;
 
-type Holder = { store: DataGridStoreWrapper | null };
+type Holder = { store: DataGridStoreWrapper | null; everMounted: boolean; rowsRendered: boolean };
+
+function markRowsRenderedOn(holder: Holder) {
+  holder.rowsRendered = true;
+}
 
 function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
   function RefreshGuardMount() {
     const store = useDataGridStoreApi();
     useEffect(() => {
       holder.store = store;
+      holder.everMounted = true;
       return () => {
         holder.store = null;
       };
@@ -25,7 +30,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, rowsRendered: false }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const protectedRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -35,12 +40,13 @@ export function useRefreshGuard() {
     if (state.editing) ids.add(state.editing.rowId);
     return ids.size > 0 ? ids : null;
   }, [holder]);
-  const guardMounted = useCallback(() => holder.store !== null, [holder]);
-  return { plugins, protectedRows, guardMounted };
+  const guardMissing = useCallback(() => holder.rowsRendered && !holder.everMounted, [holder]);
+  const markRowsRendered = useCallback(() => markRowsRenderedOn(holder), [holder]);
+  return { plugins, protectedRows, guardMissing, markRowsRendered };
 }
 
 export const GUARD_MISSING_MESSAGE =
-  "refresh cannot protect rows with a pending save or an open edit because the plugin in gridProps.plugins never mounted; your own `plugins` prop replaced it, so put ...gridProps.plugins first in it";
+  "refresh cannot protect rows with a pending save or an open edit because the refresh guard plugin never mounted; if you pass your own `plugins` prop to the provider, put ...gridProps.plugins first in it";
 
 /** Keeps the local value of each protected row in an incoming page, matched by id. */
 export function keepProtectedRows<TData>(incoming: readonly TData[], current: readonly TData[], guarded: ProtectedRows, idOf: (row: TData, index: number) => string): TData[] {
@@ -53,33 +59,51 @@ export function keepProtectedRows<TData>(incoming: readonly TData[], current: re
   return incoming.map((row, index) => local.get(idOf(row, index)) ?? row);
 }
 
-/** Writes blocks into a copy of `prev`. A protected row keeps its local value and appears once, at the index the answer gives it. */
+/** The local rows a refresh protects, by id, with the slot each held when the refresh started. */
+export type RowSnapshot<TData> = Map<string, { row: TData; index: number }>;
+
+/** Adds the protected rows found in `rows` to `snapshot`; rows already in it keep their entry's place but take the latest value. */
+export function collectProtectedRows<TData>(snapshot: RowSnapshot<TData>, rows: readonly (TData | undefined)[], guarded: ReadonlySet<string>, idOf: (row: TData, index: number) => string) {
+  rows.forEach((row, index) => {
+    if (row === undefined) return;
+    const id = idOf(row, index);
+    if (guarded.has(id)) snapshot.set(id, { row, index });
+  });
+}
+
+/**
+ * Writes blocks into a copy of `prev`. A snapshot row keeps its local value and appears once, at the index the answer gives it.
+ * `cleared` lists the slots left empty because the row moved away from them.
+ */
 export function writeBlocks<TData>(
   prev: readonly (TData | undefined)[],
   blocks: readonly { start: number; rows: readonly (TData | undefined)[] }[],
-  guarded: ProtectedRows,
+  snapshot: RowSnapshot<TData> | null,
   idOf: (row: TData, index: number) => string,
-): (TData | undefined)[] {
+): { rows: (TData | undefined)[]; cleared: number[] } {
   const next = prev.slice();
-  const local = new Map<string, { row: TData; index: number }>();
-  if (guarded !== null) {
-    prev.forEach((row, index) => {
-      if (row !== undefined && guarded.has(idOf(row, index))) local.set(idOf(row, index), { row, index });
-    });
-  }
-  const moved: { row: TData; index: number }[] = [];
+  const guarded = snapshot !== null && snapshot.size > 0 ? snapshot : null;
+  const moved: { id: string; index: number }[] = [];
   for (const { start, rows } of blocks) {
     for (let i = 0; i < rows.length && start + i < next.length; i++) {
       const incoming = rows[i];
-      const own = incoming === undefined ? undefined : local.get(idOf(incoming, start + i));
+      const id = guarded === null || incoming === undefined ? undefined : idOf(incoming, start + i);
+      const own = id === undefined ? undefined : guarded!.get(id);
       if (own === undefined) {
         next[start + i] = incoming;
         continue;
       }
       next[start + i] = own.row;
-      if (own.index !== start + i) moved.push(own);
+      if (own.index !== start + i) moved.push({ id: id!, index: own.index });
     }
   }
-  for (const { row, index } of moved) if (next[index] === row) next[index] = undefined;
-  return next;
+  const cleared: number[] = [];
+  for (const { id, index } of moved) {
+    const left = next[index];
+    if (left !== undefined && idOf(left, index) === id) {
+      next[index] = undefined;
+      cleared.push(index);
+    }
+  }
+  return { rows: next, cleared };
 }

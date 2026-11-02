@@ -104,6 +104,34 @@ describe("error state", () => {
       expect(grid.contains(document.activeElement)).toBe(true);
     });
 
+    it("moves focus to the grid when a button of a custom errorState unmounts focused", async () => {
+      function CustomHarness() {
+        const [error, setError] = useState<unknown>(new Error("down"));
+        return (
+          <div style={{ height: 300, width: 500 }}>
+            <DataGrid
+              data={makeRows(5)}
+              columns={columns}
+              getRowId={(r: Row) => r.id}
+              className="h-72"
+              error={error}
+              onRetry={() => setTimeout(() => setError(null), 50)}
+              errorState={({ retry }) => (
+                <button type="button" onClick={retry}>
+                  Try again
+                </button>
+              )}
+            />
+          </div>
+        );
+      }
+      await render(<CustomHarness />);
+      await page.getByRole("button", { name: "Try again" }).click();
+      await vi.waitFor(() => expect(document.querySelector("[data-grid-error-state]")).toBeNull());
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      expect(grid.contains(document.activeElement)).toBe(true);
+    });
+
     it("leaves focus where it is when the user moved it before the bar went away", async () => {
       await render(<RetryHarness />);
       await page.getByRole("button", { name: "Retry" }).click();

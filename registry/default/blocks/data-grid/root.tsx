@@ -137,7 +137,7 @@ export type DataGridRootProps<TData = unknown> = {
   error?: unknown;
   /** Called by the Retry button of the built-in error state. Without it the button is not shown. */
   onRetry?: () => void;
-  /** Replaces the built-in error state. A node, or a function receiving `{ error, retry }`. */
+  /** Replaces the built-in error state. A node, or a function receiving `{ error, retry }`. When a focused control inside it unmounts with the bar, focus returns to the grid. */
   errorState?: ReactNode | ErrorStateRenderer;
   /**
    * Per-column header menu slot: rendered inline-end in each header cell as a ghost chevron
@@ -677,9 +677,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 </div>
               )}
               {hasError && (
-                <div
-                  data-grid-error-state=""
-                  role="alert"
+                <ErrorBar
+                  focusGrid={() => storeApi.getState().focusImpl?.()}
                   className={cn(
                     "absolute flex items-center justify-center gap-2 text-sm",
                     rowCount === 0 ? "inset-x-0 bottom-0 text-muted-foreground" : "inset-x-0 border-b border-destructive/30 bg-destructive/10 px-3 py-1 text-destructive",
@@ -690,9 +689,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     <>
                       <span>{gridLabels.errorState}</span>
                       {onRetry && (
-                        <RetryButton onRetry={onRetry} focusGrid={() => storeApi.getState().focusImpl?.()}>
+                        <Button type="button" variant="outline" size="xs" onClick={onRetry}>
                           {gridLabels.errorRetry}
-                        </RetryButton>
+                        </Button>
                       )}
                     </>
                   ) : typeof errorState === "function" ? (
@@ -700,7 +699,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   ) : (
                     errorState
                   )}
-                </div>
+                </ErrorBar>
               )}
               {showLoadingSkeleton &&
                 (loadingState !== undefined ? (
@@ -803,22 +802,22 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   );
 }
 
-/** The error bar unmounts with the focused button; focus moves to the grid unless the user moved it elsewhere. */
-function RetryButton({ onRetry, focusGrid, children }: { onRetry: () => void; focusGrid: () => void; children: ReactNode }) {
-  const ref = useRef<HTMLButtonElement>(null);
+/** The error bar unmounts with a focused control inside it; focus moves to the grid unless the user moved it elsewhere. */
+function ErrorBar({ focusGrid, className, style, children }: { focusGrid: () => void; className: string; style: CSSProperties; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
   const latest = useRef(focusGrid);
   useLayoutEffect(() => {
     latest.current = focusGrid;
   });
   useLayoutEffect(
     () => () => {
-      if (ref.current !== null && document.activeElement === ref.current) latest.current();
+      if (ref.current !== null && ref.current.contains(document.activeElement)) latest.current();
     },
     [],
   );
   return (
-    <Button ref={ref} type="button" variant="outline" size="xs" onClick={onRetry}>
+    <div ref={ref} data-grid-error-state="" role="alert" className={className} style={style}>
       {children}
-    </Button>
+    </div>
   );
 }

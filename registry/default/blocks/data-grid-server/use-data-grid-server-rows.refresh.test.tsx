@@ -147,7 +147,35 @@ describe("refresh in place, pages mode", () => {
 describe("refresh without the guard plugin mounted", () => {
   const counted = async ({ start, end }: ServerRowsRequest): Promise<ServerRowsAnswer<Row>> => ({ rows: rowsOf(start, Math.min(end, 100) - start, ""), totalRowCount: 100 });
 
-  it.each(["scroll", "pages"] as const)("warns once in %s mode when a consumer plugins prop replaced it", async (mode) => {
+  type AnyServer = UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
+  function Tree({ mode, withPlugin, onServer }: { mode: "scroll" | "pages"; withPlugin: boolean; onServer: (server: AnyServer) => void }) {
+    const server: AnyServer =
+      mode === "scroll"
+        ? useDataGridServerRows<Row>({ mode: "scroll", getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 })
+        : useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: counted, pageSizeOptions: [10] });
+    onServer(server);
+    return (
+      <DataGridProvider {...server.providerProps} plugins={withPlugin ? server.providerProps.plugins : []} columns={columns}>
+        <DataGridRoot />
+      </DataGridProvider>
+    );
+  }
+  const guardWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([message]) => /refresh guard|gridProps\.plugins/.test(String(message)));
+
+  it.each(["scroll", "pages"] as const)("warns once in %s mode when a grid mounted without the plugin", async (mode) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let server!: AnyServer;
+    render(<Tree mode={mode} withPlugin={false} onServer={(next) => (server = next)} />);
+    await waitFor(() => expect(server.loading).toBe(false));
+    expect(guardWarnings(warn)).toHaveLength(0);
+    server.providerProps.getRowId(server.providerProps.data[0]!, 0); // jsdom renders no rows, so stand in for the grid
+    act(() => server.refresh());
+    act(() => server.refresh());
+    await waitFor(() => expect(server.loading).toBe(false));
+    expect(guardWarnings(warn)).toHaveLength(1);
+  });
+
+  it.each(["scroll", "pages"] as const)("does not warn in %s mode when refresh runs before any grid mounted", async (mode) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(() =>
       mode === "scroll"
@@ -155,11 +183,27 @@ describe("refresh without the guard plugin mounted", () => {
         : useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: counted, pageSizeOptions: [10] }),
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(warn).not.toHaveBeenCalled();
-    act(() => result.current.refresh());
     act(() => result.current.refresh());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    const guardWarnings = warn.mock.calls.filter(([message]) => String(message).includes("gridProps.plugins"));
-    expect(guardWarnings).toHaveLength(1);
+    expect(guardWarnings(warn)).toHaveLength(0);
+  });
+
+  it("does not warn after the grid unmounted", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let server!: UseDataGridServerRowsScrollResult<Row>;
+    function Page({ show }: { show: boolean }) {
+      server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 });
+      return show ? (
+        <DataGridProvider {...server.providerProps} columns={columns}>
+          <DataGridRoot />
+        </DataGridProvider>
+      ) : null;
+    }
+    const view = render(<Page show />);
+    await waitFor(() => expect(server.loading).toBe(false));
+    view.rerender(<Page show={false} />);
+    act(() => server.refresh());
+    await waitFor(() => expect(server.loading).toBe(false));
+    expect(guardWarnings(warn)).toHaveLength(0);
   });
 });
