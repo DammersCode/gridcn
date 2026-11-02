@@ -12,6 +12,8 @@ type Holder = {
   everMounted: boolean;
   edited: boolean;
   saveSeq: number;
+  /** Saves are logged only while a request is open. */
+  recording: boolean;
   /** Saves that started, in order; trimmed to the saves newer than the oldest pending request. */
   started: { seq: number; id: string }[];
 };
@@ -21,7 +23,7 @@ function markEditedOn(holder: Holder) {
 }
 
 function logSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
-  if (state.saveStatus === prev.saveStatus) return;
+  if (!holder.recording || state.saveStatus === prev.saveStatus) return;
   for (const [id, status] of state.saveStatus) {
     if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.started.push({ seq: ++holder.saveSeq, id });
   }
@@ -33,7 +35,13 @@ function savedSinceOn(holder: Holder, mark: number): ProtectedRows {
   return ids;
 }
 
+function markSavesOn(holder: Holder): number {
+  holder.recording = true;
+  return holder.saveSeq;
+}
+
 function pruneSavesOn(holder: Holder, oldestMark: number | null) {
+  holder.recording = oldestMark !== null;
   holder.started = oldestMark === null ? [] : holder.started.filter((entry) => entry.seq > oldestMark);
 }
 
@@ -56,7 +64,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, saveSeq: 0, started: [] }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, saveSeq: 0, recording: false, started: [] }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const protectedRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -68,7 +76,7 @@ export function useRefreshGuard() {
   }, [holder]);
   const guardMissing = useCallback(() => holder.edited && !holder.everMounted, [holder]);
   const markEdited = useCallback(() => markEditedOn(holder), [holder]);
-  const saveMark = useCallback(() => holder.saveSeq, [holder]);
+  const saveMark = useCallback(() => markSavesOn(holder), [holder]);
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
   return { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves };

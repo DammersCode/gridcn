@@ -14,7 +14,7 @@ const SIZE = 10;
 const TOTAL = 100;
 const rowAt = (index: number, shift: number, suffix: string): Row => (index < shift ? { id: `new${index}`, name: `New ${index}` } : { id: `r${index - shift}`, name: `Person ${index - shift}${suffix}` });
 
-type Source = "counted" | "cursor" | "offset";
+type Source = "counted" | "cursor" | "offset" | "countedCursor";
 
 function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL }: { getRowId?: (row: Row) => string; total?: number } = {}) {
   let shift = 0;
@@ -23,11 +23,11 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
   const held: Held[] = [];
   const fetchRows = vi.fn((request: ServerRowsRequest<number>) => {
     const { start, end } = request;
-    const from = source === "cursor" ? (request.cursor ?? 0) : start;
-    const stop = source === "counted" ? Math.min(end, total) : end;
+    const from = source === "cursor" || source === "countedCursor" ? (request.cursor ?? 0) : start;
+    const stop = source === "counted" || source === "countedCursor" ? Math.min(end, total) : end;
     const answer = (): ServerRowsAnswer<Row, number> => ({
       rows: Array.from({ length: stop - from }, (_, i) => rowAt(from + i, shift, suffix)),
-      ...(source === "counted" ? { totalRowCount: total } : source === "cursor" ? { nextCursor: from + (stop - from) } : { hasMore: true }),
+      ...(source === "counted" ? { totalRowCount: total } : source === "cursor" ? { nextCursor: from + (stop - from) } : source === "countedCursor" ? { nextCursor: stop, totalRowCount: total } : { hasMore: true }),
     });
     if (!hold) return Promise.resolve(answer());
     return new Promise<ServerRowsAnswer<Row, number>>((resolve, reject) => held.push({ request, resolve: () => resolve(answer()), reject: () => reject(new Error("boom")) }));
@@ -308,6 +308,46 @@ describe.each<Source>(["counted", "cursor", "offset"])("a row the user starts ch
     await t.land(0);
     await waitFor(() => expect(t.nameOf("r6")).toBe("Person 6!"));
     expect(t.nameOf("r5")).toBe("Person 5");
+  });
+});
+
+describe("a retry starts a fresh guard", () => {
+  it("takes the server value of a row whose save settled between the failure and the retry", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    act(() => t.server().retry());
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r3")).toBe("Person 3!"));
+  });
+});
+
+describe("a counted sequential source after a protected row was dropped", () => {
+  it("ends at the server count with no extra skeleton row", async () => {
+    const t = setup("countedCursor", { total: 30 });
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.startEditing({ rowId: "r19", columnId: "name" }));
+    t.holdAnswers();
+    t.setShift(1);
+    t.window(25);
+    await t.waitHeld(2 * SIZE);
+    await t.land(2 * SIZE);
+    await waitFor(() => expect(t.nameOf("r28")).toBeDefined());
+    await waitFor(() => expect(t.server().loading).toBe(false));
+    expect(t.server().unloadedCount).toBe(0);
+    expect(t.server().gridProps.data).toHaveLength(29);
+    t.window(35);
+    expect(t.held).toHaveLength(0);
   });
 });
 

@@ -106,7 +106,7 @@ type Pending<TData> = GuardedBlock<TData> & { rows: (TData | undefined)[]; mark:
 /** `guard` is the set of rows protected when the request started; a retry reuses it. */
 type Guard = { ids: ProtectedRows; /** The save count when the request started; later saves are protected too. */ mark: number };
 type InFlight = { range: RowRange; controller: AbortController; guard: Guard };
-type Failed = { range: RowRange; cursor: unknown; error: unknown; guard: Guard };
+type Failed = { range: RowRange; cursor: unknown; error: unknown };
 
 type Sequence = {
   /** The cursor the next block sends. */
@@ -166,7 +166,6 @@ function oldestMark<TData>(core: Core<TData>): number | null {
     if (oldest === null || mark < oldest) oldest = mark;
   };
   for (const { guard } of core.inFlight.values()) note(guard.mark);
-  for (const { guard } of core.failed.values()) note(guard.mark);
   for (const { mark } of core.pending) note(mark);
   return oldest;
 }
@@ -296,7 +295,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
 
   const windowRef = useRef<(range: RowRange) => void>(noop);
 
-  const runFetchRef = useRef<(range: RowRange, cursor?: unknown, inherited?: Guard) => void>(noop);
+  const runFetchRef = useRef<(range: RowRange, cursor?: unknown) => void>(noop);
 
   const landSequence = useCallback(
     (range: RowRange, read: ReadAnswer<TData, unknown>, sentCursor: unknown, guard: Guard) => {
@@ -317,7 +316,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       }
       const written = Math.min(incoming.length, range.end - range.start);
       const position = at + written;
-      const step = stepSequence({ read, sentCursor, loaded: position, count: seq.sentCount, seenCursors: seq.seen });
+      const serverPosition = range.start + Math.min(read.rows.length, range.end - range.start);
+      const step = stepSequence({ read, sentCursor, loaded: serverPosition, count: seq.sentCount, seenCursors: seq.seen });
       if (step.warning) warn(step.warning.kind, step.warning.message);
       for (const [key, failure] of core.failed) {
         if (failure.range.start === range.start) core.failed.delete(key);
@@ -331,15 +331,15 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         core.rowsLength = Math.max(core.rowsLength, position);
         commitSoon();
         notifyLoaded(at, position);
-        runFetchRef.current({ start: position, end: position + size }, step.cursor, guard);
+        runFetchRef.current({ start: position, end: position + size }, step.cursor);
         return;
       }
       seq.refresh = null;
       seq.ended = step.ended;
       seq.length = position;
-      seq.offset = range.start + Math.min(read.rows.length, range.end - range.start);
+      seq.offset = serverPosition;
       core.loaded = position > 0 ? [{ start: 0, end: position }] : [];
-      const tail = skeletonCount({ loaded: position, blockSize: size, count: seq.sentCount, ended: step.ended });
+      const tail = skeletonCount({ loaded: serverPosition, blockSize: size, count: seq.sentCount, ended: step.ended });
       if (refresh) core.pending.push({ start: position, rows: new Array<TData | undefined>(tail).fill(undefined), guard: null, mark: guard.mark });
       core.rowsLength = position + tail;
       setLoadedCount(position);
@@ -404,12 +404,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   );
 
   const runFetch = useCallback(
-    (range: RowRange, cursor?: unknown, inherited?: Guard) => {
+    (range: RowRange, cursor?: unknown) => {
       const core = getCore();
       const key = rangeKey(range);
       if (core.inFlight.has(key)) return;
       const controller = new AbortController();
-      const guard: Guard = { ids: unionIds(inherited?.ids ?? null, protectedRows()), mark: inherited?.mark ?? saveMark() };
+      const guard: Guard = { ids: protectedRows(), mark: saveMark() };
       core.inFlight.set(key, { range, controller, guard });
       setLoading(true);
       const settle = () => {
@@ -422,7 +422,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const fail = (cause: unknown) => {
         if (controller.signal.aborted) return;
         const failure = cause ?? new Error("fetchRows rejected");
-        core.failed.set(key, { range, cursor, error: failure, guard });
+        core.failed.set(key, { range, cursor, error: failure });
         setError(failure);
         const onError = live.current.options.onError;
         if (onError) isolate("onError", () => onError(failure));
@@ -537,7 +537,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     const failures = Array.from(core.failed.values());
     core.failed.clear();
     setError(null);
-    for (const { range, cursor, guard } of failures) runFetch(range, cursor, guard);
+    for (const { range, cursor } of failures) runFetch(range, cursor);
   }, [getCore, runFetch]);
 
   // A protected row that left its old slot must not leave the slot marked loaded; the next window fetches it again.

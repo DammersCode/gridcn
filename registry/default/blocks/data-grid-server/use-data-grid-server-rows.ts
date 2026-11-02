@@ -185,6 +185,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         if (controller.signal.aborted) return;
         const failure = error ?? new Error("fetchRows rejected");
         live.current.settledOnce = true;
+        pruneSaves(null);
         setSettled((prev) => ({ ...prev, key, error: failure }));
         const onError = live.current.options.onError;
         if (onError) isolate("onError", () => onError(failure));
