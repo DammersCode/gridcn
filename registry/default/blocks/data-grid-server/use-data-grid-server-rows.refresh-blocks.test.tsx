@@ -260,6 +260,53 @@ describe("a retried refresh block after the window moved away", () => {
   });
 });
 
+describe("retry while a refresh runs", () => {
+  it("keeps a row edited in a block still in flight, counted source", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    act(() => t.state().actions.commitCellValue({ rowId: "r12", columnId: "name" }, "Edited"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    act(() => t.server().retry());
+    await t.waitHeld(0);
+    await t.land(SIZE);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r13")).toBe("Person 13!"));
+    expect(t.nameOf("r12")).toBe("Edited");
+  });
+});
+
+describe("retry of a window-driven block on a sequential source", () => {
+  it("leaves no hole and no duplicate row when a saving row moved", async () => {
+    const t = setup("cursor");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r19", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setShift(1);
+    t.window(25);
+    await t.waitHeld(2 * SIZE);
+    await t.fail(2 * SIZE);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    act(() => t.server().retry());
+    await t.waitHeld(2 * SIZE);
+    await t.land(2 * SIZE);
+    await waitFor(() => expect(t.nameOf("r20")).toBeDefined());
+    const data = t.server().gridProps.data;
+    const loaded = data.slice(0, 29);
+    expect(loaded.every((row) => row !== undefined)).toBe(true);
+    const ids = loaded.map((row) => row!.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(t.nameOf("r19")).toBe("Saved");
+  });
+});
+
 describe("the refresh guard on a huge sparse source", () => {
   it("never walks the whole row array", async () => {
     const t = setup("counted", { total: 2_000_000 });
