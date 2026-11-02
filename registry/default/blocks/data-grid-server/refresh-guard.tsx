@@ -22,11 +22,15 @@ function markEditedOn(holder: Holder) {
   holder.edited = true;
 }
 
+/** A save older than the last 10,000 saves loses protection only while a request older than that hangs. */
+export const MAX_LOGGED_SAVES = 10_000;
+
 function logSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
   if (!holder.recording || state.saveStatus === prev.saveStatus) return;
   for (const [id, status] of state.saveStatus) {
     if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.started.push({ seq: ++holder.saveSeq, id });
   }
+  if (holder.started.length > MAX_LOGGED_SAVES) holder.started.splice(0, holder.started.length - MAX_LOGGED_SAVES);
 }
 
 function savedSinceOn(holder: Holder, mark: number): ProtectedRows {
