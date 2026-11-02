@@ -91,7 +91,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   /**
    * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
    * source refetches from the first block up to the rendered rows. Rows with a pending save and the row under an edit keep their value, so call it after the `onSave` promise settles
-   * (or return the stored row through the save acknowledgement) to pick up server-computed fields.
+   * to pick up server-computed fields.
    */
   refresh: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
@@ -481,15 +481,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [specKey]);
 
-  const retry = useCallback(() => {
-    const core = getCore();
-    if (core.failed.size === 0) return;
-    const failures = Array.from(core.failed.values());
-    core.failed.clear();
-    setError(null);
-    for (const { range, cursor } of failures) runFetch(range, cursor);
-  }, [getCore, runFetch]);
-
   const evict = useCallback(
     (range: RowRange) => {
       const core = getCore();
@@ -520,7 +511,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const protectRows = useCallback(
     (core: Core<TData>) => {
       const guarded = protectedRows();
-      core.refreshKeys.clear();
       if (guarded === null) {
         core.snapshot = null;
         return;
@@ -537,6 +527,20 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     },
     [protectedRows],
   );
+
+  const retry = useCallback(() => {
+    const core = getCore();
+    if (core.failed.size === 0) return;
+    const failures = Array.from(core.failed.values());
+    core.failed.clear();
+    setError(null);
+    commit();
+    protectRows(core);
+    for (const { range, cursor } of failures) {
+      core.refreshKeys.add(rangeKey(range));
+      runFetch(range, cursor);
+    }
+  }, [getCore, runFetch, commit, protectRows]);
 
   // A protected row that left its old slot must not leave the slot marked loaded; the next window fetches it again.
   useLayoutEffect(() => {
@@ -558,6 +562,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     }
     if (guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     commit();
+    core.refreshKeys.clear();
     protectRows(core);
     const size = blockSize();
     if (core.kind === "sequence") {

@@ -59,7 +59,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
     setShift: (next: number) => (shift = next),
     setSuffix: (next: string) => (suffix = next),
     holdAnswers: () => (hold = true),
-    window: (end: number) => act(() => server.gridProps.onRenderedRowsChange?.({ start: 0, end })),
+    window: (end: number, start = 0) => act(() => server.gridProps.onRenderedRowsChange?.({ start, end })),
     ids: () => server.gridProps.data.filter((row) => row !== undefined).map((row) => row.id),
     nameOf: (id: string) => server.gridProps.data.find((row) => row?.id === id)?.name,
     ready: () => waitFor(() => expect(server.loading).toBe(false)),
@@ -192,21 +192,71 @@ describe("the end of a refresh snapshot", () => {
     await waitFor(() => expect(t.nameOf("r3")).toBe("Person 3!"));
   });
 
-  it("collects nothing for edits made after the refresh settled", async () => {
+  it("does not outlive a failed refresh block once the window moved away from it", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
     act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
     act(() => t.server().refresh());
-    await t.ready();
-    await waitFor(() => expect(t.server().loading).toBe(false));
-    const collected: unknown[] = [];
-    const original = Map.prototype.set;
-    vi.spyOn(Map.prototype, "set").mockImplementation(function (this: Map<unknown, unknown>, key: unknown, value: unknown) {
-      if (typeof value === "object" && value !== null && "row" in value && "index" in value) collected.push(key);
-      return original.call(this, key, value);
-    });
-    for (let i = 5; i < 15; i++) act(() => t.state().actions.commitCellValue({ rowId: `r${i}`, columnId: "name" }, `Edit ${i}`));
-    expect(collected).toEqual([]);
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await t.land(SIZE);
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    t.window(55, 50);
+    act(() => t.server().evict({ start: 0, end: SIZE }));
+    t.window(15);
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r3")).toBe("Person 3!"));
+  });
+
+  it("ends with the refresh's own blocks, not with a failed window-driven block", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    t.window(35);
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.waitHeld(2 * SIZE);
+    await t.fail(2 * SIZE);
+    await t.land(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
+    act(() => t.state().actions.commitCellValue({ rowId: "r5", columnId: "name" }, "Edited"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    act(() => t.server().evict({ start: 0, end: SIZE }));
+    t.window(15);
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r5")).toBe("Person 5!"));
+  });
+});
+
+describe("a retried refresh block after the window moved away", () => {
+  it("still keeps a row whose save is pending", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await t.land(SIZE);
+    t.window(55, 50);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    act(() => t.server().retry());
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
+    expect(t.state().saveStatus.get("r3")).toBe("saving");
+    expect(t.nameOf("r3")).toBe("Saved");
   });
 });
 
