@@ -1,4 +1,5 @@
 import { page } from "vitest/browser";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
@@ -82,5 +83,33 @@ describe("error state", () => {
       </div>,
     );
     await expect.element(page.getByText("filtered")).toBeInTheDocument();
+  });
+
+  describe("focus after Retry", () => {
+    function RetryHarness() {
+      const [error, setError] = useState<unknown>(new Error("down"));
+      return (
+        <div style={{ height: 300, width: 500 }}>
+          <input aria-label="elsewhere" />
+          <DataGrid data={makeRows(5)} columns={columns} getRowId={(r: Row) => r.id} className="h-72" error={error} onRetry={() => setTimeout(() => setError(null), 50)} />
+        </div>
+      );
+    }
+
+    it("moves focus to the grid when the focused Retry button unmounts", async () => {
+      await render(<RetryHarness />);
+      await page.getByRole("button", { name: "Retry" }).click();
+      await vi.waitFor(() => expect(document.querySelector("[data-grid-error-state]")).toBeNull());
+      const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+      expect(grid.contains(document.activeElement)).toBe(true);
+    });
+
+    it("leaves focus where it is when the user moved it before the bar went away", async () => {
+      await render(<RetryHarness />);
+      await page.getByRole("button", { name: "Retry" }).click();
+      await page.getByLabelText("elsewhere").click();
+      await vi.waitFor(() => expect(document.querySelector("[data-grid-error-state]")).toBeNull());
+      expect(document.activeElement).toBe(page.getByLabelText("elsewhere").element());
+    });
   });
 });

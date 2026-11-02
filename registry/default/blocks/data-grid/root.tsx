@@ -3,6 +3,7 @@
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -689,9 +690,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     <>
                       <span>{gridLabels.errorState}</span>
                       {onRetry && (
-                        <Button type="button" variant="outline" size="xs" onClick={onRetry}>
+                        <RetryButton onRetry={onRetry} focusGrid={() => storeApi.getState().focusImpl?.()}>
                           {gridLabels.errorRetry}
-                        </Button>
+                        </RetryButton>
                       )}
                     </>
                   ) : typeof errorState === "function" ? (
@@ -799,5 +800,25 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       {showLoadingBar && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
     </DataGridRootContext>
     </DirectionProvider>
+  );
+}
+
+/** The error bar unmounts with the focused button; focus moves to the grid unless the user moved it elsewhere. */
+function RetryButton({ onRetry, focusGrid, children }: { onRetry: () => void; focusGrid: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const latest = useRef(focusGrid);
+  useLayoutEffect(() => {
+    latest.current = focusGrid;
+  });
+  useLayoutEffect(
+    () => () => {
+      if (ref.current !== null && document.activeElement === ref.current) latest.current();
+    },
+    [],
+  );
+  return (
+    <Button ref={ref} type="button" variant="outline" size="xs" onClick={onRetry}>
+      {children}
+    </Button>
   );
 }

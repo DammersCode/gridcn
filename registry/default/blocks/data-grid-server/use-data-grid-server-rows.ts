@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { serverSpecKey, type DataChange, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
+import { GUARD_MISSING_MESSAGE, keepProtectedRows, useRefreshGuard } from "./refresh-guard";
 import { isolate, useControlled, useServerSpec } from "./server-state";
 
+export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
 export type { UseDataGridServerRowsScrollOptions, UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 
@@ -86,6 +88,8 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   /** The row count of the result; `null` when the server sends none. */
   totalRowCount: number | null;
   keepCheckedRows: true;
+  /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
+  plugins: readonly DataGridPlugin<unknown>[];
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */
@@ -110,7 +114,13 @@ type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null
 export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData>;
 export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData>;
 export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData> | UseDataGridServerRowsScrollOptions<TData, TCursor>) {
+  const firstMode = useRef({ mode: options.mode ?? "pages", warned: false });
+  if (isDev() && !firstMode.current.warned && (options.mode ?? "pages") !== firstMode.current.mode) {
+    firstMode.current.warned = true;
+    console.warn(`[data-grid-server] mode changed from "${firstMode.current.mode}" to "${options.mode ?? "pages"}"; the mode is fixed for the life of the hook, so remount it with a key`);
+  }
   // The mode never changes for a mounted hook, so each render calls the same hooks in the same order.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   // oxlint-disable-next-line react-hooks/rules-of-hooks
   return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
 }
@@ -126,6 +136,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
+  const { plugins, protectedRows, guardMounted } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
@@ -155,9 +166,10 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         if (controller.signal.aborted) return;
         const read = readAnswer<TData>(answer, range, warn);
         live.current.settledOnce = true;
+        const guarded = protectedRows();
         setSettled((prev) => ({
           key,
-          rows: read.rows,
+          rows: keepProtectedRows(read.rows, prev.rows, guarded, live.current.options.getRowId),
           totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
           hasMore: read.hasMore,
           error: null,
@@ -185,10 +197,25 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   });
   const status = error !== null ? "error" : loading ? "loading" : "ready";
 
+  const specKey = serverSpecKey(spec);
+  const seenSpecKey = useRef(specKey);
+  useLayoutEffect(() => {
+    if (seenSpecKey.current === specKey) return;
+    seenSpecKey.current = specKey;
+    // A spec the consumer changed from outside (browser back) lands here; a grid change already reset the page.
+    if (live.current.settledOnce && live.current.page !== 1) setPage(1);
+  }, [specKey, setPage]);
+
   const retry = useCallback(() => {
     if (live.current.error !== null) setTick((n) => n + 1);
   }, []);
-  const refresh = useCallback(() => setTick((n) => n + 1), []);
+  const refresh = useCallback(() => {
+    if (isDev() && live.current.settledOnce && !guardMounted() && !warned.current.has("guard")) {
+      warned.current.add("guard");
+      console.warn(`[data-grid-server] ${GUARD_MISSING_MESSAGE}`);
+    }
+    setTick((n) => n + 1);
+  }, [guardMounted]);
 
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
     setSettled((prev) => ({ ...prev, rows: next as TData[] }));
@@ -228,8 +255,9 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       onSearchTextChange,
       totalRowCount: settled.totalRowCount,
       keepCheckedRows: true,
+      plugins,
     }),
-    [settled.rows, settled.totalRowCount, spec, getRowId, onDataChange, onSortChange, onFilterChange, onSearchTextChange],
+    [settled.rows, settled.totalRowCount, spec, getRowId, onDataChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);

@@ -3,6 +3,20 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 
+/** The request state every mode of `useDataGridServerRows` returns. */
+export type DataSourceState = {
+  /** `"error"` wins over `"loading"`. */
+  status: "loading" | "error" | "ready";
+  /** A request of the current spec is in flight. */
+  loading: boolean;
+  /** The latest failure of the current spec, or `null`. */
+  error: unknown;
+  /** Repeats the failed requests. Does nothing without an error. */
+  retry: () => void;
+  /** Fetches what is in view again and keeps it on screen until the answer lands. */
+  refresh: () => void;
+};
+
 const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
 
 /** Controlled or uncontrolled state with a stable setter that always calls the latest `onChange`. */

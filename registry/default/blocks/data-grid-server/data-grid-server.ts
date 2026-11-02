@@ -7,4 +7,7 @@ export {
   type ServerRowsPageRequest,
   type ServerRowsRequest,
   type ServerRowsAnswer,
+  type DataSourceState,
+  type UseDataGridServerRowsScrollOptions,
+  type UseDataGridServerRowsScrollResult,
 } from "./use-data-grid-server-rows";

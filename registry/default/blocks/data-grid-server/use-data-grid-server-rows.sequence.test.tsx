@@ -165,6 +165,23 @@ describe("scroll mode, sequential: the chain", () => {
     expect(warningsAbout(warn, "cursor")).toHaveLength(1);
   });
 
+  it("a cursor that comes back after another cursor ends the chain with one warning", async () => {
+    const warn = spyWarn();
+    type Cursor = { after: string };
+    const cycle = ["a", "b", "a", "c"];
+    let call = 0;
+    const fetchRows = vi.fn(async ({ start, end }: ServerRowsRequest<Cursor>): Promise<ServerRowsAnswer<Row, Cursor>> => ({ rows: rowsOf(start, end - start), nextCursor: { after: cycle[call++]! } }));
+    const { result } = renderHook(() => useDataGridServerRows<Row, Cursor>({ mode: "scroll", getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    for (const end of [10, 20, 30, 40]) {
+      report(result, view(end));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+    }
+    expect(fetchRows).toHaveBeenCalledTimes(3);
+    expect(result.current.gridProps.data).toHaveLength(30);
+    expect(warningsAbout(warn, "cursor")).toHaveLength(1);
+  });
+
   it("an empty page ends the source and does not ask again", async () => {
     const fetchRows = vi.fn<Fetch>(async ({ cursor }) => (cursor === undefined ? { rows: rowsOf(0, 10), nextCursor: 10 } : { rows: [], nextCursor: 20 }));
     const { result } = mount(fetchRows);

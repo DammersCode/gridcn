@@ -439,3 +439,9 @@ changes to 5-7. Step 8 runs only after 6 and 7 pass every ported test, so no mod
 - Accessibility: scroll mode gains the root error bar (`root.tsx:681`, `role="alert"`) and Retry.
 - Styling: no new UI; demos add `headerClickBehavior`. Docs: the lazy pages merge into one
   "Server rows" page; the table in `server-side.mdx:78-84` becomes a `mode` table.
+
+## 5. Known limits of the scroll engine
+
+- `applyChange` (`data-grid/interaction/history.ts`) maps every row to its id on each edit, which is O(count) on a sparse source. A cheaper edit path needs an id index that skips holes; it also serves undo and redo, so it belongs to a core change, not to the server hook.
+- A `getRowId` that differs between the provider and the hook needs no dev warning: the core never calls `getRowId` on a hole, so the hook's hole-safe `getRowId` is not required by the provider.
+- A sequential cursor chain remembers up to 10,000 returned cursors, and keys an object cursor by its JSON when it is at most 1,024 characters. A longer chain or a larger cursor relies on the `Object.is` check against the cursor just sent.

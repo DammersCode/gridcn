@@ -1,4 +1,4 @@
-import { useDataGridServerRows } from "./use-data-grid-server-rows";
+import { useDataGridServerRows, type DataSourceState } from "./use-data-grid-server-rows";
 
 type Row = { id: string };
 const getRowId = (row: Row) => row.id;
@@ -42,4 +42,11 @@ export function sequentialScroll() {
   server.totalRowCount satisfies number | null;
   server.refresh();
   server.gridProps.plugins satisfies readonly unknown[];
+}
+
+export function requestState() {
+  const pages = useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }) });
+  const scroll = useDataGridServerRows<Row>({ mode: "scroll", getRowId, fetchRows: async () => ({ rows: [] as Row[] }) });
+  pages satisfies DataSourceState;
+  scroll satisfies DataSourceState;
 }

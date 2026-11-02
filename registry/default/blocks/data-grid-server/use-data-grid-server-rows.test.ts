@@ -452,5 +452,50 @@ describe("useDataGridServerRows", () => {
       await waitFor(() => expect(fetchRows).toHaveBeenCalled());
       expect(fetchRows.mock.calls[0]![0]).toMatchObject({ page: 1, start: 0 });
     });
+
+    it("goes back to page 1 when the consumer changes the controlled spec after the first answer", async () => {
+      const fetchRows = server();
+      const none: ServerSpec = { sorts: [], filters: [], searchText: "" };
+      const { result, rerender } = renderHook(
+        ({ spec }: { spec: ServerSpec }) => useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, defaultPage: 5, spec, onSpecChange: () => {} }),
+        { initialProps: { spec: none } },
+      );
+      await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+      expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ page: 5 });
+      rerender({ spec: { ...none, searchText: "ann" } });
+      await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ page: 1, spec: { searchText: "ann" } }));
+      expect(result.current.pager.page).toBe(1);
+    });
+
+    it("reports page 1 to a controlled page when the controlled spec changes from outside", async () => {
+      const onPageChange = vi.fn();
+      const none: ServerSpec = { sorts: [], filters: [], searchText: "" };
+      const { result, rerender } = renderHook(
+        ({ spec }: { spec: ServerSpec }) => useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: server(), defaultPageSize: 10, page: 5, onPageChange, spec, onSpecChange: () => {} }),
+        { initialProps: { spec: none } },
+      );
+      await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+      rerender({ spec: { ...none, searchText: "ann" } });
+      expect(onPageChange).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe("mode", () => {
+    it("warns once in development when the mode changes between renders", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchRows = server();
+      const { rerender } = renderHook(
+        ({ mode }: { mode: "pages" | "scroll" }) =>
+          useDataGridServerRows<Row>({ mode, getRowId: (r) => r.id, fetchRows } as UseDataGridServerRowsOptions<Row>),
+        { initialProps: { mode: "pages" as "pages" | "scroll" } },
+      );
+      try {
+        rerender({ mode: "scroll" });
+      } catch {
+        // React rejects the changed hook order; the warning is what this test pins.
+      }
+      expect(warn.mock.calls.filter(([message]) => String(message).includes("mode"))).toHaveLength(1);
+    });
   });
 });

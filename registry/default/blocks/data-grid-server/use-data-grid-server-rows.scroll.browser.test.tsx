@@ -300,7 +300,11 @@ describe("scroll mode: checked rows across windows", () => {
 describe("scroll mode: 100k rows", () => {
   it("a thumb drag commits the rows at most once per frame and loads the rows it lands on", async () => {
     const total = 100_000;
-    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: makeRows(start, Math.min(end, total)), totalRowCount: total }));
+    // Each answer lands in its own macrotask, so one commit per answer would show up as several commits per frame.
+    let answered = 0;
+    const fetchRows = vi.fn<Fetch>(
+      ({ start, end }) => new Promise((resolve) => setTimeout(() => resolve({ rows: makeRows(start, Math.min(end, total)), totalRowCount: total }), (answered++ % 4) * 3)),
+    );
     // Effects lag the hook's commit under load, so a commit is bucketed by the frame counter at its effect.
     let frame = 0;
     let looping = true;

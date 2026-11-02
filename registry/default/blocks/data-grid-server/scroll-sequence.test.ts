@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_ROW_COUNT, type ReadAnswer } from "./read-answer";
-import { needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
+import { cursorKey, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 
 const answer = (extra: Partial<ReadAnswer<unknown, number>> = {}): ReadAnswer<unknown, number> => ({
   rows: [1, 2, 3],
@@ -25,6 +25,16 @@ describe("stepSequence", () => {
   const step = (read: ReadAnswer<unknown, number>, extra: Partial<Parameters<typeof stepSequence<number>>[0]> = {}) =>
     stepSequence<number>({ read, sentCursor: undefined, loaded: 3, count: null, ...extra });
 
+  it("ends when the new cursor was already seen, by content", () => {
+    const seen = new Set([cursorKey({ after: "a" })!]);
+    const read = stepSequence<unknown>({ read: answer({ nextCursor: { after: "a" } as unknown as number }), sentCursor: { after: "b" }, loaded: 3, count: null, seenCursors: seen });
+    expect(read).toMatchObject({ ended: true, warning: { kind: "cursor" } });
+  });
+  it("keys primitives by type and objects by content, and skips an oversized object", () => {
+    expect(cursorKey(1)).not.toBe(cursorKey("1"));
+    expect(cursorKey({ a: 1 })).toBe(cursorKey({ a: 1 }));
+    expect(cursorKey({ big: "x".repeat(5000) })).toBeNull();
+  });
   it("goes on with the new cursor", () => {
     expect(step(answer({ nextCursor: 3 }))).toEqual({ ended: false, cursor: 3, warning: null });
   });

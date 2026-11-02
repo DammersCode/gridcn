@@ -176,14 +176,35 @@ describe("useDataGridServerRows scroll mode: block fetching", () => {
   });
 
   it("writes the blocks that land in one frame with one copy of the rows", async () => {
-    const fetchRows = countedServer(100_000);
+    let landed = 0;
+    const fetchRows = vi.fn<Fetch>(
+      ({ start, end }) => new Promise((resolve) => setTimeout(() => resolve({ rows: makeRows(start, end), totalRowCount: 100_000 }), landed++ === 0 ? 0 : 2 * landed)),
+    );
     const { result } = await mount(fetchRows, { blockSize: 50, overscan: 0 });
-    const seen = new Set<unknown>([result.current.gridProps.data]);
+    const slice = Array.prototype.slice;
+    let copies = 0;
+    vi.spyOn(Array.prototype, "slice").mockImplementation(function (this: unknown[], ...args: [number?, number?]) {
+      if (this.length === 100_000) copies++;
+      return slice.apply(this, args);
+    });
     window_(result, { start: 5000, end: 5300 });
     await settled(result);
-    seen.add(result.current.gridProps.data);
     expect(result.current.getLoadedRanges().at(-1)).toEqual({ start: 5000, end: 5300 });
-    expect(seen.size).toBeLessThanOrEqual(3);
+    expect(fetchRows.mock.calls.length).toBeGreaterThanOrEqual(7);
+    expect(copies).toBeGreaterThan(0);
+    expect(copies).toBeLessThanOrEqual(3);
+  });
+});
+
+describe("useDataGridServerRows scroll mode: refresh cost", () => {
+  it("clears only the loaded rows, so a refresh at 10 million rows keeps the data sparse", async () => {
+    const { result } = await mount(countedServer(10_000_000), { blockSize: 50, overscan: 0 });
+    window_(result, { start: 5_000_000, end: 5_000_020 });
+    await settled(result);
+    act(() => result.current.refresh());
+    await settled(result);
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 5_000_000, end: 5_000_050 }]);
+    expect(Object.keys(result.current.gridProps.data).length).toBeLessThan(1000);
   });
 });
 

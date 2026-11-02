@@ -6,6 +6,22 @@ export function startsSequence(read: Pick<ReadAnswer<unknown, unknown>, "nextCur
   return read.nextCursor !== undefined || typeof read.totalRowCount !== "number";
 }
 
+const MAX_CURSOR_KEY_LENGTH = 1024;
+/** Cursors a chain remembers; a longer chain stops recording and relies on the `Object.is` check. */
+export const MAX_SEEN_CURSORS = 10_000;
+
+/** A stable key for comparing cursors by content; `null` for a cursor too large or not serializable to key. */
+export function cursorKey(cursor: unknown): string | null {
+  if (cursor === null || cursor === undefined) return null;
+  if (typeof cursor !== "object") return `${typeof cursor}:${String(cursor)}`;
+  try {
+    const json = JSON.stringify(cursor);
+    return json !== undefined && json.length <= MAX_CURSOR_KEY_LENGTH ? `json:${json}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export type SequenceStep<TCursor> = {
   ended: boolean;
   /** The cursor the next block sends. */
@@ -21,10 +37,12 @@ type StepInput<TCursor> = {
   loaded: number;
   /** The count the server sent, if any. */
   count: number | null;
+  /** Keys of the cursors this chain already returned. */
+  seenCursors?: ReadonlySet<string>;
 };
 
 /** Decides what a landed block means for the chain: does it go on, and with which cursor. */
-export function stepSequence<TCursor>({ read, sentCursor, loaded, count }: StepInput<TCursor>): SequenceStep<TCursor> {
+export function stepSequence<TCursor>({ read, sentCursor, loaded, count, seenCursors }: StepInput<TCursor>): SequenceStep<TCursor> {
   const cursor = read.nextCursor ?? undefined;
   const end = (warning: SequenceStep<TCursor>["warning"] = null): SequenceStep<TCursor> => ({ ended: true, cursor, warning });
   if (read.rows.length === 0) {
@@ -35,6 +53,10 @@ export function stepSequence<TCursor>({ read, sentCursor, loaded, count }: StepI
   if (read.nextCursor === undefined && !read.hasMore) return end();
   if (read.nextCursor !== undefined && Object.is(read.nextCursor, sentCursor)) {
     return end({ kind: "cursor", message: "fetchRows answered the cursor it was sent; the source ends here, so return a new cursor or null" });
+  }
+  const key = cursorKey(read.nextCursor);
+  if (key !== null && seenCursors?.has(key)) {
+    return end({ kind: "cursor", message: "fetchRows returned a cursor it returned before; the source ends here, so return a new cursor or null" });
   }
   if (count !== null && loaded >= count) return end();
   if (loaded >= MAX_ROW_COUNT) return end({ kind: "max", message: `the source loaded ${MAX_ROW_COUNT} rows; it ends here` });
