@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
-import { collectProtectedRows, GUARD_MISSING_MESSAGE, useRefreshGuard, writeBlocks, type RowSnapshot } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { isolate, useServerSpec } from "./server-state";
@@ -102,9 +102,10 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   evict: (range: RowRange) => void;
 };
 
-type Pending<TData> = { start: number; rows: (TData | undefined)[] };
-type InFlight = { range: RowRange; controller: AbortController };
-type Failed = { range: RowRange; cursor: unknown; error: unknown; /** The block belonged to a refresh whose snapshot protected rows. */ refresh: boolean };
+type Pending<TData> = GuardedBlock<TData> & { rows: (TData | undefined)[] };
+/** `guard` is the set of rows protected when the request started; a retry reuses it. */
+type InFlight = { range: RowRange; controller: AbortController; guard: ProtectedRows };
+type Failed = { range: RowRange; cursor: unknown; error: unknown; guard: ProtectedRows };
 
 type Sequence = {
   /** The cursor the next block sends. */
@@ -137,18 +138,14 @@ type Core<TData> = {
   lastWindow: RowRange | null;
   rowsLength: number;
   warned: Set<string>;
-  /** The protected rows of the running refresh; `null` outside one. */
-  snapshot: RowSnapshot<TData> | null;
-  /** Keys of failed blocks being retried; the answer may hold rows that moved since the failed request. */
-  retried: Set<string>;
-  /** Request keys the running refresh started; its snapshot lives until none is in flight or failed. */
-  refreshKeys: Set<string>;
+  /** Guarded rows an earlier block overwrote, for the block that brings their id back; empty when no request is pending. */
+  displaced: Map<string, TData>;
   /** Slots a protected row moved away from; `core.loaded` stops claiming them. */
   cleared: Set<number>;
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), snapshot: null, retried: new Set(), refreshKeys: new Set(), cleared: new Set() };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), cleared: new Set() };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -160,15 +157,8 @@ function scheduleFrame(callback: () => void): () => void {
   return () => clearTimeout(id);
 }
 
-function endRefreshWhenSettled<TData>(core: Core<TData>) {
-  if (core.snapshot === null) {
-    core.refreshKeys.clear();
-    return;
-  }
-  if (core.pending.length > 0 || core.seq.refresh !== null) return;
-  for (const key of core.refreshKeys) if (core.inFlight.has(key) || core.failed.has(key)) return;
-  core.snapshot = null;
-  core.refreshKeys.clear();
+function forgetDisplacedWhenIdle<TData>(core: Core<TData>) {
+  if (core.inFlight.size === 0 && core.failed.size === 0 && core.pending.length === 0) core.displaced.clear();
 }
 
 function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () => void) {
@@ -228,22 +218,23 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     const batch = core.pending.splice(0);
     if (batch.length === 0) return;
     const length = core.kind === "sequence" ? core.rowsLength : null;
-    const snapshot = core.snapshot;
+    const guarded = protectedRows();
+    const ranges = core.loaded;
     const idOf = live.current.options.getRowId;
     setRows((prev) => {
       const base = length === null ? prev : Object.assign(prev.slice(), { length });
-      const written = writeBlocks(base, batch, snapshot, idOf);
+      const written = writeBlocks(base, batch, guarded, core.displaced, ranges, idOf);
       for (const slot of written.cleared) core.cleared.add(slot);
       return written.rows;
     });
-  }, [getCore]);
+  }, [getCore, protectedRows]);
 
   // The first landing commits at once; later ones wait for the next frame, so a burst costs one copy of the rows per frame.
   const commitSoon = useCallback(
     () =>
       commitOnFrame(getCore(), commit, () => {
         const core = getCore();
-        endRefreshWhenSettled(core);
+        forgetDisplacedWhenIdle(core);
         setLoading(core.inFlight.size > 0);
       }),
     [getCore, commit],
@@ -266,9 +257,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.loaded = [];
       core.failed.clear();
       core.pending.length = 0;
-      core.snapshot = null;
-      core.refreshKeys.clear();
-      core.retried.clear();
+      core.displaced.clear();
       core.cleared.clear();
       core.cancelFrame?.();
       core.cancelFrame = null;
@@ -281,10 +270,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
 
   const windowRef = useRef<(range: RowRange) => void>(noop);
 
-  const runFetchRef = useRef<(range: RowRange, cursor?: unknown) => void>(noop);
+  const runFetchRef = useRef<(range: RowRange, cursor?: unknown, inherited?: ProtectedRows) => void>(noop);
 
   const landSequence = useCallback(
-    (range: RowRange, read: ReadAnswer<TData, unknown>, sentCursor: unknown) => {
+    (range: RowRange, read: ReadAnswer<TData, unknown>, sentCursor: unknown, guard: ProtectedRows) => {
       const core = getCore();
       const seq = core.seq;
       const size = blockSize();
@@ -295,13 +284,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const refresh = seq.refresh;
       const at = refresh ? range.start : seq.length;
       let incoming = read.rows;
-      const wasRetried = core.retried.delete(rangeKey(range));
-      if (!refresh && wasRetried) {
-        const guarded = protectedRows();
-        if (guarded !== null) {
-          const idOf = live.current.options.getRowId;
-          incoming = incoming.filter((row) => !guarded.has(idOf(row, at)));
-        }
+      const guarded = refresh ? null : unionIds(guard, protectedRows());
+      if (guarded !== null) {
+        const idOf = live.current.options.getRowId;
+        incoming = incoming.filter((row, index) => !guarded.has(idOf(row, at + index)));
       }
       const written = Math.min(incoming.length, range.end - range.start);
       const position = at + written;
@@ -314,12 +300,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       seq.cursor = step.cursor;
       const returned = cursorKey(step.cursor);
       if (returned !== null && seq.seen.size < MAX_SEEN_CURSORS) seq.seen.add(returned);
-      core.pending.push({ start: at, rows: incoming.slice(0, written) });
+      core.pending.push({ start: at, rows: incoming.slice(0, written), guard });
       if (refresh && !step.ended && position < refresh.keepUntil) {
         core.rowsLength = Math.max(core.rowsLength, position);
         commitSoon();
         notifyLoaded(at, position);
-        runFetchRef.current({ start: position, end: position + size }, step.cursor);
+        runFetchRef.current({ start: position, end: position + size }, step.cursor, guard);
         return;
       }
       seq.refresh = null;
@@ -327,7 +313,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       seq.length = position;
       core.loaded = position > 0 ? [{ start: 0, end: position }] : [];
       const tail = skeletonCount({ loaded: position, blockSize: size, count: seq.sentCount, ended: step.ended });
-      if (refresh) core.pending.push({ start: position, rows: new Array<TData | undefined>(tail).fill(undefined) });
+      if (refresh) core.pending.push({ start: position, rows: new Array<TData | undefined>(tail).fill(undefined), guard: null });
       core.rowsLength = position + tail;
       setLoadedCount(position);
       setSkeletons(tail);
@@ -339,12 +325,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   );
 
   const land = useCallback(
-    (range: RowRange, answer: unknown, sentCursor: unknown) => {
+    (range: RowRange, answer: unknown, sentCursor: unknown, guard: ProtectedRows) => {
       const core = getCore();
       const read = readAnswer<TData, unknown>(answer, range, warn);
       if (core.kind === "unknown") core.kind = startsSequence(read) ? "sequence" : "random";
       if (core.kind === "sequence") {
-        landSequence(range, read, sentCursor);
+        landSequence(range, read, sentCursor, guard);
         return;
       }
       const first = !core.ready;
@@ -355,8 +341,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         core.loaded = [];
         core.failed.clear();
         core.pending.length = 0;
-        core.snapshot = null;
-        core.refreshKeys.clear();
+        core.displaced.clear();
         core.cleared.clear();
         core.cancelFrame?.();
         core.cancelFrame = null;
@@ -382,7 +367,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (written > 0) {
         core.loaded = mergeRanges([...core.loaded, { start: range.start, end: range.start + written }]);
         setLoadedCount(sumRangeSizes(core.loaded));
-        core.pending.push({ start: range.start, rows: read.rows.slice(0, written) });
+        core.pending.push({ start: range.start, rows: read.rows.slice(0, written), guard });
         commitSoon();
         notifyLoaded(range.start, range.start + written);
       }
@@ -392,25 +377,25 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   );
 
   const runFetch = useCallback(
-    (range: RowRange, cursor?: unknown) => {
+    (range: RowRange, cursor?: unknown, inherited: ProtectedRows = null) => {
       const core = getCore();
       const key = rangeKey(range);
       if (core.inFlight.has(key)) return;
       const controller = new AbortController();
-      core.inFlight.set(key, { range, controller });
-      if (core.seq.refresh !== null && core.snapshot !== null) core.refreshKeys.add(key);
+      const guard = unionIds(inherited, protectedRows());
+      core.inFlight.set(key, { range, controller, guard });
       setLoading(true);
       const settle = () => {
         if (core.inFlight.get(key)?.controller !== controller) return;
         core.inFlight.delete(key);
-        endRefreshWhenSettled(core);
+        forgetDisplacedWhenIdle(core);
         // Rows still waiting for the next frame count as loading, so "ready" means the rows are on screen.
         setLoading(core.inFlight.size > 0 || core.pending.length > 0);
       };
       const fail = (cause: unknown) => {
         if (controller.signal.aborted) return;
         const failure = cause ?? new Error("fetchRows rejected");
-        core.failed.set(key, { range, cursor, error: failure, refresh: core.refreshKeys.has(key) });
+        core.failed.set(key, { range, cursor, error: failure, guard });
         setError(failure);
         const onError = live.current.options.onError;
         if (onError) isolate("onError", () => onError(failure));
@@ -427,7 +412,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
           .fetchRows(request)
           .then((answer) => {
             if (controller.signal.aborted) return;
-            land(range, answer, cursor);
+            land(range, answer, cursor, guard);
             landed = true;
           })
           .catch(fail)
@@ -437,7 +422,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         settle();
       }
     },
-    [getCore, land],
+    [getCore, land, protectedRows],
   );
   useLayoutEffect(() => {
     runFetchRef.current = runFetch;
@@ -457,11 +442,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const size = blockSize();
       const expanded = expandRange(range, { overscan: overscanOf(), blockSize: size, total: core.count });
       if (rangeSize(expanded) === 0) return;
-      for (const key of core.refreshKeys) {
-        const failure = core.failed.get(key);
-        if (failure && (failure.range.end <= expanded.start || failure.range.start >= expanded.end)) core.refreshKeys.delete(key);
-      }
-      endRefreshWhenSettled(core);
       const covered = [...core.loaded, ...Array.from(core.inFlight.values(), (entry) => entry.range)];
       for (const gap of subtractRanges(expanded, covered)) {
         for (const block of chunkRange(gap, size)) runFetch(block);
@@ -524,42 +504,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     [getCore, commit],
   );
 
-  const protectRows = useCallback(
-    (core: Core<TData>, merge = false) => {
-      const guarded = protectedRows();
-      if (guarded === null) {
-        if (!merge) core.snapshot = null;
-        return;
-      }
-      const carried: RowSnapshot<TData> = new Map();
-      for (const [id, entry] of core.snapshot ?? []) if (merge || guarded.has(id)) carried.set(id, entry);
-      core.snapshot = carried;
-      const idOf = live.current.options.getRowId;
-      const ranges = core.loaded;
-      setRows((prev) => {
-        collectProtectedRows(carried, prev, ranges, guarded, idOf);
-        return prev;
-      });
-    },
-    [protectedRows],
-  );
-
   const retry = useCallback(() => {
     const core = getCore();
     if (core.failed.size === 0) return;
     const failures = Array.from(core.failed.values());
     core.failed.clear();
     setError(null);
-    if (failures.some((failure) => failure.refresh)) {
-      commit();
-      protectRows(core, true);
-    }
-    for (const { range, cursor, refresh } of failures) {
-      if (refresh && core.snapshot !== null) core.refreshKeys.add(rangeKey(range));
-      if (!refresh) core.retried.add(rangeKey(range));
-      runFetch(range, cursor);
-    }
-  }, [getCore, runFetch, commit, protectRows]);
+    for (const { range, cursor, guard } of failures) runFetch(range, cursor, guard);
+  }, [getCore, runFetch]);
 
   // A protected row that left its old slot must not leave the slot marked loaded; the next window fetches it again.
   useLayoutEffect(() => {
@@ -581,8 +533,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     }
     if (guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     commit();
-    core.refreshKeys.clear();
-    protectRows(core);
     const size = blockSize();
     if (core.kind === "sequence") {
       abortRequests();
@@ -598,11 +548,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     core.failed.clear();
     setError(null);
     for (const outside of subtractRanges({ start: 0, end: core.count! }, [keep])) evict(outside);
-    for (const block of chunkRange(keep, size)) {
-      if (core.snapshot !== null) core.refreshKeys.add(rangeKey(block));
-      runFetch(block);
-    }
-  }, [getCore, runFetch, evict, abortRequests, blockSize, overscanOf, guardMissing, warn, commit, protectRows]);
+    for (const block of chunkRange(keep, size)) runFetch(block);
+  }, [getCore, runFetch, evict, abortRequests, blockSize, overscanOf, guardMissing, warn, commit]);
 
   const getLoadedRanges = useCallback(() => getCore().loaded.slice(), [getCore]);
 
@@ -630,13 +577,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const core = getCore();
       markEdited();
       commit();
-      const loadedRanges = core.loaded;
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
         if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
-        const rows = change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
-        if (core.snapshot !== null) followEditsInSnapshot(core.snapshot, change, rows, loadedRanges, live.current.options.getRowId);
-        return rows;
+        return change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
       });
       if (core.kind === "sequence") followRowOperations(change);
       const onDataChange = live.current.options.onDataChange;
@@ -682,16 +626,6 @@ function abortRequestsExcept<TData>(core: Core<TData>, keep: RowRange) {
     controller.abort();
     core.inFlight.delete(key);
   }
-}
-
-/** An edit during a refresh joins the protected rows, so the answer does not overwrite it; a deleted row leaves them. */
-function followEditsInSnapshot<TData>(snapshot: RowSnapshot<TData>, change: DataChange<TData>, rows: readonly (TData | undefined)[], ranges: readonly RowRange[], idOf: (row: TData, index: number) => string) {
-  const edited = new Set<string>();
-  for (const op of change.ops) {
-    if (op.type === "update") edited.add(op.rowId);
-    else if (op.type === "delete") snapshot.delete(op.rowId);
-  }
-  if (edited.size > 0) collectProtectedRows(snapshot, rows, ranges, edited, idOf);
 }
 
 function warnDroppedEdit<TData>(prev: readonly (TData | undefined)[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string, warn: (kind: string, message: string) => void) {

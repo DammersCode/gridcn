@@ -260,6 +260,42 @@ describe("a retried refresh block after the window moved away", () => {
   });
 });
 
+describe.each<Source>(["counted", "cursor"])("a row the user starts changing during a refresh, %s source", (source) => {
+  it("keeps the local value of a save that starts while the refresh is in flight", async () => {
+    const t = setup(source);
+    await loadTwoBlocks(t);
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    expect(t.state().saveStatus.get("r3")).toBe("saving");
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
+    expect(t.nameOf("r3")).toBe("Saved");
+    await t.waitHeld(SIZE);
+    await t.land(SIZE);
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r3")).toBe("Person 3!"));
+  });
+
+  it("keeps the row under an editor that opens while the refresh is in flight", async () => {
+    const t = setup(source);
+    await loadTwoBlocks(t);
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    act(() => t.state().actions.startEditing({ rowId: "r5", columnId: "name" }));
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r6")).toBe("Person 6!"));
+    expect(t.nameOf("r5")).toBe("Person 5");
+  });
+});
+
 describe("retry while a refresh runs", () => {
   it("keeps a row edited in a block still in flight, counted source", async () => {
     const t = setup("counted");
@@ -273,7 +309,6 @@ describe("retry while a refresh runs", () => {
     await t.fail(0);
     await waitFor(() => expect(t.server().status).toBe("error"));
     act(() => t.state().actions.commitCellValue({ rowId: "r12", columnId: "name" }, "Edited"));
-    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
     act(() => t.server().retry());
     await t.waitHeld(0);
     await t.land(SIZE);
@@ -331,7 +366,7 @@ describe("the refresh guard on a huge sparse source", () => {
 });
 
 describe("the refresh guard cost", () => {
-  it.each<Source>(["counted", "cursor"])("looks up only the protected rows while a save is pending, %s source", async (source) => {
+  it.each<Source>(["counted", "cursor"])("looks up only the incoming rows while a save is pending, %s source", async (source) => {
     const calls = { count: 0 };
     const t = setup(source, { getRowId: (row) => (calls.count++, row.id) });
     await t.ready();
@@ -347,6 +382,6 @@ describe("the refresh guard cost", () => {
       await t.ready();
     }
     expect(t.state().saveStatus.get("r3")).toBe("saving");
-    expect(calls.count - before).toBeLessThan(10);
+    expect(calls.count - before).toBeLessThan(150);
   });
 });

@@ -7,7 +7,7 @@ import { useDataGridPagination, type DataGridPaginationControls } from "@/regist
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, useRefreshGuard } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, keepProtectedRows, unionIds, useRefreshGuard } from "./refresh-guard";
 import { isolate, useControlled, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
@@ -125,12 +125,6 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
 }
 
-function mergeIds(a: ReadonlySet<string> | null, b: ReadonlySet<string> | null): ReadonlySet<string> | null {
-  if (a === null) return b;
-  if (b === null) return a;
-  return new Set([...a, ...b]);
-}
-
 function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
@@ -173,7 +167,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         if (controller.signal.aborted) return;
         const read = readAnswer<TData>(answer, range, warn);
         live.current.settledOnce = true;
-        const guarded = mergeIds(protectedAtStart, protectedRows());
+        const guarded = unionIds(protectedAtStart, protectedRows());
         setSettled((prev) => ({
           key,
           rows: keepProtectedRows(read.rows, prev.rows, guarded, live.current.options.getRowId),

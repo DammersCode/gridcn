@@ -59,60 +59,68 @@ export function keepProtectedRows<TData>(incoming: readonly TData[], current: re
   return incoming.map((row, index) => local.get(idOf(row, index)) ?? row);
 }
 
-/** The local rows a refresh protects, by id, with the slot each held when the refresh started. */
-export type RowSnapshot<TData> = Map<string, { row: TData; index: number }>;
+/** The union of two protected sets; either may be `null`. */
+export function unionIds(a: ProtectedRows, b: ProtectedRows): ProtectedRows {
+  if (a === null) return b;
+  if (b === null || a === b) return a;
+  return new Set([...a, ...b]);
+}
 
-/** Adds the protected rows found in the given index ranges of `rows` to `snapshot`; a row already in it takes the latest value and slot. */
-export function collectProtectedRows<TData>(
-  snapshot: RowSnapshot<TData>,
-  rows: readonly (TData | undefined)[],
-  ranges: readonly { start: number; end: number }[],
-  guarded: ReadonlySet<string>,
-  idOf: (row: TData, index: number) => string,
-) {
+export type GuardedBlock<TData> = { start: number; rows: readonly (TData | undefined)[]; guard: ProtectedRows };
+
+function findSlot<TData>(rows: readonly (TData | undefined)[], ranges: readonly { start: number; end: number }[], id: string, idOf: (row: TData, index: number) => string): number {
   for (const { start, end } of ranges) {
     for (let index = start; index < Math.min(end, rows.length); index++) {
       const row = rows[index];
-      if (row === undefined) continue;
-      const id = idOf(row, index);
-      if (guarded.has(id)) snapshot.set(id, { row, index });
+      if (row !== undefined && idOf(row, index) === id) return index;
     }
   }
+  return -1;
 }
 
 /**
- * Writes blocks into a copy of `prev`. A snapshot row keeps its local value and appears once, at the index the answer gives it.
- * `cleared` lists the slots left empty because the row moved away from them.
+ * Writes blocks into a copy of `prev`. A block guards the ids it was requested with plus the `live` ones: such a row keeps its
+ * local value and appears once, at the index the answer gives it. `displaced` holds a guarded row that an earlier block overwrote,
+ * for the block that brings its id back. `cleared` lists the slots left empty because a row moved away from them.
  */
 export function writeBlocks<TData>(
   prev: readonly (TData | undefined)[],
-  blocks: readonly { start: number; rows: readonly (TData | undefined)[] }[],
-  snapshot: RowSnapshot<TData> | null,
+  blocks: readonly GuardedBlock<TData>[],
+  live: ProtectedRows,
+  displaced: Map<string, TData>,
+  ranges: readonly { start: number; end: number }[],
   idOf: (row: TData, index: number) => string,
 ): { rows: (TData | undefined)[]; cleared: number[] } {
   const next = prev.slice();
-  const guarded = snapshot !== null && snapshot.size > 0 ? snapshot : null;
-  const moved: { id: string; index: number }[] = [];
-  for (const { start, rows } of blocks) {
+  const emptied: number[] = [];
+  for (const { start, rows, guard } of blocks) {
+    const guarded = unionIds(guard, live);
     for (let i = 0; i < rows.length && start + i < next.length; i++) {
+      const slot = start + i;
       const incoming = rows[i];
-      const id = guarded === null || incoming === undefined ? undefined : idOf(incoming, start + i);
-      const own = id === undefined ? undefined : guarded!.get(id);
-      if (own === undefined) {
-        next[start + i] = incoming;
+      if (guarded === null) {
+        next[slot] = incoming;
         continue;
       }
-      next[start + i] = own.row;
-      if (own.index !== start + i) moved.push({ id: id!, index: own.index });
+      const occupant = next[slot];
+      const occupantId = occupant === undefined ? undefined : idOf(occupant, slot);
+      const incomingId = incoming === undefined ? undefined : idOf(incoming, slot);
+      if (incomingId !== undefined && guarded.has(incomingId)) {
+        if (occupantId === incomingId) continue;
+        if (occupantId !== undefined && guarded.has(occupantId)) displaced.set(occupantId, occupant as TData);
+        const kept = displaced.get(incomingId);
+        const from = kept === undefined ? findSlot(next, ranges, incomingId, idOf) : -1;
+        const local = kept ?? (from >= 0 ? next[from] : undefined);
+        next[slot] = local ?? incoming;
+        if (local !== undefined && from >= 0) {
+          next[from] = undefined;
+          emptied.push(from);
+        }
+        continue;
+      }
+      if (occupantId !== undefined && guarded.has(occupantId)) displaced.set(occupantId, occupant as TData);
+      next[slot] = incoming;
     }
   }
-  const cleared: number[] = [];
-  for (const { id, index } of moved) {
-    const left = next[index];
-    if (left !== undefined && idOf(left, index) === id) {
-      next[index] = undefined;
-      cleared.push(index);
-    }
-  }
-  return { rows: next, cleared };
+  return { rows: next, cleared: emptied.filter((slot) => next[slot] === undefined) };
 }
