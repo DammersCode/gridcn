@@ -143,6 +143,44 @@ describe("refresh in place, pages mode", () => {
     expect(t.name(3)).toBe("Saved");
   });
 
+  it("keeps the value of a row whose save started and settled while the request was in flight", async () => {
+    let hold = false;
+    const answers: Array<() => void> = [];
+    const saves: Array<() => void> = [];
+    const fetchRows = async ({ start, end }: ServerRowsPageRequest): Promise<ServerRowsAnswer<Row>> => {
+      const answer = { rows: rowsOf(start, end - start, hold ? "!" : ""), totalRowCount: 100 };
+      if (!hold) return answer;
+      return new Promise((resolve) => answers.push(() => resolve(answer)));
+    };
+    let server!: UseDataGridServerRowsResult<Row>;
+    let store!: StoreApi<DataGridStoreState>;
+    function Probe() {
+      store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+      return null;
+    }
+    function Harness() {
+      server = useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, pageSizeOptions: [10] });
+      return (
+        <DataGridProvider {...server.providerProps} columns={columns} onSave={(_change: DataChange<Row>) => new Promise<void>((resolve) => saves.push(resolve))}>
+          <DataGridRoot>
+            <Probe />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Harness />);
+    await waitFor(() => expect(server.loading).toBe(false));
+    hold = true;
+    act(() => server.refresh());
+    await waitFor(() => expect(answers).toHaveLength(1));
+    act(() => store.getState().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    await act(async () => saves.splice(0).forEach((resolve) => resolve()));
+    expect(store.getState().saveStatus.get("r3")).toBeUndefined();
+    await act(async () => answers.splice(0).forEach((resolve) => resolve()));
+    await waitFor(() => expect(server.providerProps.data[4]?.name).toBe("Person 4!"));
+    expect(server.providerProps.data[3]?.name).toBe("Saved");
+  });
+
   it("keeps the value of a row whose save resolved before the answer arrived", async () => {
     let suffix = "";
     let hold = false;

@@ -136,7 +136,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
@@ -148,6 +148,8 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     const { page: requestPage, pageSize: requestSize } = live.current;
     const requestSpec = spec;
     const protectedAtStart = protectedRows();
+    const markAtStart = saveMark();
+    pruneSaves(markAtStart);
     const start = (requestPage - 1) * requestSize;
     const range: RowRange = { start, end: start + requestSize };
     const warn = (kind: string, message: string) => {
@@ -167,7 +169,8 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         if (controller.signal.aborted) return;
         const read = readAnswer<TData>(answer, range, warn);
         live.current.settledOnce = true;
-        const guarded = unionIds(protectedAtStart, protectedRows());
+        const guarded = unionIds(unionIds(protectedAtStart, savedSince(markAtStart)), protectedRows());
+        pruneSaves(null);
         setSettled((prev) => ({
           key,
           rows: keepProtectedRows(read.rows, prev.rows, guarded, live.current.options.getRowId),

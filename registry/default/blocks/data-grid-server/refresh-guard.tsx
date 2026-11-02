@@ -1,16 +1,40 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { DataGridPlugin, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
+import type { DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** The rows an answer must not overwrite: a save is pending, or an edit session is open. */
 export type ProtectedRows = ReadonlySet<string> | null;
 
-type Holder = { store: DataGridStoreWrapper | null; everMounted: boolean; edited: boolean };
+type Holder = {
+  store: DataGridStoreWrapper | null;
+  everMounted: boolean;
+  edited: boolean;
+  saveSeq: number;
+  /** Saves that started, in order; trimmed to the saves newer than the oldest pending request. */
+  started: { seq: number; id: string }[];
+};
 
 function markEditedOn(holder: Holder) {
   holder.edited = true;
+}
+
+function logSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
+  if (state.saveStatus === prev.saveStatus) return;
+  for (const [id, status] of state.saveStatus) {
+    if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.started.push({ seq: ++holder.saveSeq, id });
+  }
+}
+
+function savedSinceOn(holder: Holder, mark: number): ProtectedRows {
+  let ids: Set<string> | null = null;
+  for (const entry of holder.started) if (entry.seq > mark) (ids ??= new Set()).add(entry.id);
+  return ids;
+}
+
+function pruneSavesOn(holder: Holder, oldestMark: number | null) {
+  holder.started = oldestMark === null ? [] : holder.started.filter((entry) => entry.seq > oldestMark);
 }
 
 function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
@@ -19,7 +43,9 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     useEffect(() => {
       holder.store = store;
       holder.everMounted = true;
+      const unsubscribe = store.subscribe((state, prev) => logSaveStarts(holder, state, prev));
       return () => {
+        unsubscribe();
         holder.store = null;
       };
     }, [store]);
@@ -30,7 +56,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, saveSeq: 0, started: [] }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const protectedRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -42,7 +68,10 @@ export function useRefreshGuard() {
   }, [holder]);
   const guardMissing = useCallback(() => holder.edited && !holder.everMounted, [holder]);
   const markEdited = useCallback(() => markEditedOn(holder), [holder]);
-  return { plugins, protectedRows, guardMissing, markEdited };
+  const saveMark = useCallback(() => holder.saveSeq, [holder]);
+  const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
+  const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
+  return { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves };
 }
 
 export const GUARD_MISSING_MESSAGE =
