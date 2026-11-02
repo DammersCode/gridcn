@@ -16,7 +16,7 @@ const rowAt = (index: number, shift: number, suffix: string): Row => (index < sh
 
 type Source = "counted" | "cursor";
 
-function setup(source: Source, { getRowId = (row: Row) => row.id }: { getRowId?: (row: Row) => string } = {}) {
+function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL }: { getRowId?: (row: Row) => string; total?: number } = {}) {
   let shift = 0;
   let suffix = "";
   let hold = false;
@@ -24,10 +24,10 @@ function setup(source: Source, { getRowId = (row: Row) => row.id }: { getRowId?:
   const fetchRows = vi.fn((request: ServerRowsRequest<number>) => {
     const { start, end } = request;
     const from = source === "cursor" ? (request.cursor ?? 0) : start;
-    const stop = source === "counted" ? Math.min(end, TOTAL) : end;
+    const stop = source === "counted" ? Math.min(end, total) : end;
     const answer = (): ServerRowsAnswer<Row, number> => ({
       rows: Array.from({ length: stop - from }, (_, i) => rowAt(from + i, shift, suffix)),
-      ...(source === "counted" ? { totalRowCount: TOTAL } : { nextCursor: from + (stop - from) }),
+      ...(source === "counted" ? { totalRowCount: total } : { nextCursor: from + (stop - from) }),
     });
     if (!hold) return Promise.resolve(answer());
     return new Promise<ServerRowsAnswer<Row, number>>((resolve, reject) => held.push({ request, resolve: () => resolve(answer()), reject: () => reject(new Error("boom")) }));
@@ -143,6 +143,51 @@ describe("a protected row that crosses a block boundary during a refresh", () =>
       if (data[i] === undefined) expect(loaded.some((range) => i >= range.start && i < range.end)).toBe(false);
     }
   });
+});
+
+describe("a retried refresh block", () => {
+  it("still keeps a row whose save is pending, counted source", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    await t.waitHeld(SIZE);
+    await t.fail(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.server().status).toBe("error"));
+    act(() => t.server().retry());
+    await t.waitHeld(0);
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
+    expect(t.state().saveStatus.get("r3")).toBe("saving");
+    expect(t.nameOf("r3")).toBe("Saved");
+  });
+});
+
+describe("the refresh guard on a huge sparse source", () => {
+  it("never walks the whole row array", async () => {
+    const t = setup("counted", { total: 2_000_000 });
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    const walked: number[] = [];
+    const original = Array.prototype.forEach;
+    vi.spyOn(Array.prototype, "forEach").mockImplementation(function (this: unknown[], ...args: Parameters<typeof original>) {
+      if (this.length >= 1_000_000) walked.push(this.length);
+      return original.apply(this, args);
+    });
+    t.holdAnswers();
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    act(() => t.state().actions.commitCellValue({ rowId: "r4", columnId: "name" }, "Edited"));
+    await t.land(0);
+    await t.land(SIZE);
+    await waitFor(() => expect(t.server().loading).toBe(false));
+    expect(t.nameOf("r3")).toBe("Saved");
+    expect(walked).toEqual([]);
+  }, 60_000);
 });
 
 describe("the refresh guard cost", () => {

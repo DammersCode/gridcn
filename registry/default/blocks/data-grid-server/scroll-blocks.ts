@@ -156,7 +156,7 @@ function scheduleFrame(callback: () => void): () => void {
 }
 
 function endRefreshWhenSettled<TData>(core: Core<TData>) {
-  if (core.inFlight.size === 0 && core.pending.length === 0 && core.seq.refresh === null) core.snapshot = null;
+  if (core.inFlight.size === 0 && core.failed.size === 0 && core.pending.length === 0 && core.seq.refresh === null) core.snapshot = null;
 }
 
 function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () => void) {
@@ -187,7 +187,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, guardMissing, markRowsRendered } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited } = useRefreshGuard();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -510,8 +510,9 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.snapshot = guarded === null && carried.size === 0 ? null : carried;
       if (guarded === null) return;
       const idOf = live.current.options.getRowId;
+      const ranges = core.loaded;
       setRows((prev) => {
-        collectProtectedRows(carried, prev, guarded, idOf);
+        collectProtectedRows(carried, prev, ranges, guarded, idOf);
         return prev;
       });
     },
@@ -559,14 +560,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
 
   const getLoadedRanges = useCallback(() => getCore().loaded.slice(), [getCore]);
 
-  const getRowId = useCallback(
-    (row: TData, index: number) => {
-      if (row === undefined) return holeRowId(index);
-      markRowsRendered();
-      return live.current.options.getRowId(row, index);
-    },
-    [markRowsRendered],
-  );
+  const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
 
   // An insert or delete moves the end of the loaded rows; the next block starts after it.
   const followRowOperations = useCallback(
@@ -588,19 +582,21 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
       const core = getCore();
+      markEdited();
       commit();
+      const loadedRanges = core.loaded;
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
         if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
         const rows = change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
-        if (core.snapshot !== null) followEditsInSnapshot(core.snapshot, change, rows, live.current.options.getRowId);
+        if (core.snapshot !== null) followEditsInSnapshot(core.snapshot, change, rows, loadedRanges, live.current.options.getRowId);
         return rows;
       });
       if (core.kind === "sequence") followRowOperations(change);
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations],
+    [getCore, commit, getRowId, warn, followRowOperations, markEdited],
   );
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
@@ -643,13 +639,13 @@ function abortRequestsExcept<TData>(core: Core<TData>, keep: RowRange) {
 }
 
 /** An edit during a refresh joins the protected rows, so the answer does not overwrite it; a deleted row leaves them. */
-function followEditsInSnapshot<TData>(snapshot: RowSnapshot<TData>, change: DataChange<TData>, rows: readonly (TData | undefined)[], idOf: (row: TData, index: number) => string) {
+function followEditsInSnapshot<TData>(snapshot: RowSnapshot<TData>, change: DataChange<TData>, rows: readonly (TData | undefined)[], ranges: readonly RowRange[], idOf: (row: TData, index: number) => string) {
   const edited = new Set<string>();
   for (const op of change.ops) {
     if (op.type === "update") edited.add(op.rowId);
     else if (op.type === "delete") snapshot.delete(op.rowId);
   }
-  if (edited.size > 0) collectProtectedRows(snapshot, rows, edited, idOf);
+  if (edited.size > 0) collectProtectedRows(snapshot, rows, ranges, edited, idOf);
 }
 
 function warnDroppedEdit<TData>(prev: readonly (TData | undefined)[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string, warn: (kind: string, message: string) => void) {

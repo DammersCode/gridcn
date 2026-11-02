@@ -7,10 +7,10 @@ import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-gr
 /** The rows an answer must not overwrite: a save is pending, or an edit session is open. */
 export type ProtectedRows = ReadonlySet<string> | null;
 
-type Holder = { store: DataGridStoreWrapper | null; everMounted: boolean; rowsRendered: boolean };
+type Holder = { store: DataGridStoreWrapper | null; everMounted: boolean; edited: boolean };
 
-function markRowsRenderedOn(holder: Holder) {
-  holder.rowsRendered = true;
+function markEditedOn(holder: Holder) {
+  holder.edited = true;
 }
 
 function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
@@ -30,7 +30,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, rowsRendered: false }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const protectedRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -40,9 +40,9 @@ export function useRefreshGuard() {
     if (state.editing) ids.add(state.editing.rowId);
     return ids.size > 0 ? ids : null;
   }, [holder]);
-  const guardMissing = useCallback(() => holder.rowsRendered && !holder.everMounted, [holder]);
-  const markRowsRendered = useCallback(() => markRowsRenderedOn(holder), [holder]);
-  return { plugins, protectedRows, guardMissing, markRowsRendered };
+  const guardMissing = useCallback(() => holder.edited && !holder.everMounted, [holder]);
+  const markEdited = useCallback(() => markEditedOn(holder), [holder]);
+  return { plugins, protectedRows, guardMissing, markEdited };
 }
 
 export const GUARD_MISSING_MESSAGE =
@@ -62,13 +62,22 @@ export function keepProtectedRows<TData>(incoming: readonly TData[], current: re
 /** The local rows a refresh protects, by id, with the slot each held when the refresh started. */
 export type RowSnapshot<TData> = Map<string, { row: TData; index: number }>;
 
-/** Adds the protected rows found in `rows` to `snapshot`; rows already in it keep their entry's place but take the latest value. */
-export function collectProtectedRows<TData>(snapshot: RowSnapshot<TData>, rows: readonly (TData | undefined)[], guarded: ReadonlySet<string>, idOf: (row: TData, index: number) => string) {
-  rows.forEach((row, index) => {
-    if (row === undefined) return;
-    const id = idOf(row, index);
-    if (guarded.has(id)) snapshot.set(id, { row, index });
-  });
+/** Adds the protected rows found in the given index ranges of `rows` to `snapshot`; a row already in it takes the latest value and slot. */
+export function collectProtectedRows<TData>(
+  snapshot: RowSnapshot<TData>,
+  rows: readonly (TData | undefined)[],
+  ranges: readonly { start: number; end: number }[],
+  guarded: ReadonlySet<string>,
+  idOf: (row: TData, index: number) => string,
+) {
+  for (const { start, end } of ranges) {
+    for (let index = start; index < Math.min(end, rows.length); index++) {
+      const row = rows[index];
+      if (row === undefined) continue;
+      const id = idOf(row, index);
+      if (guarded.has(id)) snapshot.set(id, { row, index });
+    }
+  }
 }
 
 /**

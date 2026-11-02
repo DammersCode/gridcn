@@ -125,6 +125,12 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
 }
 
+function mergeIds(a: ReadonlySet<string> | null, b: ReadonlySet<string> | null): ReadonlySet<string> | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return new Set([...a, ...b]);
+}
+
 function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
@@ -136,7 +142,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markRowsRendered } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
@@ -147,6 +153,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     const controller = new AbortController();
     const { page: requestPage, pageSize: requestSize } = live.current;
     const requestSpec = spec;
+    const protectedAtStart = protectedRows();
     const start = (requestPage - 1) * requestSize;
     const range: RowRange = { start, end: start + requestSize };
     const warn = (kind: string, message: string) => {
@@ -166,7 +173,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         if (controller.signal.aborted) return;
         const read = readAnswer<TData>(answer, range, warn);
         live.current.settledOnce = true;
-        const guarded = protectedRows();
+        const guarded = mergeIds(protectedAtStart, protectedRows());
         setSettled((prev) => ({
           key,
           rows: keepProtectedRows(read.rows, prev.rows, guarded, live.current.options.getRowId),
@@ -221,16 +228,11 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   }, [guardMissing]);
 
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
+    markEdited();
     setSettled((prev) => ({ ...prev, rows: next as TData[] }));
     live.current.options.onDataChange?.(next, change);
-  }, []);
-  const getRowId = useCallback(
-    (row: TData, index: number) => {
-      markRowsRendered();
-      return live.current.options.getRowId(row, index);
-    },
-    [markRowsRendered],
-  );
+  }, [markEdited]);
+  const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
   const onPageSizeChange = useCallback(
     (next: number) => {
