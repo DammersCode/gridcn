@@ -58,29 +58,31 @@ function toWhere(node): Prisma.UserWhereInput {
 }
 
 export async function POST(req: Request) {
-  const { page, pageSize, sorts, filters, search } = await req.json();
+  const { spec, start, end } = await req.json();
+  const { sorts, filters, searchText } = spec;
   assertFilterTree(filters);
+  const limit = Math.min(Math.max(end - start, 1), 500);
 
   const where: Prisma.UserWhereInput = {
-    ...(search
-      ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] }
+    ...(searchText
+      ? { OR: [{ name: { contains: searchText, mode: "insensitive" } }, { email: { contains: searchText, mode: "insensitive" } }] }
       : {}),
     ...(filters.length ? { AND: filters.map(toWhere) } : {}),
   };
 
-  const [total, rows] = await Promise.all([
+  const [totalRowCount, rows] = await Promise.all([
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
       orderBy: sorts.length
         ? sorts.map((s) => ({ [s.columnId]: s.direction }))
         : [{ id: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      skip: start,
+      take: limit,
     }),
   ]);
 
-  return Response.json({ rows, total });
+  return Response.json({ rows, totalRowCount });
 }
 ```
 
@@ -89,8 +91,8 @@ Notes:
 - `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
   implies. Drop it for exact semantics.
 - `isAnyOf` maps to `in: f.value`, and `isNoneOf` maps to `notIn: f.value`. Add them to the table above when you need them.
-- The client is the [server-side example](/docs/examples/data/server-side) unchanged.
-  Edits become `prisma.user.update` in the same write-through handler.
+- The client is the [server-side example](/docs/examples/data/server-side) with one change: its `fetchRows` posts
+  `{ spec, start, end }` to this route and returns the JSON. Edits become `prisma.user.update` in the same write-through handler.
 
 ## Shareable state
 

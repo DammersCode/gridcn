@@ -179,7 +179,7 @@ The popover shows one loading line on the first request. A new search keeps the 
 A column with `options.choices` keeps its declared list and never calls `fetchFilterValues`. The grid reads at most 1,000 values from an answer and renders each label as text. A header filter over server values stores the checked values with `isAnyOf`, and the popover does not show the "From loaded rows" hint. Checked values stay checked when a search hides them.
 
 <Callout type="warn">
-  Without `fetchFilterValues`, lazy rows, `sortMode="server"`, or `filterMode="server"` make the list show only the values of the loaded rows. A value
+  Without `fetchFilterValues`, scroll mode, `sortMode="server"`, or `filterMode="server"` make the list show only the values of the loaded rows. A value
   that exists only on the server is missing from the list. Your server decides which rows the
   grid loads, so it decides which values the list can show. The popover then shows the hint
   "From loaded rows". Server pagination with client sorting loads whole pages, so the hint stays hidden. Set the text with the `toolbar.headerFilterLoadedRowsOnly` label.

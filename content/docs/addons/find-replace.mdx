@@ -83,7 +83,7 @@ shows `Validating…` until the batch settles.
 ## Where Replace works
 
 Replace covers the visible columns of the rows in the view. Hidden columns, filtered-out rows,
-pinned rows, and unloaded lazy rows never change. With `scope: "selection"`, it covers only the
+pinned rows, and the unloaded rows of a scroll-mode grid never change. With `scope: "selection"`, it covers only the
 selected cells.
 
 One Replace all changes at most `replaceAllLimit` cells. When more cells match, the status line

@@ -27,7 +27,7 @@ const server = useDataGridServerRows<Order>({
 <DataGridPaginationBar {...server.pager} />
 ```
 
-- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `start` is `(page - 1) * pageSize`, `end` is `start + pageSize`, and `cursor` is `null` in pages mode.
+- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `start` is `(page - 1) * pageSize`, `end` is `start + pageSize`, and `cursor` is `undefined` in pages mode.
 - `fetchRows` resolves `{ rows, totalRowCount }`. A server that sends no count resolves `{ rows, hasMore }`, and the footer shows "Page N" with Next and no Last. An omitted `totalRowCount` keeps the last known count; `null` declares it unknown.
 - The hook checks every answer. `rows` must be an array, else the request fails. A `totalRowCount` that is not a non-negative integer reads as unknown, and one above 10,000,000 clamps to it. At most `pageSize` rows are kept. Each case warns once in development.
 - `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, the controlled sort, filter, and search pairs, `totalRowCount`, `keepCheckedRows`, `loading`, `error`, and `onRetry`. Pass `headerClickBehavior="sort"` to sort on a header click. Put your own `onDataChange` and `getRowId` in the hook options: a spread override drops the hook's merge.
@@ -37,7 +37,7 @@ const server = useDataGridServerRows<Order>({
 
 A failed request sets `server.error` and keeps the last good rows visible. `DataGridRoot` shows the error state: a centered message with a Retry button over zero rows, and a slim alert bar under the header with rows present. Replace it with `errorState`, a node or a function receiving `{ error, retry }`. The text is `labels.grid.errorState`; the error itself is never rendered.
 
-`server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again and keeps the rows on screen until the answer lands, for example after a save. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"` (`"error"` wins over `"loading"`), and `server.loading` is true while a request is in flight. `retry`, `refresh`, and every callback in `gridProps` keep their identity across renders.
+`server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again and keeps the rows on screen until the answer lands, for example after a save. A row with a pending save or an open edit keeps its value. That guard mounts through `gridProps.plugins`, so a `plugins` prop of your own must start with `...server.gridProps.plugins`. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"` (`"error"` wins over `"loading"`), and `server.loading` is true while a request is in flight. `retry`, `refresh`, and every callback in `gridProps` keep their identity across renders.
 
 `onError(error)` fires when a request fails. `onLoaded({ start, end })` fires when rows land. A throw in either is logged and does not drop the answer.
 

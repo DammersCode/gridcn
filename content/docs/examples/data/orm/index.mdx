@@ -4,10 +4,11 @@ description: The grid's server fetch contract in real stack code with Drizzle, P
 icon: HardDrive
 ---
 
-The grid's server contract is small: take `page`, `pageSize`, `sorts`, `filters`, `search`,
-return `{ rows, total }`. These recipes show that contract in three real stacks: the same
-shape the [server-side example](/docs/examples/data/server-side) consumes. They are
-documentation only. Each one needs a server.
+The grid's server contract is small: take `{ spec, start, end }`, where `spec` holds `sorts`, `filters`, and `searchText`,
+and return `{ rows, totalRowCount }`. That is the request and the answer of `fetchRows` in
+[`useDataGridServerRows`](/docs/lazy-loading). These recipes show the contract in three real
+stacks. The [server-side example](/docs/examples/data/server-side) calls it with `start` and
+`end` taken from the page. The recipes are documentation only. Each one needs a server.
 
 <Cards>
   <Card

@@ -60,25 +60,24 @@ function applyNode(query, node) {
 }
 
 export async function POST(req: Request) {
-  const { page, pageSize, sorts, filters, search } = await req.json();
+  const { spec, start, end } = await req.json();
+  const { sorts, filters, searchText } = spec;
   assertFilterTree(filters);
+  const limit = Math.min(Math.max(end - start, 1), 500);
 
   let query = supabase.from("users").select("*", { count: "exact" });
-  if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  if (searchText) {
+    query = query.or(`name.ilike.%${searchText}%,email.ilike.%${searchText}%`);
   }
   query = filters.reduce(applyNode, query);
   for (const s of sorts) {
     query = query.order(s.columnId, { ascending: s.direction === "asc" });
   }
 
-  const { data: rows, count: total, error } = await query.range(
-    (page - 1) * pageSize,
-    page * pageSize - 1,
-  );
+  const { data: rows, count: totalRowCount, error } = await query.range(start, start + limit - 1);
 
   if (error) throw new Error(error.message);
-  return Response.json({ rows, total });
+  return Response.json({ rows, totalRowCount });
 }
 ```
 

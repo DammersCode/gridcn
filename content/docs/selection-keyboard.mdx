@@ -170,8 +170,8 @@ A server grid holds one page, or the loaded part of a lazy source. Set `totalRow
 
 With `totalRowCount`:
 
-- A checked row that leaves `data` stays checked by row id. A page change, a lazy eviction, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
-- Pass `keepCheckedRows` together with `totalRowCount`. `totalRowCount` does not turn it on. `useDataGridServerRows` and the lazy hooks set `keepCheckedRows` in `gridProps`. <NewBadge />
+- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
+- Pass `keepCheckedRows` together with `totalRowCount`. `totalRowCount` does not turn it on. `useDataGridServerRows` sets `keepCheckedRows` in `gridProps`. <NewBadge />
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
 - `useDataGridSelectedRows()` reads the selection as a value.
 

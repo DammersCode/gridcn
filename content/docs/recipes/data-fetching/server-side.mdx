@@ -71,17 +71,17 @@ view, in any mode. To search the whole dataset, send `searchText` to your fetch.
 `useDataGridSearchText`, or use the `searchText` and `onSearchTextChange` pair. Your response
 holds the matching rows, and the box then highlights them.
 
-## Pagination or lazy rows
+## Pages or scroll mode
 
-Both sources take the same spec. They differ in how rows reach the grid.
+Both modes of `useDataGridServerRows` take the same spec. They differ in how rows reach the grid.
 
-| | [Pagination](/docs/pagination#server-mode) | [Lazy loading](/docs/lazy-loading) |
+| | [Pages mode](/docs/pagination#server-mode) | [Scroll mode](/docs/lazy-loading) |
 |---|---|---|
-| The grid shows | One page at a time | One continuous list of `total` rows |
-| You send | `page`, `pageSize`, and the spec | `start`, `end`, and the spec |
-| The response holds | The rows of one page and the filtered `total` | The rows of one window |
+| The grid shows | One page at a time | One continuous list of `totalRowCount` rows |
+| You send | `page`, `pageSize`, `start`, `end`, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
+| The answer holds | The rows of one page and the filtered `totalRowCount` | The rows of one block, and `totalRowCount` or `nextCursor` |
 | After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
-| Stale responses | Ignore a response for an old request | `fetchRows` receives an `AbortSignal` |
+| Stale requests | `fetchRows` receives an `AbortSignal` that aborts a replaced request | The same `AbortSignal` |
 
 Set `totalRowCount` to the filtered count on each filter change. When it shrinks below `page`, the pager
 calls your `onPageChange` once with the clamped page ([Server mode](/docs/pagination#server-mode)). In scroll mode, a changed spec or `totalRowCount` resets the hook and drops every fetched block. See
