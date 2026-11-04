@@ -83,7 +83,9 @@ the uncovered blocks nearest the centre of the rendered rows first.
 - Eviction runs inside `commit`, in the same `setRows` updater as the landing blocks, so it adds no commit. When
   `sumRangeSizes(core.loaded) > maxLoadedRows`, a pure `pickEvictions({ loaded, viewed, keep, blockSize, cap })`
   returns whole blocks outside the keep range, oldest stamp first, until the count is at or below the cap.
-- Protected slots stay loaded inside an evicted block (slot granularity). A slot is protected when its row id is in:
+- Protected slots stay in `data` inside an evicted block (slot granularity) and move from `core.loaded` to `core.stale`, so the
+  next window fetches the block whole on the block grid and the answer replaces or moves the row. Eviction counts `loaded` plus
+  `stale`, so a kept row goes once nothing protects it. A slot is protected when its row id is in:
   the refresh-guard rule set (`protectedRows()` = saves in flight plus the edit session, and `savedSince(oldestMark)`
   = saves logged for an open request), the **unacknowledged changes** set, or the active cell's row.
 - Unacknowledged changes: the guard plugin adds the row id of every `update` and `insert` op it sees (not `stream`, not
@@ -96,7 +98,8 @@ the uncovered blocks nearest the centre of the rendered rows first.
 ### 2.5 Manual `evict(range)`
 
 `evict` applies the same protection and aborts the in-flight blocks it covers. This removes the documented quirk
-"an in-flight request that started before the evict still lands".
+"an in-flight request that started before the evict still lands". The outside ranges of `refresh()` use the same protection, so a
+revalidation tick keeps the active row and the unacknowledged edits too.
 
 ### 2.6 Sequential sources
 
@@ -189,10 +192,10 @@ error to log), revalidation and prefetch requests identical to ordinary ones. Al
 |---|---|
 | Spec change while blocks wait for the delay or run | `dropBlocks` clears `wanted` and the timer, aborts all; nothing from the old spec lands |
 | Count change mid-flight | the landing block survives (`abortRequestsExcept`); `wanted`, `owed`, `viewed` reset |
-| Eviction during an edit session | the edited row's slot stays loaded |
+| Eviction during an edit session | the edited row stays in `data`, stale |
 | Save in flight on an evicted block | the row stays; it is evicted on a later pass once the save settles |
-| Edit with no `onSave` | the row stays loaded (unacknowledged change) until a landed block replaces it |
-| Active cell scrolled far away | its row stays loaded; scrolling back keeps the active cell |
+| Edit with no `onSave` | the row stays in `data` (unacknowledged change) until a landed block replaces it |
+| Active cell scrolled far away | its row stays in `data`; scrolling back refetches the block and keeps the active cell |
 | Refresh block aborted on leave | its old rows are evicted under the protection rule |
 | Revalidation tick during navigation or refresh | waits for `loading` false, runs once |
 | Prefetch lands after the user moved two pages | the entry was aborted on navigation; nothing lands |

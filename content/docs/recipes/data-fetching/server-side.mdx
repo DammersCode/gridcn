@@ -111,7 +111,7 @@ const server = useDataGridServerRows<Order>({
 
 `prefetchNextPage` requests the page after the current one once the current page lands. The request is the same as a page request, so your server needs no change. When the user goes to that page, the pager shows it with no request and no loading state. The hook then prefetches the page after it. The hook keeps one page ahead, for at most 30 seconds.
 
-A failed prefetch is silent: it sets no `error` and calls no `onError`. The page request runs when the user goes to that page, and it reports its own failure. These events drop the prefetched page: a refresh, a revalidation tick, a change of the spec or the page size, a local insert, delete, or move, and a jump to any other page. The pager shows the count and `hasMore` of the current page only.
+A failed prefetch is silent: it sets no `error` and calls no `onError`. The page request runs when the user goes to that page, and it reports its own failure. These events drop the prefetched page: a refresh, a revalidation tick, a change of the spec or the page size, a local insert, delete, or move, the start of a save (a save can move a row to another page), and a jump to any other page. The hook starts no prefetch while a save is pending. The pager shows the count and `hasMore` of the current page only.
 
 `revalidateInterval` calls `refresh()` every given number of milliseconds while the page is visible. The value is at least 1000. A tick waits for a request in flight and then runs once, and every refresh restarts the clock. A refresh keeps the rows of the page on screen until the new rows land.
 

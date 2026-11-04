@@ -168,21 +168,21 @@ For data-fetch libraries (React Query, SWR) and the retry UI, see
 
 `maxLoadedRows` caps the loaded rows of a random access source. When more rows are loaded, the hook unloads whole blocks outside the keep range, least recently viewed first. The rows that the user sees never unload. Pass `Infinity` to keep every row.
 
-A block that unloads keeps these rows loaded:
+A block that unloads keeps these rows in `data`:
 
 - The row of an open edit session.
 - A row with a pending save, or with a save that started while a request was open.
 - A row with an edit that no save and no landed block confirmed. A grid with no `onSave` keeps its edits this way.
 - The row under the active cell.
 
-The cap is soft. When the keep range and these rows hold more rows than the cap, the cache stays above it. Checked rows stay checked, because the grid remembers them by row id. An undo entry over an unloaded row does nothing.
+The grid does not count a kept row as loaded. When the rendered rows come back to its block, the hook fetches the whole block, and the answer replaces the row or moves it to its new index. A kept row leaves `data` at a later eviction pass once nothing protects it. The cap is soft. When the keep range and these rows hold more rows than the cap, the cache stays above it. Checked rows stay checked, because the grid remembers them by row id. An undo entry over an unloaded row does nothing.
 
 Three more calls change what is loaded:
 
 - `server.refresh()` refetches the rendered blocks in place and drops every other loaded block. Use it when
-  the dataset behind the same spec is invalidated, for example after a server-side change.
+  the dataset behind the same spec is invalidated, for example after a server-side change. The rows that the list above names stay in `data`.
 - `server.evict(range)` drops the loaded rows inside `range` and aborts the requests that it covers. A partial overlap
-  drops the intersection only, and the rest stays loaded. The rows that the list above names stay loaded. Evicted rows
+  drops the intersection only, and the rest stays loaded. The rows that the list above names stay in `data`. Evicted rows
   refetch on the next scroll into them. A sequential source ignores it.
 - `server.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
   triggers a render. Call it in effects or event handlers.
