@@ -82,3 +82,37 @@ describe("push to a row with a save in flight", () => {
     expect(m.value("a", "note")).toBe("typed");
   });
 });
+
+describe("bound on one stream call", () => {
+  const manyPatches = (count: number) => Array.from({ length: count }, (_, i) => ({ rowId: i % 2 === 0 ? "a" : "b", columnId: "note", value: i === 100_000 ? "last" : `v${i % 7}` }));
+
+  it('skips the patches past 100,000 with reason "limit" and warns once', () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    const verdict = m.push(manyPatches(100_001));
+    expect(verdict.skipped).toEqual([{ patchIndex: 100_000, reason: "limit" }]);
+    expect(m.value("a", "note")).not.toBe("last");
+    m.push(manyPatches(100_002));
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(1);
+  });
+
+  it("applies a call of exactly 100,000 patches whole", () => {
+    const m = mount();
+    expect(m.push(manyPatches(100_000)).skipped.filter((skip) => skip.reason === "limit")).toEqual([]);
+  });
+
+  it("counts the cells that updateRows expands", () => {
+    const m = mount();
+    const updates = Array.from({ length: 50_001 }, () => ({ rowId: "a", changes: { name: "x", note: "y" } }));
+    const verdict = m.state().actions.updateRows(updates);
+    expect(verdict.skipped.filter((skip) => skip.reason === "limit")).toEqual([
+      { patchIndex: 100_000, reason: "limit" },
+      { patchIndex: 100_001, reason: "limit" },
+    ]);
+  });
+
+  it("leaves a user-source batch unbounded", () => {
+    const m = mount();
+    expect(m.push(manyPatches(100_001), { source: "edit" }).skipped.filter((skip) => skip.reason === "limit")).toEqual([]);
+  });
+});

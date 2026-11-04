@@ -46,7 +46,7 @@ import {
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -96,10 +96,11 @@ export type DataWriteContext = {
   /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. */
   reshape: (() => void) | null;
   warnedReshape: boolean;
+  warnedStreamLimit: boolean;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -165,6 +166,9 @@ export function writeThenEmit(
     if (ctx.writeDepth === 0) flushEmits(ctx);
   }
 }
+
+/** Most patches (and, for a delete, row ids) that one `"stream"` call takes; the rest skip with reason `"limit"`. */
+export const MAX_STREAM_PATCHES = 100_000;
 
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
 const STREAM_REJECTION_SCAN_LIMIT = 16;
@@ -1027,6 +1031,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     updateCells(patches, options) {
       const s = get();
       if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
+      if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
+        if (!ctx.warnedStreamLimit) {
+          ctx.warnedStreamLimit = true;
+          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
+        }
+        const beyond: UpdateCellsSkip[] = [];
+        for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
+        const verdict = get().actions.updateCells(patches.slice(0, MAX_STREAM_PATCHES), options);
+        const withBeyond = (v: UpdateCellsVerdict): UpdateCellsVerdict => ({ ...v, skipped: [...v.skipped, ...beyond] });
+        return verdict.settled ? { ...verdict, settled: verdict.settled.then(withBeyond) } : withBeyond(verdict);
+      }
       const skipValidation = options?.skipValidation ?? false;
 
       // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
