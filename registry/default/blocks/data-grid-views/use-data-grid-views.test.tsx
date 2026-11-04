@@ -577,4 +577,21 @@ describe("useDataGridViews", () => {
       expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ spec: { sorts: [{ columnId: "age", direction: "desc" }], searchText: expect.any(String) } }),
     );
   });
+
+  it("is not modified right after saving a grid that holds an empty-value filter", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage() });
+    await ready(probe);
+    act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "notEmpty", value: "" }]));
+    act(() => void probe.current!.views.saveView("Filled"));
+    expect(probe.current!.views.modified).toBe(false);
+  });
+
+  it("returns null when a view is too large to import again", async () => {
+    const big = seeded();
+    big.views[0]!.state.filters = Array.from({ length: 64 }, () => ({ columnId: "name", operator: "isAnyOf", value: Array.from({ length: 1000 }, (_, i) => `value-${i}`) }));
+    const { probe } = setup({ storage: createMemoryViewsStorage(big) });
+    await ready(probe);
+    expect(probe.current!.views.exportView("a")).toBeNull();
+    expect(probe.current!.views.exportView("b")).not.toBeNull();
+  });
 });

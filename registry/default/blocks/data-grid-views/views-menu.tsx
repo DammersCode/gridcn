@@ -43,6 +43,7 @@ export type DataGridViewsLabels = {
   applied: (name: string) => string;
   imported: (name: string, dropped: number) => string;
   exported: string;
+  exportTooLarge: string;
   importFailed: (reason: Extract<ImportViewResult, { ok: false }>["reason"]) => string;
 };
 
@@ -76,6 +77,7 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   applied: (name) => `Applied view ${name}`,
   imported: (name, dropped) => (dropped > 0 ? `Imported view ${name}. Left out because they do not fit this grid: ${dropped}.` : `Imported view ${name}`),
   exported: "Exported the active view as JSON below",
+  exportTooLarge: "This view is too large to export as text.",
   importFailed: (reason) =>
     reason === "too-large" ? "The text is too long to be a view." : reason === "limit" ? "The view limit is reached." : reason === "loading" ? "Views are still loading." : "The text is not a valid view.",
 };
@@ -300,7 +302,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
             <Textarea
               value={fileText}
               onChange={(e) => setFileText(e.target.value)}
-              maxLength={MAX_VIEW_FILE_LENGTH}
+              maxLength={MAX_VIEW_FILE_LENGTH * 2}
               aria-label={labels.fileLabel}
               spellCheck={false}
               rows={4}
@@ -314,7 +316,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
                 disabled={!activeView}
                 onClick={() => {
                   const text = views.exportView();
-                  if (text === null) return;
+                  if (text === null) return announce(labels.exportTooLarge);
                   setFileText(text);
                   announce(labels.exported);
                 }}

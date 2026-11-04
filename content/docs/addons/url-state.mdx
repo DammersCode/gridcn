@@ -249,4 +249,4 @@ surfaces differ deliberately.
 
 <NewBadge />
 
-Mount `<DataGridUrlState>` beside [saved views](/docs/addons/views). The URL sets the first state, and a link with sort, filter, or search params wins over the default view. Opening a view writes its state to the URL. A back or forward step that changes the URL leaves the active view in place and marks it as modified.
+Mount `<DataGridUrlState>` beside [saved views](/docs/addons/views). The URL sets the first state, and a link with sort, filter, or search params wins over the default view. Opening a view writes its state to the URL. When you call `applyFromUrl()` on back or forward, the active view stays active and shows as modified.

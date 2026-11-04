@@ -102,7 +102,8 @@ function sortKeys(_key: string, value: unknown): unknown {
 
 /** One string per part of a state; equal strings mean the part restores the same grid. */
 export function viewPartKeys(state: DataGridViewState): { sorts: string; filters: string; search: string; layout: string } {
-  const captured = captureViewState(state);
+  // the stored form, so a grid holding `value: ""` on an `empty` filter equals the view saved from it
+  const captured = sanitizeViewState(state, undefined).state;
   captured.columnLayout.hidden.sort();
   return {
     sorts: JSON.stringify(captured.sorts),
@@ -293,7 +294,7 @@ export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
 
 /** The text `exportView` returns and `importView` reads. */
 export function serializeViewFile(view: Pick<DataGridView, "name" | "state">): string {
-  return JSON.stringify({ format: FILE_FORMAT, version: 1, name: view.name, state: view.state }, null, 2);
+  return JSON.stringify({ format: FILE_FORMAT, version: 1, name: view.name, state: view.state });
 }
 
 export function parseViewFile(text: string, columns: ViewColumns): ViewFileResult {

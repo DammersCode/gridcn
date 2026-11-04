@@ -11,6 +11,7 @@ import {
 import { useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   MAX_DOCUMENT_LENGTH,
+  MAX_VIEW_FILE_LENGTH,
   MAX_VIEWS,
   captureViewState,
   cleanViewName,
@@ -80,7 +81,7 @@ export type UseDataGridViewsResult = {
   renameView: (id: string, name: string) => boolean;
   deleteView: (id: string) => boolean;
   setDefaultView: (id: string | null) => boolean;
-  /** The view as JSON text, or `null` for an unknown id. Default: the active view. */
+  /** The view as JSON text, or `null` for an unknown id or a view too large to import again. Default: the active view. */
   exportView: (id?: string) => string | null;
   /** Reads JSON from `exportView`, drops what the live columns lack, and saves it as a new active view named `options.name` when the file has none. */
   importView: (text: string, options?: { name?: string }) => ImportViewResult;
@@ -364,7 +365,9 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     (id?: string) => {
       const targetId = id ?? activeIdNow();
       const view = documentRef.current?.views.find((v) => v.id === targetId);
-      return view ? serializeViewFile(view) : null;
+      if (!view) return null;
+      const text = serializeViewFile(view);
+      return text.length > MAX_VIEW_FILE_LENGTH ? null : text;
     },
     [activeIdNow],
   );
