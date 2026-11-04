@@ -443,6 +443,11 @@ export function useDataGridIsRowSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex) || isRowInRangeChannel(s.selection, viewRowIndex));
 }
 
+/** Whether a push changed this row in a column the server spec reads, so it may sit at the wrong place until the server delivers it again. */
+export function useDataGridIsRowStale(rowId: string | undefined): boolean {
+  return useDataGridStore((s) => rowId !== undefined && s.staleRowIds.has(rowId));
+}
+
 /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Deliberately excludes the cell/column channels — the marker renderer's `isSelected` must flip on row selection alone, never on a cell click (see {@link MarkerCellRenderCtx}). */
 export function useDataGridIsRowChannelSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex));
