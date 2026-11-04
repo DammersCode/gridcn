@@ -3,7 +3,7 @@ import { page } from "vitest/browser";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { DataGridServerAggregateReporter, type ServerAggregateResult } from "../use-data-grid-server-aggregate";
+import { DataGridServerAggregateReporter, PENDING_SERVER_AGGREGATE } from "../use-data-grid-server-aggregate";
 import { useDataGridPinnedRows } from "../use-data-grid-pinned-rows";
 import "@/app/global.css";
 
@@ -13,10 +13,9 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number", width: 120 },
 ];
 const data: Row[] = [{ id: "a", qty: 1 }];
-const EMPTY: ServerAggregateResult = { row: {}, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
 
 function Harness(props: { fetchAggregates: () => Promise<Record<string, unknown>> }) {
-  const [aggregate, setAggregate] = useState(EMPTY);
+  const [aggregate, setAggregate] = useState(PENDING_SERVER_AGGREGATE);
   const bottomRows = useMemo(() => [{ id: "__total__", ...aggregate.row }], [aggregate.row]);
   const { plugin } = useDataGridPinnedRows({ bottomRows, status: aggregate.status });
   return (

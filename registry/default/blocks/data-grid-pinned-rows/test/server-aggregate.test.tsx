@@ -81,6 +81,14 @@ describe("useDataGridServerAggregate", () => {
     expect(s.result.row).toEqual({ qty: 2 });
   });
 
+  it("asks again when the quick-search text changes", async () => {
+    const s = setup();
+    await act(async () => s.call(0).resolve({ qty: 1 }));
+    act(() => s.actions.setSearch("a"));
+    await vi.waitFor(() => expect(s.calls).toHaveLength(2));
+    expect(s.call(1).req.spec.searchText).toBe("a");
+  });
+
   it("does not refetch on a sort change", async () => {
     const s = setup();
     await act(async () => s.call(0).resolve({ qty: 1 }));

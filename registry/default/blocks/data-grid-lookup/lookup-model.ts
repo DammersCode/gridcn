@@ -3,8 +3,8 @@ import { toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 /** One choice a server offers: `value` is the stored key, `label` the text the user sees. */
 export type LookupOption = { value: string; label: string };
 
-/** A lookup cell stores the picked option, or `null` when empty. */
-export type LookupValue = LookupOption | null;
+/** A lookup cell stores the picked option, or `null` when empty. A bare string is a key without a label (unresolved). */
+export type LookupValue = LookupOption | string | null;
 
 /** What `fetchOptions` receives. */
 export type LookupFetchRequest = {
@@ -101,7 +101,7 @@ export function sanitizeOptions(answer: unknown, limit: number | undefined): Loo
     if (key === "") continue;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ value: key, label: clip(label) });
+    out.push({ value: key, label: label === "" ? key : clip(label) });
   }
   return out;
 }

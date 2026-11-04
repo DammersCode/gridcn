@@ -192,7 +192,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     ```tsx
     function MyGrid() {
       const server = useDataGridServerRows<Order>({ getRowId, fetchRows });
-      const [totals, setTotals] = useState<ServerAggregateResult>(EMPTY);
+      const [totals, setTotals] = useState<ServerAggregateResult>(PENDING_SERVER_AGGREGATE);
       const bottomRows = useMemo(() => [{ id: "__totals__", ...totals.row }], [totals.row]);
       const { plugin } = useDataGridPinnedRows({ bottomRows, status: totals.status });
 
@@ -216,8 +216,8 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     `fetchAggregates` resolves `{ [columnId]: value }` for the whole result of the spec. The same
     code serves pages, scroll, controlled specs, and your own API, because the request carries the
     spec and not the rows in the grid. The reporter requests once on mount. It requests again
-    after each filter change. A sort or a quick search does not change the totals, so they do not
-    request. A newer request aborts the older one through `signal`, and the grid drops a late
+    after each filter or quick-search change. A sort does not change the totals, so it does not
+    request. Keep `PENDING_SERVER_AGGREGATE` as the first state. A newer request aborts the older one through `signal`, and the grid drops a late
     answer of the older one.
 
     Inside the grid you can also call `useDataGridServerAggregate(options)` yourself. It returns the same
@@ -240,7 +240,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     | --- | --- | --- |
     | `fetchAggregates` | required | Resolves the values for a `{ spec, columnIds, signal }` request. |
     | `columnIds` | every column | The columns to ask for. |
-    | `debounceMs` | `150` | Wait after a filter change before the request starts. |
+    | `debounceMs` | `150` | Wait after a filter or quick-search change before the request starts. |
     | `onError` | none | Called once per failed request. |
 
     The answer is untrusted. The hook keeps values only for the requested columns. It cuts text

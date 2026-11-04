@@ -26,7 +26,7 @@ const LOOKUP_OPTIONS: LookupOptions = { fetchOptions: searchCompanies };
 const INITIAL: Order[] = [
   { id: "o1", item: "Anvil", customer: { value: "acme-0", label: "Acme North" } },
   { id: "o2", item: "Rocket skates", customer: null },
-  { id: "o3", item: "Giant magnet", customer: "wonka-2" as never },
+  { id: "o3", item: "Giant magnet", customer: "wonka-2" },
 ];
 
 /**

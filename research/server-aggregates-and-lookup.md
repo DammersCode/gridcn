@@ -12,11 +12,11 @@ the grid holds, which is wrong when the grid holds one page or some blocks. The 
 
 - Request: `fetchAggregates({ spec, columnIds, signal })` resolves `{ [columnId]: value }` for the whole result
   of `spec`. `spec` is the `ServerSpec` of the grid (`sortState`, `filterState`, `searchText`).
-- Refetch key: the filters only. Sorts and quick search never change which rows an aggregate covers (quick
-  search highlights, it does not filter). The request still carries the whole spec.
+- Refetch key: the filters and the quick-search text. A sort never changes which rows an aggregate covers; a
+  server may narrow by `searchText`, so a search change asks again. The request carries the whole spec.
 - Race safety: one `AbortController` per request; a new filter key, `refresh`, `retry`, and unmount abort it. A
   settled answer applies only when its signal is not aborted. Filter bursts wait `debounceMs` (default 150).
-- State: `loading` (no values yet), `stale` (old values while a newer request runs), `ready`, `error` (old values
+- State (adds `stale` to the D3 `loading | error | ready` set because old values stay on screen): `loading` (no values yet), `stale` (old values while a newer request runs), `ready`, `error` (old values
   stay). `useDataGridPinnedRows({ status })` dims the bands and sets `aria-busy` and `data-status`.
 - Untrusted answer: not an object is an error; only requested column ids are read through `hasOwnProperty`; text is cut
   at 1000 characters; only text, finite numbers, booleans, and `null` pass. Values then flow through each column's
@@ -34,14 +34,14 @@ A `data-grid-lookup` item with `lookupCellType`. Column options: `fetchOptions({
 - Value: `{ value, label } | null`. A bare string or number reads as an unresolved value (key shown muted, `data-unresolved`).
   No filter-value shape exists in `api-cohesion-2.0.md`, so the pair is defined here.
 - Contract: `toText` = label (and remembers the option), `fromText` = remembered label or key, else `null`
-  (`unresolvedPaste: "keep"` stores the text as value and label), never throws, input clipped to 256 characters.
+  (`unresolvedPaste: "keep"` stores the text as a key with an empty label, shown as unresolved), never throws, input clipped to 256 characters.
   `isEmpty` = no readable key, `clearValue` = `null`, `compare` and `toSearchText` use the label, `filter.match`
   matches the label with the text operators. The remembered options live in a bounded (5000) per-`fetchOptions` map.
 - Editor: Base UI popover as in `date`, input debounced with `useDebouncedInput` (`debounceMs` or `inputDebounceMs`;
   IME composition commits at its end), combobox/listbox roles, `aria-activedescendant`, a polite status line.
   ArrowUp/Down move, Enter picks (or flushes a pending search first), Escape cancels; click picks. One request per
   query; typing aborts the older one; a late answer is dropped; errors show a Retry button.
-- Answer bounds: array only; entries need a non-empty string `value` and a string `label`; duplicates dropped; both cut
+- Answer bounds: array only; entries need a non-empty `value` (text or finite number, stored as text) and a string `label`; an empty label falls back to the key; duplicates dropped; both cut
   at 256; at most `maxResults` (default 50, cap 200). Labels render as text nodes.
 - readOnly: the core opens no editor. Fill copies the stored pair. Paste and import go through `fromText`.
 - Limits: the server filter value is the label text (a server compares labels); no multi-select; the option cache

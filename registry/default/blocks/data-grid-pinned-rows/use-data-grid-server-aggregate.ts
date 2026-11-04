@@ -27,7 +27,7 @@ export type UseDataGridServerAggregateOptions = {
   fetchAggregates: (request: FetchAggregatesRequest) => Promise<Record<string, unknown>>;
   /** Columns to ask for. Default: every column. */
   columnIds?: readonly string[];
-  /** Wait this long after a filter change before the request starts. Default `150`. */
+  /** Wait this long after a filter or quick-search change before the request starts. Default `150`. */
   debounceMs?: number;
   /** Called once per failed request. */
   onError?: (error: unknown) => void;
@@ -49,8 +49,21 @@ export type ServerAggregateResult = {
 
 const EMPTY_ROW: Record<string, unknown> = {};
 
-function filtersKey(spec: ServerSpec): string {
-  return serverSpecKey({ sorts: [], filters: spec.filters, searchText: "" });
+/** The result before the first request settles; start parent state from it. */
+export const PENDING_SERVER_AGGREGATE: ServerAggregateResult = { row: EMPTY_ROW, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
+
+function aggregateKey(spec: ServerSpec): string {
+  return serverSpecKey({ sorts: [], filters: spec.filters, searchText: spec.searchText });
+}
+
+function reportChange(onChange: (result: ServerAggregateResult) => void, result: ServerAggregateResult): void {
+  try {
+    onChange(result);
+  } catch (error) {
+    queueMicrotask(() => {
+      throw error;
+    });
+  }
 }
 
 function notifyError(onError: ((error: unknown) => void) | undefined, error: unknown): void {
@@ -79,7 +92,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
 
 /**
  * Pinned-row values from a server. Calls `fetchAggregates` with the current spec on mount and again
- * after each filter change (sorts and quick search never change the aggregated rows), aborts the
+ * after each filter or quick-search change (a sort never changes the aggregated rows), aborts the
  * request a newer one replaces, and drops its late answer. Pagination, scroll, and own-API grids
  * use it alike, because the request carries the spec and not the rows the grid holds. Answer
  * values are untrusted: unknown column ids are ignored, text is cut at 1000 characters,
@@ -95,7 +108,7 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
   const columns = useStore(storeApi, (s) => s.columns);
 
   const spec = useMemo<ServerSpec>(() => ({ sorts, filters, searchText }), [sorts, filters, searchText]);
-  const key = filtersKey(spec);
+  const key = aggregateKey(spec);
   const columnIds = useMemo(() => options.columnIds ?? columns.map((c) => c.id), [options.columnIds, columns]);
   const columnKey = columnIds.join("\u0000");
 
@@ -179,7 +192,7 @@ export function DataGridServerAggregateReporter(props: DataGridServerAggregateRe
     onChangeRef.current = onChange;
   });
   useLayoutEffect(() => {
-    onChangeRef.current(result);
+    reportChange(onChangeRef.current, result);
   }, [result]);
   return null;
 }

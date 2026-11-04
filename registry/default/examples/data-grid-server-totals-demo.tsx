@@ -5,6 +5,7 @@ import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineCol
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import {
   DataGridServerAggregateReporter,
+  PENDING_SERVER_AGGREGATE,
   useDataGridPinnedRows,
   type ServerAggregateResult,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
@@ -20,8 +21,6 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
-const EMPTY_RESULT: ServerAggregateResult = { row: {}, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
-
 /**
  * A scrolling grid over a fake server with a totals row that the server computes. The grid holds only the loaded blocks, but the
  * band sums the whole filtered result: `fetchAggregates` receives the spec, so a filter change requests new totals. The band dims
@@ -29,7 +28,7 @@ const EMPTY_RESULT: ServerAggregateResult = { row: {}, status: "loading", error:
  */
 export default function DataGridServerTotalsDemo(): ReactNode {
   const remote = useMemo(() => createRemoteServer(), []);
-  const [aggregate, setAggregate] = useState<ServerAggregateResult>(EMPTY_RESULT);
+  const [aggregate, setAggregate] = useState<ServerAggregateResult>(PENDING_SERVER_AGGREGATE);
 
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",

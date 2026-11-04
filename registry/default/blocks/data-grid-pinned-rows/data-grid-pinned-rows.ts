@@ -13,6 +13,7 @@ export {
 export {
   useDataGridServerAggregate,
   DataGridServerAggregateReporter,
+  PENDING_SERVER_AGGREGATE,
   type FetchAggregatesRequest,
   type ServerAggregateResult,
   type ServerAggregateStatus,

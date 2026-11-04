@@ -45,6 +45,10 @@ describe("sanitizeOptions", () => {
     expect(sanitizeOptions(many(1000), 3)).toHaveLength(3);
   });
 
+  it("falls back to the key for an empty label", () => {
+    expect(sanitizeOptions([{ value: "k", label: "" }], 5)).toEqual([{ value: "k", label: "k" }]);
+  });
+
   it("accepts numeric keys as text", () => {
     expect(sanitizeOptions([{ value: 7, label: "Seven" }], 5)).toEqual([{ value: "7", label: "Seven" }]);
   });

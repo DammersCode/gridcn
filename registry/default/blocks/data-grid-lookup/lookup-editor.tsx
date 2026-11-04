@@ -10,6 +10,7 @@ import { useCommitGuard, type CellEditorProps } from "@/registry/default/blocks/
 import { columnLabelText, isComposingKey, useDataGridInputDebounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   DEFAULT_LABELS,
+  MAX_LOOKUP_TEXT,
   readLookup,
   rememberOption,
   sanitizeOptions,
@@ -38,7 +39,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
     lastRejectionCount.current = rejectionCount ?? 0;
   }, [rejectionCount, committed]);
 
-  const [query, setQuery] = useState(initialText ?? "");
+  const [query, setQuery] = useState((initialText ?? "").slice(0, MAX_LOOKUP_TEXT));
   const input = useDebouncedInput(query, setQuery, { delayMs });
   const [fetched, setFetched] = useState<Fetched>({ status: "idle", options: [] });
   const [active, setActive] = useState(0);
@@ -139,13 +140,14 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
             {...input.inputProps}
             onKeyDown={onKeyDown}
             role="combobox"
-            aria-expanded
+            aria-expanded={list.length > 0}
             aria-autocomplete="list"
             aria-controls={listId}
             aria-activedescendant={activeOption ? optionId(Math.min(active, list.length - 1)) : undefined}
             aria-label={columnLabelText(column)}
             aria-busy={pending || fetched.status === "loading" || undefined}
             readOnly={pending}
+            maxLength={MAX_LOOKUP_TEXT}
             dir="auto"
             placeholder={current?.label}
             className="h-8 w-full border-none bg-transparent px-2 shadow-none outline-none focus-visible:ring-0"
