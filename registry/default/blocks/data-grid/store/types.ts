@@ -613,9 +613,10 @@ export type UpdateCellsSkip = {
    * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
    * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
    * row, via `readOnly(row)`) is read-only; `"invalid"` — the column's `validate` rejected the
-   * value; `"no-op"` — the value is `Object.is`-equal to the current one.
+   * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
+   * `"stream"` batch met a row whose save is in flight, so push the value again after the save settles.
    */
-  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op";
+  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving";
 };
 
 /**

@@ -1053,7 +1053,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
 
       const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
+      const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation, options?.source);
       const nextData = batch.nextData;
       if (nextData === null) {
         emitStreamRejections(patches, batch.rejected, options?.source);

@@ -295,6 +295,7 @@ export function computeCellPatchBatch(
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
   skipValidation: boolean,
+  source: DataChange<unknown>["source"] = "stream",
 ): {
   nextData: readonly unknown[] | null;
   ops: DataOp<unknown>[];
@@ -328,6 +329,10 @@ export function computeCellPatchBatch(
     }
     if (isColumnReadOnly(column, baseRow)) {
       skipped.push({ patchIndex, reason: "readonly" });
+      continue;
+    }
+    if (source === "stream" && s.saveStatus.get(patch.rowId) === "saving") {
+      skipped.push({ patchIndex, reason: "saving" });
       continue;
     }
 
