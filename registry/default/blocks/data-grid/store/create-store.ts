@@ -75,6 +75,7 @@ import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
+import { NO_STALE_ROWS, clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
 import { createRowIndexCache, resolveCellRef, viewRowOfDataIndex } from "./row-index";
@@ -1030,6 +1031,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
+          let nextStaleRowIds = s.staleRowIds;
+          if (dataWrite.staleRows.size > 0) {
+            if (serverSpecChanged(s, { sortState: nextSortState, filterState: nextFilterState, searchText: nextSearchText })) nextStaleRowIds = clearStaleRows(dataWrite).staleRowIds;
+            else if (foreignData) nextStaleRowIds = staleStateAfterPrune(dataWrite, s.staleRowIds, pruneStaleRows(dataWrite, nextData, props.getRowId as (row: unknown, index: number) => string));
+          }
+          const staleChanged = nextStaleRowIds !== s.staleRowIds;
+          const clientViewActive = viewSorts(nextSortMode, nextSortState).length > 0 || viewFilters(nextFilterMode, nextFilterState).length > 0;
           // An echo-only sync (every recompute input unchanged, selection/layout no-ops, flags
           // stable) returns the same state so zustand skips every listener: the controlled loop
           // pays zero store work per drag step (decision 4).
@@ -1074,8 +1082,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             filterControlled: props.filterState !== undefined,
             searchControlled: props.searchText !== undefined,
             viewIndex: nextViewIndex,
-            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
-            viewStale: unchanged ? s.viewStale : false,
+            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag. Stale rows stay until the server delivers them.
+            viewStale: !staleChanged && unchanged ? s.viewStale : nextStaleRowIds.size > 0 || (unchanged && s.viewStale && clientViewActive),
+            staleRowIds: nextStaleRowIds,
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
@@ -1199,6 +1208,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
+    staleRowIds: NO_STALE_ROWS,
     visibleColumns,
     scrollToCellImpl: null,
     focusImpl: null,
@@ -1544,7 +1554,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return {
             sortState: sorts,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
@@ -1560,7 +1570,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return {
             sortState: sorts,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
@@ -1578,7 +1588,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return {
             filterState: withIds,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
             ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
@@ -1596,6 +1606,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set((s2) => ({
           searchText: nextText,
           searchOptions,
+          ...(nextText !== s2.searchText && dataWrite.staleRows.size > 0 ? clearStaleRows(dataWrite) : {}),
           ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
           ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
         }));

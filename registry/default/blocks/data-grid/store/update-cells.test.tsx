@@ -414,10 +414,12 @@ describe("updateCells — sort/filter reconciliation", () => {
     expect(result.current.viewStale).toBe(true);
   });
 
-  it("does not flip viewStale for a streamed sort-column write under sortMode server", () => {
+  it("keeps the view order and flips viewStale for a streamed sort-column write under sortMode server", () => {
     const { result } = renderHarness({ sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
+    const before = result.current.viewIndex;
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
-    expect(result.current.viewStale).toBe(false);
+    expect(result.current.viewIndex).toBe(before);
+    expect(result.current.viewStale).toBe(true);
   });
 
   it("flips viewStale when a touched column feeds the active filter", () => {

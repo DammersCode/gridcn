@@ -831,6 +831,11 @@ export type DataGridStoreState = Omit<
    * {@link useDataGridViewStale}.
    */
   viewStale: boolean;
+  /**
+   * Under a server sort or filter, the ids of loaded rows that a push changed in a column the spec reads. The row keeps
+   * its place and carries `data-row-stale` until the server delivers it again. Empty in a client grid.
+   */
+  staleRowIds: ReadonlySet<string>;
   /** Recomputed by _syncProps/setColumnOrder-ish actions that touch order/visibility. */
   visibleColumns: readonly AnyColumnDef[];
   /**
