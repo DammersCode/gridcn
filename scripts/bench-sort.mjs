@@ -9,6 +9,8 @@
 //   --baseline-root <dir>  checkout of the baseline commit. Each case then runs baseline and current
 //                    alternately in this process on the same rows (so machine load hits both equally),
 //                    compares their results element by element, and reports the paired speedup.
+//   --live           measure live updates into a sorted view through the store (see liveScenarios) instead of
+//                    the one-shot sort
 //   --out <file>     write all results as JSON
 //   --profile        write a V8 CPU profile (.cpuprofile) of the first selected case to --profile-out
 // Columns: "text" and "num" declare the built-in cell types (the grid's default sort path); "free" declares
@@ -21,7 +23,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import inspector from "node:inspector/promises";
 
-const opts = { rows: [100_000, 1_000_000], runs: 5, filter: "", root: process.cwd(), baselineRoot: undefined, profile: false, profileOut: "sort.cpuprofile" };
+const opts = { rows: [100_000, 1_000_000], runs: 5, filter: "", root: process.cwd(), baselineRoot: undefined, live: false, profile: false, profileOut: "sort.cpuprofile" };
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const arg = argv[i];
@@ -29,6 +31,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (arg === "--runs") opts.runs = Number(argv[++i]);
   else if (arg === "--case") opts.filter = argv[++i];
   else if (arg === "--baseline-root") opts.baselineRoot = path.resolve(argv[++i]);
+  else if (arg === "--live") opts.live = true;
   else if (arg === "--out") opts.out = argv[++i];
   else if (arg === "--profile") opts.profile = true;
   else if (arg === "--profile-out") opts.profileOut = argv[++i];
@@ -45,7 +48,8 @@ async function loadImpl(root, name) {
   await build({
     stdin: {
       contents: `export { computeViewIndex } from "${blocks}/store/compute.ts";
-export { cellTypes } from "${blocks}/cell-types/cell-types.ts";`,
+export { cellTypes } from "${blocks}/cell-types/cell-types.ts";
+export { createDataGridStore } from "${blocks}/store/create-store.ts";`,
       resolveDir: root,
       loader: "ts",
     },
@@ -102,7 +106,33 @@ function makeColumns(count, seed) {
   return { name, free, digits, int, float, dirty };
 }
 
+const ROLE_NAMES = ["Eager Eagle", "Quick Lion", "Silent Tiger", "Bold Bear", "Swift Wolf"];
+
+/** Rows shaped like app/dev/benchmark's dataset: 25 distinct names, ages 18-67, scores 0-99. */
+function makeDatasetColumns(count) {
+  const ADJECTIVES = ["Eager", "Quick", "Silent", "Bold", "Swift"];
+  const NOUNS = ["Eagle", "Lion", "Tiger", "Bear", "Wolf"];
+  let state = 42;
+  const next = () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+  const dname = new Array(count);
+  const dage = new Array(count);
+  const dscore = new Array(count);
+  for (let i = 0; i < count; i++) {
+    dname[i] = `${ADJECTIVES[Math.floor(next() * 5)]} ${NOUNS[Math.floor(next() * 5)]}`;
+    dage[i] = Math.floor(next() * 50) + 18;
+    next();
+    dscore[i] = Math.floor(next() * 100);
+  }
+  return { dname, dage, dscore };
+}
+
 const columnDefs = [
+  { id: "dname", accessorKey: "dname", type: "text" },
+  { id: "dage", accessorKey: "dage", type: "number" },
+  { id: "dscore", accessorKey: "dscore", type: "number" },
   { id: "name", accessorKey: "name", type: "text" },
   { id: "free", accessorKey: "free" },
   { id: "digits", accessorKey: "digits", type: "text" },
@@ -115,6 +145,11 @@ const asc = (columnId) => ({ columnId, direction: "asc" });
 const desc = (columnId) => ({ columnId, direction: "desc" });
 
 const CASES = [
+  { name: "dataset: number (score) asc", sorts: [asc("dscore")] },
+  { name: "dataset: number (age) desc", sorts: [desc("dage")] },
+  { name: "dataset: text (name) asc", sorts: [asc("dname")] },
+  { name: "dataset: filter age >= 30, no sort", sorts: [], filters: [{ columnId: "dage", operator: "gte", value: "30" }] },
+  { name: "dataset: filter name contains, no sort", sorts: [], filters: [{ columnId: "dname", operator: "contains", value: "Eagle" }] },
   { name: "text asc", sorts: [asc("name")] },
   { name: "text desc", sorts: [desc("name")] },
   { name: "text asc, input sorted", sorts: [asc("name")], order: "sorted", column: "name", direction: "asc" },
@@ -165,7 +200,7 @@ function startRssSampler() {
   };
 }
 
-async function measureOnce(impl, rows, sorts) {
+async function measureOnce(impl, rows, sorts, filters) {
   gc();
   const gcEntries = [];
   const observer = new PerformanceObserver((list) => gcEntries.push(...list.getEntries()));
@@ -175,7 +210,7 @@ async function measureOnce(impl, rows, sorts) {
   const sampler = startRssSampler();
   await new Promise((r) => setTimeout(r, 20));
   const start = performance.now();
-  const view = impl.computeViewIndex(rows, columnDefs, sorts, [], undefined, impl.cellTypes);
+  const view = impl.computeViewIndex(rows, columnDefs, sorts, filters, undefined, impl.cellTypes);
   const ms = performance.now() - start;
   const heapAfter = process.memoryUsage().heapUsed + process.memoryUsage().arrayBuffers;
   const peakRss = await sampler.stop();
@@ -208,14 +243,14 @@ function sameOrder(a, b) {
 const fmt = (x) => x.toFixed(1).padStart(8);
 const results = [];
 let profiled = false;
-for (const rowCount of opts.rows) {
-  const columns = makeColumns(rowCount, 42);
-  const base = Array.from({ length: rowCount }, (_, i) => ({ name: columns.name[i], free: columns.free[i], digits: columns.digits[i], int: columns.int[i], float: columns.float[i], dirty: columns.dirty[i] }));
+for (const rowCount of opts.live ? [] : opts.rows) {
+  const columns = { ...makeColumns(rowCount, 42), ...makeDatasetColumns(rowCount) };
+  const base = Array.from({ length: rowCount }, (_, i) => ({ dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i], name: columns.name[i], free: columns.free[i], digits: columns.digits[i], int: columns.int[i], float: columns.float[i], dirty: columns.dirty[i] }));
   for (const testCase of CASES) {
     if (opts.filter && !testCase.name.includes(opts.filter)) continue;
     const rows = orderRows(base, testCase.order, testCase.column, testCase.direction);
     const impls = baseline ? [baseline, current] : [current];
-    for (let i = 0; i < 2; i++) for (const impl of impls) impl.computeViewIndex(rows, columnDefs, testCase.sorts, [], undefined, impl.cellTypes);
+    for (let i = 0; i < 2; i++) for (const impl of impls) impl.computeViewIndex(rows, columnDefs, testCase.sorts, testCase.filters ?? [], undefined, impl.cellTypes);
     let session;
     if (opts.profile && !profiled) {
       session = new inspector.Session();
@@ -230,7 +265,7 @@ for (const rowCount of opts.rows) {
       const order = i % 2 === 0 ? impls.keys() : [...impls.keys()].reverse();
       const views = [];
       for (const k of order) {
-        const run = await measureOnce(impls[k], rows, testCase.sorts);
+        const run = await measureOnce(impls[k], rows, testCase.sorts, testCase.filters ?? []);
         views[k] = run.view;
         runs[k].push({ ...run, view: undefined });
       }
@@ -250,6 +285,82 @@ for (const rowCount of opts.rows) {
       row.speedup = before.medianMs / current_.medianMs;
       row.identical = identical;
       line += `   | baseline ${fmt(before.medianMs)} ±${before.madMs.toFixed(1)} peak +${before.peakMb.toFixed(0)} MB  =>  ${row.speedup.toFixed(2)}x${identical ? "" : "  ORDER DIFFERS"}`;
+    }
+    results.push(row);
+    console.log(line);
+  }
+}
+
+// Live updates: UPDATES_PER_SECOND single-cell patches (random row, random new value) reach a sorted view of
+// `rowCount` rows through `updateCells`. Reported as main-thread ms spent per second of updates. The same seeded
+// stream drives both implementations, so their stores must end on the same view index.
+const UPDATES_PER_SECOND = 1000;
+const liveColumns = [
+  { id: "dname", header: "Name", accessorKey: "dname", type: "text" },
+  { id: "dage", header: "Age", accessorKey: "dage", type: "number" },
+  { id: "dscore", header: "Score", accessorKey: "dscore", type: "number" },
+];
+const liveScenarios = [
+  { name: "live, deferred (default), 10 batches x 100, sort column", batch: 100, options: {}, column: "dscore" },
+  { name: "live, immediate, 10 batches x 100, sort column", batch: 100, options: { reorder: "immediate" }, column: "dscore" },
+  { name: "live, immediate, 1000 x 1, sort column", batch: 1, options: { reorder: "immediate" }, column: "dscore" },
+  { name: "live, immediate, 1000 x 1, filtered view, sort column", batch: 1, options: { reorder: "immediate" }, column: "dscore", filter: true },
+  { name: "live, immediate, 1000 x 1, non-sort column", batch: 1, options: { reorder: "immediate" }, column: "dname" },
+];
+
+function liveStore(impl, rowCount, scenario) {
+  const columns = makeDatasetColumns(rowCount);
+  const data = Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i] }));
+  const store = impl.createDataGridStore({ data, columns: liveColumns, getRowId: (row) => row.id, cellTypes: impl.cellTypes });
+  store.getState().actions.setSorts([{ columnId: "dscore", direction: "asc" }]);
+  if (scenario.filter) store.getState().actions.setFilters([{ columnId: "dage", operator: "gte", value: "30" }]);
+  return store;
+}
+
+function liveRound(store, scenario, rowCount, seed) {
+  const rand = mulberry32(seed);
+  const names = ["Eager Eagle", "Quick Lion", "Silent Tiger", "Bold Bear", "Swift Wolf"];
+  const batches = [];
+  for (let b = 0; b < UPDATES_PER_SECOND / scenario.batch; b++) {
+    const patches = [];
+    for (let k = 0; k < scenario.batch; k++) {
+      const rowId = `r${(rand() * rowCount) | 0}`;
+      patches.push({ rowId, columnId: scenario.column, value: scenario.column === "dname" ? names[(rand() * 5) | 0] : (rand() * 100) | 0 });
+    }
+    batches.push(patches);
+  }
+  const { actions } = store.getState();
+  gc();
+  const start = performance.now();
+  for (const patches of batches) actions.updateCells(patches, scenario.options);
+  return performance.now() - start;
+}
+
+if (opts.live) {
+  const rowCount = opts.rows[opts.rows.length - 1];
+  for (const scenario of liveScenarios) {
+    if (opts.filter && !scenario.name.includes(opts.filter)) continue;
+    const impls = baseline ? [baseline, current] : [current];
+    const stores = impls.map((impl) => liveStore(impl, rowCount, scenario));
+    for (const store of stores) liveRound(store, scenario, rowCount, 1);
+    const times = impls.map(() => []);
+    for (let round = 0; round < opts.runs; round++) {
+      const order = round % 2 === 0 ? [...impls.keys()] : [...impls.keys()].reverse();
+      for (const k of order) times[k].push(liveRound(stores[k], scenario, rowCount, 100 + round));
+    }
+    let identical = true;
+    if (baseline) {
+      const a = stores[0].getState().viewIndex;
+      const b = stores[1].getState().viewIndex;
+      identical = a.length === b.length && a.every((v, i) => v === b[i]);
+    }
+    const now = times[impls.length - 1];
+    let line = `${String(rowCount).padStart(8)}  ${scenario.name.padEnd(58)} ${fmt(median(now))} ms/s ±${mad(now).toFixed(1)} [${Math.min(...now).toFixed(0)}-${Math.max(...now).toFixed(0)}]`;
+    const row = { rows: rowCount, case: scenario.name, medianMs: median(now), madMs: mad(now), minMs: Math.min(...now), maxMs: Math.max(...now), identical };
+    if (baseline) {
+      row.baseline = { medianMs: median(times[0]), madMs: mad(times[0]) };
+      row.speedup = median(times[0]) / median(now);
+      line += `   | baseline ${fmt(median(times[0]))} ±${mad(times[0]).toFixed(1)} => ${row.speedup.toFixed(2)}x${identical ? "" : "  VIEW DIFFERS"}`;
     }
     results.push(row);
     console.log(line);

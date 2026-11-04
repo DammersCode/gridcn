@@ -501,6 +501,16 @@
                "target": "components/data-grid/sort-filter/incremental-view-index.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/sort-filter/builtin-compare.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/builtin-compare.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/sort-filter/keyed-sort.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/keyed-sort.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/sort-filter/default-compare-text.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/default-compare-text.ts"

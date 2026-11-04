@@ -1,0 +1,86 @@
+import { describe, expect, it } from "vitest";
+import { cellTypes as builtinCellTypes } from "../cell-types/cell-types";
+import type { FilterSpec, SortSpec } from "../types";
+import { computeViewIndex } from "./compute";
+import { createDataGridStore } from "./create-store";
+import type { InternalSyncProps } from "./types";
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+type Row = { id: string; name: string | null; age: number | null; score: number | null };
+
+const columns = [
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number" },
+] as const;
+
+const NAMES = ["Eager Eagle", "quick lion", "Silent Tiger", "Bold Bear", "Swift Wolf", "émile", "Émile", null];
+
+function makeStore(rowCount: number, sorts: SortSpec[], filters: FilterSpec[]) {
+  const rand = seededRandom(5);
+  const data: Row[] = Array.from({ length: rowCount }, (_, i) => ({
+    id: `r${i}`,
+    name: NAMES[Math.floor(rand() * NAMES.length)]!,
+    age: rand() < 0.05 ? null : 18 + Math.floor(rand() * 50),
+    score: rand() < 0.05 ? null : Math.floor(rand() * 40),
+  }));
+  const store = createDataGridStore({
+    data,
+    columns,
+    getRowId: (row: unknown) => (row as Row).id,
+    cellTypes: builtinCellTypes,
+  } as unknown as InternalSyncProps);
+  store.getState().actions.setSorts(sorts);
+  if (filters.length > 0) store.getState().actions.setFilters(filters);
+  return { store, rand };
+}
+
+function freshView(store: ReturnType<typeof makeStore>["store"], sorts: SortSpec[], filters: FilterSpec[]): number[] {
+  const s = store.getState();
+  return computeViewIndex(s.data, s.columns, sorts, filters, undefined, s.cellTypes);
+}
+
+const SCENARIOS: { name: string; sorts: SortSpec[]; filters: FilterSpec[] }[] = [
+  { name: "number asc", sorts: [{ columnId: "score", direction: "asc" }], filters: [] },
+  { name: "number desc", sorts: [{ columnId: "score", direction: "desc" }], filters: [] },
+  { name: "text asc then number desc", sorts: [{ columnId: "name", direction: "asc" }, { columnId: "score", direction: "desc" }], filters: [] },
+  { name: "number asc under a filter", sorts: [{ columnId: "score", direction: "asc" }], filters: [{ columnId: "age", operator: "gte", value: "40" }] },
+];
+
+describe("immediate live updates keep the view equal to a full re-sort", () => {
+  for (const scenario of SCENARIOS) {
+    for (const batchSize of [1, 2, 5, 40]) {
+      it(`${scenario.name}, batches of ${batchSize}`, () => {
+        const { store, rand } = makeStore(1500, scenario.sorts, scenario.filters);
+        for (let tick = 0; tick < 25; tick++) {
+          const patches = Array.from({ length: batchSize }, () => {
+            const rowId = `r${Math.floor(rand() * 1500)}`;
+            const column = rand() < 0.15 ? "age" : rand() < 0.2 ? "name" : "score";
+            const value = column === "name" ? NAMES[Math.floor(rand() * NAMES.length)] : rand() < 0.05 ? null : Math.floor(rand() * (column === "age" ? 70 : 40));
+            return { rowId, columnId: column, value };
+          });
+          store.getState().actions.updateCells(patches, { reorder: "immediate" });
+          expect(store.getState().viewIndex, `tick ${tick}`).toEqual(freshView(store, scenario.sorts, scenario.filters));
+        }
+      });
+    }
+  }
+
+  it("keeps the same viewIndex array when no touched row changes place", () => {
+    const { store } = makeStore(800, [{ columnId: "score", direction: "asc" }], []);
+    const before = store.getState().viewIndex;
+    const row = store.getState().data[before[400]!] as Row;
+    store.getState().actions.updateCells([{ rowId: row.id, columnId: "score", value: row.score }], { reorder: "immediate" });
+    expect(store.getState().viewIndex).toBe(before);
+  });
+});

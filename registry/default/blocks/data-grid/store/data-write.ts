@@ -1074,6 +1074,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
+      // A tick that writes no sort or filter column leaves a settled, search-free view where it is.
+      if (!s.viewStale && s.searchText.trim() === "" && !touchesViewInputs(patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
+        writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
+        emitStreamRejections(patches, batch.rejected, options?.source);
+        return { applied, skipped: batch.skipped, pending: false };
+      }
       // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
       const viewIndex = resolveViewIndex(s, nextData, pendingRows(ctx, batch.touchedRows));
       resetDeferredRows(ctx);
