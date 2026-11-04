@@ -1446,6 +1446,7 @@
         "PS": {
           "status": "supported",
           "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
             "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
             "content/docs/addons/find-replace.mdx"
           ]
@@ -1453,6 +1454,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "tests/parity/find-replace.parity.test.tsx",
             "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
             "content/docs/addons/find-replace.mdx"
           ]

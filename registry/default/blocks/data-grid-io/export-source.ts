@@ -42,6 +42,19 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<readonly unknow
   return typeof value === "object" && value !== null && Symbol.asyncIterator in value;
 }
 
+/** A message-channel hop: unlike `setTimeout`, a hidden tab does not throttle it. */
+function yieldToEventLoop(): Promise<void> {
+  if (typeof MessageChannel === "undefined") return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => {
+    const { port1, port2 } = new MessageChannel();
+    port1.onmessage = () => {
+      port1.close();
+      resolve();
+    };
+    port2.postMessage(0);
+  });
+}
+
 function abortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException("The export was aborted.", "AbortError");
 }
@@ -104,7 +117,7 @@ export async function runSourceExport(
       byteCount += onBatch(rows);
       if (byteCount > maxBytes) truncated = true;
       if (performance.now() - sliceStarted > YIELD_AFTER_MS) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await yieldToEventLoop();
         if (outer?.aborted) throw abortReason(outer);
         sliceStarted = performance.now();
       }

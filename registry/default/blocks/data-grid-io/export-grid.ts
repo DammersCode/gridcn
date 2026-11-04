@@ -44,11 +44,11 @@ export type ExportGridOptions = {
   fileName?: string;
   /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
   workbookName?: string;
-  /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file stops at the Excel sheet limit. */
+  /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
   maxRows?: number;
   /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
   source?: ExportSource;
-  /** With `source`: stop after this many bytes of file text; default 256 MiB. The export keeps what it has and reports `truncated`. */
+  /** With `source`: stop after this many bytes of file text (xlsx: characters); default 256 MiB. The export keeps what it has and reports `truncated`. */
   maxBytes?: number;
   /** Cancels the export. The promise rejects with the signal's reason and no file downloads. */
   signal?: AbortSignal;
@@ -183,6 +183,10 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+function isValidSheetName(name: string): boolean {
+  return name.length > 0 && name.length <= 31 && !INVALID_SHEET_NAME.test(name) && !name.startsWith("'") && !name.endsWith("'") && name.toLowerCase() !== "history";
+}
+
 function cutCell(text: string): string {
   return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
 }
@@ -200,7 +204,7 @@ function loadedResult(state: DataGridReadState, scope: "view" | "all" | "selecti
 async function exportFromSource(state: DataGridReadState, source: ExportSource, options: ExportGridOptions): Promise<ExportResult> {
   const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName = "Sheet1", signal, onProgress } = options;
   const xlsx = format === "xlsx";
-  if (xlsx && (workbookName.length > 31 || workbookName === "History" || INVALID_SHEET_NAME.test(workbookName))) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${workbookName}`);
+  if (xlsx && !isValidSheetName(workbookName)) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${workbookName}`);
   const headers = buildExportHeaders(state).map(cutCell);
   const requested = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
   const maxRows = xlsx ? Math.min(requested, XLSX_MAX_ROWS - (includeHeaders ? 1 : 0), Math.floor(XLSX_MAX_CELLS / Math.max(headers.length, 1))) : requested;
@@ -250,7 +254,7 @@ export async function exportGrid(state: DataGridReadState, options: ExportGridOp
   const { source } = options;
   if (source) return exportFromSource(state, source, options);
   const { format = "csv", scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName } = options;
-  const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, 0);
+  const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
   if (format === "csv") {
     const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;

@@ -37,7 +37,7 @@ async function* batches(): AsyncGenerator<Row[]> {
 afterEach(() => vi.restoreAllMocks());
 
 describe("export of a 100k-row source", () => {
-  it("writes a CSV file within the budget and one blob part per batch", async () => {
+  it("writes a CSV file within the budget", async () => {
     let blob: Blob | undefined;
     vi.stubGlobal("URL", { ...URL, createObjectURL: (b: Blob) => ((blob = b), "blob:x"), revokeObjectURL: vi.fn() });
     const anchor = document.createElement("a");

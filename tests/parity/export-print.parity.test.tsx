@@ -41,8 +41,7 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     vi.spyOn(URL, "createObjectURL").mockImplementation((b) => ((blob = b as Blob), "blob:x"));
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     const source = vi.fn((_ctx: { spec: { sorts: unknown; filters: unknown } }) => [{ n: 1, name: "from-source" }]);
-    const result = await exportGrid(grid.state(), { source, csvBom: false });
-    vi.restoreAllMocks();
+    const result = await exportGrid(grid.state(), { source, csvBom: false }).finally(() => vi.restoreAllMocks());
     const spec = source.mock.calls[0]![0].spec;
     expect(spec.sorts).toEqual([{ columnId: "n", direction: "desc" }]);
     expect(spec.filters).toHaveLength(1);

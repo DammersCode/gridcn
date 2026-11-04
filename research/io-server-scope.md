@@ -89,8 +89,8 @@ over unloaded rows has no client write path. The label avoids a wrong "no result
   `null`) or `sortMode` or `filterMode` is `"server"`. Client pages hold a page without a count, so
   `useDataGridFindReplace({ showScope: true })` shows it there; `false` hides it.
   It is text, not color, and not part of the live status line.
-- Parity: find and replace PS/Z become `n/a` with the reason "searches loaded rows by design; the
-  panel says so", evidence in a browser test.
+- Parity: find and replace PS/Z are `supported`: the scope is the loaded rows, and the panel says so
+  (real-mode parity test plus the scope browser test).
 
 ## Print for API mode
 

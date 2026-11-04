@@ -163,12 +163,16 @@ describe("exportGrid with a source", () => {
     expect(await exportGrid(makeState(), { source: () => rows, maxRows: Number.NaN })).toEqual({ rowCount: 2, truncated: false });
     expect(await exportGrid(makeState(), { source: () => rows, maxRows: Infinity })).toEqual({ rowCount: 2, truncated: false });
     expect((await exportGrid(makeState(), { source: () => rows, maxBytes: Number.NaN })).truncated).toBe(false);
+    expect(await exportGrid(makeState(), { maxRows: Number.NaN })).toEqual({ rowCount: 1, truncated: false });
+    expect(await exportGrid(makeState(), { maxRows: -3 })).toEqual({ rowCount: 0, truncated: true });
   });
 
   it("rejects an invalid xlsx sheet name before it calls the source", async () => {
     captureDownload();
     const source = vi.fn((_ctx: { spec: ServerSpec; signal: AbortSignal }) => [row("a")]);
-    await expect(exportGrid(makeState(), { format: "xlsx", workbookName: "a/b", source })).rejects.toThrow("sheet name");
+    for (const name of ["a/b", "", "'quoted", "history"]) {
+      await expect(exportGrid(makeState(), { format: "xlsx", workbookName: name, source })).rejects.toThrow("sheet name");
+    }
     expect(source).not.toHaveBeenCalled();
   });
 
