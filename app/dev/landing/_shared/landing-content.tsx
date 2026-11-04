@@ -65,13 +65,13 @@ export function LandingContent() {
                 <Link href={href} className={tile}>
                   <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                   <span className="text-sm font-medium">{title}</span>
-                  <span className="text-xs text-muted-foreground">{text}</span>
+                  <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
                 </Link>
               ) : (
                 <div className={tile}>
                   <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                   <span className="text-sm font-medium">{title}</span>
-                  <span className="text-xs text-muted-foreground">{text}</span>
+                  <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
                 </div>
               )}
             </li>
@@ -130,14 +130,7 @@ export function LandingContent() {
           {comparison.rows.map(({ feature, values }) => (
             <li key={feature} className="border p-3 text-sm">
               <p className="mb-1 font-medium">{feature}</p>
-              <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
-                {comparison.columns.map((c, i) => (
-                  <div key={c} className="flex justify-between gap-2">
-                    <dt className={i === 0 ? "font-semibold text-primary" : "text-muted-foreground"}>{c}</dt>
-                    <dd className={i === 0 ? "font-medium" : "text-muted-foreground"}>{values[i]}</dd>
-                  </div>
-                ))}
-              </dl>
+              <p className="text-xs text-muted-foreground">{comparison.columns.map((c, i) => <span key={c} className="me-3 inline-block"><span className={i === 0 ? "font-semibold text-primary" : ""}>{c.replace(" Table", "")}</span> {values[i]}</span>)}</p>
             </li>
           ))}
         </ul>
@@ -154,7 +147,7 @@ export function LandingContent() {
               <Link href={`/docs/agent-skills#${title}`} className={tile}>
                 <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                 <span className="font-mono text-xs font-medium">{title}</span>
-                <span className="text-xs text-muted-foreground">{text}</span>
+                <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
               </Link>
             </li>
           ))}
@@ -163,7 +156,7 @@ export function LandingContent() {
       </Panel>
 
       <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
-        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-sm:[&>li:nth-child(n+9)]:hidden">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
               <Link href={href} className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted ${focus}`}>
@@ -173,6 +166,7 @@ export function LandingContent() {
             </li>
           ))}
         </TileGrid>
+        <Link href="/docs/addons" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All add-ons →</Link>
       </Panel>
 
       <footer className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center">
