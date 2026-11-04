@@ -1,0 +1,36 @@
+@ Recipes
+## Data fetching
+- recipes-index | Recipes | landing | 250
+- df-server-side | Server-side grid | task | 800
+- df-round-trip | Server round trip | task | 780
+- df-tanstack | TanStack Query | task | 280
+## UI patterns
+- ui-index | UI pattern recipes | landing | 150
+- detail-panel | Detail panel | task | 500
+- bulk-actions | Bulk actions | task | 335
+- remember-view | Remember the view | task | 300
+- multiple-grids | Multiple grids | task | 120
+## Editing recipes
+- edit-recipes-index | Editing recipes | landing | 150
+- edit-row-form | Edit a row with a form | task | 530
+- auth-gated | Auth-gated cells | task | 175
+- recipe-custom-cell | Custom cell recipe | task | 260
+## Examples
+- examples-index | Examples | landing | 200
+### Foundations
+- ex-minimal | Minimal grid | task | 130
+- ex-editable | Editable grid | task | 160
+- ex-celltypes | Built-in types demo | task | 150
+- ex-custom | Custom cell demo | task | 200
+### Columns
+- ex-pinning-cols | Pinned columns demo | task | 215
+- ex-col-drag | Column drag demo | task | 170
+- ex-col-filter | Column filtering demo | task | 360
+### Rows
+- ex-pinning-rows | Pinned rows demo | task | 210
+- ex-row-ops | Row operations demo | task | 280
+- ex-row-drag | Row drag demo | task | 570
+### Data
+- ex-server | Server-side demo | task | 600
+- ex-large | Large data demo | task | 200
+- ex-lazy | Lazy loading demo | task | 310

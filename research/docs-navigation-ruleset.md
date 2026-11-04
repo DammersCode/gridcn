@@ -49,13 +49,14 @@ Every page has exactly one type. The type decides the budget and the template. T
 
 - S1. The sidebar has 4 to 6 areas. An area is a root folder: its sidebar shows only that area, and a tab switches
   between areas. Areas are parallel sections for the same readers.
-- S2. An area has 4 to 8 groups. A group is a separator or a folder.
+- S2. An area has 4 to 8 groups. A group is a folder. The Learn or Start area is exempt: it holds 1 to 3 groups.
 - S3. A group has at most 7 pages at target and 12 at the hard cap. A generated list sorted A to Z (props, hooks,
   recipes by name) is exempt.
 - S4. The tree is two levels deep: group, then page. A third level is allowed only inside Reference and Recipes.
-- S5. At most 35 sidebar rows are visible at once on any page, counting separators, folders, and pages. A nested folder
-  that is not on the current path starts collapsed.
-- S6. Only a folder away from the current path collapses. The group of the current page stays open.
+- S5. At most 25 sidebar rows are visible at once on any page: the groups of the area plus the pages of the one open
+  group (and the open subgroups of a third level).
+- S6. Groups are collapsible folders. The group of the current page is open; every other group is closed. A closed group
+  opens on its landing page, so no page hides behind a second click.
 - S7. Every group has a Landing page (`index.mdx`) that is the group's first sidebar entry. The landing page introduces
   each child in one line.
 - S8. Split a page when it breaks P1, P2, or P5, or when two thirds of its inbound deep links go to one H2 cluster. Each
