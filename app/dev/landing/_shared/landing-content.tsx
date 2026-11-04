@@ -16,15 +16,30 @@ const CODE = `const columns = defineColumns<Person>()([
 <DataGrid defaultData={rows} columns={columns} />`;
 const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
 
-function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
+function Panel({ id, title, intro, children, className, collapsed, defaultOpen }: { defaultOpen?: boolean; id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string; collapsed?: boolean }) {
+  const head = (
+    <>
+      <h2 id={id} className="text-lg font-semibold tracking-tight">
+        {title}
+      </h2>
+      {intro && <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">{intro}</p>}
+    </>
+  );
+  if (collapsed) {
+    return (
+      <details open={defaultOpen} className={`group border bg-card ${className ?? ""}`}>
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
+          <div>{head}</div>
+          <span className="mt-1 shrink-0 text-xs font-medium underline underline-offset-4 group-open:hidden">Show</span>
+          <span className="mt-1 hidden shrink-0 text-xs font-medium underline underline-offset-4 group-open:inline">Hide</span>
+        </summary>
+        <div className="flex flex-col gap-3 px-4 pb-4">{children}</div>
+      </details>
+    );
+  }
   return (
     <section aria-labelledby={id} className={`flex flex-col gap-3 border bg-card p-4 ${className ?? ""}`}>
-      <div>
-        <h2 id={id} className="text-lg font-semibold tracking-tight">
-          {title}
-        </h2>
-        {intro && <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">{intro}</p>}
-      </div>
+      <div>{head}</div>
       {children}
     </section>
   );
@@ -115,7 +130,7 @@ export function LandingContent() {
         </Panel>
       </div>
 
-      <Panel id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
+      <Panel collapsed id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
         <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted">
@@ -157,8 +172,8 @@ export function LandingContent() {
         <p className="text-xs text-muted-foreground">Tiers as of 09/2026 (AG Grid v36, MUI X v9, TanStack Table v9). Vendors change tiers: verify before relying on this.</p>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-      <Panel id="agents" title="Your coding agent knows gridcn" intro="Five skills for Claude Code, Cursor, Codex and other agents: the procedures and silent traps the docs alone cannot enforce.">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <Panel collapsed defaultOpen id="agents" title="Your coding agent knows gridcn" intro="Five skills for Claude Code, Cursor, Codex and other agents: the procedures and silent traps the docs alone cannot enforce.">
         <div className={`w-full max-w-md ${installFit}`}>
           <InstallCommand command="skills add DammersCode/gridcn" />
         </div>
@@ -176,7 +191,7 @@ export function LandingContent() {
         <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All five skills →</Link>
       </Panel>
 
-      <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
+      <Panel collapsed id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
         <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 max-sm:[&>li:nth-child(n+9)]:hidden">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
