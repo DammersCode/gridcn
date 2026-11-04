@@ -14,17 +14,16 @@ export type BgVariant = {
   layers: string[];
 };
 
-const wash = "bg-background";
 
 export const bgVariants: BgVariant[] = [
-  { id: 1, name: "Blur, light", kind: "blur", layers: [`${wash}/35 backdrop-blur-[2px]`] },
-  { id: 2, name: "Blur, medium", kind: "blur", layers: [`${wash}/45 backdrop-blur-[6px]`] },
-  { id: 3, name: "Blur, strong", kind: "blur", layers: [`${wash}/65 backdrop-blur-xl`] },
+  { id: 1, name: "Blur, light", kind: "blur", layers: [`bg-background/35 backdrop-blur-[2px]`] },
+  { id: 2, name: "Blur, medium", kind: "blur", layers: [`bg-background/45 backdrop-blur-[6px]`] },
+  { id: 3, name: "Blur, strong", kind: "blur", layers: [`bg-background/65 backdrop-blur-xl`] },
   {
     id: 4,
     name: "Ghost: gray and faint",
     kind: "effect",
-    canvas: "grayscale opacity-30",
+    canvas: "grayscale opacity-40 dark:opacity-30",
     layers: [],
   },
   {
@@ -32,8 +31,8 @@ export const bgVariants: BgVariant[] = [
     name: "Vignette: clear edges, calm center",
     kind: "effect",
     layers: [
-      `${wash}/90 [mask-image:radial-gradient(ellipse_60%_70%_at_50%_45%,black_40%,transparent_100%)]`,
-      `${wash}/25`,
+      `bg-background/90 [mask-image:radial-gradient(ellipse_60%_70%_at_50%_45%,black_40%,transparent_100%)]`,
+      `bg-background/25`,
     ],
   },
   {
@@ -47,22 +46,22 @@ export const bgVariants: BgVariant[] = [
     name: "Low contrast: flattened",
     kind: "effect",
     canvas: "grayscale-[0.6] contrast-[0.5] brightness-[0.9] opacity-60",
-    layers: [`${wash}/30`],
+    layers: [`bg-background/30`],
   },
   {
     id: 8,
     name: "Side rails: visible in the gutters",
     kind: "effect",
     layers: [
-      `${wash} [mask-image:linear-gradient(to_right,transparent,black_14%,black_86%,transparent)]`,
-      `${wash}/40`,
+      `bg-background [mask-image:linear-gradient(to_right,transparent,black_14%,black_86%,transparent)]`,
+      `bg-background/40`,
     ],
   },
   {
     id: 9,
     name: "Darken on scroll",
     kind: "effect",
-    layers: [`${wash} opacity-30 [animation:landing-bg-dim_linear_both] [animation-timeline:scroll()] [animation-range:0_90vh]`],
+    layers: [`bg-background opacity-30 [animation:landing-bg-dim_linear_both] [animation-timeline:scroll()] [animation-range:0_90vh]`],
   },
   {
     id: 10,
@@ -70,7 +69,7 @@ export const bgVariants: BgVariant[] = [
     kind: "effect",
     layers: [
       "[background-image:radial-gradient(var(--background)_58%,transparent_60%)] [background-size:5px_5px]",
-      `${wash}/30`,
+      `bg-background/30`,
     ],
   },
 ];
