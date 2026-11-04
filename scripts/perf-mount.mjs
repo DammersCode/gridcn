@@ -19,7 +19,7 @@
 //   --width <px>       viewport width (default 1280)
 //   --out <file>       write the per-size medians and spreads to a JSON file
 // Cold = first mount in a fresh browser context (empty caches, unwarmed code). Warm = the third and
-// later mounts in one page. Run `ccc daemon stop` first: a background indexer skews timings.
+// later mounts in one page; three rounds of fresh pages, the variant order alternating each round. Run `ccc daemon stop` first: a background indexer skews timings.
 import { writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
@@ -116,45 +116,53 @@ async function mountOnce({ page, cdp }, rows, variant) {
   };
 }
 
+// Alternates the order of the variants on every pass (A B, B A, ...), so a variant never owns the first or the second slot.
+const passOrder = (count, pass) => {
+  const order = Array.from({ length: count }, (_, i) => i);
+  return pass % 2 === 0 ? order : order.reverse();
+};
+
+const WARM_ROUNDS = 3;
+
 async function measureMount(browser, opts, rows) {
   const benchUrl = (origin) => `${origin}/dev/mount-bench?mode=mount&rows=${rows}&variant=${opts.variant}`;
   const cold = opts.urls.map(() => []);
   for (let run = 0; run < opts.runs; run++) {
-    for (const [i, origin] of opts.urls.entries()) {
+    for (const i of passOrder(opts.urls.length, run)) {
       const session = await newSession(browser, opts);
       try {
-        await openBench(session, benchUrl(origin));
+        await openBench(session, benchUrl(opts.urls[i]));
         cold[i].push(await mountOnce(session, rows, opts.variant));
       } finally {
         await session.context.close();
       }
     }
   }
-  const sessions = [];
   const warm = opts.urls.map(() => []);
-  try {
-    for (const origin of opts.urls) {
+  const perRound = Math.ceil(opts.runs / WARM_ROUNDS);
+  for (let round = 0; round < WARM_ROUNDS; round++) {
+    for (const i of passOrder(opts.urls.length, round)) {
       const session = await newSession(browser, opts);
-      await openBench(session, benchUrl(origin));
-      sessions.push(session);
-    }
-    for (let run = 0; run < WARMUP_MOUNTS + opts.runs; run++) {
-      for (const [i, session] of sessions.entries()) {
-        const sample = await mountOnce(session, rows, opts.variant);
-        if (run >= WARMUP_MOUNTS) warm[i].push(sample);
+      try {
+        await openBench(session, benchUrl(opts.urls[i]));
+        for (let mount = 0; mount < WARMUP_MOUNTS + perRound; mount++) {
+          const sample = await mountOnce(session, rows, opts.variant);
+          if (mount >= WARMUP_MOUNTS) warm[i].push(sample);
+        }
+      } finally {
+        await session.context.close();
       }
     }
-  } finally {
-    for (const session of sessions) await session.context.close();
   }
   return Object.fromEntries(opts.urls.map((_, i) => [LABELS[i], { cold: summarize(cold[i]), warm: summarize(warm[i]) }]));
 }
 
 async function hydrateOnce(browser, opts, url) {
   const session = await newSession(browser, opts);
-  let consoleErrors = 0;
-  session.page.on("console", (m) => { if (m.type() === "error") consoleErrors += 1; });
-  session.page.on("pageerror", () => { consoleErrors += 1; });
+  let hydrationErrors = 0;
+  const countHydration = (text) => { if (/hydrat|did not match|server rendered HTML/i.test(text)) hydrationErrors += 1; };
+  session.page.on("console", (m) => { if (m.type() === "error") countHydration(m.text()); });
+  session.page.on("pageerror", (e) => countHydration(String(e)));
   try {
     const response = await session.page.goto(url, { waitUntil: "load", timeout: 120_000 });
     const html = await response.text();
@@ -179,7 +187,7 @@ async function hydrateOnce(browser, opts, url) {
       hydratedAtMs: timing.hydratedAt,
       hydrationMs: timing.hydratedAt - timing.fcp - timing.rowsGenMs,
       cellsAfterHydration: timing.cellsNow,
-      consoleErrors,
+      hydrationErrors,
     };
   } finally {
     await session.context.close();
@@ -189,8 +197,8 @@ async function hydrateOnce(browser, opts, url) {
 async function measureHydrate(browser, opts, rows) {
   const samples = opts.urls.map(() => []);
   for (let run = 0; run < opts.runs; run++) {
-    for (const [i, origin] of opts.urls.entries()) {
-      samples[i].push(await hydrateOnce(browser, opts, `${origin}/dev/mount-bench?mode=hydrate&rows=${rows}&variant=${opts.variant}`));
+    for (const i of passOrder(opts.urls.length, run)) {
+      samples[i].push(await hydrateOnce(browser, opts, `${opts.urls[i]}/dev/mount-bench?mode=hydrate&rows=${rows}&variant=${opts.variant}`));
     }
   }
   return Object.fromEntries(opts.urls.map((_, i) => [LABELS[i], { hydrate: summarize(samples[i]) }]));
