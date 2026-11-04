@@ -1,5 +1,6 @@
 // Interaction-cost harness: script time per click and per key press on a running production build
 // (`next start`), using CDP Performance.getMetrics ScriptDuration deltas around each interaction.
+// Build the app with GRIDCN_DEV_ROUTES=1 (a build-time variable) so /dev routes exist in production.
 // Usage: node scripts/perf-interaction.mjs [--url <base>[,<base2>]]  (several bases run interleaved, run by run, so machine load hits each equally)
 //   [--rows 1000,100000] [--runs 3] [--iterations 30]
 //   [--throttle 1,4] [--css <rule>] [--out file.json]   (--css injects a rule before measuring, for A/B what-ifs)
@@ -116,7 +117,9 @@ try {
       const pooled = URLS.map(() => ({}));
       const perRun = URLS.map(() => ({}));
       for (let run = 0; run < RUNS; run++) {
-        for (const [u, base] of URLS.entries()) {
+        const order = [...URLS.entries()];
+        if (run % 2) order.reverse();
+        for (const [u, base] of order) {
           const samples = await runScenarios(browser, base, rows, throttle);
           for (const [name, values] of Object.entries(samples)) {
             (pooled[u][name] ??= []).push(...values);

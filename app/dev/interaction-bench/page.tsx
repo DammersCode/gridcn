@@ -1,6 +1,6 @@
 "use client";
 
-import { Profiler, Suspense, useMemo, type ReactNode } from "react";
+import { Suspense, useMemo, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
@@ -40,26 +40,12 @@ function generateRows(count: number): Row[] {
   }));
 }
 
-type Counters = { commits: number; actualMs: number };
-declare global {
-  interface Window {
-    __interactionBench?: Counters;
-  }
-}
-
-function onRender(_id: string, _phase: string, actualDuration: number): void {
-  const counters = (window.__interactionBench ??= { commits: 0, actualMs: 0 });
-  counters.commits += 1;
-  counters.actualMs += actualDuration;
-}
-
 function Bench(): ReactNode {
   const count = Number(useSearchParams().get("rows"));
   const rowCount = Number.isInteger(count) && count >= 1 && count <= MAX_ROW_COUNT ? count : DEFAULT_ROW_COUNT;
   const rows = useMemo(() => generateRows(rowCount), [rowCount]);
   return (
     <div className="mx-auto" style={{ width: "min(1216px, 100vw)", height: "max(400px, calc(100vh - 150px))" }}>
-      <Profiler id="grid" onRender={onRender}>
         <DataGrid
           defaultData={rows}
           columns={columns}
@@ -68,7 +54,6 @@ function Bench(): ReactNode {
           renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
           className="h-full"
         />
-      </Profiler>
     </div>
   );
 }
