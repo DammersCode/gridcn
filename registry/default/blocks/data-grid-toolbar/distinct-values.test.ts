@@ -143,3 +143,18 @@ describe("isOwnSetFilter", () => {
     expect(isOwnSetFilter({ columnId: "c", operator: "isAnyOf", value: ["a"] }, "c")).toBe(true);
   });
 });
+
+describe("distinctColumnValues with a custom list row", () => {
+  const tagged = { id: "tagged", label: "tagged", input: "list" as const, match: (text: string, filter: FilterSpec) => Array.isArray(filter.value) && filter.value.includes(text) };
+  const cols = [{ id: "city", accessorKey: "city", header: "City", filterOperators: [tagged] }] as AnyColumnDef[];
+  const data: Row[] = [{ city: "a" }, { city: "b" }];
+  const state = { ...input(data, [{ columnId: "city", operator: "tagged", value: ["a"] }]), columns: cols };
+
+  it("keeps the row out of the value list by default", () => {
+    expect(distinctColumnValues(state, "city").values.map((v) => v.key)).toEqual(["a", "b"]);
+  });
+
+  it("applies the row when the caller does not write it", () => {
+    expect(distinctColumnValues(state, "city", false).values.map((v) => v.key)).toEqual(["a"]);
+  });
+});

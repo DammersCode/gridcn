@@ -61,7 +61,7 @@ describe("load announcements", () => {
   });
 
   it("reads the loaded rows as partial while the count is unknown and rows are missing", async () => {
-    const grid = mount({ data: [...rows(2), undefined] });
+    const grid = mount({ data: [...rows(2), undefined], filterMode: "server" });
     await grid.rerender({ loading: true, searchText: "x", data: [...rows(2), undefined] });
     await grid.rerender({ loading: false, searchText: "x", data: [...rows(2), undefined] });
     expect(grid.live()).toMatchObject({ kind: "results", count: 2, partial: true });
@@ -83,6 +83,15 @@ describe("load announcements", () => {
     expect(grid.live()).toMatchObject({ kind: "results", count: 3 });
   });
 
+  it("stays quiet when only the client evaluated search changed between loads", async () => {
+    const grid = mount({ totalRowCount: 5 });
+    await grid.rerender({ loading: false });
+    await grid.rerender({ loading: false, searchText: "x" });
+    await grid.rerender({ loading: true, searchText: "x" });
+    await grid.rerender({ loading: false, searchText: "x" });
+    expect(grid.live()).toBeNull();
+  });
+
   it("stays quiet for a block fill or page change that changes no spec or count", async () => {
     const grid = mount({ totalRowCount: 10_000, filterMode: "server" });
     await grid.rerender({ loading: false });
@@ -92,7 +101,7 @@ describe("load announcements", () => {
   });
 
   it("reads the rows that arrive in the same render as the end of the load", async () => {
-    const grid = mount({ data: rows(50) });
+    const grid = mount({ data: rows(50), filterMode: "server" });
     await grid.rerender({ loading: true, searchText: "x" });
     await grid.rerender({ loading: false, searchText: "x", data: rows(3) });
     expect(grid.live()).toMatchObject({ kind: "results", count: 3 });

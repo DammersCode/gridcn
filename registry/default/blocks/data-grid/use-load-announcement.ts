@@ -5,12 +5,16 @@ import { useDataGridStoreApi } from "./store";
 import { loadedRowCount, nextAnnouncement } from "./store/announcements";
 import type { DataGridStoreState } from "./store";
 
+/** What the server evaluates: the client modes announce their own filter and sort changes. */
 const loadKey = (s: DataGridStoreState) =>
-  JSON.stringify([s.filterState, s.sortState, s.searchText, s.totalRowCount], (key, value: unknown) => (key === "filterId" ? undefined : value));
+  JSON.stringify(
+    [s.filterMode === "server" ? s.filterState : null, s.sortMode === "server" ? s.sortState : null, s.filterMode === "server" ? s.searchText : null, s.totalRowCount],
+    (key, value: unknown) => (key === "filterId" ? undefined : value),
+  );
 
 /**
  * Speaks the result count when a load ends (`loading` true to false) and the filters, sort, search,
- * or count differ from the last load's end, or the load before it failed. A block fill or page change
+ * or count that the server evaluates differ from the last load's end, or the load before it failed. A block fill or page change
  * that changes none of them stays quiet. Waits one microtask so the provider's passive prop sync has
  * landed `data` first. A failed load stays with the alert overlay.
  */

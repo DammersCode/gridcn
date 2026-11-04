@@ -31,14 +31,15 @@ function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown
  * Counts the distinct values of `columnId`, grouped by the lowercased text the filter matcher sees.
  * Rows count when they pass every other top-level node; the column's own top-level set rows never
  * hide its own values, and a set row of the column inside a group counts as any other filter. Lazy holes are skipped and reported as `hasHoles`. Past {@link DISTINCT_VALUES_CAP} keys,
- * new keys stop counting and `capped` is set.
+ * new keys stop counting and `capped` is set. A custom list row also stays out of the count unless `excludeCustomLists` is `false` (the header filter, which does not write that row).
  */
-export function distinctColumnValues(state: DistinctValuesInput, columnId: string): DistinctValues {
+export function distinctColumnValues(state: DistinctValuesInput, columnId: string, excludeCustomLists = true): DistinctValues {
   const column = state.columns.find((c) => c.id === columnId);
   if (!column) return { values: [], capped: false, hasHoles: false };
   const { data } = state;
   const accessor = rowAccessorFor(state.columns, data, state.cellTypes);
-  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, customOperatorsOf(column, state.cellTypes))));
+  const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
+  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, custom)));
 
   const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;

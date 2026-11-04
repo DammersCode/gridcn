@@ -109,10 +109,10 @@ A `FilterGroup` <NewBadge /> has these fields:
 `allColumns` to include hidden columns. A filter on a hidden column keeps applying. Without
 `allColumns`, the menu shows that row as a raw column id and logs a dev-time warning.
 
-Two column-level fields replace the built-in behavior. `filterMatch(value, filter)` is a
+Two column-level fields <NewBadge /> replace the built-in behavior. `filterMatch(value, filter)` is a
 per-column predicate over the cell's RAW value (not its stringified form) that decides whether
 the row passes; it replaces the built-in matcher for that column, and a thrown predicate fails the
-row. It handles built-in operators only <NewBadge />: a custom operator runs its own `match`, and a column with `filterMatch` ignores `filterCompare` for built-in operators. `filterOperators` replaces the operator list the filter menu offers for that column, for
+row. It handles built-in operators only: a custom operator runs its own `match`, and a column with `filterMatch` ignores `filterCompare` for built-in operators. `filterOperators` replaces the operator list the filter menu offers for that column, for
 example the comparison operators for a consumer-registered numeric cell type whose `type` key is
 not `number` or `date`. The same two fields exist on a cell type as `filter.match` and
 `filter.operators`, and the column's own fields win over them:

@@ -77,7 +77,7 @@ export function useServerFilterValuesEnabled(column: AnyColumnDef): boolean {
  * The server set values of `column` for `search`, or `null` when the provider is absent or the column has
  * `choices`. A new `search`, a column switch, and unmount abort the request in flight; a stale result is dropped.
  */
-export function useServerFilterValues(column: AnyColumnDef, search: string, pinned?: ReadonlyMap<string, unknown>): ServerFilterValues | null {
+export function useServerFilterValues(column: AnyColumnDef, search: string, pinned?: ReadonlyMap<string, unknown>, excludeCustomLists = true): ServerFilterValues | null {
   const enabled = useServerFilterValuesEnabled(column);
   const storeApi = useDataGridStoreApi();
   const blanks = useDataGridLabels().toolbar.headerFilterBlanks;
@@ -97,7 +97,8 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
         const state = storeApi.getState();
         const fetchValues = state.fetchFilterValues;
         if (!fetchValues) return;
-        const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId, customOperatorsOf(column, state.cellTypes)));
+        const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
+        const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId, custom));
         const response = await fetchValues({ columnId, query: search, filters, signal: controller.signal });
         if (controller.signal.aborted) return;
         const clean = sanitizeServerValues(response);
@@ -116,7 +117,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
       }
     })();
     return () => controller.abort();
-  }, [enabled, storeApi, columnId, search]);
+  }, [enabled, storeApi, column, columnId, search, excludeCustomLists]);
 
   const options = useMemo(
     () => result.options.map((option) => (option.key === "" ? { ...option, label: blanks } : option)),

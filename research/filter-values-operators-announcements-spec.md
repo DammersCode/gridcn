@@ -35,7 +35,7 @@ type CustomFilterOperator = {
 
 ## L. Result announcements for server refreshes
 
-With `announceResults`, the end of a load (`loading` true to false, no `error`) announces, when the filters, sort, search, or `totalRowCount` changed while it ran or the load before it failed (a scroll-mode block fill stays quiet), the result one microtask later, after the provider synced `data`: `totalRowCount` when it is a number, else the loaded rows; zero reads `labels.grid.noResults`. The live region already waits 500 ms for the last announcement, so a typing run speaks once. A load that ends in `error` stays silent: the error bar is a `role="alert"`.
+With `announceResults`, the end of a load (`loading` true to false, no `error`) announces, when the server-evaluated filters, sort, search, or `totalRowCount` changed since the last load ended or the load before it failed (a scroll-mode block fill stays quiet), the result one microtask later, after the provider synced `data`: `totalRowCount` when it is a number, else the loaded rows; zero reads `labels.grid.noResults`. The live region already waits 500 ms for the last announcement, so a typing run speaks once. A load that ends in `error` stays silent: the error bar is a `role="alert"`.
 
 ## N. Error overlay
 

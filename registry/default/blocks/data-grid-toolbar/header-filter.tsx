@@ -20,7 +20,7 @@ import {
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
-import { customOperatorsOf, distinctColumnValues, isOwnSetFilter } from "./distinct-values";
+import { distinctColumnValues, isOwnSetFilter } from "./distinct-values";
 import { useServerFilterValues, useServerFilterValuesEnabled } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 
@@ -50,7 +50,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
     if (serverEnabled) {
       return { values: [], capped: false, hasHoles: false, inGroup, partial: false, keys: [] as string[], texts: new Map<string, string>(), openFilters: state.filterState, initiallyChecked: new Set<string>() };
     }
-    const distinct = distinctColumnValues(state, column.id);
+    const distinct = distinctColumnValues(state, column.id, false);
     const keys = distinct.values.map((value) => value.key);
     const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
     return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server" || state.filterMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
@@ -58,7 +58,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const search = useDebouncedSearch();
   const { query } = search;
   const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
-  const server = useServerFilterValues(column, query, overrides);
+  const server = useServerFilterValues(column, query, overrides, false);
   const localOptions = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
     [loaded.values, labels.headerFilterBlanks],
@@ -68,7 +68,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const known = server ? server.known : loaded.texts;
   const checked = useMemo<ReadonlySet<string>>(() => {
     // A server list may be partial, so without a set entry nothing starts checked.
-    const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id, customOperatorsOf(column, cellTypes)));
+    const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id));
     const next = server ? (hasEntry ? checkedKeysFromFilters(loaded.openFilters, column.id, [...known.keys()]) : new Set<string>()) : new Set(loaded.initiallyChecked);
     for (const [key, on] of overrides) {
       if (on) next.add(key);
