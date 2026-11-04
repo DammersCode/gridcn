@@ -548,7 +548,7 @@ describe("races and cleanup", () => {
 describe("sequential source", () => {
   type CursorRequest = { start: number; cursor: number | undefined; signal: AbortSignal; resolve: () => void };
 
-  function setupSequence(extra: Extra = {}) {
+  function setupSequence(extra: Partial<UseDataGridServerRowsScrollOptions<Row, number>> = {}) {
     const requests: CursorRequest[] = [];
     const fetchRows = vi.fn(
       ({ start, end, cursor, signal }: { start: number; end: number; cursor: number | undefined; signal: AbortSignal }) =>

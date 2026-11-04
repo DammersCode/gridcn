@@ -7,8 +7,8 @@ import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequ
 import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
-import { DEFAULT_MAX_LOADED_ROWS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
-import { isolate, useServerSpec } from "./server-state";
+import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
+import { isolate, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -49,6 +49,12 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * `Infinity` keeps every row. Default 10,000.
    */
   maxLoadedRows?: number;
+  /**
+   * Milliseconds between `refresh()` calls the hook runs itself while the page is visible. A tick waits for a request in flight,
+   * and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks.
+   * At least 1000. Off by default.
+   */
+  revalidateInterval?: number;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
@@ -840,7 +846,9 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     if (core.lastWindow) windowRef.current(core.lastWindow);
   }, [rows, getCore]);
 
+  const restartClockRef = useRef<() => void>(noop);
   const refresh = useCallback(() => {
+    restartClockRef.current();
     const core = getCore();
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
       runFetch({ start: 0, end: blockSize() });
@@ -875,6 +883,17 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
+
+  const canRevalidate = useCallback(() => {
+    const core = getCore();
+    if (core.kind !== "sequence") return true;
+    const size = blockSize();
+    return Math.ceil(Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) / size) <= MAX_SEQUENTIAL_REVALIDATE_BLOCKS;
+  }, [getCore, blockSize, overscanOf]);
+  const restartClock = useRevalidation({ interval: options.revalidateInterval, onTick: () => refreshRef.current(), busy: loading, canTick: canRevalidate, resetKey: specKey });
+  useLayoutEffect(() => {
+    restartClockRef.current = restartClock;
+  }, [restartClock]);
 
   useEffect(() => {
     const core = getCore();

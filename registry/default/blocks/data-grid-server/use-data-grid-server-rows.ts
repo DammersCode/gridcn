@@ -8,7 +8,7 @@ import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-paginati
 import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard } from "./refresh-guard";
-import { isolate, useControlled, useServerSpec } from "./server-state";
+import { isolate, useControlled, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
@@ -39,6 +39,11 @@ export type UseDataGridServerRowsOptions<TData> = {
   onSpecChange?: (spec: ServerSpec) => void;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
+  /**
+   * Milliseconds between `refresh()` calls the hook runs itself while the page is visible. A tick waits for a request in flight,
+   * and every refresh restarts the clock. At least 1000. Off by default.
+   */
+  revalidateInterval?: number;
   /** Fires after the rows of a request land, with the range they cover. */
   onLoaded?: (range: RowRange) => void;
   /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
@@ -221,13 +226,23 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const retry = useCallback(() => {
     if (live.current.error !== null) setTick((n) => n + 1);
   }, []);
+  const restartClockRef = useRef<() => void>(() => {});
   const refresh = useCallback(() => {
+    restartClockRef.current();
     if (isDev() && live.current.settledOnce && guardMissing() && !warned.current.has("guard")) {
       warned.current.add("guard");
       console.warn(`[data-grid-server] ${GUARD_MISSING_MESSAGE}`);
     }
     setTick((n) => n + 1);
   }, [guardMissing]);
+  const refreshRef = useRef(refresh);
+  useLayoutEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+  const restartClock = useRevalidation({ interval: options.revalidateInterval, onTick: () => refreshRef.current(), busy: loading, resetKey: specKey });
+  useLayoutEffect(() => {
+    restartClockRef.current = restartClock;
+  }, [restartClock]);
 
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
     markEdited();

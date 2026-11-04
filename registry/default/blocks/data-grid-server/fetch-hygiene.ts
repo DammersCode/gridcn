@@ -7,6 +7,8 @@ export const DEFAULT_MAX_CONCURRENT_FETCHES = 3;
 const MAX_CONCURRENT_FETCHES = 16;
 export const DEFAULT_MAX_LOADED_ROWS = 10_000;
 
+/** A sequential revalidation walks from block 0 to the rendered rows; a tick that would take more blocks is skipped. */
+export const MAX_SEQUENTIAL_REVALIDATE_BLOCKS = 10;
 export const MIN_REVALIDATE_INTERVAL = 1000;
 export const MAX_REVALIDATE_INTERVAL = 2_147_483_647;
 
