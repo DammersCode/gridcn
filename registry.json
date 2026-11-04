@@ -3129,7 +3129,9 @@
             "DammersCode/gridcn/data-grid-pagination",
             "DammersCode/gridcn/data-grid-server",
             "DammersCode/gridcn/data-grid-toolbar",
-            "button"
+            "button",
+            "select",
+            "switch"
          ],
          "files": [
             {

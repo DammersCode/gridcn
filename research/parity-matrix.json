@@ -1141,38 +1141,100 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/lazy-holes.parity.test.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "push-reshape",
+      "feature": "Pushes into a server-ordered view",
+      "options": [
+        "reshapeDelay"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.reshape.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.reshape.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "content/docs/streaming-updates.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         }
       }

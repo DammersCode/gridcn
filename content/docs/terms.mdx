@@ -19,6 +19,9 @@ Each term links to the page that explains it in full.
 | Filter node <NewBadge /> | One entry of `filterState`: a filter row or a filter group. See [Sorting, filtering & search](/docs/sorting-filtering-search). |
 | Filter group <NewBadge /> | A box of filter nodes that match together. With `join: "and"` every child must match. With `join: "or"` any child matches. The top level of `filterState` always combines with `and`. See [Sorting, filtering & search](/docs/sorting-filtering-search). |
 | Spec | What the user chose: sort, filter, search, and page. The grid tracks it. The mode decides who applies it. |
+| Push <NewBadge /> | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push never reaches `onSave`. See [Streaming updates](/docs/streaming-updates#server-sorted-and-filtered-views). |
+| Stale row <NewBadge /> | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server delivers it again. |
+| Reshape <NewBadge /> | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. See [Lazy loading](/docs/lazy-loading#pushes). |
 | Server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. |
 | Row id | The stable id from `getRowId`. Selection, editing, and undo and redo address rows by it instead of by array position, so they stay correct when the rows move. |
 | Column group | A named set of columns that share one header above their own headers. Groups nest. See [Columns](/docs/columns#column-groups). |

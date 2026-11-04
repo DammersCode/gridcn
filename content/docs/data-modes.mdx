@@ -260,6 +260,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pushes into a server-ordered view</th>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">URL state</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -500,6 +511,11 @@ A grid feature can behave differently on a local array, on server pages and on s
 
 - **Z**: Gap: Undo warns over rows not loaded yet.
 - **API**: Gap: The local undo stack never learns whether the server accepted the write.
+
+### Pushes into a server-ordered view
+
+- **L**: n/a: The client sorts and filters itself, so a push never leaves a row in the wrong place.
+- **PC**: n/a: The client sorts and filters itself, so a push never leaves a row in the wrong place.
 
 ### URL state
 

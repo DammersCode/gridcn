@@ -173,5 +173,24 @@ export function createRemoteServer() {
     order = next.map((row) => row.id);
   }
 
-  return { total: rows.size, fetchPage, fetchRange, fetchValues, applyOps };
+  /** Changes the score of each known row on the server and returns the matching pushes. */
+  function bumpScores(ids: readonly string[]): { rowId: string; changes: { score: number } }[] {
+    const pushes: { rowId: string; changes: { score: number } }[] = [];
+    for (const id of ids) {
+      const row = rows.get(id);
+      if (!row) continue;
+      const score = Math.max(0, Math.min(100, row.score + Math.round((Math.random() - 0.5) * 40)));
+      rows.set(id, { ...row, score });
+      pushes.push({ rowId: id, changes: { score } });
+    }
+    return pushes;
+  }
+
+  /** Deletes rows on the server, as another client would. */
+  function remove(ids: readonly string[]): void {
+    for (const id of ids) rows.delete(id);
+    order = order.filter((id) => rows.has(id));
+  }
+
+  return { total: rows.size, fetchPage, fetchRange, fetchValues, applyOps, bumpScores, remove };
 }

@@ -119,6 +119,12 @@ A failed prefetch is silent: it sets no `error` and calls no `onError`. The page
   Set `prefetchNextPage` only when your API accepts one extra request for each page view. Set `revalidateInterval` only when the server can serve one request for each open grid at that rate. Both options cost server load.
 </Callout>
 
+## Pushes from the server
+
+<NewBadge />
+
+A feed can write into the grid with `updateCells` and `deleteRowsById({ source: "stream" })`. The grid keeps a pushed row in place and marks it stale when the push changes a column that your spec reads. `reshapeDelay` and `reshape()` make the hook refetch so that the server places the rows. See [Lazy loading: Pushes](/docs/lazy-loading#pushes).
+
 ## Row count and unknown totals
 
 <NewBadge />

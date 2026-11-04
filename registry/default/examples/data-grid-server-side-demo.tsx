@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
@@ -41,12 +43,18 @@ type Mode = "pages" | "scroll";
  * load. `mode: "pages"` fetches one page per state and goes back to page 1 on a spec change; `mode: "scroll"`
  * sizes the grid from `totalRowCount` and fetches the blocks the rendered rows need. Edits go to the server from
  * `onSave`, then the rows are fetched again so you see the server's truth. Pages mode prefetches the next page, so
- * Next shows it with no wait; the toggle revalidates the rows every 10 seconds.
+ * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by score. The Live
+ * updates switch pushes score changes every 500 ms: a row whose score the sort reads keeps its place and turns
+ * dim and italic (`data-row-stale`) until the hook reshapes (a refresh) and the server places it. Delete on server
+ * pushes a delete. The reshape delay select sets `reshapeDelay`: off waits for a refresh, one second reshapes after the pushes.
  */
 export default function DataGridServerSideDemo(): ReactNode {
   const [mode, setMode] = useState<Mode>("pages");
   const remote = useMemo(() => createRemoteServer(), []);
   const [revalidate, setRevalidate] = useState(false);
+  const [live, setLive] = useState(false);
+  const [reshapeDelay, setReshapeDelay] = useState<"off" | "1000">("off");
+  const push = { live, reshapeDelay: reshapeDelay === "off" ? undefined : Number(reshapeDelay) };
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -59,21 +67,68 @@ export default function DataGridServerSideDemo(): ReactNode {
         <Button type="button" size="sm" variant={revalidate ? "default" : "outline"} aria-pressed={revalidate} onClick={() => setRevalidate((on) => !on)}>
           Revalidate every 10 s
         </Button>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={live} onCheckedChange={setLive} aria-label="Live updates" />
+          Live updates
+        </label>
+        <Select value={reshapeDelay} onValueChange={(value) => setReshapeDelay(value as "off" | "1000")}>
+          <SelectTrigger aria-label="Reshape delay" className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="off">Reshape: off</SelectItem>
+            <SelectItem value="1000">Reshape: 1 s</SelectItem>
+          </SelectContent>
+        </Select>
         <span className="text-sm text-muted-foreground">sort, filter, search and paging are all server-side</span>
       </div>
-      {mode === "pages" ? <PagesGrid key="pages" remote={remote} revalidate={revalidate} /> : <ScrollGrid key="scroll" remote={remote} revalidate={revalidate} />}
+      {mode === "pages" ? <PagesGrid key="pages" remote={remote} revalidate={revalidate} {...push} /> : <ScrollGrid key="scroll" remote={remote} revalidate={revalidate} {...push} />}
     </div>
   );
 }
 
 type Remote = ReturnType<typeof createRemoteServer>;
+type PushProps = { remote: Remote; live: boolean; reshapeDelay: number | undefined };
 
-function PagesGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean }): ReactNode {
+const BY_SCORE = { sorts: [{ columnId: "score", direction: "desc" as const }] };
+const STALE_ROW = "[&_[data-row-stale]]:text-muted-foreground [&_[data-row-stale]]:italic";
+
+/** Pushes the server's score changes into the grid while `live` is on, and deletes the first row on the server on demand. */
+function PushControls({ remote, live }: { remote: Remote; live: boolean }): ReactNode {
+  const api = useDataGridApi<DemoRow>();
+  useEffect(() => {
+    if (!live) return;
+    const timer = setInterval(() => {
+      const ids = api.getViewRowIds().filter((id) => !id.startsWith("__")).slice(0, 8);
+      api.actions.updateRows(remote.bumpScores(ids.slice(0, 3)));
+    }, 500);
+    return () => clearInterval(timer);
+  }, [api, remote, live]);
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      onClick={() => {
+        const first = api.getRow(0);
+        if (!first) return;
+        remote.remove([first.id]);
+        api.actions.deleteRowsById([first.id], { source: "stream" });
+      }}
+    >
+      Delete on server
+    </Button>
+  );
+}
+
+function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     getRowId: (row) => row.id,
     defaultPageSize: 25,
+    defaultSpec: BY_SCORE,
     prefetchNextPage: true,
     revalidateInterval: revalidate ? 10_000 : undefined,
+    reshapeDelay,
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -97,8 +152,9 @@ function PagesGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean
             <DataGridSearch />
             <DataGridFilterMenu />
             <DataGridColumnsMenu />
+            <PushControls remote={remote} live={live} />
           </DataGridToolbar>
-          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" {...server.rootProps}>
+          <DataGridRoot className={`min-h-0 flex-1 rounded-none border-none ${STALE_ROW}`} {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -109,11 +165,13 @@ function PagesGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean
   );
 }
 
-function ScrollGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean }): ReactNode {
+function ScrollGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
     getRowId: (row) => row.id,
+    defaultSpec: BY_SCORE,
     revalidateInterval: revalidate ? 10_000 : undefined,
+    reshapeDelay,
     fetchRows: async ({ spec, start, end, signal }) => {
       const answer = await remote.fetchRange({ start, end, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -137,8 +195,9 @@ function ScrollGrid({ remote, revalidate }: { remote: Remote; revalidate: boolea
             <DataGridSearch />
             <DataGridFilterMenu />
             <DataGridColumnsMenu />
+            <PushControls remote={remote} live={live} />
           </DataGridToolbar>
-          <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" {...server.rootProps}>
+          <DataGridRoot className={`min-h-0 flex-1 rounded-none border-none ${STALE_ROW}`} {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

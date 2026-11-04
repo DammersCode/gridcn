@@ -78,6 +78,7 @@ For a composed layout, spread `server.providerProps` onto `DataGridProvider` and
 | `maxConcurrentFetches` <NewBadge /> | 3 | Most block requests in flight at once on a random access source. At most 16. |
 | `maxLoadedRows` <NewBadge /> | 10,000 | Most rows kept loaded on a random access source. `Infinity` keeps every row. |
 | `revalidateInterval` <NewBadge /> | off | Milliseconds between `refresh()` calls that the hook runs itself while the page is visible. At least 1000. |
+| `reshapeDelay` <NewBadge /> | off | Milliseconds to wait after a push marked a row stale before the hook reshapes. At least 250. |
 | `onLoaded` | none | Fires after a block lands, with the range it covers. |
 | `onError` | none | Fires after a request fails. |
 | `onDataChange` | none | Fires after the hook merged an edit, insert, or delete. |
@@ -118,6 +119,7 @@ Behavior the grid applies by itself:
 - `gridProps.plugins` <NewBadge /> mounts the guard that applies this rule on every landing block. A `plugins` prop of your own replaces it. Put the hook's plugins first: `plugins={[...server.gridProps.plugins, myPlugin]}`. In development, the hook warns once when an edit reaches it from a grid that does not mount the guard.
 - `evict(range)` unloads rows and aborts the requests it covers. `getLoadedRanges()` and `unloadedCount` report what is loaded.
 - `revalidateInterval` <NewBadge /> calls `refresh()` on a timer. The clock restarts on every refresh and on a spec change. A tick that finds a request in flight waits and then runs once, so ticks never stack. The timer stops while the page is hidden. A failed tick does not stop the timer. A revalidation does not clear the undo stack.
+- `reshape()` <NewBadge /> asks the server to place pushed rows again. It runs one `refresh()` on the next frame, or after `reshapeDelay` when you set it. Calls in one frame join.
 
 <Callout type="warn">
   An answer without `totalRowCount` ends the source at the rows of the first block, unless it carries
@@ -129,6 +131,34 @@ Behavior the grid applies by itself:
 available without the hook, for example for analytics or prefetch.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
+
+## Pushes
+
+<NewBadge />
+
+A push writes a change from your server feed into the grid with `updateCells`, `updateRows`, or `deleteRowsById` and `source: "stream"`. See [Streaming updates](/docs/streaming-updates#server-sorted-and-filtered-views). The server orders the rows, so a push that changes a column of the sort, the filter, or the search marks the row as a stale row. A reshape is a `refresh()` that the hook runs so that the server places the rows again.
+
+| Trigger | Without `reshapeDelay` | With `reshapeDelay` |
+| --- | --- | --- |
+| A stale row from a `"defer"` push | No request. The row stays marked. | One reshape after the delay. |
+| A push delete, or `reshape()` | One reshape on the next frame. | One reshape after the delay. |
+| `reconcileView()`, or a push with `reorder: "immediate"` | One reshape on the next frame. | One reshape on the next frame. |
+
+The reshape request is the plain refresh request. Your server sees no new field.
+
+- The delay is a throttle. The first trigger starts a timer and later triggers join it, so a steady feed reshapes at most once per delay.
+- A reshape that falls due during a request waits and runs once when the request settles. A trigger during the reshape request starts the next timer.
+- A reshape that falls due while the page is hidden runs once when the page shows again.
+- A spec change, a page size change, or a `refresh()` call cancels the pending timer, because each of them fetches the rows anyway.
+- A reshape restarts the `revalidateInterval` clock. A sequential source skips a reshape while the rendered rows end beyond 10 blocks.
+- If the reshape request fails, the marks stay and the error bar shows. `retry()` repeats the failed blocks.
+- A row stops being stale when the answer delivers it again. An answer that holds a pushed row after the request left lays the pushed cells over its copy of the row. A push before the request left loses to the answer.
+- A push delete during a request drops the answer's copy of the row.
+- A push to a row that is not loaded is skipped with reason `unknown-row`. The next block brings the server value.
+
+Pages mode updates the current page in place. A reshape fetches the current page with the current spec. A row that the server moves to another page leaves the page. A push delete leaves the page one row short until the reshape runs. A reshape drops the prefetched page. A stale push alone does not, and a push to a row of the prefetched page is skipped.
+
+On an offset sequential source, a pushed insert or delete shifts the positions on the server. A block can repeat or skip a row until the next refresh. A cursor source is not affected.
 
 ## Editing loaded rows
 
