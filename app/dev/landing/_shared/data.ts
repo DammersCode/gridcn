@@ -39,27 +39,27 @@ export const perfStats = [
   {
     value: "0.3–7.6 ms",
     title: "Streaming sort update",
-    detail: "1 to 256 changed rows, one sort column, production build, 100k rows.",
+    detail: "1 to 256 changed rows, one sort column, 100k rows. Production build.",
     source: "streaming updates",
     href: "/docs/streaming-updates",
   },
   {
     value: "51 ms",
     title: "Text sort",
-    detail: "100k rows in the browser, down from 68 ms.",
+    detail: "100k rows, down from 68 ms. In the browser.",
     source: "changelog",
     href: "https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md",
   },
   {
     value: "16.8 ms",
     title: "Longest frame on jump scroll",
-    detail: "Median over a jump sequence at 100k rows, down from 91.7 ms. Frames over 33 ms: 4 to 0.",
+    detail: "Median over a jump sequence at 100k rows, down from 91.7 ms. Headless test. Frames over 33 ms: 4 to 0.",
     source: "performance guide",
     href: "/docs/performance",
   },
 ];
 
-export const perfNote =
+export const perfNote = "Your hardware and cells change these numbers.";
   "Measured in this repository's regression suite on 100,000 rows. Your hardware and cells change them.";
 
 export const serverHighlights = [

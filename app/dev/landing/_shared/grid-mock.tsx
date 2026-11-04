@@ -8,8 +8,6 @@ const rows = [
   ["Eager Lion", "user3@example.com", "User", "Oct 8, 2022", "51"],
   ["Eager Tiger", "user4@example.com", "Viewer", "Oct 7, 2024", "83"],
   ["Silent Wolf", "user5@example.com", "User", "Jun 1, 2020", "15"],
-  ["Swift Lion", "user6@example.com", "Viewer", "Oct 18, 2022", "63"],
-  ["Eager Wolf", "user7@example.com", "Manager", "Oct 7, 2021", "42"],
 ];
 const hideOnMobile = (i: number) => (i === 1 || i === 3 ? "hidden sm:block" : "");
 const selected = { rows: [2, 3, 4], cols: [2, 3] };

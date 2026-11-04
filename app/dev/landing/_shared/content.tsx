@@ -54,6 +54,8 @@ export const addOnTiles = [
   { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
   { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
   { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
+  { icon: ArrowUpDown, title: "Toolbar and search", href: "/docs/sorting-filtering-search" },
+  { icon: ArrowUpDown, title: "Sort list", href: "/docs/sorting-filtering-search" },
   { icon: Timer, title: "Debounced inputs", href: "/docs/hooks/use-debounce" },
 ];
 

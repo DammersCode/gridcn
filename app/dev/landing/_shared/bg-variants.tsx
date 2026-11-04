@@ -18,7 +18,7 @@ const wash = "bg-background";
 
 export const bgVariants: BgVariant[] = [
   { id: 1, name: "Blur, light", kind: "blur", layers: [`${wash}/35 backdrop-blur-[2px]`] },
-  { id: 2, name: "Blur, medium", kind: "blur", layers: [`${wash}/55 backdrop-blur-[6px]`] },
+  { id: 2, name: "Blur, medium", kind: "blur", layers: [`${wash}/45 backdrop-blur-[6px]`] },
   { id: 3, name: "Blur, strong", kind: "blur", layers: [`${wash}/65 backdrop-blur-xl`] },
   {
     id: 4,
