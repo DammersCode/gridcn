@@ -102,6 +102,7 @@ const BUDGETS = {
   step: { target: [200, 600], hard: 800, screens: 5, h2: [2, 4] },
   reference: { target: [300, 1500], hard: 2000, screens: 14, h2: [3, 10] },
   cheatsheet: { target: [0, 1200], hard: 1200, screens: 12, h2: [2, 10] },
+  example: { target: [100, 500], hard: 800, screens: 6, h2: [0, 5] },
 };
 
 function pageType(path, src = "") {
@@ -179,7 +180,7 @@ function checkCandidate(file) {
   let total = 0;
   const perArea = [];
   for (const a of areas) {
-    if (!/learn|start/i.test(a.name) && (a.groups.length < 4 || a.groups.length > 8)) fail("S2", `area "${a.name}" has ${a.groups.length} groups (want 4..8)`);
+    if (!/learn|start/i.test(a.name) && (a.groups.length < 4 || a.groups.length > 10)) fail("S2", `area "${a.name}" has ${a.groups.length} groups (want 4..10)`);
     let base = 0;
     let openMax = 0;
     let maxSub = 0;
@@ -200,7 +201,7 @@ function checkCandidate(file) {
         if (!b) fail("TYPE", `${p.slug} has unknown type "${p.type}"`);
         else if (p.words > b.hard) fail("P1", `${p.slug} planned ${p.words}w > ${b.hard}`);
         if (p.title.length > 60) fail("N1", `${p.slug} title too long`);
-        if (p.title.split(/\s+/).length > 6) warn("N1", `${p.slug} title "${p.title}" is long`);
+        if (p.title.split(/\s+/).length > 5 && p.type !== "example") warn("N1", `${p.slug} title "${p.title}" is long`);
         if (/^(architecture|advanced|misc|other|utilities)$/i.test(g.name)) fail("S13", `group "${g.name}"`);
       }
       if (all.length <= 1 && g.pages[0]?.type !== "landing") fail("S9", `group "${g.name}" has one page`);

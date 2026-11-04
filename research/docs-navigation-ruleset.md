@@ -21,6 +21,7 @@ Every page has exactly one type. The type decides the budget and the template. T
 | Task | How do I do X? | 200 to 800 / 1,000 | 6 | 2 to 5 | Goal sentence; numbered steps; result; Related |
 | Step | What is the next step of the path? | 200 to 600 / 800 | 5 | 2 to 4 | Outcome first; steps; visible result; Next link |
 | Reference | What is the exact contract? | 300 to 1,500 / 2,000 | 14 | 3 to 10 | Summary table; per-concern sections; caveats; Related |
+| Example | What does a working demo look like? | 100 to 500 / 800 | 6 | 0 to 5 | Live demo; what it shows; Related |
 | Cheatsheet | What is the value or key? | tables only / 1,200 | 12 | 2 to 10 | Tables with a one-line purpose each; every row links to its page |
 
 ## 2. Page rules (P)
@@ -34,7 +35,8 @@ Every page has exactly one type. The type decides the budget and the template. T
 - P4. A paragraph has at most 110 words (about 7 lines). The audit reports the longest paragraph.
 - P5. A page has one concept. When two H2 clusters answer different questions for different readers, they are two pages.
 - P6. One fact has one canonical page. All other pages link it in one line (the dedup map in `docs-prose-audit.md`
-  stays in force). Version facts and size limits live in one page each (`project-status`, `performance`).
+  stays in force). Version facts live on the version policy page, the row ceiling on the row limits page. A support matrix
+  is generated from one data file and stated on one page; other pages link to it.
 - P7. A page ends with a Related section of 1 to 5 links. Landing pages are exempt. A Step page ends with a Next link
   instead.
 - P8. Every page has a `description` of at most 160 characters that states what the page lets the reader do.
@@ -49,9 +51,10 @@ Every page has exactly one type. The type decides the budget and the template. T
 
 - S1. The sidebar has 4 to 6 areas. An area is a root folder: its sidebar shows only that area, and a tab switches
   between areas. Areas are parallel sections for the same readers.
-- S2. An area has 4 to 8 groups. A group is a folder. The Learn or Start area is exempt: it holds 1 to 3 groups.
+- S2. An area has 4 to 10 groups. A group is a folder. The Learn or Start area may hold 3 to 7 groups. Closed folders
+  show one row each, so ten groups stay scannable (S5).
 - S3. A group has at most 7 pages at target and 12 at the hard cap. A generated list sorted A to Z (props, hooks,
-  recipes by name) is exempt. The Learning path group may hold 12 pages (see S12).
+  recipes by name) is exempt. A group counts the pages it lists directly; each third-level subgroup follows the same cap. The Learning path group may hold 12 pages (see S12).
 - S4. The tree is two levels deep: group, then page. A third level is allowed only inside Reference, Recipes, and Examples groups.
 - S5. At most 25 sidebar rows are visible at once on any page: the groups of the area plus the pages of the one open
   group (and the open subgroups of a third level).
@@ -76,7 +79,7 @@ Every page has exactly one type. The type decides the budget and the template. T
 
 ## 4. Naming rules (N)
 
-- N1. A sidebar label has 1 to 4 words. A page title has at most 60 characters and starts with the key word.
+- N1. A sidebar label has 1 to 4 words. A page title has at most 60 characters and starts with the key word. A Landing page may reuse its group label, even when the label is a verb phrase.
 - N2. Titles are unique across the docs. Two pages never share a title; qualify the second ("Pinned columns",
   "Pinned rows").
 - N3. A label uses one name per concept, taken from `GLOSSARY.md` and `terms`. A concept with two names in the docs is
