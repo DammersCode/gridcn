@@ -90,7 +90,7 @@
   "slugs": [
    "presence"
   ],
-  "target": "/docs/rows-and-live-data/show-who-else-is-here",
+  "target": "/docs/rows-and-live-data/show-who-else-is",
   "split": false
  },
  {
@@ -139,7 +139,7 @@
   "slugs": [
    "url-state"
   ],
-  "target": "/docs/sort-and-filter/share-the-view-by-url",
+  "target": "/docs/sort-and-filter/share-the-view-by",
   "split": false
  },
  {
@@ -164,7 +164,20 @@
    "ref-types",
    "ref-engine",
    "cheat-props",
-   "ref-store-hooks"
+   "ref-store-hooks",
+   "options-context-menu",
+   "options-fill",
+   "options-find",
+   "options-history",
+   "options-io",
+   "options-keybindings",
+   "options-pagination",
+   "options-pinned-rows",
+   "options-presence",
+   "options-sort-list",
+   "options-status-bar",
+   "options-toolbar",
+   "options-url-state"
   ],
   "target": "/docs/components-and-props",
   "split": true
@@ -259,9 +272,9 @@
   "old": "/docs/examples/appearance",
   "file": "examples/appearance/index.mdx",
   "slugs": [
-   "examples-index"
+   "ex-appearance-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/appearance-examples",
   "split": false
  },
  {
@@ -331,9 +344,9 @@
   "old": "/docs/examples/columns",
   "file": "examples/columns/index.mdx",
   "slugs": [
-   "examples-index"
+   "ex-columns-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/column-examples",
   "split": false
  },
  {
@@ -349,9 +362,9 @@
   "old": "/docs/examples/data",
   "file": "examples/data/index.mdx",
   "slugs": [
-   "examples-index"
+   "ex-data-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/data-examples",
   "split": false
  },
  {
@@ -550,9 +563,9 @@
   "old": "/docs/examples/rows",
   "file": "examples/rows/index.mdx",
   "slugs": [
-   "examples-index"
+   "ex-rows-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/row-examples",
   "split": false
  },
  {
@@ -622,9 +635,9 @@
   "old": "/docs/examples/validation",
   "file": "examples/validation/index.mdx",
   "slugs": [
-   "examples-index"
+   "ex-validation-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/validation-examples",
   "split": false
  },
  {
@@ -803,10 +816,11 @@
   "old": "/docs/recipes/data-fetching",
   "file": "recipes/data-fetching/index.mdx",
   "slugs": [
-   "ref-server-rows"
+   "ref-server-rows",
+   "find-task"
   ],
-  "target": "/docs/contracts/server-rows-contract",
-  "split": false
+  "target": "/docs/contracts",
+  "split": true
  },
  {
   "old": "/docs/recipes/data-fetching/server-round-trip",
@@ -814,7 +828,7 @@
   "slugs": [
    "server-round-trip"
   ],
-  "target": "/docs/save-to-a-server/save-optimistically-and-roll-back",
+  "target": "/docs/save-to-a-server/save-optimistically-and-roll",
   "split": false
  },
  {
@@ -841,7 +855,7 @@
   "slugs": [
    "auth-gated"
   ],
-  "target": "/docs/edit-data/gate-cells-by-role",
+  "target": "/docs/edit-data/lock-cells-by-role",
   "split": false
  },
  {
@@ -859,16 +873,16 @@
   "slugs": [
    "edit-row-form"
   ],
-  "target": "/docs/edit-data/edit-a-row-in-a-form",
+  "target": "/docs/edit-data/edit-a-row-in",
   "split": false
  },
  {
   "old": "/docs/recipes",
   "file": "recipes/index.mdx",
   "slugs": [
-   "examples-index"
+   "find-task"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/look-things-up/task-finder",
   "split": false
  },
  {
@@ -961,11 +975,12 @@
   "file": "styling-theming.mdx",
   "slugs": [
    "style-tokens",
+   "ref-style-surface",
+   "styling-model",
    "style-overrides",
    "style-density",
    "loading-state",
-   "i18n",
-   "ref-style-surface"
+   "i18n"
   ],
   "target": "/docs/style-and-translate",
   "split": true

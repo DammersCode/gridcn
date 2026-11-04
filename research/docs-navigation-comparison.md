@@ -10,14 +10,13 @@ Each prototype is the real docs sidebar and page layout with mock content. The m
 scroll length. The route exists only in development (`app/dev/docs-nav`, hidden in production builds).
 
 Start the dev server on a free port. A worktree needs a `node_modules` junction and one temporary line in
-`next.config.mjs`. Never commit that line:
+`next.config.mjs`. Never commit that line. Run the commands from the worktree root (`<worktree>`):
 
 ```powershell
-cd C:\repos\danny\gridcn\.claude\worktrees\clever-colden-9f2e91
-New-Item -ItemType Junction -Path node_modules -Target C:\repos\danny\gridcn\node_modules
+New-Item -ItemType Junction -Path node_modules -Target <main checkout>\node_modules
 ```
 
-Add this line inside the `config` object of `next.config.mjs`: `turbopack: { root: "C:/repos/danny/gridcn" },`. Then run:
+Add this line inside the `config` object of `next.config.mjs`: `turbopack: { root: "<main checkout>" },`. Use forward slashes in the path. Then run:
 
 ```bash
 npx next dev -p 3471
@@ -30,17 +29,18 @@ Open these pages:
 - B, Topics: `http://localhost:3471/dev/docs-nav/b/learn/learning-path/start-here`
 - C, Four areas: `http://localhost:3471/dev/docs-nav/c/learn/learning-path/start-here`
 
-When you are done, stop the server and restore the files: `git checkout -- next.config.mjs AGENTS.md`.
+When you are done, stop the server and remove the `turbopack` line by hand. `next dev` also rewrites `AGENTS.md`. Run `git diff AGENTS.md` and restore it with `git checkout -- AGENTS.md` only when the diff holds nothing but that rewrite.
 
 ## Scores
 
-Opus reviewers, senior and beginner personas, 0 to 10 per dimension. The mid-level persona was dropped after the pilot.
+Reviewers (the strongest available model at high effort), senior and beginner personas, 0 to 10 per dimension. The
+mid-level persona was dropped after the pilot. Run files: `research/docs-navigation/scores.json`.
 
 | Navigation | Beginner | Senior | Mean |
 |---|---|---|---|
 | Today (100 pages) | 5.13 | 5.19 (two runs) | 5.16 |
-| A: Tasks (C13) | 8.25 | 7.5 | 7.88 |
-| B: Topics (C14) | not run on the final version | 7.75 | 7.75 |
+| A: Tasks (C13, before the last polish) | 8.25 | 7.5 | 7.88 |
+| B: Topics (C14, before the last polish) | not run on this line's final version | 7.75 | 7.75 |
 | C: Four areas (C10) | not run | 7.63 | 7.63 |
 
 By dimension (the last run of each persona):
@@ -56,8 +56,11 @@ By dimension (the last run of each persona):
 | First success | 7 | 9 | 8.5 | 9 | 9 |
 | Growth resilience | 4 | 8 | 7.5 | 7 | 7 |
 
-How reliable are these numbers? The same candidate line scored 8.0 and 7.5 with two senior runs on two versions. Treat a
-difference below 0.5 as noise. A and B are not separable on senior scores. A has the better beginner scores.
+How reliable are these numbers? The same candidate line scored 8.0 and 7.5 with two senior runs on two near-identical
+versions. Treat a difference below 0.5 as noise. A and B are not separable on senior scores. Only A has a beginner run on
+its final version (8.25). The topic line scored 7.25 and 7.5 with the beginner on earlier versions. A, B, and C cannot
+pass: no candidate has both personas on one round at 9.0 or more. The last polish (recipes moved into their topics, a
+third Learn group, install problems moved out of the path) was not re-scored.
 
 The iteration history (senior scores unless stated): C1 7.13, C2 7.0, C3 6.75 (round 1); C4 7.25 senior and beginner, C5
 7.38 (round 2); C6 7.75 senior and 7.5 beginner, C7 7.88 (round 3); C8 8.0, C9 8.13, C10 7.63 (round 4); C11 8.0 senior
@@ -134,14 +137,14 @@ Planned screens use 250 words per screen and ignore code. Today's numbers come f
 | Groups | 10 | 35 | 32 | 28 |
 | Most rows visible at once | 54 | 21 | 18 | 24 |
 | Longest page (words) | 4,186 | 1,400 | 1,400 | 1,400 |
-| Average page (words) | 768 | 573 | 613 | 613 |
+| Average page without landings (words; today: all pages) | 768 | 573 | 613 | 613 |
 | Pages above 5 screens | 30 | 1 (planned, prose only) | 1 | 1 |
 
 ## Recommendation
 
-Take A, Tasks. It scores best with the beginner, keeps every task page short, and keeps lookups on reference pages. Use two
-parts of B where they help: keep the concept pages next to their feature in the Reference concepts group, and keep the
-short Learning path as the home page's first group. Drop C: the senior review found that a separate Evaluate tab pays off.
+Take A, Tasks. It has the only beginner run on a final version, keeps every task page short, and keeps lookups on reference
+pages. A and B tie on the senior persona within the noise. Drop C. The senior review found that a separate Evaluate tab
+pays off.
 
 The decision that most changes the result is the page type for add-on pages. If the team does not want to write separate
 options pages for each add-on, take B.

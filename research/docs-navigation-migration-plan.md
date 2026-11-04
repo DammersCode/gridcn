@@ -14,13 +14,18 @@ this order:
 2. Spike (half a day). Verify the three open points of section 2, then add the `type` field and the moves file.
 3. Skeleton PR. `git mv` every page to its new path, write the group folders, `meta.json` files, landings, redirects, and the
    link codemod. No text changes except links. The site builds and every old URL redirects.
-4. Split PRs, one per old page that splits (29 pages, listed in section 4). Each PR cuts the text along the content map.
+4. Split PRs, one per old page that splits (30 pages, listed in `url-map-tasks.json`, field `split`). Each PR cuts the text along the content map.
 5. New-text PRs: the pages of section 5.
 6. Polish PR: lengths, descriptions, Related sections, and the audit gate.
 
-Gates for every PR: `pnpm types:check`, `pnpm lint`, `pnpm build`, `pnpm docs:changes --check`, and the audit script
-(`node scripts/docs-nav-audit.mjs --check`). A page above its hard cap fails the audit once the gate is on. Turn the gate
-on in the polish PR, not before.
+Gates for every PR: the gate list in `AGENTS.md` (types, lint, typed lint, tests, build). `pnpm docs:changes --check` runs
+inside `pnpm lint`. The skeleton PR also touches `registry.json`, so it needs the registry steps of that list (section 7).
+The audit script (`node scripts/docs-nav-audit.mjs --check`) joins the gates in the polish PR. Before that, a page above its
+hard cap would fail every PR.
+
+One defect exists at HEAD: `lib/llms-tasks.ts` points to `#sorting-a-lazy-grid`, but the heading in
+`content/docs/lazy-loading.mdx` is "Sorting a scroll grid". The static `llms.txt` route throws on a missing anchor. Fix the
+entry in a separate commit before the skeleton PR.
 
 ## 2. Folder layout and `meta.json`
 
@@ -44,10 +49,12 @@ content/docs/
   order. A closed group needs `"defaultOpen": false`, which is the default.
 - A group in the Examples area has one landing each, so third-level folders are not used.
 - Page type goes in frontmatter: `type: landing | feature | concept | task | step | reference | example | cheatsheet`.
-  `source.config.ts` needs one line in the page schema: `type: z.enum([...]).optional()`. Only then the audit reads it.
+  `source.config.ts` uses the plain `pageSchema`. It needs `pageSchema.extend({ type: z.enum([...]).optional() })` and a zod
+  import, so that Fumadocs accepts the field. The audit script reads `type:` with a regex and works without the schema.
 - Slugs are the kebab-case of the title (rule N5). The URL map is generated, so this holds.
-- Open points for the spike: (a) the home `/docs` is the first page of the Learning path group. The page would be
-  `content/docs/index.mdx`, which sits outside the area folder; check that the sidebar still places it first in the group.
+- Open points for the spike: (a) the home `/docs` is the landing of the Learning path group. The page is `content/docs/index.mdx`, outside the
+  area folder. Check that the sidebar places it first in that group, and keep the group landing from needing a second
+  `index.mdx`.
   (b) Fumadocs `defaultOpen` and the "current group open" behavior with ten groups per area. (c) The custom sidebar
   components in `components/docs-sidebar.tsx` must show folder landings as links. They already do for folders with an
   `index`.
@@ -73,18 +80,18 @@ URL that changes: 97 of 100 pages. `/docs`, `/docs/performance`, and `/docs/acce
 
 ## 4. Pages that split
 
-29 old pages become 2 to 10 new pages each. The full list is in `url-map-tasks.json` (field `split`). The largest:
+30 old pages become 2 to 23 new pages each. The full list is in `url-map-tasks.json` (field `split`). The largest:
 
 | Old page | Becomes |
 |---|---|
-| `api-reference` | 10 pages: component props, provider, column definition, labels, types, engine, add-on options, store hooks |
-| `events-state` | 10 pages: events index and six event pages, the shapes page, the timing table |
-| `lazy-loading` | 6 pages: usage, no total, errors, retention, sort and filter, selection and export |
-| `selection-keyboard` | 6 pages: selection model, pointer, checked rows, keyboard, server selection |
-| `styling-theming` | 6 pages: tokens, class and data surface, overrides, density, loading, labels |
-| `data-modes` | the matrix page and the troubleshooting task; the matrix becomes one data file with generated views |
+| `api-reference` | the props pages (component, provider, column definition, labels), types, engine, store hooks, the CellType contract, a props cheatsheet, and the 13 add-on options pages |
+| `events-state` | the events index, six event pages, the shapes concept page, the save task, and an events cheatsheet |
+| `lazy-loading` | 7 pages: usage, row count, errors, retention, sort and filter, selection and export, troubleshooting |
+| `selection-keyboard` | 6 pages: selection model, pointer, checked rows, keyboard, server selection, shortcuts cheatsheet |
+| `styling-theming` | 7 pages: tokens, style contract, styling concept, overrides, density, loading, labels |
+| `data-modes` | the matrix page, the server index, row operations, saving, troubleshooting, and the feature matrix; the matrix becomes one data file with generated views |
 | `editing-cell-types` | 5 pages: activation, built-in types, validation, server errors, display override |
-| `quick-start` | 8 pages: first grid and the learning steps |
+| `quick-start` | 8 pages: first grid and the seven learning steps |
 | `project-status` | version policy, support matrix, upgrade, changelog link, support and security |
 
 Rules for a split PR:
@@ -99,37 +106,40 @@ Pages that merge: `custom-cell-types` (contract goes to the CellType contract pa
 
 ## 5. New text
 
-23 pages have no source today. Each needs a short spec in `research/` when it adds behavior (AGENTS.md workflow):
+8 pages have no source today. 13 option pages are generated from existing option tables, and 24 landings hold one line per child. A page that adds behavior needs a short spec in `research/` (AGENTS.md workflow):
 
 | Page | Note |
 |---|---|
 | Resolve save conflicts | Neither the library nor the docs have a conflict feature. Write it as a user-side pattern on `onDataChange`, with a demo or a test |
-| Plugin contract, Plugin events, Styling model | Source sections exist inside `plugins` and `styling-theming`; the contract page is new |
-| Server rows contract | Draws on the server-side recipe and the lazy-loading pages |
+| Plugin contract, Plugin events | The contract page is new; the events page draws on "Observing data changes" in `plugins` |
+| Server rows contract | Has a source (the server-side recipe and the lazy-loading pages), but needs a rewrite as a contract |
 | Fix install problems | Pulls the Vite alias, Verify, and TooltipProvider text out of `installation` |
-| Find a task, Feature matrix | The matrix is generated from one data file (see the parity matrix) |
+| Task finder, Feature matrix | Built from the index pages. The matrix is generated from one data file (see the parity matrix) |
 | Changelog, Support and security | Pages that link `CHANGELOG.md` and `SECURITY.md` |
 | Benchmark results, Run it yourself | Written by the `perf-docs` session under `content/docs/performance/` |
-| 13 Add-on options pages | Option tables move out of the add-on pages; generate them from the types where possible |
-| 29 group landings | One sentence per child page |
+| 13 Add-on options pages | Option tables move out of the add-on pages. Generate them from the types |
+| 24 group landings | One sentence per child page |
 
 ## 6. Anchors
 
-Old pages have 419 H2 anchors. 103 distinct anchored links exist today (176 uses) in `content/docs`, `app`, `lib`, and the
-skills. Three layers:
+Old pages have 419 H2 anchors. About 100 distinct anchored links exist today (about 175 uses) in `content/docs`, `app`, `lib`,
+and the skills. Regenerate these counts at the freeze point. Three layers:
 
 1. Codemod. A script rewrites every internal `/docs/...` link and anchor in `content/docs`, `app`, `components`, `lib`,
-   `skills`, `README.md`, and `registry.json` from the URL map and the anchor map. This removes the need for any runtime
-   redirect inside the repo (595 links in `content/docs` alone).
-2. Anchor map. `anchor-map-tasks.json` maps each old heading slug to its new URL and anchor: 121 sections are mapped by the
-   content map; 298 fall back to the page target and are correct for pages that moved whole. 58 anchors of split pages
-   have no target yet (`anchors-needing-review.txt`). Assign each by hand in the split PRs.
-3. Runtime fallback for outside links. A small client component in the docs layout reads `location.hash` on load. When no
-   element has that id and the anchor map has the hash, it calls `router.replace(newUrl)`. The map ships as a JSON of
-   about 20 KB.
+   `skills`, `README.md`, `GLOSSARY.md`, `research/parity-matrix.json`, and `registry.json` from the URL map and the anchor
+   map. It also rewrites the about 50 same-page links (`](#anchor)`) of split pages. After it runs, no link inside the repo
+   needs a runtime redirect (595 links in `content/docs` alone).
+2. Anchor map. `anchor-map-tasks.json` is keyed by old page URL, then by anchor id, because ids such as `usage` repeat on
+   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 130 of 419 sections are mapped by the
+   content map. The others fall back to the page target, which is correct for pages that moved whole. 52 anchors of split
+   pages have no target yet (`anchors-needing-review.txt`). Assign each by hand in the split PRs.
+3. Runtime fallback for outside links. A fragment survives a redirect, but the browser does not send the old path to the
+   page. The build flattens the map to `{ <new page path>: { <anchor id>: <target url> } }`. A small client component in
+   the docs layout reads `location.hash` and the current path on load. When no element has that id and the flat map has the
+   pair, it calls `router.replace(target)`. The map ships as a JSON file of about 25 KB.
 
-Stable-anchor rule: a heading keeps its text in a split, so its anchor does not change. Numbered anchors in `events-state`
-(`#1-ondatachange--the-flagship-shape` and the other explicit ids) keep their `[#id]` suffix on the new pages.
+Stable-anchor rule: a heading keeps its text in a split, so its anchor does not change. Explicit ids in `events-state` (for example
+`#1-ondatachange--the-flagship-shape`) keep their `[#id]` suffix on the new pages.
 
 ## 7. Files that reference the old URLs
 
@@ -137,19 +147,21 @@ Stable-anchor rule: a heading keeps its text in a split, so its anchor does not 
 |---|---|
 | `lib/llms-tasks.ts` | 12 intents with `slug` and `anchor`. The `llms.txt` route fails the build when a page or anchor is missing. Update each entry to its new page |
 | `app/llms.txt/route.ts` | Static lines for add-ons, project status, license |
-| `skills/gridcn-addons/SKILL.md` | 11 doc URLs (every add-on page). Rewrite from the URL map |
+| `skills/gridcn-addons/SKILL.md` | 19 distinct URL strings (every add-on page, plus placeholders). Rewrite from the URL map |
 | `skills/gridcn-performance/SKILL.md` | 6 URLs |
-| `skills/gridcn-data-source/SKILL.md` | 4 URLs; the server pages move most |
+| `skills/gridcn-data-source/SKILL.md` | 8 links to 5 pages; the server pages move most |
 | `skills/gridcn-upgrade/SKILL.md` | 2 URLs |
-| `skills/gridcn-custom-cell-type/SKILL.md` | 1 URL (the worked example) |
-| `skills-lock.json` | Hashes of the skills; refresh after the edits |
+| `skills/gridcn-custom-cell-type/SKILL.md` | 4 links, one with an anchor (`api-reference.md#celltypetdata-tvalue-toptions`), so it needs the anchor map |
+| `skills-lock.json` and `public/skills/**` | The skills have a mirror under `public/skills`. `scripts/sync-skills.mjs --check` runs in `pnpm lint` and fails until the mirror and the lock match the edited skills |
 | `content/docs/agent-skills.mdx` | Skill descriptions that name docs pages |
 | `app/(home)/page.tsx` | Feature card links (performance, quick-start, styling, streaming, i18n, add-ons) |
-| `registry.json` | The `docs` field points to `/docs/quick-start` |
+| `registry.json`, `public/r/registry.json`, `public/r/data-grid.json` | The `docs` field points to `/docs/quick-start`. Changing it is a registry change: `pnpm registry:build`, `node scripts/normalize-payload-eol.mjs`, `pnpm registry:verify`, and `pnpm test:e2e-install` |
+| `scripts/verify-parity.mjs` and `research/parity-matrix.json` | The script hard-codes `content/docs/data-modes.mdx`. The matrix holds 78 `content/docs/...` paths. `pnpm lint` fails after the move until both are rewritten from the URL map |
+| `GLOSSARY.md` | Links `/docs/terms` |
 | `components/manual-install.tsx`, `README.md`, `DEVELOPMENT.md` | Install and docs links |
 | `app/api/search/route.ts` | Check for hard-coded paths |
-| `registry/default/examples/*` | Two demos link docs pages. A registry change rebuilds `public/r` and follows the registry rules; do it in its own commit, never from this plan |
-| `AGENTS.md` | "Component and addon page structure" describes one page per add-on with props tables. In a task-first tree the options move to the Add-on options reference. Amend the rule, add the page types |
+| `registry/default/examples/*` | One demo (`data-grid-custom-cell-demo.tsx`) links docs pages in JSDoc, three more name `docs/...` in comments, and `data-grid-presence-demo.tsx` names a page that does not exist. A registry change rebuilds `public/r` and follows the registry rules. Do it in its own commit, never from this plan |
+| `AGENTS.md` | "Component and addon page structure" describes one page per add-on with props tables, and the Docs section names `/docs/data-modes`. In a task-first tree the options move to the Add-on options reference. Amend the rule, add the page types, and fix the link |
 | `CHANGELOG.md` | One line under `Unreleased`: docs moved; old URLs redirect |
 
 Skills stay in sync: after the skeleton PR, a reviewer opens each skill and checks that every URL resolves and every
@@ -163,11 +175,16 @@ The file keys are page paths, and the sidebar dots read them. A move changes eve
 Plan:
 
 - Add `content/docs-moves.json`: `{ "<new path>": ["<old path>", ...] }`, generated from the URL map.
-- Teach `scripts/docs-changes.mjs` to compare a moved page with the concatenated baseline text of its old pages. A page
-  whose text changed in substance is `updated`; an unchanged moved page has no marker; a page with no old source is `new`.
+- Teach `scripts/docs-changes.mjs` to compare a moved page with the old sections that the content map assigns to it, not with
+  the whole old page. Compared with the whole page, every split page would differ and show `updated`. A page whose text
+  changed in substance is `updated`. An unchanged moved page has no marker. A page with no old source is `new`.
+- Fix the badge pass in the same change. Today it keeps every `<NewBadge />` in a file that is absent at the baseline, so
+  the stale badges on moved files would never go. With the moves file, it removes the badges of sections that exist in the
+  old page.
 - Keep the key format. With area folders in parentheses, a path key contains the folder, for example
-  `(how-to)/sort-and-filter/sort-rows.mdx`. The plugin in `lib/source.tsx` must strip the parentheses folder the same way the
-  generator does. Check it in the spike.
+  `(how-to)/sort-and-filter/sort-rows.mdx`. The plugin in `lib/source.tsx` removes only the `content/docs/` prefix, and
+  `docs-changes.mjs` keys by the raw path, so both already agree. Check in the spike that Fumadocs passes the same path
+  string to the plugin.
 - `pnpm lint` compares the committed file with the tagged release (`docs:changes --check`). The release commit
   regenerates it (`pnpm docs:changes --release 2.0.0`), as the docs rules say.
 - Page dots appear when the release command runs, not in the move commits.
@@ -176,10 +193,10 @@ Plan:
 
 | Risk | Mitigation |
 |---|---|
-| 200 pages roughly double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
+| 203 pages against 100 double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
 | Link rot inside the repo | The codemod plus the existing build checks (`llms-tasks`, `types:check`); add a link checker to the polish PR |
 | Merge conflicts with the 2.0 server wave | Section 1 freeze point; new pages from other sessions get a row in the content map and the generators rerun |
-| Reviewer noise in the scores | Scores differ by up to 0.5 for the same candidate; do not tune the tree to a single run |
+| Reviewer noise in the scores | Runs on near-identical versions differ by 0.5 on the mean; do not tune the tree to a single run |
 | Sidebar with ten closed groups feels hidden | The area landing lists groups; test with the Fumadocs sidebar before the skeleton PR |
 
 ## 10. Verification checklist

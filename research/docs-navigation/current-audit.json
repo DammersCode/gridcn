@@ -1,150 +1,150 @@
 [
  {
   "path": "styling-theming.mdx",
-  "words": 4186,
+  "words": 4162,
   "h2": 13,
   "h3": 3,
   "codeLines": 128,
   "previews": 4,
   "tableRows": 90,
-  "longestRun": 229,
-  "screens": 22.8
+  "longestRun": 88,
+  "screens": 22.7
  },
  {
   "path": "custom-cell-types.mdx",
-  "words": 3541,
+  "words": 3508,
   "h2": 5,
   "h3": 4,
   "codeLines": 142,
   "previews": 2,
   "tableRows": 0,
-  "longestRun": 847,
-  "screens": 19.4
+  "longestRun": 139,
+  "screens": 19.3
  },
  {
   "path": "events-state.mdx",
-  "words": 3745,
+  "words": 3726,
   "h2": 15,
   "h3": 6,
   "codeLines": 72,
   "previews": 1,
   "tableRows": 21,
-  "longestRun": 548,
+  "longestRun": 139,
   "screens": 17.6
  },
  {
   "path": "editing-cell-types.mdx",
-  "words": 2723,
+  "words": 2701,
   "h2": 7,
   "h3": 8,
   "codeLines": 95,
   "previews": 4,
   "tableRows": 15,
-  "longestRun": 200,
-  "screens": 16
+  "longestRun": 120,
+  "screens": 15.9
  },
  {
   "path": "lazy-loading.mdx",
-  "words": 2755,
+  "words": 2733,
   "h2": 8,
   "h3": 0,
   "codeLines": 85,
   "previews": 4,
   "tableRows": 9,
-  "longestRun": 508,
+  "longestRun": 215,
   "screens": 15.8
  },
  {
   "path": "selection-keyboard.mdx",
-  "words": 2860,
+  "words": 2843,
   "h2": 14,
   "h3": 1,
   "codeLines": 20,
   "previews": 4,
   "tableRows": 32,
   "longestRun": 180,
-  "screens": 14.4
+  "screens": 14.3
  },
  {
   "path": "columns.mdx",
-  "words": 2404,
+  "words": 2393,
   "h2": 9,
   "h3": 3,
   "codeLines": 110,
   "previews": 2,
   "tableRows": 7,
   "longestRun": 211,
-  "screens": 14
+  "screens": 13.9
  },
  {
   "path": "addons/import-export.mdx",
-  "words": 2644,
+  "words": 2626,
   "h2": 7,
   "h3": 2,
   "codeLines": 63,
   "previews": 2,
   "tableRows": 31,
   "longestRun": 158,
-  "screens": 13.6
+  "screens": 13.5
  },
  {
   "path": "row-operations.mdx",
-  "words": 2297,
+  "words": 2274,
   "h2": 8,
   "h3": 1,
   "codeLines": 71,
   "previews": 3,
   "tableRows": 25,
   "longestRun": 161,
-  "screens": 13
+  "screens": 12.9
  },
  {
   "path": "api-reference.mdx",
-  "words": 2950,
+  "words": 2937,
   "h2": 8,
   "h3": 7,
   "codeLines": 28,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 492,
-  "screens": 12.6
+  "longestRun": 126,
+  "screens": 12.5
  },
  {
   "path": "plugins.mdx",
-  "words": 2196,
+  "words": 2172,
   "h2": 11,
   "h3": 4,
   "codeLines": 80,
   "previews": 0,
   "tableRows": 9,
-  "longestRun": 198,
-  "screens": 11.1
+  "longestRun": 82,
+  "screens": 11
  },
  {
   "path": "addons/toolbar.mdx",
-  "words": 1547,
+  "words": 1521,
   "h2": 5,
   "h3": 1,
   "codeLines": 40,
   "previews": 4,
   "tableRows": 25,
-  "longestRun": 379,
-  "screens": 9.7
+  "longestRun": 129,
+  "screens": 9.6
  },
  {
   "path": "sorting-filtering-search.mdx",
-  "words": 1956,
+  "words": 1928,
   "h2": 6,
   "h3": 0,
   "codeLines": 27,
   "previews": 1,
   "tableRows": 11,
   "longestRun": 171,
-  "screens": 9.2
+  "screens": 9.1
  },
  {
   "path": "pagination.mdx",
-  "words": 1267,
+  "words": 1253,
   "h2": 1,
   "h3": 0,
   "codeLines": 96,
@@ -155,106 +155,106 @@
  },
  {
   "path": "accessibility.mdx",
-  "words": 1886,
+  "words": 1865,
   "h2": 8,
   "h3": 7,
   "codeLines": 1,
   "previews": 1,
   "tableRows": 17,
-  "longestRun": 217,
-  "screens": 8.2
+  "longestRun": 100,
+  "screens": 8.1
  },
  {
   "path": "addons/url-state.mdx",
-  "words": 1399,
+  "words": 1380,
   "h2": 5,
   "h3": 0,
   "codeLines": 70,
   "previews": 1,
   "tableRows": 6,
-  "longestRun": 327,
-  "screens": 8.2
+  "longestRun": 138,
+  "screens": 8.1
  },
  {
   "path": "addons/undo-redo.mdx",
-  "words": 1389,
+  "words": 1371,
   "h2": 11,
   "h3": 0,
   "codeLines": 68,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 163,
-  "screens": 8.1
+  "longestRun": 130,
+  "screens": 8
  },
  {
   "path": "addons/keybindings.mdx",
-  "words": 1373,
+  "words": 1344,
   "h2": 6,
   "h3": 0,
   "codeLines": 55,
   "previews": 1,
   "tableRows": 15,
   "longestRun": 96,
-  "screens": 7.7
+  "screens": 7.5
  },
  {
   "path": "addons/presence.mdx",
-  "words": 1174,
+  "words": 1156,
   "h2": 7,
   "h3": 0,
   "codeLines": 78,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 164,
+  "longestRun": 139,
   "screens": 7.5
  },
  {
   "path": "i18n.mdx",
-  "words": 973,
+  "words": 954,
   "h2": 5,
   "h3": 4,
   "codeLines": 95,
   "previews": 1,
   "tableRows": 13,
   "longestRun": 51,
-  "screens": 7.2
+  "screens": 7.1
  },
  {
   "path": "recipes/data-fetching/server-round-trip.mdx",
-  "words": 925,
+  "words": 903,
   "h2": 6,
   "h3": 0,
   "codeLines": 94,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 379,
-  "screens": 7
+  "longestRun": 85,
+  "screens": 6.9
  },
  {
   "path": "addons/context-menu.mdx",
-  "words": 1067,
+  "words": 1040,
   "h2": 7,
   "h3": 0,
   "codeLines": 51,
   "previews": 2,
   "tableRows": 8,
   "longestRun": 103,
-  "screens": 6.9
+  "screens": 6.8
  },
  {
   "path": "addons/fill.mdx",
-  "words": 855,
+  "words": 836,
   "h2": 8,
   "h3": 0,
   "codeLines": 54,
   "previews": 3,
   "tableRows": 0,
   "longestRun": 82,
-  "screens": 6.8
+  "screens": 6.7
  },
  {
   "path": "quick-start.mdx",
-  "words": 936,
+  "words": 919,
   "h2": 4,
   "h3": 0,
   "codeLines": 84,
@@ -265,161 +265,161 @@
  },
  {
   "path": "addons/pinned-rows.mdx",
-  "words": 1088,
+  "words": 1066,
   "h2": 2,
   "h3": 0,
   "codeLines": 58,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 126,
-  "screens": 6.6
+  "longestRun": 101,
+  "screens": 6.5
  },
  {
   "path": "recipes/data-fetching/server-side.mdx",
-  "words": 1253,
+  "words": 1230,
   "h2": 13,
   "h3": 0,
   "codeLines": 28,
   "previews": 1,
   "tableRows": 7,
-  "longestRun": 86,
-  "screens": 6.4
+  "longestRun": 71,
+  "screens": 6.3
  },
  {
   "path": "streaming-updates.mdx",
-  "words": 1032,
+  "words": 1013,
   "h2": 7,
   "h3": 0,
   "codeLines": 44,
   "previews": 1,
   "tableRows": 10,
-  "longestRun": 118,
-  "screens": 6
+  "longestRun": 75,
+  "screens": 5.9
  },
  {
   "path": "addons/find-replace.mdx",
-  "words": 1258,
+  "words": 1225,
   "h2": 9,
   "h3": 0,
   "codeLines": 10,
   "previews": 1,
   "tableRows": 13,
   "longestRun": 114,
-  "screens": 5.9
+  "screens": 5.8
  },
  {
   "path": "installation.mdx",
-  "words": 1245,
+  "words": 1229,
   "h2": 8,
   "h3": 2,
   "codeLines": 28,
   "previews": 0,
   "tableRows": 16,
   "longestRun": 108,
-  "screens": 5.8
+  "screens": 5.7
  },
  {
   "path": "examples/data/server-side.mdx",
-  "words": 1069,
+  "words": 1037,
   "h2": 7,
   "h3": 0,
   "codeLines": 22,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 302,
-  "screens": 5.5
+  "screens": 5.4
  },
  {
   "path": "clipboard.mdx",
-  "words": 811,
+  "words": 797,
   "h2": 6,
   "h3": 0,
   "codeLines": 31,
   "previews": 1,
   "tableRows": 3,
-  "longestRun": 103,
+  "longestRun": 81,
   "screens": 4.7
  },
  {
   "path": "global-shortcuts.mdx",
-  "words": 836,
+  "words": 816,
   "h2": 5,
   "h3": 0,
   "codeLines": 18,
   "previews": 1,
   "tableRows": 11,
-  "longestRun": 137,
-  "screens": 4.5
+  "longestRun": 96,
+  "screens": 4.4
  },
  {
   "path": "agent-skills.mdx",
-  "words": 1033,
+  "words": 1009,
   "h2": 7,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 7,
   "longestRun": 86,
-  "screens": 4.1
+  "screens": 4
  },
  {
   "path": "data-modes.mdx",
-  "words": 930,
+  "words": 908,
   "h2": 4,
   "h3": 22,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 132,
-  "screens": 3.7
+  "longestRun": 43,
+  "screens": 3.6
  },
  {
   "path": "lazy-loading-advanced.mdx",
-  "words": 544,
+  "words": 516,
   "h2": 2,
   "h3": 0,
   "codeLines": 54,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 84,
-  "screens": 3.7
+  "screens": 3.6
  },
  {
   "path": "virtualization.mdx",
-  "words": 898,
+  "words": 878,
   "h2": 4,
   "h3": 5,
   "codeLines": 3,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 111,
-  "screens": 3.7
+  "screens": 3.6
  },
  {
   "path": "examples/data/orm/drizzle.mdx",
-  "words": 222,
+  "words": 198,
   "h2": 2,
   "h3": 0,
   "codeLines": 93,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 60,
-  "screens": 3.5
+  "screens": 3.4
  },
  {
   "path": "examples/validation/validation.mdx",
-  "words": 458,
+  "words": 433,
   "h2": 5,
   "h3": 0,
   "codeLines": 34,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 118,
-  "screens": 3.4
+  "longestRun": 59,
+  "screens": 3.3
  },
  {
   "path": "project-status.mdx",
-  "words": 837,
+  "words": 816,
   "h2": 9,
   "h3": 0,
   "codeLines": 0,
@@ -430,139 +430,128 @@
  },
  {
   "path": "recipes/editing/edit-row-with-form.mdx",
-  "words": 358,
+  "words": 334,
   "h2": 1,
   "h3": 0,
   "codeLines": 65,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 55,
-  "screens": 3.3
+  "screens": 3.2
  },
  {
   "path": "recipes/ui-patterns/detail-panel.mdx",
-  "words": 445,
+  "words": 417,
   "h2": 6,
   "h3": 0,
   "codeLines": 32,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 71,
-  "screens": 3.3
+  "screens": 3.2
  },
  {
   "path": "addons/status-bar.mdx",
-  "words": 538,
+  "words": 512,
   "h2": 6,
   "h3": 0,
   "codeLines": 9,
   "previews": 1,
   "tableRows": 8,
   "longestRun": 65,
-  "screens": 3
+  "screens": 2.9
  },
  {
   "path": "examples/data/orm/supabase.mdx",
-  "words": 249,
+  "words": 228,
   "h2": 1,
   "h3": 0,
   "codeLines": 67,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 150,
-  "screens": 2.9
+  "longestRun": 78,
+  "screens": 2.8
  },
  {
   "path": "examples/columns/filtering.mdx",
-  "words": 337,
+  "words": 317,
   "h2": 6,
   "h3": 0,
   "codeLines": 9,
   "previews": 2,
   "tableRows": 0,
   "longestRun": 60,
-  "screens": 2.8
+  "screens": 2.7
  },
  {
   "path": "examples/rows/drag-reorder.mdx",
-  "words": 562,
+  "words": 532,
   "h2": 4,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 6,
   "longestRun": 115,
-  "screens": 2.8
+  "screens": 2.7
  },
  {
   "path": "examples/data/orm/prisma.mdx",
-  "words": 167,
+  "words": 145,
   "h2": 1,
   "h3": 0,
   "codeLines": 72,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 72,
-  "screens": 2.7
+  "longestRun": 33,
+  "screens": 2.6
  },
  {
   "path": "hooks/use-debounce.mdx",
-  "words": 590,
+  "words": 565,
   "h2": 4,
   "h3": 1,
   "codeLines": 9,
   "previews": 0,
   "tableRows": 9,
-  "longestRun": 265,
-  "screens": 2.6
+  "longestRun": 102,
+  "screens": 2.5
  },
  {
   "path": "index.mdx",
-  "words": 495,
+  "words": 480,
   "h2": 5,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 206,
-  "screens": 2.6
+  "longestRun": 65,
+  "screens": 2.5
  },
  {
   "path": "terms.mdx",
-  "words": 621,
+  "words": 604,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 22,
-  "longestRun": 18,
-  "screens": 2.5
+  "longestRun": 11,
+  "screens": 2.4
  },
  {
   "path": "addons/sort-list.mdx",
-  "words": 374,
+  "words": 350,
   "h2": 2,
   "h3": 0,
   "codeLines": 11,
   "previews": 1,
   "tableRows": 9,
   "longestRun": 100,
-  "screens": 2.4
- },
- {
-  "path": "examples/appearance/i18n-rtl.mdx",
-  "words": 306,
-  "h2": 4,
-  "h3": 0,
-  "codeLines": 16,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 50,
   "screens": 2.3
  },
  {
   "path": "examples/validation/async-gates.mdx",
-  "words": 433,
+  "words": 414,
   "h2": 4,
   "h3": 0,
   "codeLines": 0,
@@ -572,118 +561,118 @@
   "screens": 2.3
  },
  {
+  "path": "examples/appearance/i18n-rtl.mdx",
+  "words": 282,
+  "h2": 4,
+  "h3": 0,
+  "codeLines": 16,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 50,
+  "screens": 2.2
+ },
+ {
   "path": "examples/validation/async-validation.mdx",
-  "words": 422,
+  "words": 400,
   "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 114,
-  "screens": 2.3
+  "longestRun": 55,
+  "screens": 2.2
  },
  {
   "path": "performance.mdx",
-  "words": 401,
+  "words": 387,
   "h2": 3,
   "h3": 0,
   "codeLines": 2,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 71,
-  "screens": 2.3
+  "screens": 2.2
  },
  {
   "path": "examples/appearance/styling.mdx",
-  "words": 257,
+  "words": 234,
   "h2": 4,
   "h3": 0,
   "codeLines": 0,
   "previews": 2,
   "tableRows": 0,
-  "longestRun": 57,
-  "screens": 2.2
+  "longestRun": 41,
+  "screens": 2.1
  },
  {
   "path": "examples/data/lazy/plain.mdx",
-  "words": 291,
+  "words": 271,
   "h2": 4,
   "h3": 0,
   "codeLines": 11,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 118,
-  "screens": 2.1
+  "longestRun": 67,
+  "screens": 2
  },
  {
   "path": "examples/data/pagination/react-query.mdx",
-  "words": 187,
+  "words": 165,
   "h2": 4,
   "h3": 0,
   "codeLines": 26,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 38,
-  "screens": 2.1
+  "screens": 2
  },
  {
   "path": "examples/data/pagination/swr.mdx",
-  "words": 198,
+  "words": 175,
   "h2": 4,
   "h3": 0,
   "codeLines": 25,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 55,
-  "screens": 2.1
+  "screens": 2
  },
  {
   "path": "recipes/ui-patterns/bulk-actions.mdx",
-  "words": 224,
+  "words": 198,
   "h2": 3,
   "h3": 0,
   "codeLines": 43,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 46,
-  "screens": 2.1
+  "screens": 2
  },
  {
   "path": "recipes/ui-patterns/remember-view.mdx",
-  "words": 201,
+  "words": 179,
   "h2": 1,
   "h3": 0,
   "codeLines": 44,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 30,
-  "screens": 2.1
+  "screens": 2
  },
  {
   "path": "addons/broadcasting-presence.mdx",
-  "words": 262,
+  "words": 238,
   "h2": 2,
   "h3": 0,
   "codeLines": 32,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 66,
-  "screens": 2
- },
- {
-  "path": "examples/rows/actions.mdx",
-  "words": 224,
-  "h2": 3,
-  "h3": 0,
-  "codeLines": 16,
-  "previews": 1,
-  "tableRows": 4,
-  "longestRun": 55,
-  "screens": 2
+  "screens": 1.9
  },
  {
   "path": "examples/data/large-data.mdx",
-  "words": 185,
+  "words": 168,
   "h2": 4,
   "h3": 0,
   "codeLines": 0,
@@ -693,8 +682,19 @@
   "screens": 1.9
  },
  {
+  "path": "examples/rows/actions.mdx",
+  "words": 201,
+  "h2": 3,
+  "h3": 0,
+  "codeLines": 16,
+  "previews": 1,
+  "tableRows": 4,
+  "longestRun": 55,
+  "screens": 1.9
+ },
+ {
   "path": "examples/rows/row-markers.mdx",
-  "words": 184,
+  "words": 165,
   "h2": 4,
   "h3": 0,
   "codeLines": 0,
@@ -705,51 +705,51 @@
  },
  {
   "path": "examples/validation/server-errors.mdx",
-  "words": 239,
+  "words": 217,
   "h2": 3,
   "h3": 0,
   "codeLines": 12,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 60,
-  "screens": 1.9
+  "longestRun": 47,
+  "screens": 1.8
  },
  {
   "path": "examples/data/lazy/react-query.mdx",
-  "words": 210,
+  "words": 184,
   "h2": 3,
   "h3": 0,
   "codeLines": 14,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 58,
-  "screens": 1.8
+  "screens": 1.7
  },
  {
   "path": "examples/data/lazy/swr.mdx",
-  "words": 226,
+  "words": 205,
   "h2": 3,
   "h3": 0,
   "codeLines": 10,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 65,
-  "screens": 1.8
+  "screens": 1.7
  },
  {
   "path": "examples/rows/row-operations.mdx",
-  "words": 277,
+  "words": 253,
   "h2": 4,
   "h3": 0,
   "codeLines": 4,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 67,
-  "screens": 1.8
+  "longestRun": 60,
+  "screens": 1.7
  },
  {
   "path": "recipes/data-fetching/tanstack-query.mdx",
-  "words": 211,
+  "words": 193,
   "h2": 0,
   "h3": 0,
   "codeLines": 31,
@@ -759,151 +759,85 @@
   "screens": 1.7
  },
  {
+  "path": "examples/validation/cross-field.mdx",
+  "words": 210,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 4,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 56,
+  "screens": 1.6
+ },
+ {
   "path": "examples/appearance/loading-states.mdx",
-  "words": 238,
+  "words": 214,
   "h2": 2,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 5,
   "longestRun": 48,
-  "screens": 1.6
+  "screens": 1.5
  },
  {
   "path": "examples/columns/column-layout.mdx",
-  "words": 197,
+  "words": 179,
   "h2": 4,
   "h3": 0,
   "codeLines": 6,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 64,
-  "screens": 1.6
+  "screens": 1.5
  },
  {
   "path": "examples/data/pagination/client.mdx",
-  "words": 156,
+  "words": 136,
   "h2": 3,
   "h3": 0,
   "codeLines": 14,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 35,
-  "screens": 1.6
- },
- {
-  "path": "examples/validation/cross-field.mdx",
-  "words": 231,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 4,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 117,
-  "screens": 1.6
+  "screens": 1.5
  },
  {
   "path": "examples/columns/pinning.mdx",
-  "words": 229,
+  "words": 208,
   "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 64,
-  "screens": 1.5
- },
- {
-  "path": "examples/foundations/custom-cells.mdx",
-  "words": 216,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 95,
-  "screens": 1.5
- },
- {
-  "path": "examples/rows/pinning.mdx",
-  "words": 211,
-  "h2": 3,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 69,
+  "longestRun": 62,
   "screens": 1.4
  },
  {
-  "path": "examples/columns/column-groups.mdx",
-  "words": 183,
+  "path": "examples/foundations/custom-cells.mdx",
+  "words": 195,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 50,
+  "screens": 1.4
+ },
+ {
+  "path": "examples/rows/pinning.mdx",
+  "words": 193,
   "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 58,
-  "screens": 1.3
- },
- {
-  "path": "examples/columns/drag-reorder.mdx",
-  "words": 174,
-  "h2": 3,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 54,
-  "screens": 1.3
- },
- {
-  "path": "examples/foundations/editable-grid.mdx",
-  "words": 175,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 53,
-  "screens": 1.3
- },
- {
-  "path": "examples/rows/streaming.mdx",
-  "words": 168,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 61,
-  "screens": 1.3
- },
- {
-  "path": "playground.mdx",
-  "words": 170,
-  "h2": 0,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 61,
-  "screens": 1.3
- },
- {
-  "path": "recipes/data-fetching/index.mdx",
-  "words": 318,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 0,
-  "tableRows": 14,
-  "longestRun": 55,
-  "screens": 1.3
+  "longestRun": 38,
+  "screens": 1.4
  },
  {
   "path": "recipes/editing/custom-cell-type.mdx",
-  "words": 213,
+  "words": 192,
   "h2": 3,
   "h3": 0,
   "codeLines": 17,
@@ -913,41 +847,107 @@
   "screens": 1.3
  },
  {
-  "path": "examples/columns/custom-headers.mdx",
-  "words": 146,
+  "path": "examples/columns/column-groups.mdx",
+  "words": 162,
   "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
-  "longestRun": 50,
+  "longestRun": 58,
   "screens": 1.2
  },
  {
-  "path": "examples/foundations/cell-types.mdx",
-  "words": 155,
-  "h2": 2,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 1,
-  "tableRows": 0,
-  "longestRun": 64,
-  "screens": 1.2
- },
- {
-  "path": "examples/foundations/minimal-grid.mdx",
-  "words": 134,
-  "h2": 2,
+  "path": "examples/columns/drag-reorder.mdx",
+  "words": 153,
+  "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 1,
   "tableRows": 0,
   "longestRun": 48,
+  "screens": 1.2
+ },
+ {
+  "path": "examples/foundations/editable-grid.mdx",
+  "words": 153,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 53,
+  "screens": 1.2
+ },
+ {
+  "path": "examples/rows/streaming.mdx",
+  "words": 146,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 43,
+  "screens": 1.2
+ },
+ {
+  "path": "playground.mdx",
+  "words": 146,
+  "h2": 0,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 39,
+  "screens": 1.2
+ },
+ {
+  "path": "recipes/data-fetching/index.mdx",
+  "words": 299,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 0,
+  "tableRows": 14,
+  "longestRun": 55,
+  "screens": 1.2
+ },
+ {
+  "path": "examples/columns/custom-headers.mdx",
+  "words": 128,
+  "h2": 3,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 41,
+  "screens": 1.1
+ },
+ {
+  "path": "examples/foundations/cell-types.mdx",
+  "words": 130,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 30,
+  "screens": 1.1
+ },
+ {
+  "path": "examples/foundations/minimal-grid.mdx",
+  "words": 114,
+  "h2": 2,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 1,
+  "tableRows": 0,
+  "longestRun": 35,
   "screens": 1.1
  },
  {
   "path": "recipes/editing/auth-gated-cells.mdx",
-  "words": 128,
+  "words": 110,
   "h2": 1,
   "h3": 0,
   "codeLines": 22,
@@ -958,140 +958,140 @@
  },
  {
   "path": "license.mdx",
-  "words": 147,
+  "words": 129,
   "h2": 3,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 54,
-  "screens": 0.6
+  "longestRun": 18,
+  "screens": 0.5
  },
  {
   "path": "recipes/ui-patterns/multiple-grids.mdx",
-  "words": 97,
+  "words": 76,
   "h2": 1,
   "h3": 0,
   "codeLines": 8,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 28,
-  "screens": 0.6
+  "screens": 0.5
  },
  {
   "path": "examples/data/orm/index.mdx",
-  "words": 101,
+  "words": 79,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 68,
-  "screens": 0.4
+  "screens": 0.3
  },
  {
   "path": "examples/rows/index.mdx",
-  "words": 88,
+  "words": 66,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 88,
-  "screens": 0.4
+  "screens": 0.3
  },
  {
   "path": "examples/validation/index.mdx",
-  "words": 98,
-  "h2": 0,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 0,
-  "tableRows": 0,
-  "longestRun": 74,
-  "screens": 0.4
- },
- {
-  "path": "addons/index.mdx",
-  "words": 64,
-  "h2": 0,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 0,
-  "tableRows": 0,
-  "longestRun": 178,
-  "screens": 0.3
- },
- {
-  "path": "examples/appearance/index.mdx",
-  "words": 73,
-  "h2": 0,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 0,
-  "tableRows": 0,
-  "longestRun": 47,
-  "screens": 0.3
- },
- {
-  "path": "examples/data/index.mdx",
   "words": 74,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
-  "longestRun": 83,
+  "longestRun": 74,
   "screens": 0.3
  },
  {
+  "path": "addons/index.mdx",
+  "words": 45,
+  "h2": 0,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 0,
+  "tableRows": 0,
+  "longestRun": 178,
+  "screens": 0.2
+ },
+ {
+  "path": "examples/appearance/index.mdx",
+  "words": 50,
+  "h2": 0,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 0,
+  "tableRows": 0,
+  "longestRun": 47,
+  "screens": 0.2
+ },
+ {
+  "path": "examples/columns/index.mdx",
+  "words": 43,
+  "h2": 0,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 0,
+  "tableRows": 0,
+  "longestRun": 89,
+  "screens": 0.2
+ },
+ {
+  "path": "examples/data/index.mdx",
+  "words": 51,
+  "h2": 0,
+  "h3": 0,
+  "codeLines": 0,
+  "previews": 0,
+  "tableRows": 0,
+  "longestRun": 83,
+  "screens": 0.2
+ },
+ {
   "path": "examples/data/lazy/index.mdx",
-  "words": 75,
+  "words": 54,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 53,
-  "screens": 0.3
+  "screens": 0.2
  },
  {
   "path": "examples/data/pagination/index.mdx",
-  "words": 67,
+  "words": 47,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 44,
-  "screens": 0.3
+  "screens": 0.2
  },
  {
   "path": "examples/foundations/index.mdx",
-  "words": 65,
+  "words": 45,
   "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,
   "tableRows": 0,
   "longestRun": 62,
-  "screens": 0.3
+  "screens": 0.2
  },
  {
   "path": "recipes/index.mdx",
-  "words": 70,
+  "words": 50,
   "h2": 3,
-  "h3": 0,
-  "codeLines": 0,
-  "previews": 0,
-  "tableRows": 0,
-  "longestRun": 89,
-  "screens": 0.3
- },
- {
-  "path": "examples/columns/index.mdx",
-  "words": 62,
-  "h2": 0,
   "h3": 0,
   "codeLines": 0,
   "previews": 0,

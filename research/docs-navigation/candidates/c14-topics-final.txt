@@ -13,7 +13,7 @@
 - learn-server | Load rows from a server | step | 600
 ## Look things up
 - lookup-index | Look things up | landing | 250
-- find-task | Find a task | cheatsheet | 900
+- find-task | Task finder | cheatsheet | 900
 - terms | Terms | reference | 600
 - install-problems | Fix install problems | task | 500
 ## Try and automate
@@ -28,7 +28,7 @@
 - validation | Validation | feature | 900
 - display-override | Display override | feature | 400
 - edit-row-form | Edit a row in a form | task | 530
-- auth-gated | Gate cells by role | task | 300
+- auth-gated | Lock cells by role | task | 300
 ## Clipboard and history
 - clipboard-index | Clipboard and history | landing | 250
 - clipboard | Clipboard | feature | 900
@@ -130,7 +130,7 @@
 - feature-matrix | Feature matrix | cheatsheet | 900
 ## Performance
 - performance | Performance | landing | 350
-- keeping-fast | Keep the grid fast | concept | 600
+- keeping-fast | Grid speed guidance | concept | 600
 - benchmark-results | Benchmark results | reference | 900
 - run-benchmark | Run it yourself | task | 600
 - virtualization | Virtualization | feature | 900

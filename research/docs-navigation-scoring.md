@@ -16,21 +16,21 @@ full sample pages. Reviewers do not score prose quality or the visual style.
 | Beginner | React basics, no data grid experience | A working grid in minutes; names for the parts | Top to bottom, one page at a time |
 | Senior | Has built grids, owns the decision to adopt | Exact contracts, limits, server behavior, upgrade risk | Search first, then reference tables |
 
-The mid-level persona (has used one grid before, learns by doing) is retired. The [pilot](#persona-pilot) showed no difference from the senior beyond run-to-run noise.
+The mid-level persona (has used one grid before, learns by doing) is retired. The [pilot](#persona-pilot) showed a difference above the noise on one dimension only, and the keep rule needs two.
 
 ## Dimensions
 
-Every dimension scores 0 to 10 per persona. Anchors apply to the score at that row; use the values between them.
+Every dimension scores 0 to 10 per persona. Each column is an anchor score. A score between two anchors interpolates.
 
 | # | Dimension | 0 | 3 | 5 | 7 | 9 | 10 |
 |---|---|---|---|---|---|---|---|
 | D1 | Findability: clicks and guesses from a task to the page that answers it | Page not reachable from the sidebar | Needs 3+ wrong guesses; group names hide the topic | 1 to 2 wrong guesses; some names ambiguous | Right page in the first or second click for most tasks | Right page first click, every group name predicts its content | Sidebar plus landing pages answer every task in one click; search is a backup only |
 | D2 | Scroll cost: screens a reader scrolls to get the answer | Typical task page above 20 screens | 12 to 20 screens | 8 to 12 screens | Typical task page 5 to 8 screens | Typical task page at or below 5 screens; the answer sits in the first two screens | Every task page at or below 5 screens, answer above the fold or one anchor away |
-| D3 | Cognitive load: concepts, choices, and nav items held at once | Sidebar shows 40+ peers in one list | 25+ peers; pages mix 3+ concepts | 15 to 25 peers per view; some mixed pages | Each view shows at most 12 peers; one concept per page, few exceptions | At most 9 peers per view; no page mixes concepts | At most 7 peers per view; progressive disclosure hides what the task does not need |
+| D3 | Cognitive load: concepts, choices, and sidebar rows held at once | Sidebar shows 40+ rows in one list | More than 25 rows visible; pages mix 3+ concepts | 20 to 25 rows visible; some mixed pages | At most 25 rows visible and at most 12 pages in the open group; one concept per page, few exceptions | At most 20 rows visible and at most 9 pages in the open group; no page mixes concepts | At most 15 rows visible and at most 7 pages per group; progressive disclosure hides what the task does not need |
 | D4 | Learning path: a defined order from zero to productive | No order; reader must guess | Order exists in one place only by accident | A "start here" list exists but skips steps | A stepper or path covers the core; branches are unmarked | Paths for the core and for each main goal; every page names its next page | Paths per goal with prerequisites and next page on every page; the sidebar order matches the path |
 | D5 | Reference lookup speed: time to a prop, event, option, or limit | Reference is one page above 20 screens | Reference is one page above 12 screens, no per-concern anchors | Reference split by area, but names are not predictable | Tables per concern, stable anchors, lookup in 2 clicks | Reference page per concern, a lookup index, lookup in 1 to 2 clicks | One predictable URL per symbol or concern; an index page; all lookups in at most 2 clicks |
 | D6 | Consistency: same names, order, and page shape for the same kind of thing | Every page has its own shape | Add-ons share a shape; the rest vary | Page types exist but are not followed | Page types followed by most pages; naming mostly stable | Every page follows its page-type template; one term per concept | Template and naming checkable by script; zero deviations |
-| D7 | First-success time: from the docs home to a running, correct first grid | Cannot succeed without outside help | Needs 5+ pages and 20+ minutes | 3 to 4 pages, about 15 minutes | 2 pages, about 10 minutes | Home to running grid in at most 2 clicks and 5 minutes | One obvious start path, install and first grid on at most 2 short pages, follow-up steps linked |
+| D7 | First-success path: from the docs home to a running, correct first grid | Cannot succeed without outside help | Needs 5+ pages | 3 to 4 pages | 2 pages and one wrong guess | Home to running grid in at most 2 clicks on 2 pages of at most 6 screens together | One obvious start path, install and first grid on at most 2 short pages, follow-up steps linked |
 | D8 | Growth resilience: room for the planned server-side additions without a new rewrite | Each new feature forces a new group | New features land in overloaded groups | Room for some growth; two groups will overflow | Planned features fit; one group needs a split | Planned features fit with at most one new page per feature | Planned features fit; rules say where each new page goes; no group exceeds its cap after growth |
 
 ## Task battery
@@ -47,16 +47,16 @@ Beginner tasks:
 - B5. Add sorting and a filter UI.
 - B6. Find a copy-paste example of an editable grid.
 
-Senior tasks:
+Senior tasks (E1 to E8; the review notes called them S1 to S8, which clashes with the sidebar rule numbers):
 
-- S1. Decide which features work when rows load from a server (sort, filter, selection, find, export).
-- S2. Look up the exact signature and timing of the cell commit and validation callbacks.
-- S3. Write a plugin that reacts to grid events.
-- S4. Check the keyboard and screen reader contract for an accessibility review.
-- S5. Judge the cost at 1,000,000 rows and what to avoid.
-- S6. Wire optimistic edits with a server round trip, rollback, and conflict handling.
-- S7. Judge upgrade risk: version policy, breaking changes, how to pull fixes into installed code.
-- S8. Add undo and redo that survives server edits.
+- E1. Decide which features work when rows load from a server (sort, filter, selection, find, export).
+- E2. Look up the exact signature and timing of the cell commit and validation callbacks.
+- E3. Write a plugin that reacts to grid events.
+- E4. Check the keyboard and screen reader contract for an accessibility review.
+- E5. Judge the cost at 1,000,000 rows and what to avoid.
+- E6. Wire optimistic edits with a server round trip, rollback, and conflict handling.
+- E7. Judge upgrade risk: version policy, breaking changes, how to pull fixes into installed code.
+- E8. Add undo and redo that survives server edits.
 
 Shared tasks (both personas, used to compare):
 
@@ -69,8 +69,11 @@ The task battery needs updating when features ship. Keep each persona at 10 or f
 
 ## Review routine
 
-1. Generate the page data: `node scripts/docs-nav-audit.mjs --json` for the current docs. A candidate navigation ships as
-   a sitemap file (indented tree: group, page, word budget, H2 list, page type).
+1. Generate the page data: `node scripts/docs-nav-audit.mjs --json` for the current docs. A candidate navigation is a
+   text file. A `@ Area` line is a tab. A `## Group` line is a folder (`{az}` marks a generated A to Z list). A
+   `### Subgroup` line is a third-level folder (`{open}` keeps it open). A `- slug | title | type | planned words` line is a
+   page. A `<< file` line includes another file, and `//` starts a comment. The first page of a group is its landing.
+   `node scripts/docs-nav-audit.mjs --candidate <file>` checks the structure rules.
 2. Give each reviewer: this file, the ruleset, the sitemap, the audit numbers, and read access to the pages it names.
    A reviewer scores one persona. Use the strongest available model at high effort, one fresh agent per persona, no shared
    context between personas.
@@ -80,13 +83,15 @@ The task battery needs updating when features ship. Keep each persona at 10 or f
    explain the score. A score without a cited page is void.
 5. The reviewer returns the JSON below plus the top five defects by impact.
 6. The manager merges the runs: the mean of the persona scores is the navigation score.
-   Token economy: the pilot showed that all personas find nearly the same top defects. A screening round uses one senior
-   run per candidate. The beginner runs only on the two best candidates, because it adds the learning-path and
-   first-success signal (D4, D7). A second run of a persona is spent only when a score sits within 0.3 of a pass line or
-   a finding would change the ranking. A persona whose findings were all found by other runs for two rounds in a row
-   leaves the loop.
+   Token economy: in the pilot the top defects overlapped across personas. A screening round runs one senior reviewer per
+   candidate. A finalist also gets a beginner run, because that run adds the learning-path and first-success signal (D4,
+   D7). A second run of a persona is spent when a score sits within the noise of a pass line or when a finding would
+   change the ranking. A persona whose findings other runs already found for two rounds in a row leaves the loop.
 7. A candidate passes at an overall score of at least 9.0, no dimension below 8.0 for any persona, and no missed task.
-   The goal is 10.0. Every remaining gap below 10 needs a one-line reason in the candidate's score file.
+   Only a round that ran both personas can pass. The goal is 10.0. Every remaining gap below 10 needs a one-line reason in
+   the comparison file. Noise: two senior runs on one navigation differed by 0.13 on the mean and up to 1.0 per dimension
+   (pilot), and two runs on near-identical versions differed by 0.5 on the mean (final round). Treat a difference below
+   0.5 on the mean as noise. The run files are in `research/docs-navigation/scores.json`.
 
 Output schema for one reviewer run:
 
@@ -104,7 +109,9 @@ Output schema for one reviewer run:
 ## Judging rules for reviewers
 
 - Score the navigation as built, not as intended. A page that does not exist scores as missing.
-- Count screens with the audit numbers. One screen holds about 250 words, 35 lines of code, or 0.6 of a live preview.
+- Count screens with the audit numbers. One screen is 250 prose words or 35 code lines. A live preview counts as 0.6
+  screen. A candidate file lists prose words only. Add one screen per 35 planned code lines when the content map shows a
+  code example, or mark D2 as provisional.
 - A hidden sidebar group (collapsed) costs one click.
 - Do not reward length or coverage. Reward the reader reaching the answer sooner.
 - Penalize the same fact on two pages with different words.
@@ -138,13 +145,13 @@ Current navigation (2.0 docs, 100 pages), 8 dimensions, scores 0 to 10:
 
 Measured:
 
-- Mean absolute dimension delta, mid vs senior mean: 0.31. Between the two senior runs: 0.38. The mid persona differs from the senior by less than two senior runs differ from each other.
-- Largest single-dimension delta: 1.0 (mid vs senior mean, D3) and 1.0 (senior A vs B, D2, D4, D5). Same size.
+- The keep rule needs a difference above the noise on at least two dimensions. The mid run exceeds the noise on D3 only (1.0 against 0). The D2, D4, and D5 differences (0.5) sit below the senior noise (1.0).
+- Mean absolute dimension delta, mid vs senior mean: 0.31. Between the two senior runs: 0.38.
 - Unique defects of the mid run: two (no radius docs, a misleading Pagination path). The beginner run found the first and senior A found the second.
-- Task misses: beginner 1, mid 3, senior A 1, senior B 1. The mid misses (B4, S5, S6) are the beginner miss (B4) and the senior miss (S5) plus one conflict-handling gap in S6.
+- Task misses: beginner 1, mid 3, senior A 1, senior B 1. The mid misses (B4, S5, S6 in the run file) are the beginner miss (B4) and the senior miss (S5) plus one conflict-handling gap in S6.
 
-Decision: drop the mid persona. Two personas, beginner and senior, cover the spread. The senior persona runs twice per final candidate (see the routine) so the noise stays visible.
+Decision: drop the mid persona. The keep rule is not met. Two personas, beginner and senior, cover the spread.
 
 Baseline of the current navigation: beginner 5.13, senior 5.19, overall 5.16.
 
-All four runs agree on the same top defects: no start path that states prerequisites, styling and theming buried under "Columns & layout" at 22.8 screens, server data spread over four places, contradicting row-limit and version facts, about 50 percent of pages without a next step, group names that hide topics (Accessibility and Performance under Architecture, Recipes under Reference, a one-page Hooks group).
+All four runs agree on the same top defects: no start path that states prerequisites, styling and theming buried under "Columns & layout" at 22.8 screens, server data spread over four places, contradicting row-limit and version facts, 52 of 100 pages without a next step, group names that hide topics (Accessibility and Performance under Architecture, Recipes under Reference, a one-page Hooks group).

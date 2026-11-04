@@ -1,113 +1,113 @@
 ## Getting Started
-- Introduction  [index] 495w 2.6scr h2=5: Not an npm package | Modular by design | Project status | Credits | Next steps
-- Installation  [installation] 1245w 5.8scr h2=8: Pinned installs | Alternative: GitHub registry (no setup) | Prerequisites | Tooltips | Where files land | Framework notes | Non-default aliases | Verify
-- Quick start  [quick-start] 936w 6.7scr h2=4: Going controlled | Undo & redo | `` is shorthand | What's next
-- Terms  [terms] 621w 2.5scr h2=0
-- Agent Skills  [agent-skills] 1033w 4.1scr h2=7: Skills | gridcn-performance | gridcn-custom-cell-type | gridcn-data-source | gridcn-addons | gridcn-upgrade | Related
-- Playground  [playground] 170w 1.3scr h2=0
+- Introduction  [index] 480w 2.5scr h2=5: Not an npm package | Modular by design | Project status | Credits | Next steps
+- Installation  [installation] 1229w 5.7scr h2=8: Pinned installs | Alternative: GitHub registry (no setup) | Prerequisites | Tooltips | Where files land | Framework notes | Non-default aliases | Verify
+- Quick start  [quick-start] 919w 6.7scr h2=4: Going controlled | Undo & redo | `` is shorthand | What's next
+- Terms  [terms] 604w 2.4scr h2=0
+- Agent Skills  [agent-skills] 1009w 4scr h2=7: Skills | gridcn-performance | gridcn-custom-cell-type | gridcn-data-source | gridcn-addons | gridcn-upgrade | Related
+- Playground  [playground] 146w 1.2scr h2=0
 - [folder] Examples (examples/)
   - [folder] Foundations (examples/foundations/)
-    - Minimal grid  [examples/foundations/minimal-grid] 134w 1.1scr h2=2: What's in the demo | Related
-    - Editable hero grid  [examples/foundations/editable-grid] 175w 1.3scr h2=2: What's in the demo | Related
-    - Built-in cell types  [examples/foundations/cell-types] 155w 1.2scr h2=2: What's in the demo | Related
-    - Custom cell type  [examples/foundations/custom-cells] 216w 1.5scr h2=2: What's in the demo | Related
+    - Minimal grid  [examples/foundations/minimal-grid] 114w 1.1scr h2=2: What's in the demo | Related
+    - Editable hero grid  [examples/foundations/editable-grid] 153w 1.2scr h2=2: What's in the demo | Related
+    - Built-in cell types  [examples/foundations/cell-types] 130w 1.1scr h2=2: What's in the demo | Related
+    - Custom cell type  [examples/foundations/custom-cells] 195w 1.4scr h2=2: What's in the demo | Related
   - [folder] Columns & Pinning (examples/columns/)
-    - Pinning  [examples/columns/pinning] 229w 1.5scr h2=3: What's in the demo | Behavior reference | Related
-    - Column drag & drop  [examples/columns/drag-reorder] 174w 1.3scr h2=3: What's in the demo | Behavior reference | Related
-    - Filtering  [examples/columns/filtering] 337w 2.8scr h2=6: What's in the demo | Faceted (multi-value) filters | Header filter | Range filters | Per-option counts (DIY) | Related
-    - Custom headers  [examples/columns/custom-headers] 146w 1.2scr h2=3: What's in the demo | Behavior reference | Related
-    - Column layout  [examples/columns/column-layout] 197w 1.6scr h2=4: What's in the demo | The snapshot shape | Behavior reference | Related
-    - Column groups  [examples/columns/column-groups] 183w 1.3scr h2=3: What's in the demo | Behavior reference | Related
+    - Pinning  [examples/columns/pinning] 208w 1.4scr h2=3: What's in the demo | Behavior reference | Related
+    - Column drag & drop  [examples/columns/drag-reorder] 153w 1.2scr h2=3: What's in the demo | Behavior reference | Related
+    - Filtering  [examples/columns/filtering] 317w 2.7scr h2=6: What's in the demo | Faceted (multi-value) filters | Header filter | Range filters | Per-option counts (DIY) | Related
+    - Custom headers  [examples/columns/custom-headers] 128w 1.1scr h2=3: What's in the demo | Behavior reference | Related
+    - Column layout  [examples/columns/column-layout] 179w 1.5scr h2=4: What's in the demo | The snapshot shape | Behavior reference | Related
+    - Column groups  [examples/columns/column-groups] 162w 1.2scr h2=3: What's in the demo | Behavior reference | Related
   - [folder] Rows & Selection (examples/rows/)
-    - Pinning  [examples/rows/pinning] 211w 1.4scr h2=3: What's in the demo | Behavior reference | Related
-    - Row operations  [examples/rows/row-operations] 277w 1.8scr h2=4: What's in the demo | The operation-shape contract | Behavior reference | Related
-    - Row markers  [examples/rows/row-markers] 184w 1.9scr h2=4: What's in the demo | Custom markers | Behavior reference | Related
-    - Drag & drop reorder  [examples/rows/drag-reorder] 562w 2.8scr h2=4: What's in the demo | Marker drag vs programmatic | No-op guards | Related
-    - Action buttons  [examples/rows/actions] 224w 2scr h2=3: The two patterns | How it's wired | Behavior reference
-    - Streaming  [examples/rows/streaming] 168w 1.3scr h2=2: What's in the demo | Behavior reference
+    - Pinning  [examples/rows/pinning] 193w 1.4scr h2=3: What's in the demo | Behavior reference | Related
+    - Row operations  [examples/rows/row-operations] 253w 1.7scr h2=4: What's in the demo | The operation-shape contract | Behavior reference | Related
+    - Row markers  [examples/rows/row-markers] 165w 1.9scr h2=4: What's in the demo | Custom markers | Behavior reference | Related
+    - Drag & drop reorder  [examples/rows/drag-reorder] 532w 2.7scr h2=4: What's in the demo | Marker drag vs programmatic | No-op guards | Related
+    - Action buttons  [examples/rows/actions] 201w 1.9scr h2=3: The two patterns | How it's wired | Behavior reference
+    - Streaming  [examples/rows/streaming] 146w 1.2scr h2=2: What's in the demo | Behavior reference
   - [folder] Editing & Validation (examples/validation/)
-    - Validation  [examples/validation/validation] 458w 3.4scr h2=5: Function form | Standard Schema form | What the demo shows | Behavior reference | Related
-    - Async validation  [examples/validation/async-validation] 422w 2.3scr h2=3: Single-cell edit | Bulk paths | Behavior reference
-    - Server errors  [examples/validation/server-errors] 239w 1.9scr h2=3: Wiring | The API | Behavior reference
-    - Cross-field  [examples/validation/cross-field] 231w 1.6scr h2=2: The contract | Behavior reference
-    - Async gates  [examples/validation/async-gates] 433w 2.3scr h2=4: The gates | What the grid checks when a promise settles | Client and server modes | Related
+    - Validation  [examples/validation/validation] 433w 3.3scr h2=5: Function form | Standard Schema form | What the demo shows | Behavior reference | Related
+    - Async validation  [examples/validation/async-validation] 400w 2.2scr h2=3: Single-cell edit | Bulk paths | Behavior reference
+    - Server errors  [examples/validation/server-errors] 217w 1.8scr h2=3: Wiring | The API | Behavior reference
+    - Cross-field  [examples/validation/cross-field] 210w 1.6scr h2=2: The contract | Behavior reference
+    - Async gates  [examples/validation/async-gates] 414w 2.3scr h2=4: The gates | What the grid checks when a promise settles | Client and server modes | Related
   - [folder] Data & Integrations (examples/data/)
-    - Server side  [examples/data/server-side] 1069w 5.5scr h2=7: The wiring | Errors and retry | Control the spec and the page | Wait for typing to pause | Notes | Behavior reference | Related
-    - Large data  [examples/data/large-data] 185w 1.9scr h2=4: 100k rows | With an FPS meter | How it works | Behavior reference
+    - Server side  [examples/data/server-side] 1037w 5.4scr h2=7: The wiring | Errors and retry | Control the spec and the page | Wait for typing to pause | Notes | Behavior reference | Related
+    - Large data  [examples/data/large-data] 168w 1.9scr h2=4: 100k rows | With an FPS meter | How it works | Behavior reference
     - [folder] Lazy Loading (examples/data/lazy/)
-      - Plain fetcher  [examples/data/lazy/plain] 291w 2.1scr h2=4: The seam | Bring your own fetcher | Behavior reference | Related
-      - TanStack Query  [examples/data/lazy/react-query] 210w 1.8scr h2=3: The seam | Behavior reference | Related
-      - SWR  [examples/data/lazy/swr] 226w 1.8scr h2=3: The seam | Behavior reference | Related
+      - Plain fetcher  [examples/data/lazy/plain] 271w 2scr h2=4: The seam | Bring your own fetcher | Behavior reference | Related
+      - TanStack Query  [examples/data/lazy/react-query] 184w 1.7scr h2=3: The seam | Behavior reference | Related
+      - SWR  [examples/data/lazy/swr] 205w 1.7scr h2=3: The seam | Behavior reference | Related
     - [folder] Server Pagination (examples/data/pagination/)
-      - Client mode  [examples/data/pagination/client] 156w 1.6scr h2=3: Client slice vs server mode | Behavior reference | Related
-      - TanStack Query  [examples/data/pagination/react-query] 187w 2.1scr h2=4: The wiring | The edit story | Behavior reference | Related
-      - SWR  [examples/data/pagination/swr] 198w 2.1scr h2=4: The wiring | The edit story | Behavior reference | Related
+      - Client mode  [examples/data/pagination/client] 136w 1.5scr h2=3: Client slice vs server mode | Behavior reference | Related
+      - TanStack Query  [examples/data/pagination/react-query] 165w 2scr h2=4: The wiring | The edit story | Behavior reference | Related
+      - SWR  [examples/data/pagination/swr] 175w 2scr h2=4: The wiring | The edit story | Behavior reference | Related
     - [folder] ORM & Data Sources (examples/data/orm/)
-      - Drizzle  [examples/data/orm/drizzle] 222w 3.5scr h2=2: Shareable state | Kysely
-      - Prisma  [examples/data/orm/prisma] 167w 2.7scr h2=1: Shareable state
-      - Supabase  [examples/data/orm/supabase] 249w 2.9scr h2=1: Shareable state
+      - Drizzle  [examples/data/orm/drizzle] 198w 3.4scr h2=2: Shareable state | Kysely
+      - Prisma  [examples/data/orm/prisma] 145w 2.6scr h2=1: Shareable state
+      - Supabase  [examples/data/orm/supabase] 228w 2.8scr h2=1: Shareable state
   - [folder] Appearance & i18n (examples/appearance/)
-    - Styling  [examples/appearance/styling] 257w 2.2scr h2=4: Patterns | Every surface, one dataset | The contract | Related
-    - Loading states  [examples/appearance/loading-states] 238w 1.6scr h2=2: Customizing the look | Related
-    - I18n & RTL  [examples/appearance/i18n-rtl] 306w 2.3scr h2=4: The labels prop | RTL | Which i18n library? | Related
+    - Styling  [examples/appearance/styling] 234w 2.1scr h2=4: Patterns | Every surface, one dataset | The contract | Related
+    - Loading states  [examples/appearance/loading-states] 214w 1.5scr h2=2: Customizing the look | Related
+    - I18n & RTL  [examples/appearance/i18n-rtl] 282w 2.2scr h2=4: The labels prop | RTL | Which i18n library? | Related
 ## Editing
-- Editing & cell types  [editing-cell-types] 2723w 16scr h2=7: Edit activation | Built-in cell types | Read-only | Validation | Server errors | Display override without a new type | Custom cell types
-- Build your own cell type  [custom-cell-types] 3541w 19.4scr h2=5: The mental model | The contract, member by member | Keypoint checklist | Worked example: a `currency` cell type | Testing your cell type
-- Clipboard  [clipboard] 811w 4.7scr h2=6: Copy | Formula sanitizing | Paste | Overrides | Context menu paste | Known limitations
+- Editing & cell types  [editing-cell-types] 2701w 15.9scr h2=7: Edit activation | Built-in cell types | Read-only | Validation | Server errors | Display override without a new type | Custom cell types
+- Build your own cell type  [custom-cell-types] 3508w 19.3scr h2=5: The mental model | The contract, member by member | Keypoint checklist | Worked example: a `currency` cell type | Testing your cell type
+- Clipboard  [clipboard] 797w 4.7scr h2=6: Copy | Formula sanitizing | Paste | Overrides | Context menu paste | Known limitations
 ## Selection & navigation
-- Selection & keyboard  [selection-keyboard] 2860w 14.4scr h2=14: Selection model | Mouse gestures | Checking a range of rows | Touch gestures | Configurability | Checked rows | Selection over a server result | Header click behavior | Keyboard map | Undo and redo outside the grid | Checking rows by keyboard | Moving rows | Opening the column filter | Two-stage Ctrl+A
-- Global shortcuts  [global-shortcuts] 836w 4.5scr h2=5: How it works | Usage | Multiple grids | Out of scope | Related
+- Selection & keyboard  [selection-keyboard] 2843w 14.3scr h2=14: Selection model | Mouse gestures | Checking a range of rows | Touch gestures | Configurability | Checked rows | Selection over a server result | Header click behavior | Keyboard map | Undo and redo outside the grid | Checking rows by keyboard | Moving rows | Opening the column filter | Two-stage Ctrl+A
+- Global shortcuts  [global-shortcuts] 816w 4.4scr h2=5: How it works | Usage | Multiple grids | Out of scope | Related
 ## Search, sort & rows
-- Sorting, filtering & search  [sorting-filtering-search] 1956w 9.2scr h2=6: Sorting | Filtering | Search | Sort list (toolbar add-on) | Initial sort, filter, and search | Controlled mode (server-side sort/filter)
-- Toolbar  [addons/toolbar] 1547w 9.7scr h2=5: Wiring | The pieces | Filter menu keyboard & accessibility | Header filter | Related
-- Sort list  [addons/sort-list] 374w 2.4scr h2=2: Keyboard & accessibility | Related
-- Row operations  [row-operations] 2297w 13scr h2=8: Enable props | Confirm a delete | Default shortcuts | Reorder | Context menu | Programmatic actions | Scroll mode | Row markers
+- Sorting, filtering & search  [sorting-filtering-search] 1928w 9.1scr h2=6: Sorting | Filtering | Search | Sort list (toolbar add-on) | Initial sort, filter, and search | Controlled mode (server-side sort/filter)
+- Toolbar  [addons/toolbar] 1521w 9.6scr h2=5: Wiring | The pieces | Filter menu keyboard & accessibility | Header filter | Related
+- Sort list  [addons/sort-list] 350w 2.3scr h2=2: Keyboard & accessibility | Related
+- Row operations  [row-operations] 2274w 12.9scr h2=8: Enable props | Confirm a delete | Default shortcuts | Reorder | Context menu | Programmatic actions | Scroll mode | Row markers
 ## Rows & data
-- Streaming updates  [streaming-updates] 1032w 6scr h2=7: Usage | Sorted and filtered views | Controlled mode | Undo history | What does not change | What the verdict tells you | Whole rows
-- Lazy loading  [lazy-loading] 2755w 15.8scr h2=8: Usage | Editing loaded rows | Errors | Memory & retention | Sorting a scroll grid | Filtering a scroll grid | A source with no total | Selecting, copying, and exporting
-- Lazy loading: data fetching & failure recovery  [lazy-loading-advanced] 544w 3.7scr h2=2: Wiring a fetch/cache library (React Query) | When a block fails permanently
-- Pagination  [pagination] 1267w 9scr h2=1: Composing with `data-grid-url-state`
-- Features and data modes  [data-modes] 930w 3.7scr h2=4: Data modes | Matrix | Notes | Related
+- Streaming updates  [streaming-updates] 1013w 5.9scr h2=7: Usage | Sorted and filtered views | Controlled mode | Undo history | What does not change | What the verdict tells you | Whole rows
+- Lazy loading  [lazy-loading] 2733w 15.8scr h2=8: Usage | Editing loaded rows | Errors | Memory & retention | Sorting a scroll grid | Filtering a scroll grid | A source with no total | Selecting, copying, and exporting
+- Lazy loading: data fetching & failure recovery  [lazy-loading-advanced] 516w 3.6scr h2=2: Wiring a fetch/cache library (React Query) | When a block fails permanently
+- Pagination  [pagination] 1253w 9scr h2=1: Composing with `data-grid-url-state`
+- Features and data modes  [data-modes] 908w 3.6scr h2=4: Data modes | Matrix | Notes | Related
 ## Columns & layout
-- Columns  [columns] 2404w 14scr h2=9: Resize | Autosize | Reorder | Pin start/end | Custom headers | Column groups | Visibility | Flex fill | Reading column state
-- Styling & theming  [styling-theming] 4186w 22.8scr h2=13: The color scheme: shadcn tokens | CSS variables | The built-in class surface | Data-attribute contract | Override recipes | Programmatic per-row/per-cell styling | Styling by state with CSS only | Small screens | Density and row height | Scroll shadows | Loading state | i18n via `labels` | Visual defaults
-- i18n  [i18n] 973w 7.2scr h2=5: The `labels` prop | Coverage by group | Full German example | Wiring a real i18n library | RTL layout
+- Columns  [columns] 2393w 13.9scr h2=9: Resize | Autosize | Reorder | Pin start/end | Custom headers | Column groups | Visibility | Flex fill | Reading column state
+- Styling & theming  [styling-theming] 4162w 22.7scr h2=13: The color scheme: shadcn tokens | CSS variables | The built-in class surface | Data-attribute contract | Override recipes | Programmatic per-row/per-cell styling | Styling by state with CSS only | Small screens | Density and row height | Scroll shadows | Loading state | i18n via `labels` | Visual defaults
+- i18n  [i18n] 954w 7.1scr h2=5: The `labels` prop | Coverage by group | Full German example | Wiring a real i18n library | RTL layout
 ## Add-ons
-- Fill handle  [addons/fill] 855w 6.8scr h2=8: Wiring it up | Tiling vs. series inference | Forcing a plain copy | Custom series detection | Keyboard fill | Touch | Turning fill off | `onFill`
-- Pinned rows  [addons/pinned-rows] 1088w 6.6scr h2=2: Geometry | a11y
-- Multiplayer presence  [addons/presence] 1174w 7.5scr h2=7: API | Wiring it up | Zero re-render guarantee | Coordinates: rowId-native, or view-index | Rendering | Scope cuts | Broadcasting your selection
-- Broadcasting your selection  [addons/broadcasting-presence] 262w 2scr h2=2: Wiring a real websocket | Sending your selection
-- Undo & redo  [addons/undo-redo] 1389w 8.1scr h2=11: How it works | Quick start: `useDataGridState` | Composable: `useDataGridHistory` | Programmatic changes: `record` | Which changes are recorded | Rolling back a failed save | Capped stack | Dataset changes | Read-only grids | With scroll mode | Related
-- Context menu  [addons/context-menu] 1067w 6.9scr h2=7: Header surface | Cell surface: row-operation items | Custom menu items | Touch | Paste permission | Internationalization | Related
-- Keybindings  [addons/keybindings] 1373w 7.7scr h2=6: The dialog | Binding chips | Shortcut labels for your own UI | Remapping | Custom commands | Related
-- Status bar  [addons/status-bar] 538w 3scr h2=6: Which cells count | Which values count | Display and formatting | When it computes | Props | Related
-- Find & replace  [addons/find-replace] 1258w 5.9scr h2=9: Find | Replace | Where Replace works | Typing | Keyboard | Options | planReplace | Labels | Related
-- URL state  [addons/url-state] 1399w 8.2scr h2=5: Usage | `prefix` | Behavior | Column layout | Pagination
-- Import & export  [addons/import-export] 2644w 13.6scr h2=7: Export | Print | Import | Import limits | Import options | Dropzone | Lower-level pieces
+- Fill handle  [addons/fill] 836w 6.7scr h2=8: Wiring it up | Tiling vs. series inference | Forcing a plain copy | Custom series detection | Keyboard fill | Touch | Turning fill off | `onFill`
+- Pinned rows  [addons/pinned-rows] 1066w 6.5scr h2=2: Geometry | a11y
+- Multiplayer presence  [addons/presence] 1156w 7.5scr h2=7: API | Wiring it up | Zero re-render guarantee | Coordinates: rowId-native, or view-index | Rendering | Scope cuts | Broadcasting your selection
+- Broadcasting your selection  [addons/broadcasting-presence] 238w 1.9scr h2=2: Wiring a real websocket | Sending your selection
+- Undo & redo  [addons/undo-redo] 1371w 8scr h2=11: How it works | Quick start: `useDataGridState` | Composable: `useDataGridHistory` | Programmatic changes: `record` | Which changes are recorded | Rolling back a failed save | Capped stack | Dataset changes | Read-only grids | With scroll mode | Related
+- Context menu  [addons/context-menu] 1040w 6.8scr h2=7: Header surface | Cell surface: row-operation items | Custom menu items | Touch | Paste permission | Internationalization | Related
+- Keybindings  [addons/keybindings] 1344w 7.5scr h2=6: The dialog | Binding chips | Shortcut labels for your own UI | Remapping | Custom commands | Related
+- Status bar  [addons/status-bar] 512w 2.9scr h2=6: Which cells count | Which values count | Display and formatting | When it computes | Props | Related
+- Find & replace  [addons/find-replace] 1225w 5.8scr h2=9: Find | Replace | Where Replace works | Typing | Keyboard | Options | planReplace | Labels | Related
+- URL state  [addons/url-state] 1380w 8.1scr h2=5: Usage | `prefix` | Behavior | Column layout | Pagination
+- Import & export  [addons/import-export] 2626w 13.5scr h2=7: Export | Print | Import | Import limits | Import options | Dropzone | Lower-level pieces
 ## Hooks
-- useDebounce  [hooks/use-debounce] 590w 2.6scr h2=4: useDebounce | useDebouncedInput | isComposingKey | Related
+- useDebounce  [hooks/use-debounce] 565w 2.5scr h2=4: useDebounce | useDebouncedInput | isComposingKey | Related
 ## Architecture
-- Plugins  [plugins] 2196w 11.1scr h2=11: The plugin shape | Overlays | Row bands | Observing data changes | Commands and keymaps | Engine work | What a plugin can reach | Identity | Worked example: highlight a column | SSR | Related
-- Performance  [performance] 401w 2.3scr h2=3: Limits | Keeping it fast | Verified by a regression suite
-- Virtualization  [virtualization] 898w 3.7scr h2=4: Row limit | How it works | Guarantees | Beyond rendering: fetching data on demand
-- Accessibility  [accessibility] 1886w 8.2scr h2=8: Conformance target | Semantics | Selection and editor | Live regions | Keyboard coverage | Test status matrix | Touch targets | Known gaps
+- Plugins  [plugins] 2172w 11scr h2=11: The plugin shape | Overlays | Row bands | Observing data changes | Commands and keymaps | Engine work | What a plugin can reach | Identity | Worked example: highlight a column | SSR | Related
+- Performance  [performance] 387w 2.2scr h2=3: Limits | Keeping it fast | Verified by a regression suite
+- Virtualization  [virtualization] 878w 3.6scr h2=4: Row limit | How it works | Guarantees | Beyond rendering: fetching data on demand
+- Accessibility  [accessibility] 1865w 8.1scr h2=8: Conformance target | Semantics | Selection and editor | Live regions | Keyboard coverage | Test status matrix | Touch targets | Known gaps
 ## Reference
-- Events & state  [events-state] 3745w 17.6scr h2=15: Find the callback you need | The three shapes an event follows | 1. `onDataChange`: the flagship shape [#1-ondatachange--the-flagship-shape] | 2. `onSelectionChange` | 3. `onSortChange` | 4. `onFilterChange` | 5. `onFill` | 6. `onCellClick` | 7. `onRenderedRowsChange` | 8. `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing` | 9. Presence read-back: the two-sided contrast [#9-presence-read-back--the-two-sided-contrast] | 10. Edit lifecycle and cell events | Zero re-render guarantee | Not every event is documented here | Unsupported features
-- API reference  [api-reference] 2950w 12.6scr h2=8: `` | `` | `ColumnDef` | `CellType` | `DataGridLabels` | Other exported types | Operation engine | Add-on option types
+- Events & state  [events-state] 3726w 17.6scr h2=15: Find the callback you need | The three shapes an event follows | 1. `onDataChange`: the flagship shape [#1-ondatachange--the-flagship-shape] | 2. `onSelectionChange` | 3. `onSortChange` | 4. `onFilterChange` | 5. `onFill` | 6. `onCellClick` | 7. `onRenderedRowsChange` | 8. `columnLayout` + `defaultColumnLayout` + `onColumnLayoutChange` + `onColumnResizing` | 9. Presence read-back: the two-sided contrast [#9-presence-read-back--the-two-sided-contrast] | 10. Edit lifecycle and cell events | Zero re-render guarantee | Not every event is documented here | Unsupported features
+- API reference  [api-reference] 2937w 12.5scr h2=8: `` | `` | `ColumnDef` | `CellType` | `DataGridLabels` | Other exported types | Operation engine | Add-on option types
 - [folder] Recipes (recipes/)
   - [folder] Data fetching (recipes/data-fetching/)
-    - Data fetching  [recipes/data-fetching/index] 318w 1.3scr h2=2: Pick the strategy for your data | Pick where the spec runs
-    - Server-side data  [recipes/data-fetching/server-side] 1253w 6.4scr h2=13: One hook for pages | The contract | Sort | Filter | Search | Pages or scroll mode | Row count and unknown totals | Selection and bulk actions | Saving and refusals | Async gates | Races and row identity | URL state | Related
-    - Server round-trip  [recipes/data-fetching/server-round-trip] 925w 7scr h2=6: Initial fetch | Translate operations into API calls | Strategy A: optimistic, roll back on failure | Strategy B: refetch-on-settle | Strategy C: acknowledge each change | The failure path
-    - TanStack Query wiring  [recipes/data-fetching/tanstack-query] 211w 1.7scr h2=0
+    - Data fetching  [recipes/data-fetching/index] 299w 1.2scr h2=2: Pick the strategy for your data | Pick where the spec runs
+    - Server-side data  [recipes/data-fetching/server-side] 1230w 6.3scr h2=13: One hook for pages | The contract | Sort | Filter | Search | Pages or scroll mode | Row count and unknown totals | Selection and bulk actions | Saving and refusals | Async gates | Races and row identity | URL state | Related
+    - Server round-trip  [recipes/data-fetching/server-round-trip] 903w 6.9scr h2=6: Initial fetch | Translate operations into API calls | Strategy A: optimistic, roll back on failure | Strategy B: refetch-on-settle | Strategy C: acknowledge each change | The failure path
+    - TanStack Query wiring  [recipes/data-fetching/tanstack-query] 193w 1.7scr h2=0
   - [folder] UI patterns (recipes/ui-patterns/)
-    - Open a detail panel from a row  [recipes/ui-patterns/detail-panel] 445w 3.3scr h2=6: Open the panel | Mouse | Keyboard | Follow the active row | Focus and Escape | Related
-    - Act on the selected rows  [recipes/ui-patterns/bulk-actions] 224w 2.1scr h2=3: One write per button | Export only the checked rows | Related
-    - Remember the user's view  [recipes/ui-patterns/remember-view] 201w 2.1scr h2=1: Related
-    - Multiple grids on one page  [recipes/ui-patterns/multiple-grids] 97w 0.6scr h2=1: Related
+    - Open a detail panel from a row  [recipes/ui-patterns/detail-panel] 417w 3.2scr h2=6: Open the panel | Mouse | Keyboard | Follow the active row | Focus and Escape | Related
+    - Act on the selected rows  [recipes/ui-patterns/bulk-actions] 198w 2scr h2=3: One write per button | Export only the checked rows | Related
+    - Remember the user's view  [recipes/ui-patterns/remember-view] 179w 2scr h2=1: Related
+    - Multiple grids on one page  [recipes/ui-patterns/multiple-grids] 76w 0.5scr h2=1: Related
   - [folder] Editing & access (recipes/editing/)
-    - Edit a row with a form  [recipes/editing/edit-row-with-form] 358w 3.3scr h2=1: Related
-    - Custom cell type  [recipes/editing/custom-cell-type] 213w 1.3scr h2=3: Format the display | Use a built-in type | Write a cell type
-    - Auth-gated cells  [recipes/editing/auth-gated-cells] 128w 1.1scr h2=1: Related
-- Project status & compatibility  [project-status] 837w 3.3scr h2=9: Version | What 1.0 promises | Changelog | Browser support | Framework floors | React Compiler | Updating installed code | Support & security | Next steps
-- License  [license] 147w 0.6scr h2=3: What you may do | What you must do | What the license does not grant
+    - Edit a row with a form  [recipes/editing/edit-row-with-form] 334w 3.2scr h2=1: Related
+    - Custom cell type  [recipes/editing/custom-cell-type] 192w 1.3scr h2=3: Format the display | Use a built-in type | Write a cell type
+    - Auth-gated cells  [recipes/editing/auth-gated-cells] 110w 1.1scr h2=1: Related
+- Project status & compatibility  [project-status] 816w 3.3scr h2=9: Version | What 1.0 promises | Changelog | Browser support | Framework floors | React Compiler | Updating installed code | Support & security | Next steps
+- License  [license] 129w 0.5scr h2=3: What you may do | What you must do | What the license does not grant

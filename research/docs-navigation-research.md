@@ -1,12 +1,12 @@
 # Docs navigation research
 
 Findings from usability research, style guides, and the structure of 17 large public docs sites (checked 2026-11-04). Sites
-are anonymous here: Site A to Site Q. The full source list with URLs sits outside the repo. Numbers marked "own" are
-judgement, not measurement. Feeds [docs-navigation-ruleset.md](docs-navigation-ruleset.md).
+are anonymous here: Site A to Site Q. The full source list with URLs sits outside the repo. The ruleset lists the numbers that
+have no external source. Feeds [docs-navigation-ruleset.md](docs-navigation-ruleset.md).
 
 ## Principles
 
-**Reading behavior** (usability research, nngroup.com):
+**Reading behavior** (usability research):
 
 - Readers read about 20 to 28 percent of the words on a page. The studied pages averaged 593 words.
 - 57 percent of viewing time is above the fold, 74 percent in the first two screens, 81 percent in the first three.
@@ -25,22 +25,22 @@ engineering organizations use the same split as enforced page templates):
 
 **Page length:**
 
-- Long pages suit reference and deep tutorials. Short linked pages suit concepts and how-tos for newcomers (Google
-  large-docs guidance).
-- Paragraphs of 3 to 7 lines. A long page needs an on-page table of contents (Microsoft style guide).
-- No page that is only one or two sentences, and no page that is only links except a landing page (GitLab style guide).
-- A style guide that enforces page templates caps the closing "What's next" list at 5 links (Kubernetes style guide).
+- Long pages suit reference and deep tutorials. Short linked pages suit concepts and how-tos for newcomers (technical-writing
+  guidance).
+- Paragraphs of 3 to 7 lines. A long page needs an on-page table of contents (a software vendor's style guide).
+- No page that is only one or two sentences, and no page that is only links except a landing page (a code-hosting company's style guide).
+- A style guide that enforces page templates caps the closing "What's next" list at 5 links (an orchestration project's style guide).
 
 **Navigation shape:**
 
-- Two disclosure levels is the practical maximum. Three click levels usually fail without shortcuts (nngroup.com).
+- Two disclosure levels is the practical maximum. Three click levels usually fail without shortcuts (usability research).
 - "Seven items per menu" is a myth, but a shorter list scans faster. Group by meaning, not alphabet, unless the list is
   generated.
 - Labels need information scent: the label predicts the page. "Architecture", "Misc", and "Advanced" predict nothing.
 - Every page is page one: readers arrive from search, so each page states its own context.
 - Breadcrumbs pay off only beyond depth 2. A table of contents is labeled "On this page" and highlights the current
   section.
-- Learning paths work at 6 to 15 steps. Completion falls beyond 20 (Microsoft Learn training guidance).
+- Learning paths work at 6 to 15 steps. Completion falls beyond 20 (a training provider's plan guidance).
 
 ## Sidebar structure of large sites
 
@@ -58,7 +58,7 @@ engineering organizations use the same split as enforced page templates):
 | J (payments docs) | Use-case entry points | deep per product | n/a | Task entry before product entry |
 | K (hosting docs) | Intent cards | n/a | 4 to 6 cards | Cards state outcomes, not product names |
 | L (web learning path) | Getting started / Core / Extensions | 3 | modules up to about 34 items | Challenges at module end; separate from reference |
-| M (data grid) | 7 groups, about 340 pages | 4 | core 117; server row model 16 pages | One page per server concern; reference split per object |
+| M (data grid) | 7 groups, hundreds of pages | 4 | server rows: 16 pages | One page per server concern; reference split per object |
 | N (data grid) | Product switcher, then 6 subgroups | 3 to 4 | 12 to 13 | New, Planned, and Preview badges in the sidebar; "main" vs "advanced" by maturity |
 | O (table library) | Framework switcher, 16 sections | 3 | feature guides 19 | Each feature guide pairs with a same-named API page; API sections collapsed |
 | P (spreadsheet grid) | 26 groups | 3 | 1 to 15; recipes about 67 | API in only 4 large pages; recipes sub-grouped by task |
@@ -78,7 +78,7 @@ engineering organizations use the same split as enforced page templates):
 
 ## Ideas used by the candidates
 
-1. Areas as sidebar tabs: Guide, Server, Add-ons, Recipes, Reference.
+1. Areas as sidebar tabs (the final set is Learn, How-to, Server, Evaluate, Reference, Examples).
 2. Topic first, type second, inside each area.
 3. Landing page per group with one line per child.
 4. A learning path of 6 to 10 steps.

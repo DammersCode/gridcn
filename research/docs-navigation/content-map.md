@@ -5,11 +5,11 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 
 | Slug | Source (current page and sections) | Kind |
 |---|---|---|
-| index | `index` (cut credits to a Credits page section in Project) | rewrite |
+| index | `index` (credits move to a section of the support and security page) | rewrite |
 | install | `installation` (prerequisites first, add-on picker last) | rewrite |
 | first-grid | `quick-start` (first grid only) | split |
 | terms | `terms` | move |
-| learn-index, learn-columns, learn-edit, learn-select, learn-sort, learn-save, learn-style, learn-server | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
+| learn-columns, learn-edit, learn-select, learn-sort, learn-save, learn-style, learn-server | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
 | editing-index, selection-index, sfs-index, rows-index, columns-index, look-index, quality-index, extending-index, and every other group landing | none | new (one line per child) |
 | edit-activation | `editing-cell-types` (Edit activation, Read-only) | split |
 | cell-types | `editing-cell-types` (Built-in cell types) | split |
@@ -27,7 +27,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | server-selection | `selection-keyboard` (Selection over a server result) | split |
 | global-shortcuts | `global-shortcuts` | move |
 | sorting, filtering, quick-search | `sorting-filtering-search` (Sorting, Filtering, Search) | split |
-| initial-view | `sorting-filtering-search` (Initial sort, filter, and search) | split |
+| sorting | `sorting-filtering-search` (Initial sort, filter, and search) | merge |
 | sort-list | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge; the add-on keeps its own page |
 | server-sort-filter | `sorting-filtering-search` (Controlled mode), `recipes/data-fetching/server-side-sort-filter` | merge |
 | toolbar | `addons/toolbar` (Wiring, The pieces) | split |
@@ -49,7 +49,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | column-headers | `columns` (Custom headers, Column groups) | split |
 | column-visibility | `columns` (Visibility, Reading column state) | split |
 | style-tokens | `styling-theming` (The color scheme, CSS variables, Visual defaults), new radius section | split plus new text |
-| style-surface | `styling-theming` (The built-in class surface, Data-attribute contract) | split |
+| ref-style-surface, styling-model | `styling-theming` (The built-in class surface, Data-attribute contract) | split |
 | style-overrides | `styling-theming` (Override recipes, Programmatic per-row/per-cell styling, Styling by state with CSS only) | split |
 | style-density | `styling-theming` (Small screens, Density and row height, Scroll shadows) | split |
 | loading-state | `styling-theming` (Loading state) | split |
@@ -59,7 +59,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | server-undo | `addons/undo-redo` (Rolling back a failed save, With scroll mode) | split |
 | export | `addons/import-export` (Export) | split |
 | import | `addons/import-export` (Import, Import limits, Import options) | split |
-| print-dropzone | `addons/import-export` (Print, Dropzone, Lower-level pieces) | split |
+| export | `addons/import-export` (Print) | merge |
+| import | `addons/import-export` (Dropzone, Lower-level pieces) | merge |
 | presence | `addons/presence` | move |
 | presence-broadcast | `addons/broadcasting-presence` | move |
 | performance | `performance` (becomes `performance/index`; row ceiling fixed to one statement) | move |
@@ -76,7 +77,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | plugins-example | `plugins` (Worked example) | split |
 | server-index, data-modes | `data-modes` (Data modes, Matrix, Notes) | move |
 | scroll-usage | `lazy-loading` (Usage) | split |
-| scroll-edit | `lazy-loading` (Editing loaded rows) | split |
+| scroll-usage | `lazy-loading` (Editing loaded rows) | merge |
 | scroll-errors | `lazy-loading` (Errors), `lazy-loading-advanced` (When a block fails permanently) | merge |
 | scroll-retention | `lazy-loading` (Memory & retention) | split |
 | scroll-sort-filter | `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid) | split |
@@ -104,7 +105,6 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ref-labels | `api-reference` (DataGridLabels) | split |
 | ref-types | `api-reference` (Other exported types) | split |
 | ref-engine | `api-reference` (Operation engine) | split |
-| ref-addon-types | `api-reference` (Add-on option types) | split |
 | cheat-shortcuts | `selection-keyboard` (Keyboard map), `global-shortcuts`, `addons/keybindings` | new, generated |
 | cheat-props | `api-reference` | new, generated |
 | cheat-events | `events-state` (Find the callback you need) | new, generated |
@@ -117,7 +117,5 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ex-* | `examples/**` (titles made unique, ORM and swr and react-query pages grouped) | move |
 | keeping-fast | `performance` (guidance sections moved off the landing) | split |
 | ref-store-hooks | `api-reference` (store hooks and selectors) | split plus new text |
-| ref-style-surface, style-surface-concept | `styling-theming` (class and data-attribute surface) | split |
-| options-* (one page per add-on, A to Z) | the option tables of each add-on page and `api-reference` (Add-on option types) | move, generated where possible |
-| initial-view | `sorting-filtering-search` (Initial sort, filter, and search), now a section of `sorting` | merge |
+| options-context-menu, options-fill, options-find, options-history, options-io, options-keybindings, options-pagination, options-pinned-rows, options-presence, options-sort-list, options-status-bar, options-toolbar, options-url-state | the option tables of each add-on page and `api-reference` (Add-on option types) | move, generated where possible |
 | undo-programmatic | `addons/undo-redo` (Programmatic changes, Which changes are recorded, Dataset changes) | split |
