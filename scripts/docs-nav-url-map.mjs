@@ -21,7 +21,7 @@ for (const raw of candidateLines(candidateFile)) {
   if (line.startsWith("## ")) group = line.slice(3).replace(/\{.*\}/, "").trim();
   else if (line.startsWith("- ")) {
     const [slug, title, type] = line.slice(2).split("|").map((x) => x.trim());
-    bySlug.set(slug, { title, type, group, url: type === "landing" ? `/docs/${kebab(group)}` : `/docs/${kebab(group)}/${kebab(title)}` });
+    bySlug.set(slug, { title, type, group, url: slug === "index" ? "/docs" : type === "landing" ? `/docs/${kebab(group)}` : `/docs/${kebab(group)}/${kebab(title)}` });
   }
 }
 
@@ -131,3 +131,4 @@ else {
 const used = new Set([...map.values()].flat());
 const orphans = [...bySlug.keys()].filter((s) => !used.has(s));
 console.error(`new pages with no old source (new text or landings): ${orphans.length}`);
+if (process.env.LIST_NEW) console.error(orphans.map((o) => `${bySlug.get(o).type}:${o}`).join("\n"));

@@ -26,7 +26,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | keyboard-nav | `selection-keyboard` (Keyboard map, Moving rows, Opening the column filter, Two-stage Ctrl+A, Undo and redo outside the grid) | split |
 | server-selection | `selection-keyboard` (Selection over a server result) | split |
 | global-shortcuts | `global-shortcuts` | move |
-| sorting, filtering, search | `sorting-filtering-search` (Sorting, Filtering, Search) | split |
+| sorting, filtering, quick-search | `sorting-filtering-search` (Sorting, Filtering, Search) | split |
 | initial-view | `sorting-filtering-search` (Initial sort, filter, and search) | split |
 | sort-list | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge; the add-on keeps its own page |
 | server-sort-filter | `sorting-filtering-search` (Controlled mode), `recipes/data-fetching/server-side-sort-filter` | merge |
@@ -34,10 +34,10 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | header-filter | `addons/toolbar` (Header filter, Filter menu keyboard) | split |
 | find-replace | `addons/find-replace` | move |
 | url-state | `addons/url-state` (options table to `url-state-options` in C3) | move |
-| row-actions | `row-operations` (Enable props, Confirm a delete, Default shortcuts, Context menu) | split |
+| row-operations | `row-operations` (Enable props, Confirm a delete, Default shortcuts, Context menu) | split |
 | row-reorder | `row-operations` (Reorder) | split |
 | row-markers | `row-operations` (Row markers) | split |
-| row-programmatic | `row-operations` (Programmatic actions) | split |
+| row-operations-code | `row-operations` (Programmatic actions) | split |
 | server-row-ops | `row-operations` (Scroll mode), `data-modes` (Notes) | split |
 | pinned-rows | `addons/pinned-rows` | move |
 | fill | `addons/fill` | move |
@@ -77,7 +77,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | server-index, data-modes | `data-modes` (Data modes, Matrix, Notes) | move |
 | scroll-usage | `lazy-loading` (Usage) | split |
 | scroll-edit | `lazy-loading` (Editing loaded rows) | split |
-| scroll-errors | `lazy-loading` (Errors, Memory and retention), `lazy-loading-advanced` (When a block fails permanently) | merge |
+| scroll-errors | `lazy-loading` (Errors), `lazy-loading-advanced` (When a block fails permanently) | merge |
+| scroll-retention | `lazy-loading` (Memory & retention) | split |
 | scroll-sort-filter | `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid) | split |
 | scroll-no-total | `lazy-loading` (A source with no total) | split |
 | server-selection | `selection-keyboard` (Selection over a server result), `lazy-loading` (Selecting, copying, and exporting) | merge |
