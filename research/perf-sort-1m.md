@@ -6,9 +6,10 @@ results. Method: measure first, profile, then change. Every number below comes f
 alternately in one process on the same seeded rows, checks that both return the same order, and
 reports the median and the median absolute deviation (MAD) of 5 runs (7 at 100k) after 2 warm-ups.
 
-Machine: Windows 11 desktop, Node 24.15, other work running on the machine. Absolute times vary by
-about 1.5x between runs; the paired ratios hold. Row counts are stated per table: **1M** is
-1,000,000 rows, **100k** is 100,000 rows.
+Machine: Windows 11 desktop, Node 24.15, remote desktop session off, measured on 2026-11-04 from
+15:55 (other sessions of the repository were running tests on the same machine). Earlier runs taken
+with the remote desktop session on are discarded: they ran 1.3-2x slower and noisier. Row counts are
+stated per table: **1M** is 1,000,000 rows, **100k** is 100,000 rows.
 
 ## Where the time went (CPU profile, 1M rows)
 
@@ -41,57 +42,58 @@ about 1.5x between runs; the paired ratios hold. Row counts are stated per table
 
 | Case | Baseline ms (MAD) | Now ms (MAD) | Speedup | Peak RSS delta MB (baseline / now) |
 | --- | --- | --- | --- | --- |
-| dataset: number (score) asc | 566 (±10) | 89 (±8) | 6.3x | 67 / 65 |
-| dataset: number (age) desc | 694 (±29) | 83 (±3) | 8.4x | 67 / 63 |
-| dataset: text (name) asc | 779 (±58) | 93 (±10) | 8.3x | 68 / 52 |
-| dataset: filter age >= 30, no sort | 70 (±8) | 73 (±2) | 1.0x | 55 / 53 |
-| dataset: filter name contains, no sort | 92 (±7) | 77 (±2) | 1.2x | 41 / 40 |
-| text asc | 4869 (±144) | 1721 (±85) | 2.8x | 66 / 67 |
-| text desc | 5143 (±509) | 1673 (±43) | 3.1x | 62 / 75 |
-| text asc, input sorted | 612 (±39) | 787 (±28) | 0.8x | 53 / 96 |
-| text asc, input reversed | 876 (±90) | 702 (±5) | 1.2x | 54 / 92 |
-| text (no cell type) asc | 3917 (±24) | 2179 (±151) | 1.8x | 72 / 94 |
-| digits asc | 3846 (±106) | 1346 (±77) | 2.9x | 65 / 116 |
-| number int asc | 1150 (±11) | 100 (±5) | 11.5x | 56 / 64 |
-| number int desc | 1085 (±13) | 75 (±11) | 14.4x | 40 / 64 |
-| number float asc | 2852 (±10) | 117 (±10) | 24.3x | 39 / 64 |
-| number float desc | 4977 (±403) | 176 (±20) | 28.3x | 38 / 66 |
-| number float asc, input sorted | 618 (±155) | 350 (±23) | 1.8x | 49 / 65 |
-| number float asc, input reversed | 612 (±89) | 304 (±18) | 2.0x | 54 / 64 |
-| number with NaN asc | 1798 (±395) | 1631 (±195) | 1.1x | 67 / 65 |
-| 2 keys: text asc, int desc | 6932 (±1118) | 1997 (±95) | 3.5x | 48 / 82 |
-| 2 keys: int asc, text asc | 3765 (±44) | 1111 (±24) | 3.4x | 46 / 83 |
+| dataset: number (score) asc | 383 (±8) | 52 (±4) | 7.4x | 42 / 61 |
+| dataset: number (age) desc | 472 (±5) | 44 (±2) | 10.7x | 43 / 56 |
+| dataset: text (name) asc | 576 (±5) | 50 (±1) | 11.4x | 45 / 54 |
+| dataset: filter age >= 30, no sort | 53 (±1) | 53 (±3) | 1.0x | 50 / 50 |
+| dataset: filter name contains, no sort | 71 (±1) | 68 (±1) | 1.0x | 36 / 36 |
+| text asc | 3486 (±113) | 1200 (±40) | 2.9x | 42 / 60 |
+| text desc | 3079 (±148) | 1086 (±100) | 2.8x | 42 / 60 |
+| text asc, input sorted | 316 (±13) | 440 (±26) | 0.7x | 38 / 85 |
+| text asc, input reversed | 546 (±6) | 408 (±4) | 1.3x | 39 / 75 |
+| text (no cell type) asc | 2600 (±67) | 1329 (±30) | 2.0x | 47 / 85 |
+| digits asc | 2270 (±102) | 739 (±56) | 3.1x | 42 / 90 |
+| number int asc | 735 (±7) | 54 (±1) | 13.6x | 43 / 61 |
+| number int desc | 797 (±1) | 49 (±5) | 16.2x | 44 / 61 |
+| number float asc | 1869 (±33) | 62 (±1) | 30.2x | 44 / 60 |
+| number float desc | 1910 (±52) | 64 (±1) | 29.8x | 42 / 68 |
+| number float asc, input sorted | 271 (±29) | 119 (±6) | 2.3x | 38 / 60 |
+| number float asc, input reversed | 240 (±7) | 117 (±14) | 2.1x | 38 / 61 |
+| number with NaN asc | 750 (±25) | 664 (±6) | 1.1x | 41 / 61 |
+| 2 keys: text asc, int desc | 3803 (±97) | 1000 (±63) | 3.8x | 43 / 115 |
+| 2 keys: int asc, text asc | 3423 (±25) | 1000 (±25) | 3.4x | 43 / 107 |
 
 ## Results: sort step, 100k rows
 
 | Case | Baseline ms (MAD) | Now ms (MAD) | Speedup | Peak RSS delta MB (baseline / now) |
 | --- | --- | --- | --- | --- |
-| dataset: number (score) asc | 62 (±3) | 8 (±1) | 7.6x | 5 / 0 |
-| dataset: number (age) desc | 81 (±9) | 8 (±2) | 9.7x | 4 / 0 |
-| dataset: text (name) asc | 102 (±9) | 11 (±3) | 9.4x | 5 / 0 |
-| dataset: filter age >= 30, no sort | 10 (±1) | 13 (±2) | 0.8x | 0 / 0 |
-| dataset: filter name contains, no sort | 14 (±2) | 13 (±1) | 1.1x | 1 / 0 |
-| text asc | 406 (±9) | 137 (±12) | 3.0x | 5 / 8 |
-| text desc | 375 (±4) | 123 (±8) | 3.1x | 5 / 7 |
-| text asc, input sorted | 56 (±3) | 52 (±5) | 1.1x | 4 / 8 |
-| text asc, input reversed | 63 (±9) | 49 (±3) | 1.3x | 5 / 8 |
-| text (no cell type) asc | 386 (±46) | 194 (±25) | 2.0x | 5 / 7 |
-| digits asc | 260 (±11) | 111 (±11) | 2.3x | 5 / 14 |
-| number int asc | 142 (±5) | 10 (±3) | 13.6x | 5 / 0 |
-| number int desc | 120 (±9) | 8 (±2) | 15.2x | 5 / 0 |
-| number float asc | 226 (±18) | 14 (±2) | 16.4x | 5 / 0 |
-| number float desc | 219 (±12) | 12 (±1) | 18.6x | 5 / 0 |
-| number float asc, input sorted | 38 (±4) | 20 (±4) | 1.9x | 4 / 3 |
-| number float asc, input reversed | 47 (±2) | 20 (±3) | 2.3x | 5 / 3 |
-| number with NaN asc | 131 (±10) | 106 (±12) | 1.2x | 5 / 6 |
-| 2 keys: text asc, int desc | 422 (±13) | 135 (±8) | 3.1x | 5 / 8 |
-| 2 keys: int asc, text asc | 314 (±21) | 143 (±11) | 2.2x | 6 / 10 |
+| dataset: number (score) asc | 34 (±1) | 4 (±1) | 7.7x | 3 / 0 |
+| dataset: number (age) desc | 43 (±1) | 5 (±0) | 9.0x | 3 / 0 |
+| dataset: text (name) asc | 51 (±1) | 5 (±0) | 9.3x | 4 / 0 |
+| dataset: filter age >= 30, no sort | 6 (±0) | 7 (±0) | 0.9x | 0 / 0 |
+| dataset: filter name contains, no sort | 7 (±0) | 8 (±0) | 0.9x | 0 / 0 |
+| text asc | 221 (±2) | 72 (±2) | 3.1x | 5 / 8 |
+| text desc | 222 (±5) | 72 (±0) | 3.1x | 5 / 8 |
+| text asc, input sorted | 24 (±1) | 21 (±1) | 1.2x | 4 / 7 |
+| text asc, input reversed | 33 (±1) | 22 (±1) | 1.5x | 4 / 7 |
+| text (no cell type) asc | 189 (±1) | 93 (±1) | 2.0x | 5 / 8 |
+| digits asc | 107 (±3) | 51 (±1) | 2.1x | 5 / 13 |
+| number int asc | 66 (±1) | 5 (±0) | 13.1x | 5 / 0 |
+| number int desc | 66 (±1) | 4 (±0) | 15.4x | 5 / 0 |
+| number float asc | 91 (±1) | 7 (±0) | 13.5x | 5 / 0 |
+| number float desc | 94 (±3) | 7 (±0) | 13.2x | 5 / 0 |
+| number float asc, input sorted | 17 (±0) | 9 (±0) | 1.9x | 5 / 0 |
+| number float asc, input reversed | 17 (±0) | 9 (±0) | 1.9x | 4 / 0 |
+| number with NaN asc | 67 (±1) | 61 (±1) | 1.1x | 5 / 6 |
+| 2 keys: text asc, int desc | 281 (±25) | 87 (±11) | 3.2x | 5 / 8 |
+| 2 keys: int asc, text asc | 523 (±38) | 192 (±17) | 2.7x | 6 / 11 |
 
 Peak memory is the peak resident set size above the size before the run, sampled every 2 ms from a
-worker thread. It includes garbage that the collector has not yet freed. The keyed sort needs about
-40 bytes per row for one number column (keys 8, order and key buffers with spares 24, result 8). A
-text column adds about 60-90 bytes per distinct string (the map, the sorted array, the ranks), close
-to what the old decorated sort used.
+worker thread. It includes garbage that the collector has not yet freed. At 1M rows the peak is
+36-50 MB for the old and the new sort alike (about 40 bytes per row). By construction the keyed sort
+holds 8 bytes of key per row and about 24 bytes of order and key buffers with spares, plus the 8-byte
+result; a text column adds about 60-90 bytes per distinct string (the map, the sorted array, the
+ranks), close to what the old decorated sort used.
 
 ## Results: end to end in the grid (dev server, 1M rows, click to first sorted frame)
 
@@ -99,51 +101,59 @@ to what the old decorated sort used.
 than in production), other work on the machine. The baseline ran the same server with the old sort
 files swapped in.
 
-| Column | Baseline median ms | Now: range of medians over two batches ms |
+| Column | Baseline median ms | Now median ms |
 | --- | --- | --- |
-| Name (text, 25 distinct values) | 551 | 168-279 |
-| Score (number) | 523 | 138-215 |
+| Name (text, 25 distinct values), 1M rows | 292 | 87-89 |
+| Score (number), 1M rows | 264 | 68 |
+| Name (text), 100k rows | 49 | 37 |
 
-At 100k rows the Name column went from 132 ms to 36-105 ms. The rest of the click-to-frame time is
-React and the store, not the sort.
+Each cell is the median of 5 runs. The baseline ran between two runs of the new code (87 and 89 ms
+for Name) to show drift. The rest of the click-to-frame time is React and the store, not the sort.
 
 ## Results: live updates into a sorted 1M-row view
 
-Assumptions: 1,000 single-cell patches per second to random rows, on the `score` column that the
+Rows marked 1M or 100k give the grid size. Assumptions: 1,000 single-cell patches per second to random rows, on the `score` column that the
 view sorts by (or the `name` column for the last row); the same seeded stream drives both
 implementations and both stores must end on the same view. "Deferred" is the default
 `reorder`; "immediate" re-places the patched rows. Unit: main-thread ms spent per second of updates.
 
 | Case | Baseline ms/s (MAD) | Now ms/s (MAD) | Speedup |
 | --- | --- | --- | --- |
-| live, deferred (default), 10 batches x 100, sort column | 22 (±1) | 23 (±0) | 1.0x |
-| live, immediate, 10 batches x 100, sort column | 1591 (±286) | 314 (±17) | 5.1x |
-| live, immediate, 1000 x 1, sort column | 46584 (±906) | 24161 (±1228) | 1.9x |
-| live, immediate, 1000 x 1, filtered view, sort column | 24175 (±3190) | 14561 (±94) | 1.7x |
-| live, immediate, 1000 x 1, non-sort column | 43118 (±2160) | 1844 (±10) | 23.4x |
+| 1M: deferred (default), 10 batches x 100, sort column | 17 (±0) | 17 (±0) | 1.0x |
+| 1M: immediate, 10 batches x 100, sort column | 1044 (±83) | 234 (±29) | 4.5x |
+| 1M: immediate, 1000 x 1, sort column | 25034 (±891) | 15466 (±29) | 1.6x |
+| 1M: immediate, 1000 x 1, filtered view, sort column | 38123 (±1257) | 13111 (±300) | 2.9x |
+| 1M: immediate, 1000 x 1, non-sort column | 23584 (±1340) | 1390 (±76) | 17.0x |
+| 100k: deferred (default), 10 batches x 100, sort column | 3 (±0) | 3 (±0) | 1.0x |
+| 100k: immediate, 10 batches x 100, sort column | 147 (±8) | 31 (±12) | 4.7x |
+| 100k: immediate, 1000 x 1, sort column | 2348 (±135) | 1908 (±256) | 1.2x |
+| 100k: immediate, 1000 x 1, filtered view, sort column | 2394 (±127) | 1364 (±39) | 1.8x |
+| 100k: immediate, 1000 x 1, non-sort column | 2771 (±176) | 173 (±6) | 16.0x |
 
-Ticks of 100 rows (10 per second) cost about 31 ms each with `"immediate"`, and a single-row tick
-cost 9 ms on a quiet machine (24 ms in the run above). What remains is O(n) work that the store's
-immutable arrays require: the `data` array copy on every tick (about 1.6 ms at 1M) and the copy of
-the order array when a row moves. At 100,000 rows the same scenario measured 1.3 ms for a one-row tick and 4 ms for a 100-row tick (about 1,300 ms/s for 1,000 one-row ticks and 41 ms/s for ten 100-row ticks). A feed of 1,000 separate one-row ticks per second cannot reach a
+A 100-row tick costs about 23 ms at 1M rows and about 3 ms at 100k with `"immediate"`; a one-row tick
+costs about 15 ms at 1M and 1.6-1.9 ms at 100k. What remains is O(n) work that the store's immutable
+arrays require: the `data` array copy on every tick and the copy of the order array when a row
+moves. A feed of 1,000 separate one-row ticks per second cannot reach a
 small ms/s figure at 1M rows without changing those arrays.
 
 ## Comparing with an external table
 
 The maintainer supplied a table from another grid (conditions unknown: machine, data, what is
 timed). It is a reference point, not a target to match. On dataset-shaped rows (25 distinct
-names, scores 0-99; the `dataset:` rows above) the 1M number sort takes 83-89 ms and the text sort
-93 ms here; the filter at 1M rows takes 73-77 ms and did not change. No claim of equivalence is
-made, and public copy does not state a 1M-row figure for the whole interaction.
+names, scores 0-99; the `dataset:` rows above) the 1M number sort takes 44-52 ms and the text sort
+50 ms here; the filter at 1M rows takes 53-68 ms and did not change; deferred live updates cost
+17 ms/s and a 100-row `"immediate"` tick about 23 ms (10 ticks per second: 234 ms/s). The unit and
+the workload behind the external figures are unknown, so no claim of equivalence is made, and public
+copy does not state a 1M-row figure for the whole interaction.
 
 ## Tried and dropped, with cost and benefit
 
 | Technique | Verdict |
 | --- | --- |
-| Radix sort on number keys | Kept. 11-28x at 1M, about 40 bytes per row, about 150 lines. |
-| Dense ranks of distinct strings for text | Kept. 2.8-8x. Costs a string map; already-sorted text input got 0.8x slower at 1M (the map pass costs more than the old run detection). |
+| Radix sort on number keys | Kept. 7-30x at 1M, about 40 bytes per row, about 150 lines. |
+| Dense ranks of distinct strings for text | Kept. 2-11x. Costs a string map; already-sorted text input got 0.7x slower at 1M (the map pass costs more than the old run detection). |
 | Collation keys for mostly unique text (ASCII fast path, normalized key strings sorted with `<`, then a verifying pass) | Dropped. Unique strings gain only 1-2x without it, and the key table depends on the locale (contractions), so it needs a verify-and-fall-back layer. More code and risk than the maintainer asked for. |
-| 32-bit keys for small integers, an already-sorted early exit | Dropped. Saves about 20-40 ms at 1M; extra branches for no clear need. |
+| 32-bit keys for small integers, an already-sorted early exit | Dropped. Saves about 10-30 ms at 1M; extra branches for no clear need. |
 | Keying `date`, `select`, `checkbox`, `url`, and `longText` columns | Not done. Their comparators stay on the old path; a select column is now the slowest typed sort relative to number. |
 | Cache of the unfiltered sorted order for filter-only changes | Dropped. A filter change sorts only the surviving rows, which is already cheaper than the full sort, and the cache would hold 8 bytes per row per grid. |
 | Worker thread for the sort | Dropped. The sort is under 0.2 s for numbers; a worker needs the row data copied across threads. |
