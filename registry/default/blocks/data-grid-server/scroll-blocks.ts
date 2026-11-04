@@ -359,7 +359,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   }, [getCore, protectedRows, savingRows, savedSince, unacknowledgedRows, acknowledge, blockSize, limits, protectedFromEviction]);
 
   const unloadSlots = useCallback(
-    (ranges: readonly RowRange[]) => {
+    (ranges: readonly RowRange[], reportAfter = false) => {
       const core = getCore();
       core.empty = core.empty.flatMap((empty) => subtractRanges(empty, ranges));
       const held = mergeRanges([...core.loaded, ...core.stale]);
@@ -369,6 +369,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       setRows((prev) => {
         const unloaded = unloadRows(prev, targets, protectedFromEviction(), idOf);
         forgetUnloaded(core, unloaded.cleared, unloaded.kept);
+        if (reportAfter) core.reportAfterUnload = true;
         return unloaded.rows;
       });
     },
@@ -702,7 +703,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (forgotten && core.failed.size === 0) setError(null);
       if (left.length === 0) return;
       setLoading(busy(core));
-      unloadSlots(left);
+      unloadSlots(left, true);
     },
     [getCore, unloadSlots],
   );

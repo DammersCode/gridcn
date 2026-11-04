@@ -529,6 +529,18 @@ describe("kept slots", () => {
     expect(t.open().map((request) => request.start)).toContain(50);
   });
 
+  it("fetches a refresh block again when the rendered rows came back before its aborted unload rendered", async () => {
+    const t = await mount();
+    await t.report(0, 10);
+    act(() => t.server().refresh());
+    expect(t.open().map((request) => request.start)).toEqual([0]);
+    await act(async () => {
+      t.server().gridProps.onRenderedRowsChange({ start: 500, end: 510 });
+      t.server().gridProps.onRenderedRowsChange({ start: 0, end: 10 });
+    });
+    expect(t.open().map((request) => request.start)).toEqual([0]);
+  });
+
   it("keeps the row under the active cell and the edits without onSave through a revalidation tick", async () => {
     const t = await mount({ revalidateInterval: 5000 }, { onSave: false });
     act(() => t.state().actions.commitCellValue({ rowId: "r5", columnId: "name" }, "Local"));
