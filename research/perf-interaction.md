@@ -2,7 +2,7 @@
 
 Harness: `scripts/perf-interaction.mjs` against a production build with `GRIDCN_DEV_ROUTES=1` (page `/dev/interaction-bench`: 9 columns incl. text, number, select, checkbox, pinned left and right, row markers, header filter). Script time is the CDP `ScriptDuration` delta around one interaction plus two frames. 8 warm-up and 30 measured interactions per run, 3 to 5 fresh page loads per cell, pooled median and MAD. Several base URLs run interleaved so machine load hits each equally. Orientation only: another grid reports about 0.8 ms per click and 13 ms per key at 4x CPU slowdown; its conditions are unknown.
 
-## Baseline (HEAD bb190349, noisy shared machine)
+## Early baseline (RDP on, 2026-11-04, noisy; superseded by the table below, do not compare across)
 
 | Rows | Throttle | click | arrow | Shift+arrow | start typing |
 |---|---|---|---|---|---|
@@ -30,7 +30,22 @@ Row count does not matter: the cost is one commit plus forced style and layout o
 
 Trace totals (production, arrow): layout 0.86 to 0.60 ms; click event dispatch 2.14 to 1.88 ms. Component renders per interaction (production): click 17.9 to 15.8, arrow 11.5 to 10.5, Shift+arrow 5.8 unchanged.
 
-Wall-clock `ScriptDuration` shows the gain at 1x (about 10 to 15 %) but it sits inside the noise on a loaded machine (MAD 20 to 30 %); the 4x runs flipped between loads. Treat the trace numbers as the evidence and re-run on an idle machine before quoting.
+## Final A/B (RDP off, 2026-11-04 16:06, interleaved, alternating order, 5 runs x 30 interactions)
+
+A = HEAD bb190349, B = this branch. Median +- MAD of script ms per interaction.
+
+| Rows | Throttle | Build | click | arrow | Shift+arrow | start typing |
+|---|---|---|---|---|---|---|
+| 1,000 | 1x | A | 1.98 +- 0.57 | 1.11 +- 0.21 | 0.84 +- 0.18 | 1.08 +- 0.13 |
+| 1,000 | 1x | B | 2.02 +- 0.62 | 1.09 +- 0.25 | 0.84 +- 0.16 | 1.12 +- 0.14 |
+| 1,000 | 4x | A | 13.1 +- 3.0 | 6.7 +- 1.5 | 4.8 +- 0.9 | 6.5 +- 0.9 |
+| 1,000 | 4x | B | 9.8 +- 2.2 | 5.8 +- 1.0 | 4.5 +- 0.9 | 6.1 +- 0.9 |
+| 100,000 | 1x | A | 1.46 +- 0.16 | 0.95 +- 0.08 | 0.70 +- 0.08 | 1.02 +- 0.06 |
+| 100,000 | 1x | B | 1.40 +- 0.16 | 0.95 +- 0.12 | 0.74 +- 0.07 | 1.04 +- 0.06 |
+| 100,000 | 4x | A | 10.6 +- 2.3 | 7.0 +- 1.4 | 4.6 +- 1.0 | 6.5 +- 1.1 |
+| 100,000 | 4x | B | 10.3 +- 2.6 | 6.3 +- 1.2 | 4.6 +- 0.9 | 6.3 +- 1.1 |
+
+Honest reading: at 1x there is no difference beyond noise. At 4x the click and arrow medians drop 3 to 25 %, but the spreads overlap, so only the trace numbers above are firm evidence. The branch is already near the orientation numbers (about 5.8 to 6.7 ms per arrow key at 4x here, against 13 ms reported elsewhere; click is about 10 ms at 4x against 0.8 ms at 1x elsewhere, whose throttle is unknown).
 
 ## Tried and dropped
 
