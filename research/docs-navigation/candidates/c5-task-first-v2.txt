@@ -110,11 +110,14 @@
 - custom-cell-model | Cell type model | feature | 700
 - plugins-shape | Plugin model | feature | 600
 - plugins-overlays | Plugin overlays and bands | feature | 700
-## Scale and quality
-- quality-index | Scale and quality | landing | 250
-- performance | Performance | feature | 500
+## Performance
+- performance | Performance | landing | 400
+- benchmark-results | Benchmark results | reference | 900
+- run-benchmark | Run the benchmark yourself | task | 600
 - virtualization | Virtualization | feature | 900
 - row-limits | Row limits | reference | 400
+## Accessibility
+- a11y-index | Accessibility | landing | 250
 - a11y-conformance | Accessibility conformance | feature | 900
 - a11y-keyboard | Keyboard and screen reader coverage | feature | 900
 - a11y-known-gaps | Known gaps | reference | 400

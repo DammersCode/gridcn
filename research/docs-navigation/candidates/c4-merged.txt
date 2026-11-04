@@ -111,8 +111,9 @@
 - evaluate-index | Evaluate gridcn | landing | 300
 - feature-matrix | Feature matrix | cheatsheet | 900
 ## Performance
-- performance-index | Performance and scale | landing | 250
-- performance | Performance | feature | 500
+- performance | Performance | landing | 400
+- benchmark-results | Benchmark results | reference | 900
+- run-benchmark | Run the benchmark yourself | task | 600
 - virtualization | Virtualization | feature | 900
 - row-limits | Row limits | reference | 400
 ## Accessibility

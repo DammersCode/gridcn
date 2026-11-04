@@ -62,7 +62,9 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | print-dropzone | `addons/import-export` (Print, Dropzone, Lower-level pieces) | split |
 | presence | `addons/presence` | move |
 | presence-broadcast | `addons/broadcasting-presence` | move |
-| performance | `performance` (row ceiling fixed to one statement) | move |
+| performance | `performance` (becomes `performance/index`; row ceiling fixed to one statement) | move |
+| benchmark-results | new page from the perf-docs session (`performance/benchmark-results`) | new |
+| run-benchmark | new page with the in-browser self-test panel from the perf-docs session (`performance/run-it-yourself`) | new |
 | virtualization | `virtualization` | move |
 | row-limits | `performance`, `virtualization` (Row limit), `project-status` | merge, new text |
 | a11y-conformance | `accessibility` (Conformance target, Semantics, Selection and editor, Live regions) | split |
