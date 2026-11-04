@@ -52,6 +52,7 @@ import { resolveRowHeight } from "./rows/density";
 import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
 import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
+import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { isDev } from "./is-dev";
@@ -260,7 +261,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
-  const emptyStateLabel = gridLabels.emptyState;
+  const emptyReason: EmptyStateReason = dataLength === 0 && !serverFiltered ? "no-data" : "filtered";
+  const emptyStateLabel = emptyReason === "filtered" ? gridLabels.noResults : gridLabels.emptyState;
+  useLoadAnnouncement(loading, error);
   // The resolved row-band segments (every plugin's `rowBands`, in plugin array order); an empty
   // shared identity when no plugin contributes bands.
   const bands = useDataGridPluginBands();
@@ -672,7 +675,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   style={{ insetBlockStart: effectiveHeaderHeight }}
                 >
                   {(typeof emptyState === "function"
-                    ? emptyState({ reason: dataLength === 0 && !serverFiltered ? "no-data" : "filtered" })
+                    ? emptyState({ reason: emptyReason })
                     : emptyState) ?? emptyStateLabel}
                 </div>
               )}

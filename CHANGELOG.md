@@ -41,6 +41,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - **Breaking:** `FilterOperator` is a built-in operator or any string, and `FilterSpec.operator` accepts a custom id. A `switch` over `FilterOperator` that relied on a closed union needs a default branch; use `BuiltInFilterOperator` for the closed set. `parseFilterState` takes `operatorInput` to accept a custom id, and `isFilterOperator` narrows to `BuiltInFilterOperator`.
 - Custom filter operators. List `{ id, label, input?, match? }` in a column's `filterOperators` (or a cell type's `filter.operators`): the operator select shows `label`, `input` (`single`, `range`, `list`, `none`) picks the value widget, and `match(text, filter)` evaluates it on the client. With `filterMode="server"` the spec carries the id and `match` is never called. The URL param round-trips a custom id through `useDataGridUrlState`.
 - `ColumnDef.filterCompare(text, bound)` orders a column's cells for `gt`, `gte`, `lt`, `lte`, and `isBetween` instead of the numeric-then-text default.
+- **Breaking:** a grid with zero rows because a filter or the search hides them shows `labels.grid.noResults` ("No results") instead of `labels.grid.emptyState` ("No rows"), in client and server filter mode. An empty source with no filter keeps "No rows". Set `labels.grid.noResults` to restore the old text. `resultsCount(0)` reads "No results".
+- With `announceResults`, the end of a load (`loading` true to false on `DataGridRoot`) is announced: the `totalRowCount` or the loaded rows, "No results" for none, or `labels.grid.errorState` when the load ends with an `error`. The live region keeps its 500 ms trailing pause, so a run of refreshes is read once.
 
   ```tsx
   // before

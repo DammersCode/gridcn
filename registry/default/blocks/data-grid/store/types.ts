@@ -1199,9 +1199,9 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
-export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "loadError";
 
-/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
+/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind` (`loadError` has none); `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
 export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
 
 /** Full store shape: interaction state + the stable actions object. */
