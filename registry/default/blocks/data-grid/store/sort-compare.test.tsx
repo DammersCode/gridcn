@@ -128,7 +128,7 @@ describe("cell-type compare wired into sorting (#85)", () => {
   it("survives a throwing comparator on a mistyped value", () => {
     type TextRow = { id: string; label: number };
     const textColumns: readonly ColumnDef<TextRow, unknown>[] = [
-      { id: "label", header: "Label", accessorKey: "label", sortCompare: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label) },
+      { id: "label", header: "Label", accessorKey: "label", type: "text" },
     ];
     // numbers in a `type: "text"` column — `textCellType.compare` calls localeCompare and throws.
     const numbersInText: TextRow[] = [
