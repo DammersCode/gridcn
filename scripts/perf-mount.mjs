@@ -89,6 +89,8 @@ async function openBench(session, url) {
 }
 
 async function mountOnce({ page, cdp }, rows, variant) {
+  await page.evaluate(() => window.__mountBench.unmount());
+  await cdp.send("HeapProfiler.collectGarbage");
   const before = await cdpMetrics(cdp);
   const result = await page.evaluate(([r, v]) => window.__mountBench.run(r, v), [rows, variant]);
   const after = await cdpMetrics(cdp);
