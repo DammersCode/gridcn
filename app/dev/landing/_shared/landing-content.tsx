@@ -30,8 +30,8 @@ function Panel({ id, title, intro, children, className, collapsed, defaultOpen }
       <details open={defaultOpen} className={`group border bg-card ${className ?? ""}`}>
         <summary className="flex cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
           <div>{head}</div>
-          <span className="mt-1 shrink-0 text-xs font-medium underline underline-offset-4 group-open:hidden">Show</span>
-          <span className="mt-1 hidden shrink-0 text-xs font-medium underline underline-offset-4 group-open:inline">Hide</span>
+          <span className="mt-1 shrink-0 border px-2.5 py-1 text-xs font-medium group-open:hidden">Show ▾</span>
+          <span className="mt-1 hidden shrink-0 border px-2.5 py-1 text-xs font-medium group-open:inline">Hide ▴</span>
         </summary>
         <div className="flex flex-col gap-3 px-4 pb-4">{children}</div>
       </details>
@@ -191,7 +191,7 @@ export function LandingContent() {
         <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All five skills →</Link>
       </Panel>
 
-      <Panel collapsed id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
+      <Panel collapsed defaultOpen id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
         <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 max-sm:[&>li:nth-child(n+9)]:hidden">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
