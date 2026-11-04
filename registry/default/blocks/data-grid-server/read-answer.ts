@@ -26,7 +26,7 @@ export type ServerRowsPageRequest = ServerRowsRequest & {
 
 /** What `fetchRows` resolves with in every mode. */
 export type ServerRowsAnswer<TData, TCursor = never> = {
-  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. A repeated row id keeps its first row. */
+  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. A repeated row id keeps its first row and leaves the later copy's slot empty (a skeleton row); make the sort total. */
   rows: TData[];
   /** Row count of the result. Omitted keeps the last known count; `null` declares it unknown. */
   totalRowCount?: number | null;

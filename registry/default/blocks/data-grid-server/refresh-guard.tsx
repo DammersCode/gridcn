@@ -7,7 +7,10 @@ import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-gr
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
  * cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with
- * a pending delete is gone: the answer's copy is dropped. A protected row that the answer lacks, such as a pending insert, stays.
+ * a pending delete is gone: the answer's copy is dropped and its slot stays empty. A protected row that the answer lacks, such as a
+ * pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes once
+ * when the last pending insert or delete settles. A pages refresh appends such a row at the page end (the page can exceed `pageSize`
+ * by pending inserts); a sequential refresh that ends before a pending insert may drop it until its save settles.
  * Everything else is replaced. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
  * loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
  */
@@ -24,14 +27,24 @@ type Holder = {
   recording: boolean;
   /** Row id -> generation of its latest save start; holds one entry per saved row, dropped when no request is open. */
   savedAt: Map<string, number>;
+  /** Called with the id of a row whose save just settled. */
+  onSettled: ((id: string) => void) | null;
 };
+
+function setListenerOn(holder: Holder, listener: ((id: string) => void) | null) {
+  holder.onSettled = listener;
+}
 
 function markEditedOn(holder: Holder) {
   holder.edited = true;
 }
 
-function trackSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
-  if (!holder.recording || state.saveStatus === prev.saveStatus) return;
+function trackSaves(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
+  if (state.saveStatus === prev.saveStatus) return;
+  if (holder.onSettled) {
+    for (const [id, status] of prev.saveStatus) if (status === "saving" && state.saveStatus.get(id) !== "saving") holder.onSettled(id);
+  }
+  if (!holder.recording) return;
   for (const [id, status] of state.saveStatus) {
     if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.savedAt.set(id, ++holder.generation);
   }
@@ -60,7 +73,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     useEffect(() => {
       holder.store = store;
       holder.everMounted = true;
-      const unsubscribe = store.subscribe((state, prev) => trackSaveStarts(holder, state, prev));
+      const unsubscribe = store.subscribe((state, prev) => trackSaves(holder, state, prev));
       return () => {
         unsubscribe();
         holder.store = null;
@@ -73,7 +86,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), onSettled: null }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -90,8 +103,9 @@ export function useRefreshGuard() {
   const markEdited = useCallback(() => markEditedOn(holder), [holder]);
   const saveMark = useCallback(() => markSavesOn(holder), [holder]);
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
+  const setSettleListener = useCallback((listener: ((id: string) => void) | null) => setListenerOn(holder, listener), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener };
 }
 
 export const GUARD_MISSING_MESSAGE =
@@ -235,14 +249,11 @@ export function writeBlocks<TData>(
       next[slot] = incoming;
     }
   }
-  // Nothing else is loading, so a protected row that the answer does not carry (a pending insert) stays where it was.
+  // Nothing else is loading: a protected row that the answer does not carry (a pending insert) returns to its own slot when no answer row sits there.
   if (final) {
     for (const [id, { row, slot }] of overwritten) {
-      if (carried.has(id) || !stillProtected.has(id)) continue;
-      if (next[slot] !== undefined && idOf(next[slot] as TData, slot) === id) continue;
-      let at = slot;
-      while (at < next.length && next[at] !== undefined && stillProtected.has(idOf(next[at] as TData, at))) at++;
-      if (at < next.length) next[at] = row;
+      if (carried.has(id) || !stillProtected.has(id) || slot >= next.length || next[slot] !== undefined) continue;
+      next[slot] = row;
     }
   }
   return { rows: next, cleared: emptied.filter((slot) => next[slot] === undefined) };

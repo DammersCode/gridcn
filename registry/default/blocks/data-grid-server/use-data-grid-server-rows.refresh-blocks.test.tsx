@@ -414,7 +414,7 @@ describe("a local row operation on a random-access source", () => {
     expect(t.nameOf("r1")).toBeUndefined();
   });
 
-  it("keeps a row inserted locally while its save is pending", async () => {
+  it("shows no row twice while an insert is pending, and refreshes once when its save settles", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
     act(() => t.state().actions.insertRow(3, "below"));
@@ -422,9 +422,31 @@ describe("a local row operation on a random-access source", () => {
     act(() => t.server().refresh());
     await t.ready();
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
-    expect(t.nameOf("loc")).toBe("Local");
     const ids = t.ids();
     expect(new Set(ids).size).toBe(ids.length);
+    const before = t.requests();
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.requests() - before).toBeGreaterThan(0);
+    expect(t.requests() - before).toBeLessThan(6);
+    expect(t.nameOf("loc")).toBeUndefined();
+    expect(t.server().getLoadedRanges().length).toBeGreaterThan(0);
+  });
+
+  it("refreshes once when a delete settles", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.deleteRowsById(["r1"]));
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.nameOf("r1")).toBeUndefined();
+    const before = t.requests();
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.requests() - before).toBeGreaterThan(0);
+    expect(t.requests() - before).toBeLessThan(6);
   });
 });
 

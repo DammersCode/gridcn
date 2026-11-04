@@ -1,3 +1,15 @@
+/*
+ * Model test of the refresh guard: a seeded interleaving of landings, failures, saves, edits, local row operations, server moves,
+ * filter changes and unmounts, checked against the rule after every step and against the backend after a final drain.
+ * Remaining exemptions, each for one reason:
+ * - Duplicate ids are not checked while rows that moved on the server (or shifted locally, in sequential sources) mix with older rows,
+ *   or while sibling blocks of one refresh are still in flight: positions of two snapshots overlap until the refresh settles.
+ * - Holes are not checked in sequential sources in the same state: a protected row that moved across blocks cannot keep both places.
+ * - A pending insert in a counted source is not required to survive a landing: it returns only into an empty slot, and the hook
+ *   refreshes when its save settles, so the server decides.
+ * - A repeated id in an answer leaves its later copy's slot empty (answered, never loaded); exact slots are checked for the first copy.
+ * - `getRowId` that reads the index and unmount mid-flight only check that nothing throws, loops, or leaves a hole.
+ */
 import { StrictMode, useEffect, useState } from "react";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -263,16 +275,13 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         else expect(copies.some((copy) => copy.name === carried.name || copy.name === known.get(carried.id)), `protected ${carried.id} took a foreign value`).toBe(true);
         return;
       }
-      const hiddenBy = post[slot];
-      if (hiddenBy && mustKeep.has(hiddenBy.id) && !carriedIds.has(hiddenBy.id)) return;
       expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer (slot ${slot} holds ${post[slot]?.id}, request ${request.label}, protected ${[...mustKeep].join("/")}, gone ${[...gone].join("/")}, copies ${copies.map((copy) => copy.name).join("/")})`).toBe(true);
       if (slotsExact && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
     });
-    if (soleRequest && (kind === "counted" || kind === "pages")) {
+    if (soleRequest && kind === "pages") {
       for (const id of mustKeep) {
         const preSlot = preRows.findIndex((row) => row?.id === id);
         if (gone.has(id) || carriedIds.has(id) || preSlot < 0) continue;
-        if (kind === "counted" && (preSlot < request.start || preSlot >= request.start + request.rows.length)) continue;
         expect(copiesOf(post, id).length, `protected ${id} that the answer lacks vanished`).toBeGreaterThan(0);
       }
     }

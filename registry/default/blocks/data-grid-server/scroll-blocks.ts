@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
@@ -90,7 +90,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   retry: () => void;
   /**
    * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
-   * source refetches from the first block up to the rendered rows. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with a pending delete is gone: the answer's copy is dropped. A protected row that the answer lacks, such as a pending insert, stays. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
+   * source refetches from the first block up to the rendered rows. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with a pending delete is gone: the answer's copy is dropped and its slot stays empty. A protected row that the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes once when the last pending insert or delete settles, so the server decides. A pages refresh appends such a row at the end of the page, so the page can exceed `pageSize` by pending inserts. A sequential refresh that ends before a pending insert may drop it until its save settles. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
    * Call it after the `onSave` promise settles to pick up server-computed fields.
    */
   refresh: () => void;
@@ -150,6 +150,8 @@ type Core<TData> = {
   /** Protected rows that a block overwrote, and the ids the landed blocks carried; both are emptied when no request is pending. */
   orphans: Map<string, { row: TData; slot: number }>;
   carried: Set<string>;
+  /** Rows of a local insert or delete whose save is pending; when the last one settles the hook refreshes, so the server decides. */
+  structural: Set<string>;
   /** Rows with a delete still saving: an answer that carries one drops it. */
   deleted: Set<string>;
   /** Slots an answer left empty on purpose (a repeated or deleted row): answered, never refetched, never claimed as loaded. */
@@ -159,7 +161,7 @@ type Core<TData> = {
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set() };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), structural: new Set(), orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set() };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -217,7 +219,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves } = useRefreshGuard();
+  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener } = useRefreshGuard();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -637,6 +639,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     refreshRef.current = refresh;
   }, [refresh]);
 
+  useEffect(() => {
+    const core = getCore();
+    setSettleListener((id) => {
+      if (core.structural.delete(id) && core.structural.size === 0) refreshRef.current();
+    });
+    return () => setSettleListener(null);
+  }, [getCore, setSettleListener]);
+
   const getLoadedRanges = useCallback(() => getCore().loaded.slice(), [getCore]);
 
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
@@ -671,6 +681,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       });
       if (core.kind === "sequence") followRowOperations(change);
       trackDeletes(core.deleted, change);
+      if (core.kind !== "sequence") for (const op of change.ops) if (op.type === "insert" || op.type === "delete") core.structural.add(op.rowId);
       if (core.kind !== "sequence" && core.ready && change.ops.some((op) => op.type !== "update")) {
         // A local insert, delete, or move shifts rows away from the positions the loaded ranges name; the refresh loads the rendered ones again.
         const inserted = change.ops.filter((op) => op.type === "insert").length;
