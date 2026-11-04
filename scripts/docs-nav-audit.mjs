@@ -104,7 +104,9 @@ const BUDGETS = {
   cheatsheet: { target: [0, 1200], hard: 1200, screens: 12, h2: [2, 10] },
 };
 
-function pageType(path) {
+function pageType(path, src = "") {
+  const declared = /^type:\s*(\w+)/m.exec(src)?.[1];
+  if (declared && BUDGETS[declared]) return declared;
   if (path.endsWith("index.mdx")) return "landing";
   if (/^(reference|learn|cheatsheets)\//.test(path)) return { reference: "reference", learn: "step", cheatsheets: "cheatsheet" }[path.split("/")[0]];
   if (/^(recipes|examples)\//.test(path)) return "task";
@@ -114,9 +116,9 @@ function pageType(path) {
 function check() {
   const titles = new Map();
   const rows = pages.map((p) => {
-    const type = pageType(p.path);
-    const b = BUDGETS[type];
     const src = readFileSync(join(root, p.path), "utf8");
+    const type = pageType(p.path, src);
+    const b = BUDGETS[type];
     const title = frontTitle(src);
     titles.set(title, [...(titles.get(title) ?? []), p.path]);
     const fails = [];
@@ -192,7 +194,7 @@ function checkCandidate(file) {
         else if (g.pages.length > 7) warn("S3", `group "${g.name}" has ${g.pages.length} pages (target 7)`);
       }
       if (g.pages[0]?.slug !== "index" && g.pages[0]?.type !== "landing") fail("S7", `group "${g.name}" in "${a.name}" has no landing first`);
-      if (g.subs.length && !/reference|recipes/i.test(a.name)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
+      if (g.subs.length && !/reference|recipes|examples/i.test(a.name) && !/examples/i.test(g.name)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
       for (const p of all) {
         const b = BUDGETS[p.type];
         if (!b) fail("TYPE", `${p.slug} has unknown type "${p.type}"`);

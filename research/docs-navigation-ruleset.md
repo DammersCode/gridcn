@@ -12,7 +12,7 @@ lines, or 0.6 of a live preview. Both come from the audit script. A **peer** is 
 
 ## 1. Page types
 
-Every page has exactly one type. The type decides the budget and the template. The type follows from the path (see N6).
+Every page has exactly one type. The type decides the budget and the template. The type is declared in the page frontmatter (see N6).
 
 | Type | Answers | Words (target / hard) | Screens (hard) | H2 count | Template |
 |---|---|---|---|---|---|
@@ -51,8 +51,8 @@ Every page has exactly one type. The type decides the budget and the template. T
   between areas. Areas are parallel sections for the same readers.
 - S2. An area has 4 to 8 groups. A group is a folder. The Learn or Start area is exempt: it holds 1 to 3 groups.
 - S3. A group has at most 7 pages at target and 12 at the hard cap. A generated list sorted A to Z (props, hooks,
-  recipes by name) is exempt.
-- S4. The tree is two levels deep: group, then page. A third level is allowed only inside Reference and Recipes.
+  recipes by name) is exempt. The Learning path group may hold 12 pages (see S12).
+- S4. The tree is two levels deep: group, then page. A third level is allowed only inside Reference, Recipes, and Examples groups.
 - S5. At most 25 sidebar rows are visible at once on any page: the groups of the area plus the pages of the one open
   group (and the open subgroups of a third level).
 - S6. Groups are collapsible folders. The group of the current page is open; every other group is closed. A closed group
@@ -83,9 +83,11 @@ Every page has exactly one type. The type decides the budget and the template. T
   a defect.
 - N4. A title is a noun phrase for Feature, Reference, and Landing pages, and an imperative verb phrase for Task and Step
   pages ("Save edits to a server"). An example page under `examples/` is the exception: its title is the task as a noun phrase plus "example" ("Pin rows example").
-- N5. A slug is the kebab-case of the title, at most four words. Folder names are the group names in kebab-case.
-- N6. The path gives the type: `index.mdx` is Landing; a file under `reference/` is Reference; under `recipes/` is Task;
-  under `learn/` is Step; under `cheatsheets/` is Cheatsheet; every other file is Feature.
+- N5. A slug is the kebab-case of the title, at most four words. Folder names are the group names in kebab-case. The URL
+  map of the migration plan is generated from titles, so this rule holds by construction.
+- N6. A page declares its type in frontmatter as `type: landing | feature | task | step | reference | cheatsheet`. The audit
+  script reads it. An `index.mdx` without a `type` is a Landing page; a page without a `type` counts as Feature. The field
+  needs one line in the page schema of `source.config.ts`.
 - N7. An H2 title is front-loaded: the first two words carry the topic. It is not a question and not a sentence.
 - N8. An anchor that exists today never disappears without a redirect (see the migration plan, section 4).
 
