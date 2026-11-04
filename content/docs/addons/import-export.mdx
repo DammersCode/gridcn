@@ -104,8 +104,8 @@ scroll-mode grid. Unloaded rows are skipped in every scope. To export the whole 
 scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
 
 XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). A name that Excel does not
-accept as a sheet name rejects the export: more than 31 characters, one of `[ ] : * ? / \`, or
-`History`. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
+accept as a sheet name rejects the export: an empty name, more than 31 characters, one of
+`[ ] : * ? / \`, a leading or trailing apostrophe, or `History` in any letter case. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
 download, for uploads to a server. The xlsx file is compressed.
 
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
@@ -156,8 +156,9 @@ ended the export before the source did. The file then holds the rows read so far
 Each batch must be an array, or the export rejects and downloads nothing. The export skips `null`
 and `undefined` rows. A source that returns only empty batches, or far more `null` rows than
 `maxRows`, rejects. A source that returns more rows than `maxRows` is cut at `maxRows`. A `maxRows`
-or `maxBytes` below 0 counts as 0. Formula-like CSV cells get the same quote prefix as in a loaded export. A CSV export
-writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file, and an invalid `workbookName` rejects before the source runs.
+or `maxBytes` below 0 counts as 0. Formula-like CSV cells get the same quote prefix as in a
+loaded export. A CSV export writes the file batch by batch. An xlsx export holds all rows in memory
+until it writes the file, and an invalid `workbookName` rejects before the source runs.
 
 ## Print
 

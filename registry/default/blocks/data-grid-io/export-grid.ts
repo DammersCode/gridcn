@@ -12,7 +12,7 @@ const XLSX_MAX_ROWS = 1_048_576;
 /** Cells one xlsx source export holds; the writer joins the sheet into one string. */
 const XLSX_MAX_CELLS = 5_000_000;
 
-const INVALID_SHEET_NAME = /[\[\]:*?/\\]/;
+const INVALID_SHEET_NAME = /[[\]:*?/\\]/;
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
 export const MAX_CELL_TEXT = 32_767;
@@ -42,7 +42,7 @@ export type ExportGridOptions = {
   sanitizeFormulas?: boolean;
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
-  /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
+  /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
   workbookName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
   maxRows?: number;
@@ -159,7 +159,7 @@ export type BuildXlsxOptions = {
   scope?: "view" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
-  /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
+  /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
   workbookName?: string;
   /** Same row cap as {@link ExportGridOptions.maxRows}. */
   maxRows?: number;

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef, ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { DEFAULT_LABELS } from "@/registry/default/blocks/data-grid/labels";
 import { exportGrid } from "./export-grid";
 import { parseImportFile } from "./parse-import-file";
 
@@ -263,5 +264,14 @@ describe("exportGrid with a source per data mode", () => {
     });
     expect(api).toHaveBeenCalledTimes(2);
     expect(api.mock.calls[0]![1]).toBeInstanceOf(AbortSignal);
+  });
+});
+
+describe("export status labels", () => {
+  it("count one row in the singular and flag an incomplete file", () => {
+    const { exportDone } = DEFAULT_LABELS.io;
+    expect(exportDone(1, false)).toBe("1 row exported");
+    expect(exportDone(1200, false)).toBe("1,200 rows exported");
+    expect(exportDone(5, true)).toContain("incomplete");
   });
 });
