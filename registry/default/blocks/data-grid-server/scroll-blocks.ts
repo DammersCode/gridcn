@@ -306,6 +306,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.pending.length = 0;
       pruneSaves(null);
       forgetStructural();
+      core.cancelQueuedRefresh?.();
+      core.cancelQueuedRefresh = null;
       core.displaced = new Map();
       core.stale = [];
       core.empty = [];
@@ -405,6 +407,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         core.failed.clear();
         core.pending.length = 0;
         forgetStructural();
+        core.cancelQueuedRefresh?.();
+        core.cancelQueuedRefresh = null;
         core.displaced = keep.displaced;
         core.stale = [];
         core.empty = [];

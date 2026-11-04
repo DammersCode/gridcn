@@ -436,6 +436,19 @@ describe("a local row operation on a random-access source", () => {
 
   const streamedInsert = (id: string, index: number) => ({ source: "stream" as const, ops: [{ type: "insert" as const, rowId: id, row: { id, name: "Streamed" }, index }] });
 
+  it("drops the refresh a row operation queued when the spec changes", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    const before = t.requests();
+    act(() => {
+      t.state().actions.insertRow(3, "below");
+      t.server().gridProps.onSearchTextChange?.("ann");
+    });
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.requests() - before).toBe(2);
+  });
+
   it("refetches once for a burst of streamed row operations", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
