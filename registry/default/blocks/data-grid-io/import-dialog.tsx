@@ -92,6 +92,14 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     reset();
   }, [open, reset]);
 
+  useEffect(
+    () => () => {
+      confirmTokenRef.current += 1;
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
+
   const onFile = useCallback(
     (file: File) => {
       const targets: ImportTargetColumn[] = allColumns.map((c) => ({ id: c.id, headerText: c.headerText, header: c.header }));

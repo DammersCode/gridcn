@@ -156,6 +156,31 @@ describe("exportGrid with a source", () => {
     expect(await read()).toBe("");
   });
 
+  it("takes a plain array from the source and clamps unusable limits", async () => {
+    captureDownload();
+    const rows = [row("a"), row("b")];
+    expect(await exportGrid(makeState(), { source: () => rows, maxRows: -5 })).toEqual({ rowCount: 0, truncated: true });
+    expect(await exportGrid(makeState(), { source: () => rows, maxRows: Number.NaN })).toEqual({ rowCount: 2, truncated: false });
+    expect(await exportGrid(makeState(), { source: () => rows, maxRows: Infinity })).toEqual({ rowCount: 2, truncated: false });
+    expect((await exportGrid(makeState(), { source: () => rows, maxBytes: Number.NaN })).truncated).toBe(false);
+  });
+
+  it("rejects an invalid xlsx sheet name before it calls the source", async () => {
+    captureDownload();
+    const source = vi.fn((_ctx: { spec: ServerSpec; signal: AbortSignal }) => [row("a")]);
+    await expect(exportGrid(makeState(), { format: "xlsx", workbookName: "a/b", source })).rejects.toThrow("sheet name");
+    expect(source).not.toHaveBeenCalled();
+  });
+
+  it("yields while it walks a long array so Cancel can land", async () => {
+    captureDownload();
+    const controller = new AbortController();
+    const many = Array.from({ length: 400_000 }, (_, i) => row(`r${i}`));
+    const pending = exportGrid(makeState(), { source: () => many, signal: controller.signal });
+    setTimeout(() => controller.abort(new Error("stop")), 5);
+    await expect(pending).rejects.toThrow("stop");
+  });
+
   it("rejects a batch that is not an array and downloads nothing", async () => {
     const read = captureDownload();
     await expect(exportGrid(makeState(), { source: () => Promise.resolve({ length: 1e9 } as never) })).rejects.toThrow(TypeError);

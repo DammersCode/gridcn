@@ -145,7 +145,7 @@ order you choose.
 | Option | Default | Meaning |
 |---|---|---|
 | `source` | none | Where the rows of the whole result come from. `scope` does not apply. |
-| `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit. |
+| `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. |
 | `maxBytes` | 256 MiB | Stops the export after this much file text. An xlsx file counts characters. |
 | `signal` | none | Cancels the export. The promise rejects and no file downloads. |
 | `onProgress` | none | Called after each batch with `{ rowCount, byteCount }`. |
@@ -154,9 +154,10 @@ order you choose.
 ended the export before the source did. The file then holds the rows read so far.
 
 Each batch must be an array, or the export rejects and downloads nothing. The export skips `null`
-and `undefined` rows. A source that returns only empty batches, or far more rows than `maxRows`,
-rejects. Formula-like CSV cells get the same quote prefix as in a loaded export. A CSV export
-writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file.
+and `undefined` rows. A source that returns only empty batches, or far more `null` rows than
+`maxRows`, rejects. A source that returns more rows than `maxRows` is cut at `maxRows`. A `maxRows`
+or `maxBytes` below 0 counts as 0. Formula-like CSV cells get the same quote prefix as in a loaded export. A CSV export
+writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file, and an invalid `workbookName` rejects before the source runs.
 
 ## Print
 

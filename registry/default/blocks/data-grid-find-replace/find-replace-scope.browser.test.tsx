@@ -36,7 +36,7 @@ describe("find and replace scope note", () => {
   });
 
   it.each([
-    ["a totalRowCount", { totalRowCount: 100 }],
+    ["a totalRowCount (server pagination and scroll rows)", { totalRowCount: 100 }],
     ["an unknown totalRowCount", { totalRowCount: null }],
     ["server sort", { sortMode: "server" as const }],
   ])("shows on a grid with %s and describes the Find field", async (_name, grid) => {

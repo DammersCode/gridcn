@@ -571,7 +571,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     exportCancel: "Cancel export",
     exportCancelled: "Export cancelled",
     exportFailed: "Export failed",
-    exportDone: (rowCount, truncated) => `${rowCount.toLocaleString("en-US")} rows exported${truncated ? ", file is incomplete: a limit stopped the export" : ""}`,
+    exportDone: (rowCount, truncated) => `${rowCount.toLocaleString("en-US")} ${rowCount === 1 ? "row" : "rows"} exported${truncated ? ", file is incomplete: a limit stopped the export" : ""}`,
     importButton: "Import",
     importDialogTitle: "Import file",
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",

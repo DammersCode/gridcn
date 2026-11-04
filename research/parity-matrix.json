@@ -806,6 +806,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -813,6 +814,7 @@
         "PS": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -820,6 +822,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -833,6 +836,7 @@
         "SS": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -840,6 +844,7 @@
         "FS": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -847,6 +852,7 @@
         "API": {
           "status": "supported",
           "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
             "content/docs/addons/import-export.mdx"
           ]
@@ -1438,12 +1444,18 @@
           ]
         },
         "PS": {
-          "status": "n/a",
-          "reason": "Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
         },
         "Z": {
-          "status": "n/a",
-          "reason": "Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
         },
         "C": {
           "status": "supported",

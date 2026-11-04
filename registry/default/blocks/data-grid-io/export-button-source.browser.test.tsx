@@ -37,7 +37,7 @@ describe("DataGridExportButton with a source", () => {
     await userEvent.keyboard("{Escape}");
 
     release();
-    await expect.element(page.getByText("1 rows exported")).toBeInTheDocument();
+    await expect.element(page.getByText("1 row exported")).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 

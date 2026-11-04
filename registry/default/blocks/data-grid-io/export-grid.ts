@@ -1,12 +1,18 @@
 import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
-import { DEFAULT_SOURCE_MAX_BYTES, DEFAULT_SOURCE_MAX_ROWS, runSourceExport, type ExportProgress, type ExportResult, type ExportSource, type ExportSourceContext } from "./export-source";
+import { DEFAULT_SOURCE_MAX_BYTES, DEFAULT_SOURCE_MAX_ROWS, normalizeLimit, runSourceExport, type ExportProgress, type ExportResult, type ExportSource, type ExportSourceContext } from "./export-source";
 
+const BOM = String.fromCharCode(0xfeff);
 const CSV_EOL = "\r\n";
 
 /** Rows an Excel worksheet holds, header row included. */
 const XLSX_MAX_ROWS = 1_048_576;
+
+/** Cells one xlsx source export holds; the writer joins the sheet into one string. */
+const XLSX_MAX_CELLS = 5_000_000;
+
+const INVALID_SHEET_NAME = /[\[\]:*?/\\]/;
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
 export const MAX_CELL_TEXT = 32_767;
@@ -177,6 +183,10 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+function cutCell(text: string): string {
+  return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
+}
+
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
 }
@@ -190,19 +200,22 @@ function loadedResult(state: DataGridReadState, scope: "view" | "all" | "selecti
 async function exportFromSource(state: DataGridReadState, source: ExportSource, options: ExportGridOptions): Promise<ExportResult> {
   const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName = "Sheet1", signal, onProgress } = options;
   const xlsx = format === "xlsx";
-  const maxRows = Math.min(options.maxRows ?? DEFAULT_SOURCE_MAX_ROWS, xlsx ? XLSX_MAX_ROWS - (includeHeaders ? 1 : 0) : Infinity);
-  const run = { source, maxRows, maxBytes: options.maxBytes ?? DEFAULT_SOURCE_MAX_BYTES, signal, onProgress };
-  const headers = buildExportHeaders(state);
+  if (xlsx && (workbookName.length > 31 || workbookName === "History" || INVALID_SHEET_NAME.test(workbookName))) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${workbookName}`);
+  const headers = buildExportHeaders(state).map(cutCell);
+  const requested = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
+  const maxRows = xlsx ? Math.min(requested, XLSX_MAX_ROWS - (includeHeaders ? 1 : 0), Math.floor(XLSX_MAX_CELLS / Math.max(headers.length, 1))) : requested;
+  const run = { source, maxRows, maxBytes: normalizeLimit(options.maxBytes, DEFAULT_SOURCE_MAX_BYTES), signal, onProgress };
 
   if (!xlsx) {
-    const parts: string[] = [csvBom ? "﻿" : ""];
+    const parts: Blob[] = [new Blob([csvBom ? BOM : ""])];
     let started = false;
     const append = (rows: readonly (readonly string[])[]): number => {
       if (rows.length === 0) return 0;
       const text = (started ? CSV_EOL : "") + rowsToCsv(rows, csvDelimiter, sanitizeFormulas);
       started = true;
-      parts.push(text);
-      return new Blob([text]).size;
+      const part = new Blob([text]);
+      parts.push(part);
+      return part.size;
     };
     if (includeHeaders) append([headers]);
     const result = await runSourceExport(state, run, append);
@@ -214,7 +227,7 @@ async function exportFromSource(state: DataGridReadState, source: ExportSource, 
   const result = await runSourceExport(state, run, (rows) => {
     let size = 0;
     for (const row of rows) {
-      const cut = row.map((text) => (text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text));
+      const cut = row.map(cutCell);
       for (const text of cut) size += text.length;
       table.push(cut);
     }
@@ -236,7 +249,8 @@ async function exportFromSource(state: DataGridReadState, source: ExportSource, 
 export async function exportGrid(state: DataGridReadState, options: ExportGridOptions = {}): Promise<ExportResult> {
   const { source } = options;
   if (source) return exportFromSource(state, source, options);
-  const { format = "csv", scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
+  const { format = "csv", scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName } = options;
+  const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, 0);
   if (format === "csv") {
     const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;

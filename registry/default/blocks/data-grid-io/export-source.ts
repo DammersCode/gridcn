@@ -10,22 +10,26 @@ export type ExportSourceContext = {
 };
 
 /** Rows of the whole result for an "all rows" export. Return one array, or an async iterable of batches (an async generator that pages through your API). */
-export type ExportSource<TData = unknown> = (ctx: ExportSourceContext) => Promise<readonly TData[]> | AsyncIterable<readonly TData[]>;
+export type ExportSource<TData = unknown> = (ctx: ExportSourceContext) => readonly TData[] | Promise<readonly TData[]> | AsyncIterable<readonly TData[]>;
 
 const SLICE_ROWS = 1000;
 const MAX_EMPTY_BATCHES = 1000;
+const YIELD_AFTER_MS = 40;
 
 export const DEFAULT_SOURCE_MAX_ROWS = 1_000_000;
 export const DEFAULT_SOURCE_MAX_BYTES = 256 * 1024 * 1024;
 
+/** Running totals after a batch: data rows written and file bytes (xlsx: characters) so far. */
 export type ExportProgress = { rowCount: number; byteCount: number };
 
+/** What a finished export wrote. */
 export type ExportResult = {
   rowCount: number;
   /** True when `maxRows` or `maxBytes` ended the export before the source did. */
   truncated: boolean;
 };
 
+/** Resolved limits and callbacks of one source export. */
 export type RunSourceOptions = {
   source: ExportSource;
   maxRows: number;
@@ -83,7 +87,8 @@ export async function runSourceExport(
     });
   };
 
-  const take = (batch: unknown): void => {
+  let sliceStarted = performance.now();
+  const take = async (batch: unknown): Promise<void> => {
     if (!Array.isArray(batch)) throw new TypeError("[data-grid-io] an export source batch must be an array");
     emptyBatches = batch.length === 0 ? emptyBatches + 1 : 0;
     if (emptyBatches > MAX_EMPTY_BATCHES) throw new RangeError("[data-grid-io] an export source returned only empty batches");
@@ -98,6 +103,11 @@ export async function runSourceExport(
       rowCount += rows.length;
       byteCount += onBatch(rows);
       if (byteCount > maxBytes) truncated = true;
+      if (performance.now() - sliceStarted > YIELD_AFTER_MS) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        if (outer?.aborted) throw abortReason(outer);
+        sliceStarted = performance.now();
+      }
     }
     try {
       onProgress?.({ rowCount, byteCount });
@@ -114,12 +124,12 @@ export async function runSourceExport(
         const step = await untilAborted(iterator.next());
         if (outer?.aborted) throw abortReason(outer);
         if (step.done) break;
-        take(step.value);
+        await take(step.value);
       }
     } else {
       const batch = await untilAborted(Promise.resolve(result));
       if (outer?.aborted) throw abortReason(outer);
-      take(batch);
+      await take(batch);
     }
   } finally {
     outer?.removeEventListener("abort", stop);
@@ -138,4 +148,10 @@ function buildRows(state: DataGridReadState, rows: readonly unknown[]): string[]
       return cellType ? cellType.toText(getCellValue<unknown, AnyColumnDef>(row, column), column.options) : "";
     }),
   );
+}
+
+/** Clamps a caller limit to a non-negative integer: `NaN` falls back, `Infinity` becomes the largest safe integer. */
+export function normalizeLimit(value: number | undefined, fallback: number): number {
+  if (value === undefined || Number.isNaN(value)) return fallback;
+  return Math.min(Math.max(0, Math.floor(value)), Number.MAX_SAFE_INTEGER);
 }
