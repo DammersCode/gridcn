@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { addOns, coreFeatures } from "../landing/_shared/data";
+import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityCounts, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "../landing/_shared/parts";
@@ -12,11 +12,12 @@ export default function LandingC() {
   return (
     <DraftShell name="C · Tabs">
       <BackdropVeil className="bg-background/55 backdrop-blur-[3px]" />
-      <main className="relative z-10 flex w-full max-w-5xl flex-col gap-6 px-4 pb-12 pt-8 sm:px-6">
+      <div className="relative z-10 flex w-full max-w-5xl flex-col gap-6 px-4 pb-12 pt-8 sm:px-6">
         <section className="flex flex-col items-center gap-3 text-center">
           <ReleaseBadge />
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
-          <p className="max-w-2xl text-base text-muted-foreground">{TAGLINE}</p>
+          <p className="max-w-2xl text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
+          <p className="max-w-2xl text-sm text-muted-foreground">{TAGLINE}</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <HeroActions />
           </div>
@@ -71,7 +72,7 @@ export default function LandingC() {
             },
           ]}
         />
-      </main>
+      </div>
     </DraftShell>
   );
 }

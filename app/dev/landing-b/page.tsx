@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { addOns, coreFeatures } from "../landing/_shared/data";
+import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityHeatmap, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
@@ -14,12 +14,13 @@ export default function LandingB() {
         className="bg-background/55 backdrop-blur-sm"
         layers={["bg-background/30 backdrop-blur-lg [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"]}
       />
-      <main className="relative z-10 flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-8 sm:px-6">
+      <div className="relative z-10 flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-8 sm:px-6">
         <section className="grid items-center gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div className="flex flex-col items-start gap-4 border bg-card/90 p-6">
             <ReleaseBadge />
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
-            <p className="text-base text-muted-foreground">{TAGLINE}</p>
+            <p className="text-lg font-medium">{PLAIN_PITCH}</p>
+            <p className="text-sm text-muted-foreground">{TAGLINE}</p>
             <HeroActions />
             <Install />
           </div>
@@ -63,7 +64,7 @@ export default function LandingB() {
             ))}
           </p>
         </section>
-      </main>
+      </div>
     </DraftShell>
   );
 }

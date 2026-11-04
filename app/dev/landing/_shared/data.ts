@@ -40,18 +40,21 @@ export const perfStats = [
     value: "0.3–7.6 ms",
     title: "Streaming sort update",
     detail: "1 to 256 changed rows, one sort column, production build, 100k rows.",
+    source: "streaming updates",
     href: "/docs/streaming-updates",
   },
   {
     value: "51 ms",
     title: "Text sort",
     detail: "100k rows in the browser, down from 68 ms.",
+    source: "changelog",
     href: "/docs/performance",
   },
   {
     value: "16.8 ms",
     title: "Longest frame on jump scroll",
     detail: "Median over a jump sequence at 100k rows, down from 91.7 ms. Frames over 33 ms: 4 to 0.",
+    source: "performance guide",
     href: "/docs/performance",
   },
 ];
@@ -81,8 +84,8 @@ export const serverHighlights = [
     href: "/docs/recipes/data-fetching/server-round-trip",
   },
   {
-    title: "Aggregates",
-    text: "Pinned rows and aggregates across the data modes.",
+    title: "Pinned rows and aggregates",
+    text: "Footer and pinned rows that total the data, in every data mode that allows it.",
     href: "/docs/addons/pinned-rows",
   },
   {
@@ -124,4 +127,6 @@ export const addOns = [
 ] as const;
 
 export const SITE_TAGLINE =
-  "A data grid for the shadcn ecosystem. Range selection, spreadsheet clipboard and typed editors on real DOM cells. Local arrays or a server: the same grid.";
+  "A data grid for the shadcn ecosystem. Range selection, spreadsheet clipboard and typed editors on real DOM cells. Local arrays or a server: the same grid."
+
+export const PLAIN_PITCH = "A spreadsheet-style table for React and shadcn apps, installed as source code. Smooth at 100k rows.";

@@ -62,15 +62,15 @@ export function ParityLegend() {
   return (
     <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
-        <i className="size-2.5 bg-primary" />
+        <i className="size-2.5 bg-primary" />✓
         supported
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <i className="size-2.5 bg-muted-foreground/30" />
+        <i className="size-2.5 bg-muted-foreground/30" />–
         not applicable
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <i className="size-2.5 bg-destructive" />
+        <i className="size-2.5 bg-destructive" />✕
         known gap
       </span>
     </p>
@@ -83,12 +83,12 @@ export function ParityHeatmap() {
     <div>
       <div
         className="grid w-fit gap-[3px]"
-        style={{ gridTemplateColumns: `repeat(${parityModes.length}, 14px)` }}
+        style={{ gridTemplateColumns: `repeat(${parityModes.length}, 18px)` }}
         role="img"
         aria-label={`Parity matrix: ${parityTotals.supported} of ${parityTotals.cells} cells supported, ${parityTotals.gap} known gaps`}
       >
         {parityModes.map((m) => (
-          <span key={m.id} className="text-center font-mono text-[9px] text-muted-foreground">
+          <span key={m.id} className="text-center font-mono text-xs text-muted-foreground">
             {m.id}
           </span>
         ))}
@@ -97,7 +97,7 @@ export function ParityHeatmap() {
             <span
               key={`${r.id}-${i}`}
               title={`${r.feature} · ${parityModes[i].label}: ${s}`}
-              className={cn("size-3.5", statusClass[s])}
+              className={cn("size-[18px]", statusClass[s])}
             />
           )),
         )}
@@ -124,9 +124,9 @@ export function ParityCounts() {
               Data mode
             </th>
             {parityByMode.map((m) => (
-              <th key={m.id} scope="col" title={m.label} className="px-1 py-1.5 text-center font-mono font-medium">
+              <th key={m.id} scope="col" className="px-1 py-1.5 text-center font-mono font-medium"><abbr title={m.label} className="no-underline">
                 {m.id}
-              </th>
+              </abbr></th>
             ))}
           </tr>
         </thead>
@@ -148,6 +148,7 @@ export function ParityCounts() {
           ))}
         </tbody>
       </table>
+      <p className="mt-2 text-xs text-muted-foreground">{parityByMode.map((m) => `${m.id} ${m.label}`).join(" · ")}</p>
     </div>
   );
 }
@@ -162,6 +163,7 @@ export function PerfStats({ className }: { className?: string }) {
               <span className="text-2xl font-bold tracking-tight tabular-nums">{s.value}</span>
               <span className="text-sm font-medium">{s.title}</span>
               <span className="text-xs text-muted-foreground">{s.detail}</span>
+              <span className="text-xs underline underline-offset-4">Source: {s.source}</span>
             </Link>
           </li>
         ))}
@@ -198,7 +200,7 @@ export function SectionHead({ title, children, link }: { title: string; children
 
 export function ParityLink({ children }: { children: ReactNode }) {
   return (
-    <Link href={PARITY_HREF} className="text-sm underline underline-offset-4 hover:text-foreground">
+    <Link href={PARITY_HREF} className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 hover:text-foreground">
       {children}
     </Link>
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { addOns, coreFeatures } from "../landing/_shared/data";
+import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityBars, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
@@ -11,11 +11,12 @@ export default function LandingA() {
   return (
     <DraftShell name="A · Stack">
       <BackdropVeil className="bg-background/60 backdrop-blur-[3px]" />
-      <main className="relative z-10 flex w-full max-w-5xl flex-col gap-10 px-4 pb-16 pt-10 sm:px-6">
+      <div className="relative z-10 flex w-full max-w-5xl flex-col gap-10 px-4 pb-16 pt-10 sm:px-6">
         <section className="flex flex-col items-center gap-4 text-center">
           <ReleaseBadge />
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
-          <p className="max-w-2xl text-base text-muted-foreground sm:text-lg">{TAGLINE}</p>
+          <p className="max-w-2xl text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
+          <p className="max-w-2xl text-sm text-muted-foreground">{TAGLINE}</p>
           <HeroActions className="justify-center" />
           <Install />
         </section>
@@ -58,7 +59,7 @@ export default function LandingA() {
             ))}
           </p>
         </section>
-      </main>
+      </div>
     </DraftShell>
   );
 }
