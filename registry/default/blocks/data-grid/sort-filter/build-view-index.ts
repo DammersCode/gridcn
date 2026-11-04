@@ -1,6 +1,7 @@
 import type { FilterNode, FilterSpec, SortSpec } from "../types";
 import { groupChildren, isFilterGroup } from "./filter-tree";
 import { createFilterMatcher } from "./matches-filter";
+import { KEYED_SORT_MIN_ROWS, sortByKeys, type SortKeyReader } from "./keyed-sort";
 
 /**
  * Read-only accessor the view-index builder uses to reach cell data without
@@ -23,6 +24,12 @@ export type CellAccessor = {
   isEmpty?(rowIndex: number, columnId: string): boolean;
   /** The column's raw (un-stringified) cell value; only needed by a column's `filterMatch`. */
   getValue?(rowIndex: number, columnId: string): unknown;
+  /**
+   * Opts a column into the keyed sort when its comparator is exactly a built-in one (see
+   * {@link SortKeyReader}); the result must order rows exactly as `compare` and `isEmpty` do. A column
+   * without it sorts through `compare`.
+   */
+  sortKeys?(columnId: string): SortKeyReader | undefined;
   /** The column's `filterMatch` predicate, if the column declares one. */
   filterMatch?(columnId: string): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
 };
@@ -119,6 +126,11 @@ export function buildViewIndex(
   }
 
   if (opts.sorts.length === 0) return indices;
+
+  if (indices.length >= KEYED_SORT_MIN_ROWS) {
+    const keyed = sortByKeys(indices, accessor, opts.sorts);
+    if (keyed) return keyed;
+  }
 
   // One collator amortized across every default-compare column and every pairwise
   // comparison in this call, instead of a fresh Intl.Collator per `localeCompare`.

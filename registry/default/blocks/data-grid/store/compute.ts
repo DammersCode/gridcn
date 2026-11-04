@@ -23,6 +23,8 @@ import {
   type CellAccessor,
   type SearchMatch,
 } from "../sort-filter";
+import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
+import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
@@ -501,6 +503,23 @@ export function textAccessorFor(
         // fall through to the text comparator below
       }
       return defaultCompareText(toSafeText(valueA), toSafeText(valueB));
+    };
+  };
+
+  accessor.sortKeys = (columnId) => {
+    const column = byId.get(columnId);
+    if (!column || column.sortCompare) return undefined;
+    const cellType = declaredType(column);
+    const kind = cellType?.compare === compareNumbers ? "number" : cellType?.compare === compareLocaleText ? "text" : undefined;
+    if (!cellType || !kind) return undefined;
+    return {
+      kind,
+      read: (rowIndex) => {
+        const row = data[rowIndex];
+        if (row === undefined) return EMPTY_SORT_VALUE;
+        const value = rawCellValue(column, row);
+        return cellType.isEmpty(value) ? EMPTY_SORT_VALUE : value;
+      },
     };
   };
 

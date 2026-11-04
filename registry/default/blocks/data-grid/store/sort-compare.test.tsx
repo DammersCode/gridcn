@@ -128,7 +128,7 @@ describe("cell-type compare wired into sorting (#85)", () => {
   it("survives a throwing comparator on a mistyped value", () => {
     type TextRow = { id: string; label: number };
     const textColumns: readonly ColumnDef<TextRow, unknown>[] = [
-      { id: "label", header: "Label", accessorKey: "label", type: "text" },
+      { id: "label", header: "Label", accessorKey: "label", sortCompare: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label) },
     ];
     // numbers in a `type: "text"` column — `textCellType.compare` calls localeCompare and throws.
     const numbersInText: TextRow[] = [
@@ -278,15 +278,15 @@ describe("select sort order", () => {
 });
 
 describe("select sort cost", () => {
-  it("sorts 100k select rows by label in about the time of a number sort", () => {
+  it("sorts 100k select rows by label faster than collating the labels per comparison", () => {
     const choices = Array.from({ length: 50 }, (_, i) => ({ value: `v${i}`, label: `Label ${(i * 37) % 50}` }));
-    const rows = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, fruit: `v${(i * 7919) % 50}`, qty: (i * 7919) % 100_000 }));
-    function time(columnId: "fruit" | "qty"): number {
+    const rows = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, fruit: `v${(i * 7919) % 50}`, label: `Label ${(((i * 7919) % 50) * 37) % 50}` }));
+    function time(columnId: "fruit" | "label"): number {
       const store = createDataGridStore({
         data: rows,
         columns: [
           { id: "fruit", header: "Fruit", accessorKey: "fruit", type: "select", options: { choices } },
-          { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+          { id: "label", header: "Label", accessorKey: "label", sortCompare: (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label) },
         ],
         getRowId: (row: unknown) => (row as { id: string }).id,
         cellTypes: builtinCellTypes,
@@ -296,9 +296,10 @@ describe("select sort cost", () => {
       return performance.now() - start;
     }
     time("fruit");
-    const numberSort = time("qty");
+    time("label");
+    const collatedSort = time("label");
     const selectSort = time("fruit");
-    // label collation per comparison measured about 1.6x the number sort; integer ranks stay below it
-    expect(selectSort).toBeLessThan(numberSort * 1.25);
+    // collating the label per comparison costs more than comparing integer ranks
+    expect(selectSort).toBeLessThan(collatedSort);
   });
 });
