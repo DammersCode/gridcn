@@ -28,6 +28,11 @@ async function setup(options: LookupOptions, data: Row[] = [{ id: "r1", customer
   return { onDataChange };
 }
 
+function firstCustomer(spy: { mock: { calls: unknown[][] } }): LookupValue | undefined {
+  const next = spy.mock.calls[0]?.[0] as Row[] | undefined;
+  return next?.[0]?.customer;
+}
+
 async function openEditor() {
   const cell = page.getByRole("gridcell").filter({ hasText: /Acme|c9/ }).first();
   await userEvent.dblClick(cell);
@@ -45,7 +50,7 @@ describe("lookup editor", () => {
     await openEditor();
     await page.getByRole("option", { name: "Globex" }).click();
     await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
-    expect((onDataChange.mock.calls[0]?.[0] as Row[])[0]?.customer).toEqual(globex);
+    expect(firstCustomer(onDataChange)).toEqual(globex);
   });
 
   it("picks with ArrowDown and Enter", async () => {
@@ -54,7 +59,7 @@ describe("lookup editor", () => {
     await expect.element(page.getByRole("option", { name: "Globex" })).toBeVisible();
     await userEvent.keyboard("{ArrowDown}{Enter}");
     await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
-    expect((onDataChange.mock.calls[0]?.[0] as Row[])[0]?.customer).toEqual(globex);
+    expect(firstCustomer(onDataChange)).toEqual(globex);
   });
 
   it("searches as the user types and aborts the superseded request", async () => {

@@ -51,6 +51,14 @@ function filtersKey(spec: ServerSpec): string {
   return serverSpecKey({ sorts: [], filters: spec.filters, searchText: "" });
 }
 
+function notifyError(onError: ((error: unknown) => void) | undefined, error: unknown): void {
+  try {
+    onError?.(error);
+  } catch {
+    // a throwing consumer callback must not break the grid
+  }
+}
+
 let warnedDroppedValue = false;
 
 function sanitizeAnswer(answer: unknown, columnIds: readonly string[]): Record<string, unknown> {
@@ -95,7 +103,9 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
   const columnKey = columnIds.join("\u0000");
 
   const latest = useRef({ options, spec, columnIds });
-  latest.current = { options, spec, columnIds };
+  useLayoutEffect(() => {
+    latest.current = { options, spec, columnIds };
+  });
 
   const [state, setState] = useState<{ row: Record<string, unknown>; status: ServerAggregateStatus; error: unknown }>({
     row: EMPTY_ROW,
@@ -119,11 +129,7 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;
           setState((prev) => ({ ...prev, status: "error", error }));
-          try {
-            latest.current.options.onError?.(error);
-          } catch {
-            // a throwing consumer callback must not break the grid
-          }
+          notifyError(latest.current.options.onError, error);
         });
     };
     if (debounceMs <= 0) {
@@ -161,7 +167,9 @@ export function DataGridServerAggregateReporter(props: DataGridServerAggregateRe
   const { onChange, ...options } = props;
   const result = useDataGridServerAggregate(options);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useLayoutEffect(() => {
+    onChangeRef.current = onChange;
+  });
   useLayoutEffect(() => {
     onChangeRef.current(result);
   }, [result]);

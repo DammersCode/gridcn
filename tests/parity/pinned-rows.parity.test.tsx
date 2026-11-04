@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useDataGridAggregate } from "@/registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate";
+import { useDataGridServerAggregate, type ServerAggregateResult } from "@/registry/default/blocks/data-grid-pinned-rows/use-data-grid-server-aggregate";
 import { ALL_MODES, mountMode } from "./modes";
 
 const gt1 = [{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as const;
@@ -34,5 +35,30 @@ describe.each(ALL_MODES)("aggregate band in mode %s", (mode) => {
     const before = aggregate.view() as number;
     grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 101 }]));
     expect(aggregate.view()).toBe(before + 100);
+  });
+});
+
+describe.each(ALL_MODES)("server aggregate band in mode %s", (mode) => {
+  it("requests the spec once, asks again on a filter change, and drops the superseded answer", async () => {
+    const requests: { filters: unknown; signal: AbortSignal; resolve: (v: Record<string, unknown>) => void }[] = [];
+    let latest: ServerAggregateResult | undefined;
+    function Child() {
+      latest = useDataGridServerAggregate({
+        debounceMs: 0,
+        fetchAggregates: ({ spec, signal }) => new Promise((resolve) => requests.push({ filters: spec.filters, signal, resolve })),
+      });
+      return null;
+    }
+    const grid = await mountMode(mode, { Child });
+    expect(requests).toHaveLength(1);
+    expect(latest?.status).toBe("loading");
+    grid.setFilters([...gt1] as never);
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[0]?.signal.aborted).toBe(true);
+    await grid.act(() => requests[0]?.resolve({ n: 111 }));
+    expect(latest?.row).toEqual({});
+    await grid.act(() => requests[1]?.resolve({ n: 9 }));
+    expect(latest?.row).toEqual({ n: 9 });
+    expect(latest?.status).toBe("ready");
   });
 });
