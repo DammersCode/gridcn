@@ -22,7 +22,7 @@ const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm
 async function HeroCode() {
   const code = await highlight(CODE, {
     lang: "tsx",
-    themes: { light: "github-light-high-contrast", dark: "github-dark" },
+    themes: { light: "light-plus", dark: "github-dark" },
     components: {
       pre: (props) => (
         <pre
