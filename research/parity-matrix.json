@@ -647,7 +647,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/clipboard.mdx"
+            "content/docs/clipboard.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
         "PC": {
@@ -690,7 +691,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx"
+            "tests/parity/clipboard.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
       }
@@ -901,48 +903,57 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/undo-redo.mdx"
+            "content/docs/addons/undo-redo.mdx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "Z": {
-          "status": "gap",
-          "track": "W6",
-          "note": "Undo warns over rows not loaded yet."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx",
+            "content/docs/addons/undo-redo.mdx"
+          ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "API": {
-          "status": "gap",
-          "track": "K",
-          "note": "The local undo stack never learns whether the server accepted the write."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
+          ]
         }
       }
     },
@@ -959,7 +970,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
         "PC": {
@@ -1002,7 +1014,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
       }
@@ -1017,7 +1030,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts"
+            "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
         "PC": {
@@ -1060,7 +1074,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/validation/server-errors.mdx"
+            "content/docs/examples/validation/server-errors.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
       }

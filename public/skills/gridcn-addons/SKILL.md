@@ -55,7 +55,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
 | Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
-| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
+| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
 
@@ -111,10 +111,13 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+- **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
 
 ## Async gates
 
-- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`. A gate gets no `AbortSignal`.
+- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`.
+- Every gate gets an `AbortSignal` as its last argument (`processPaste({ cells, target, signal })`, `validateRow(row, rowId, { signal })`, `onEditStart(cell, { signal })`, `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`, `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`). Pass it to `fetch`. It aborts when a newer run replaces the gate, when the result cannot apply, and on unmount.
+- `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `aria-busy="true"` and `data-gate-pending` meanwhile.
 
 ## Bounds and failure reporting
 

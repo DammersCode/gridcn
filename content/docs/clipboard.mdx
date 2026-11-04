@@ -86,7 +86,7 @@ function processCellFromClipboard(text: string, { row, column }: { row: Row; col
   return text.trim();
 }
 
-function processPaste({ cells, target }: { cells: string[][]; target: ViewCoord }) {
+function processPaste({ cells, target, signal }: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) {
   // runs after tiling and before the paste cap; return false to veto entirely
   return cells;
 }
@@ -101,13 +101,15 @@ function processPaste({ cells, target }: { cells: string[][]; target: ViewCoord 
 ```
 
 `processPaste` runs on the paste grid after single-row tiling and before the paste cap. `target`
-is the top-left cell the paste applies to.
+is the top-left cell the paste applies to. `signal` <NewBadge /> is an `AbortSignal` that aborts when the grid
+turns `readOnly`, an edit starts, the target row is gone, or the grid unmounts. See
+[Async gates](/docs/examples/validation/async-gates#cancel-a-request-with-the-signal).
 
 `processPaste` <NewBadge /> and `processCellFromClipboard` also accept a promise.
 
 ```tsx
 <DataGridProvider
-  processPaste={async ({ cells }) => (await normalizeOnServer(cells)) ?? false}
+  processPaste={async ({ cells, signal }) => (await normalizeOnServer(cells, signal)) ?? false}
   {...grid}
   columns={columns}
 />

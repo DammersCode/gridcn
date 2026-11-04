@@ -98,6 +98,8 @@ Applies to streaming on top of either:
 - `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.
 - Resolve a refused save with `resolveSaveConflict({ rowId, mine, theirs, change, message, signal })`. It runs for a refused row that has `current`. Return `"theirs"` (the default), `"mine"`, or `{ row }` (a merged row with the same id). `"mine"` and `{ row }` commit one `source: "merge"` change that reaches `onSave`. An async resolver keeps the row `saving`.
 - Swap a client id for the server's id with `actions.replaceRowId(oldId, row)` after `onSave` creates the row. It fires one `source: "id-swap"` change that `onSave` does not receive. Only a row in `data` can swap.
+- Gates that call your server (`processPaste`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`) receive an `AbortSignal` as the last argument. Pass it to `fetch`. `useDataGridGatePending()` reports the pending gates.
+- An undo or redo over rows that are not loaded or gone applies nothing and calls the `onSkip` option of `useDataGridHistory`. An undo that `onSave` refuses returns to the undo stack.
 
 ## Selection UI and text inputs
 
