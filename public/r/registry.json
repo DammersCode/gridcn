@@ -231,6 +231,11 @@
           "target": "components/data-grid/live-region.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid/use-load-announcement.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/use-load-announcement.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/header-cell.tsx",
           "type": "registry:component",
           "target": "components/data-grid/header-cell.tsx"
