@@ -147,7 +147,7 @@ export function touchesViewInputs(
 /**
  * True when no patch can change the position or filter verdict of any row: every sort and filter
  * column reads one plain `accessorKey` field with no `sortCompare`, and no patch writes that column
- * or that field. A derived (`accessorFn`) or row-comparing column may read any field, so it never qualifies.
+ * or that field through a plain write (a `setValue` may write any field). A derived (`accessorFn`) or row-comparing column may read any field, so it never qualifies.
  */
 export function patchesLeaveViewAlone(
   columns: readonly AnyColumnDef[],
@@ -168,7 +168,7 @@ export function patchesLeaveViewAlone(
   for (const patch of patches) {
     if (viewColumnIds.has(patch.columnId)) return false;
     const patched = columns.find((column) => column.id === patch.columnId);
-    if (!patched || patched.accessorKey === undefined || viewFields.has(patched.accessorKey)) return false;
+    if (!patched || patched.setValue || patched.accessorKey === undefined || viewFields.has(patched.accessorKey)) return false;
   }
   return true;
 }

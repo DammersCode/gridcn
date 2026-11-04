@@ -125,7 +125,7 @@ implementations and both stores must end on the same view. "Deferred" is the def
 Ticks of 100 rows (10 per second) cost about 31 ms each with `"immediate"`, and a single-row tick
 cost 9 ms on a quiet machine (24 ms in the run above). What remains is O(n) work that the store's
 immutable arrays require: the `data` array copy on every tick (about 1.6 ms at 1M) and the copy of
-the order array when a row moves. A feed of 1,000 separate one-row ticks per second cannot reach a
+the order array when a row moves. At 100,000 rows the same scenario measured 1.3 ms for a one-row tick and 4 ms for a 100-row tick (about 1,300 ms/s for 1,000 one-row ticks and 41 ms/s for ten 100-row ticks). A feed of 1,000 separate one-row ticks per second cannot reach a
 small ms/s figure at 1M rows without changing those arrays.
 
 ## Comparing with an external table

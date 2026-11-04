@@ -106,7 +106,6 @@ function makeColumns(count, seed) {
   return { name, free, digits, int, float, dirty };
 }
 
-
 /** Rows shaped like app/dev/benchmark's dataset: 25 distinct names, ages 18-67, scores 0-99. */
 function makeDatasetColumns(count) {
   const ADJECTIVES = ["Eager", "Quick", "Silent", "Bold", "Swift"];

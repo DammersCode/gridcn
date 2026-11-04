@@ -108,4 +108,28 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
       expect(s.viewIndex, `tick ${tick}`).toEqual(computeViewIndex(s.data, s.columns, sorts, [], undefined, s.cellTypes));
     }
   });
+
+  it("re-places rows when a patch goes through a setValue that writes a sorted field", () => {
+    type Line = { id: string; qty: number; price: number };
+    const rand = seededRandom(13);
+    const data: Line[] = Array.from({ length: 600 }, (_, i) => ({ id: `l${i}`, qty: 1, price: Math.floor(rand() * 50) }));
+    const custom = [
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number", setValue: (row: Line, value: unknown) => ({ ...row, qty: value as number, price: (value as number) * 2 }) },
+      { id: "price", header: "Price", accessorKey: "price", type: "number" },
+    ];
+    const store = createDataGridStore({
+      data,
+      columns: custom,
+      getRowId: (row: unknown) => (row as Line).id,
+      cellTypes: builtinCellTypes,
+    } as unknown as InternalSyncProps);
+    const sorts: SortSpec[] = [{ columnId: "price", direction: "asc" }];
+    store.getState().actions.setSorts(sorts);
+    for (let tick = 0; tick < 20; tick++) {
+      const rowId = `l${Math.floor(rand() * 600)}`;
+      store.getState().actions.updateCells([{ rowId, columnId: "qty", value: Math.floor(rand() * 90) }], { reorder: "immediate" });
+      const s = store.getState();
+      expect(s.viewIndex, `tick ${tick}`).toEqual(computeViewIndex(s.data, s.columns, sorts, [], undefined, s.cellTypes));
+    }
+  });
 });
