@@ -68,6 +68,11 @@ const hasChoices = (column: AnyColumnDef): boolean => {
   return Array.isArray(choices) && choices.length > 0;
 };
 
+/** The custom operators whose list rows stay out of a value list, or `undefined` when none do. */
+function listOperatorsOf(column: AnyColumnDef, cellTypes: Parameters<typeof customOperatorsOf>[1], exclude: boolean) {
+  return exclude ? customOperatorsOf(column, cellTypes) : undefined;
+}
+
 /** Whether the set-value lists of `column` come from `fetchFilterValues`; a column with declared choices never does. */
 export function useServerFilterValuesEnabled(column: AnyColumnDef): boolean {
   return useDataGridSelector((s) => s.fetchFilterValues !== undefined) && !hasChoices(column);
@@ -97,7 +102,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
         const state = storeApi.getState();
         const fetchValues = state.fetchFilterValues;
         if (!fetchValues) return;
-        const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
+        const custom = listOperatorsOf(column, state.cellTypes, excludeCustomLists);
         const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId, custom));
         const response = await fetchValues({ columnId, query: search, filters, signal: controller.signal });
         if (controller.signal.aborted) return;

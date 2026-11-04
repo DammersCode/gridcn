@@ -25,7 +25,7 @@ export function useLoadAnnouncement(loading: boolean, error: unknown): void {
   const failedBefore = useRef(false);
   const failed = error !== undefined && error !== null;
   useEffect(() => {
-    settledKey.current ??= loadKey(storeApi.getState());
+    if (settledKey.current === null) settledKey.current = loadKey(storeApi.getState());
     const ended = wasLoading.current && !loading;
     wasLoading.current = loading;
     if (!ended) {
