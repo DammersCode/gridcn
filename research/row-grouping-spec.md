@@ -58,14 +58,26 @@ below is part of the decision.
 4. **Group ids are value-derived and stable.** `__group:` followed by one `encodeURIComponent(columnId)
    =encodeURIComponent(keyText)` segment per level, joined by `/`. Expanded state survives sorting,
    filtering, and data refreshes. The `__` prefix follows the band-id convention (`__pinned-top-…`).
-5. **Keys come from the type's text; order from the type's compare.** `keyText = toText(value)`;
-   an empty value forms the `labels.grouping.empty` group, ordered last. Groups order by the
-   column's `sortCompare` / type `compare` on the first leaf's value, ascending, or in the direction
-   of an active sort on that column. Rejected: `String(value)` keys — dates and selects would group by
-   storage format, not by what the user reads.
+5. **Keys come from the stored value; order from the type's compare.** `keyText =
+   toSafeText(value)` of the raw stored value (amended by `research/server-grouping-spec.md`
+   decision 6, so the client and the server give the same ids); the label is the type's display
+   text. `null`, `undefined`, and `""` form the `labels.grouping.empty` group, ordered last. Groups
+   order by the column's `sortCompare` / type `compare` on the first leaf's value, ascending, or in the
+   direction of an active sort on that column. Dates group by stored value until `ColumnDef.groupKey`
+   (open question 3) lands. Rejected: `toText(value)` keys — a server holds stored values, so client
+   and server ids would differ for selects and rounded decimals.
 6. **Aggregation moves to core.** `AggregateReducer`, `AggregateSpecs`, and `aggregateColumn` move to
    `data-grid/aggregation/aggregate.ts` (sdk export); the pinned-rows add-on imports them and keeps
    exporting the types it documents. Aggregates run over the filtered, loaded leaves of each group.
+   The built-ins follow one definition with the server (`research/server-grouping-spec.md`, "Wire
+   contract"): `count` counts values that are not `null`, `undefined`, or `""`; `sum`, `avg`, `min`,
+   `max` read finite numbers only and skip the rest; a reducer with no counted value gives `null`
+   (`count` gives `0`). This changes the shipped pinned-rows add-on, which counts `""`, sums `[1, "5"]`
+   to `"15"`, and gives `undefined` for an empty input
+   (`data-grid-pinned-rows/use-data-grid-aggregate.ts:21-44`). The aggregation move owns the change:
+   CHANGELOG `### Fixed` with a **Breaking** marker (`null` instead of `undefined` for an empty
+   input), `content/docs/addons/pinned-rows.mdx:116-117` updated, and the `data-grid-pinned-rows`
+   payload rebuilt in the same commit.
 7. **Group rows are view-only.** No edit, paste, fill target, delete, or row op ever writes a group
    row; copy includes its displayed text (what the user sees is what they copy); exports and print
    include data rows only.
@@ -81,8 +93,8 @@ aggregates?: AggregateSpecs<TData>;        // column id -> reducer, for group ro
 groupColumn?: string;                      // column with toggle + label; default: first visible (config phase)
 
 // DataGridRootProps (render slot)
-renderGroupLabel?: (ctx: GroupLabelCtx) => ReactNode;  // default: "<key> (<count>)"
-export type GroupLabelCtx = { groupId: string; columnId: string; key: string; value: unknown; count: number; depth: number };
+renderGroupLabel?: (ctx: GroupLabelCtx) => ReactNode;  // default: "<label> (<count>)"
+export type GroupLabelCtx = { groupId: string; columnId: string; key: string; label: string; value: unknown; count: number; depth: number };
 
 // DataGridActions
 setGroupBy(next: readonly string[]): void;
@@ -90,7 +102,8 @@ setGroupBy(next: readonly string[]): void;
 
 // data-grid-sdk
 export type ViewEntry = { kind: "data"; dataIndex: number; row: unknown } | { kind: "group"; group: GroupNode } | { kind: "hole"; dataIndex: number };
-export type GroupNode = { id: string; depth: number; columnId: string; key: string; value: unknown; count: number; aggregates: Readonly<Record<string, unknown>> };
+export type GroupNode = { id: string; depth: number; columnId: string; key: string; label: string; value: unknown; count: number; aggregates: Readonly<Record<string, unknown>> };
+// label: the type's display text of the key (client); the server label or that text (server spec)
 export function viewEntryAt(s: DataGridReadState, viewRow: number): ViewEntry | undefined;
 export function dataIndexAt(s: DataGridReadState, viewRow: number): number | undefined;
 ```
@@ -103,7 +116,7 @@ export function dataIndexAt(s: DataGridReadState, viewRow: number): number | und
 - **Rendering.** The body picks `DataGridGroupRow` for a group entry: the group column cell holds
   the indent, toggle, and `renderGroupLabel` output; an aggregated column cell shows the aggregate
   through the column type's `toDisplayText ?? toText` when the type is numeric and the reducer is
-  numeric, else `String(value)`; other cells are empty. Group rows use the base `rowHeight`
+  numeric, a `null` aggregate as an empty cell, else `toSafeText(value)`; other cells are empty. Group rows use the base `rowHeight`
   (W6-13 `getRowHeight` is not called for them).
 - **Selection and CellRef.** Group cells are navigable. A group row's `rowId` is its group id, so
   W5-11 identity remap and `SelectionState.rowIds` work unchanged; `CellRef`s on group rows resolve

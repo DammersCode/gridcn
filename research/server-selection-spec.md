@@ -36,7 +36,9 @@ ids"): `groups` (empty until group checks ship), `ids` and `excludedIds` in both
 `spec` in both modes, and `null` for an unknown count.
 
 - `ids`: the checked loaded rows plus the remembered ones. Unloaded rows have no id and are left out.
-- `excludedIds`: remembered exclusions plus the unchecked loaded rows of the view.
+- `excludedIds`: the rows the user unchecked while `allMatching` is on, loaded or remembered.
+  `readSelectedRows` reads the stored rule and never infers exclusions from unchecked view rows
+  (in flat mode the output is the same).
 - `count` in `allMatching`: `totalRowCount - excludedIds.length`, `null` when the size is unknown.
 
 ## Rules
@@ -57,7 +59,8 @@ ids"): `groups` (empty until group checks ship), `ids` and `excludedIds` in both
 - `selectAllMatching()` without `totalRowCount` or `keepCheckedRows` is a no-op with a development
   warning.
 - The status bar and live region count loaded checked rows; `useDataGridHiddenCheckedCount()` is `0`
-  while `allMatching` is on.
+  while `allMatching` is on. Under server grouping they read `count` instead
+  (`research/server-grouping-spec.md` decision 10).
 
 ## Modes
 
