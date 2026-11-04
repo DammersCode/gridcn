@@ -62,11 +62,11 @@ export function LandingContent() {
           Building with an AI agent? Install the gridcn agent skills
         </Link>
         </div>
-        <pre aria-label="Usage example" className="min-w-0 whitespace-pre-wrap break-words border bg-background p-4 text-start font-mono text-xs leading-relaxed">{CODE}</pre>
+        <pre aria-label="Usage example" className="max-sm:hidden min-w-0 whitespace-pre-wrap break-words border bg-background p-4 text-start font-mono text-xs leading-relaxed">{CODE}</pre>
       </section>
 
 
-      <Panel id="kit" title="What you get" intro="Range selection, spreadsheet paste and a fill handle are paid features in the big grids. gridcn ships them open source, built the shadcn way.">
+      <Panel id="kit" title="What you get" intro="Range selection, spreadsheet paste and a fill handle are paid features in the big grids. gridcn ships them free, built the shadcn way.">
         <TileGrid className="grid-cols-2 lg:grid-cols-4">
           {capabilities.map(({ icon: Icon, title, text, href }) => (
             <li key={title} className="bg-card">
@@ -166,10 +166,10 @@ export function LandingContent() {
       </Panel>
 
       <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
-        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 max-sm:[&>li:nth-child(n+9)]:hidden">
+        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 max-sm:[&>li:nth-child(n+9)]:hidden">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
-              <Link href={href} className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted ${focus}`}>
+              <Link href={href} className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start ${focus}`}>
                 <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                 {title}
               </Link>
