@@ -4,7 +4,7 @@ export type LlmsTask = { intent: string; slug: string[]; anchor?: string; label:
 export const LLMS_TASKS: LlmsTask[] = [
   { intent: "Delete the selected rows in bulk", slug: ["row-operations"], anchor: "programmatic-actions", label: "Row operations: Programmatic actions" },
   { intent: "Sort on the server", slug: ["sorting-filtering-search"], anchor: "controlled-mode-server-side-sortfilter", label: "Sorting, filtering & search: Controlled mode" },
-  { intent: "Sort a lazy grid on the server", slug: ["lazy-loading"], anchor: "sorting-a-lazy-grid", label: "Lazy loading: Sorting a lazy grid" },
+  { intent: "Sort a lazy grid on the server", slug: ["lazy-loading"], anchor: "sorting-a-scroll-grid", label: "Lazy loading: Sorting a scroll grid" },
   { intent: "Export CSV only, or choose export options", slug: ["addons", "import-export"], anchor: "export", label: "Import & export: Export" },
   { intent: "Load rows lazily with a total and a loading state", slug: ["lazy-loading"], label: "Lazy loading" },
   { intent: "Undo and redo", slug: ["addons", "undo-redo"], anchor: "quick-start-usedatagridstate", label: "Undo & redo: Quick start" },
