@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { InstallCommand } from "@/components/install-command";
 import { PLAIN_PITCH } from "./data";
 import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./content";
-import { GridMock } from "./grid-mock";
 import { HeroActions, ReleaseBadge } from "./hero";
 import { ParityBars, ParityLegend, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "./parts";
 
@@ -57,7 +56,6 @@ export function LandingContent() {
         </Link>
       </section>
 
-      <GridMock />
 
       <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
         <ServerHighlights columns="grid-cols-2 lg:grid-cols-4" />
