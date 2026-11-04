@@ -138,7 +138,7 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // again only when the committed range actually moved, never on a same-window scroll tick.
   //
   // `!measured` skips the pre-heal render: useRowWindow heals the no-element fallback to the real
-  // window in a pre-paint layout-effect flush, so the fixed {0, min(rowCount,30)} fallback and the
+  // window in a pre-paint layout-effect flush, so the fallback range and the
   // real window are two distinct committed ranges; without this guard this fired on both on every
   // mount — the fallback is never a range a consumer (e.g. scroll mode's fetch-on-window)
   // should act on in the first place.

@@ -2,7 +2,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { useLayoutEffect } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "../data-grid";
 
@@ -20,6 +20,11 @@ const MOUNTED_ROWS = 10;
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => MOUNTED_ROWS * 36 });
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 800 });
+});
+
+afterAll(() => {
+  delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+  delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
 });
 
 afterEach(cleanup);

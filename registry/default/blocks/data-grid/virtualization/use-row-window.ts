@@ -12,8 +12,8 @@ export type RowWindow = {
   windowTop: number;
   /**
    * False only for the one render before the scroll element is attached and its mount effect has
-   * measured it (`computeWindow`'s `!element` fallback) — that render's `{start,end}` is a fixed
-   * guess (`[0, min(rowCount,30))`), not a real layout observation, and is always immediately
+   * measured it (`computeWindow`'s `!element` fallback) — that render's `{start,end}` is a guess
+   * (empty on a client mount, a 30-row preview on the server and during hydration), and is always immediately
    * superseded by a real one in the same effect flush. Consumers gating `onRenderedRowsChange` on this
    * (see body.tsx) skip notifying for it, so a fresh mount fires the callback once (the real window),
    * not twice (guess, then correction) — same data either way, just the transient guess suppressed.
@@ -44,12 +44,10 @@ const SERVER_PREVIEW_ROWS = 30;
 let warnedUnboundedHeight = false;
 
 const subscribeNever = () => () => {};
-const isClientRender = () => false;
-const isServerRender = () => true;
 
 /** True while the server renders and while the client hydrates that HTML; false for a client-only mount. */
 function useServerPass(): boolean {
-  return useSyncExternalStore(subscribeNever, isClientRender, isServerRender);
+  return useSyncExternalStore(subscribeNever, () => false, () => true);
 }
 
 function computeWindow(
