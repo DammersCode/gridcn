@@ -1,5 +1,5 @@
-import type { CellType, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, isBuiltInOperator, isFilterGroup, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { AnyColumnDef, CellType, CustomFilterOperator, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
+import { displayText, filterOperatorInput, isFilterGroup, resolveCustomFilterOperators, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
@@ -10,9 +10,13 @@ export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHole
 
 export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server" };
 
-/** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a custom operator holding a list. */
-export const isOwnSetFilter = (node: FilterNode, columnId: string) =>
-  !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf" || (!isBuiltInOperator(node.operator) && Array.isArray(node.value)));
+/** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a registered custom operator with `input: "list"`. */
+export const isOwnSetFilter = (node: FilterNode, columnId: string, custom?: ReadonlyMap<string, CustomFilterOperator>) =>
+  !isFilterGroup(node) && node.columnId === columnId && filterOperatorInput(node.operator, custom) === "list";
+
+/** The custom operators of `column` as the set-row check reads them. */
+export const customOperatorsOf = (column: AnyColumnDef | undefined, cellTypes: Record<string, CellType>) =>
+  column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : undefined;
 
 function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown): string {
   if (!cellType) return toSafeText(raw);
@@ -34,7 +38,7 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
   if (!column) return { values: [], capped: false, hasHoles: false };
   const { data } = state;
   const accessor = rowAccessorFor(state.columns, data, state.cellTypes);
-  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId)));
+  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, customOperatorsOf(column, state.cellTypes))));
 
   const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;

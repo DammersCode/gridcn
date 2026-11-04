@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES } from "./apply-set-filter";
-import { isOwnSetFilter } from "./distinct-values";
+import { customOperatorsOf, isOwnSetFilter } from "./distinct-values";
 import type { SetFilterOption } from "./set-filter-list";
 
 const MAX_LABEL_LENGTH = 1000;
@@ -97,7 +97,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
         const state = storeApi.getState();
         const fetchValues = state.fetchFilterValues;
         if (!fetchValues) return;
-        const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId));
+        const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId, customOperatorsOf(column, state.cellTypes)));
         const response = await fetchValues({ columnId, query: search, filters, signal: controller.signal });
         if (controller.signal.aborted) return;
         const clean = sanitizeServerValues(response);

@@ -20,7 +20,7 @@ import {
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
-import { distinctColumnValues, isOwnSetFilter } from "./distinct-values";
+import { customOperatorsOf, distinctColumnValues, isOwnSetFilter } from "./distinct-values";
 import { useServerFilterValues, useServerFilterValuesEnabled } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 
@@ -68,7 +68,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const known = server ? server.known : loaded.texts;
   const checked = useMemo<ReadonlySet<string>>(() => {
     // A server list may be partial, so without a set entry nothing starts checked.
-    const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id));
+    const hasEntry = loaded.openFilters.some((node) => isOwnSetFilter(node, column.id, customOperatorsOf(column, cellTypes)));
     const next = server ? (hasEntry ? checkedKeysFromFilters(loaded.openFilters, column.id, [...known.keys()]) : new Set<string>()) : new Set(loaded.initiallyChecked);
     for (const [key, on] of overrides) {
       if (on) next.add(key);

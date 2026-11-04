@@ -133,8 +133,13 @@ describe("distinctColumnValues under filterMode server", () => {
 
 describe("isOwnSetFilter", () => {
   it("counts a custom operator holding a list as the column's own set row", () => {
-    expect(isOwnSetFilter({ columnId: "c", operator: "tagged", value: ["a"] }, "c")).toBe(true);
-    expect(isOwnSetFilter({ columnId: "c", operator: "inRegion", value: "eu" }, "c")).toBe(false);
+    const custom = new Map([
+      ["tagged", { id: "tagged", label: "tagged", input: "list" as const }],
+      ["span", { id: "span", label: "spans", input: "range" as const }],
+    ]);
+    expect(isOwnSetFilter({ columnId: "c", operator: "tagged", value: ["a"] }, "c", custom)).toBe(true);
+    expect(isOwnSetFilter({ columnId: "c", operator: "span", value: ["1", "2"] }, "c", custom)).toBe(false);
     expect(isOwnSetFilter({ columnId: "c", operator: "isBetween", value: ["1", "2"] }, "c")).toBe(false);
+    expect(isOwnSetFilter({ columnId: "c", operator: "isAnyOf", value: ["a"] }, "c")).toBe(true);
   });
 });
