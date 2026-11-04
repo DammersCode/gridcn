@@ -67,3 +67,18 @@ The best draft, C, scored 7.9 on average. Remaining gaps and why:
 - Which draft, or which parts of two (for example C's tabs with B's split hero)?
 - Show only the tab labels on first view, or open on "Server mode" (current)?
 - Restore the "~33 MB" and "0 renders" claims only if someone supplies a measurement and a source.
+
+## Draft A2 (stack, original content restored)
+
+Route `/dev/landing-a2`. Draft A's structure with the original page content back (headline features, shadcn traits, comparison table, agent skills with install command, add-on tile grid), solid panels, headings inside the panels, no hero picture, and the ghost background (approach 4 of ten at `/dev/landing-bg`).
+
+| Round | Beginner | Senior | Height at 1024 px | Height at 375 px |
+| --- | --- | --- | --- | --- |
+| 1 | 7.0 | 7.0 | 3,523 px | 6,266 px |
+| 2 | 7.7 | 7.4 | 3,248 px | 5,811 px |
+| 3 | 8.2 | not re-run | 3,080 px | 5,457 px |
+
+Reviewers: two perspectives only (beginner, senior). The mid persona scored within 0.33 of beginner in every round and raised no finding the other two missed.
+
+Open: scroll cost scores 6 (four screens at 1024 px). The add-ons, comparison and agent sections stay because the owner wants the original content back.
+Fixed: the background variants used template-built class names that Tailwind did not generate, so variants other than 4 showed blur without the wash until the classes were written out.
