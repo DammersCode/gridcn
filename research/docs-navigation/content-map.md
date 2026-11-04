@@ -94,8 +94,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ev-data | `events-state` (onDataChange and the three shapes) | split |
 | ev-selection | `events-state` (onSelectionChange) | split |
 | ev-sort-filter | `events-state` (onSortChange, onFilterChange) | split |
-| ev-columns | `events-state` (columnLayout and onColumnResizing) | split |
-| ev-edit | `events-state` (Edit lifecycle and cell events, onFill, onCellClick, onRenderedRowsChange) | split |
+| ev-cell | `events-state` (columnLayout and onColumnResizing, onCellClick, onRenderedRowsChange, onFill) | split |
+| ev-edit | `events-state` (Edit lifecycle and cell events) | split |
 | options-presence | `events-state` (Presence read-back) | merge |
 | events-index | `events-state` (Find the callback you need, Zero re-render guarantee, Unsupported features) | split |
 | events-model | `events-state` (The three shapes an event follows) | split |
@@ -112,8 +112,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | feature-matrix | `data-modes` (Matrix), `addons/index` | new |
 | find-task | none | new |
 | install-problems | `installation` (Framework notes, Non-default aliases, Verify) | split |
-| version-policy, support-matrix, upgrade | `project-status` | split |
-| license | `license` | move |
+| version-policy, support-matrix, upgrade, security-policy | `project-status` | split |
+| license | `license` | move; the credits section of `index` joins it |
 | agent-skills | `agent-skills` | move |
 | playground | `playground` | move |
 | detail-panel, bulk-actions, remember-view, multiple-grids, edit-row-form, auth-gated | `recipes/ui-patterns/*`, `recipes/editing/*` | move |
@@ -126,3 +126,4 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | use-debounced-input | `hooks/use-debounce` (useDebouncedInput) | split |
 | is-composing-key | `hooks/use-debounce` (isComposingKey) | split |
 | sp-choose, sp-load, sp-save, sp-failures, sp-live | none: five short steps that link the Server tasks | new text |
+| server-conflicts | `recipes/data-fetching/server-round-trip` (Strategy C: acknowledge each change) | split |

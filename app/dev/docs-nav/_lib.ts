@@ -3,8 +3,8 @@ import { dirname, join } from "node:path";
 import type * as PageTree from "fumadocs-core/page-tree";
 
 export const CANDIDATES: Record<string, { file: string; label: string; summary: string }> = {
-  a: { file: "c13-tasks-final.txt", label: "A: Tasks", summary: "How-to is organised by what the reader wants to do." },
-  b: { file: "c14-topics-final.txt", label: "B: Topics", summary: "Build is organised by topic; add-ons live inside their topic." },
+  a: { file: "c17-tasks-v3.txt", label: "A: Tasks", summary: "How-to is organised by what the reader wants to do; paths per goal." },
+  b: { file: "c18-topics-v3.txt", label: "B: Topics", summary: "Build is organised by topic; add-ons live inside their topic." },
   c: { file: "c10-four-areas.txt", label: "C: Four areas", summary: "Topics, with the Evaluate pages folded into Learn." },
 };
 

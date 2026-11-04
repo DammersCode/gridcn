@@ -73,6 +73,17 @@ export default async function Page({ params }: { params: Promise<{ candidate: st
     notFound();
   }
   const screens = page.words / SCREEN_WORDS;
+  const steps = pages.filter((p) => p.area === page.area && p.group === page.group && p.type === "step");
+  const stepNo = steps.findIndex((p) => p.url === page.url) + 1;
+  const entry = (slug: string) => pages.find((p) => p.slug === slug);
+  const personaCards =
+    page.slug === "index"
+      ? [
+          { label: "I am new to the grid", to: entry("install") },
+          { label: "I load rows from a server", to: entry("server-path") ?? entry("server-index") },
+          { label: "I am deciding whether to adopt it", to: entry("evaluate-index") },
+        ].filter((c) => c.to)
+      : [];
   const children = childrenOf(c, page);
   const index = pages.findIndex((p) => p.url === url);
   const toc = Array.from({ length: H2_PLAN[page.type] ?? 3 }, (_, i) => ({ title: `Section ${i + 1}`, url: `#section-${i + 1}`, depth: 2 }));
@@ -86,9 +97,19 @@ export default async function Page({ params }: { params: Promise<{ candidate: st
         <span className="rounded-md border px-2 py-1">{TYPE_LABEL[page.type] ?? page.type}</span>
         <span className="rounded-md border px-2 py-1">{page.words} words</span>
         <span className="rounded-md border px-2 py-1">about {screens.toFixed(1)} screens</span>
+        {stepNo > 0 && <span className="rounded-md border px-2 py-1">Step {stepNo} of {steps.length}</span>}
         <span className="rounded-md border px-2 py-1">mock content</span>
       </div>
       <DocsBody>
+        {personaCards.length > 0 && (
+          <div className="not-prose mb-6 grid gap-3 sm:grid-cols-3">
+            {personaCards.map((c) => (
+              <Link key={c.label} href={c.to!.url} className="hover:bg-accent rounded-md border p-4 text-sm font-medium">
+                {c.label}
+              </Link>
+            ))}
+          </div>
+        )}
         {page.type === "landing" && children.length > 0 ? (
           <>
             <Bars lines={3} seed={2} />

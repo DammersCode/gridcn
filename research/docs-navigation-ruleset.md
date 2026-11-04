@@ -31,7 +31,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 | Feature | How does this work and how do I use it? | 400 to 1,200 / 1,500 | 8 | 2 to 6 | Problem paragraph; demo; install; behavior; props tables; Related |
 | Concept | Why does it work this way? | 300 to 1,000 / 1,200 | 6 | 2 to 5 | The question the reader has; the model in short sentences; consequences; Related. No props table |
 | Task | How do I do X? | 200 to 800 / 1,000 | 6 | 2 to 5 | Goal sentence; numbered steps; result; Related |
-| Step | What is the next step of the path? | 200 to 600 / 800 | 5 | 2 to 4 | Outcome first; steps; visible result; Next link |
+| Step | What is the next step of the path? | 200 to 600 / 800 | 5 | 2 to 4 | Before you start (prerequisites); outcome; steps; visible result; Next link, or Where next on the last step |
 | Reference | What is the exact contract? | 300 to 1,500 / 2,000 | 14 | 3 to 10 | Summary table; per-concern sections; caveats; Related |
 | Example | What does a working demo look like? | 100 to 500 / 800 | 6 | 0 to 5 | Live demo; what it shows; Related |
 | Cheatsheet | What is the value or key? | tables only / 1,200 | 12 | 2 to 10 | Tables with a one-line purpose each; every row links to its page |
@@ -130,20 +130,23 @@ Every page has exactly one type. The type decides the budget and the template. A
 - A6. Search stays on. Titles and descriptions are written for it (P8, N1).
 - A7. Prev and next links appear only in path groups. Topic groups use Related.
 - A8. A Step page shows "Step n of N" and the list of its path group, so the reader sees the whole route.
+- A9. The last step of a path group ends with a Where next block of at most 3 links: the next path, the task finder, and the
+  area that holds the detail. Pages outside path groups show no prev and next links.
 
 ## 6. Where a new page goes
 
-This table answers S14 before a page is written. When the target group is at 7 pages, split the group first.
+This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
+page. A page may still land until the group reaches 12 pages.
 
 | New thing | Pages it needs |
 |---|---|
-| Add-on | A task page in the How-to group of its topic, an options section in the matching Add-on options page, an example page, and a row in the feature matrix |
+| Add-on | A page in the group of its topic (a task page in a task-first area, a feature page in a topic-first area), an options section in the matching Add-on options page, an example page, and a row in the feature matrix |
 | Server feature | A task page in the Server group of its mode, a row in the data modes matrix, and a step link in the Server path when it changes the route |
 | Event or callback | A section in the matching Events page and a row in the events cheatsheet |
 | Cell type | A section in the built-in cell types task page and an example page |
 | Prop | A row in the matching props page; the props cheatsheet is generated |
 | Behavior that needs a reason | A Concept page in Reference > Concepts |
-| Breaking change | A section in the upgrade task page and the changelog link |
+| Breaking change | A section in the upgrade page and a line in the version policy and changelog page |
 
 ## 7. Exceptions
 
