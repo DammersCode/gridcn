@@ -2,7 +2,7 @@
 
 import { memo, useState, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridIsRowChannelSelected, useDataGridIsRowStale, useDataGridRow, useDataGridRowCellState } from "./store";
+import { useDataGridIsRowChannelSelected, useDataGridRow, useDataGridRowCellState } from "./store";
 import { GRID_ATTR } from "./data-attributes";
 import { markerContent } from "./rows/marker-width";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
@@ -81,7 +81,6 @@ export const DataGridRow = memo(function DataGridRow({
   // this memoized row only re-renders when its own active/editing/search/selection state changed.
   const cellState = useDataGridRowCellState(viewRowIndex);
   const isChecked = useDataGridIsRowChannelSelected(viewRowIndex);
-  const isStale = useDataGridIsRowStale(rowId);
   // marker column occupies grid track 1 when present, so every data column shifts one track right
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   // A hole in `data` (lazy loading): row.tsx renders skeleton cells instead of empty ones.
@@ -101,7 +100,7 @@ export const DataGridRow = memo(function DataGridRow({
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
       {...(cellState.saveStatus === undefined ? undefined : { [GRID_ATTR.saveStatus]: cellState.saveStatus })}
-      {...(isStale ? { [GRID_ATTR.rowStale]: "" } : undefined)}
+      {...(cellState.stale ? { [GRID_ATTR.rowStale]: "" } : undefined)}
       aria-selected={isChecked ? true : hasCheckboxMarker ? false : undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
       className={cn("group/row data-hovered:bg-muted/50", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}

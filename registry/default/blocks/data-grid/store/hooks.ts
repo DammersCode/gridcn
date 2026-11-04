@@ -443,11 +443,6 @@ export function useDataGridIsRowSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex) || isRowInRangeChannel(s.selection, viewRowIndex));
 }
 
-/** Whether a push changed this row in a column the server spec reads, so it may sit at the wrong place until the server delivers it again. */
-export function useDataGridIsRowStale(rowId: string | undefined): boolean {
-  return useDataGridStore((s) => rowId !== undefined && s.staleRowIds.has(rowId));
-}
-
 /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Deliberately excludes the cell/column channels — the marker renderer's `isSelected` must flip on row selection alone, never on a cell click (see {@link MarkerCellRenderCtx}). */
 export function useDataGridIsRowChannelSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex));
@@ -571,10 +566,11 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  const rowId = s.saveStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
+  const rowId = s.saveStatus.size === 0 && s.staleRowIds.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
   const saveStatus = rowId === undefined ? undefined : s.saveStatus.get(rowId);
+  const stale = rowId !== undefined && s.staleRowIds.has(rowId);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus };
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus, stale };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -604,6 +600,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingError === b.editingError &&
     a.editingRejectionCount === b.editingRejectionCount &&
     a.saveStatus === b.saveStatus &&
+    a.stale === b.stale &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&

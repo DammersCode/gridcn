@@ -1341,4 +1341,6 @@ export type DataGridRowCellState = {
   selectedColRanges: readonly ColRange[];
   /** The save status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
   saveStatus: RowSaveStatus | undefined;
+  /** A push changed this row in a column the server spec reads, so it may sit at the wrong place until the server delivers it again. */
+  stale: boolean;
 };
