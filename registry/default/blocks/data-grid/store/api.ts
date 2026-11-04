@@ -34,7 +34,7 @@ export function gridStoreWrapper(store: StoreApi<DataGridStoreState>): DataGridS
  * `useDataGridServerRows` registers its reshape here.
  * @internal
  */
-export function setServerReshapeHandler(wrapper: DataGridStoreWrapper, handler: (() => void) | null): void {
+export function setServerReshapeHandler(wrapper: DataGridStoreWrapper, handler: ((trigger: "urgent" | "stale") => void) | null): void {
   const store = storesByWrapper.get(wrapper);
   if (store) store.getState().dataWrite.reshape = handler;
 }

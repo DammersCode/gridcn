@@ -93,8 +93,8 @@ export type DataWriteContext = {
   disposed: boolean;
   /** The stale rows with the row object and data index of their latest push; `staleRowIds` in the state is its key set. */
   staleRows: Map<string, { row: unknown; index: number }>;
-  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. */
-  reshape: (() => void) | null;
+  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelay`, `"stale"` is a deferred push that marked a row. */
+  reshape: ((trigger: "urgent" | "stale") => void) | null;
   warnedReshape: boolean;
   warnedStreamLimit: boolean;
 };
@@ -1096,6 +1096,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
               : { data: nextData, cellErrors, ...stale },
           ),
         );
+        if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
@@ -1132,7 +1133,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (!s.viewStale) return;
       let stale: Pick<DataGridStoreState, "staleRowIds"> = s;
       if (s.staleRowIds.size > 0) {
-        if (ctx.reshape) ctx.reshape();
+        if (ctx.reshape) ctx.reshape("urgent");
         else stale = clearStaleRows(ctx);
       }
       if (viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {

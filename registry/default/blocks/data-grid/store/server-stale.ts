@@ -68,7 +68,7 @@ export function markStaleRows(
 /** Asks the mounted server-rows hook to reshape; without it the rows stay marked and a dev warning says so once. */
 export function requestReshape(ctx: DataWriteContext, warn: (message: string) => void): void {
   if (ctx.reshape) {
-    ctx.reshape();
+    ctx.reshape("urgent");
     return;
   }
   if (ctx.warnedReshape) return;

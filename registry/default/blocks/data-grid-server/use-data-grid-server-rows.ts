@@ -9,7 +9,7 @@ import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
-import { isolate, useControlled, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, useControlled, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
@@ -46,6 +46,13 @@ export type UseDataGridServerRowsOptions<TData> = {
    */
   revalidateInterval?: number;
   /**
+   * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
+   * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
+   * reshape that falls due during a request, or while the page is hidden, waits and runs once. At least 250. Off by default:
+   * a stale row then waits for `reshape()`, `refresh()`, or a spec change.
+   */
+  reshapeDelay?: number;
+  /**
    * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
    * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
    * a local insert, delete, or move, and the start of a save drop it. Default `false`.
@@ -81,6 +88,8 @@ export type UseDataGridServerRowsResult<TData> = {
   retry: () => void;
   /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with a pending delete is gone: the answer's copy is dropped and its slot stays empty. A protected row that the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes when no pending insert or delete is left, so the server decides. A pages refresh appends such a row at the end of the page, so the page can exceed `pageSize` by pending inserts. A sequential refresh that ends before a pending insert may drop it until its save settles. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. Call it after the `onSave` promise settles to pick up server-computed fields. */
   refresh: () => void;
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
+  reshape: () => void;
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridProvider`. */
@@ -164,7 +173,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener, setSavesSettledListener } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
   const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
@@ -401,12 +410,19 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.error !== null) setTick((n) => n + 1);
   }, []);
   const restartClockRef = useRef<() => void>(() => {});
+  const refreshRef = useRef<() => void>(() => {});
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelay, run: () => refreshRef.current(), busy: loading, resetKey: view, warn });
+  const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
+  useEffect(() => {
+    setReshapeListener(requestReshape);
+    return () => setReshapeListener(null);
+  }, [setReshapeListener, requestReshape]);
   const refresh = useCallback(() => {
+    cancelReshape();
     restartClockRef.current();
     if (live.current.settledOnce && guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     setTick((n) => n + 1);
-  }, [guardMissing, warn]);
-  const refreshRef = useRef(refresh);
+  }, [guardMissing, warn, cancelReshape]);
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
@@ -421,9 +437,10 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       trackDeletes(deleted.current, change);
       if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
       setSettled((prev) => ({ ...prev, rows: next as TData[] }));
+      if (change.source === "stream" && ((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type === "delete")) requestReshape("soon");
       live.current.options.onDataChange?.(next, change);
     },
-    [markEdited, dropPrefetch],
+    [markEdited, dropPrefetch, requestReshape],
   );
   const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
@@ -466,7 +483,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh, reshape };
 }
 
 const EMPTY_LIVE_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { readRevalidateInterval } from "./fetch-hygiene";
+import { MIN_RESHAPE_DELAY, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
 export type DataSourceState = {
@@ -17,7 +17,19 @@ export type DataSourceState = {
   retry: () => void;
   /** Fetches what is in view again and keeps it on screen until the answer lands. */
   refresh: () => void;
+  /** Asks the server to place the rows again after a push: one `refresh()` on the next frame, or after `reshapeDelay`. Calls in one frame join. */
+  reshape: () => void;
 };
+
+/** Runs `callback` on the next animation frame, or after 16 ms where there is none. Returns the cancel. */
+export function scheduleFrame(callback: () => void): () => void {
+  if (typeof requestAnimationFrame === "function") {
+    const id = requestAnimationFrame(callback);
+    return () => cancelAnimationFrame(id);
+  }
+  const id = setTimeout(callback, 16);
+  return () => clearTimeout(id);
+}
 
 const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
 
@@ -174,4 +186,102 @@ export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey
   }, [busy]);
 
   return restart;
+}
+
+type ReshapeInput = {
+  /** The `reshapeDelay` option as the consumer passed it. */
+  delay: unknown;
+  /** Runs the refresh when a reshape is due. */
+  run: () => void;
+  /** A request is in flight: a due reshape waits until this turns false and then runs once. */
+  busy: boolean;
+  /** `false` drops a due reshape. */
+  canRun?: () => boolean;
+  /** A change cancels the pending reshape: the request it starts fetches the rows anyway. */
+  resetKey: string;
+  warn: (kind: string, message: string) => void;
+};
+
+/** `"stale"` comes from a deferred push, `"soon"` from a stream delete or `reshape()`, `"urgent"` from `reconcileView()` or an immediate push. */
+export type ReshapeTrigger = "stale" | "soon" | "urgent";
+
+/**
+ * Schedules the refresh that places pushed rows again. With `reshapeDelay` the first trigger starts a timer and later triggers
+ * join it, so a steady feed reshapes at most once per delay; without it only `"soon"` and `"urgent"` triggers run, on the next
+ * frame. A reshape that falls due during a request or while the page is hidden waits and runs once.
+ */
+export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: ReshapeInput) {
+  const { delay, invalid, raised } = readReshapeDelay(raw);
+  const live = useRef({ delay, run, busy, canRun, warn });
+  useLayoutEffect(() => {
+    live.current = { delay, run, busy, canRun, warn };
+  });
+  const pending = useRef<{ timer: ReturnType<typeof setTimeout> | null; cancelFrame: (() => void) | null; waiting: boolean }>({ timer: null, cancelFrame: null, waiting: false });
+
+  const cancel = useCallback(() => {
+    const state = pending.current;
+    if (state.timer !== null) clearTimeout(state.timer);
+    state.cancelFrame?.();
+    state.timer = null;
+    state.cancelFrame = null;
+    state.waiting = false;
+  }, []);
+
+  const due = useCallback(() => {
+    const state = pending.current;
+    if (live.current.busy || (typeof document !== "undefined" && document.visibilityState === "hidden")) {
+      state.waiting = true;
+      return;
+    }
+    state.waiting = false;
+    if (!live.current.canRun || live.current.canRun()) live.current.run();
+  }, []);
+
+  const request = useCallback(
+    (trigger: ReshapeTrigger) => {
+      const state = pending.current;
+      const ms = live.current.delay;
+      if (trigger === "stale" || (trigger === "soon" && ms !== null)) {
+        if (ms === null || state.timer !== null) return;
+        state.timer = setTimeout(() => {
+          state.timer = null;
+          due();
+        }, ms);
+        return;
+      }
+      if (state.cancelFrame !== null) return;
+      state.cancelFrame = scheduleFrame(() => {
+        state.cancelFrame = null;
+        due();
+      });
+    },
+    [due],
+  );
+
+  useEffect(() => {
+    if (invalid) live.current.warn("reshapeDelay", "reshapeDelay must be a number of milliseconds above 0, so pushes reshape without a delay");
+    else if (raised) live.current.warn("reshapeDelay", `reshapeDelay below ${MIN_RESHAPE_DELAY} ms is raised to ${MIN_RESHAPE_DELAY} ms`);
+  }, [invalid, raised]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState !== "hidden" && pending.current.waiting) due();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      cancel();
+    };
+  }, [due, cancel]);
+
+  useEffect(() => {
+    cancel();
+  }, [resetKey, cancel]);
+
+  useEffect(() => {
+    if (!busy && pending.current.waiting) due();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
+
+  return { request, cancel };
 }

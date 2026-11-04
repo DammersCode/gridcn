@@ -160,10 +160,18 @@ describe("reshape handler", () => {
     expect(grid.stale()).toEqual([]);
   });
 
-  it('defer never asks for a reshape', () => {
+  it('defer tells the handler about the stale row and never asks for an urgent reshape', () => {
     const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
     const reshape = withHandler(grid);
     grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    expect(reshape.mock.calls).toEqual([["stale"]]);
+  });
+
+  it('never and a column the spec does not read tell the handler nothing', () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "never" });
+    grid.push([{ rowId: "b", columnId: "price", value: 1 }]);
     expect(reshape).not.toHaveBeenCalled();
   });
 
@@ -190,8 +198,9 @@ describe("reshape handler", () => {
     const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
     const reshape = withHandler(grid);
     grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    reshape.mockClear();
     act(() => grid.result.current.actions.reconcileView());
-    expect(reshape).toHaveBeenCalledTimes(1);
+    expect(reshape.mock.calls).toEqual([["urgent"]]);
     expect(grid.stale()).toEqual(["a"]);
     expect(grid.result.current.viewStale).toBe(true);
   });

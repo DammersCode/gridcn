@@ -50,6 +50,16 @@ export function readRevalidateInterval(value: unknown): { interval: number | nul
   return { interval: Math.min(MAX_REVALIDATE_INTERVAL, Math.max(MIN_REVALIDATE_INTERVAL, Math.floor(value))), invalid: false };
 }
 
+export const MIN_RESHAPE_DELAY = 250;
+
+/** The delay in ms, or `null` when the reshape delay is off; `invalid` marks a value that was set but unusable, `raised` a value below the minimum. */
+export function readReshapeDelay(value: unknown): { delay: number | null; invalid: boolean; raised: boolean } {
+  if (value === undefined) return { delay: null, invalid: false, raised: false };
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return { delay: null, invalid: true, raised: false };
+  const delay = Math.min(MAX_REVALIDATE_INTERVAL, Math.floor(value));
+  return { delay: Math.max(MIN_RESHAPE_DELAY, delay), invalid: false, raised: delay < MIN_RESHAPE_DELAY };
+}
+
 /** The wanted range grown by one block on each side, clamped to the result. Abort and eviction act outside it only. */
 export function keepRange(wanted: RowRange, blockSize: number, total: number): RowRange {
   return { start: Math.max(0, wanted.start - blockSize), end: Math.min(total, wanted.end + blockSize) };

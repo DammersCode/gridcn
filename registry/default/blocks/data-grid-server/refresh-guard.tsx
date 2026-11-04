@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowIdAtViewRow, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { rowIdAtViewRow, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
@@ -35,6 +35,8 @@ type Holder = {
   onSaveStarted: (() => void) | null;
   /** Called when the last saving row leaves `"saving"`. */
   onSavesSettled: (() => void) | null;
+  /** Called when the grid asks for a reshape: `reconcileView()`, an immediate push, or a deferred push that marked a row. */
+  onReshape: ((trigger: "urgent" | "stale") => void) | null;
   trackUnacknowledged: boolean;
   /** Rows with a local edit or insert that no save and no landed block has acknowledged; eviction keeps them. */
   unacknowledged: Set<string>;
@@ -50,6 +52,10 @@ function setSaveListenerOn(holder: Holder, listener: (() => void) | null) {
 
 function setSettledListenerOn(holder: Holder, listener: (() => void) | null) {
   holder.onSavesSettled = listener;
+}
+
+function setReshapeOn(holder: Holder, listener: ((trigger: "urgent" | "stale") => void) | null) {
+  holder.onReshape = listener;
 }
 
 function hasSaving(status: ReadonlyMap<string, string>): boolean {
@@ -119,7 +125,9 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
       holder.store = store;
       holder.everMounted = true;
       const unsubscribe = store.subscribe((state, prev) => trackSaves(holder, state, prev));
+      setServerReshapeHandler(store, (trigger) => holder.onReshape?.(trigger));
       return () => {
+        setServerReshapeHandler(store, null);
         unsubscribe();
         holder.store = null;
       };
@@ -143,7 +151,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, onReshape: null, trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -163,6 +171,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const setSettleListener = useCallback((listener: (() => void) | null) => setListenerOn(holder, listener), [holder]);
   const setSaveStartListener = useCallback((listener: (() => void) | null) => setSaveListenerOn(holder, listener), [holder]);
   const setSavesSettledListener = useCallback((listener: (() => void) | null) => setSettledListenerOn(holder, listener), [holder]);
+  const setReshapeListener = useCallback((listener: ((trigger: "urgent" | "stale") => void) | null) => setReshapeOn(holder, listener), [holder]);
   const forgetStructural = useCallback(() => {
     holder.structural.clear();
     holder.unacknowledged.clear();
@@ -176,7 +185,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, setSavesSettledListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 export const GUARD_MISSING_MESSAGE =

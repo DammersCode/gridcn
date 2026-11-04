@@ -8,7 +8,7 @@ import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionI
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
-import { isolate, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useReshape, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -56,6 +56,13 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * At least 1000. Off by default.
    */
   revalidateInterval?: number;
+  /**
+   * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
+   * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
+   * reshape that falls due during a request, or while the page is hidden, waits and runs once; a sequential source skips it while the
+   * rendered rows end beyond 10 blocks. At least 250. Off by default: a stale row then waits for `reshape()`, `refresh()`, or a spec change.
+   */
+  reshapeDelay?: number;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
@@ -115,6 +122,8 @@ export type UseDataGridServerRowsScrollResult<TData> = {
    * Call it after the `onSave` promise settles to pick up server-computed fields.
    */
   refresh: () => void;
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
+  reshape: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;
   /** The loaded ranges, merged and ascending. Not reactive: read it in an effect or a handler. */
@@ -208,15 +217,6 @@ function createCore<TData>(): Core<TData> {
   return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
 }
 
-function scheduleFrame(callback: () => void): () => void {
-  if (typeof requestAnimationFrame === "function") {
-    const id = requestAnimationFrame(callback);
-    return () => cancelAnimationFrame(id);
-  }
-  const id = setTimeout(callback, 16);
-  return () => clearTimeout(id);
-}
-
 function oldestMark<TData>(core: Core<TData>): number | null {
   let oldest: number | null = null;
   const note = (mark: number) => {
@@ -274,7 +274,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -835,7 +835,21 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   }, [rows, getCore]);
 
   const restartClockRef = useRef<() => void>(noop);
+  const refreshRef = useRef<() => void>(noop);
+  const canRevalidate = useCallback(() => {
+    const core = getCore();
+    if (core.kind !== "sequence") return true;
+    const size = blockSize();
+    return Math.ceil(Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) / size) <= MAX_SEQUENTIAL_REVALIDATE_BLOCKS;
+  }, [getCore, blockSize, overscanOf]);
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelay, run: () => refreshRef.current(), busy: loading, canRun: canRevalidate, resetKey: specKey, warn });
+  const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
+  useEffect(() => {
+    setReshapeListener(requestReshape);
+    return () => setReshapeListener(null);
+  }, [setReshapeListener, requestReshape]);
   const refresh = useCallback(() => {
+    cancelReshape();
     restartClockRef.current();
     const core = getCore();
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
@@ -865,19 +879,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     core.owed = chunkRange(keep, size);
     setLoading(core.owed.length > 0);
     pumpRef.current();
-  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, guardMissing, warn, commit]);
+  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, guardMissing, warn, commit, cancelReshape]);
 
-  const refreshRef = useRef<() => void>(noop);
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
 
-  const canRevalidate = useCallback(() => {
-    const core = getCore();
-    if (core.kind !== "sequence") return true;
-    const size = blockSize();
-    return Math.ceil(Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) / size) <= MAX_SEQUENTIAL_REVALIDATE_BLOCKS;
-  }, [getCore, blockSize, overscanOf]);
   const restartClock = useRevalidation({ interval: options.revalidateInterval, onTick: () => refreshRef.current(), busy: loading, canTick: canRevalidate, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
@@ -935,18 +942,21 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         core.stale = mergeRanges([...core.stale, ...core.loaded].map((range) => ({ start: range.start, end: range.end + inserted })));
         core.loaded = [];
         setLoadedCount(0);
-        // A burst of row operations refreshes once, on the next frame.
-        if (core.cancelQueuedRefresh === null) {
+        // A burst of row operations refreshes once, on the next frame. A push goes through the reshape rule instead.
+        if (change.source === "stream") requestReshape("soon");
+        else if (core.cancelQueuedRefresh === null) {
           core.cancelQueuedRefresh = scheduleFrame(() => {
             core.cancelQueuedRefresh = null;
             refreshRef.current();
           });
         }
+      } else if (core.kind === "sequence" && change.source === "stream" && change.ops.some((op) => op.type !== "update")) {
+        requestReshape("soon");
       }
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations, markEdited],
+    [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape],
   );
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
@@ -974,7 +984,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const unloadedCount = skeletons ?? (count ?? 0) - loadedCount;
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, unloadedCount, getLoadedRanges, evict };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, reshape, unloadedCount, getLoadedRanges, evict };
 }
 
 function noop() {}
