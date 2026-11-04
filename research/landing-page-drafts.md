@@ -93,3 +93,12 @@ Fixed: the background variants used template-built class names that Tailwind did
 Round 5 found two claims that fail a senior read, both fixed: "no npm dependency" is false (the registry items install `zustand`, `use-sync-external-store`, `lucide-react` and `@base-ui/react`), and the "open source" wording in the "What you get" intro. The subline "scales like a database view" is a metaphor that no number backs; the owner chose it, and the reviewer recommends "smooth at 100k rows" instead.
 
 A mean of 9 does not fit the restored content: the comparison, agents and add-ons sections alone take about 1,100 px. With every fixable item done the reviewers estimate about 8.7. Reaching 9 means cutting or collapsing one restored section.
+
+### A2 round 6 (final of this series)
+
+| Perspective | Mean |
+| --- | --- |
+| Beginner | 8.6 |
+| Senior | 8.3 (8.6 without the subline "scales like a database view") |
+
+Comparison and add-ons collapse into native `<details>` panels; agent skills stay open. Height at 1024 px is about 3,000 px (3.9 screens), at 375 px about 4,000 to 4,400 px. A mean of 9 needs the agent panel collapsed too, a 40 px header (site layout), and a measured subline.
