@@ -3,6 +3,7 @@
   "old": "/docs/accessibility",
   "file": "accessibility.mdx",
   "slugs": [
+   "a11y-index",
    "a11y-conformance",
    "a11y-keyboard",
    "a11y-known-gaps"
@@ -16,7 +17,7 @@
   "slugs": [
    "presence-broadcast"
   ],
-  "target": "/docs/rows-and-live-data/broadcast-your-selection",
+  "target": "/docs/rows-live-data/broadcast-your-selection",
   "split": false
  },
  {
@@ -25,7 +26,7 @@
   "slugs": [
    "context-menu"
   ],
-  "target": "/docs/rows/add-a-context-menu",
+  "target": "/docs/rows/add-context-menu",
   "split": false
  },
  {
@@ -34,7 +35,7 @@
   "slugs": [
    "fill"
   ],
-  "target": "/docs/clipboard-and-history/fill-cells",
+  "target": "/docs/clipboard-history/fill-cells",
   "split": false
  },
  {
@@ -43,17 +44,18 @@
   "slugs": [
    "find-replace"
   ],
-  "target": "/docs/search-and-toolbar/find-and-replace-text",
+  "target": "/docs/sort-filter-search/find-replace",
   "split": false
  },
  {
   "old": "/docs/addons/import-export",
   "file": "addons/import-export.mdx",
   "slugs": [
+   "io-index",
    "export",
    "import"
   ],
-  "target": "/docs/import-and-export",
+  "target": "/docs/import-export-views",
   "split": true
  },
  {
@@ -62,7 +64,7 @@
   "slugs": [
    "feature-matrix"
   ],
-  "target": "/docs/fit-and-features/feature-matrix",
+  "target": "/docs/fit-features/feature-matrix",
   "split": false
  },
  {
@@ -72,7 +74,7 @@
    "keybindings",
    "cheat-shortcuts"
   ],
-  "target": "/docs/select-and-navigate/rebind-keys",
+  "target": "/docs/select-navigate/rebind-keys",
   "split": true
  },
  {
@@ -90,18 +92,17 @@
   "slugs": [
    "presence"
   ],
-  "target": "/docs/rows-and-live-data/show-who-else-is",
+  "target": "/docs/rows-live-data/show-other-users",
   "split": false
  },
  {
   "old": "/docs/addons/sort-list",
   "file": "addons/sort-list.mdx",
   "slugs": [
-   "sorting",
    "sort-list"
   ],
-  "target": "/docs/sort-and-filter/sort-rows",
-  "split": true
+  "target": "/docs/sort-filter-search/use-sort-list",
+  "split": false
  },
  {
   "old": "/docs/addons/status-bar",
@@ -109,7 +110,7 @@
   "slugs": [
    "status-bar"
   ],
-  "target": "/docs/columns-and-layout/add-a-status-bar",
+  "target": "/docs/columns-layout/add-status-bar",
   "split": false
  },
  {
@@ -119,7 +120,7 @@
    "toolbar",
    "header-filter"
   ],
-  "target": "/docs/search-and-toolbar/add-a-toolbar",
+  "target": "/docs/sort-filter-search/add-toolbar",
   "split": true
  },
  {
@@ -130,7 +131,7 @@
    "undo-programmatic",
    "server-undo"
   ],
-  "target": "/docs/clipboard-and-history/undo-and-redo-edits",
+  "target": "/docs/clipboard-history/undo-redo-edits",
   "split": true
  },
  {
@@ -139,7 +140,7 @@
   "slugs": [
    "url-state"
   ],
-  "target": "/docs/sort-and-filter/share-the-view-by",
+  "target": "/docs/import-export-views/share-view",
   "split": false
  },
  {
@@ -148,7 +149,7 @@
   "slugs": [
    "agent-skills"
   ],
-  "target": "/docs/try-and-automate/agent-skills",
+  "target": "/docs/try-automate/agent-skills",
   "split": false
  },
  {
@@ -165,21 +166,13 @@
    "ref-engine",
    "cheat-props",
    "ref-store-hooks",
-   "options-context-menu",
-   "options-fill",
-   "options-find",
    "options-history",
+   "options-find",
+   "options-rows",
    "options-io",
-   "options-keybindings",
-   "options-pagination",
-   "options-pinned-rows",
-   "options-presence",
-   "options-sort-list",
-   "options-status-bar",
-   "options-toolbar",
-   "options-url-state"
+   "options-keys"
   ],
-  "target": "/docs/components-and-props",
+  "target": "/docs/components-props",
   "split": true
  },
  {
@@ -188,30 +181,32 @@
   "slugs": [
    "clipboard"
   ],
-  "target": "/docs/clipboard-and-history/copy-and-paste-cells",
+  "target": "/docs/clipboard-history/copy-paste-cells",
   "split": false
  },
  {
   "old": "/docs/columns",
   "file": "columns.mdx",
   "slugs": [
+   "layout-index",
    "column-sizing",
    "column-order-pin",
    "column-headers",
    "column-visibility"
   ],
-  "target": "/docs/columns-and-layout",
+  "target": "/docs/columns-layout",
   "split": true
  },
  {
   "old": "/docs/custom-cell-types",
   "file": "custom-cell-types.mdx",
   "slugs": [
+   "extend-index",
    "custom-cell-model",
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/concepts",
+  "target": "/docs/extend-gridcn",
   "split": true
  },
  {
@@ -225,13 +220,14 @@
    "server-troubleshooting",
    "feature-matrix"
   ],
-  "target": "/docs/choose-a-data-mode/features-by-data-mode",
+  "target": "/docs/choose-data-mode/features-data-mode",
   "split": true
  },
  {
   "old": "/docs/editing-cell-types",
   "file": "editing-cell-types.mdx",
   "slugs": [
+   "edit-index",
    "edit-activation",
    "cell-types",
    "validation",
@@ -252,11 +248,11 @@
    "ev-sort-filter",
    "ev-columns",
    "ev-edit",
-   "ev-presence",
+   "options-presence",
    "events-model",
    "cheat-events"
   ],
-  "target": "/docs/events-and-state",
+  "target": "/docs/events-state",
   "split": true
  },
  {
@@ -265,7 +261,7 @@
   "slugs": [
    "ex-rtl"
   ],
-  "target": "/docs/appearance-examples/right-to-left-example",
+  "target": "/docs/appearance-examples/right-left-example",
   "split": false
  },
  {
@@ -502,7 +498,7 @@
   "slugs": [
    "ex-celltypes"
   ],
-  "target": "/docs/foundations/cell-types-example",
+  "target": "/docs/basic-examples/cell-types-example",
   "split": false
  },
  {
@@ -511,7 +507,7 @@
   "slugs": [
    "ex-custom"
   ],
-  "target": "/docs/foundations/custom-cell-example",
+  "target": "/docs/basic-examples/custom-cell-example",
   "split": false
  },
  {
@@ -520,7 +516,7 @@
   "slugs": [
    "ex-editable"
   ],
-  "target": "/docs/foundations/editable-grid-example",
+  "target": "/docs/basic-examples/editable-grid-example",
   "split": false
  },
  {
@@ -529,7 +525,7 @@
   "slugs": [
    "examples-index"
   ],
-  "target": "/docs/foundations",
+  "target": "/docs/basic-examples",
   "split": false
  },
  {
@@ -538,7 +534,7 @@
   "slugs": [
    "ex-minimal"
   ],
-  "target": "/docs/foundations/minimal-grid-example",
+  "target": "/docs/basic-examples/minimal-grid-example",
   "split": false
  },
  {
@@ -665,7 +661,7 @@
    "global-shortcuts",
    "cheat-shortcuts"
   ],
-  "target": "/docs/select-and-navigate/set-global-shortcuts",
+  "target": "/docs/select-navigate/set-global-shortcuts",
   "split": true
  },
  {
@@ -676,7 +672,7 @@
    "use-debounced-input",
    "is-composing-key"
   ],
-  "target": "/docs/types-and-hooks/use-debounce",
+  "target": "/docs/types-hooks/use-debounce",
   "split": true
  },
  {
@@ -685,7 +681,7 @@
   "slugs": [
    "i18n"
   ],
-  "target": "/docs/style-and-translate/translate-labels",
+  "target": "/docs/style-translate/translate-labels",
   "split": false
  },
  {
@@ -701,25 +697,27 @@
   "old": "/docs/installation",
   "file": "installation.mdx",
   "slugs": [
-   "install"
+   "install",
+   "install-problems"
   ],
   "target": "/docs/learning-path/install-gridcn",
-  "split": false
+  "split": true
  },
  {
   "old": "/docs/lazy-loading-advanced",
   "file": "lazy-loading-advanced.mdx",
   "slugs": [
-   "scroll-errors",
-   "scroll-fetch-libs"
+   "scroll-fetch-libs",
+   "scroll-errors"
   ],
-  "target": "/docs/scroll-mode",
+  "target": "/docs/scroll-mode/fetch-cache",
   "split": true
  },
  {
   "old": "/docs/lazy-loading",
   "file": "lazy-loading.mdx",
   "slugs": [
+   "scroll-index",
    "scroll-usage",
    "scroll-errors",
    "scroll-retention",
@@ -735,13 +733,10 @@
   "old": "/docs/license",
   "file": "license.mdx",
   "slugs": [
-   "license",
-   "version-policy",
-   "support-matrix",
-   "upgrade"
+   "license"
   ],
-  "target": "/docs/support-and-upgrades/license",
-  "split": true
+  "target": "/docs/support-upgrades/license",
+  "split": false
  },
  {
   "old": "/docs/pagination",
@@ -750,7 +745,7 @@
    "pagination",
    "pagination-url"
   ],
-  "target": "/docs/pages-mode/load-rows-by-page",
+  "target": "/docs/pages-mode/load-rows-page",
   "split": true
  },
  {
@@ -770,19 +765,21 @@
   "slugs": [
    "playground"
   ],
-  "target": "/docs/try-and-automate/playground",
+  "target": "/docs/try-automate/playground",
   "split": false
  },
  {
   "old": "/docs/plugins",
   "file": "plugins.mdx",
   "slugs": [
+   "extend-index",
    "plugins-shape",
    "plugins-overlays",
+   "plugins-events",
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/concepts",
+  "target": "/docs/extend-gridcn",
   "split": true
  },
  {
@@ -792,10 +789,9 @@
    "version-policy",
    "row-limits",
    "support-matrix",
-   "upgrade",
-   "license"
+   "upgrade"
   ],
-  "target": "/docs/support-and-upgrades/version-policy",
+  "target": "/docs/support-upgrades/version-policy",
   "split": true
  },
  {
@@ -808,8 +804,7 @@
    "learn-select",
    "learn-sort",
    "learn-save",
-   "learn-style",
-   "learn-server"
+   "learn-style"
   ],
   "target": "/docs/learning-path/render-your-first-grid",
   "split": true
@@ -818,10 +813,11 @@
   "old": "/docs/recipes/data-fetching",
   "file": "recipes/data-fetching/index.mdx",
   "slugs": [
+   "server-index",
    "ref-server-rows",
    "find-task"
   ],
-  "target": "/docs/contracts",
+  "target": "/docs/choose-data-mode",
   "split": true
  },
  {
@@ -830,7 +826,7 @@
   "slugs": [
    "server-round-trip"
   ],
-  "target": "/docs/save-to-a-server/save-optimistically-and-roll",
+  "target": "/docs/save-server/save-roll-back",
   "split": false
  },
  {
@@ -848,7 +844,7 @@
   "slugs": [
    "scroll-fetch-libs"
   ],
-  "target": "/docs/scroll-mode/fetch-with-a-cache",
+  "target": "/docs/scroll-mode/fetch-cache",
   "split": false
  },
  {
@@ -857,7 +853,7 @@
   "slugs": [
    "auth-gated"
   ],
-  "target": "/docs/edit-data/lock-cells-by-role",
+  "target": "/docs/edit-data/lock-cells-role",
   "split": false
  },
  {
@@ -866,7 +862,7 @@
   "slugs": [
    "custom-cell-example"
   ],
-  "target": "/docs/extend-gridcn/build-a-currency-cell",
+  "target": "/docs/extend-gridcn/build-currency-cell",
   "split": false
  },
  {
@@ -875,7 +871,7 @@
   "slugs": [
    "edit-row-form"
   ],
-  "target": "/docs/edit-data/edit-a-row-in",
+  "target": "/docs/edit-data/edit-rows-forms",
   "split": false
  },
  {
@@ -893,7 +889,7 @@
   "slugs": [
    "bulk-actions"
   ],
-  "target": "/docs/rows/run-bulk-actions",
+  "target": "/docs/extend-gridcn/run-bulk-actions",
   "split": false
  },
  {
@@ -902,7 +898,7 @@
   "slugs": [
    "detail-panel"
   ],
-  "target": "/docs/rows/open-a-detail-panel",
+  "target": "/docs/extend-gridcn/open-detail-panel",
   "split": false
  },
  {
@@ -920,26 +916,28 @@
   "slugs": [
    "remember-view"
   ],
-  "target": "/docs/sort-and-filter/remember-the-view",
+  "target": "/docs/import-export-views/remember-view",
   "split": false
  },
  {
   "old": "/docs/row-operations",
   "file": "row-operations.mdx",
   "slugs": [
+   "rows-index",
    "row-operations",
    "row-reorder",
    "row-markers",
    "row-operations-code",
    "server-row-ops"
   ],
-  "target": "/docs/rows/add-and-delete-rows",
+  "target": "/docs/rows",
   "split": true
  },
  {
   "old": "/docs/selection-keyboard",
   "file": "selection-keyboard.mdx",
   "slugs": [
+   "select-index",
    "selection-model",
    "pointer-selection",
    "checked-rows",
@@ -947,20 +945,21 @@
    "server-selection",
    "cheat-shortcuts"
   ],
-  "target": "/docs/concepts",
+  "target": "/docs/select-navigate",
   "split": true
  },
  {
   "old": "/docs/sorting-filtering-search",
   "file": "sorting-filtering-search.mdx",
   "slugs": [
+   "sfs-index",
    "sorting",
    "filtering",
    "quick-search",
    "sort-list",
    "server-sort-filter"
   ],
-  "target": "/docs/sort-and-filter",
+  "target": "/docs/sort-filter-search",
   "split": true
  },
  {
@@ -969,13 +968,14 @@
   "slugs": [
    "streaming"
   ],
-  "target": "/docs/rows-and-live-data/stream-updates",
+  "target": "/docs/rows-live-data/stream-updates",
   "split": false
  },
  {
   "old": "/docs/styling-theming",
   "file": "styling-theming.mdx",
   "slugs": [
+   "look-index",
    "style-tokens",
    "ref-style-surface",
    "styling-model",
@@ -984,7 +984,7 @@
    "loading-state",
    "i18n"
   ],
-  "target": "/docs/style-and-translate",
+  "target": "/docs/style-translate",
   "split": true
  },
  {

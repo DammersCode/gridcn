@@ -9,7 +9,17 @@ const candidateFile = process.argv[2];
 const asJson = process.argv.includes("--json");
 const asAnchors = process.argv.includes("--anchors");
 const readLf = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
-const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 4).join("-");
+const STOP = new Set(["a", "an", "the", "to", "in", "of", "by", "from", "with", "and", "for", "on", "at"]);
+const kebab = (s) =>
+  s
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .split("-")
+    .filter((w) => !STOP.has(w))
+    .slice(0, 4)
+    .join("-");
 const siteSlug = (heading) =>
   heading.replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-");
 
@@ -55,6 +65,7 @@ for (const row of readLf("research/docs-navigation/content-map.md").split("\n"))
   if (!row.startsWith("| ") || row.startsWith("| Slug") || row.startsWith("|---")) continue;
   const [, slugCell, sourceCell] = row.split("|").map((x) => x.trim());
   const slugs = slugCell.replace(/`/g, "").split(",").map((x) => x.trim()).filter((x) => x && !x.endsWith("*"));
+  for (const s of slugs) if (!bySlug.has(s)) unknown.add(s);
   for (const t of [...sourceCell.matchAll(/`([^`]+)`/g)].map((m) => m[1])) if (oldSet.has(t)) for (const s of slugs) add(t, s);
   for (const m of sourceCell.matchAll(/`([^`]+)`\s*\(([^)]*)\)/g)) {
     sections.push({ old: m[1], slugs, titles: m[2].split(/,\s*|\s+and\s+/).map((x) => x.replace(/`/g, "").trim().toLowerCase()) });
@@ -101,11 +112,17 @@ if (unknown.size) {
 
 const PRIMARY = {
   "project-status": "version-policy", "quick-start": "first-grid", installation: "install", index: "index",
-  "addons/sort-list": "sorting", "api-reference": "ref-index", "events-state": "events-index",
+  "addons/sort-list": "sort-list", "api-reference": "ref-index", "events-state": "events-index",
+  "selection-keyboard": "select-index", "custom-cell-types": "extend-index", plugins: "extend-index",
+  "recipes/data-fetching": "server-index", "lazy-loading": "scroll-index", "lazy-loading-advanced": "scroll-fetch-libs",
+  "addons/import-export": "io-index", "addons/toolbar": "toolbar", "addons/undo-redo": "undo-redo",
+  "editing-cell-types": "edit-index", columns: "layout-index", "styling-theming": "look-index", "row-operations": "rows-index",
+  "sorting-filtering-search": "sfs-index", accessibility: "a11y-index", performance: "performance",
 };
 const rows = oldPages.map((old) => {
-  const preferred = PRIMARY[old] ?? old.split("/").pop();
-  const slugs = [...new Set([...(PRIMARY[old] ? [PRIMARY[old]] : []), ...(map.get(old) ?? [])])]
+  const key = old.replace(/\/index$/, "");
+  const preferred = PRIMARY[key] ?? key.split("/").pop();
+  const slugs = [...new Set([...(PRIMARY[key] ? [PRIMARY[key]] : []), ...(map.get(old) ?? [])])]
     .filter((s) => bySlug.has(s))
     .sort((a, b) => (b === preferred ? 1 : 0) - (a === preferred ? 1 : 0));
   const primary = slugs.length ? bySlug.get(slugs[0]) : null;
@@ -121,13 +138,16 @@ if (asAnchors) {
   for (const r of rows) {
     const oldPage = r.file.replace(/\.mdx$/, "");
     const entries = {};
-    for (const m of readLf(join("content/docs", r.file)).matchAll(/^## (.+)$/gm)) {
-      const explicit = /\[#([^\]]+)\]\s*$/.exec(m[1])?.[1];
-      const anchor = explicit ?? siteSlug(m[1]);
-      const title = m[1].replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase();
+    let parentSlug = null;
+    for (const m of readLf(join("content/docs", r.file)).matchAll(/^\s*(#{2,3}) (.+)$/gm)) {
+      const isH3 = m[1] === "###";
+      const heading = m[2];
+      const anchor = /\[#([^\]]+)\]\s*$/.exec(heading)?.[1] ?? siteSlug(heading);
+      const title = heading.replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase();
       const onPage = sections.filter((x) => x.old === oldPage);
-      const hit = onPage.find((x) => x.titles.includes(title)) ?? onPage.find((x) => x.titles.some((t) => t && (title.startsWith(t) || t.startsWith(title))));
-      const slug = hit?.slugs.find((x) => bySlug.has(x));
+      const hit = isH3 ? null : onPage.find((x) => x.titles.includes(title)) ?? onPage.find((x) => x.titles.some((t) => t && (title.startsWith(t) || t.startsWith(title))));
+      const slug = isH3 ? parentSlug : hit?.slugs.find((x) => bySlug.has(x));
+      if (!isH3) parentSlug = slug;
       if (slug) mapped++;
       else if (r.split) review.push(`${r.file}#${anchor}`);
       entries[anchor] = `${slug ? bySlug.get(slug).url : r.target}#${anchor}`;

@@ -1,7 +1,7 @@
 # Docs navigation ruleset
 
 These rules say how the docs are split, grouped, named, and ordered. A navigation passes when every rule holds or carries a
-written exception (section 6). Three modes of `scripts/docs-nav-audit.mjs` test the rules:
+written exception (section 7). Three modes of `scripts/docs-nav-audit.mjs` test the rules:
 
 - `--check` tests the pages in `content/docs` (page rules P and naming rules N).
 - `--candidate <file>` tests a navigation file (sidebar rules S, planned page budgets, titles, slugs).
@@ -68,7 +68,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   one row, so ten groups stay scannable (S5).
 - S3. A group has at most 7 pages at target and 12 at the hard cap. A group of generated option pages, sorted A to Z by
   visible title, is exempt. A group counts the pages it lists directly. Each third-level subgroup follows the same cap.
-  The Learning path group may hold 12 pages (see S12).
+  A path group (S12) may hold 12 pages.
 - S4. The tree is two levels deep: group, then page. A third level is allowed only inside Reference, Recipes, and Examples
   groups.
 - S5. At most 25 sidebar rows are visible at once on any page. The count is the groups of the area, plus the pages of the
@@ -85,9 +85,10 @@ Every page has exactly one type. The type decides the budget and the template. A
 - S11. The order inside a group is: Landing, the shortest path to first use, common tasks, advanced behavior,
   troubleshooting. A group that teaches a skill follows the path order. A Reference group follows the product (the order of
   the options) or A to Z.
-- S12. The Learn or Start area holds a Learning path group of 6 to 10 Step pages. The group has at most 12 pages with its
-  landing and side pages. Its order is the sidebar order, and each step names the next step. A side page, such as install
-  problems, has no Next link and sits outside the Next chain.
+- S12. A goal with an ordered route has a path group in the Learn or Start area: a group of 3 to 10 Step pages. The first
+  path group is the Learning path with 6 to 10 steps. Other goals, such as server data, get their own path group. A path
+  group order is its sidebar order, and each step names the next step. A step links to the task pages that hold the
+  detail and does not repeat them. A side page, such as install problems, sits outside the path groups.
 - S13. Group labels name the reader's goal or the thing: "Edit data", "Server data". The labels "Architecture", "Advanced",
   "Misc", "Other", and "Utilities" are not used.
 - S14. A new feature gets its page in the area where its reader looks. When the group is at its cap, the group splits
@@ -119,22 +120,38 @@ Every page has exactly one type. The type decides the budget and the template. A
 
 - A1. Every page has the on-page table of contents ("On this page"). It lists H2 and H3 only.
 - A2. Breadcrumbs appear only on pages at depth 3.
-- A3. The docs home is the landing of the Learning path group. It shows three entries: start with a first grid, find a task
-  (the task finder), and choose a data mode (Server data).
+- A3. The docs home is the landing of the Learning path group. It shows three entries, one per reader: start with a first
+  grid (new to the grid), the server path (building on server data), and the Evaluate area (deciding whether to adopt).
+  A link to the task finder sits next to them.
 - A4. One task finder page lists "I want to ..." tasks by intent, each one link, at most 40 entries, grouped in at most
   8 intents.
 - A5. One feature matrix page lists every feature with core or add-on, client or server support, and links to its guide
   and its reference.
 - A6. Search stays on. Titles and descriptions are written for it (P8, N1).
-- A7. Prev and next links appear only in the Learning path group. Topic groups use Related.
+- A7. Prev and next links appear only in path groups. Topic groups use Related.
+- A8. A Step page shows "Step n of N" and the list of its path group, so the reader sees the whole route.
 
-## 6. Exceptions
+## 6. Where a new page goes
+
+This table answers S14 before a page is written. When the target group is at 7 pages, split the group first.
+
+| New thing | Pages it needs |
+|---|---|
+| Add-on | A task page in the How-to group of its topic, an options section in the matching Add-on options page, an example page, and a row in the feature matrix |
+| Server feature | A task page in the Server group of its mode, a row in the data modes matrix, and a step link in the Server path when it changes the route |
+| Event or callback | A section in the matching Events page and a row in the events cheatsheet |
+| Cell type | A section in the built-in cell types task page and an example page |
+| Prop | A row in the matching props page; the props cheatsheet is generated |
+| Behavior that needs a reason | A Concept page in Reference > Concepts |
+| Breaking change | A section in the upgrade task page and the changelog link |
+
+## 7. Exceptions
 
 An exception is a line in `research/docs-navigation/exceptions.txt`: rule number, page path, reason. The audit script skips
 that rule for that page. A page with `generated: true` in its frontmatter skips P1 and P2. A page with an exception is
 reviewed again at the next release.
 
-## 7. Check mapping
+## 8. Check mapping
 
 | Rule | Checked by |
 |---|---|

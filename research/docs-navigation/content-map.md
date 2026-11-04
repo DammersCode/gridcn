@@ -9,8 +9,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | install | `installation` (prerequisites first, add-on picker last) | rewrite |
 | first-grid | `quick-start` (first grid only) | split |
 | terms | `terms` | move |
-| learn-columns, learn-edit, learn-select, learn-sort, learn-save, learn-style, learn-server | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
-| editing-index, selection-index, sfs-index, rows-index, columns-index, look-index, quality-index, extending-index, and every other group landing | none | new (one line per child) |
+| learn-columns, learn-edit, learn-select, learn-sort, learn-save, learn-style | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
+| landings* | none | new (one line per child) |
 | edit-activation | `editing-cell-types` (Edit activation, Read-only) | split |
 | cell-types | `editing-cell-types` (Built-in cell types) | split |
 | validation | `editing-cell-types` (Validation) | split |
@@ -72,7 +72,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | a11y-keyboard | `accessibility` (Keyboard coverage, Test status matrix, Touch targets) | split |
 | a11y-known-gaps | `accessibility` (Known gaps) | split |
 | plugins-shape | `plugins` (The plugin shape, What a plugin can reach, Identity, SSR) | split |
-| plugins-overlays | `plugins` (Overlays, Row bands, Observing data changes) | split |
+| plugins-overlays | `plugins` (Overlays, Row bands) | split |
+| plugins-events | `plugins` (Observing data changes) | split |
 | plugins-commands | `plugins` (Commands and keymaps, Engine work) | split |
 | plugins-example | `plugins` (Worked example) | split |
 | server-index, data-modes | `data-modes` (Data modes, Matrix, Notes) | move |
@@ -95,7 +96,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ev-sort-filter | `events-state` (onSortChange, onFilterChange) | split |
 | ev-columns | `events-state` (columnLayout and onColumnResizing) | split |
 | ev-edit | `events-state` (Edit lifecycle and cell events, onFill, onCellClick, onRenderedRowsChange) | split |
-| ev-presence | `events-state` (Presence read-back) | split |
+| options-presence | `events-state` (Presence read-back) | merge |
 | events-index | `events-state` (Find the callback you need, Zero re-render guarantee, Unsupported features) | split |
 | events-model | `events-state` (The three shapes an event follows) | split |
 | ref-index, types-index | none | new |
@@ -109,16 +110,19 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | cheat-props | `api-reference` | new, generated |
 | cheat-events | `events-state` (Find the callback you need) | new, generated |
 | feature-matrix | `data-modes` (Matrix), `addons/index` | new |
-| task-finder | none | new |
-| version-policy, support-matrix, upgrade, license | `project-status`, `license` | split |
+| find-task | none | new |
+| install-problems | `installation` (Framework notes, Non-default aliases, Verify) | split |
+| version-policy, support-matrix, upgrade | `project-status` | split |
+| license | `license` | move |
 | agent-skills | `agent-skills` | move |
 | playground | `playground` | move |
-| df-server-side, df-round-trip, df-tanstack, detail-panel, bulk-actions, remember-view, multiple-grids, edit-row-form, auth-gated, recipe-custom-cell | `recipes/**` (titles made unique) | move |
+| detail-panel, bulk-actions, remember-view, multiple-grids, edit-row-form, auth-gated | `recipes/ui-patterns/*`, `recipes/editing/*` | move |
 | ex-* | `examples/**` (titles made unique, ORM and swr and react-query pages grouped) | move |
 | keeping-fast | `performance` (guidance sections moved off the landing) | split |
 | ref-store-hooks | `api-reference` (store hooks and selectors) | split plus new text |
-| options-context-menu, options-fill, options-find, options-history, options-io, options-keybindings, options-pagination, options-pinned-rows, options-presence, options-sort-list, options-status-bar, options-toolbar, options-url-state | the option tables of each add-on page and `api-reference` (Add-on option types) | move, generated where possible |
+| options-history, options-find, options-rows, options-io, options-keys | the option tables of each add-on page and `api-reference` (Add-on option types) | move, one page per add-on family |
 | undo-programmatic | `addons/undo-redo` (Programmatic changes, Which changes are recorded, Dataset changes) | split |
 | use-debounce | `hooks/use-debounce` (useDebounce) | split |
 | use-debounced-input | `hooks/use-debounce` (useDebouncedInput) | split |
 | is-composing-key | `hooks/use-debounce` (isComposingKey) | split |
+| sp-choose, sp-load, sp-save, sp-failures, sp-live | none: five short steps that link the Server tasks | new text |

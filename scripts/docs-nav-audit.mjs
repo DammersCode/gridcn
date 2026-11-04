@@ -27,9 +27,7 @@ const BUDGETS = {
   cheatsheet: { target: [0, 1200], hard: 1200, screens: 12, h2: [2, 10] },
 };
 
-// Pages that read as reference before they declare `type:`; delete when the pages declare it.
-const LEGACY_REFERENCE = new Set(["api-reference.mdx", "events-state.mdx", "project-status.mdx", "terms.mdx", "license.mdx"]);
-
+const STOP = new Set(["a", "an", "the", "to", "in", "of", "by", "from", "with", "and", "for", "on", "at"]);
 const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const readLf = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 
@@ -83,7 +81,8 @@ const pages = existsSync(root)
   : [];
 
 function frontField(src, name) {
-  return new RegExp(`^${name}:\\s*(.+)$`, "m").exec(src)?.[1].replace(/^["']|["']$/g, "");
+  const front = /^---\n([\s\S]*?)\n---/.exec(src)?.[1] ?? "";
+  return new RegExp(`^${name}:\\s*(.+)$`, "m").exec(front)?.[1].replace(/^["']|["']$/g, "");
 }
 
 function sitemap(dir, depth, byPath) {
@@ -118,7 +117,7 @@ function pageType(path, src) {
   const declared = frontField(src, "type");
   if (declared) return declared;
   if (path.endsWith("index.mdx")) return "landing";
-  return LEGACY_REFERENCE.has(path) ? "reference" : "feature";
+  return "feature";
 }
 
 function readExceptions() {
@@ -245,14 +244,19 @@ function checkCandidate(file) {
         else if (p.words > b.target[1]) warn("P1", `${p.slug} planned ${p.words}w above target ${b.target[1]}`);
         if (p.title.length > 60) fail("N1", `${p.slug} title too long`);
         if (p.title.split(/\s+/).length > 4 && p.type !== "example") warn("N1", `${p.slug} title "${p.title}" has more than 4 words`);
-        const urlSlug = kebab(p.title).split("-").slice(0, 4).join("-");
+        const urlSlug = kebab(p.title).split("-").filter((w) => !STOP.has(w)).slice(0, 4).join("-");
         if (urlSlugs.has(urlSlug)) fail("N5", `${p.slug} and ${urlSlugs.get(urlSlug)} share the slug "${urlSlug}" in "${g.name}"`);
         urlSlugs.set(urlSlug, p.slug);
       }
     }
     if (entryArea) {
-      const steps = a.groups.flatMap((g) => g.pages).filter((p) => p.type === "step").length;
-      if (steps < 6 || steps > 10) fail("S12", `"${a.name}" has ${steps} step pages (want 6..10)`);
+      const pathGroups = a.groups.filter((g) => g.pages.some((p) => p.type === "step"));
+      if (!pathGroups.length) fail("S12", `"${a.name}" has no path group of step pages`);
+      for (const g of pathGroups) {
+        const steps = g.pages.filter((p) => p.type === "step").length;
+        if (steps < 3 || steps > 10) fail("S12", `path group "${g.name}" has ${steps} step pages (want 3..10)`);
+      }
+      if (pathGroups[0] && pathGroups[0].pages.filter((p) => p.type === "step").length < 6) fail("S12", "the first path group has fewer than 6 steps");
     }
     const visible = a.groups.length + worstOpen;
     perArea.push(`${a.name}: ${a.groups.length}g ${a.groups.reduce((n, g) => n + g.pages.length + g.subs.reduce((m, x) => m + x.pages.length, 0), 0)}p rows<=${visible}`);
