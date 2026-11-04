@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
-import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
+import { HeroActions, Install, ReleaseBadge} from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityHeatmap, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
@@ -15,12 +15,11 @@ export default function LandingB() {
         layers={["bg-background/30 backdrop-blur-lg [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"]}
       />
       <div className="relative z-10 flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-8 sm:px-6">
-        <section className="grid items-center gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-          <div className="flex flex-col items-start gap-4 border bg-card/90 p-6">
+        <section className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <div className="flex min-w-0 flex-col items-start gap-4 border bg-card/90 p-6">
             <ReleaseBadge />
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
             <p className="text-lg font-medium">{PLAIN_PITCH}</p>
-            <p className="text-sm text-muted-foreground">{TAGLINE}</p>
             <HeroActions />
             <Install />
           </div>
@@ -58,7 +57,7 @@ export default function LandingB() {
           <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             Add-ons:
             {addOns.map(([name, href]) => (
-              <Link key={name} href={href} className="underline underline-offset-4 hover:text-foreground">
+              <Link key={name} href={href} className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-foreground">
                 {name}
               </Link>
             ))}

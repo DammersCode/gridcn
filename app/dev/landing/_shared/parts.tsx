@@ -205,3 +205,20 @@ export function ParityLink({ children }: { children: ReactNode }) {
     </Link>
   );
 }
+
+/** Mobile form of the count table: one line per mode. */
+export function ParityModeList() {
+  return (
+    <ul className="grid gap-1.5 text-sm">
+      {parityByMode.map((m) => (
+        <li key={m.id} className="flex items-baseline gap-2">
+          <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground">{m.id}</span>
+          <span className="min-w-0 flex-1">{m.label}</span>
+          <span className="tabular-nums text-xs text-muted-foreground">
+            {m.supported} ✓ · {m.na} – · <span className={m.gap ? "font-medium text-destructive" : ""}>{m.gap} ✕</span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
-import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
+import { HeroActions, Install, ReleaseBadge} from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
-import { ParityBars, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
+import { ParityBars, ParityLegend, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
 import { BackdropVeil } from "../landing/_shared/veil";
 
@@ -16,7 +16,6 @@ export default function LandingA() {
           <ReleaseBadge />
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
           <p className="max-w-2xl text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
-          <p className="max-w-2xl text-sm text-muted-foreground">{TAGLINE}</p>
           <HeroActions className="justify-center" />
           <Install />
         </section>
@@ -37,6 +36,7 @@ export default function LandingA() {
           <div className="mt-4 border bg-card p-4">
             <ParitySummary className="mb-3" />
             <ParityBars />
+            <ParityLegend />
           </div>
         </section>
 
@@ -53,7 +53,7 @@ export default function LandingA() {
           <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             Add-ons:
             {addOns.map(([name, href]) => (
-              <Link key={name} href={href} className="underline underline-offset-4 hover:text-foreground">
+              <Link key={name} href={href} className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-foreground">
                 {name}
               </Link>
             ))}

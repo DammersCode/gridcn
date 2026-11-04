@@ -42,7 +42,7 @@ export function ReleaseBadge() {
 
 export function Install({ className }: { className?: string }) {
   return (
-    <div className={cn("w-full max-w-md text-start", className)}>
+    <div className={cn("w-full min-w-0 max-w-md overflow-x-auto text-start", className)}>
       <InstallCommand item="data-grid" />
     </div>
   );

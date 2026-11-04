@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { PLAIN_PITCH, addOns, coreFeatures } from "../landing/_shared/data";
-import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
+import { HeroActions, Install, ReleaseBadge} from "../landing/_shared/hero";
 import { GridMock } from "../landing/_shared/grid-mock";
-import { ParityCounts, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "../landing/_shared/parts";
+import { ParityCounts, ParityModeList, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
 import { Tabs } from "../landing/_shared/tabs";
 import { BackdropVeil } from "../landing/_shared/veil";
@@ -17,7 +17,6 @@ export default function LandingC() {
           <ReleaseBadge />
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
           <p className="max-w-2xl text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
-          <p className="max-w-2xl text-sm text-muted-foreground">{TAGLINE}</p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <HeroActions />
           </div>
@@ -41,7 +40,8 @@ export default function LandingC() {
               panel: (
                 <div className="flex flex-col gap-3">
                   <ParitySummary />
-                  <ParityCounts />
+                  <div className="hidden sm:block"><ParityCounts /></div>
+                  <div className="sm:hidden"><ParityModeList /></div>
                   <ParityLink>Read the full matrix →</ParityLink>
                 </div>
               ),
@@ -62,7 +62,7 @@ export default function LandingC() {
                   <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     Add-ons:
                     {addOns.map(([name, href]) => (
-                      <Link key={name} href={href} className="underline underline-offset-4 hover:text-foreground">
+                      <Link key={name} href={href} className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-foreground">
                         {name}
                       </Link>
                     ))}
