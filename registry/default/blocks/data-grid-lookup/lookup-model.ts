@@ -74,8 +74,10 @@ export function readLookup(value: unknown): LookupOption | null {
 
 /** True when the stored value carries no label of its own. */
 export function isUnresolved(value: unknown): boolean {
-  const option = readLookup(value);
-  return option !== null && (typeof value !== "object" || option.label === option.value);
+  if (readLookup(value) === null) return false;
+  if (typeof value !== "object" || value === null) return true;
+  const label = (value as { label?: unknown }).label;
+  return typeof label !== "string" || label === "";
 }
 
 /** Keeps at most `limit` well-formed options from an untrusted answer; the first of a repeated value wins. */
@@ -88,8 +90,9 @@ export function sanitizeOptions(answer: unknown, limit: number | undefined): Loo
     if (out.length >= max) break;
     if (typeof item !== "object" || item === null) continue;
     const { value, label } = item as { value?: unknown; label?: unknown };
-    if (typeof value !== "string" || value === "" || typeof label !== "string") continue;
-    const key = clip(value);
+    if ((typeof value !== "string" && typeof value !== "number") || typeof label !== "string") continue;
+    const key = clip(toSafeText(value));
+    if (key === "") continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ value: key, label: clip(label) });
@@ -97,10 +100,10 @@ export function sanitizeOptions(answer: unknown, limit: number | undefined): Loo
   return out;
 }
 
-type KnownOptions = { byLabel: Map<string, LookupOption>; byValue: Map<string, LookupOption> };
+type KnownOptions = { byLabel: Map<string, LookupOption | null>; byValue: Map<string, LookupOption> };
 const known = new WeakMap<object, KnownOptions>();
 
-function dropOldest(map: Map<string, LookupOption>): void {
+function dropOldest<T>(map: Map<string, T>): void {
   if (map.size > MAX_KNOWN_LABELS) map.delete(map.keys().next().value as string);
 }
 
@@ -112,8 +115,10 @@ export function rememberOption(owner: object, option: LookupOption): void {
     known.set(owner, index);
   }
   const labelKey = option.label.toLowerCase();
+  const same = index.byLabel.get(labelKey);
   index.byLabel.delete(labelKey);
-  index.byLabel.set(labelKey, option);
+  // a label shared by two keys is ambiguous and resolves to nothing
+  index.byLabel.set(labelKey, same && same.value !== option.value ? null : option);
   index.byValue.delete(option.value);
   index.byValue.set(option.value, option);
   dropOldest(index.byLabel);
@@ -123,5 +128,6 @@ export function rememberOption(owner: object, option: LookupOption): void {
 /** The remembered option whose label (case-insensitive) or key equals `text`. */
 export function recallOption(owner: object, text: string): LookupOption | undefined {
   const index = known.get(owner);
-  return index?.byLabel.get(text.toLowerCase()) ?? index?.byValue.get(text);
+  const byLabel = index?.byLabel.get(text.toLowerCase());
+  return byLabel === null ? index?.byValue.get(text) : (byLabel ?? index?.byValue.get(text));
 }

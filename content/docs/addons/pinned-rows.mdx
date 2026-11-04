@@ -220,6 +220,9 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     request. A newer request aborts the older one through `signal`, and the grid drops a late
     answer of the older one.
 
+    Inside the grid you can also call `useDataGridServerAggregate(options)` yourself. It returns the same
+    result.
+
     `status` tells the band what to show:
 
     | Status | Meaning |
@@ -230,7 +233,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     | `"error"` | The last request failed. The old values stay. `onError` fires once per failure. |
 
     A band with a status other than `"ready"` dims. A band that loads or goes stale sets `aria-busy`.
-    Every band also carries a `data-status` attribute. `refresh()` requests again and keeps the old
+    Every band also carries a `data-status` attribute. `loading` is `true` for `"loading"` and `"stale"`. `refresh()` requests again and keeps the old
     values on screen. `retry()` requests again after an error and does nothing otherwise.
 
     | Option | Default | Effect |

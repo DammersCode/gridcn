@@ -13,7 +13,7 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number", width: 120 },
 ];
 const data: Row[] = [{ id: "a", qty: 1 }];
-const EMPTY: ServerAggregateResult = { row: {}, status: "loading", error: null, refresh: () => {}, retry: () => {} };
+const EMPTY: ServerAggregateResult = { row: {}, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
 
 function Harness(props: { fetchAggregates: () => Promise<Record<string, unknown>> }) {
   const [aggregate, setAggregate] = useState(EMPTY);

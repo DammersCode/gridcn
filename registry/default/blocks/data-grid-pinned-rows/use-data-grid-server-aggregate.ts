@@ -6,7 +6,7 @@ import { serverSpecKey, type ServerSpec } from "@/registry/default/blocks/data-g
 import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest text a server value keeps; longer strings are cut. */
-export const MAX_SERVER_AGGREGATE_TEXT = 1000;
+const MAX_SERVER_AGGREGATE_TEXT = 1000;
 
 /** What `fetchAggregates` receives. */
 export type FetchAggregatesRequest = {
@@ -41,6 +41,8 @@ export type ServerAggregateResult = {
   error: unknown;
   /** Requests the values again and keeps the old ones on screen until the answer lands. */
   refresh: () => void;
+  /** True while a request runs. */
+  loading: boolean;
   /** Requests again after a failure; does nothing without an error. */
   retry: () => void;
 };
@@ -59,9 +61,7 @@ function notifyError(onError: ((error: unknown) => void) | undefined, error: unk
   }
 }
 
-let warnedDroppedValue = false;
-
-function sanitizeAnswer(answer: unknown, columnIds: readonly string[]): Record<string, unknown> {
+function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropped: (columnId: string) => void): Record<string, unknown> {
   if (typeof answer !== "object" || answer === null || Array.isArray(answer)) {
     throw new TypeError("fetchAggregates must resolve an object of { [columnId]: value }");
   }
@@ -72,10 +72,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[]): Record<s
     if (typeof value === "string") row[id] = value.length > MAX_SERVER_AGGREGATE_TEXT ? value.slice(0, MAX_SERVER_AGGREGATE_TEXT) : value;
     else if (typeof value === "number" && Number.isFinite(value)) row[id] = value;
     else if (typeof value === "boolean" || value === null) row[id] = value;
-    else if (isDev() && !warnedDroppedValue) {
-      warnedDroppedValue = true;
-      console.warn(`[data-grid-pinned-rows] useDataGridServerAggregate dropped the value of column "${id}": only text, finite numbers, booleans, and null are shown.`);
-    }
+    else warnDropped(id);
   }
   return row;
 }
@@ -113,6 +110,13 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
     error: null,
   });
   const hasValues = useRef(false);
+  const warned = useRef(false);
+  const warnDropped = useCallback((id: string) => {
+    if (!isDev() || warned.current) return;
+    warned.current = true;
+    console.warn(`[data-grid-pinned-rows] useDataGridServerAggregate dropped the value of column "${id}": only text, finite numbers, booleans, and null are shown.`);
+  }, []);
+  const statusRef = useRef<ServerAggregateStatus>("loading");
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -124,7 +128,7 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
         .then((answer) => {
           if (controller.signal.aborted) return;
           hasValues.current = true;
-          setState({ row: sanitizeAnswer(answer, ids), status: "ready", error: null });
+          setState({ row: sanitizeAnswer(answer, ids, warnDropped), status: "ready", error: null });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;
@@ -141,15 +145,18 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
       clearTimeout(timer);
       controller.abort();
     };
-  }, [key, columnKey, tick, debounceMs]);
+  }, [key, columnKey, tick, debounceMs, warnDropped]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
-  const errored = state.status === "error";
+  useLayoutEffect(() => {
+    statusRef.current = state.status;
+  });
   const retry = useCallback(() => {
-    if (errored) setTick((t) => t + 1);
-  }, [errored]);
+    if (statusRef.current === "error") setTick((t) => t + 1);
+  }, []);
+  const loading = state.status === "loading" || state.status === "stale";
 
-  return useMemo(() => ({ ...state, refresh, retry }), [state, refresh, retry]);
+  return useMemo(() => ({ ...state, loading, refresh, retry }), [state, loading, refresh, retry]);
 }
 
 /** Props for {@link DataGridServerAggregateReporter}. */

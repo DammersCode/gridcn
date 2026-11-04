@@ -102,7 +102,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
     if (event.key === "Enter") {
       event.preventDefault();
       if (typingPending) input.flush();
-      else if (activeOption) pick(activeOption);
+      else if (activeOption && fetched.status !== "loading") pick(activeOption);
       return;
     }
     if (event.key === "Escape") {
@@ -157,9 +157,10 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
               key={option.value}
               id={optionId(index)}
               role="option"
-              aria-selected={option.value === current?.value}
+              aria-selected={index === Math.min(active, list.length - 1)}
               data-active={index === Math.min(active, list.length - 1) ? "" : undefined}
-              className="cursor-default truncate rounded-md px-2 py-1.5 text-sm data-active:bg-accent data-active:text-accent-foreground aria-selected:font-medium"
+              data-current={option.value === current?.value ? "" : undefined}
+              className="cursor-default truncate rounded-md px-2 py-1.5 text-sm data-active:bg-accent data-active:text-accent-foreground data-current:font-medium"
               onPointerDown={(event) => event.preventDefault()}
               onPointerEnter={() => setActive(index)}
               onClick={() => pick(option)}
@@ -168,7 +169,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
             </li>
           ))}
         </ul>
-        <div role="status" aria-live="polite" className={cn("flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground", statusText === "" && "hidden")}>
+        <div role="status" aria-live="polite" className={cn("flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground", statusText === "" && "sr-only")}>
           <span>{statusText}</span>
           {fetched.status === "error" && (
             <Button type="button" size="xs" variant="ghost" onClick={() => setAttempt((n) => n + 1)}>

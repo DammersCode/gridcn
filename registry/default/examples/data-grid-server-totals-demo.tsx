@@ -20,7 +20,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
-const EMPTY_RESULT: ServerAggregateResult = { row: {}, status: "loading", error: null, refresh: () => {}, retry: () => {} };
+const EMPTY_RESULT: ServerAggregateResult = { row: {}, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
 
 /**
  * A scrolling grid over a fake server with a totals row that the server computes. The grid holds only the loaded blocks, but the

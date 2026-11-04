@@ -24,6 +24,7 @@ describe("readLookup", () => {
     expect(isUnresolved("c1")).toBe(true);
     expect(isUnresolved({ value: "c1", label: "Acme" })).toBe(false);
     expect(isUnresolved(null)).toBe(false);
+    expect(isUnresolved({ value: "USD", label: "USD" })).toBe(false);
   });
 });
 
@@ -31,7 +32,7 @@ describe("sanitizeOptions", () => {
   const many = (n: number) => Array.from({ length: n }, (_, i) => ({ value: String(i), label: "l" }));
 
   it("drops malformed and repeated entries", () => {
-    const answer = [{ value: "a", label: "A" }, { value: "a", label: "again" }, null, 3, { value: 1, label: "n" }, { value: "", label: "e" }, { value: "b" }, { value: "c", label: "C" }];
+    const answer = [{ value: "a", label: "A" }, { value: "a", label: "again" }, null, 3, { value: true, label: "n" }, { value: "", label: "e" }, { value: "b" }, { value: "c", label: "C" }];
     expect(sanitizeOptions(answer, 50)).toEqual([
       { value: "a", label: "A" },
       { value: "c", label: "C" },
@@ -42,6 +43,10 @@ describe("sanitizeOptions", () => {
     expect(sanitizeOptions(many(1000), undefined)).toHaveLength(50);
     expect(sanitizeOptions(many(1000), 10_000)).toHaveLength(200);
     expect(sanitizeOptions(many(1000), 3)).toHaveLength(3);
+  });
+
+  it("accepts numeric keys as text", () => {
+    expect(sanitizeOptions([{ value: 7, label: "Seven" }], 5)).toEqual([{ value: "7", label: "Seven" }]);
   });
 
   it("rejects a non-array answer", () => {
@@ -58,6 +63,14 @@ describe("known options", () => {
     expect(recallOption(a, "acme")).toEqual({ value: "c1", label: "Acme" });
     expect(recallOption(a, "c1")).toEqual({ value: "c1", label: "Acme" });
     expect(recallOption(b, "Acme")).toBeUndefined();
+  });
+
+  it("treats a label shared by two keys as ambiguous", () => {
+    const owner = {};
+    rememberOption(owner, { value: "a", label: "John Smith" });
+    rememberOption(owner, { value: "b", label: "John Smith" });
+    expect(recallOption(owner, "john smith")).toBeUndefined();
+    expect(recallOption(owner, "b")).toEqual({ value: "b", label: "John Smith" });
   });
 
   it("forgets the oldest entry past the bound", () => {

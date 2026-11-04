@@ -2,7 +2,8 @@
 
 import { CellSpan, type CellRenderProps, type CellType } from "@/registry/default/blocks/data-grid/data-grid";
 import { createFilterMatcher } from "@/registry/default/blocks/data-grid/data-grid";
-import { SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { TEXT_FILTER_OPERATORS } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { LookupEditor } from "./lookup-editor";
 import { isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, type LookupOptions, type LookupValue } from "./lookup-model";
 
@@ -17,6 +18,18 @@ function LookupCell({ value }: CellRenderProps<unknown, LookupValue, LookupOptio
     );
   }
   return <CellSpan text={option.label} />;
+}
+
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const matchers = new WeakMap<FilterSpec, (text: string) => boolean>();
+
+function matcherFor(filter: FilterSpec): (text: string) => boolean {
+  let matcher = matchers.get(filter);
+  if (!matcher) {
+    matcher = createFilterMatcher(filter);
+    matchers.set(filter, matcher);
+  }
+  return matcher;
 }
 
 function labelOf(value: unknown): string {
@@ -46,11 +59,11 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
   },
   clearValue: () => null,
   isEmpty: (value) => readLookup(value) === null,
-  compare: (a, b) => labelOf(a).localeCompare(labelOf(b), undefined, { numeric: true, sensitivity: "base" }),
+  compare: (a, b) => collator.compare(labelOf(a), labelOf(b)),
   toSearchText: (value) => labelOf(value),
   filter: {
-    operators: [...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS],
-    match: (value, filter) => createFilterMatcher(filter)(labelOf(value)),
+    operators: TEXT_FILTER_OPERATORS,
+    match: (value, filter) => matcherFor(filter)(labelOf(value)),
   },
   align: "left",
 };

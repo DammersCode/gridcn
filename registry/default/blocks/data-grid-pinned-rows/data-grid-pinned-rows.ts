@@ -13,7 +13,6 @@ export {
 export {
   useDataGridServerAggregate,
   DataGridServerAggregateReporter,
-  MAX_SERVER_AGGREGATE_TEXT,
   type FetchAggregatesRequest,
   type ServerAggregateResult,
   type ServerAggregateStatus,
