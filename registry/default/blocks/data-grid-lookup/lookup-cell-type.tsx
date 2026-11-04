@@ -47,7 +47,7 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
   toText: (value, options) => {
     const option = readLookup(value);
     if (!option) return "";
-    if (options?.fetchOptions) rememberOption(options.fetchOptions, option);
+    if (options?.fetchOptions && !isUnresolved(value)) rememberOption(options.fetchOptions, option);
     return option.label;
   },
   fromText: (text, options) => {
@@ -55,7 +55,7 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
     if (trimmed === "") return null;
     const hit = options?.fetchOptions ? recallOption(options.fetchOptions, trimmed) : undefined;
     if (hit) return hit;
-    return options?.unresolvedPaste === "keep" ? { value: trimmed, label: trimmed } : null;
+    return options?.unresolvedPaste === "keep" ? { value: trimmed, label: "" } : null;
   },
   clearValue: () => null,
   isEmpty: (value) => readLookup(value) === null,

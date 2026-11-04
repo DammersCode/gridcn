@@ -25,7 +25,7 @@ describe("lookupCellType value pipeline", () => {
 
   it("clears an unresolved paste by default and keeps it on request", () => {
     expect(lookupCellType.fromText("Nobody", makeOptions())).toBeNull();
-    expect(lookupCellType.fromText("Nobody", makeOptions({ unresolvedPaste: "keep" }))).toEqual({ value: "Nobody", label: "Nobody" });
+    expect(lookupCellType.fromText("Nobody", makeOptions({ unresolvedPaste: "keep" }))).toEqual({ value: "Nobody", label: "" });
   });
 
   it("fromText never throws and bounds hostile text", () => {

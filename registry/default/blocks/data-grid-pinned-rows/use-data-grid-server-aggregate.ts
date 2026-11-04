@@ -41,7 +41,7 @@ export type ServerAggregateResult = {
   error: unknown;
   /** Requests the values again and keeps the old ones on screen until the answer lands. */
   refresh: () => void;
-  /** True while a request runs. */
+  /** True while the status is `"loading"` or `"stale"`. */
   loading: boolean;
   /** Requests again after a failure; does nothing without an error. */
   retry: () => void;
@@ -82,7 +82,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
  * after each filter change (sorts and quick search never change the aggregated rows), aborts the
  * request a newer one replaces, and drops its late answer. Pagination, scroll, and own-API grids
  * use it alike, because the request carries the spec and not the rows the grid holds. Answer
- * values are untrusted: unknown column ids are ignored, text is cut at {@link MAX_SERVER_AGGREGATE_TEXT},
+ * values are untrusted: unknown column ids are ignored, text is cut at 1000 characters,
  * and anything but text, finite numbers, booleans, and null is dropped.
  * Must run inside the grid provider; see {@link DataGridServerAggregateReporter}.
  */
@@ -127,8 +127,9 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
       void new Promise<unknown>((resolve) => resolve(o.fetchAggregates({ spec: s, columnIds: ids, signal: controller.signal })))
         .then((answer) => {
           if (controller.signal.aborted) return;
+          const row = sanitizeAnswer(answer, ids, warnDropped);
           hasValues.current = true;
-          setState({ row: sanitizeAnswer(answer, ids, warnDropped), status: "ready", error: null });
+          setState({ row, status: "ready", error: null });
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return;

@@ -34,7 +34,7 @@ export type LookupOptions = {
   minQueryLength?: number;
   /** Most options shown; extra options are dropped. Default `50`, at most `200`. */
   maxResults?: number;
-  /** A pasted or imported text that matches no known option: `"clear"` empties the cell, `"keep"` stores the text as value and label. Default `"clear"`. */
+  /** A pasted or imported text that matches no known option: `"clear"` empties the cell, `"keep"` stores the text as a key without a label, shown as unresolved. Default `"clear"`. */
   unresolvedPaste?: "clear" | "keep";
   labels?: Partial<LookupLabels>;
 };
@@ -59,13 +59,19 @@ function clip(text: string): string {
 /** Reads any stored value as an option: a bare key stays visible as its own label (an unresolved value). */
 export function readLookup(value: unknown): LookupOption | null {
   if (value == null) return null;
-  if (typeof value === "string" || typeof value === "number") {
+  if (typeof value === "object" && value !== null) {
+    const raw = value as { value?: unknown; label?: unknown };
+    if (typeof raw.value === "string" && raw.value !== "" && typeof raw.label === "string" && raw.label !== "" && raw.value.length <= MAX_LOOKUP_TEXT && raw.label.length <= MAX_LOOKUP_TEXT) {
+      return value as LookupOption;
+    }
+  }
+  if (typeof value === "string" || (typeof value === "number" && Number.isFinite(value))) {
     const text = clip(toSafeText(value));
     return text === "" ? null : { value: text, label: text };
   }
   if (typeof value !== "object") return null;
   const raw = value as { value?: unknown; label?: unknown };
-  if (typeof raw.value !== "string" && typeof raw.value !== "number") return null;
+  if (typeof raw.value !== "string" && !(typeof raw.value === "number" && Number.isFinite(raw.value))) return null;
   const key = clip(toSafeText(raw.value));
   if (key === "") return null;
   const label = typeof raw.label === "string" && raw.label !== "" ? clip(raw.label) : key;
@@ -90,7 +96,7 @@ export function sanitizeOptions(answer: unknown, limit: number | undefined): Loo
     if (out.length >= max) break;
     if (typeof item !== "object" || item === null) continue;
     const { value, label } = item as { value?: unknown; label?: unknown };
-    if ((typeof value !== "string" && typeof value !== "number") || typeof label !== "string") continue;
+    if ((typeof value !== "string" && !(typeof value === "number" && Number.isFinite(value))) || typeof label !== "string") continue;
     const key = clip(toSafeText(value));
     if (key === "") continue;
     if (seen.has(key)) continue;
@@ -118,7 +124,7 @@ export function rememberOption(owner: object, option: LookupOption): void {
   const same = index.byLabel.get(labelKey);
   index.byLabel.delete(labelKey);
   // a label shared by two keys is ambiguous and resolves to nothing
-  index.byLabel.set(labelKey, same && same.value !== option.value ? null : option);
+  index.byLabel.set(labelKey, same === null || (same && same.value !== option.value) ? null : option);
   index.byValue.delete(option.value);
   index.byValue.set(option.value, option);
   dropOldest(index.byLabel);

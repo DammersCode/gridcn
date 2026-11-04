@@ -70,10 +70,10 @@ opens no editor.
 | `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
 | `minQueryLength` | `0` | Fewest typed characters that start a request. |
 | `maxResults` | `50` | Most options shown. The limit is `200`. |
-| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell, or with `"keep"` is stored as value and label. |
+| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell, or with `"keep"` is stored as a key without a label, shown as unresolved. |
 | `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
 
-The answer is untrusted. The editor keeps only entries with a non-empty text `value` and a text
+The answer is untrusted. The editor keeps only entries with a non-empty `value` (text or a finite number, stored as text) and a text
 `label`, drops a repeated `value`, cuts both at 256 characters, and keeps the first `maxResults`.
 It renders labels as text.
 

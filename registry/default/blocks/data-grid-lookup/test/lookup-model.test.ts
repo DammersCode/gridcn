@@ -69,6 +69,7 @@ describe("known options", () => {
     const owner = {};
     rememberOption(owner, { value: "a", label: "John Smith" });
     rememberOption(owner, { value: "b", label: "John Smith" });
+    rememberOption(owner, { value: "a", label: "John Smith" });
     expect(recallOption(owner, "john smith")).toBeUndefined();
     expect(recallOption(owner, "b")).toEqual({ value: "b", label: "John Smith" });
   });

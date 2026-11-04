@@ -102,7 +102,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
     if (event.key === "Enter") {
       event.preventDefault();
       if (typingPending) input.flush();
-      else if (activeOption && fetched.status !== "loading") pick(activeOption);
+      else if (activeOption && fetched.status === "ready") pick(activeOption);
       return;
     }
     if (event.key === "Escape") {
