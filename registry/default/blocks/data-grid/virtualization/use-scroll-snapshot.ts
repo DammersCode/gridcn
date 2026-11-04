@@ -307,13 +307,19 @@ export function getElementStore(element: HTMLElement): ElementStore {
 export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): {
   clientWidth: number;
   clientHeight: number;
+  /** False until the element attached and was measured; the first measurement lands in the same commit as the attach. */
+  measured: boolean;
 } {
   const [element, setElement] = useState<HTMLElement | null>(null);
-  const [dimensions, setDimensions] = useState({ clientWidth: 0, clientHeight: 0 });
+  const [dimensions, setDimensions] = useState({ clientWidth: 0, clientHeight: 0, measured: false });
 
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el !== element) setElement(el);
+    if (el === element) return;
+    setElement(el);
+    if (!el) return;
+    const { clientWidth, clientHeight } = getElementStore(el).getSnapshot();
+    setDimensions({ clientWidth, clientHeight, measured: true });
   });
 
   useEffect(() => {
@@ -327,7 +333,7 @@ export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): 
       setDimensions((prev) =>
         prev.clientWidth === snap.clientWidth && prev.clientHeight === snap.clientHeight
           ? prev
-          : { clientWidth: snap.clientWidth, clientHeight: snap.clientHeight },
+          : { clientWidth: snap.clientWidth, clientHeight: snap.clientHeight, measured: true },
       );
     };
 

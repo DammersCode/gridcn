@@ -243,7 +243,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // Only an explicit prop skips the measurement entirely, so an `ltr` page (the overwhelmingly
   // common case) settles on the same value it started with and never re-renders for this.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (directionProp !== undefined) return;
     setDomDirection(readResolvedDirection(scrollRef.current));
   }, [directionProp]);
@@ -367,10 +367,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
       const cell = root.querySelector<HTMLElement>('[role="gridcell"][data-column-id]');
       const header = root.querySelector<HTMLElement>('[role="columnheader"]');
-      const cellStyle = cell ? getComputedStyle(cell) : null;
+      // Body cells inherit the root's font; with no row mounted yet the root stands in.
+      const cellStyle = getComputedStyle(cell ?? root);
       return {
-        cellFont: cellStyle?.font ?? "",
-        cellPadding: cellStyle ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
+        cellFont: cellStyle.font,
+        cellPadding: cell ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
         headerFont: header ? getComputedStyle(header).font : "",
         window: canvas
           ? {
@@ -391,8 +392,9 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // one-shot store subscription avoids re-rendering this tree per view change.
   const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
   const autoSizedOnMount = useRef(false);
+  const gridMeasured = dimensions.measured;
   useEffect(() => {
-    if (!autosizeOnMount || autoSizedOnMount.current) return;
+    if (!autosizeOnMount || autoSizedOnMount.current || !gridMeasured) return;
     const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
     let unsubscribe: () => void = () => {};
     const run = () => {
@@ -408,7 +410,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     unsubscribe = storeApi.subscribe(run);
     run();
     return unsubscribe;
-  }, [autosizeOnMount, actions, storeApi]);
+  }, [autosizeOnMount, actions, storeApi, gridMeasured]);
 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
