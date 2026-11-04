@@ -31,6 +31,8 @@ type Holder = {
   structural: Set<string>;
   /** Called when the last pending insert or delete save settled. */
   onStructuralSettled: (() => void) | null;
+  /** Called when a row's save starts. */
+  onSaveStarted: (() => void) | null;
   trackUnacknowledged: boolean;
   /** Rows with a local edit or insert that no save and no landed block has acknowledged; eviction keeps them. */
   unacknowledged: Set<string>;
@@ -68,10 +70,13 @@ function trackSaves(holder: Holder, state: DataGridReadState, prev: DataGridRead
       if (status === "saving" && state.saveStatus.get(id) !== "saving" && holder.structural.delete(id) && holder.structural.size === 0) holder.onStructuralSettled?.();
     }
   }
-  if (!holder.recording) return;
+  let started = false;
   for (const [id, status] of state.saveStatus) {
-    if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.savedAt.set(id, ++holder.generation);
+    if (status !== "saving" || prev.saveStatus.get(id) === "saving") continue;
+    started = true;
+    if (holder.recording) holder.savedAt.set(id, ++holder.generation);
   }
+  if (started) holder.onSaveStarted?.();
 }
 
 function savedSinceOn(holder: Holder, generation: number): ProtectedRows {
@@ -122,7 +127,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -140,6 +145,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const saveMark = useCallback(() => markSavesOn(holder), [holder]);
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const setSettleListener = useCallback((listener: (() => void) | null) => setListenerOn(holder, listener), [holder]);
+  const setSaveStartListener = useCallback((listener: (() => void) | null) => void (holder.onSaveStarted = listener), [holder]);
   const forgetStructural = useCallback(() => {
     holder.structural.clear();
     holder.unacknowledged.clear();
@@ -153,7 +159,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 export const GUARD_MISSING_MESSAGE =

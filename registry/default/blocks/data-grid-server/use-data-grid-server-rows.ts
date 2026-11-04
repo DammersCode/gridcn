@@ -48,7 +48,7 @@ export type UseDataGridServerRowsOptions<TData> = {
   /**
    * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
    * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
-   * and a local insert, delete, or move drop it. Default `false`.
+   * a local insert, delete, or move, and the start of a save drop it. Default `false`.
    */
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
@@ -164,7 +164,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
   const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
@@ -223,7 +223,14 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     openMarks.current.prefetch = null;
     releaseMarks();
     setLanded(null);
+    if (entry.adopted !== null) setTick((n) => n + 1);
   }, [releaseMarks]);
+
+  // A save can move a row to another page, so a page requested before it is stale.
+  useEffect(() => {
+    setSaveStartListener(dropPrefetch);
+    return () => setSaveStartListener(null);
+  }, [setSaveStartListener, dropPrefetch]);
 
   useEffect(() => {
     const adoptedRequest = adoptedKey.current === key;
@@ -282,7 +289,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const startPrefetch = useCallback(() => {
     const { page: current, pageSize: size, spec: currentSpec } = live.current;
     const ahead = `${serverSpecKey(currentSpec)}|${current + 1}|${size}`;
-    if (prefetch.current?.view === ahead) return;
+    if (prefetch.current?.view === ahead || savingRows() !== null) return;
     dropPrefetch();
     const controller = new AbortController();
     const entry: PrefetchEntry = { view: ahead, controller, guard: savingRows(), mark: saveMark(), landed: false, expiry: null, adopted: null };

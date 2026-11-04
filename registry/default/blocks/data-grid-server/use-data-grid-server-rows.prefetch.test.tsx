@@ -341,6 +341,49 @@ describe("prefetchNextPage with the refresh guard", () => {
     expect(s.pages().filter((page) => page === 2)).toHaveLength(1);
   });
 
+  it("drops the prefetched page when a save starts, so a row that moved to another page is not stale", async () => {
+    let version = 0;
+    const s = server({ answer: (page) => Array.from({ length: PAGE }, (_, i) => ({ id: `r${(page - 1) * PAGE + i}`, name: `v${version}` })) });
+    const t = mountGrid(s);
+    await advance(0);
+    await advance(0);
+    expect(s.pages()).toEqual([1, 2]);
+    act(() => t.store().actions.commitCellValue({ rowId: "r1", columnId: "name" }, "Edited"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    version = 1;
+    act(() => t.result().pager.onPageChange(2));
+    expect(t.result().loading).toBe(true);
+    await advance(0);
+    expect(s.pages().filter((page) => page === 2)).toHaveLength(2);
+    expect(t.result().gridProps.data[0]?.name).toBe("v1");
+  });
+
+  it("fetches the page again when a save starts while the prefetch is the page request", async () => {
+    const s = server({ answer: (page) => Array.from({ length: PAGE }, (_, i) => ({ id: `r${(page - 1) * PAGE + i}`, name: `p${page}` })) });
+    const t = mountGrid(s);
+    await advance(0);
+    s.state.hold = true;
+    await advance(0);
+    act(() => t.result().pager.onPageChange(2));
+    act(() => t.store().actions.commitCellValue({ rowId: "r1", columnId: "name" }, "Edited"));
+    s.state.hold = false;
+    await advance(0);
+    expect(s.calls.filter((call) => call.page === 2 && !call.request.signal.aborted)).toHaveLength(1);
+    expect(t.result().loading).toBe(false);
+    expect(t.result().gridProps.data[0]?.name).toBe("p2");
+  });
+
+  it("starts no prefetch while a save is pending", async () => {
+    const s = server();
+    const t = mountGrid(s);
+    await advance(0);
+    await advance(0);
+    act(() => t.result().pager.onPageChange(2));
+    act(() => t.store().actions.commitCellValue({ rowId: "r11", columnId: "name" }, "Edited"));
+    await advance(0);
+    expect(s.pages()).toEqual([1, 2]);
+  });
+
   it("replaces a row that no save touched", async () => {
     const s = server({ answer: sharedRow });
     const t = mountGrid(s);
