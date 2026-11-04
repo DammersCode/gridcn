@@ -79,8 +79,12 @@ The task battery needs updating when features ship. Keep each persona at 10 or f
 4. The reviewer scores D1 to D8 from 0 to 10 and cites at least two concrete pages or sidebar groups per dimension that
    explain the score. A score without a cited page is void.
 5. The reviewer returns the JSON below plus the top five defects by impact.
-6. The manager merges the runs: the mean of the persona scores is the navigation score. Run each persona twice for a
-   final candidate; use the mean and report the spread.
+6. The manager merges the runs: the mean of the persona scores is the navigation score.
+   Token economy: the pilot showed that all personas find nearly the same top defects. A screening round uses one senior
+   run per candidate. The beginner runs only on the two best candidates, because it adds the learning-path and
+   first-success signal (D4, D7). A second run of a persona is spent only when a score sits within 0.3 of a pass line or
+   a finding would change the ranking. A persona whose findings were all found by other runs for two rounds in a row
+   leaves the loop.
 7. A candidate passes at an overall score of at least 9.0, no dimension below 8.0 for any persona, and no missed task.
    The goal is 10.0. Every remaining gap below 10 needs a one-line reason in the candidate's score file.
 

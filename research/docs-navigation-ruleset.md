@@ -82,7 +82,7 @@ Every page has exactly one type. The type decides the budget and the template. T
 - N3. A label uses one name per concept, taken from `GLOSSARY.md` and `terms`. A concept with two names in the docs is
   a defect.
 - N4. A title is a noun phrase for Feature, Reference, and Landing pages, and an imperative verb phrase for Task and Step
-  pages ("Save edits to a server").
+  pages ("Save edits to a server"). An example page under `examples/` is the exception: its title is the task as a noun phrase plus "example" ("Pin rows example").
 - N5. A slug is the kebab-case of the title, at most four words. Folder names are the group names in kebab-case.
 - N6. The path gives the type: `index.mdx` is Landing; a file under `reference/` is Reference; under `recipes/` is Task;
   under `learn/` is Step; under `cheatsheets/` is Cheatsheet; every other file is Feature.
