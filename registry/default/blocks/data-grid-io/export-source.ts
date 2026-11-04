@@ -61,19 +61,30 @@ export async function runSourceExport(
   let rowCount = 0;
   let byteCount = 0;
   let truncated = false;
-  let seenRows = 0;
+  let skippedRows = 0;
   let emptyBatches = 0;
-  const maxSeenRows = Math.max(maxRows, 1) * 2;
+  const maxSkippedRows = Math.max(maxRows, 1) * 2;
   let iterator: AsyncIterator<readonly unknown[]> | undefined;
+
+  const aborted = outer
+    ? new Promise<never>((_, reject) => {
+        const fail = () => reject(abortReason(outer));
+        if (outer.aborted) fail();
+        else outer.addEventListener("abort", fail, { once: true });
+      })
+    : null;
+  aborted?.catch(() => {});
+  const untilAborted = <T,>(promise: Promise<T>): Promise<T> => (aborted ? Promise.race([promise, aborted]) : promise);
 
   const take = (batch: unknown): void => {
     if (!Array.isArray(batch)) throw new TypeError("[data-grid-io] an export source batch must be an array");
     emptyBatches = batch.length === 0 ? emptyBatches + 1 : 0;
     if (emptyBatches > MAX_EMPTY_BATCHES) throw new RangeError("[data-grid-io] an export source returned only empty batches");
-    seenRows += batch.length;
-    if (seenRows > maxSeenRows) throw new RangeError("[data-grid-io] an export source returned too many rows");
     for (let from = 0; from < batch.length && !truncated; from += SLICE_ROWS) {
-      const present = batch.slice(from, from + SLICE_ROWS).filter((row) => row !== undefined && row !== null);
+      const slice = batch.slice(from, from + SLICE_ROWS);
+      const present = slice.filter((row) => row !== undefined && row !== null);
+      skippedRows += slice.length - present.length;
+      if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
       const room = maxRows - rowCount;
       if (present.length > room) truncated = true;
       const rows = buildRows(state, present.slice(0, room));
@@ -81,7 +92,11 @@ export async function runSourceExport(
       byteCount += onBatch(rows);
       if (byteCount > maxBytes) truncated = true;
     }
-    onProgress?.({ rowCount, byteCount });
+    try {
+      onProgress?.({ rowCount, byteCount });
+    } catch (error) {
+      if (isDev()) console.warn("[data-grid-io] onProgress threw", error);
+    }
   };
 
   try {
@@ -89,13 +104,13 @@ export async function runSourceExport(
     if (isAsyncIterable(result)) {
       iterator = result[Symbol.asyncIterator]();
       while (!truncated) {
-        const step = await iterator.next();
+        const step = await untilAborted(iterator.next());
         if (outer?.aborted) throw abortReason(outer);
         if (step.done) break;
         take(step.value);
       }
     } else {
-      const batch = await result;
+      const batch = await untilAborted(Promise.resolve(result));
       if (outer?.aborted) throw abortReason(outer);
       take(batch);
     }

@@ -55,7 +55,7 @@ export default function DataGridExportAllDemo(): ReactNode {
             <DataGridImportButton
               createRow={createImportedRow}
               onImport={async (rows) => {
-                remote.applyOps(rows.map((row, index) => ({ type: "insert" as const, rowId: row.id, row, index: 0 + index })));
+                remote.applyOps(rows.map((row, index) => ({ type: "insert" as const, rowId: row.id, row, index })));
                 server.refresh();
               }}
             />

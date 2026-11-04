@@ -53,7 +53,11 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
         if (all && controllerRef.current === controller) setDone(labels.io.exportDone(result.rowCount, result.truncated));
       })
       .catch((error: unknown) => {
-        if (signal.aborted) return;
+        if (signal.aborted) {
+          if (all) setDone(labels.io.exportCancelled);
+          return;
+        }
+        if (all) setDone(labels.io.exportFailed);
         if (onError) {
           onError(error, format);
           return;
@@ -81,33 +85,33 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
 
   return (
     <>
-    <DropdownMenu>
-      <DropdownMenuTrigger render={triggerButton()} />
-      <DropdownMenuContent align="start">
-        {formats.includes("xlsx") && (
-          <DropdownMenuItem onClick={() => runExport("xlsx", false)}>
-            {labels.io.exportXlsx}
-          </DropdownMenuItem>
-        )}
-        {formats.includes("csv") && (
-          <DropdownMenuItem onClick={() => runExport("csv", false)}>
-            {labels.io.exportCsv}
-          </DropdownMenuItem>
-        )}
-        {source && formats.includes("xlsx") && (
-          <DropdownMenuItem disabled={running} onClick={() => runExport("xlsx", true)}>
-            {labels.io.exportAllXlsx}
-          </DropdownMenuItem>
-        )}
-        {source && formats.includes("csv") && (
-          <DropdownMenuItem disabled={running} onClick={() => runExport("csv", true)}>
-            {labels.io.exportAllCsv}
-          </DropdownMenuItem>
-        )}
-        {running && <DropdownMenuItem onClick={() => controllerRef.current?.abort()}>{labels.io.exportCancel}</DropdownMenuItem>}
-      </DropdownMenuContent>
-    </DropdownMenu>
-    {status}
+      <DropdownMenu>
+        <DropdownMenuTrigger render={triggerButton()} />
+        <DropdownMenuContent align="start">
+          {formats.includes("xlsx") && (
+            <DropdownMenuItem disabled={running} onClick={() => runExport("xlsx", false)}>
+              {labels.io.exportXlsx}
+            </DropdownMenuItem>
+          )}
+          {formats.includes("csv") && (
+            <DropdownMenuItem disabled={running} onClick={() => runExport("csv", false)}>
+              {labels.io.exportCsv}
+            </DropdownMenuItem>
+          )}
+          {source && formats.includes("xlsx") && (
+            <DropdownMenuItem disabled={running} onClick={() => runExport("xlsx", true)}>
+              {labels.io.exportAllXlsx}
+            </DropdownMenuItem>
+          )}
+          {source && formats.includes("csv") && (
+            <DropdownMenuItem disabled={running} onClick={() => runExport("csv", true)}>
+              {labels.io.exportAllCsv}
+            </DropdownMenuItem>
+          )}
+          {running && <DropdownMenuItem onClick={() => controllerRef.current?.abort()}>{labels.io.exportCancel}</DropdownMenuItem>}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {status}
     </>
   );
 }

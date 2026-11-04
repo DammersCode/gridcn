@@ -215,6 +215,8 @@ export type DataGridIOLabels = {
   exportAllXlsx: string;
   exportAllCsv: string;
   exportCancel: string;
+  exportCancelled: string;
+  exportFailed: string;
   exportDone: (rowCount: number, truncated: boolean) => string;
   importButton: string;
   importDialogTitle: string;
@@ -567,6 +569,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     exportAllXlsx: "Export all rows as Excel (.xlsx)",
     exportAllCsv: "Export all rows as CSV",
     exportCancel: "Cancel export",
+    exportCancelled: "Export cancelled",
+    exportFailed: "Export failed",
     exportDone: (rowCount, truncated) => `${rowCount.toLocaleString("en-US")} rows exported${truncated ? ", file is incomplete: a limit stopped the export" : ""}`,
     importButton: "Import",
     importDialogTitle: "Import file",

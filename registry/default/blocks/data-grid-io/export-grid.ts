@@ -177,6 +177,10 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
+}
+
 function loadedResult(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined): ExportResult {
   const total = exportDataIndices(state, scope).length;
   return { rowCount: maxRows === undefined ? total : Math.min(total, maxRows), truncated: maxRows !== undefined && total > maxRows };
@@ -218,7 +222,7 @@ async function exportFromSource(state: DataGridReadState, source: ExportSource, 
   });
   const { writeXlsx } = await import("./xlsx-writer");
   const bytes = await writeXlsx({ sheets: [{ name: workbookName, rows: table }] });
-  if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
+  throwIfAborted(signal);
   const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   downloadBlob(blob, `${fileName}.xlsx`);
   return result;
@@ -237,11 +241,13 @@ export async function exportGrid(state: DataGridReadState, options: ExportGridOp
     const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
     const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas);
+    throwIfAborted(options.signal);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
     return loadedResult(state, scope, maxRows);
   }
 
   const blob = await buildXlsx(state, { scope, includeHeaders, workbookName, maxRows });
+  throwIfAborted(options.signal);
   downloadBlob(blob, `${fileName}.xlsx`);
   return loadedResult(state, scope, maxRows);
 }

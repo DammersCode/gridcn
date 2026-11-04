@@ -15,6 +15,7 @@ const textCellType: CellType<Row, string> = {
   isEmpty: (value) => value === "",
 };
 
+const CRLF = String.fromCharCode(13, 10);
 const sorts = [{ columnId: "name", direction: "asc" }] as const;
 
 function makeState(held: Row[] = [{ id: "p", name: "page-row" }]): DataGridStoreState {
@@ -125,6 +126,36 @@ describe("exportGrid with a source", () => {
     ).rejects.toThrow(RangeError);
   });
 
+  it("truncates one batch that is far longer than maxRows", async () => {
+    captureDownload();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const many = Array.from({ length: 5000 }, (_, i) => row(`r${i}`));
+    expect(await exportGrid(makeState(), { source: () => Promise.resolve(many), maxRows: 10 })).toEqual({ rowCount: 10, truncated: true });
+    expect(await exportGrid(makeState(), { source: () => Promise.resolve(many), maxRows: 0 })).toEqual({ rowCount: 0, truncated: true });
+  });
+
+  it("rejects on abort even when the source ignores its signal and never settles", async () => {
+    const read = captureDownload();
+    const controller = new AbortController();
+    const pending = exportGrid(makeState(), { source: () => new Promise<Row[]>(() => {}), signal: controller.signal });
+    controller.abort(new Error("stop"));
+    await expect(pending).rejects.toThrow("stop");
+    expect(await read()).toBe("");
+  });
+
+  it("keeps exporting when onProgress throws", async () => {
+    const read = captureDownload();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await exportGrid(makeState(), { source: () => Promise.resolve([row("a")]), csvBom: false, onProgress: () => { throw new Error("ui"); } });
+    expect(await read()).toBe("Name" + CRLF + "a");
+  });
+
+  it("downloads nothing from a loaded export whose signal aborted", async () => {
+    const read = captureDownload();
+    await expect(exportGrid(makeState(), { signal: AbortSignal.abort() })).rejects.toBeDefined();
+    expect(await read()).toBe("");
+  });
+
   it("rejects a batch that is not an array and downloads nothing", async () => {
     const read = captureDownload();
     await expect(exportGrid(makeState(), { source: () => Promise.resolve({ length: 1e9 } as never) })).rejects.toThrow(TypeError);
@@ -153,8 +184,6 @@ describe("exportGrid with a source", () => {
   });
 
   it("writes an xlsx file from the source rows", async () => {
-    const read = captureDownload();
-    void read;
     let blob: Blob | undefined;
     vi.stubGlobal("URL", { ...URL, createObjectURL: (b: Blob) => ((blob = b), "blob:x"), revokeObjectURL: vi.fn() });
     const result = await exportGrid(makeState(), { format: "xlsx", source: () => batches([row("a")], [row("b")]) });
