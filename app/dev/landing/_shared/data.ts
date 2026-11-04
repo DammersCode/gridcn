@@ -63,46 +63,12 @@ export const perfNote = "Your hardware and cells change these numbers.";
   "Measured in this repository's regression suite on 100,000 rows. Your hardware and cells change them.";
 
 export const serverHighlights = [
-  {
-    title: "Lazy rows",
-    text: "Row blocks load as you scroll. One hook, one fetch function.",
-    href: "/docs/lazy-loading",
-  },
-  {
-    title: "Pagination",
-    text: "Server pages with or without a row count.",
-    href: "/docs/pagination",
-  },
-  {
-    title: "Server sort and filter",
-    text: "The grid sends the sort and the filter groups; you answer with rows.",
-    href: "/docs/sorting-filtering-search",
-  },
-  {
-    title: "Saves with rollback",
-    text: "onSave acknowledges or rejects each change. A rejected cell rolls back.",
-    href: "/docs/recipes/data-fetching/server-round-trip",
-  },
-  {
-    title: "Pinned rows and aggregates",
-    text: "Footer and pinned rows that total the data, in every data mode that allows it.",
-    href: "/docs/addons/pinned-rows",
-  },
-  {
-    title: "Import and export",
-    text: "Move rows in and out, over local and server data.",
-    href: "/docs/addons/import-export",
-  },
-  {
-    title: "Debounced inputs",
-    text: "Search and filter inputs wait for a pause in typing.",
-    href: "/docs/hooks/use-debounce",
-  },
-  {
-    title: "Saved views",
-    text: "Store sort, filters and layout under a name. Restore in one click.",
-    href: "/docs/addons/views",
-  },
+  { title: 'Lazy rows', text: 'Row blocks load as you scroll. One hook, one fetch function.', href: '/docs/lazy-loading' },
+  { title: 'Server pagination', text: 'Pages with or without a row count.', href: '/docs/pagination' },
+  { title: 'Server sort and filter', text: 'The grid sends the sort and the filter groups; you answer with rows.', href: '/docs/sorting-filtering-search' },
+  { title: 'Saves with rollback', text: 'onSave acknowledges or rejects each change. A rejected cell rolls back.', href: '/docs/recipes/data-fetching/server-round-trip' },
+  { title: 'Selection across pages', text: 'Checked rows stay checked by id. Select all matching rows of the result.', href: '/docs/data-modes' },
+  { title: 'Filter values from the server', text: 'The set filter lists values your backend returns.', href: '/docs/data-modes' },
 ];
 
 export const coreFeatures = [

@@ -23,7 +23,7 @@ import {
   Undo2,
   Users,
   Bookmark,
-  Timer,
+  Search,
 } from "lucide-react";
 
 export const headlineFeatures = [
@@ -41,22 +41,21 @@ export const coreTraits = [
 ];
 
 export const addOnTiles = [
-  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
-  { icon: Undo2, title: "Undo and redo", href: "/docs/addons/undo-redo" },
-  { icon: ArrowUpDown, title: "Sorting and filtering", href: "/docs/sorting-filtering-search" },
-  { icon: FileSpreadsheet, title: "Import and export", href: "/docs/addons/import-export" },
-  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
-  { icon: Blocks, title: "Context menu", href: "/docs/columns" },
-  { icon: MousePointer2, title: "Keybindings dialog", href: "/docs/selection-keyboard" },
-  { icon: Pin, title: "Pinned rows", href: "/docs/addons/pinned-rows" },
-  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
-  { icon: Bookmark, title: "Saved views", href: "/docs/addons/views" },
-  { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
-  { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
-  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
-  { icon: ArrowUpDown, title: "Toolbar and search", href: "/docs/sorting-filtering-search" },
-  { icon: ArrowUpDown, title: "Sort list", href: "/docs/sorting-filtering-search" },
-  { icon: Timer, title: "Debounced inputs", href: "/docs/hooks/use-debounce" },
+  { icon: PaintBucket, title: 'Fill handle', href: '/docs/addons/fill' },
+  { icon: Undo2, title: 'Undo and redo', href: '/docs/addons/undo-redo' },
+  { icon: Search, title: 'Find and replace', href: '/docs/addons/find-replace' },
+  { icon: FileSpreadsheet, title: 'Import and export', href: '/docs/addons/import-export' },
+  { icon: Link2, title: 'URL state', href: '/docs/addons/url-state' },
+  { icon: Pin, title: 'Pinned rows and aggregates', href: '/docs/addons/pinned-rows' },
+  { icon: Users, title: 'Multiplayer presence', href: '/docs/addons/presence' },
+  { icon: Bookmark, title: 'Saved views', href: '/docs/addons/views' },
+  { icon: Blocks, title: 'Context menu', href: '/docs/addons/context-menu' },
+  { icon: Keyboard, title: 'Keybindings dialog', href: '/docs/addons/keybindings' },
+  { icon: Gauge, title: 'Status bar', href: '/docs/addons/status-bar' },
+  { icon: ArrowUpDown, title: 'Toolbar and search', href: '/docs/addons/toolbar' },
+  { icon: ListOrdered, title: 'Sort list', href: '/docs/addons/sort-list' },
+  { icon: ListOrdered, title: 'Pagination', href: '/docs/pagination' },
+  { icon: CloudDownload, title: 'Server rows', href: '/docs/lazy-loading' },
 ];
 
 export const agentSkills = [

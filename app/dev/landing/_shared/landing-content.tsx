@@ -80,7 +80,7 @@ export function LandingContent() {
       </Panel>
 
       <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
-        <ServerHighlights columns="grid-cols-2 lg:grid-cols-4" />
+        <ServerHighlights columns="grid-cols-2 lg:grid-cols-3" />
       </Panel>
 
       <div className="flex flex-col gap-4">
@@ -162,8 +162,8 @@ export function LandingContent() {
         <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All five skills →</Link>
       </Panel>
 
-      <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Add-ons are separate registry items you install only if you want them.">
-        <TileGrid className="grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
+      <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
+        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
               <Link href={href} className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted ${focus}`}>
