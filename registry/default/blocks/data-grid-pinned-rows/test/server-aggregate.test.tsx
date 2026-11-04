@@ -2,6 +2,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataGrid, useDataGridActions, type ColumnDef, type DataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
 import {
+  DataGridServerAggregateReporter,
   useDataGridServerAggregate,
   type FetchAggregatesRequest,
   type ServerAggregateResult,
@@ -167,3 +168,29 @@ describe("useDataGridServerAggregate", () => {
   });
 });
 
+describe("DataGridServerAggregateReporter", () => {
+  it("keeps reporting after a consumer onChange throws", async () => {
+    const seen: string[] = [];
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const calls: ((v: Record<string, unknown>) => void)[] = [];
+      render(
+        <DataGrid data={data} columns={columns} getRowId={(r) => r.id}>
+          <DataGridServerAggregateReporter
+            debounceMs={0}
+            fetchAggregates={() => new Promise((resolve) => calls.push(resolve))}
+            onChange={(result) => {
+              seen.push(result.status);
+              if (seen.length === 1) throw new Error("consumer bug");
+            }}
+          />
+        </DataGrid>,
+      );
+      await act(async () => calls[0]?.({ qty: 1 }));
+      expect(seen).toEqual(["loading", "ready"]);
+      expect(logged).toHaveBeenCalled();
+    } finally {
+      logged.mockRestore();
+    }
+  });
+});

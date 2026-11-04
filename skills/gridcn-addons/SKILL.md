@@ -104,7 +104,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Pinned rows**: keep `topRows`/`bottomRows` referentially stable (`useMemo`/`useState`, not a
   fresh `[value]` literal per render) — a fresh array per render rebuilds the returned `plugin`
   every render, and the grid re-resolves its plugin list on every render.
-- **Server totals**: on a pages, scroll, or own-API grid render `<DataGridServerAggregateReporter fetchAggregates={({ spec, signal }) => …} onChange={setTotals} />` under the provider and pass `totals.row` as a band row and `totals.status` as `status`. It requests again only on a filter change; call `totals.refresh()` after a save.
+- **Server totals**: on a pages, scroll, or own-API grid render `<DataGridServerAggregateReporter fetchAggregates={({ spec, signal }) => …} onChange={setTotals} />` under the provider and pass `totals.row` as a band row and `totals.status` as `status`. It requests again on a filter or quick-search change (start the state from `PENDING_SERVER_AGGREGATE`); call `totals.refresh()` after a save.
 - **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column, and keep `fetchOptions` stable.
 - **Totals row**: the `plugin` is needed above the provider, but the aggregate is read inside it.
   Hold the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`

@@ -60,9 +60,7 @@ function reportChange(onChange: (result: ServerAggregateResult) => void, result:
   try {
     onChange(result);
   } catch (error) {
-    queueMicrotask(() => {
-      throw error;
-    });
+    console.error("[data-grid-pinned-rows] onChange threw", error);
   }
 }
 

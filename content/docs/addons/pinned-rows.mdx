@@ -211,13 +211,15 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     }
     ```
 
+    Start the state from `PENDING_SERVER_AGGREGATE`, as above.
+
     <ComponentPreview name="data-grid-server-totals-demo" />
 
     `fetchAggregates` resolves `{ [columnId]: value }` for the whole result of the spec. The same
     code serves pages, scroll, controlled specs, and your own API, because the request carries the
     spec and not the rows in the grid. The reporter requests once on mount. It requests again
     after each filter or quick-search change. A sort does not change the totals, so it does not
-    request. Keep `PENDING_SERVER_AGGREGATE` as the first state. A newer request aborts the older one through `signal`, and the grid drops a late
+    request. A newer request aborts the older one through `signal`, and the grid drops a late
     answer of the older one.
 
     Inside the grid you can also call `useDataGridServerAggregate(options)` yourself. It returns the same

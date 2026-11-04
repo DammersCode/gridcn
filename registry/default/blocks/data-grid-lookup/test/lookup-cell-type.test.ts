@@ -32,7 +32,7 @@ describe("lookupCellType value pipeline", () => {
     expect(lookupCellType.fromText("", makeOptions())).toBeNull();
     expect(lookupCellType.fromText("   ")).toBeNull();
     const kept = lookupCellType.fromText("x".repeat(100_000), makeOptions({ unresolvedPaste: "keep" }));
-    expect(typeof kept === "object" && kept !== null ? kept.value.length : 0).toBeLessThanOrEqual(256);
+    expect(kept).toEqual({ value: "x".repeat(256), label: "" });
   });
 
   it("isEmpty, clearValue, compare, and search read the label", () => {

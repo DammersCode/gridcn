@@ -14,8 +14,8 @@ the grid holds, which is wrong when the grid holds one page or some blocks. The 
   of `spec`. `spec` is the `ServerSpec` of the grid (`sortState`, `filterState`, `searchText`).
 - Refetch key: the filters and the quick-search text. A sort never changes which rows an aggregate covers; a
   server may narrow by `searchText`, so a search change asks again. The request carries the whole spec.
-- Race safety: one `AbortController` per request; a new filter key, `refresh`, `retry`, and unmount abort it. A
-  settled answer applies only when its signal is not aborted. Filter bursts wait `debounceMs` (default 150).
+- Race safety: one `AbortController` per request; a new aggregate key, `refresh`, `retry`, and unmount abort it. A
+  settled answer applies only when its signal is not aborted. Filter and search bursts wait `debounceMs` (default 150).
 - State (adds `stale` to the D3 `loading | error | ready` set because old values stay on screen): `loading` (no values yet), `stale` (old values while a newer request runs), `ready`, `error` (old values
   stay). `useDataGridPinnedRows({ status })` dims the bands and sets `aria-busy` and `data-status`.
 - Untrusted answer: not an object is an error; only requested column ids are read through `hasOwnProperty`; text is cut

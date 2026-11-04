@@ -139,4 +139,12 @@ describe("lookup editor", () => {
     await openEditor();
     expect(document.querySelector("[role=combobox]")).toBeNull();
   });
+
+  it("bounds the typed query and ties aria-expanded to the list", async () => {
+    await setup(makeOptions({ fetchOptions: async () => [] }));
+    await openEditor();
+    const input = document.querySelector<HTMLInputElement>("[role=combobox]");
+    await vi.waitFor(() => expect(input?.getAttribute("aria-expanded")).toBe("false"));
+    expect(input?.maxLength).toBe(256);
+  });
 });
