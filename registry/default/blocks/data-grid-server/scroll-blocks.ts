@@ -291,7 +291,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const blockSize = useCallback(() => positiveInteger(live.current.options.blockSize, DEFAULT_BLOCK_SIZE, 1), []);
   const overscanOf = useCallback(() => positiveInteger(live.current.options.overscan, DEFAULT_OVERSCAN, 0), []);
   const limits = useCallback((): FetchLimits => {
-    const read = readFetchLimits(live.current.options, blockSize());
+    const read = readFetchLimits(blockSize(), live.current.options);
     if (read.maxLoadedRowsInvalid) warn("maxLoadedRows", `maxLoadedRows must be a number of rows or Infinity, so the hook uses ${DEFAULT_MAX_LOADED_ROWS}`);
     return read;
   }, [blockSize, warn]);

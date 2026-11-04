@@ -28,7 +28,7 @@ function clampedInteger(value: unknown, fallback: number, min: number, max: numb
 }
 
 /** Reads the fetch limit options; a bad value falls back to its default and never throws. */
-export function readFetchLimits(options: FetchLimitOptions, blockSize: number): FetchLimits {
+export function readFetchLimits(blockSize: number, options: FetchLimitOptions = {}): FetchLimits {
   const rows: unknown = options.maxLoadedRows;
   let maxLoadedRows = DEFAULT_MAX_LOADED_ROWS;
   let maxLoadedRowsInvalid = false;

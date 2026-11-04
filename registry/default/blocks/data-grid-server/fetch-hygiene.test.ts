@@ -3,43 +3,43 @@ import { dueWanted, keepRange, pickEvictions, pruneViewed, readFetchLimits, read
 
 describe("readFetchLimits", () => {
   it("returns the defaults for no options", () => {
-    expect(readFetchLimits({}, 50)).toEqual({ loadDelay: 100, maxConcurrentFetches: 3, maxLoadedRows: 10_000, maxLoadedRowsInvalid: false });
+    expect(readFetchLimits(50, {})).toEqual({ loadDelay: 100, maxConcurrentFetches: 3, maxLoadedRows: 10_000, maxLoadedRowsInvalid: false });
   });
 
   it.each([NaN, Infinity, -Infinity, "50" as unknown as number, null as unknown as number])("loadDelay %s falls back to 100", (value) => {
-    expect(readFetchLimits({ loadDelay: value }, 50).loadDelay).toBe(100);
+    expect(readFetchLimits(50, { loadDelay: value }).loadDelay).toBe(100);
   });
 
   it("floors and clamps loadDelay to [0, 2000]", () => {
-    expect(readFetchLimits({ loadDelay: 0 }, 50).loadDelay).toBe(0);
-    expect(readFetchLimits({ loadDelay: 99.9 }, 50).loadDelay).toBe(99);
-    expect(readFetchLimits({ loadDelay: -5 }, 50).loadDelay).toBe(0);
-    expect(readFetchLimits({ loadDelay: 99_999 }, 50).loadDelay).toBe(2000);
+    expect(readFetchLimits(50, { loadDelay: 0 }).loadDelay).toBe(0);
+    expect(readFetchLimits(50, { loadDelay: 99.9 }).loadDelay).toBe(99);
+    expect(readFetchLimits(50, { loadDelay: -5 }).loadDelay).toBe(0);
+    expect(readFetchLimits(50, { loadDelay: 99_999 }).loadDelay).toBe(2000);
   });
 
   it.each([NaN, Infinity, "2" as unknown as number])("maxConcurrentFetches %s falls back to 3", (value) => {
-    expect(readFetchLimits({ maxConcurrentFetches: value }, 50).maxConcurrentFetches).toBe(3);
+    expect(readFetchLimits(50, { maxConcurrentFetches: value }).maxConcurrentFetches).toBe(3);
   });
 
   it("floors and clamps maxConcurrentFetches to [1, 16]", () => {
-    expect(readFetchLimits({ maxConcurrentFetches: 0 }, 50).maxConcurrentFetches).toBe(1);
-    expect(readFetchLimits({ maxConcurrentFetches: -3 }, 50).maxConcurrentFetches).toBe(1);
-    expect(readFetchLimits({ maxConcurrentFetches: 4.7 }, 50).maxConcurrentFetches).toBe(4);
-    expect(readFetchLimits({ maxConcurrentFetches: 500 }, 50).maxConcurrentFetches).toBe(16);
+    expect(readFetchLimits(50, { maxConcurrentFetches: 0 }).maxConcurrentFetches).toBe(1);
+    expect(readFetchLimits(50, { maxConcurrentFetches: -3 }).maxConcurrentFetches).toBe(1);
+    expect(readFetchLimits(50, { maxConcurrentFetches: 4.7 }).maxConcurrentFetches).toBe(4);
+    expect(readFetchLimits(50, { maxConcurrentFetches: 500 }).maxConcurrentFetches).toBe(16);
   });
 
   it("Infinity turns eviction off", () => {
-    expect(readFetchLimits({ maxLoadedRows: Infinity }, 50)).toMatchObject({ maxLoadedRows: Infinity, maxLoadedRowsInvalid: false });
+    expect(readFetchLimits(50, { maxLoadedRows: Infinity })).toMatchObject({ maxLoadedRows: Infinity, maxLoadedRowsInvalid: false });
   });
 
   it("floors maxLoadedRows and raises it to one block", () => {
-    expect(readFetchLimits({ maxLoadedRows: 2000.9 }, 50).maxLoadedRows).toBe(2000);
-    expect(readFetchLimits({ maxLoadedRows: 10 }, 50).maxLoadedRows).toBe(50);
-    expect(readFetchLimits({ maxLoadedRows: 0 }, 50).maxLoadedRows).toBe(50);
+    expect(readFetchLimits(50, { maxLoadedRows: 2000.9 }).maxLoadedRows).toBe(2000);
+    expect(readFetchLimits(50, { maxLoadedRows: 10 }).maxLoadedRows).toBe(50);
+    expect(readFetchLimits(50, { maxLoadedRows: 0 }).maxLoadedRows).toBe(50);
   });
 
   it.each([NaN, -1, -Infinity, "100" as unknown as number, null as unknown as number])("maxLoadedRows %s falls back to 10,000 and is marked invalid", (value) => {
-    expect(readFetchLimits({ maxLoadedRows: value }, 50)).toMatchObject({ maxLoadedRows: 10_000, maxLoadedRowsInvalid: true });
+    expect(readFetchLimits(50, { maxLoadedRows: value })).toMatchObject({ maxLoadedRows: 10_000, maxLoadedRowsInvalid: true });
   });
 });
 

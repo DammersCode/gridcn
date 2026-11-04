@@ -40,11 +40,13 @@ type Mode = "pages" | "scroll";
  * `useDataGridServerRows` owns the spec, aborts a stale request, and keeps the rows on screen while the next ones
  * load. `mode: "pages"` fetches one page per state and goes back to page 1 on a spec change; `mode: "scroll"`
  * sizes the grid from `totalRowCount` and fetches the blocks the rendered rows need. Edits go to the server from
- * `onSave`, then the rows are fetched again so you see the server's truth.
+ * `onSave`, then the rows are fetched again so you see the server's truth. Pages mode prefetches the next page, so
+ * Next shows it with no wait; the toggle revalidates the rows every 10 seconds.
  */
 export default function DataGridServerSideDemo(): ReactNode {
   const [mode, setMode] = useState<Mode>("pages");
   const remote = useMemo(() => createRemoteServer(), []);
+  const [revalidate, setRevalidate] = useState(false);
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -54,19 +56,24 @@ export default function DataGridServerSideDemo(): ReactNode {
         <Button type="button" size="sm" variant={mode === "scroll" ? "default" : "outline"} aria-pressed={mode === "scroll"} onClick={() => setMode("scroll")}>
           Scroll
         </Button>
+        <Button type="button" size="sm" variant={revalidate ? "default" : "outline"} aria-pressed={revalidate} onClick={() => setRevalidate((on) => !on)}>
+          Revalidate every 10 s
+        </Button>
         <span className="text-sm text-muted-foreground">sort, filter, search and paging are all server-side</span>
       </div>
-      {mode === "pages" ? <PagesGrid key="pages" remote={remote} /> : <ScrollGrid key="scroll" remote={remote} />}
+      {mode === "pages" ? <PagesGrid key="pages" remote={remote} revalidate={revalidate} /> : <ScrollGrid key="scroll" remote={remote} revalidate={revalidate} />}
     </div>
   );
 }
 
 type Remote = ReturnType<typeof createRemoteServer>;
 
-function PagesGrid({ remote }: { remote: Remote }): ReactNode {
+function PagesGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     getRowId: (row) => row.id,
     defaultPageSize: 25,
+    prefetchNextPage: true,
+    revalidateInterval: revalidate ? 10_000 : undefined,
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -102,10 +109,11 @@ function PagesGrid({ remote }: { remote: Remote }): ReactNode {
   );
 }
 
-function ScrollGrid({ remote }: { remote: Remote }): ReactNode {
+function ScrollGrid({ remote, revalidate }: { remote: Remote; revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
     getRowId: (row) => row.id,
+    revalidateInterval: revalidate ? 10_000 : undefined,
     fetchRows: async ({ spec, start, end, signal }) => {
       const answer = await remote.fetchRange({ start, end, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
