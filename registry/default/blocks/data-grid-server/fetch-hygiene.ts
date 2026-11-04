@@ -149,3 +149,12 @@ export function unloadRangesOf(pick: EvictionPick): RowRange[] {
   if (from < pick.block.end) ranges.push({ start: from, end: pick.block.end });
   return ranges.filter((range) => rangeSize(range) > 0);
 }
+
+/** Drops the stamps of blocks that hold no loaded row and sit outside the keep range. */
+export function pruneViewed(viewed: Map<number, number>, loaded: readonly RowRange[], keep: RowRange, blockSize: number): void {
+  const held = new Set<number>();
+  for (const range of loaded) for (let index = Math.floor(range.start / blockSize); index * blockSize < range.end; index++) held.add(index);
+  for (const index of viewed.keys()) {
+    if (!held.has(index) && !rangesIntersect({ start: index * blockSize, end: (index + 1) * blockSize }, keep)) viewed.delete(index);
+  }
+}

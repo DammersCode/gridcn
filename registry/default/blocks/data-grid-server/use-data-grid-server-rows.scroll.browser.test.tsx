@@ -59,7 +59,7 @@ function deferredServer(count = 10_000) {
 }
 
 function ServerGrid(props: { fetchRows: Fetch; count?: number; onServer?: (server: UseDataGridServerRowsScrollResult<Row>) => void; onReady?: (api: StoreApi<DataGridStoreState>) => void; defaultFilters?: FilterNode[]; rowClassName?: (row: Row) => string }) {
-  const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
+  const server = useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
   useEffect(() => {
     props.onServer?.(server);
   });

@@ -256,9 +256,10 @@ export function writeBlocks<TData>(
   idOf: (row: TData, index: number) => string,
   memory: { orphans: Map<string, { row: TData; slot: number }>; carried: Set<string> },
   final = false,
-): { rows: (TData | undefined)[]; cleared: number[] } {
+): { rows: (TData | undefined)[]; cleared: number[]; restored: number[] } {
   const next = prev.slice();
   const emptied: number[] = [];
+  const restored: number[] = [];
   const { carried, orphans: overwritten } = memory;
   const stillProtected = new Set<string>();
   for (const { start, rows, guard } of blocks) {
@@ -302,7 +303,8 @@ export function writeBlocks<TData>(
     for (const [id, { row, slot }] of overwritten) {
       if (carried.has(id) || !stillProtected.has(id) || slot >= next.length || next[slot] !== undefined) continue;
       next[slot] = row;
+      restored.push(slot);
     }
   }
-  return { rows: next, cleared: emptied.filter((slot) => next[slot] === undefined) };
+  return { rows: next, cleared: emptied.filter((slot) => next[slot] === undefined), restored };
 }

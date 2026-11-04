@@ -15,7 +15,7 @@ function countedServer(total = 1000) {
 }
 
 type Extra = Partial<UseDataGridServerRowsScrollOptions<Row>>;
-const optionsOf = (fetchRows: Fetch, extra: Extra): UseDataGridServerRowsScrollOptions<Row> => ({ mode: "scroll", getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
+const optionsOf = (fetchRows: Fetch, extra: Extra): UseDataGridServerRowsScrollOptions<Row> => ({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
 
 async function mount(fetchRows: Fetch, extra: Extra = {}, wrapper?: ({ children }: { children: ReactNode }) => ReactNode) {
   const view = renderHook(() => useDataGridServerRows<Row>(optionsOf(fetchRows, extra)), wrapper ? { wrapper } : undefined);
@@ -91,7 +91,7 @@ describe("useDataGridServerRows scroll mode: block fetching", () => {
     fetchRows.mockClear();
     window_(result, { start: 100, end: 130 });
     await settled(result);
-    expect(ranges(fetchRows)).toEqual([[50, 100], [100, 150]]);
+    expect(ranges(fetchRows)).toEqual([[100, 150], [50, 100]]);
     expect(result.current.gridProps.data[60]).toEqual(person(60));
     expect(result.current.gridProps.data[149]).toEqual(person(149));
     expect(result.current.unloadedCount).toBe(1000 - 150 - 0);
@@ -171,7 +171,7 @@ describe("useDataGridServerRows scroll mode: block fetching", () => {
     const { result } = await mount(fetchRows);
     window_(result, { start: 15, end: 25 });
     await settled(result);
-    expect(ranges(fetchRows)).toEqual([[0, 10], [10, 20], [20, 25]]);
+    expect(ranges(fetchRows).sort((a, b) => a[0]! - b[0]!)).toEqual([[0, 10], [10, 20], [20, 25]]);
     expect(result.current.unloadedCount).toBe(0);
   });
 
@@ -493,11 +493,13 @@ describe("useDataGridServerRows scroll mode: loaded ranges", () => {
     expect(result.current.gridProps.data[15]).toEqual(person(15));
   });
 
-  it("evict does not abort an in-flight request: it still lands", async () => {
+  it("evict aborts an in-flight request in the range, so it does not land", async () => {
     const resolvers: Array<() => void> = [];
+    const signals: AbortSignal[] = [];
     const fetchRows = vi.fn<Fetch>(
-      ({ start, end }) =>
+      ({ start, end, signal }) =>
         new Promise((resolve) => {
+          signals.push(signal);
           resolvers.push(() => resolve({ rows: makeRows(start, end), totalRowCount: 100 }));
         }),
     );
@@ -507,8 +509,10 @@ describe("useDataGridServerRows scroll mode: loaded ranges", () => {
     await waitFor(() => expect(result.current.getLoadedRanges()).toHaveLength(1));
     window_(result, { start: 20, end: 30 });
     act(() => result.current.evict({ start: 20, end: 30 }));
+    expect(signals[1]!.aborted).toBe(true);
     await act(async () => resolvers[1]!());
-    await waitFor(() => expect(result.current.gridProps.data[25]).toEqual(person(25)));
+    expect(result.current.gridProps.data[25]).toBeUndefined();
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 10 }]);
   });
 
   it("evict is a no-op for unloaded and out-of-range targets and clamps to [0, count]", async () => {

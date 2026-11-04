@@ -41,7 +41,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL,
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row, number>({ mode: "scroll", getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
+    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelay: 0, getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave} createRow={() => ({ id: "loc", name: "Local" })}>
         <DataGridRoot>
@@ -230,6 +230,7 @@ describe("the end of a refresh snapshot", () => {
     await waitFor(() => expect(t.nameOf("r4")).toBe("Person 4!"));
     act(() => t.state().actions.commitCellValue({ rowId: "r5", columnId: "name" }, "Edited"));
     await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await act(async () => t.held.splice(0).forEach((entry) => entry.resolve()));
     act(() => t.server().evict({ start: 0, end: SIZE }));
     t.window(15);
     await t.waitHeld(0);
@@ -250,7 +251,7 @@ describe("a retried refresh block after the window moved away", () => {
     await t.waitHeld(SIZE);
     await t.fail(0);
     await t.land(SIZE);
-    t.window(55, 50);
+    t.window(25, 10);
     await waitFor(() => expect(t.server().status).toBe("error"));
     act(() => t.server().retry());
     await t.waitHeld(0);

@@ -39,7 +39,7 @@ describe("the refresh guard in a real grid", () => {
     let server!: UseDataGridServerRowsScrollResult<Row>;
     let store!: StoreApi<DataGridStoreState>;
     function Harness() {
-      const result = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 20, overscan: 5 });
+      const result = useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, getRowId: (row) => row.id, fetchRows, blockSize: 20, overscan: 5 });
       useEffect(() => {
         server = result;
       });

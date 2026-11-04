@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueWanted, keepRange, pickEvictions, readFetchLimits, readRevalidateInterval, trackWanted, unloadRangesOf, type Wanted } from "./fetch-hygiene";
+import { dueWanted, keepRange, pickEvictions, pruneViewed, readFetchLimits, readRevalidateInterval, trackWanted, unloadRangesOf, type Wanted } from "./fetch-hygiene";
 
 describe("readFetchLimits", () => {
   it("returns the defaults for no options", () => {
@@ -167,5 +167,13 @@ describe("unloadRangesOf", () => {
 
   it("splits around kept slots", () => {
     expect(unloadRangesOf({ block: { start: 10, end: 20 }, kept: [15, 10, 19] })).toEqual([{ start: 11, end: 15 }, { start: 16, end: 19 }]);
+  });
+});
+
+describe("pruneViewed", () => {
+  it("drops the stamps of unloaded blocks outside the keep range and keeps the rest", () => {
+    const viewed = new Map([[0, 1], [1, 2], [2, 3], [5, 4], [9, 5]]);
+    pruneViewed(viewed, [{ start: 10, end: 20 }], { start: 50, end: 60 }, 10);
+    expect([...viewed.keys()]).toEqual([1, 5]);
   });
 });
