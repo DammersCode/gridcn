@@ -132,7 +132,7 @@ try {
             { median: +median(values).toFixed(3), mad: +mad(values).toFixed(3), n: values.length, runMedians: perRun[u][name] },
           ]),
         );
-        console.log(key, JSON.stringify(Object.fromEntries(Object.entries(result[key]).map(([n, s]) => [n, `${s.median}±${s.mad}`]))));
+        console.log(key, JSON.stringify(Object.fromEntries(Object.entries(result[key]).map(([n, s]) => [n, `${s.median}+-${s.mad}`]))));
       }
     }
   }
