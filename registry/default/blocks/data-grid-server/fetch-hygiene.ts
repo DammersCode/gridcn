@@ -94,7 +94,7 @@ export function distanceToCentre(range: RowRange, centre: number): number {
 export type EvictionPick = {
   /** A whole block of the result. */
   block: RowRange;
-  /** Slots of the block that stay loaded because their rows are protected. */
+  /** Slots of the block whose rows stay in `data` because they are protected. They move from loaded to stale. */
   kept: readonly number[];
 };
 

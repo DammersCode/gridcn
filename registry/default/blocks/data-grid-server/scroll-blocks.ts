@@ -6,7 +6,7 @@ import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
 import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
-import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
+import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
 import { isolate, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
@@ -45,7 +45,8 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   maxConcurrentFetches?: number;
   /**
    * Most rows kept loaded on a random access source. When more are loaded, the least recently viewed blocks outside the rendered rows
-   * plus overscan plus one block unload. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay.
+   * plus overscan plus one block unload. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`
+   * but stop counting as loaded, so the next window fetches their block whole.
    * `Infinity` keeps every row. Default 10,000.
    */
   maxLoadedRows?: number;
@@ -120,7 +121,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   getLoadedRanges: () => readonly RowRange[];
   /**
    * Unloads the rows in `range` and aborts the requests it covers; the next rendered window that covers them fetches them again.
-   * Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay loaded. Does nothing on a sequential source.
+   * Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data` but stop counting as loaded. Does nothing on a sequential source.
    */
   evict: (range: RowRange) => void;
 };
@@ -197,12 +198,14 @@ type Core<TData> = {
   evictedBlocks: Set<number>;
   /** Set when rows were unloaded; the layout effect syncs the loaded count. */
   unloaded: boolean;
+  /** Set by an eviction; the layout effect reports the rendered rows again, in case a report ran before the rows unloaded. */
+  reportAfterUnload: boolean;
   pumping: boolean;
   pumpAgain: boolean;
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, pumping: false, pumpAgain: false };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -343,7 +346,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     }
     const size = blockSize();
     const cap = limits().maxLoadedRows;
-    const loadedNow = core.loaded;
+    const loadedNow = core.stale.length > 0 ? mergeRanges([...core.loaded, ...core.stale]) : core.loaded;
     const keep = core.keep;
     const evicting = core.kind === "random" && keep !== null && Number.isFinite(cap) && sumRangeSizes(loadedNow) > cap;
     setRows((prev) => {
@@ -355,13 +358,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     });
   }, [getCore, protectedRows, savingRows, savedSince, unacknowledgedRows, acknowledge, blockSize, limits, protectedFromEviction]);
 
-  const protectedFromRefresh = useCallback((): ProtectedRows => {
-    const mark = oldestMark(getCore());
-    return unionIds(protectedRows(), mark === null ? null : savedSince(mark));
-  }, [getCore, protectedRows, savedSince]);
-
   const unloadSlots = useCallback(
-    (ranges: readonly RowRange[], keeps: "eviction" | "refresh" = "eviction") => {
+    (ranges: readonly RowRange[]) => {
       const core = getCore();
       core.empty = core.empty.flatMap((empty) => subtractRanges(empty, ranges));
       const held = mergeRanges([...core.loaded, ...core.stale]);
@@ -369,12 +367,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (targets.length === 0) return;
       const idOf = live.current.options.getRowId;
       setRows((prev) => {
-        const unloaded = unloadRows(prev, targets, keeps === "eviction" ? protectedFromEviction() : protectedFromRefresh(), idOf);
-        forgetUnloaded(core, unloaded.cleared);
+        const unloaded = unloadRows(prev, targets, protectedFromEviction(), idOf);
+        forgetUnloaded(core, unloaded.cleared, unloaded.kept);
         return unloaded.rows;
       });
     },
-    [getCore, protectedFromEviction, protectedFromRefresh],
+    [getCore, protectedFromEviction],
   );
 
   // The first landing commits at once; later ones wait for the next frame, so a burst costs one copy of the rows per frame.
@@ -733,7 +731,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (Number.isFinite(maxLoadedRows)) stampViewed(core, keep, size, maxLoadedRows);
       leaveKeepRange(keep);
       const covered = [...core.loaded, ...core.empty, ...Array.from(core.inFlight.values(), (entry) => entry.range), ...core.owed];
-      const uncovered = subtractRanges(wantedRange, covered).flatMap((gap) => chunkRange(gap, size));
+      const uncovered = subtractRanges(wantedRange, covered).flatMap((gap) => chunkAligned(gap, size));
       trackWanted(core.wanted, uncovered, immediate ? Date.now() - loadDelay : Date.now());
       pump();
     },
@@ -770,7 +768,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   }, [specKey]);
 
   const evictRange = useCallback(
-    (range: RowRange, keeps: "eviction" | "refresh") => {
+    (range: RowRange) => {
       const core = getCore();
       if (core.kind === "sequence") return;
       const target = { start: Math.max(0, range.start), end: Math.min(core.count ?? 0, range.end) };
@@ -788,11 +786,11 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         setLoading(busy(core));
         pumpRef.current();
       }
-      unloadSlots([target], keeps);
+      unloadSlots([target]);
     },
     [getCore, commit, unloadSlots],
   );
-  const evict = useCallback((range: RowRange) => evictRange(range, "eviction"), [evictRange]);
+  const evict = evictRange;
 
   const retry = useCallback(() => {
     const core = getCore();
@@ -817,6 +815,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       for (const index of core.evictedBlocks) core.viewed.delete(index);
       core.evictedBlocks.clear();
       setLoadedCount(sumRangeSizes(core.loaded));
+      if (core.reportAfterUnload) {
+        core.reportAfterUnload = false;
+        if (core.lastWindow) windowRef.current(core.lastWindow);
+      }
     }
     if (core.restored.size > 0) {
       core.stale = mergeRanges([...core.stale, ...Array.from(core.restored, (slot) => ({ start: slot, end: slot + 1 }))]);
@@ -858,7 +860,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     core.failed.clear();
     core.empty = [];
     setError(null);
-    for (const outside of subtractRanges({ start: 0, end: core.count! }, [keep])) evictRange(outside, "refresh");
+    for (const outside of subtractRanges({ start: 0, end: core.count! }, [keep])) evictRange(outside);
     core.owed = chunkRange(keep, size);
     setLoading(core.owed.length > 0);
     pumpRef.current();
@@ -1013,7 +1015,7 @@ function stampLanded<TData>(core: Core<TData>, start: number, length: number, si
 }
 
 /** Unloads the target slots of `prev` except protected rows; `cleared` lists the slots that were unloaded. Pure. */
-function unloadRows<TData>(prev: readonly (TData | undefined)[], targets: readonly RowRange[], protectedIds: ProtectedRows, idOf: (row: TData, index: number) => string): { rows: (TData | undefined)[]; cleared: RowRange[] } {
+function unloadRows<TData>(prev: readonly (TData | undefined)[], targets: readonly RowRange[], protectedIds: ProtectedRows, idOf: (row: TData, index: number) => string): { rows: (TData | undefined)[]; cleared: RowRange[]; kept: RowRange[] } {
   let next: (TData | undefined)[] | null = null;
   const kept: RowRange[] = [];
   for (const { start, end } of targets) {
@@ -1024,14 +1026,18 @@ function unloadRows<TData>(prev: readonly (TData | undefined)[], targets: readon
       else (next ??= prev.slice())[index] = undefined;
     }
   }
-  return { rows: next ?? (prev as (TData | undefined)[]), cleared: kept.length === 0 ? targets.slice() : targets.flatMap((target) => subtractRanges(target, kept)) };
+  return { rows: next ?? (prev as (TData | undefined)[]), cleared: kept.length === 0 ? targets.slice() : targets.flatMap((target) => subtractRanges(target, kept)), kept };
 }
 
-/** Removes unloaded slots from the ranges the hook claims as loaded or stale. Idempotent: a StrictMode updater may run twice. */
-function forgetUnloaded<TData>(core: Core<TData>, cleared: readonly RowRange[]) {
-  if (cleared.length === 0) return;
-  core.loaded = mergeRanges(core.loaded.flatMap((range) => subtractRanges(range, cleared)));
-  core.stale = core.stale.flatMap((range) => subtractRanges(range, cleared));
+/**
+ * Removes unloaded slots from the ranges the hook claims. A kept slot (a protected row that stays) moves from `loaded` to `stale`,
+ * so the next window fetches its block whole and the answer replaces or moves the row. Idempotent: a StrictMode updater may run twice.
+ */
+function forgetUnloaded<TData>(core: Core<TData>, cleared: readonly RowRange[], kept: readonly RowRange[] = []) {
+  if (cleared.length === 0 && kept.length === 0) return;
+  core.loaded = mergeRanges(core.loaded.flatMap((range) => subtractRanges(range, [...cleared, ...kept])));
+  core.stale = mergeRanges([...core.stale.flatMap((range) => subtractRanges(range, cleared)), ...kept]);
+  core.empty = core.empty.flatMap((range) => subtractRanges(range, cleared));
   core.unloaded = true;
 }
 
@@ -1043,10 +1049,12 @@ function evictRows<TData>(core: Core<TData>, rows: (TData | undefined)[], { load
   const picks = pickEvictions({ loaded, viewed: core.viewed, keep, blockSize: size, cap, protectedSlots });
   if (picks.length === 0) return rows;
   const ranges = picks.flatMap(unloadRangesOf);
-  const next = unloadRows(rows, ranges, null, idOf).rows;
-  forgetUnloaded(core, ranges);
+  // `rows` is the fresh copy that `writeBlocks` returned, so the slots are written in place.
+  for (const { start, end } of ranges) rows.fill(undefined, start, Math.min(end, rows.length));
+  forgetUnloaded(core, ranges, picks.flatMap((pick) => pick.kept.map((slot) => ({ start: slot, end: slot + 1 }))));
+  core.reportAfterUnload = true;
   for (const pick of picks) if (pick.kept.length === 0) core.evictedBlocks.add(pick.block.start / size);
-  return next;
+  return rows;
 }
 
 function protectedSlotsIn<TData>(rows: readonly (TData | undefined)[], block: RowRange, protectedIds: ReadonlySet<string>, idOf: (row: TData, index: number) => string): number[] {

@@ -15,16 +15,17 @@ const person = (i: number): Row => ({ id: `r${i}`, name: `Person ${i}` });
 const FRAME = 20;
 
 type Extra = Partial<UseDataGridServerRowsScrollOptions<Row>>;
-type SetupOptions = { total?: number; auto?: boolean; onSave?: boolean; strict?: boolean };
+type SetupOptions = { total?: number; auto?: boolean; onSave?: boolean; strict?: boolean; repeatSlot?: number };
 
-function setup(extra: Extra = {}, { total = 100_000, auto = false, onSave = true, strict = false }: SetupOptions = {}) {
+function setup(extra: Extra = {}, { total = 100_000, auto = false, onSave = true, strict = false, repeatSlot }: SetupOptions = {}) {
   const requests: Request[] = [];
   let autoResolve = auto;
   let currentTotal = total;
+  let shift = 0;
   const fetchRows = vi.fn(
     ({ start, end, signal }: { start: number; end: number; signal: AbortSignal }) =>
       new Promise<ServerRowsAnswer<Row>>((resolve, reject) => {
-        const answer = (): ServerRowsAnswer<Row> => ({ rows: Array.from({ length: Math.max(0, Math.min(end, currentTotal) - start) }, (_, i) => person(start + i)), totalRowCount: currentTotal });
+        const answer = (): ServerRowsAnswer<Row> => ({ rows: Array.from({ length: Math.max(0, Math.min(end, currentTotal) - start) }, (_, i) => person(start + i === repeatSlot ? start + i - 1 : start + i - shift)), totalRowCount: currentTotal });
         const request: Request = { start, end, signal, settled: false, resolve: () => ((request.settled = true), resolve(answer())), reject: () => ((request.settled = true), reject(new Error("boom"))) };
         requests.push(request);
         if (autoResolve) request.resolve();
@@ -70,6 +71,8 @@ function setup(extra: Extra = {}, { total = 100_000, auto = false, onSave = true
     },
     autoResolve: (on: boolean) => (autoResolve = on),
     setTotal: (next: number) => (currentTotal = next),
+    setShift: (next: number) => (shift = next),
+    idsOf: (id: string) => server.gridProps.data.filter((row) => row?.id === id).length,
     loadedRows: () => server.getLoadedRanges().reduce((sum, range) => sum + range.end - range.start, 0),
     isLoaded: (index: number) => server.getLoadedRanges().some((range) => range.start <= index && index < range.end),
     dataAt: (index: number) => server.gridProps.data[index],
@@ -389,7 +392,7 @@ describe("bounded cache", () => {
     const t = await mount({ maxLoadedRows: 40 });
     act(() => t.state().actions.startEditing({ rowId: "r5", columnId: "name" }));
     await scrollThrough(t, 10);
-    expect(t.isLoaded(5)).toBe(true);
+    expect(t.dataAt(5)).toBeDefined();
     expect(t.dataAt(5)).toEqual(person(5));
     expect(t.isLoaded(6)).toBe(false);
     expect(t.loadedRows()).toBeLessThanOrEqual(41);
@@ -403,7 +406,7 @@ describe("bounded cache", () => {
     await t.settleSaves();
     await t.report(100, 110);
     await t.land(100);
-    expect(t.isLoaded(5)).toBe(false);
+    expect(t.dataAt(5)).toBeUndefined();
   });
 
   it("keeps a row with a save logged for an open request until the request has settled", async () => {
@@ -414,12 +417,12 @@ describe("bounded cache", () => {
     await t.settleSaves();
     await t.report(60, 70);
     await t.land(60);
-    expect(t.isLoaded(5)).toBe(true);
+    expect(t.dataAt(5)).toBeDefined();
     expect(t.isLoaded(15)).toBe(false);
     await t.land(50);
     await t.report(70, 80);
     await t.land(70);
-    expect(t.isLoaded(5)).toBe(false);
+    expect(t.dataAt(5)).toBeUndefined();
   });
 
   it("keeps an edit with no onSave until a landed block replaces it", async () => {
@@ -432,14 +435,14 @@ describe("bounded cache", () => {
     await t.landAll();
     expect(t.dataAt(5)?.name).toBe("Person 5");
     await scrollThrough(t, 10);
-    expect(t.isLoaded(5)).toBe(false);
+    expect(t.dataAt(5)).toBeUndefined();
   });
 
   it("keeps the row under the active cell when the rendered rows scroll far away", async () => {
     const t = await mount({ maxLoadedRows: 40 });
     act(() => t.state().actions.selectCell({ rowId: "r5", columnId: "name" }));
     await scrollThrough(t, 10);
-    expect(t.isLoaded(5)).toBe(true);
+    expect(t.dataAt(5)).toBeDefined();
     expect(t.dataAt(5)).toEqual(person(5));
   });
 
@@ -457,6 +460,86 @@ describe("bounded cache", () => {
     await t.report(50, 80);
     await t.land(50, 60, 70);
     expect(t.server().getLoadedRanges()).toEqual([{ start: 50, end: 80 }]);
+  });
+});
+
+describe("kept slots", () => {
+  async function keepSlot120(extra: Extra = {}) {
+    const t = await mount({ blockSize: 50, maxLoadedRows: 50, ...extra });
+    await t.report(100, 110);
+    await t.land(100);
+    act(() => t.state().actions.selectCell({ rowId: "r120", columnId: "name" }));
+    await t.report(300, 310);
+    await t.land(300);
+    return t;
+  }
+
+  it("keeps the protected row but no longer claims its slot as loaded", async () => {
+    const t = await keepSlot120();
+    expect(t.dataAt(120)).toEqual(person(120));
+    expect(t.isLoaded(120)).toBe(false);
+    expect(t.dataAt(110)).toBeUndefined();
+  });
+
+  it("fetches the whole block again when the rendered rows come back, so requests stay on the block grid", async () => {
+    const t = await keepSlot120();
+    await t.report(100, 110);
+    const request = t.latest(100);
+    expect([request.start, request.end]).toEqual([100, 150]);
+    await t.land(100);
+    expect(t.idsOf("r120")).toBe(1);
+    expect(t.isLoaded(120)).toBe(true);
+  });
+
+  it("shows a row that moved on the server once", async () => {
+    const t = await keepSlot120();
+    t.setShift(1);
+    await t.report(100, 110);
+    await t.land(100);
+    expect(t.idsOf("r120")).toBe(1);
+    expect(t.dataAt(121)?.id).toBe("r120");
+  });
+
+  it("clears the answered-empty slots of an evicted block, so the block loads whole again", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const t = await mount({ maxLoadedRows: 10 }, { repeatSlot: 5 });
+    await t.report(10, 20);
+    await t.land(10);
+    await t.report(30, 40);
+    await t.land(30);
+    await t.report(0, 10);
+    const request = t.latest(0);
+    expect([request.start, request.end]).toEqual([0, 10]);
+    expect(t.requests.filter((entry) => entry.start === 0 && !entry.signal.aborted).length).toBeGreaterThan(0);
+  });
+
+  it("fetches the blocks that the rendered rows came back to before the eviction rendered", async () => {
+    const t = await mount({ maxLoadedRows: 40 });
+    for (let block = 1; block < 9; block++) {
+      await t.report(block * 10, block * 10 + 10);
+      await t.land(block * 10);
+    }
+    await t.report(90, 110);
+    await act(async () => {
+      t.latest(90).resolve();
+      t.latest(100).resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      t.server().gridProps.onRenderedRowsChange({ start: 50, end: 70 });
+    });
+    expect(t.open().map((request) => request.start)).toContain(50);
+  });
+
+  it("keeps the row under the active cell and the edits without onSave through a revalidation tick", async () => {
+    const t = await mount({ revalidateInterval: 5000 }, { onSave: false });
+    act(() => t.state().actions.commitCellValue({ rowId: "r5", columnId: "name" }, "Local"));
+    act(() => t.state().actions.selectCell({ rowId: "r6", columnId: "name" }));
+    await t.report(300, 310);
+    await t.land(300);
+    await t.advance(5000);
+    await t.landAll();
+    expect(t.dataAt(5)?.name).toBe("Local");
+    expect(t.dataAt(6)).toBeDefined();
+    expect(t.dataAt(7)).toBeUndefined();
   });
 });
 
@@ -485,7 +568,7 @@ describe("evict", () => {
     act(() => t.state().actions.startEditing({ rowId: "r2", columnId: "name" }));
     act(() => t.state().actions.commitCellValue({ rowId: "r4", columnId: "name" }, "Saved"));
     act(() => t.server().evict({ start: 0, end: 10 }));
-    expect(t.server().getLoadedRanges()).toEqual([{ start: 2, end: 3 }, { start: 4, end: 5 }]);
+    expect(t.server().getLoadedRanges()).toEqual([]);
     expect(t.dataAt(2)).toEqual(person(2));
     expect(t.dataAt(4)?.name).toBe("Saved");
     expect(t.dataAt(3)).toBeUndefined();
