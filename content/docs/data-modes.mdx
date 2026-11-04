@@ -128,11 +128,11 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
     </tr>
     <tr>
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates</th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates (server totals through useDataGridServerAggregate)</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover the current page or warn; no server totals."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover loaded rows or warn; no server totals."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -391,6 +391,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"The inputs write no data."} /></td>
     </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Async lookup cell</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -425,11 +436,6 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **SS**: Gap: Server grouping is not defined.
 - **FS**: Gap: Server grouping is not defined.
 - **API**: Gap: Server grouping is not defined.
-
-### Pinned rows and aggregates
-
-- **PS**: Gap: Aggregates cover the current page or warn; no server totals.
-- **Z**: Gap: Aggregates cover loaded rows or warn; no server totals.
 
 ### Column pin, hide, order and size
 
