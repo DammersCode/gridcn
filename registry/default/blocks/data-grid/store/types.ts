@@ -141,7 +141,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * its verdict merges into `cellErrors` when it settles. A newer verdict for the same row
    * supersedes a pending one, and a verdict for a row that is gone is dropped. A
    * rejection adds no error. `signal` aborts when a newer run for the same row supersedes this one,
-   * when the row is gone, and when the grid unmounts; an aborted verdict is dropped.
+   * when the row is gone, and when the grid unmounts; an aborted verdict is dropped. An id swap
+   * (`replaceRowId`) cancels a pending verdict of the row and runs `validateRow` again for the swapped row.
    */
   validateRow?: (row: TData, rowId: string, ctx: GateContext) => Record<string, string> | null | Promise<Record<string, string> | null>;
   /**

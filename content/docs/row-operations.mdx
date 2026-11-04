@@ -344,11 +344,9 @@ The sample inserts a row with a client id, creates it on the server in `onSave`,
 const gridRef = useRef<DataGridApi<Order> | null>(null);
 
 const onSave = async (change: DataChange<Order>) => {
-  for (const op of change.ops) {
-    if (op.type !== "insert") continue;
-    const created = await api.orders.create(op.row);
-    gridRef.current?.actions.replaceRowId(op.rowId, created);
-  }
+  const inserts = change.ops.filter((op) => op.type === "insert");
+  const created = await Promise.all(inserts.map((op) => api.orders.create(op.row)));
+  gridRef.current?.actions.replaceRowIds(inserts.map((op, i) => ({ oldId: op.rowId, row: created[i] })));
 };
 
 <DataGrid
@@ -368,7 +366,7 @@ const onSave = async (change: DataChange<Order>) => {
 - The state that is keyed by the row id follows the new id in the same step. This covers checked rows that a filter hides, cell errors, and the save status. Flashes of the row end. A `validateRow` that is still running is cancelled, and `validateRow` runs again for the swapped row.
 - `actions.replaceRowIds(swaps)` swaps many rows in one write and one `onDataChange`. Use it after a batch create: each `replaceRowId` call costs one pass over `data`.
 - A swap that keeps the id (the server accepts your client id) replaces the row and changes nothing else.
-- A gate that waits on the swapped row stops: an open delete confirmation, `createRow`, `duplicateRow`, or `onEditStart` on that row gets an aborted `signal`.
+- A swap that changes an id stops the gates that wait on row positions: an open delete confirmation, a pending `createRow` or `duplicateRow`, and `onEditStart` on that row get an aborted `signal`.
 - A save that is still in flight for the old id settles against the new id. An acknowledgement that names either id works. A refusal of such a save reverts cell by cell. A whole-row `update` cannot restore a snapshot with the old id, so the grid skips that revert.
 - `data-grid-history` rewrites its undo and redo steps. Each operation on the old id gets the new id. If a snapshot of the row is not a plain object, the grid drops the step.
 

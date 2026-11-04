@@ -303,4 +303,30 @@ describe("resolveSaveConflict", () => {
     expect(sources).toEqual(["edit", "merge"]);
     expect(m.row("a")).toEqual(theirs);
   });
+  it("a resolver that ignores its aborted signal does not hold the other rows", async () => {
+    const never = new Promise<SaveResolution<Row>>(() => {});
+    const acks = [Promise.resolve(refuse()), new Promise<SaveAck<Row>>(() => {})];
+    const m = mount(() => acks.shift()!, { resolveSaveConflict: () => never });
+    m.edit("a", "name", "X");
+    await flush();
+    m.edit("a", "note", "N");
+    await flush();
+    expect(m.row("a").name).not.toBe("SERVER");
+    expect(m.state().saveStatus.get("a")).toBe("saving");
+    expect(m.state().pendingSaveCount).toBe(1);
+  });
+
+  it("a thenable whose then throws refuses the change instead of leaving the row saving", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const bad = {
+      then() {
+        throw new Error("bad thenable");
+      },
+    };
+    const m = mount(() => bad as never);
+    m.edit("a", "name", "X");
+    await flush();
+    expect(m.row("a").name).toBe("A");
+    expect(m.state().saveStatus.get("a")).toBe("failed");
+  });
 });

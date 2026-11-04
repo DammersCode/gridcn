@@ -283,6 +283,27 @@ describe("changes from the server", () => {
     expect(h.data()[0]).toEqual({ id: "a2", name: "Alice", age: 31 });
   });
 
+  it("rewrites the entries of every row of a batch swap", () => {
+    const onSkip = vi.fn();
+    const h = setup({ onSkip });
+    const [a, b] = [initialRows[0]!, initialRows[1]!];
+    h.commit(editChange("a", { ...a, name: "A2" }, a));
+    h.commit(editChange("b", { ...b, name: "B2" }, b));
+    const serverA: Row = { id: "a2", name: "A2", age: 30 };
+    const serverB: Row = { id: "b2", name: "B2", age: 25 };
+    h.commit({
+      source: "id-swap",
+      ops: [
+        { type: "update", rowId: "a", row: serverA, prev: { ...a, name: "A2" } },
+        { type: "update", rowId: "b", row: serverB, prev: { ...b, name: "B2" } },
+      ],
+    });
+    act(() => h.history().undo());
+    act(() => h.history().undo());
+    expect(onSkip).not.toHaveBeenCalled();
+    expect(h.data().map((row) => row.name)).toEqual(["Alice", "Bob", "Cara"]);
+  });
+
   it("does not record an id-swap change, even when recordSources lists it", () => {
     const h = setup({ recordSources: ["id-swap", "edit"] });
     const prev = initialRows[0]!;

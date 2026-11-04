@@ -117,7 +117,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 
 - `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`.
 - Every gate gets an `AbortSignal` as its last argument (`processPaste({ cells, target, signal })`, `validateRow(row, rowId, { signal })`, `onEditStart(cell, { signal })`, `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`, `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`). Pass it to `fetch`. It aborts when a newer run replaces the gate, when the result cannot apply, and on unmount.
-- `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `aria-busy="true"` and `data-gate-pending` meanwhile.
+- `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `data-gate-pending` meanwhile.
 
 ## Bounds and failure reporting
 

@@ -77,7 +77,7 @@ describe("replaceRowId", () => {
     expect([...m.state().hiddenCheckedRowIds].sort()).toEqual(["42", "b"]);
   });
 
-  it("moves cell errors, hidden checked rows and save status to the new id", async () => {
+  it("moves cell errors and save status to the new id", async () => {
     let resolve!: (ack: SaveAck<Row>) => void;
     const pending = new Promise<SaveAck<Row>>((res) => {
       resolve = res;
@@ -185,5 +185,35 @@ describe("replaceRowId", () => {
     const m = mount({ validateRow });
     m.swap("tmp-1", server);
     expect(validateRow).toHaveBeenCalledWith(server, "42", expect.anything());
+  });
+  it("skips a chained or permuting batch swap instead of corrupting bookkeeping", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    act(() => m.state().actions.replaceRowIds([{ oldId: "tmp-1", row: { id: "b", name: "x", note: "y" } }, { oldId: "b", row: { id: "c2", name: "B", note: "b" } }]));
+    expect(m.ids()).toEqual(["tmp-1", "c2", "c"]);
+  });
+
+  it("a reused draft id swapped while the first save is in flight leaves no stuck saving row", async () => {
+    const acks: Array<(ack: SaveAck<Row>) => void> = [];
+    const m = mount({
+      onSave: (() => new Promise<SaveAck<Row>>((res) => void acks.push(res))) as never,
+      createRow: () => ({ id: "tmp-1", name: "N", note: "n" }),
+    });
+    act(() => m.state().actions.commitCellValue({ rowId: "tmp-1", columnId: "note" }, "X"));
+    m.swap("tmp-1", server);
+    act(() => m.state().actions.insertRow(0, "below"));
+    act(() => m.state().actions.commitCellValue({ rowId: "tmp-1", columnId: "note" }, "Y"));
+    m.swap("tmp-1", { id: "43", name: "N", note: "Y" });
+    acks.forEach((resolve) => resolve(undefined));
+    await flush();
+    expect(m.state().saveStatus.size).toBe(0);
+    expect(m.state().pendingSaveCount).toBe(0);
+  });
+
+  it("a same-id swap does not abort other pending work", () => {
+    const m = mount();
+    const before = m.state().rowIdentityVersion;
+    m.swap("tmp-1", { id: "tmp-1", name: "A2", note: "a" });
+    expect(m.state().rowIdentityVersion).toBe(before);
   });
 });

@@ -382,21 +382,22 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   let pendingSaves = 0;
   let warnedReadOnlyRevert = false;
   // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
-  const refusedPrev = new Map<string, Map<unknown, unknown>>();
+  const refusedPrev = new Map<string, Map<string, Map<unknown, unknown>>>();
   const MAX_FAILED_ROWS = 10_000;
   const MAX_CHAINED_CELLS = 10_000;
   const dropChains = (rowId: string): void => {
-    for (const key of refusedPrev.keys()) if (key.startsWith(`${rowId}\u0000`)) refusedPrev.delete(key);
+    refusedPrev.delete(rowId);
   };
   const chainRefusedPrev = (ops: DataOp<unknown>[]): DataOp<unknown>[] =>
     ops.map((op) => {
       if (op.type !== "update" || !op.cells) return op;
       const cells = op.cells.map((cell) => {
-        const key = `${op.rowId}\u0000${cell.columnId}`;
-        const chain = refusedPrev.get(key) ?? new Map<unknown, unknown>();
+        const byColumn = refusedPrev.get(op.rowId) ?? new Map<string, Map<unknown, unknown>>();
+        const chain = byColumn.get(cell.columnId) ?? new Map<unknown, unknown>();
         const prev = chain.has(cell.prev) ? chain.get(cell.prev) : cell.prev;
         chain.set(cell.value, prev);
-        refusedPrev.set(key, chain);
+        byColumn.set(cell.columnId, chain);
+        refusedPrev.set(op.rowId, byColumn);
         return { ...cell, prev };
       });
       return { ...op, cells };
@@ -479,17 +480,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return ops;
   };
   /** An acknowledged write in flight; `alias` maps the row ids it was tracked under to the ids a swap gave them since. */
-  type LiveWrite = { rowIds: Set<string>; alias: Map<string, string> };
+  type LiveWrite = { rowIds: Set<string>; alias: Map<string, string>; origin: Map<string, string> };
   const liveWrites = new Set<LiveWrite>();
   const retargetLiveWrites = (oldId: string, newId: string): void => {
     for (const write of liveWrites) {
-      let moved = false;
-      for (const [from, to] of write.alias) {
-        if (to !== oldId) continue;
-        write.alias.set(from, newId);
-        moved = true;
-      }
-      if (!moved && write.rowIds.has(oldId)) write.alias.set(oldId, newId);
+      const origin = write.origin.get(oldId) ?? (write.rowIds.has(oldId) && !write.alias.has(oldId) ? oldId : undefined);
+      if (origin === undefined) continue;
+      write.alias.set(origin, newId);
+      write.origin.delete(oldId);
+      write.origin.set(newId, origin);
     }
   };
   const resolvingRows = new Map<string, number>();
@@ -513,7 +512,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   ctx.trackWrite = (change, result) => {
     const rowIds = [...new Set(change.ops.map((op) => op.rowId))];
-    const write: LiveWrite = { rowIds: new Set(rowIds), alias: new Map() };
+    const write: LiveWrite = { rowIds: new Set(rowIds), alias: new Map(), origin: new Map() };
     const liveId = (rowId: string): string => write.alias.get(rowId) ?? rowId;
     liveWrites.add(write);
     const seq = ++writeSeq;
@@ -580,11 +579,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             entry.answer = normalizeResolution(answer);
             continue;
           }
+          const aborted = new Promise<void>((resolve) => controller.signal.addEventListener("abort", () => resolve(), { once: true }));
           waiting.push(
-            answer.then(
-              (resolved) => void (entry.answer = normalizeResolution(resolved)),
-              (callbackError: unknown) => void console.error("[data-grid] resolveSaveConflict rejected, so the server's row is taken:", callbackError),
-            ),
+            Promise.race([
+              aborted,
+              Promise.resolve(answer).then(
+                (resolved) => void (entry.answer = normalizeResolution(resolved)),
+                (callbackError: unknown) => void console.error("[data-grid] resolveSaveConflict rejected, so the server's row is taken:", callbackError),
+              ),
+            ]),
           );
         }
       }
@@ -597,6 +600,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
           }
         } else {
+          try {
           if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
           const currentRows = usableCurrentRows(s, aliased, rejected, seq, deleteOps);
           const answers = new Map<string, SaveResolution<unknown>>();
@@ -621,6 +625,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           } catch (error) {
             console.error("[data-grid] the merge of a save conflict threw in a callback:", error);
           }
+          } catch (error) {
+            console.error("[data-grid] the revert of a refused save failed:", error);
+          }
         }
         for (const [origin, entry] of asked) if (conflictAborts.get(liveId(origin)) === entry.controller) conflictAborts.delete(liveId(origin));
         for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
@@ -629,7 +636,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
           failedRows.add(rowId);
         }
-        const refusedInChange = [...refusedRows].filter((rowId) => write.rowIds.has(rowId) || [...write.alias.values()].includes(rowId)).length;
+        const liveIds = new Set(rowIds.map(liveId));
+        const refusedInChange = [...refusedRows].filter((rowId) => liveIds.has(rowId)).length;
         set({ liveAnnouncement: nextAnnouncement(get().liveAnnouncement, "saveRejected", refusedInChange) });
         liveWrites.delete(write);
         publishSaveStatus();
@@ -645,7 +653,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         finish();
         return;
       }
-      const held = [...start.refusedRows].map((id) => originOf.get(id) ?? id);
+      const held = [...start.refusedRows].filter((id) => originOf.has(id)).map((id) => originOf.get(id)!);
       for (const rowId of held) resolvingRows.set(rowId, (resolvingRows.get(rowId) ?? 0) + 1);
       publishSaveStatus();
       void Promise.all(waiting).then(() => {
@@ -659,10 +667,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         finish();
       });
     };
-    result.then(
-      (ack) => settle(ack, undefined, false),
-      (error: unknown) => settle(undefined, error, true),
-    );
+    try {
+      result.then(
+        (ack) => settle(ack, undefined, false),
+        (error: unknown) => settle(undefined, error, true),
+      );
+    } catch (error) {
+      settle(undefined, error, true);
+    }
   };
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
@@ -1372,7 +1384,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (s.readOnly || swaps.length === 0) return;
       const indexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      const oldIds = new Set(swaps.map((swap) => swap.oldId));
       const claimed = new Set<string>();
       const plan: { oldId: string; newId: string; index: number; row: unknown }[] = [];
       for (const { oldId, row } of swaps) {
@@ -1388,7 +1399,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           warnGateOnce("replaceRowId getRowId", "replaceRowId: getRowId threw for the new row, so that swap was skipped");
           continue;
         }
-        if (newId !== oldId && ((indexById.has(newId) && !oldIds.has(newId)) || claimed.has(newId))) {
+        if (newId !== oldId && (indexById.has(newId) || claimed.has(newId))) {
           warnGateOnce("replaceRowId taken", `replaceRowId: another row already has the id "${newId}", so that swap was skipped`);
           continue;
         }
@@ -1411,10 +1422,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           map.delete(oldId);
         }
         if (failedRows.delete(oldId)) failedRows.add(newId);
-        for (const key of Array.from(refusedPrev.keys())) {
-          if (!key.startsWith(`${oldId}\u0000`)) continue;
-          refusedPrev.set(`${newId}${key.slice(oldId.length)}`, refusedPrev.get(key)!);
-          refusedPrev.delete(key);
+        const chains = refusedPrev.get(oldId);
+        if (chains) {
+          refusedPrev.set(newId, chains);
+          refusedPrev.delete(oldId);
         }
         retargetLiveWrites(oldId, newId);
         renameRowKeys(oldId, newId);
@@ -1450,7 +1461,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
+          ...(renamed.length > 0 ? { rowIdentityVersion: s.rowIdentityVersion + 1 } : {}),
           cellErrors,
           flashingCells,
           hiddenCheckedRowIds,

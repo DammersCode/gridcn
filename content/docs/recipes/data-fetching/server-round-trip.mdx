@@ -170,8 +170,9 @@ A save conflict is a refused save for which the server sent its current row (`cu
   data={data}
   onDataChange={setData}
   onSave={onSave}
-  resolveSaveConflict={({ mine, theirs, change }) => {
-    if (change.ops.some((op) => op.type === "update" && op.cells?.every((cell) => cell.columnId === "price"))) {
+  resolveSaveConflict={({ rowId, mine, theirs, change }) => {
+    const op = change.ops.find((candidate) => candidate.rowId === rowId);
+    if (op?.type === "update" && op.cells?.every((cell) => cell.columnId === "price")) {
       return { row: { ...theirs, price: mine.price } };
     }
     return "theirs";

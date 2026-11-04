@@ -77,7 +77,7 @@ the new id.
 - History rewrites its entries: every op with `rowId === oldId` gets the new id, and each snapshot of
   that row takes the fields that differ between the old and the new row (plain objects). A snapshot
   that is not a plain object drops the entry.
-- No-ops with one development warning per instance: `readOnly`, unknown `oldId`, a `row` whose id is
+- No-op on `readOnly`; no-op with one development warning per instance: unknown `oldId`, a `row` whose id is
   held by another row, a throwing `getRowId`.
 - Modes: local and controlled as above. Pagination and lazy rows: the row must be in `data` (an
   evicted or other-page row has nothing to swap; the app swaps the id in its own cache and the next

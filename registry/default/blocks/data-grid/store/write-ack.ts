@@ -22,6 +22,7 @@ export type SaveAck<TData = unknown> = void | { rejected?: readonly SaveRejectio
 export type SaveRejectedContext<TData> = {
   /** The change `onSave` received. */
   change: DataChange<TData>;
+  /** After an id swap (`replaceRowId`) the entries carry the new ids, while `change` keeps the ids it had. */
   rejected: readonly SaveRejection<TData>[];
   /** The rejection reason of the `onSave` promise; `null` when it resolved with `{ rejected }`. */
   error: unknown;
