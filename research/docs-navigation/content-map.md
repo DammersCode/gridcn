@@ -119,3 +119,6 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ref-store-hooks | `api-reference` (store hooks and selectors) | split plus new text |
 | options-context-menu, options-fill, options-find, options-history, options-io, options-keybindings, options-pagination, options-pinned-rows, options-presence, options-sort-list, options-status-bar, options-toolbar, options-url-state | the option tables of each add-on page and `api-reference` (Add-on option types) | move, generated where possible |
 | undo-programmatic | `addons/undo-redo` (Programmatic changes, Which changes are recorded, Dataset changes) | split |
+| use-debounce | `hooks/use-debounce` (useDebounce) | split |
+| use-debounced-input | `hooks/use-debounce` (useDebouncedInput) | split |
+| is-composing-key | `hooks/use-debounce` (isComposingKey) | split |

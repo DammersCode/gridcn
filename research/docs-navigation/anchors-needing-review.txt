@@ -26,6 +26,7 @@ global-shortcuts.mdx#usage
 global-shortcuts.mdx#multiple-grids
 global-shortcuts.mdx#out-of-scope
 global-shortcuts.mdx#related
+hooks/use-debounce.mdx#related
 license.mdx#what-you-may-do
 license.mdx#what-you-must-do
 license.mdx#what-the-license-does-not-grant

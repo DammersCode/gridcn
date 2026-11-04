@@ -30,7 +30,7 @@ const BUDGETS = {
 // Pages that read as reference before they declare `type:`; delete when the pages declare it.
 const LEGACY_REFERENCE = new Set(["api-reference.mdx", "events-state.mdx", "project-status.mdx", "terms.mdx", "license.mdx"]);
 
-const kebab = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const readLf = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 
 function walk(dir) {

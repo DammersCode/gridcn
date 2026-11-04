@@ -105,7 +105,8 @@ Every page has exactly one type. The type decides the budget and the template. A
   phrase for Task and Step pages ("Save edits to a server"). A Landing page uses its group label as its title, and the
   docs home may use its own title. An example page is the exception: its title is the task as a noun phrase plus
   "example" ("Pin rows example").
-- N5. A slug is the first four words of the kebab-case title. A folder name is the group label in kebab-case, cut the same
+- N5. A slug is the first four words of the kebab-case title. A camelCase word splits at its capitals (`useDebounce`
+  becomes `use-debounce`). A folder name is the group label in kebab-case, cut the same
   way. Two pages of one group never share a slug.
 - N6. A page declares its type in frontmatter as
   `type: landing | feature | concept | task | step | reference | example | cheatsheet`. The audit script reads it and fails

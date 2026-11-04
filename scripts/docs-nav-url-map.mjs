@@ -9,7 +9,7 @@ const candidateFile = process.argv[2];
 const asJson = process.argv.includes("--json");
 const asAnchors = process.argv.includes("--anchors");
 const readLf = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
-const kebab = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 4).join("-");
+const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 4).join("-");
 const siteSlug = (heading) =>
   heading.replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-");
 
@@ -86,7 +86,7 @@ const SECTION_FALLBACKS = [
   [/^recipes\/ui-patterns\/remember-view$/, "remember-view"], [/^recipes\/ui-patterns\/multiple-grids$/, "multiple-grids"],
   [/^recipes\/editing\/edit-row-with-form$/, "edit-row-form"], [/^recipes\/editing\/auth-gated-cells$/, "auth-gated"],
   [/^recipes\/editing\/custom-cell-type$/, "custom-cell-example"], [/^recipes\/(data-fetching|editing|ui-patterns)\/index$/, "find-task"],
-  [/^hooks\/use-debounce$/, "use-debounce"], [/^addons\/index$/, "feature-matrix"], [/^agent-skills$/, "agent-skills"],
+  [/^addons\/index$/, "feature-matrix"], [/^agent-skills$/, "agent-skills"],
   [/^playground$/, "playground"], [/^license$/, "license"], [/^terms$/, "terms"], [/^index$/, "index"],
 ];
 for (const old of oldPages) {
@@ -125,7 +125,8 @@ if (asAnchors) {
       const explicit = /\[#([^\]]+)\]\s*$/.exec(m[1])?.[1];
       const anchor = explicit ?? siteSlug(m[1]);
       const title = m[1].replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase();
-      const hit = sections.find((x) => x.old === oldPage && x.titles.some((t) => t && (title === t || title.startsWith(t) || t.startsWith(title))));
+      const onPage = sections.filter((x) => x.old === oldPage);
+      const hit = onPage.find((x) => x.titles.includes(title)) ?? onPage.find((x) => x.titles.some((t) => t && (title.startsWith(t) || t.startsWith(title))));
       const slug = hit?.slugs.find((x) => bySlug.has(x));
       if (slug) mapped++;
       else if (r.split) review.push(`${r.file}#${anchor}`);

@@ -176,6 +176,8 @@
 - ref-engine | Operation engine | reference | 500
 - ref-addon-types | Add-on options | reference | 1000
 - use-debounce | useDebounce | reference | 300
+- use-debounced-input | useDebouncedInput | reference | 400
+- is-composing-key | isComposingKey | reference | 300
 ## Cheatsheets
 - cheat-index | Cheatsheets | landing | 150
 - cheat-shortcuts | Keyboard shortcuts | cheatsheet | 800

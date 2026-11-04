@@ -123,10 +123,10 @@
   "related": "/docs/try-and-automate/agent-skills#related"
  },
  "/docs/api-reference": {
-  "datagrid": "/docs/components-and-props/datagrid-props#datagrid",
-  "datagridprovider": "/docs/components-and-props/datagridprovider#datagridprovider",
-  "columndeftdata-tvalue": "/docs/components-and-props/columndef#columndeftdata-tvalue",
-  "celltypetdata-tvalue-toptions": "/docs/contracts/celltype-contract#celltypetdata-tvalue-toptions",
+  "datagrid": "/docs/components-and-props/data-grid-props#datagrid",
+  "datagridprovider": "/docs/components-and-props/data-grid-provider#datagridprovider",
+  "columndeftdata-tvalue": "/docs/components-and-props/column-def#columndeftdata-tvalue",
+  "celltypetdata-tvalue-toptions": "/docs/contracts/cell-type-contract#celltypetdata-tvalue-toptions",
   "datagridlabels": "/docs/components-and-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-and-hooks/exported-types#other-exported-types",
   "operation-engine": "/docs/types-and-hooks/operation-engine#operation-engine",
@@ -153,7 +153,7 @@
  },
  "/docs/custom-cell-types": {
   "the-mental-model": "/docs/concepts/cell-type-model#the-mental-model",
-  "the-contract-member-by-member": "/docs/contracts/celltype-contract#the-contract-member-by-member",
+  "the-contract-member-by-member": "/docs/contracts/cell-type-contract#the-contract-member-by-member",
   "keypoint-checklist": "/docs/concepts/cell-type-model#keypoint-checklist",
   "worked-example-a-currency-cell-type": "/docs/extend-gridcn/build-a-currency-cell#worked-example-a-currency-cell-type",
   "testing-your-cell-type": "/docs/extend-gridcn/build-a-currency-cell#testing-your-cell-type"
@@ -175,7 +175,7 @@
  },
  "/docs/events-state": {
   "find-the-callback-you-need": "/docs/events-and-state#find-the-callback-you-need",
-  "the-three-shapes-an-event-follows": "/docs/events-and-state/data-change-events#the-three-shapes-an-event-follows",
+  "the-three-shapes-an-event-follows": "/docs/concepts/event-shapes#the-three-shapes-an-event-follows",
   "1-ondatachange--the-flagship-shape": "/docs/events-and-state#1-ondatachange--the-flagship-shape",
   "2-onselectionchange": "/docs/events-and-state#2-onselectionchange",
   "3-onsortchange": "/docs/events-and-state#3-onsortchange",
@@ -390,10 +390,10 @@
   "related": "/docs/select-and-navigate/set-global-shortcuts#related"
  },
  "/docs/hooks/use-debounce": {
-  "usedebounce": "/docs/types-and-hooks/usedebounce#usedebounce",
-  "usedebouncedinput": "/docs/types-and-hooks/usedebounce#usedebouncedinput",
-  "iscomposingkey": "/docs/types-and-hooks/usedebounce#iscomposingkey",
-  "related": "/docs/types-and-hooks/usedebounce#related"
+  "usedebounce": "/docs/types-and-hooks/use-debounce#usedebounce",
+  "usedebouncedinput": "/docs/types-and-hooks/use-debounced-input#usedebouncedinput",
+  "iscomposingkey": "/docs/types-and-hooks/is-composing-key#iscomposingkey",
+  "related": "/docs/types-and-hooks/use-debounce#related"
  },
  "/docs/i18n": {
   "the-labels-prop": "/docs/style-and-translate/translate-labels#the-labels-prop",

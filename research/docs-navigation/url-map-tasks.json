@@ -672,10 +672,12 @@
   "old": "/docs/hooks/use-debounce",
   "file": "hooks/use-debounce.mdx",
   "slugs": [
-   "use-debounce"
+   "use-debounce",
+   "use-debounced-input",
+   "is-composing-key"
   ],
-  "target": "/docs/types-and-hooks/usedebounce",
-  "split": false
+  "target": "/docs/types-and-hooks/use-debounce",
+  "split": true
  },
  {
   "old": "/docs/i18n",

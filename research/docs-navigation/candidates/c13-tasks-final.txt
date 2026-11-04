@@ -181,6 +181,8 @@
 - ref-engine | Operation engine | reference | 500
 - ref-store-hooks | Store hooks | reference | 600
 - use-debounce | useDebounce | reference | 300
+- use-debounced-input | useDebouncedInput | reference | 400
+- is-composing-key | isComposingKey | reference | 300
 ## Add-on options {az}
 - options-index | Add-on options | landing | 200
 - options-context-menu | Context menu options | reference | 500

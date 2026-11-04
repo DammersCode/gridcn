@@ -2,7 +2,7 @@
  "tasks": {
   "areas": 6,
   "groups": 35,
-  "pages": 203,
+  "pages": 205,
   "medianScreens": 2.4,
   "maxScreens": 5.6,
   "over5Screens": 1,
@@ -13,7 +13,7 @@
  "topics": {
   "areas": 6,
   "groups": 32,
-  "pages": 186,
+  "pages": 188,
   "medianScreens": 2.4,
   "maxScreens": 5.6,
   "over5Screens": 1,
@@ -24,7 +24,7 @@
  "fourAreas": {
   "areas": 4,
   "groups": 28,
-  "pages": 181,
+  "pages": 183,
   "medianScreens": 2.4,
   "maxScreens": 5.6,
   "over5Screens": 1,
@@ -37,9 +37,9 @@
   "groups": 10,
   "pages": 100,
   "medianScreens": 2.4,
-  "maxScreens": 22.8,
+  "maxScreens": 22.7,
   "over5Screens": 30,
-  "maxWords": 4186,
+  "maxWords": 4162,
   "avgWords": 768,
   "maxRowsVisible": 54
  }

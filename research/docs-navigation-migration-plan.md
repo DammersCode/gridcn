@@ -14,7 +14,7 @@ this order:
 2. Spike (half a day). Verify the three open points of section 2, then add the `type` field and the moves file.
 3. Skeleton PR. `git mv` every page to its new path, write the group folders, `meta.json` files, landings, redirects, and the
    link codemod. No text changes except links. The site builds and every old URL redirects.
-4. Split PRs, one per old page that splits (30 pages, listed in `url-map-tasks.json`, field `split`). Each PR cuts the text along the content map.
+4. Split PRs, one per old page that splits (31 pages, listed in `url-map-tasks.json`, field `split`). Each PR cuts the text along the content map.
 5. New-text PRs: the pages of section 5.
 6. Polish PR: lengths, descriptions, Related sections, and the audit gate.
 
@@ -80,7 +80,7 @@ URL that changes: 97 of 100 pages. `/docs`, `/docs/performance`, and `/docs/acce
 
 ## 4. Pages that split
 
-30 old pages become 2 to 23 new pages each. The full list is in `url-map-tasks.json` (field `split`). The largest:
+31 old pages become 2 to 23 new pages each. The full list is in `url-map-tasks.json` (field `split`). The largest:
 
 | Old page | Becomes |
 |---|---|
@@ -89,6 +89,7 @@ URL that changes: 97 of 100 pages. `/docs`, `/docs/performance`, and `/docs/acce
 | `lazy-loading` | 7 pages: usage, row count, errors, retention, sort and filter, selection and export, troubleshooting |
 | `selection-keyboard` | 6 pages: selection model, pointer, checked rows, keyboard, server selection, shortcuts cheatsheet |
 | `styling-theming` | 7 pages: tokens, style contract, styling concept, overrides, density, loading, labels |
+| `hooks/use-debounce` | 3 pages in Reference > Types and hooks: `useDebounce`, `useDebouncedInput`, `isComposingKey` (the lazy-loading work splits the page; the anchors `#usedebouncedinput` and `#iscomposingkey` move to their own pages) |
 | `data-modes` | the matrix page, the server index, row operations, saving, troubleshooting, and the feature matrix; the matrix becomes one data file with generated views |
 | `editing-cell-types` | 5 pages: activation, built-in types, validation, server errors, display override |
 | `quick-start` | 8 pages: first grid and the seven learning steps |
@@ -130,8 +131,8 @@ and the skills. Regenerate these counts at the freeze point. Three layers:
    map. It also rewrites the about 50 same-page links (`](#anchor)`) of split pages. After it runs, no link inside the repo
    needs a runtime redirect (595 links in `content/docs` alone).
 2. Anchor map. `anchor-map-tasks.json` is keyed by old page URL, then by anchor id, because ids such as `usage` repeat on
-   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 130 of 419 sections are mapped by the
-   content map. The others fall back to the page target, which is correct for pages that moved whole. 52 anchors of split
+   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 133 of 419 sections are mapped by the
+   content map. The others fall back to the page target, which is correct for pages that moved whole. 53 anchors of split
    pages have no target yet (`anchors-needing-review.txt`). Assign each by hand in the split PRs.
 3. Runtime fallback for outside links. A fragment survives a redirect, but the browser does not send the old path to the
    page. The build flattens the map to `{ <new page path>: { <anchor id>: <target url> } }`. A small client component in
@@ -193,7 +194,7 @@ Plan:
 
 | Risk | Mitigation |
 |---|---|
-| 203 pages against 100 double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
+| 205 pages against 100 double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
 | Link rot inside the repo | The codemod plus the existing build checks (`llms-tasks`, `types:check`); add a link checker to the polish PR |
 | Merge conflicts with the 2.0 server wave | Section 1 freeze point; new pages from other sessions get a row in the content map and the generators rerun |
 | Reviewer noise in the scores | Runs on near-identical versions differ by 0.5 on the mean; do not tune the tree to a single run |

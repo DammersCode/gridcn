@@ -101,7 +101,7 @@ repeating how-to pages, matrices repeated on several pages) are removed in all t
 
 | | |
 |---|---|
-| Shape | Learn, How-to (10 task groups), Server, Evaluate, Reference, Examples. 203 pages, 35 groups |
+| Shape | Learn, How-to (10 task groups), Server, Evaluate, Reference, Examples. 205 pages, 35 groups |
 | How a reader finds a page | By the task: "Sort rows", "Add a context menu", "Resolve save conflicts" |
 | Pros | Every title says what the reader does. Task pages stay at or below 800 words. The best beginner scores (D2 9, D5 9, D7 9). The option tables live on their own Reference pages, so a lookup never scrolls through steps |
 | Cons | The most pages and one more reference group (Add-on options, 13 pages). Concepts sit apart from their tasks. Cognitive load for the senior persona is 6 |
@@ -111,7 +111,7 @@ repeating how-to pages, matrices repeated on several pages) are removed in all t
 
 | | |
 |---|---|
-| Shape | Learn, Build (9 topic groups with add-ons inside), Server, Evaluate, Reference, Examples. 186 pages, 32 groups |
+| Shape | Learn, Build (9 topic groups with add-ons inside), Server, Evaluate, Reference, Examples. 188 pages, 32 groups |
 | How a reader finds a page | By the feature: "Row operations", "Context menu", "Pinned rows" |
 | Pros | Fewest rows per view (18). A feature page keeps its concept, props, and examples together. The best senior Cognitive load (8) |
 | Cons | Feature pages are long (900 to 1,200 words) and mix concept and steps. Several groups sit at 8 pages. Server pages stay feature-shaped next to task-shaped client pages |
@@ -121,7 +121,7 @@ repeating how-to pages, matrices repeated on several pages) are removed in all t
 
 | | |
 |---|---|
-| Shape | Topics, with Evaluate folded into Learn. Four tabs: Learn, Build, Server, Reference. 181 pages, 28 groups |
+| Shape | Topics, with Evaluate folded into Learn. Four tabs: Learn, Build, Server, Reference. 183 pages, 28 groups |
 | Pros | One tab fewer. A reader who starts at the home page reaches performance and support in two clicks |
 | Cons | Learn holds seven groups and hides support and version facts behind the label "Learn". The senior reviewer judged that one fewer tab costs more than it saves (wrong-tab guesses). Cognitive load 7 |
 | Fits when | The Evaluate pages are few. They are not: the performance chapter alone has five pages |
@@ -132,11 +132,11 @@ Planned screens use 250 words per screen and ignore code. Today's numbers come f
 
 | Measure | Today | A: Tasks | B: Topics | C: Four areas |
 |---|---|---|---|---|
-| Pages | 100 | 203 | 186 | 181 |
+| Pages | 100 | 205 | 188 | 183 |
 | Sidebar areas | 1 | 6 | 6 | 4 |
 | Groups | 10 | 35 | 32 | 28 |
 | Most rows visible at once | 54 | 21 | 18 | 24 |
-| Longest page (words) | 4,186 | 1,400 | 1,400 | 1,400 |
+| Longest page (words) | 4,162 | 1,400 | 1,400 | 1,400 |
 | Average page without landings (words; today: all pages) | 768 | 573 | 613 | 613 |
 | Pages above 5 screens | 30 | 1 (planned, prose only) | 1 | 1 |
 
@@ -151,7 +151,7 @@ options pages for each add-on, take B.
 
 ## Open questions
 
-- Does the team accept 200 pages? The count roughly doubles. Each new page needs a Related section and a description.
+- Does the team accept 205 pages? The count doubles (100 today). Each new page needs a Related section and a description.
 - Who writes the new text? Save conflicts, plugin contract, server rows contract, install problems, and 13 options pages.
 - Is a Learn area with three groups acceptable? The ruleset allows it only for Learn.
 - `AGENTS.md` describes the add-on page structure as one page with props tables. A task-first tree changes that rule.
