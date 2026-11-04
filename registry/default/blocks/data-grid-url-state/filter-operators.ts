@@ -1,7 +1,7 @@
-import type { FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import type { BuiltInFilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
 
-/** The closed set of valid {@link FilterOperator} values, for validating URL input against. */
-export const FILTER_OPERATORS: ReadonlySet<FilterOperator> = new Set([
+/** The closed set of built-in {@link BuiltInFilterOperator} values, for validating URL input against. */
+export const FILTER_OPERATORS: ReadonlySet<BuiltInFilterOperator> = new Set([
   "contains",
   "notContains",
   "equals",
@@ -17,9 +17,9 @@ export const FILTER_OPERATORS: ReadonlySet<FilterOperator> = new Set([
   "isBetween",
   "isAnyOf",
   "isNoneOf",
-] satisfies FilterOperator[]);
+] satisfies BuiltInFilterOperator[]);
 
-/** Narrows an untrusted (URL-decoded) string to {@link FilterOperator}. */
-export function isFilterOperator(value: string): value is FilterOperator {
-  return FILTER_OPERATORS.has(value as FilterOperator);
+/** Narrows an untrusted (URL-decoded) string to {@link BuiltInFilterOperator}. */
+export function isFilterOperator(value: string): value is BuiltInFilterOperator {
+  return FILTER_OPERATORS.has(value as BuiltInFilterOperator);
 }

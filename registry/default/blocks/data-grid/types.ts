@@ -461,7 +461,7 @@ export type FilterValueInputProps = {
  * row's widget: a built-in one by name, or a component that renders for every operator with a value.
  */
 export type CellTypeFilter = {
-  operators?: readonly FilterOperator[];
+  operators?: readonly (FilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
@@ -557,7 +557,13 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
    * for a consumer-registered numeric cell type (`type: "currency"`).
    */
-  filterOperators?: readonly FilterOperator[];
+  filterOperators?: readonly (FilterOperator | CustomFilterOperator)[];
+  /**
+   * Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the
+   * numeric-then-text default (a version string, a rank, a locale). A zero-safe result: a NaN or a throw
+   * falls back to the default order for that pair.
+   */
+  filterCompare?: (text: string, bound: string) => number;
   /**
    * Sort comparator over the whole data row (not the cell value), consulted before the column's
    * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,
@@ -601,7 +607,7 @@ export type HeaderClickBehavior = "select" | "sort" | "none";
 
 export type SortSpec = { columnId: string; direction: "asc" | "desc" };
 
-export type FilterOperator =
+export type BuiltInFilterOperator =
   | "contains"
   | "notContains"
   | "equals"
@@ -617,6 +623,31 @@ export type FilterOperator =
   | "isBetween"
   | "isAnyOf"
   | "isNoneOf";
+
+/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filterOperators`. */
+export type FilterOperator = BuiltInFilterOperator | (string & {});
+
+/** The value shape a filter operator takes: no value, one text, an inclusive `[min, max]` pair, or a list of texts. */
+export type FilterOperatorInput = "none" | "single" | "range" | "list";
+
+/**
+ * An operator a column registers next to the built-ins, usually to name a server vocabulary
+ * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filterOperators` or `CellTypeFilter.operators`;
+ * `filterMode="server"` sends `{ columnId, operator: id, value }` in the spec and never calls `match`.
+ */
+export type CustomFilterOperator = {
+  /** Stored in `FilterSpec.operator` and in the URL. Must not equal a built-in operator. */
+  id: string;
+  /** Text of the operator select. */
+  label: string;
+  /** Value shape of the filter row; default `"single"`. */
+  input?: FilterOperatorInput;
+  /**
+   * Local evaluator over the cell text. A throw fails the row. Without it a client-side filter does not
+   * narrow rows and warns once in development.
+   */
+  match?: (text: string, filter: FilterSpec) => boolean;
+};
 
 /** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";

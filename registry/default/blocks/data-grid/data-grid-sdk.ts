@@ -59,8 +59,10 @@ export {
   COMPARISON_FILTER_OPERATORS,
   SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
+  filterOperatorInput,
   operatorsForColumnType,
   resolveColumnValidate,
+  resolveCustomFilterOperators,
   resolveFilterOperators,
   resolveFilterValueInput,
 } from "./cell-types/capabilities";

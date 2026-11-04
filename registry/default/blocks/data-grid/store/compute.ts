@@ -27,6 +27,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
+import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { isDev } from "../is-dev";
@@ -449,6 +450,15 @@ export function textAccessorFor(
       if (!column) return undefined;
       const cellType = column.type ? cellTypes?.[column.type] : undefined;
       return column.filterMatch ?? cellType?.filter?.match;
+    },
+    filterCompare(columnId) {
+      return byId.get(columnId)?.filterCompare;
+    },
+    customFilterMatch(columnId, operator) {
+      const column = byId.get(columnId);
+      if (!column) return undefined;
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return resolveCustomFilterOperators(column, cellType).get(operator)?.match;
     },
   };
 

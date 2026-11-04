@@ -1,4 +1,4 @@
-import type { FilterOperator, FilterSpec } from "../types";
+import type { BuiltInFilterOperator, FilterSpec } from "../types";
 import { defaultCompareText } from "./default-compare-text";
 
 function parseNumber(text: string): number | null {
@@ -7,8 +7,64 @@ function parseNumber(text: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
+/** How a filter orders and evaluates text beyond the built-in rules; both come from the column. */
+export type FilterMatcherOptions = {
+  /** Orders cell text against a bound for `gt`, `gte`, `lt`, `lte`, `isBetween`; a throw or NaN falls back to the default order. */
+  compare?: (text: string, bound: string) => number;
+  /** Evaluates an operator that is not built in. */
+  custom?: (text: string, filter: FilterSpec) => boolean;
+};
+
+const BUILT_IN_OPERATORS: ReadonlySet<string> = new Set<BuiltInFilterOperator>([
+  "contains",
+  "notContains",
+  "equals",
+  "notEquals",
+  "startsWith",
+  "endsWith",
+  "empty",
+  "notEmpty",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "isBetween",
+  "isAnyOf",
+  "isNoneOf",
+]);
+
+/** Whether `operator` is one of the built-in operators. */
+export function isBuiltInOperator(operator: string): boolean {
+  return BUILT_IN_OPERATORS.has(operator);
+}
+
+/** The column comparator's order, or `undefined` when it throws or returns NaN. */
+function customOrder(compare: FilterMatcherOptions["compare"], text: string, bound: string): number | undefined {
+  if (!compare) return undefined;
+  try {
+    const order = compare(text, bound);
+    return Number.isNaN(order) ? undefined : order;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A custom operator's test: a throw fails the row; without an evaluator every row passes. */
+function customOperatorTest(filter: FilterSpec, custom: FilterMatcherOptions["custom"]): (text: string) => boolean {
+  if (!custom) return () => true;
+  return (text) => {
+    try {
+      return custom(text, filter);
+    } catch {
+      return false;
+    }
+  };
+}
+
 /** Compares `text` against `bound` numerically when both parse as numbers, else via `defaultCompareText`. */
-function compareTextTo(text: string, bound: string): number {
+function compareTextTo(text: string, bound: string, compare?: FilterMatcherOptions["compare"]): number {
+  const custom = customOrder(compare, text, bound);
+  if (custom !== undefined) return custom;
   const a = parseNumber(text);
   const b = parseNumber(bound);
   if (a !== null && b !== null) return a - b;
@@ -33,8 +89,9 @@ function stringChoices(filter: FilterSpec): string[] {
  * This is the correctness reference (re-parses `filter.value` on every call) — {@link createFilterMatcher}
  * is the same semantics with the bound(s) parsed once, for a hot per-row loop over many rows.
  */
-export function matchesFilter(text: string, filter: FilterSpec): boolean {
-  const op: FilterOperator = filter.operator;
+export function matchesFilter(text: string, filter: FilterSpec, options: FilterMatcherOptions = {}): boolean {
+  const op = filter.operator;
+  if (!BUILT_IN_OPERATORS.has(op)) return customOperatorTest(filter, options.custom)(text);
   if (op === "empty") return text === "";
   if (op === "notEmpty") return text !== "";
 
@@ -53,8 +110,8 @@ export function matchesFilter(text: string, filter: FilterSpec): boolean {
     // Excel/AG Grid semantics: blank cells never satisfy a comparison filter.
     if (text === "") return false;
     const [min = "", max = ""] = Array.isArray(filter.value) ? filter.value : ["", ""];
-    if (min !== "" && compareTextTo(text, min) < 0) return false;
-    if (max !== "" && compareTextTo(text, max) > 0) return false;
+    if (min !== "" && compareTextTo(text, min, options.compare) < 0) return false;
+    if (max !== "" && compareTextTo(text, max, options.compare) > 0) return false;
     return true;
   }
 
@@ -62,7 +119,7 @@ export function matchesFilter(text: string, filter: FilterSpec): boolean {
   const textLower = text.toLowerCase();
   const valueLower = value.toLowerCase();
 
-  switch (op) {
+  switch (op as BuiltInFilterOperator) {
     case "contains":
       return textLower.includes(valueLower);
     case "notContains":
@@ -81,16 +138,14 @@ export function matchesFilter(text: string, filter: FilterSpec): boolean {
     case "lte": {
       // Excel/AG Grid semantics: blank cells never satisfy a comparison filter.
       if (text === "") return false;
-      const cmp = compareTextTo(text, value);
+      const cmp = compareTextTo(text, value, options.compare);
       if (op === "gt") return cmp > 0;
       if (op === "gte") return cmp >= 0;
       if (op === "lt") return cmp < 0;
       return cmp <= 0;
     }
-    default: {
-      const exhaustive: never = op;
-      return exhaustive;
-    }
+    default:
+      return true;
   }
 }
 
@@ -102,7 +157,9 @@ function parseBound(raw: string): ParsedBound {
 }
 
 /** Compares `text` against a {@link ParsedBound}: numeric if `text` also parses, else falls back to `defaultCompareText`. */
-function compareTextToParsedBound(text: string, bound: ParsedBound): number {
+function compareTextToParsedBound(text: string, bound: ParsedBound, compare?: FilterMatcherOptions["compare"]): number {
+  const custom = customOrder(compare, text, bound.raw);
+  if (custom !== undefined) return custom;
   if (bound.num !== null) {
     const a = parseNumber(text);
     if (a !== null) return a - bound.num;
@@ -118,8 +175,10 @@ function compareTextToParsedBound(text: string, bound: ParsedBound): number {
  * semantics as `matchesFilter`, verified by build-view-index's own tests; kept in sync manually
  * since duplicating a switch this small behind a shared abstraction would obscure both.
  */
-export function createFilterMatcher(filter: FilterSpec): (text: string) => boolean {
-  const op: FilterOperator = filter.operator;
+export function createFilterMatcher(filter: FilterSpec, options: FilterMatcherOptions = {}): (text: string) => boolean {
+  const op = filter.operator;
+  if (!BUILT_IN_OPERATORS.has(op)) return customOperatorTest(filter, options.custom);
+  const { compare } = options;
   if (op === "empty") return (text) => text === "";
   if (op === "notEmpty") return (text) => text !== "";
 
@@ -139,15 +198,15 @@ export function createFilterMatcher(filter: FilterSpec): (text: string) => boole
     const max = maxRaw !== "" ? parseBound(maxRaw) : null;
     return (text) => {
       if (text === "") return false;
-      if (min && compareTextToParsedBound(text, min) < 0) return false;
-      if (max && compareTextToParsedBound(text, max) > 0) return false;
+      if (min && compareTextToParsedBound(text, min, compare) < 0) return false;
+      if (max && compareTextToParsedBound(text, max, compare) > 0) return false;
       return true;
     };
   }
 
   const value = typeof filter.value === "string" ? filter.value : "";
 
-  switch (op) {
+  switch (op as BuiltInFilterOperator) {
     case "contains": {
       const needle = value.toLowerCase();
       return (text) => text.toLowerCase().includes(needle);
@@ -179,16 +238,14 @@ export function createFilterMatcher(filter: FilterSpec): (text: string) => boole
       const bound = parseBound(value);
       return (text) => {
         if (text === "") return false;
-        const cmp = compareTextToParsedBound(text, bound);
+        const cmp = compareTextToParsedBound(text, bound, compare);
         if (op === "gt") return cmp > 0;
         if (op === "gte") return cmp >= 0;
         if (op === "lt") return cmp < 0;
         return cmp <= 0;
       };
     }
-    default: {
-      const exhaustive: never = op;
-      return exhaustive;
-    }
+    default:
+      return () => true;
   }
 }

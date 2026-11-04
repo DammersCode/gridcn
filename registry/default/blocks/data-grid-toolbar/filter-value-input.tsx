@@ -11,7 +11,7 @@ import {
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveFilterValueInput, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveCustomFilterOperators, resolveFilterValueInput, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { distinctColumnValues } from "./distinct-values";
 import { useServerFilterValues } from "./server-filter-values";
@@ -215,7 +215,8 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
   }
   const inputType = valueInput === "number" ? "number" : valueInput === "date" ? "date" : "text";
 
-  if (operatorIsAnyOf(operator)) {
+  const custom = column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : undefined;
+  if (operatorIsAnyOf(operator, custom)) {
     const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
     const selected = Array.isArray(value) ? value : [];
     if (column && choices.length === 0) {
@@ -240,7 +241,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
     );
   }
 
-  if (operatorIsBetween(operator)) {
+  if (operatorIsBetween(operator, custom)) {
     const [from = "", to = ""] = Array.isArray(value) ? value : ["", ""];
     return (
       <BetweenValueInput

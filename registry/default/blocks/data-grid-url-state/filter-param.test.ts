@@ -309,3 +309,25 @@ describe("coded set values", () => {
     expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
   });
 });
+
+describe("custom operators", () => {
+  const inputs: Record<string, "single" | "range" | "list" | "none"> = { inRegion: "single", between2: "range", tagged: "list", flagged: "none" };
+  const options = { operatorInput: (columnId: string, operator: string) => (columnId === "city" ? inputs[operator] : undefined) };
+  const filters = [
+    { columnId: "city", operator: "inRegion", value: "eu west" },
+    { columnId: "city", operator: "between2", value: ["a", "b"] },
+    { columnId: "city", operator: "tagged", value: ["x", "y|z"] },
+    { columnId: "city", operator: "flagged", value: "" },
+  ] satisfies FilterSpec[];
+
+  it("round-trips every value shape through the registered input", () => {
+    const raw = serializeFilterState(filters, options);
+    expect(raw).toContain("city:between2:a~b");
+    expect(parseFilterState(raw, options)).toEqual(filters);
+  });
+
+  it("drops a custom operator no column registers", () => {
+    expect(parseFilterState("city:inRegion:eu")).toEqual([]);
+    expect(parseFilterState("other:inRegion:eu", options)).toEqual([]);
+  });
+});

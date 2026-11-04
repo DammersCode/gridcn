@@ -136,6 +136,32 @@ describe("DataGridFilterValueInput", () => {
     fireEvent.click(options[1]!);
     expect(onValueChange).toHaveBeenCalledWith(["DE", "FR"]);
   });
+
+  it("renders the value shape of a custom operator's input", () => {
+    const columns: readonly ColumnDef<{ id: string; level: string }, unknown>[] = [
+      {
+        id: "level",
+        header: "Level",
+        accessorKey: "level",
+        filterOperators: [
+          { id: "span", label: "spans", input: "range" },
+          { id: "tagged", label: "tagged", input: "list" },
+        ],
+      },
+    ];
+    const view = render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="span" value={["1", "2"]} onValueChange={vi.fn()} />
+      </DataGridProvider>,
+    );
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+    view.rerender(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="tagged" value={[]} onValueChange={vi.fn()} />
+      </DataGridProvider>,
+    );
+    expect(screen.getByRole("button")).toBeTruthy();
+  });
 });
 
 describe("DataGridFilterValueInput commits", () => {

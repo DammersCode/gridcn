@@ -9,8 +9,8 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, isFilterGroup, pruneFilterSpecs, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import type { ColumnLayout } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
@@ -76,8 +76,17 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const { prefix, layout = DEFAULT_LAYOUT_PARTS } = options;
   const layoutParts = layout.join(",");
   const actions = useDataGridActions();
-  const allColumns = useDataGridAllColumns();
   const storeApi = useDataGridStoreApi();
+  const allColumns = useDataGridAllColumns();
+  const operatorInput = useCallback(
+    (columnId: string, operator: string): FilterOperatorInput | undefined => {
+      const column = allColumns.find((c) => c.id === columnId);
+      if (!column) return undefined;
+      const custom = resolveCustomFilterOperators(column, column.type ? storeApi.getState().cellTypes[column.type] : undefined).get(operator);
+      return custom && (custom.input ?? "single");
+    },
+    [allColumns, storeApi],
+  );
   const sortState = useDataGridSortState();
   const filterState = useDataGridFilterState();
   const searchText = useDataGridSearchText();
@@ -166,7 +175,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
         return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
       }),
     );
-    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId) });
+    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId), operatorInput });
     const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(joinParam) === "or" && !parsedFilters.some(isFilterGroup);
     const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
       if (filterableIds.has(spec.columnId)) return true;
@@ -179,7 +188,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
-  }, [actions, allColumns, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
+  }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
@@ -200,7 +209,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!appliedRef.current) return;
-    void setFilterParamRef.current(serializeFilterState(filterState) || null);
+    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput }) || null);
     void setJoinParamRef.current(null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState]);

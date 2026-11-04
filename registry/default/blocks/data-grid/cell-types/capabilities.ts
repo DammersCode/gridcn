@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { AnyColumnDef } from "../store/types";
-import type { CellType, CellTypeValueInput, FilterOperator, FilterValueInputProps } from "../types";
+import type { CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterValueInputProps } from "../types";
+import { isBuiltInOperator } from "../sort-filter/matches-filter";
 import type { CellValidate } from "../validation/validate-cell";
 
 /** Text/general operators offered for every column type. */
@@ -37,10 +38,30 @@ export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptio
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): readonly FilterOperator[] {
   const declared = column.filterOperators ?? cellType?.filter?.operators;
-  if (declared) return declared;
+  if (declared) return declared.map((operator) => (typeof operator === "string" ? operator : operator.id));
   const defaults = operatorsForColumnType(column.type);
   const hasCustomMatcher = Boolean(column.filterMatch ?? cellType?.filter?.match);
   return hasCustomMatcher ? defaults.filter((operator) => !SET_FILTER_OPERATORS.includes(operator)) : defaults;
+}
+
+/** The custom operators a column registers in `filterOperators` (or its cell type in `filter.operators`), by id; a built-in id never shadows. */
+export function resolveCustomFilterOperators<TData = unknown, TValue = unknown, TOptions = unknown>(
+  column: AnyColumnDef,
+  cellType: CellType<TData, TValue, TOptions> | undefined,
+): ReadonlyMap<string, CustomFilterOperator> {
+  const custom = new Map<string, CustomFilterOperator>();
+  for (const operator of column.filterOperators ?? cellType?.filter?.operators ?? []) {
+    if (typeof operator !== "string" && !isBuiltInOperator(operator.id) && !custom.has(operator.id)) custom.set(operator.id, operator);
+  }
+  return custom;
+}
+
+/** The value shape of `operator`: built-ins by name, a custom operator by its `input` (default `"single"`). */
+export function filterOperatorInput(operator: FilterOperator, custom?: ReadonlyMap<string, CustomFilterOperator>): FilterOperatorInput {
+  if (operator === "empty" || operator === "notEmpty") return "none";
+  if (operator === "isBetween") return "range";
+  if (operator === "isAnyOf" || operator === "isNoneOf") return "list";
+  return custom?.get(operator)?.input ?? "single";
 }
 
 /** Whether the column is filterable and offers a set operator, which is what the header filter needs. */

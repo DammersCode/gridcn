@@ -133,6 +133,31 @@ const columns = defineColumns<Invoice>()([
 `DataGridFilterMenu`'s `operatorsForColumn` prop overrides the operator list per render, ahead of
 `filterOperators`. See [Toolbar: the pieces](/docs/addons/toolbar#the-pieces).
 
+### Custom operators
+
+<NewBadge />
+
+A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. Use it to give a server vocabulary a name in the grid.
+
+```tsx
+const inRegion = { id: "inRegion", label: "is in region", input: "single" } as const;
+
+const columns = defineColumns<Order>()([
+  { id: "city", header: "City", accessorKey: "city", filterOperators: ["contains", inRegion] },
+]);
+```
+
+| Field | Meaning |
+|---|---|
+| `id` | Stored in `filterState`, in the URL, and in the spec your server receives. It must not equal a built-in operator. |
+| `label` | The text of the operator select. |
+| `input` | The value shape: `"single"` (default), `"range"` for a from and to pair, `"list"` for a list of values, or `"none"` for no value. |
+| `match(text, filter)` | Decides on the client whether a row passes. A thrown error fails the row. |
+
+With `filterMode="server"` the grid never calls `match`, so leave it out. Your server maps the `id` to its own query. In client mode a custom operator without `match` does not narrow rows, and the grid warns once in development.
+
+`filterCompare(text, bound)` on a column orders its cells for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks, versions, or any order the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order.
+
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/addons/toolbar), which owns the install, wiring, toolbar order,
 and the filter menu's keyboard & accessibility table.

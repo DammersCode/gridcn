@@ -1,31 +1,35 @@
-import type { FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
-import type { DataGridFilterOperatorLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { CustomFilterOperator, FilterOperator } from "@/registry/default/blocks/data-grid/data-grid";
+import { filterOperatorInput, type DataGridFilterOperatorLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export { operatorsForColumnType } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Human-readable label for a {@link FilterOperator}, for the operator select — reads from {@link useDataGridLabels}'s `filterOperators` group. */
-export function operatorLabel(operator: FilterOperator, labels: DataGridFilterOperatorLabels): string {
-  return labels[operator];
+/** The custom operators of a column by id, as `resolveCustomFilterOperators` returns them. */
+export type CustomOperators = ReadonlyMap<string, CustomFilterOperator>;
+
+/** Human-readable label for a {@link FilterOperator}, for the operator select: a custom operator's own `label`, else the {@link useDataGridLabels} `filterOperators` text, else the id. */
+export function operatorLabel(operator: FilterOperator, labels: DataGridFilterOperatorLabels, custom?: CustomOperators): string {
+  return custom?.get(operator)?.label ?? (labels as Record<string, string | undefined>)[operator] ?? operator;
 }
 
-/** Whether `operator` takes a value input at all (`empty`/`notEmpty` don't); `isBetween` renders two. */
-export function operatorHasValue(operator: FilterOperator): boolean {
-  return operator !== "empty" && operator !== "notEmpty";
+/** Whether `operator` takes a value input at all (`empty`/`notEmpty` and a custom `input: "none"` don't); `isBetween` renders two. */
+export function operatorHasValue(operator: FilterOperator, custom?: CustomOperators): boolean {
+  return filterOperatorInput(operator, custom) !== "none";
 }
 
-/** Whether `operator` needs the two-input `isBetween` range layout instead of a single value input. */
-export function operatorIsBetween(operator: FilterOperator): boolean {
-  return operator === "isBetween";
+/** Whether `operator` needs the two-input range layout instead of a single value input. */
+export function operatorIsBetween(operator: FilterOperator, custom?: CustomOperators): boolean {
+  return filterOperatorInput(operator, custom) === "range";
 }
 
-/** The empty filter value for `operator`: a list for `isAnyOf` / `isNoneOf`, a from/to pair for `isBetween`, otherwise text. */
-export function emptyValueFor(operator: FilterOperator | undefined): string | [string, string] | string[] {
-  if (operator === "isAnyOf" || operator === "isNoneOf") return [];
-  if (operator === "isBetween") return ["", ""];
+/** The empty filter value for `operator`: a list for a list operator, a from/to pair for a range operator, otherwise text. */
+export function emptyValueFor(operator: FilterOperator | undefined, custom?: CustomOperators): string | [string, string] | string[] {
+  const input = operator === undefined ? "single" : filterOperatorInput(operator, custom);
+  if (input === "list") return [];
+  if (input === "range") return ["", ""];
   return "";
 }
 
-/** Whether `operator` takes a multi-value choice list (`isAnyOf` / `isNoneOf`) rather than a single text input. */
-export function operatorIsAnyOf(operator: FilterOperator): boolean {
-  return operator === "isAnyOf" || operator === "isNoneOf";
+/** Whether `operator` takes a multi-value choice list (`isAnyOf` / `isNoneOf`, or a custom `input: "list"`) rather than a single text input. */
+export function operatorIsAnyOf(operator: FilterOperator, custom?: CustomOperators): boolean {
+  return filterOperatorInput(operator, custom) === "list";
 }

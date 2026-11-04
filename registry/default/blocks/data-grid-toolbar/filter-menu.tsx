@@ -32,11 +32,14 @@ import {
   isDev,
   isFilterGroup,
   operatorsForColumnType,
+  resolveCustomFilterOperators,
   resolveFilterOperators,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { appendChild, locateNode, moveSibling, oppositeJoin, removeNode, updateNode } from "./filter-tree-edit";
-import { emptyValueFor, operatorHasValue, operatorLabel } from "./operators-for-column-type";
+import { emptyValueFor, operatorHasValue, operatorLabel, type CustomOperators } from "./operators-for-column-type";
+
+const NO_CUSTOM_OPERATORS: CustomOperators = new Map();
 import { DataGridFilterValueInput } from "./filter-value-input";
 
 /** Props for {@link DataGridFilterMenu}. */
@@ -64,6 +67,7 @@ type FilterMenuContext = {
   columns: readonly AnyColumnDef[];
   filterableColumns: readonly AnyColumnDef[];
   operatorsFor: (column: AnyColumnDef | undefined) => readonly FilterOperator[];
+  customFor: (column: AnyColumnDef | undefined) => CustomOperators;
   labels: DataGridLabels;
   onUpdate: (filterId: string, next: Partial<FilterSpec>) => void;
   onJoinChange: (filterId: string, join: FilterGroup["join"]) => void;
@@ -109,6 +113,11 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
       return operatorsForColumn?.(column) ?? resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
     },
     [operatorsForColumn, cellTypes],
+  );
+
+  const customFor = useCallback(
+    (column: AnyColumnDef | undefined): CustomOperators => (column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : NO_CUSTOM_OPERATORS),
+    [cellTypes],
   );
 
   // A filter on a column outside the menu's option list (a hidden column by default, or one no
@@ -189,7 +198,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     const first = filterableColumns[0];
     if (!first) return undefined;
     const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
-    return { columnId: first.id, operator, value: emptyValueFor(operator) };
+    return { columnId: first.id, operator, value: emptyValueFor(operator, customFor(first)) };
   };
 
   const reorderAnnouncement = (next: readonly FilterNode[], filterId: string, toIndex: number): string | undefined => {
@@ -212,6 +221,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     columns,
     filterableColumns,
     operatorsFor,
+    customFor,
     labels,
     onUpdate: (filterId, next) => actions.setFilters(updateNode(latest(), filterId, (node) => ({ ...node, ...next }) as FilterNode)),
     onJoinChange: (filterId, join) => actions.setFilters(updateNode(latest(), filterId, (node) => ({ ...node, join }) as FilterNode)),
@@ -537,12 +547,13 @@ type FilterRowProps = NodePosition & { filter: FilterSpec };
 /** One filter row: a field select, an operator select, a typed value input, a trash button, and a drag handle. */
 function FilterRow(props: FilterRowProps): ReactNode {
   const { filter, index, join, parentId, path, dropEdge, ctx } = props;
-  const { labels, columns, filterableColumns, operatorsFor } = ctx;
+  const { labels, columns, filterableColumns, operatorsFor, customFor } = ctx;
   const filterId = filter.filterId!; // always assigned by the store; see FilterSpec
   const column = columns.find((c) => c.id === filter.columnId);
   const operators = operatorsFor(column);
+  const custom = customFor(column);
   const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
-  const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators) }));
+  const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators, custom) }));
   const { ref, handleRef, isDragSource, onGripKeyDown } = useNodeSortable(filterId, props);
 
   return (
@@ -565,7 +576,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           const nextColumn = columns.find((c) => c.id === value);
           const nextOperators = operatorsFor(nextColumn);
           const nextOperator = nextOperators.includes(filter.operator) ? filter.operator : nextOperators[0];
-          ctx.onUpdate(filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator) });
+          ctx.onUpdate(filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator, customFor(nextColumn)) });
         }}
       >
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterColumnAriaLabel}>
@@ -586,7 +597,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           if (value === null) return;
           const nextOperator = value as FilterOperator;
           // each operator family has its own value shape; reset rather than carry a mismatched one
-          ctx.onUpdate(filterId, { operator: nextOperator, value: emptyValueFor(nextOperator) });
+          ctx.onUpdate(filterId, { operator: nextOperator, value: emptyValueFor(nextOperator, custom) });
         }}
       >
         <SelectTrigger className="h-8 w-full max-sm:col-span-3 max-sm:col-start-2" aria-label={labels.toolbar.filterOperatorAriaLabel}>
@@ -595,13 +606,13 @@ function FilterRow(props: FilterRowProps): ReactNode {
         <SelectContent>
           {operators.map((op) => (
             <SelectItem key={op} value={op}>
-              {operatorLabel(op, labels.filterOperators)}
+              {operatorLabel(op, labels.filterOperators, custom)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <div className="min-w-0 max-sm:col-span-3 max-sm:col-start-2">
-        {operatorHasValue(filter.operator) ? (
+        {operatorHasValue(filter.operator, custom) ? (
           <DataGridFilterValueInput column={column} operator={filter.operator} value={filter.value} onValueChange={(value) => ctx.onUpdate(filterId, { value })} />
         ) : (
           <div className="h-8 w-full rounded border bg-transparent" />
