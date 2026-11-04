@@ -88,6 +88,7 @@ describe("custom operators", () => {
     expect(operatorLabel("inRegion", DEFAULT_LABELS.filterOperators, custom)).toBe("in region");
     expect(operatorLabel("gt", DEFAULT_LABELS.filterOperators, custom)).toBe(DEFAULT_LABELS.filterOperators.gt);
     expect(operatorLabel("mystery", DEFAULT_LABELS.filterOperators)).toBe("mystery");
+    expect(operatorLabel("constructor", DEFAULT_LABELS.filterOperators)).toBe("constructor");
   });
 
   it("reads the value shape from the operator's input", () => {

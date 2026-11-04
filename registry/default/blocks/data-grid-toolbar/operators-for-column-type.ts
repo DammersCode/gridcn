@@ -8,7 +8,7 @@ export type CustomOperators = ReadonlyMap<string, CustomFilterOperator>;
 
 /** Human-readable label for a {@link FilterOperator}, for the operator select: a custom operator's own `label`, else the {@link useDataGridLabels} `filterOperators` text, else the id. */
 export function operatorLabel(operator: FilterOperator, labels: DataGridFilterOperatorLabels, custom?: CustomOperators): string {
-  return custom?.get(operator)?.label ?? (labels as Record<string, string | undefined>)[operator] ?? operator;
+  return custom?.get(operator)?.label ?? (Object.hasOwn(labels, operator) ? (labels as Record<string, string>)[operator]! : operator);
 }
 
 /** Whether `operator` takes a value input at all (`empty`/`notEmpty` and a custom `input: "none"` don't); `isBetween` renders two. */
