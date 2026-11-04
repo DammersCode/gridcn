@@ -331,3 +331,49 @@ The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A
 with interactive content must supply its own accessible name on that content.
 
 <ComponentPreview name="data-grid-custom-markers-demo" />
+
+## Server-assigned ids
+
+<NewBadge />
+
+A row that the user creates has an id from the client. The server often assigns its own id when it saves the row. `actions.replaceRowId(oldId, row)` swaps the client id for the server id. `row` is the row as the server holds it, and `getRowId(row)` gives the new id.
+
+The sample inserts a row with a client id, creates it on the server in `onSave`, then swaps the id:
+
+```tsx
+const gridRef = useRef<DataGridApi<Order> | null>(null);
+
+const onSave = async (change: DataChange<Order>) => {
+  for (const op of change.ops) {
+    if (op.type !== "insert") continue;
+    const created = await api.orders.create(op.row);
+    gridRef.current?.actions.replaceRowId(op.rowId, created);
+  }
+};
+
+<DataGrid
+  ref={gridRef}
+  data={data}
+  onDataChange={setData}
+  onSave={onSave}
+  createRow={() => ({ id: crypto.randomUUID(), name: "", price: 0 })}
+  getRowId={(row) => row.id}
+  columns={columns}
+/>
+```
+
+- The row keeps its place in the data and in the view. The grid does not sort the view again. If a sort or filter input of the row changed, the view turns stale, as it does after `updateCells`.
+- `onDataChange` fires once with `source: "id-swap"` and an `update` operation (`rowId` is the old id). A controlled `data` follows when you store the change. `onSave` does not receive an `"id-swap"` change, and history does not record it.
+- The active cell, the cell selection, and the open edit session stay on the same cell of the swapped row.
+- The state that is keyed by the row id follows the new id in the same step. This covers checked rows that a filter hides, cell errors, flashes, the save status, and a validation that is still running.
+- A save that is still in flight for the old id settles against the new id. An acknowledgement that names either id works. A refusal of such a save reverts cell by cell. A whole-row `update` cannot restore a snapshot with the old id, so the grid skips that revert.
+- `data-grid-history` rewrites its undo and redo steps. Each operation on the old id gets the new id. If a snapshot of the row is not a plain object, the grid drops the step.
+
+`replaceRowId` does nothing, and warns once per grid in development, in these cases:
+
+- The grid is `readOnly`.
+- No row has the id `oldId`.
+- Another row already has the new id.
+- `getRowId` throws for `row`.
+
+In a paginated or lazy grid, the row must be in `data`. A row on another page, or a row that the grid evicted, cannot swap. In that case your app swaps the id in its own cache, and the next fetch returns the row with the new id. Under server sort or server filter, the row keeps its position until your app refreshes.

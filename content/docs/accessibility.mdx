@@ -92,6 +92,16 @@ Three separate elements carry `aria-busy` or an equivalent progress role:
   instead. A visually hidden `role="progressbar"` sibling of the grid element announces it, with an `aria-label` and matching `aria-valuetext`.
 - A custom `loadingState` node replaces the skeleton or the bar. It carries no built-in role or
   label. The node owns its own accessibility.
+
+### Save state
+
+<NewBadge />
+
+A row with a save in flight carries `aria-busy="true"` and `data-save-status="saving"`. A row whose save the server refused carries `data-save-status="failed"` until the next write to the row or `actions.clearSaveStatus()`.
+
+The row has a default look for each status, built from theme tokens: `saving` uses `text-muted-foreground`, and `failed` uses `bg-destructive/10`. To change the look, return a class from `getRowClassName`, or style `[data-save-status="saving"]` and `[data-save-status="failed"]` in your CSS.
+
+The live region reads a refused save, for example "2 rows not saved" (`labels.grid.saveRejected`). It reads once for each settled change, and it reads on a `readOnly` grid too. The grid announces only the refusals that it read: a rejected `onSave` promise, or a `rejected` list in the answer.
 ## Live regions
 
 <ComponentPreview name="data-grid-announcements-demo" />
@@ -114,6 +124,8 @@ accessibility](/docs/addons/toolbar#filter-menu-keyboard--accessibility) and
 The grid core has one live region <NewBadge />, a `role="status"` element with `aria-live="polite"`. A live region cannot live inside `role="grid"`, so the grid places it in `<body>`. The region reads a row move and, after a check or uncheck, the number of checked rows, for example "3 rows checked" (`labels.grid.rowsChecked`). After "select all matching" on a result of unknown size it reads "All matching rows checked" <NewBadge /> (`labels.grid.allMatchingChecked`). It waits 500 ms after the last change. A marker range drag is read once, with its final count. The same text is read again when the same change repeats.
 
 With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source reads its loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). A change that leaves the rows and their order as they were, such as moving a filter row, stays quiet, and so does a filter applied on mount.
+
+After a refused save, the region reads the number of rows that the server refused, for example "2 rows not saved" (`labels.grid.saveRejected`). <NewBadge /> With `data-grid-history`, an undo or redo that cannot run reads `labels.grid.historyRowsNotLoaded` when the rows are not loaded yet, and `labels.grid.historyRowsGone` when the rows no longer exist.
 
 | Prop | Type | Default |
 |---|---|---|

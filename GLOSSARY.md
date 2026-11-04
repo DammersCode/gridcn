@@ -98,5 +98,7 @@ mirror the change there.
 | override | A prop or callback that replaces default behavior. | escape hatch |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
+| save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |
+| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | rekey, rename id |
 | save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

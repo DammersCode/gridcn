@@ -356,49 +356,57 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "API": {
-          "status": "gap",
-          "track": "E",
-          "note": "No swap from a client id to the server-assigned id after create."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
+          ]
         }
       }
     },
@@ -1066,57 +1074,66 @@
         "onDataChange",
         "readOnly",
         "onSave",
-        "onSaveRejected"
+        "onSaveRejected",
+        "resolveSaveConflict"
       ],
       "cells": {
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/events-state.mdx"
+            "content/docs/events-state.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx"
+            "tests/parity/write-through.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx"
+            "tests/parity/write-through.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/recipes/data-fetching/server-round-trip.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/recipes/data-fetching/server-round-trip.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         }
       }

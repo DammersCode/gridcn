@@ -96,6 +96,8 @@ Applies to streaming on top of either:
 - Send changes to the server from `onSave(change)`, not from `onDataChange`. `onDataChange` keeps your state in step and returns nothing; the revert of a refusal reaches it with `source: "rollback"` exactly once.
 - Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-save-status`), reverts only the refused entries, and calls `onSaveRejected({ change, rejected })` for the toast.
 - `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.
+- Resolve a refused save with `resolveSaveConflict({ rowId, mine, theirs, change, message, signal })`. It runs for a refused row that has `current`. Return `"theirs"` (the default), `"mine"`, or `{ row }` (a merged row with the same id). `"mine"` and `{ row }` commit one `source: "merge"` change that reaches `onSave`. An async resolver keeps the row `saving`.
+- Swap a client id for the server's id with `actions.replaceRowId(oldId, row)` after `onSave` creates the row. It fires one `source: "id-swap"` change that `onSave` does not receive. Only a row in `data` can swap.
 
 ## Selection UI and text inputs
 
