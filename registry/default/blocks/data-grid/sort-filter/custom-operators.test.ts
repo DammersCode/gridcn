@@ -71,3 +71,19 @@ describe("custom operators", () => {
     warn.mockRestore();
   });
 });
+
+describe("custom operator precedence", () => {
+  it("runs the registered match even when the column has a filterMatch", () => {
+    const getText: CellAccessor["getText"] = () => "Berlin";
+    const accessor: CellAccessor = {
+      getText,
+      getValue: () => "Berlin",
+      filterMatch: () => () => false,
+      customFilterMatch: () => () => true,
+    };
+    const test = makeFilterTest(accessor, { columnId: "city", operator: "inRegion", value: "eu" });
+    expect(test(0)).toBe(true);
+    const builtIn = makeFilterTest(accessor, { columnId: "city", operator: "equals", value: "Berlin" });
+    expect(builtIn(0)).toBe(false);
+  });
+});

@@ -39,8 +39,9 @@ import {
 import { appendChild, locateNode, moveSibling, oppositeJoin, removeNode, updateNode } from "./filter-tree-edit";
 import { emptyValueFor, operatorHasValue, operatorLabel, type CustomOperators } from "./operators-for-column-type";
 
-const NO_CUSTOM_OPERATORS: CustomOperators = new Map();
 import { DataGridFilterValueInput } from "./filter-value-input";
+
+const NO_CUSTOM_OPERATORS: CustomOperators = new Map();
 
 /** Props for {@link DataGridFilterMenu}. */
 export type DataGridFilterMenuProps = {

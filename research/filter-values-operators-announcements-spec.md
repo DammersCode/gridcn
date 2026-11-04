@@ -25,24 +25,24 @@ type CustomFilterOperator = {
 };
 ```
 
-- Provider prop `customFilterOperators`. `FilterOperator` is the built-in union or any string.
-- A column offers a custom operator when its `filterOperators` (or the cell type's) lists the id.
+- A column (or its cell type, in `filter.operators`) lists the operator object in `filterOperators`. `FilterSpec.operator` is a built-in operator or any string; the `filterOperators` arrays take built-ins and `CustomFilterOperator` objects only.
+- A column `filterMatch` handles built-in operators only; a registered custom `match` runs for its own id.
 - Filter row: the operator select shows `label`; `input` picks the value widget (`none` no input, `single` the cell type's input, `range` two inputs, `list` the set input).
 - Local evaluation (L, PC, Z holes excluded): `match(text, filter)`; a throw fails the row. Without `match` the operator does not narrow rows and warns once in development. With `filterMode="server"` `match` is never called.
 - Server (FS): the spec carries the operator id and value unchanged; the server maps its vocabulary.
-- URL: `parseFilterState(raw, { customOperators })` and `serializeFilterState(filters, { customOperators })` read the value shape from `input`. An unregistered id drops the segment as before.
+- URL: `parseFilterState(raw, { operatorInput })` and `serializeFilterState(filters, { operatorInput })` read the value shape from `input`; the id is percent-encoded. An unregistered id drops the segment as before.
 - `ColumnDef.filterCompare(a, b)` orders text for `gt`, `gte`, `lt`, `lte`, and `isBetween` instead of the numeric-then-text default. A throw or NaN falls back to the default order.
 
 ## L. Result announcements for server refreshes
 
-With `announceResults`, the end of a load (`loading` true to false, no `error`) announces the result: `totalRowCount` when it is a number, else the loaded rows; zero reads "No results". The live region already waits 500 ms for the last announcement, so a typing run speaks once. A load that ends in `error` speaks `labels.grid.errorState`.
+With `announceResults`, the end of a load (`loading` true to false, no `error`) announces the result one microtask later, after the provider synced `data`: `totalRowCount` when it is a number, else the loaded rows; zero reads `labels.grid.noResults`. The live region already waits 500 ms for the last announcement, so a typing run speaks once. A load that ends in `error` stays silent: the error bar is a `role="alert"`.
 
 ## N. Error overlay
 
-The root error state (`error`, `onRetry`) is the overlay for a failed page or window fetch: `role="alert"`, Retry button, in pages mode and scroll mode. Tests pin both with a hook-shaped `gridProps`.
+The root error state (`error`, `onRetry`) is the overlay for a failed page or window fetch: `role="alert"`, Retry button, in pages mode and scroll mode. Tests pin the zero-row and with-rows cases through root props; the server-rows hook passes `error` and `onRetry` in `gridProps`.
 
 ## Empty result
 
-Zero rows with `reason: "filtered"` (client or server filter, or search) shows `labels.grid.noResults` ("No results"); `reason: "no-data"` keeps `labels.grid.emptyState`. The status bar escalation already reads `totalRowCount`; a test pins it.
+Zero rows with `reason: "filtered"` (client or server filter, or search) shows `labels.grid.noResults` ("No results"); `reason: "no-data"` keeps `labels.grid.emptyState`. The status bar escalation already reads `totalRowCount`.
 
 **Breaking:** the default text of a filtered empty grid is "No results".

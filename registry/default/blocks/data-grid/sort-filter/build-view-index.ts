@@ -32,17 +32,19 @@ export type CellAccessor = {
   customFilterMatch?(columnId: string, operator: string): ((text: string, filter: FilterSpec) => boolean) | undefined;
 };
 
+const MAX_WARNED_OPERATORS = 100;
 const warnedUnwiredOperators = new Set<string>();
 
 /**
  * One filter's per-row test: the column's `filterMatch` (raw value) when the accessor provides
- * both the predicate and raw values, else the built-in text matcher. Both the rebuild and the
+ * both the predicate and raw values and the operator is built in, else the text matcher with the
+ * column's `filterCompare` and the custom operator's `match`. Both the rebuild and the
  * incremental path build through this so a custom predicate can never desync between them.
  */
 export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row: number) => boolean {
   const custom = accessor.filterMatch?.(filter.columnId);
   const getValue = accessor.getValue;
-  if (custom && getValue) {
+  if (custom && getValue && isBuiltInOperator(filter.operator)) {
     // a thrown predicate fails the row rather than the view build
     return (row: number) => {
       try {
@@ -56,7 +58,7 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
   const customMatch = accessor.customFilterMatch?.(filter.columnId, filter.operator);
   if (!customMatch && !isBuiltInOperator(filter.operator) && isDev()) {
     const key = `${filter.columnId}:${filter.operator}`;
-    if (!warnedUnwiredOperators.has(key)) {
+    if (!warnedUnwiredOperators.has(key) && warnedUnwiredOperators.size < MAX_WARNED_OPERATORS) {
       warnedUnwiredOperators.add(key);
       console.warn(
         `[data-grid] the filter operator "${filter.operator}" on column "${filter.columnId}" has no \`match\`, so the grid does not narrow rows with it. Give it a \`match\` in the column's \`filterOperators\`, or use filterMode="server".`,

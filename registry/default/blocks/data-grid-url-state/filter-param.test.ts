@@ -331,3 +331,11 @@ describe("custom operators", () => {
     expect(parseFilterState("other:inRegion:eu", options)).toEqual([]);
   });
 });
+
+describe("custom operator ids with reserved characters", () => {
+  it("round-trips an id that holds a colon and a comma", () => {
+    const options = { operatorInput: () => "single" as const };
+    const filters = [{ columnId: "geo", operator: "geo:in,x", value: "eu" }];
+    expect(parseFilterState(serializeFilterState(filters, options), options)).toEqual(filters);
+  });
+});

@@ -137,7 +137,9 @@ const columns = defineColumns<Invoice>()([
 
 <NewBadge />
 
-A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. Use it to give a server vocabulary a name in the grid.
+A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. A server vocabulary gets a name in the grid this way.
+
+The example registers one operator:
 
 ```tsx
 const inRegion = { id: "inRegion", label: "is in region", input: "single" } as const;
@@ -156,7 +158,7 @@ const columns = defineColumns<Order>()([
 
 With `filterMode="server"` the grid never calls `match`, so leave it out. Your server maps the `id` to its own query. In client mode a custom operator without `match` does not narrow rows, and the grid warns once in development.
 
-`filterCompare(text, bound)` on a column orders its cells for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks, versions, or any order the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order.
+`filterCompare(text, bound)` on a column orders its cells for `gt`, `gte`, `lt`, `lte`, and `isBetween`. It fits ranks, versions, or any order the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order.
 
 `DataGridFilterMenu`, along with the search input and columns menu below, comes from the
 [toolbar add-on](/docs/addons/toolbar), which owns the install, wiring, toolbar order,

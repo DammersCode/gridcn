@@ -1,4 +1,4 @@
-import type { FilterGroup, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { FilterGroup, FilterNode, FilterOperatorInput, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_FILTER_GROUP_DEPTH, filterOperatorInput, groupChildren, isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { isFilterOperator } from "./filter-operators";
 import { safeDecode } from "./sort-param";
@@ -83,7 +83,7 @@ function writeNodes(nodes: readonly FilterNode[], depth: number, segments: strin
   for (const node of nodes) {
     if (!isFilterGroup(node)) {
       const input = isFilterOperator(node.operator) ? filterOperatorInput(node.operator) : (options.operatorInput?.(node.columnId, node.operator) ?? "single");
-      segments.push(`${encodeURIComponent(node.columnId)}:${node.operator}:${encodeFilterValue(input, node.value)}`);
+      segments.push(`${encodeURIComponent(node.columnId)}:${encodeURIComponent(node.operator)}:${encodeFilterValue(input, node.value)}`);
       continue;
     }
     const children = groupChildren(node);
@@ -180,14 +180,15 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     const [columnId, operator, rawValue] = parts;
     if (!columnId || operator === undefined || rawValue === undefined) continue;
     const decodedId = safeDecode(columnId);
-    if (decodedId === null || decodedId === "") continue;
-    const input = isFilterOperator(operator) ? filterOperatorInput(operator) : options.operatorInput?.(decodedId, operator);
+    const decodedOperator = safeDecode(operator);
+    if (decodedId === null || decodedId === "" || decodedOperator === null) continue;
+    const input = isFilterOperator(decodedOperator) ? filterOperatorInput(decodedOperator) : options.operatorInput?.(decodedId, decodedOperator);
     if (input === undefined) continue;
-    const value = decodeFilterValue(operator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
+    const value = decodeFilterValue(decodedOperator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
     if (value === DECODE_FAILED) continue;
     const frame = stack[stack.length - 1]!;
     if (frame.dropped) continue;
-    frame.filters.push({ columnId: decodedId, operator, value });
+    frame.filters.push({ columnId: decodedId, operator: decodedOperator, value });
     leaves++;
   }
   while (stack.length > 1) closeTop();

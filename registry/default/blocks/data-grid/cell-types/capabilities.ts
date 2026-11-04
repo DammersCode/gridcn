@@ -1,11 +1,11 @@
 import type { ComponentType } from "react";
 import type { AnyColumnDef } from "../store/types";
-import type { CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterValueInputProps } from "../types";
+import type { BuiltInFilterOperator, CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterValueInputProps } from "../types";
 import { isBuiltInOperator } from "../sort-filter/matches-filter";
 import type { CellValidate } from "../validation/validate-cell";
 
 /** Text/general operators offered for every column type. */
-export const TEXT_FILTER_OPERATORS: readonly FilterOperator[] = [
+export const TEXT_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = [
   "contains",
   "notContains",
   "equals",
@@ -17,16 +17,16 @@ export const TEXT_FILTER_OPERATORS: readonly FilterOperator[] = [
 ];
 
 /** Set-membership operators for types with a bounded set of distinct values. */
-export const SET_FILTER_OPERATORS: readonly FilterOperator[] = ["isAnyOf", "isNoneOf"];
+export const SET_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = ["isAnyOf", "isNoneOf"];
 
 /** Comparison operators added only for orderable types (gt/lt only for number/date). */
-export const COMPARISON_FILTER_OPERATORS: readonly FilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
+export const COMPARISON_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
 
 /**
  * The operator list for a type name whose cell type declares no `filter.operators`: comparisons
  * and set operators for number and date, set operators for select and text, text operators otherwise.
  */
-export function operatorsForColumnType(columnType: string | undefined): FilterOperator[] {
+export function operatorsForColumnType(columnType: string | undefined): BuiltInFilterOperator[] {
   if (columnType === "number" || columnType === "date") return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS];
   if (columnType === "select" || columnType === "text" || columnType === undefined) return [...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS];
   return [...TEXT_FILTER_OPERATORS];

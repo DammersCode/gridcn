@@ -461,7 +461,7 @@ export type FilterValueInputProps = {
  * row's widget: a built-in one by name, or a component that renders for every operator with a value.
  */
 export type CellTypeFilter = {
-  operators?: readonly (FilterOperator | CustomFilterOperator)[];
+  operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
@@ -557,10 +557,10 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
    * for a consumer-registered numeric cell type (`type: "currency"`).
    */
-  filterOperators?: readonly (FilterOperator | CustomFilterOperator)[];
+  filterOperators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   /**
    * Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the
-   * numeric-then-text default (a version string, a rank, a locale). A zero-safe result: a NaN or a throw
+   * numeric-then-text default (a version string, a rank, a locale). A NaN result or a throw
    * falls back to the default order for that pair.
    */
   filterCompare?: (text: string, bound: string) => number;

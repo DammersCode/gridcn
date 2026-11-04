@@ -19,9 +19,9 @@ function mount(setup: Setup = {}) {
     api = useDataGridStoreApi();
     return null;
   }
-  const tree = (root: { loading?: boolean; error?: unknown }) => (
+  const tree = (root: { loading?: boolean; error?: unknown }, nextData?: (Row | undefined)[]) => (
     <DataGridProvider
-      data={(setup.data ?? rows(3)) as Row[]}
+      data={(nextData ?? setup.data ?? rows(3)) as Row[]}
       columns={columns}
       getRowId={(row: Row) => row.id}
       announceResults={setup.announceResults ?? true}
@@ -33,48 +33,61 @@ function mount(setup: Setup = {}) {
     </DataGridProvider>
   );
   const view = render(tree({ loading: true }));
-  return { live: () => api!.getState().liveAnnouncement, rerender: (root: { loading?: boolean; error?: unknown }) => view.rerender(tree(root)) };
+  return { live: () => api!.getState().liveAnnouncement, rerender: (root: { loading?: boolean; error?: unknown }, nextData?: (Row | undefined)[]) => view.rerender(tree(root, nextData)) };
 }
 
 describe("load announcements", () => {
-  it("announces the server count when a load ends", () => {
+  it("announces the server count when a load ends", async () => {
     const grid = mount({ totalRowCount: 1234, filterMode: "server" });
     expect(grid.live()).toBeNull();
     grid.rerender({ loading: false });
+    await Promise.resolve();
     expect(grid.live()).toMatchObject({ kind: "results", count: 1234 });
   });
 
-  it("announces the loaded rows as partial while the count is unknown and rows are missing", () => {
+  it("announces the loaded rows as partial while the count is unknown and rows are missing", async () => {
     const grid = mount({ data: [...rows(2), undefined] });
     grid.rerender({ loading: false });
+    await Promise.resolve();
     expect(grid.live()).toMatchObject({ kind: "results", count: 2, partial: true });
   });
 
-  it("announces zero results after a load that returns no rows", () => {
+  it("announces zero results after a load that returns no rows", async () => {
     const grid = mount({ data: [], totalRowCount: 0, filterMode: "server" });
     grid.rerender({ loading: false });
+    await Promise.resolve();
     expect(grid.live()).toMatchObject({ kind: "results", count: 0 });
   });
 
-  it("announces the failure when a load ends in an error", () => {
+  it("leaves a failed load to the alert overlay", () => {
     const grid = mount({ totalRowCount: 10, filterMode: "server" });
     grid.rerender({ loading: false, error: new Error("boom") });
-    expect(grid.live()).toMatchObject({ kind: "loadError" });
+    expect(grid.live()).toBeNull();
   });
 
-  it("announces again after a retry", () => {
+  it("reads the rows that arrive in the same render as the end of the load", async () => {
+    const grid = mount({ data: rows(50) });
+    grid.rerender({ loading: false }, rows(3));
+    await Promise.resolve();
+    expect(grid.live()).toMatchObject({ kind: "results", count: 3 });
+  });
+
+  it("announces again after a retry", async () => {
     const grid = mount({ totalRowCount: 10, filterMode: "server" });
-    grid.rerender({ loading: false, error: new Error("boom") });
-    const first = grid.live()?.seq;
-    grid.rerender({ loading: true, error: new Error("boom") });
     grid.rerender({ loading: false });
+    await Promise.resolve();
+    const first = grid.live()?.seq;
+    grid.rerender({ loading: true });
+    grid.rerender({ loading: false });
+    await Promise.resolve();
     expect(grid.live()).toMatchObject({ kind: "results", count: 10 });
     expect(grid.live()!.seq).toBeGreaterThan(first!);
   });
 
-  it("stays silent without announceResults and when nothing was loading", () => {
+  it("stays silent without announceResults", async () => {
     const quiet = mount({ announceResults: false, totalRowCount: 5 });
     quiet.rerender({ loading: false });
+    await Promise.resolve();
     expect(quiet.live()).toBeNull();
   });
 });
