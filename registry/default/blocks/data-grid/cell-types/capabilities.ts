@@ -38,7 +38,7 @@ export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptio
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): readonly FilterOperator[] {
   const declared = column.filterOperators ?? cellType?.filter?.operators;
-  if (declared) return declared.map((operator) => (typeof operator === "string" ? operator : operator.id));
+  if (declared) return declared.every((operator) => typeof operator === "string") ? (declared as readonly FilterOperator[]) : declared.map((operator) => (typeof operator === "string" ? operator : operator.id));
   const defaults = operatorsForColumnType(column.type);
   const hasCustomMatcher = Boolean(column.filterMatch ?? cellType?.filter?.match);
   return hasCustomMatcher ? defaults.filter((operator) => !SET_FILTER_OPERATORS.includes(operator)) : defaults;
