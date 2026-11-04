@@ -7,6 +7,8 @@ const config = {
   reactStrictMode: true,
   // the app runs COMPILED here, matching what the unit-compiled/browser-compiled projects test
   reactCompiler: true,
+  // The perf scripts build two variants side by side and compare them.
+  ...(process.env.GRIDCN_DIST_DIR ? { distDir: process.env.GRIDCN_DIST_DIR } : {}),
   // fumadocs LLMs integration: /docs/<page>.md serves the page as raw markdown for AI agents.
   async redirects() {
     return [
