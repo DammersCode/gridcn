@@ -1506,6 +1506,169 @@
       }
     },
     {
+      "id": "fetch-limits",
+      "feature": "Scroll fetch limits",
+      "options": [
+        "loadDelay",
+        "maxConcurrentFetches",
+        "maxLoadedRows"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "n/a",
+          "reason": "A page mode request is one per state; a newer page aborts the older one."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "revalidate",
+      "feature": "Revalidation on a timer",
+      "options": [
+        "revalidateInterval"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "page-prefetch",
+      "feature": "Next page prefetch",
+      "options": [
+        "prefetchNextPage"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "n/a",
+          "reason": "`overscan` already loads rows ahead on both sides."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        }
+      }
+    },
+    {
       "id": "pagination",
       "feature": "Pagination",
       "options": [

@@ -61,7 +61,7 @@ count, and every row without data renders as a skeleton. When the rendered rows 
 rounds them plus `overscan` out to `blockSize` blocks and fetches each gap, one request per block.
 
 A request holds `{ spec, start, end, cursor, signal }`. `cursor` is `undefined` in random access.
-`signal` aborts when a spec change, a count change, or an unmount replaces the request.
+`signal` aborts when a newer request replaces the request, when its block leaves the rendered rows by more than `overscan` plus one block, on a spec change, and on unmount. Pass it to your HTTP client or query library, so an aborted block cancels its request.
 
 For a composed layout, spread `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto
 `DataGridRoot`. `server.gridProps` is both parts together.
@@ -74,6 +74,10 @@ For a composed layout, spread `server.providerProps` onto `DataGridProvider` and
 | `blockSize` | 50 | Rows per request. Requests align to multiples of it. |
 | `overscan` | 30 | Rows fetched beyond the rendered rows on each side. |
 | `spec`, `defaultSpec`, `onSpecChange` | `{}` | Controls or seeds the sort, filter, and search text. |
+| `loadDelay` <NewBadge /> | 100 | Milliseconds a block stays in the wanted range before its request starts. `0` starts at once. |
+| `maxConcurrentFetches` <NewBadge /> | 3 | Most block requests in flight at once on a random access source. At most 16. |
+| `maxLoadedRows` <NewBadge /> | 10,000 | Most rows kept loaded on a random access source. `Infinity` keeps every row. |
+| `revalidateInterval` <NewBadge /> | off | Milliseconds between `refresh()` calls that the hook runs itself while the page is visible. At least 1000. |
 | `onLoaded` | none | Fires after a block lands, with the range it covers. |
 | `onError` | none | Fires after a request fails. |
 | `onDataChange` | none | Fires after the hook merged an edit, insert, or delete. |
@@ -95,6 +99,10 @@ Behavior the grid applies by itself:
   that exist). This id is unstable. It does not survive a block being unloaded and reloaded
   with different content at the same index, but this is fine. An unloaded row carries no
   selection, edit, or scroll-anchor state worth preserving across that transition.
+- The wanted range is the rendered rows plus `overscan` on each side, rounded out to blocks. A block starts when it stays in the wanted range for `loadDelay` <NewBadge /> milliseconds. A fast scroll or a thumb drag starts no request until it rests. Block 0, `refresh()`, `retry()`, and the refetch after the first answer or a count change start at once.
+- A block that waits for its delay is not a request. `loading` stays `false` and the skeleton cells show.
+- The keep range is the wanted range plus one block on each side. A request for a block that leaves the keep range aborts, and the block loads again when the rendered rows come back. A failed block that leaves the keep range stops counting as an error.
+- At most `maxConcurrentFetches` <NewBadge /> requests run at once. A waiting block starts when a request settles, nearest to the middle of the rendered rows first. The blocks of `refresh()` and `retry()` wait in a queue that starts before the other blocks, and `loading` is `true` while they wait.
 - Already-loaded and in-flight blocks are never requested again. A window that partly overlaps
   what is loaded fetches the remaining blocks only. Adjacent loaded blocks merge, so later gap
   calculations see one covered span.
@@ -108,7 +116,8 @@ Behavior the grid applies by itself:
 - `refresh()` fetches the rendered blocks again and keeps them on screen until the answers land. It drops every
   other loaded block.
 - `gridProps.plugins` <NewBadge /> mounts the guard that applies this rule on every landing block. A `plugins` prop of your own replaces it. Put the hook's plugins first: `plugins={[...server.gridProps.plugins, myPlugin]}`. In development, the hook warns once when an edit reaches it from a grid that does not mount the guard.
-- `evict(range)` unloads rows. `getLoadedRanges()` and `unloadedCount` report what is loaded.
+- `evict(range)` unloads rows and aborts the requests it covers. `getLoadedRanges()` and `unloadedCount` report what is loaded.
+- `revalidateInterval` <NewBadge /> calls `refresh()` on a timer. The clock restarts on every refresh and on a spec change. A tick that finds a request in flight waits and then runs once, so ticks never stack. The timer stops while the page is hidden. A failed tick does not stop the timer. A revalidation does not clear the undo stack.
 
 <Callout type="warn">
   An answer without `totalRowCount` ends the source at the rows of the first block, unless it carries
@@ -157,18 +166,28 @@ For data-fetch libraries (React Query, SWR) and the retry UI, see
 
 <NewBadge />
 
-Loaded rows stay in the sparse array until a spec change, a count change, a remount, or an explicit call
-removes them:
+`maxLoadedRows` caps the loaded rows of a random access source. When more rows are loaded, the hook unloads whole blocks outside the keep range, least recently viewed first. The rows that the user sees never unload. Pass `Infinity` to keep every row.
+
+A block that unloads keeps these rows loaded:
+
+- The row of an open edit session.
+- A row with a pending save, or with a save that started while a request was open.
+- A row with an edit that no save and no landed block confirmed. A grid with no `onSave` keeps its edits this way.
+- The row under the active cell.
+
+The cap is soft. When the keep range and these rows hold more rows than the cap, the cache stays above it. Checked rows stay checked, because the grid remembers them by row id. An undo entry over an unloaded row does nothing.
+
+Three more calls change what is loaded:
 
 - `server.refresh()` refetches the rendered blocks in place and drops every other loaded block. Use it when
   the dataset behind the same spec is invalidated, for example after a server-side change.
-- `server.evict(range)` drops the loaded rows inside `range`. A partial overlap drops the
-  intersection only, and the rest stays loaded. Evicted rows refetch on the next scroll into
-  them. A sequential source ignores it.
+- `server.evict(range)` drops the loaded rows inside `range` and aborts the requests that it covers. A partial overlap
+  drops the intersection only, and the rest stays loaded. The rows that the list above names stay loaded. Evicted rows
+  refetch on the next scroll into them. A sequential source ignores it.
 - `server.getLoadedRanges()` returns the loaded ranges, merged and sorted. The result never
   triggers a render. Call it in effects or event handlers.
 
-An eviction policy is a consumer decision. A distance from the visible range is a starting
+`evict` is the tool for a policy of your own. A distance from the rendered rows is a starting
 point:
 
 ```tsx
@@ -196,12 +215,7 @@ const MIN_DISTANCE = 500;
 The demo's "Evict loaded rows" button runs `server.evict` over the whole range, so every loaded
 row becomes a skeleton and refetches on scroll.
 
-Two behaviors matter when you wire your own policy:
-
-- An in-flight request that started before the evict still lands and marks its range loaded. The
-  evicted rows reappear once that request resolves.
-- Evicted rows lose edits merged through `onDataChange` that you did not persist. The hook
-  does not own persistence. See [Editing loaded rows](#editing-loaded-rows).
+`evict` keeps the rows that the list above names. Other evicted rows refetch from your server, so persist an edit in `onSave`. See [Editing loaded rows](#editing-loaded-rows).
 
 Undo and redo compose with the `onDataChange` of the hook. The wiring, the hole-tolerant `getRowId`,
 and the `clear()`-on-`refresh()` rule are on the [Undo & redo](/docs/addons/undo-redo#with-scroll-mode)
@@ -328,7 +342,9 @@ const server = useDataGridServerRows<Order, string>({
 - An API with a "has more" flag and no cursor answers `{ rows, hasMore }`. The request still asks for `[start, end)`, where `start` is the number of rows loaded. `hasMore: false` ends the source. Without the flag, a block that comes back full means more rows exist.
 - A `totalRowCount` that comes with a cursor feeds `totalRowCount` and caps the skeleton rows. The source ends when the loaded rows reach it.
 - The first call gets `cursor: undefined`. `fetchRows` returns at most `end - start` rows; the hook keeps the first `end - start` rows of a longer answer.
-- The next block starts when the rendered rows come within `overscan` rows (default 30) of the loaded end. One block loads at a time.
+- The next block starts when the rendered rows stay within `overscan` rows (default 30) of the loaded end for `loadDelay` <NewBadge /> milliseconds. One block loads at a time. After a block lands, the chain goes on at once while the rendered rows still rest near the end.
+- `maxConcurrentFetches`, the abort of a block that leaves the keep range, and `maxLoadedRows` have no effect. One request runs at a time, and the chain needs every block. A `maxLoadedRows` that you pass logs one warning in development.
+- `revalidateInterval` <NewBadge /> refreshes from the first block up to the rendered rows. A tick is skipped while the rendered rows end beyond 10 blocks, so one tick costs at most 10 requests.
 - The grid shows the loaded rows plus one block of skeleton rows while more exist, so the scroll height
   grows in steps. At the end the skeletons go away and `totalRowCount` holds the final count.
 - A cursor that equals the cursor just sent ends the chain, with a warning in development. An empty block ends
