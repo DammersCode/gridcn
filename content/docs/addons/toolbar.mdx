@@ -163,7 +163,7 @@ Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server
 
 | Prop | Type | Default | Meaning |
 |---|---|---|---|
-| `fetchFilterValues` | `(ctx) => Promise<{ values: { label: string; count?: number }[] }>` | none | Returns the values of one column. Without it, the list reads the loaded rows. |
+| `fetchFilterValues` | `(ctx) => Promise<{ values: { value: string; label?: string; count?: number }[] }>` | none | Returns the values of one column. Without it, the list reads the loaded rows. |
 
 The `ctx` object holds:
 
@@ -174,9 +174,11 @@ The `ctx` object holds:
 | `filters` | Every filter except the set filter of this column. Use it to count values over the other filters, or ignore it. |
 | `signal` | Aborts when the search changes, the popover closes, or the grid unmounts. |
 
+Each value has a `value` and an optional `label` <NewBadge />. The filter stores `value`, so `filterState`, the URL, and the spec your server receives hold the code. The list shows `label`, and shows `value` when `label` is absent. Return `{ value: "DE", label: "Germany" }` for a country code column.
+
 The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request shows one error line, and the next open asks again. Set the texts with `toolbar.headerFilterLoading` and `toolbar.headerFilterError`.
 
-A column with `options.choices` keeps its declared list and never calls `fetchFilterValues`. The grid reads at most 1,000 values from an answer and renders each label as text. A header filter over server values stores the checked values with `isAnyOf`, and the popover does not show the "From loaded rows" hint. Checked values stay checked when a search hides them.
+A column with `options.choices` keeps its declared list and never calls `fetchFilterValues`. The grid reads at most 1,000 values from an answer and renders each label as text. A header filter over server values stores the checked `value` entries with `isAnyOf`, and the popover does not show the "From loaded rows" hint. Checked values stay checked when a search hides them.
 
 <Callout type="warn">
   Without `fetchFilterValues`, scroll mode, `sortMode="server"`, or `filterMode="server"` make the list show only the values of the loaded rows. A value

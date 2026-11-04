@@ -642,8 +642,8 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
  */
 export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
 
-/** One value a server offers for a set filter: `label` is the cell text a filter entry stores; `count` is the matching row count. */
-export type FilterValue = { label: string; count?: number };
+/** One value a server offers for a set filter: `value` is what a filter entry stores (a code or id); `label` is the text the list shows, `value` when absent; `count` is the matching row count. */
+export type FilterValue = { value: string; label?: string; count?: number };
 
 /**
  * The request `fetchFilterValues` receives. `query` is the raw text of the popover search box (untrusted).
@@ -652,7 +652,7 @@ export type FilterValue = { label: string; count?: number };
  */
 export type FetchFilterValuesContext = { columnId: string; query: string; filters: readonly FilterNode[]; signal: AbortSignal };
 
-/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 labels. */
+/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 values. */
 export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;
 
 /** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */

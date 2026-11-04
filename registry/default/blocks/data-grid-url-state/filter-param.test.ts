@@ -302,3 +302,10 @@ describe("filter groups in the URL", () => {
     expect(serializeFilterState(deep)).toBe("[or,[and,name:contains:B,],]");
   });
 });
+
+describe("coded set values", () => {
+  it("round-trips the code of a value whose label differs", () => {
+    const filters = [{ columnId: "country", operator: "isAnyOf" as const, value: ["DE", "F|R"] }];
+    expect(parseFilterState(serializeFilterState(filters))).toEqual(filters);
+  });
+});

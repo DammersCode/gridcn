@@ -36,24 +36,29 @@ export function mergeKnownValues(
   return merged;
 }
 
-/** Reads an untrusted provider response: string labels only, one entry per lowercase key, at most {@link MAX_SET_FILTER_ENTRIES}. `null` when the shape is wrong. */
+/** Reads an untrusted provider response: string values only, one entry per lowercase value, at most {@link MAX_SET_FILTER_ENTRIES}. `null` when the shape is wrong. */
 export function sanitizeServerValues(response: unknown): { options: ServerFilterOption[]; capped: boolean } | null {
   const values = (response as { values?: unknown } | null)?.values;
   if (!Array.isArray(values)) return null;
   const byKey = new Map<string, ServerFilterOption>();
   let capped = false;
   for (const entry of values) {
-    const label = (entry as { label?: unknown } | null)?.label;
-    if (typeof label !== "string") continue;
-    const text = label.slice(0, MAX_LABEL_LENGTH);
+    const value = (entry as { value?: unknown } | null)?.value;
+    if (typeof value !== "string") continue;
+    const text = value.slice(0, MAX_LABEL_LENGTH);
     const key = text.toLowerCase();
     if (byKey.has(key)) continue;
     if (byKey.size >= MAX_SET_FILTER_ENTRIES) {
       capped = true;
       break;
     }
-    const count = (entry as { count?: unknown }).count;
-    byKey.set(key, { key, label: text, text, count: typeof count === "number" && Number.isSafeInteger(count) && count >= 0 ? count : undefined });
+    const { label, count } = entry as { label?: unknown; count?: unknown };
+    byKey.set(key, {
+      key,
+      label: typeof label === "string" ? label.slice(0, MAX_LABEL_LENGTH) : text,
+      text,
+      count: typeof count === "number" && Number.isSafeInteger(count) && count >= 0 ? count : undefined,
+    });
   }
   return { options: [...byKey.values()], capped };
 }

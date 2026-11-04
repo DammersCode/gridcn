@@ -24,12 +24,23 @@ function setup(fetchFilterValues: FetchFilterValues | undefined, column: ColumnD
 
 describe("sanitizeServerValues", () => {
   it("keeps string labels once per lowercase key and drops everything else", () => {
-    const result = sanitizeServerValues({ values: [{ label: "Berlin", count: 3 }, { label: "BERLIN" }, { label: 7 }, null, { label: "Rome", count: -1 }, { label: "" }] });
+    const result = sanitizeServerValues({ values: [{ value: "Berlin", count: 3 }, { value: "BERLIN" }, { value: 7 }, null, { value: "Rome", count: -1 }, { value: "" }] });
     expect(result?.options.map((o) => [o.key, o.text, o.count])).toEqual([["berlin", "Berlin", 3], ["rome", "Rome", undefined], ["", "", undefined]]);
   });
 
+  it("keeps the value as the filter text and the label as the shown text", () => {
+    const result = sanitizeServerValues({ values: [{ value: "DE", label: "Germany", count: 2 }, { value: "FR" }, { value: "de", label: "dup" }, { label: "only label" }, { value: 3, label: "x" }] });
+    expect(result?.options.map((o) => [o.key, o.text, o.label])).toEqual([["de", "DE", "Germany"], ["fr", "FR", "FR"]]);
+  });
+
+  it("cuts a label at the length bound and ignores a non-string label", () => {
+    const result = sanitizeServerValues({ values: [{ value: "a", label: "x".repeat(5000) }, { value: "b", label: 5 }] });
+    expect(result?.options[0]?.label).toHaveLength(1000);
+    expect(result?.options[1]?.label).toBe("b");
+  });
+
   it("caps the list and flags it", () => {
-    const values = Array.from({ length: MAX_SET_FILTER_ENTRIES + 5 }, (_, i) => ({ label: `v${i}` }));
+    const values = Array.from({ length: MAX_SET_FILTER_ENTRIES + 5 }, (_, i) => ({ value: `v${i}` }));
     const result = sanitizeServerValues({ values });
     expect(result?.options).toHaveLength(MAX_SET_FILTER_ENTRIES);
     expect(result?.capped).toBe(true);
@@ -53,7 +64,7 @@ describe("useServerFilterValues", () => {
   });
 
   it("loads the list and passes the search through raw", async () => {
-    const fetchFilterValues = vi.fn<FetchFilterValues>(async () => ({ values: [{ label: "Berlin", count: 2 }] }));
+    const fetchFilterValues = vi.fn<FetchFilterValues>(async () => ({ values: [{ value: "Berlin", count: 2 }] }));
     const { result, rerender } = setup(fetchFilterValues);
     expect(result.current?.status).toBe("loading");
     await waitFor(() => expect(result.current?.status).toBe("ready"));
@@ -74,7 +85,7 @@ describe("useServerFilterValues", () => {
 
   it("aborts the request on a new search and on unmount, and ignores the aborted result", async () => {
     const signals: AbortSignal[] = [];
-    const resolvers: ((v: { values: { label: string }[] }) => void)[] = [];
+    const resolvers: ((v: { values: { value: string }[] }) => void)[] = [];
     const fetchFilterValues: FetchFilterValues = ({ signal }) => {
       signals.push(signal);
       return new Promise((resolve) => resolvers.push(resolve));
@@ -82,9 +93,9 @@ describe("useServerFilterValues", () => {
     const { result, rerender, unmount } = setup(fetchFilterValues);
     rerender({ search: "b" });
     expect(signals[0]!.aborted).toBe(true);
-    await act(async () => resolvers[0]!({ values: [{ label: "Stale" }] }));
+    await act(async () => resolvers[0]!({ values: [{ value: "Stale" }] }));
     expect(result.current?.options).toEqual([]);
-    await act(async () => resolvers[1]!({ values: [{ label: "Fresh" }] }));
+    await act(async () => resolvers[1]!({ values: [{ value: "Fresh" }] }));
     expect(result.current?.options.map((o) => o.text)).toEqual(["Fresh"]);
     rerender({ search: "bb" });
     unmount();
@@ -92,10 +103,10 @@ describe("useServerFilterValues", () => {
   });
 
   it("keeps the previous list while a new search loads", async () => {
-    let resolveSecond: (v: { values: { label: string }[] }) => void = () => {};
+    let resolveSecond: (v: { values: { value: string }[] }) => void = () => {};
     const fetchFilterValues = vi
       .fn<FetchFilterValues>()
-      .mockResolvedValueOnce({ values: [{ label: "Berlin" }] })
+      .mockResolvedValueOnce({ values: [{ value: "Berlin" }] })
       .mockImplementationOnce(() => new Promise((resolve) => (resolveSecond = resolve)));
     const { result, rerender } = setup(fetchFilterValues);
     await waitFor(() => expect(result.current?.status).toBe("ready"));

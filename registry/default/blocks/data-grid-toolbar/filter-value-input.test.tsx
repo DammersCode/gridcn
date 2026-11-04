@@ -104,7 +104,7 @@ describe("DataGridFilterValueInput", () => {
 
   it("lists the provider values for isAnyOf, keeps selected values the list does not show, and skips the local pass", async () => {
     const columns: readonly ColumnDef<{ id: string; city: string }, unknown>[] = [{ id: "city", header: "City", accessorKey: "city" }];
-    const fetchFilterValues = vi.fn(async () => ({ values: [{ label: "Paris", count: 4 }, { label: "Rome" }] }));
+    const fetchFilterValues = vi.fn(async () => ({ values: [{ value: "Paris", count: 4 }, { value: "Rome" }] }));
     const onValueChange = vi.fn();
     render(
       <DataGridProvider data={[{ id: "1", city: "Local" }]} columns={columns} getRowId={(r) => r.id} fetchFilterValues={fetchFilterValues}>
@@ -118,6 +118,23 @@ describe("DataGridFilterValueInput", () => {
     expect(fetchFilterValues).toHaveBeenCalledWith(expect.objectContaining({ columnId: "city", query: "" }));
     fireEvent.click(options[1]!);
     expect(onValueChange).toHaveBeenCalledWith(["Paris", "Rome", "gone"]);
+  });
+
+  it("shows the label of a coded value and stores its code", async () => {
+    const columns: readonly ColumnDef<{ id: string; country: string }, unknown>[] = [{ id: "country", header: "Country", accessorKey: "country" }];
+    const fetchFilterValues = vi.fn(async () => ({ values: [{ value: "DE", label: "Germany" }, { value: "FR", label: "France" }] }));
+    const onValueChange = vi.fn();
+    render(
+      <DataGridProvider data={[{ id: "1", country: "DE" }]} columns={columns} getRowId={(r) => r.id} fetchFilterValues={fetchFilterValues}>
+        <DataGridFilterValueInput column={columns[0] as AnyColumnDef} operator="isAnyOf" value={["DE"]} onValueChange={onValueChange} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["Germany", "France"]);
+    expect(options.map((o) => o.getAttribute("aria-selected"))).toEqual(["true", "false"]);
+    fireEvent.click(options[1]!);
+    expect(onValueChange).toHaveBeenCalledWith(["DE", "FR"]);
   });
 });
 
