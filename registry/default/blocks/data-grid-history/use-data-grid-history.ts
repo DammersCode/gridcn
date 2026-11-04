@@ -246,13 +246,10 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
             if (swapped.get(row) === -1) swapped.set(row, index);
           });
           const getRowId = ctx.api.store.getState().getRowId;
-          let rewritten = false;
-          for (const op of change.ops) {
-            if (op.type !== "update") continue;
-            const newId = getRowId(op.row, Math.max(0, swapped.get(op.row) ?? 0));
-            if (history.replaceRowId(op.rowId, newId, op.prev, op.row)) rewritten = true;
-          }
-          if (rewritten) forceUpdate((n) => n + 1);
+          const swaps = change.ops.flatMap((op) =>
+            op.type === "update" ? [{ oldId: op.rowId, newId: getRowId(op.row, Math.max(0, swapped.get(op.row) ?? 0)), oldRow: op.prev, newRow: op.row }] : [],
+          );
+          if (history.replaceRowIds(swaps)) forceUpdate((n) => n + 1);
           return;
         }
         if (change.source === "history") return;

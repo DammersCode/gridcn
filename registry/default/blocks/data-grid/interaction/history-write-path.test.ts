@@ -167,3 +167,16 @@ describe("createHistory dropRows", () => {
     expect(history.size).toBe(1);
   });
 });
+
+describe("replaceRowIds at scale", () => {
+  it("rewrites a 5k-op entry for 5k swaps in one pass", () => {
+    const history = createHistory<{ id: string; name: string }>();
+    const ops = Array.from({ length: 5000 }, (_, i) => ({ type: "insert" as const, rowId: `t${i}`, row: { id: `t${i}`, name: "n" }, index: i }));
+    history.push({ source: "row-operation", ops });
+    const swaps = Array.from({ length: 5000 }, (_, i) => ({ oldId: `t${i}`, newId: `s${i}`, oldRow: { id: `t${i}`, name: "n" }, newRow: { id: `s${i}`, name: "n" } }));
+    const start = performance.now();
+    expect(history.replaceRowIds(swaps)).toBe(true);
+    expect(performance.now() - start).toBeLessThan(300);
+    expect(history.undo()!.ops.map((op) => op.rowId)).toContain("s4999");
+  });
+});

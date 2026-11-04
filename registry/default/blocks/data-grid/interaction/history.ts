@@ -216,6 +216,8 @@ export type History<TData> = {
    * object goes. True when any entry changed.
    */
   replaceRowId(oldId: string, newId: string, oldRow: TData, newRow: TData): boolean;
+  /** {@link History.replaceRowId} for many rows in one pass over the entries. */
+  replaceRowIds(swaps: readonly { oldId: string; newId: string; oldRow: TData; newRow: TData }[]): boolean;
   /** Removes the `ops` on `rowIds` from every entry; an entry left without `ops` goes. True when any entry changed. */
   dropRows(rowIds: Iterable<string>): boolean;
   /** Whether `undo()` would return a change. */
@@ -324,8 +326,11 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
       return true;
     },
     replaceRowId(oldId, newId, oldRow, newRow) {
-      const patch = rowPatch(oldRow, newRow);
-      const patchRow = (row: TData): TData | null => {
+      return this.replaceRowIds([{ oldId, newId, oldRow, newRow }]);
+    },
+    replaceRowIds(swaps) {
+      const bySource = new Map(swaps.map((swap) => [swap.oldId, { newId: swap.newId, patch: rowPatch(swap.oldRow, swap.newRow) }] as const));
+      const patchRow = (row: TData, patch: ReturnType<typeof rowPatch>): TData | null => {
         if (!patch || !isPlainObject(row)) return null;
         const next: Record<string, unknown> = { ...row };
         for (const key of patch.unset) delete next[key];
@@ -333,15 +338,16 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
         return next as TData;
       };
       const rewriteOp = (op: DataOp<TData>): DataOp<TData> | null => {
-        if (op.rowId !== oldId) return op;
-        const row = patchRow(op.row);
+        const swap = bySource.get(op.rowId);
+        if (!swap) return op;
+        const row = patchRow(op.row, swap.patch);
         if (!row) return null;
-        if (op.type !== "update") return { ...op, rowId: newId, row };
-        const prev = patchRow(op.prev);
-        return prev ? { ...op, rowId: newId, row, prev } : null;
+        if (op.type !== "update") return { ...op, rowId: swap.newId, row };
+        const prev = patchRow(op.prev, swap.patch);
+        return prev ? { ...op, rowId: swap.newId, row, prev } : null;
       };
       return rewrite((entry) => {
-        if (!entry.ops.some((op) => op.rowId === oldId)) return entry;
+        if (!entry.ops.some((op) => bySource.has(op.rowId))) return entry;
         const ops: DataOp<TData>[] = [];
         for (const op of entry.ops) {
           const mapped = rewriteOp(op);

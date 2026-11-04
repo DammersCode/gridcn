@@ -384,7 +384,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
   const refusedPrev = new Map<string, Map<string, Map<unknown, unknown>>>();
   const MAX_FAILED_ROWS = 10_000;
-  const MAX_CHAINED_CELLS = 10_000;
+  const MAX_CHAINED_ROWS = 10_000;
   const dropChains = (rowId: string): void => {
     refusedPrev.delete(rowId);
   };
@@ -579,7 +579,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             entry.answer = normalizeResolution(answer);
             continue;
           }
-          const aborted = new Promise<void>((resolve) => controller.signal.addEventListener("abort", () => resolve(), { once: true }));
+          const aborted = new Promise<void>((resolve) => {
+            if (controller.signal.aborted) resolve();
+            else controller.signal.addEventListener("abort", () => resolve(), { once: true });
+          });
           waiting.push(
             Promise.race([
               aborted,
@@ -601,7 +604,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           }
         } else {
           try {
-          if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
+          if (refusedPrev.size > MAX_CHAINED_ROWS) refusedPrev.clear();
           const currentRows = usableCurrentRows(s, aliased, rejected, seq, deleteOps);
           const answers = new Map<string, SaveResolution<unknown>>();
           for (const [origin, entry] of asked) {
@@ -667,14 +670,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         finish();
       });
     };
-    try {
-      result.then(
-        (ack) => settle(ack, undefined, false),
-        (error: unknown) => settle(undefined, error, true),
-      );
-    } catch (error) {
-      settle(undefined, error, true);
-    }
+    Promise.resolve(result).then(
+      (ack) => settle(ack, undefined, false),
+      (error: unknown) => settle(undefined, error, true),
+    );
   };
 
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
@@ -1385,10 +1384,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (s.readOnly || swaps.length === 0) return;
       const indexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       const claimed = new Set<string>();
+      const swappedOld = new Set<string>();
       const plan: { oldId: string; newId: string; index: number; row: unknown }[] = [];
       for (const { oldId, row } of swaps) {
         const index = indexById.get(oldId);
-        if (index === undefined || claimed.has(`old:${oldId}`)) {
+        if (index === undefined || swappedOld.has(oldId)) {
           warnGateOnce("replaceRowId unknown", `replaceRowId: no row has the id "${oldId}", or it is swapped twice, so that swap was skipped`);
           continue;
         }
@@ -1403,7 +1403,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           warnGateOnce("replaceRowId taken", `replaceRowId: another row already has the id "${newId}", so that swap was skipped`);
           continue;
         }
-        claimed.add(`old:${oldId}`);
+        swappedOld.add(oldId);
         claimed.add(newId);
         plan.push({ oldId, newId, index, row });
       }
