@@ -38,7 +38,8 @@ export type ServerRowsAnswer<TData, TCursor = never> = {
 
 /** An answer after validation. */
 export type ReadAnswer<TData, TCursor = never> = {
-  rows: TData[];
+  /** The answer's rows in order; a later copy of a repeated id is `undefined`, so the other rows keep their positions. */
+  rows: (TData | undefined)[];
   /** `undefined` keeps the last known count. */
   totalRowCount: number | null | undefined;
   hasMore: boolean;
@@ -60,7 +61,7 @@ export function readAnswer<TData, TCursor = never>(
   const raw = answer as Partial<ServerRowsAnswer<TData, TCursor>> | null | undefined;
   if (!Array.isArray(raw?.rows)) throw new TypeError("fetchRows of useDataGridServerRows must resolve with { rows: TData[] }");
   const limit = range.end - range.start;
-  let rows = raw.rows;
+  let rows: (TData | undefined)[] = raw.rows;
   if (rows.length > limit) {
     warn("long", `fetchRows returned ${rows.length} rows for a request of ${limit}; only the first ${limit} are used`);
     rows = rows.slice(0, limit);
@@ -80,7 +81,7 @@ export function readAnswer<TData, TCursor = never>(
     warn("count", "totalRowCount must be a non-negative integer or null; treating the count as unknown");
   }
   const full = rows.length === limit;
-  if (idOf) rows = firstCopies(rows, idOf, range.start, warn);
+  if (idOf) rows = firstCopies(rows as TData[], idOf, range.start, warn);
   return {
     rows,
     totalRowCount,
@@ -90,16 +91,19 @@ export function readAnswer<TData, TCursor = never>(
   };
 }
 
-/** Keeps the first row of each id, so one answer never puts the same id twice into the grid. */
-function firstCopies<TData>(rows: TData[], idOf: (row: TData, index: number) => string, start: number, warn: (kind: string, message: string) => void): TData[] {
+/** Keeps the first row of each id and blanks the later copies, so one answer never puts the same id twice into the grid. */
+function firstCopies<TData>(rows: TData[], idOf: (row: TData, index: number) => string, start: number, warn: (kind: string, message: string) => void): (TData | undefined)[] {
   const seen = new Set<string>();
-  const kept: TData[] = [];
-  rows.forEach((row, index) => {
+  let repeated = false;
+  const kept = rows.map((row, index) => {
     const id = idOf(row, start + index);
-    if (seen.has(id)) return;
+    if (seen.has(id)) {
+      repeated = true;
+      return undefined;
+    }
     seen.add(id);
-    kept.push(row);
+    return row;
   });
-  if (kept.length < rows.length) warn("duplicate", "fetchRows returned a duplicate row id; only the first row of each id is used, so make the sort total (add the row id as a last sort key)");
+  if (repeated) warn("duplicate", "fetchRows returned a duplicate row id; only the first row of each id is used, so make the sort total (add the row id as a last sort key)");
   return kept;
 }

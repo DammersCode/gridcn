@@ -7,7 +7,7 @@ import { useDataGridPagination, type DataGridPaginationControls } from "@/regist
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, unionIds, useRefreshGuard } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard } from "./refresh-guard";
 import { isolate, useControlled, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
@@ -67,7 +67,7 @@ export type UseDataGridServerRowsResult<TData> = {
   error: unknown;
   /** Repeats the request that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. Call it after the `onSave` promise settles to pick up server-computed fields. */
+  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with a pending delete is gone: the answer's copy is dropped. A protected row that the answer lacks, such as a pending insert, stays. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. Call it after the `onSave` promise settles to pick up server-computed fields. */
   refresh: () => void;
 };
 
@@ -99,7 +99,7 @@ export type UseDataGridServerRowsRootProps = {
   onRetry: () => void;
 };
 
-type Settled<TData> = { key: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown };
+type Settled<TData> = { key: string; view: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown };
 
 /**
  * One server data source for the grid. It owns the sort, filter, and search unless you control them, aborts the request a
@@ -137,9 +137,11 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   });
   const [tick, setTick] = useState(0);
   const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows } = useRefreshGuard();
-  const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
+  const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
-  const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
+  const view = `${serverSpecKey(spec)}|${page}|${pageSize}`;
+  const key = `${view}|${tick}`;
+  const deleted = useRef(new Set<string>());
 
   const warned = useRef(new Set<string>());
 
@@ -150,6 +152,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     const protectedAtStart = savingRows();
     const markAtStart = saveMark();
     pruneSaves(markAtStart);
+    pruneIds(deleted.current, protectedAtStart);
     const start = (requestPage - 1) * requestSize;
     const range: RowRange = { start, end: start + requestSize };
     const warn = (kind: string, message: string) => {
@@ -173,7 +176,8 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         pruneSaves(null);
         setSettled((prev) => ({
           key,
-          rows: keepProtectedRows(read.rows, prev.rows, guarded, live.current.options.getRowId),
+          view,
+          rows: keepProtectedRows(read.rows.filter((row) => row !== undefined) as TData[], prev.rows, guarded, deleted.current, prev.view === view, live.current.options.getRowId),
           totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
           hasMore: read.hasMore,
           error: null,
@@ -227,6 +231,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
 
   const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
     markEdited();
+    trackDeletes(deleted.current, change);
     setSettled((prev) => ({ ...prev, rows: next as TData[] }));
     live.current.options.onDataChange?.(next, change);
   }, [markEdited]);

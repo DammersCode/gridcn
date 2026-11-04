@@ -6,8 +6,9 @@ import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-gr
 
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
- * cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. Everything
- * else is replaced. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
+ * cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with
+ * a pending delete is gone: the answer's copy is dropped. A protected row that the answer lacks, such as a pending insert, stays.
+ * Everything else is replaced. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
  * loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
  */
 
@@ -96,15 +97,44 @@ export function useRefreshGuard() {
 export const GUARD_MISSING_MESSAGE =
   "refresh cannot protect rows with a pending save or an open edit because the refresh guard plugin never mounted; if you pass your own `plugins` prop to the provider, put ...gridProps.plugins first in it";
 
-/** Keeps the local value of each protected row in an incoming page, matched by id. */
-export function keepProtectedRows<TData>(incoming: readonly TData[], current: readonly TData[], guarded: ProtectedRows, idOf: (row: TData, index: number) => string): TData[] {
-  if (guarded === null) return incoming as TData[];
+/** Applies the rule to an incoming page: a deleted row is dropped, a protected row keeps its local value by id, and a protected row the page lacks stays at the end. */
+export function keepProtectedRows<TData>(
+  incoming: readonly TData[],
+  current: readonly TData[],
+  guarded: ProtectedRows,
+  deleted: ReadonlySet<string>,
+  keepMissing: boolean,
+  idOf: (row: TData, index: number) => string,
+): TData[] {
+  if (guarded === null && deleted.size === 0) return incoming as TData[];
   const local = new Map<string, TData>();
   current.forEach((row, index) => {
     const id = idOf(row, index);
-    if (guarded.has(id)) local.set(id, row);
+    if (guarded?.has(id)) local.set(id, row);
   });
-  return incoming.map((row, index) => local.get(idOf(row, index)) ?? row);
+  const placed = new Set<string>();
+  const page: TData[] = [];
+  incoming.forEach((row, index) => {
+    const id = idOf(row, index);
+    if (deleted.has(id)) return;
+    placed.add(id);
+    page.push(local.get(id) ?? row);
+  });
+  if (keepMissing) for (const [id, row] of local) if (!placed.has(id) && !deleted.has(id)) page.push(row);
+  return page;
+}
+
+/** Notes the rows a change deleted, and forgets a row that a change inserted again. */
+export function trackDeletes(deleted: Set<string>, change: { ops: readonly { type: string; rowId: string }[] }) {
+  for (const op of (change.ops as typeof change.ops | undefined) ?? []) {
+    if (op.type === "delete") deleted.add(op.rowId);
+    else if (op.type === "insert") deleted.delete(op.rowId);
+  }
+}
+
+/** Drops the rows whose delete is no longer pending. */
+export function pruneIds(ids: Set<string>, stillSaving: ProtectedRows) {
+  for (const id of ids) if (!stillSaving?.has(id)) ids.delete(id);
 }
 
 /** The union of two protected sets; either may be `null`. */
@@ -123,16 +153,24 @@ export function stashGuardedRows<TData>(
   guarded: ReadonlySet<string>,
   into: Map<string, TData>,
   idOf: (row: TData, index: number) => string,
+  orphans: Map<string, { row: TData; slot: number }>,
 ) {
   for (const { start, end } of ranges) {
     for (let index = start; index < Math.min(end, rows.length); index++) {
       const row = rows[index];
-      if (row !== undefined && guarded.has(idOf(row, index))) into.set(idOf(row, index), row);
+      if (row !== undefined && guarded.has(idOf(row, index))) {
+        into.set(idOf(row, index), row);
+        orphans.set(idOf(row, index), { row, slot: index });
+      }
     }
   }
 }
 
-function findSlot<TData>(rows: readonly (TData | undefined)[], ranges: readonly { start: number; end: number }[], id: string, idOf: (row: TData, index: number) => string): number {
+function findSlot<TData>(rows: readonly (TData | undefined)[], ranges: readonly { start: number; end: number }[], id: string, idOf: (row: TData, index: number) => string, near: number): number {
+  for (const index of [near - 1, near + 1]) {
+    const row = rows[index];
+    if (row !== undefined && idOf(row, index) === id) return index;
+  }
   for (const { start, end } of ranges) {
     for (let index = start; index < Math.min(end, rows.length); index++) {
       const row = rows[index];
@@ -154,11 +192,16 @@ export function writeBlocks<TData>(
   displaced: Map<string, TData>,
   ranges: readonly { start: number; end: number }[],
   idOf: (row: TData, index: number) => string,
+  memory: { orphans: Map<string, { row: TData; slot: number }>; carried: Set<string> },
+  final = false,
 ): { rows: (TData | undefined)[]; cleared: number[] } {
   const next = prev.slice();
   const emptied: number[] = [];
+  const { carried, orphans: overwritten } = memory;
+  const stillProtected = new Set<string>();
   for (const { start, rows, guard } of blocks) {
     const guarded = unionIds(guard, live);
+    if (guarded !== null) for (const id of guarded) stillProtected.add(id);
     for (let i = 0; i < rows.length && start + i < next.length; i++) {
       const slot = start + i;
       const incoming = rows[i];
@@ -169,10 +212,14 @@ export function writeBlocks<TData>(
       const occupant = next[slot];
       const occupantId = occupant === undefined ? undefined : idOf(occupant, slot);
       const incomingId = incoming === undefined ? undefined : idOf(incoming, slot);
+      if (incomingId !== undefined) carried.add(incomingId);
       if (incomingId !== undefined && guarded.has(incomingId)) {
         if (occupantId === incomingId) continue;
-        if (occupantId !== undefined && guarded.has(occupantId)) displaced.set(occupantId, occupant as TData);
-        const from = findSlot(next, ranges, incomingId, idOf);
+        if (occupantId !== undefined && guarded.has(occupantId)) {
+          displaced.set(occupantId, occupant as TData);
+          overwritten.set(occupantId, { row: occupant as TData, slot });
+        }
+        const from = findSlot(next, ranges, incomingId, idOf, slot);
         const local = from >= 0 ? next[from] : displaced.get(incomingId);
         next[slot] = local ?? incoming;
         if (local !== undefined && from >= 0) {
@@ -181,8 +228,21 @@ export function writeBlocks<TData>(
         }
         continue;
       }
-      if (occupantId !== undefined && guarded.has(occupantId)) displaced.set(occupantId, occupant as TData);
+      if (occupantId !== undefined && guarded.has(occupantId)) {
+        displaced.set(occupantId, occupant as TData);
+        overwritten.set(occupantId, { row: occupant as TData, slot });
+      }
       next[slot] = incoming;
+    }
+  }
+  // Nothing else is loading, so a protected row that the answer does not carry (a pending insert) stays where it was.
+  if (final) {
+    for (const [id, { row, slot }] of overwritten) {
+      if (carried.has(id) || !stillProtected.has(id)) continue;
+      if (next[slot] !== undefined && idOf(next[slot] as TData, slot) === id) continue;
+      let at = slot;
+      while (at < next.length && next[at] !== undefined && stillProtected.has(idOf(next[at] as TData, at))) at++;
+      if (at < next.length) next[at] = row;
     }
   }
   return { rows: next, cleared: emptied.filter((slot) => next[slot] === undefined) };

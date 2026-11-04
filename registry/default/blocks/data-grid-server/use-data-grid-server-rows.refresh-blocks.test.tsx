@@ -43,7 +43,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL,
   function Harness() {
     server = useDataGridServerRows<Row, number>({ mode: "scroll", getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
     return (
-      <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave}>
+      <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave} createRow={() => ({ id: "loc", name: "Local" })}>
         <DataGridRoot>
           <Probe />
         </DataGridRoot>
@@ -379,6 +379,11 @@ describe.each<Source>(["counted", "cursor"])("an answer that repeats a protected
     expect(new Set(ids).size).toBe(ids.length);
     expect(t.nameOf("r3")).toBe("Saved");
     expect(t.requests() - before).toBeLessThan(6);
+    const afterRefresh = t.requests();
+    t.window(25);
+    t.window(5);
+    await t.ready();
+    expect(t.requests() - afterRefresh).toBeLessThan(6);
   });
 
   it("warns once about a duplicate id that the server repeats", async () => {
@@ -404,6 +409,34 @@ describe("a local row operation on a random-access source", () => {
     act(() => t.server().refresh());
     await t.ready();
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    const ids = t.ids();
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(t.nameOf("r1")).toBeUndefined();
+  });
+
+  it("keeps a row inserted locally while its save is pending", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.insertRow(3, "below"));
+    await t.ready();
+    act(() => t.server().refresh());
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.nameOf("loc")).toBe("Local");
+    const ids = t.ids();
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("a pending delete on a sequential source", () => {
+  it("keeps the row gone when a refresh brings it back from the server", async () => {
+    const t = setup("cursor");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.deleteRowsById(["r1"]));
+    act(() => t.server().refresh());
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.nameOf("r1")).toBeUndefined();
     const ids = t.ids();
     expect(new Set(ids).size).toBe(ids.length);
   });

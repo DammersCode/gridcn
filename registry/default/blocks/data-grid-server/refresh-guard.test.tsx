@@ -4,7 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
-import { useRefreshGuard } from "./refresh-guard";
+import { pruneIds, trackDeletes, useRefreshGuard } from "./refresh-guard";
 
 type Row = { id: string; name: string };
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as const);
@@ -57,5 +57,18 @@ describe("the save log", () => {
     const mark = t.guard().saveMark();
     for (let round = 0; round < 3; round++) t.save(0, 20);
     expect(t.guard().savedSince(mark)?.size).toBe(20);
+  });
+});
+
+describe("pending deletes", () => {
+  it("tracks deleted ids, forgets a restored row, and drops the ids whose save settled", () => {
+    const deleted = new Set<string>();
+    trackDeletes(deleted, { ops: [{ type: "delete", rowId: "a" }, { type: "delete", rowId: "b" }, { type: "delete", rowId: "c" }] });
+    trackDeletes(deleted, { ops: [{ type: "insert", rowId: "b" }] });
+    expect([...deleted]).toEqual(["a", "c"]);
+    pruneIds(deleted, new Set(["c"]));
+    expect([...deleted]).toEqual(["c"]);
+    pruneIds(deleted, null);
+    expect(deleted.size).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
@@ -48,6 +48,10 @@ function createBackend() {
     visible,
     setFilter: (next: string) => (filter = next),
     prepend: () => rows.unshift({ id: `n${nextNew++}`, ver: 0 }),
+    removeById: (id: string) => {
+      const index = rows.findIndex((row) => row.id === id);
+      if (index >= 0) rows.splice(index, 1);
+    },
     remove: (index: number) => rows.length > 20 && rows.splice(index % rows.length, 1),
     bump: (index: number) => {
       const row = rows[index % rows.length];
@@ -65,6 +69,8 @@ type Request = {
   label: string;
   saving0: Set<string>;
   savedSince: Set<string>;
+  deleted0: Set<string>;
+  deletedSince: Set<string>;
   signal: AbortSignal;
   rows: Row[];
   start: number;
@@ -88,10 +94,13 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   let setReadOnly!: (value: boolean) => void;
   let setBlockSize!: (value: number) => void;
   let filterNow = "";
+  const pendingDeletes = new Set<string>();
+  let shownLabel = "";
   let editCount = 0;
   let localCount = 0;
   let fetchCalls = 0;
   let dirty = false;
+  let shifted = false;
   let refreshPending = false;
   let unmount: (() => void) | null = null;
 
@@ -102,9 +111,9 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     return ids;
   };
   let stepStartCalls = 0;
-  const open = (request: Omit<Request, "saving0" | "savedSince" | "label">, label: string) => {
+  const open = (request: Omit<Request, "saving0" | "savedSince" | "deleted0" | "deletedSince" | "label">, label: string) => {
     if (++fetchCalls - stepStartCalls > STEP_REQUEST_CAP) throw new Error("request loop");
-    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set() });
+    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set(), deleted0: new Set(pendingDeletes), deletedSince: new Set() });
   };
 
   const fetchScroll = (request: ServerRowsRequest<number>): Promise<ServerRowsAnswer<Row, number>> => {
@@ -133,14 +142,29 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     const all = backend.visible();
     const mapped = all.slice(request.start, request.end).map(backend.toRow);
     return new Promise((resolve, reject) => {
-      open({ signal: request.signal, rows: mapped, start: 0, land: () => resolve({ rows: mapped, totalRowCount: all.length }), fail: () => reject(new Error("boom")) }, `page ${request.page}`);
+      open({ signal: request.signal, rows: mapped, start: 0, land: () => resolve({ rows: mapped, totalRowCount: all.length }), fail: () => reject(new Error("boom")) }, `page ${request.page} ${filterNow}`);
     });
   };
 
   const onSave = (change: DataChange<Row>) => {
     const op = change.ops.find((candidate) => candidate.type === "update");
     const id = op && op.type === "update" ? op.rowId : "?";
-    return new Promise<void>((resolve, reject) => saves.push({ id, resolve, reject: () => reject(new Error("save failed")) }));
+    const deletes = change.ops.filter((candidate) => candidate.type === "delete").map((candidate) => candidate.rowId);
+    for (const rowId of deletes) {
+      pendingDeletes.add(rowId);
+      for (const request of held) request.deletedSince.add(rowId);
+    }
+    return new Promise<void>((resolve, reject) => {
+      const settle = () => deletes.forEach((rowId) => pendingDeletes.delete(rowId));
+      const persist = () => {
+        for (const rowId of deletes) backend.removeById(rowId);
+        if (deletes.length > 0) {
+          dirty = true;
+          refreshPending = false;
+        }
+      };
+      saves.push({ id, resolve: () => (settle(), persist(), resolve()), reject: () => (settle(), reject(new Error("save failed"))) });
+    });
   };
   const createRow = () => ({ id: `loc${localCount++}`, name: `local ${localCount}` });
   const getRowId = variant.indexIds ? (row: Row, index: number) => `${row.id}~${index}` : (row: Row) => row.id;
@@ -195,12 +219,13 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   function checkAlways() {
     const rows = data();
     const consistent = !dirty;
+    const settledLocally = !shifted;
     if (kind === "counted" || kind === "pages" || consistent) {
       for (const { start, end } of loadedRanges()) {
         for (let i = start; i < Math.min(end, rows.length); i++) expect(rows[i], `hole at ${i}`).toBeDefined();
       }
     }
-    if (consistent && !variant.indexIds) {
+    if (consistent && settledLocally && !variant.indexIds) {
       const ids = rows.filter(Boolean).map((row) => row!.id);
       expect(new Set(ids).size, `duplicate ids ${ids.filter((id, i) => ids.indexOf(id) !== i).join(",")}`).toBe(ids.length);
     }
@@ -214,24 +239,43 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     const preRows = data();
     const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
     if (state().editing) mustKeep.add(state().editing!.rowId);
-    const slotsExact = (kind === "counted" || kind === "pages") && !variant.repeatRows && !variant.indexIds;
+    const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
+    const soleRequest = live().length === 0 && (kind !== "pages" || shownLabel === request.label);
+    const slotsExact = (kind === "counted" || (kind === "pages" && gone.size === 0 && !variant.repeatRows)) && !variant.indexIds;
     request.land();
     await flush();
+    shownLabel = request.label;
     if (variant.indexIds) return;
     const post = data();
+    const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {
       const slot = kind === "pages" ? i : request.start + i;
       const copies = copiesOf(post, carried.id);
+      if (gone.has(carried.id)) {
+        expect(copies.length, `deleted ${carried.id} came back`).toBe(0);
+        return;
+      }
+      if (request.rows.findIndex((row) => row.id === carried.id) !== i) return;
       if (mustKeep.has(carried.id)) {
         const before = copiesOf(preRows, carried.id);
-        expect(copies.length, `protected ${carried.id} vanished`).toBeGreaterThan(0);
+        expect(copies.length, `protected ${carried.id} vanished (slot ${slot}, request ${request.label}, pre ${preRows.slice(0, 14).map((row) => row?.id ?? "_").join(",")}, post ${post.slice(0, 14).map((row) => row?.id ?? "_").join(",")}, carried ${request.rows.map((row) => row.id).join(",")}, protected ${[...mustKeep].join("/")})`).toBeGreaterThan(0);
         if (before.length > 0) expect(copies.some((copy) => before.some((old) => old.name === copy.name)), `protected ${carried.id} lost its local value (before ${before.map((old) => old.name).join("/")}, now ${copies.map((copy) => copy.name).join("/")}, request ${request.label})`).toBe(true);
         else expect(copies.some((copy) => copy.name === carried.name || copy.name === known.get(carried.id)), `protected ${carried.id} took a foreign value`).toBe(true);
         return;
       }
-      expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer`).toBe(true);
+      const hiddenBy = post[slot];
+      if (hiddenBy && mustKeep.has(hiddenBy.id) && !carriedIds.has(hiddenBy.id)) return;
+      expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer (slot ${slot} holds ${post[slot]?.id}, request ${request.label}, protected ${[...mustKeep].join("/")}, gone ${[...gone].join("/")}, copies ${copies.map((copy) => copy.name).join("/")})`).toBe(true);
       if (slotsExact && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
     });
+    if (soleRequest && (kind === "counted" || kind === "pages")) {
+      for (const id of mustKeep) {
+        const preSlot = preRows.findIndex((row) => row?.id === id);
+        if (gone.has(id) || carriedIds.has(id) || preSlot < 0) continue;
+        if (kind === "counted" && (preSlot < request.start || preSlot >= request.start + request.rows.length)) continue;
+        expect(copiesOf(post, id).length, `protected ${id} that the answer lacks vanished`).toBeGreaterThan(0);
+      }
+    }
   }
   const rowsById = (rows: readonly (Row | undefined)[]) => {
     const map = new Map<string, Row>();
@@ -318,8 +362,11 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         if (op === "insert") act(() => state().actions.insertRow(index, "below"));
         else if (op === "delete") act(() => state().actions.deleteRowsById([id]));
         else act(() => void state().actions.reorderRows(index, Math.max(0, index - 1 - rnd.int(3))));
-        dirty = true;
-        refreshPending = false;
+        shifted = true;
+        if (kind === "cursor" || kind === "offset") {
+          dirty = true;
+          refreshPending = false;
+        }
         await flush();
       }
     } else if (r < 0.87) {
@@ -345,6 +392,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       trace.push("noop");
     }
     if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
+    if (shifted && live().length === 0 && server().status !== "error") shifted = false;
     if (dirty && refreshPending && live().length === 0 && server().status !== "error") {
       dirty = false;
       refreshPending = false;
@@ -391,7 +439,11 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     step,
     drainAndCompare,
     start: async () => {
-      unmount = render(<Harness />).unmount;
+      unmount = render(
+        <StrictMode>
+          <Harness />
+        </StrictMode>,
+      ).unmount;
       await flush();
       const first = held[0];
       if (first) await land(first);
