@@ -250,6 +250,35 @@ describe("keyed sort matches the comparator-chain sort", () => {
     expect(view).toEqual(Array.from({ length: 400 }, (_, i) => i));
   });
 
+  it("orders an all-empty column in data order", () => {
+    const rows: Row[] = Array.from({ length: 400 }, (_, i) => ({ id: `r${i}`, name: i % 2 === 0 ? null : "", int: null }));
+    for (const columnId of ["name", "free", "int"]) {
+      const sorts = [spec(columnId, "desc")];
+      expect(actual(rows, sorts)).toEqual(expected(rows, sorts));
+    }
+  });
+
+  it("ranks canonically equivalent strings like the collator does", () => {
+    const forms = ["école", "école", "Ecole", "ecole", "zebra"];
+    const rows: Row[] = Array.from({ length: 500 }, (_, i) => ({ id: `r${i}`, name: forms[i % forms.length], free: forms[i % forms.length] }));
+    for (const columnId of ["name", "free"]) {
+      const sorts = [spec(columnId, "asc")];
+      expect(actual(rows, sorts)).toEqual(expected(rows, sorts));
+    }
+  });
+
+  it("matches when a value's toString throws", () => {
+    const rows: Row[] = Array.from({ length: 500 }, (_, i) => ({
+      id: `r${i}`,
+      name: i % 9 === 0 ? { toString: () => { throw new Error("boom"); } } : `n${i % 40}`,
+      free: i % 9 === 0 ? { toString: () => { throw new Error("boom"); } } : `n${i % 40}`,
+    }));
+    for (const columnId of ["name", "free"]) {
+      const sorts = [spec(columnId, "asc")];
+      expect(actual(rows, sorts)).toEqual(expected(rows, sorts));
+    }
+  });
+
   it("leaves the input rows and column definitions untouched", () => {
     const rows = makeRows(600, 91);
     const snapshot = JSON.stringify(rows);

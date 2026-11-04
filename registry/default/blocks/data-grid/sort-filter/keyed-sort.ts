@@ -93,7 +93,7 @@ function textKeys(
     }
     ids[position] = id;
   }
-  const ordered = distinct.slice().sort(compare);
+  const ordered = distinct.sort(compare);
   const rankOfId = new Uint32Array(distinct.length);
   let rank = 0;
   for (let i = 0; i < ordered.length; i++) {
@@ -221,6 +221,7 @@ function keysFor(indices: readonly number[], accessor: CellAccessor, sort: SortS
 export function sortByKeys(indices: readonly number[], accessor: CellAccessor, sorts: readonly SortSpec[]): number[] | null {
   if (!LITTLE_ENDIAN) return null;
   const count = indices.length;
+  if (sorts.some((sort) => !accessor.sortKeys?.(sort.columnId) && accessor.compare?.(sort.columnId))) return null;
   const keys: Keys[] = [];
   for (const sort of sorts) {
     const column = keysFor(indices, accessor, sort);

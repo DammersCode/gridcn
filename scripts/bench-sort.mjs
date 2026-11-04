@@ -205,10 +205,10 @@ async function measureOnce(impl, rows, sorts, filters) {
   const gcEntries = [];
   const observer = new PerformanceObserver((list) => gcEntries.push(...list.getEntries()));
   observer.observe({ entryTypes: ["gc"] });
+  const sampler = startRssSampler();
+  await new Promise((r) => setTimeout(r, 50));
   const rssBefore = process.memoryUsage().rss;
   const heapBefore = process.memoryUsage().heapUsed + process.memoryUsage().arrayBuffers;
-  const sampler = startRssSampler();
-  await new Promise((r) => setTimeout(r, 20));
   const start = performance.now();
   const view = impl.computeViewIndex(rows, columnDefs, sorts, filters, undefined, impl.cellTypes);
   const ms = performance.now() - start;

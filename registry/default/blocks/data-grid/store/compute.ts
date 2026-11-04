@@ -692,6 +692,7 @@ export function layoutSnapshotsEqual(a: ColumnLayout, b: ColumnLayout): boolean 
 
 /** True when `a`/`b` have the same length and every element is `===`-equal at each position. */
 export function sameElements(a: readonly number[], b: readonly number[]): boolean {
+  if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false;

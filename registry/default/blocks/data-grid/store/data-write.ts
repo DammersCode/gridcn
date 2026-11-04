@@ -34,7 +34,7 @@ import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
-import { resolveCellRef, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
+import { resolveCellRef, patchesLeaveViewAlone, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
   offsetSelectionForRows,
@@ -1074,8 +1074,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
-      // A tick that writes no sort or filter column leaves a settled, search-free view where it is.
-      if (!s.viewStale && s.searchText.trim() === "" && !touchesViewInputs(patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
+      // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
+      const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
+      if (settled && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
         writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };

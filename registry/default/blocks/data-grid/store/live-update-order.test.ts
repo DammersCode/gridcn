@@ -83,4 +83,29 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
     store.getState().actions.updateCells([{ rowId: row.id, columnId: "score", value: row.score }], { reorder: "immediate" });
     expect(store.getState().viewIndex).toBe(before);
   });
+
+  it("re-places rows sorted by a derived column when a patch writes the field it reads", () => {
+    type Line = { id: string; price: number; qty: number };
+    const rand = seededRandom(9);
+    const data: Line[] = Array.from({ length: 600 }, (_, i) => ({ id: `l${i}`, price: Math.floor(rand() * 50), qty: 1 + Math.floor(rand() * 9) }));
+    const derived = [
+      { id: "price", header: "Price", accessorKey: "price", type: "number" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+      { id: "total", header: "Total", accessorFn: (row: Line) => row.price * row.qty, type: "number" },
+    ];
+    const store = createDataGridStore({
+      data,
+      columns: derived,
+      getRowId: (row: unknown) => (row as Line).id,
+      cellTypes: builtinCellTypes,
+    } as unknown as InternalSyncProps);
+    const sorts: SortSpec[] = [{ columnId: "total", direction: "asc" }];
+    store.getState().actions.setSorts(sorts);
+    for (let tick = 0; tick < 20; tick++) {
+      const rowId = `l${Math.floor(rand() * 600)}`;
+      store.getState().actions.updateCells([{ rowId, columnId: "price", value: Math.floor(rand() * 500) }], { reorder: "immediate" });
+      const s = store.getState();
+      expect(s.viewIndex, `tick ${tick}`).toEqual(computeViewIndex(s.data, s.columns, sorts, [], undefined, s.cellTypes));
+    }
+  });
 });
