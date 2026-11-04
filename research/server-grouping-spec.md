@@ -43,7 +43,7 @@ every shared type.
   `remapRowChannel` calls `rows.toArray()` (`compute.ts:134-154`); `readSelectedRows` puts every
   unchecked loaded row into `excludedIds` (`selected-rows.ts:43-48`); the checked count reads
   `selection.rows.length` (`announcements.ts:11-14`, `create-store.ts:115-117`); the header tri-state
-  reads every view row (`hooks.ts:700-704`); row markers read `rows.hasIndex` (`hooks.ts:443-448`).
+  reads every view row (`allRowsSelectedState`, `hooks.ts:707-712`); row markers read `rows.hasIndex` (`hooks.ts:443-448`).
 - The `rowId -> dataIndex` cache costs 10.1 ms at 100k rows (`row-index.ts:6-12`).
 - Pinned-row reducers count `""`, sum `[1, "5"]` to `"15"`, and give `undefined` for no input
   (`data-grid-pinned-rows/use-data-grid-aggregate.ts:21-44`); they map `viewIndex` straight to `data`
@@ -254,23 +254,22 @@ parameters. The server recipe and the ORM recipes mirror this, with a recipe tes
 - Group ids: `__group:` plus `encodeURIComponent(columnId)=encodeURIComponent(keyText)` per level,
   joined by `/`. Reserved row-id prefixes: `__group:`, `__pinned-`, `__lazy-unloaded-`. Every
   view-row reader moves to `viewEntryAt`.
-- 2.0 shape (also in `research/server-selection-spec.md`):
+- 2.0 type shape (also in `research/server-selection-spec.md`): `readSelectedRows` adds `groups: []`
+  in both modes and `spec` in ids mode; `ids`, `excludedIds`, and `count` stay the same until step 8:
 
 ```ts
 export type SelectedGroup = { groupId: string; path: readonly GroupPathSegment[]; checked: boolean };
 export type DataGridSelectedRows =
-  | { mode: "ids"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly string[]; count: number; spec: ServerSpec }
+  | { mode: "ids"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly []; count: number; spec: ServerSpec }
   | { mode: "allMatching"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly string[]; count: number | null; spec: ServerSpec };
-// `ids` and `excludedIds` are disjoint; `groups` stays [] until group checks ship.
+// `ids` in allMatching and `groups` both stay [] until group checks ship.
 ```
 
-- Rule, first match wins: id in `ids`; id in `excludedIds`; the deepest `groups` entry whose `path`
+- Step 8 rule, first match wins: id in `ids`; id in `excludedIds`; the deepest `groups` entry whose `path`
   prefixes the row's group path; else `mode === "allMatching"`. `readSelectedRows` returns the rule
   and never infers exclusions from unchecked rows.
-- Gestures in the first slice: the header checkbox calls `selectAllMatching()` or clears; click,
-  Space, Shift+Space toggle a leaf id (in all matching, in `excludedIds`); Shift+click ranges and
-  marker drags add or remove the loaded leaf ids in the range and skip holes and group rows; group
-  rows have no checkbox.
+- Channel writes follow the writer map in `server-selection-spec.md` ("Grouped selection"), skipping
+  holes and group rows; group rows have no checkbox.
 - Bounds: `ids` plus `excludedIds` ≤ 100,000 (ids past it drop with a warning; an exclusion overflow
   clears all matching), `groups` ≤ 1,000. A filter, search, or `groupBy` change clears all matching and
   group entries (`create-store.ts:1087`). Row operations on checked rows no-op in all matching.
@@ -336,7 +335,8 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
 | Item | 2.0 | Later |
 |---|---|---|
 | Types, `childKind` union, `serverSpecKey` replacer (step 1) | yes | |
-| `SelectedRows` shape with `groups: []` (step 2) | yes | group checks |
+| `SelectedRows` type shape, behavior unchanged (step 2) | yes | |
+| Rule-based selection under `groupMode="server"` (step 8) | first slice (2.0 if #71 merges) | group checks |
 | `readGroupsAnswer`, pages and scroll strips (step 3) | yes | |
 | First slice (steps 4-11) | if #71 is merged | |
 | Multi-level, pages mode, server tree, group checks, `expanded` URL, views `groupBy` | | yes |
@@ -349,7 +349,8 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
   test with a fast scrollbar drag.
 - `data` of view-row-count length costs at 10M what flat mode costs; targets are set at 100k only.
 - The key, label, and reducer changes alter #71's client behavior and the shipped pinned-rows totals.
-- The `SelectedRows` change breaks consumers that match `excludedIds: []` or `ids: []`.
+- Against the unreleased shape, `SelectedRows` gains `groups` in both modes and `spec` in ids mode,
+  and `ids` in all matching widens from `readonly []`; behavior does not change.
 
 ## Test plan
 
@@ -381,7 +382,9 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
   hidden; `undefined` from the getter keeps the layout. Type test: consumer `DataGridPlugin` rejects
   `groupLayout`.
 - `tests/parity/grouping.parity.test.tsx` (L, PC, C, API): ids, labels ("Open", not `s_open`), ARIA,
-  copy text. `selected-rows.test.ts`; `group-param.test.ts`; export and print tests (extend).
+  copy text. Step 2: a type test and a regression run of the existing selection tests; only the
+  shape assertions gain `groups` and `spec` (`store/server-selection.test.tsx:240,247,259`: line 240 gains `groups` and `spec`, lines 247 and 259 gain `groups`). Step 8: the writer tests of `server-selection-spec.md`
+  ("Grouped selection"). `group-param.test.ts`; export and print tests (extend).
 - Browser `server-groups.browser.test.tsx`: keys (LTR, RTL); setsize and posinset on skeletons; Retry
   by Enter; axe; moves, restored expansions, and a controlled collapse above the view keep the
   rendered rows in place.
@@ -391,8 +394,8 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
 
 | Row | L | PC | PS | Z | C | SS | FS | API |
 |---|---|---|---|---|---|---|---|---|
-| `grouping` | S | S | G `G2` | S | S | S | S | S |
-| `tree-data` (new, with #68) | S | S | G `G3` | G `G3` | S | G `G3` | G `G3` | S |
+| `grouping` | S | S | G `G2` "Pages mode strips `groupBy`." | S | S | S | S | S |
+| `tree-data` (new, with #68) | S | S | G `G3`* | G `G3`* | S | G `G3`* | G `G3`* | S |
 | `row-check`, `row-ids`, `counts`, `row-ops`, `streaming`, `error-state`, `loading`, `announce`, `server-rows`, `url-state` | = | = | = | S, evidence added | = | = | = | = |
 | `export` | = | = | = | G I, note added | = | = | = | = |
 | `print`, `pinned-rows` | = | = | = | = | = | = | = | = |
@@ -404,7 +407,7 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
   the scroll hook (supported cells render no note, `verify-parity.mjs:103`). PS track `G2`.
 - `tree-data` options: `getParentId`, `treeColumn`, `expanded`, `defaultExpanded`, `onExpandedChange`
   (#68 adds the pair, `tree-data-spec.md:64-66`; `grouping` lists it too); L, PC, C, API cite
-  `tests/parity/tree-data.parity.test.tsx`; the other cells track `G3`.
+  `tests/parity/tree-data.parity.test.tsx`; *the `G3` cells note "Server tree data follows."
 - Z evidence: `row-check` → groups-selection test; `row-ops`, `streaming` → groups-save test; the rest
   → groups scroll test (all run scroll mode). `group-param.test.ts` joins `url-state` L. `export` Z
   note: "outside pivot mode, group rows are excluded".
@@ -416,9 +419,12 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
    `terms.mdx` with `<NewBadge />`. Additive types (with pivot spec step 1, which adds `pivot`);
    `serverSpecKey` replacer; type tests; CHANGELOG
    `### Added`; `data-grid` and `data-grid-server` payloads.
-2. `DataGridSelectedRows` shape, and `readSelectedRows` reads the stored rule: exclusions come only
-   from explicit unchecks (`server-selection-spec.md`; the same output in flat mode); CHANGELOG **Breaking**; same commit: `lazy-loading.mdx`,
-   `recipes/data-fetching/server-side.mdx`, `selection-keyboard.mdx` (each with `<NewBadge />`), the
+2. `DataGridSelectedRows` type shape (`readSelectedRows` adds `groups: []` and ids-mode `spec`; every
+   writer unchanged; type test, selection-test regression, the `server-selection.test.tsx:240,247,259`
+   assertion); edit the existing Unreleased CHANGELOG entries (the shape in the selection entry, the
+   `spec` note in the `keepCheckedRows` entry), no new **Breaking** line (the shape is unreleased);
+   same commit: `lazy-loading.mdx`, `recipes/data-fetching/server-side.mdx`, `selection-keyboard.mdx`
+   (sections already new since v1.3.0), the
    server selection demo, `skills/gridcn-data-source/SKILL.md`; `data-grid` payload (and the demo's).
 3. `readGroupsAnswer`; pages and scroll strips with the warning and their test in `page-reset`;
    "Server checks" in the recipe with `<NewBadge />`; CHANGELOG; `data-grid-server` payload;
@@ -428,7 +434,8 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
    core-built ids, dev errors, menu hiding.
 6. Child lists, commit, re-layout path, edit index, anchors, moves, counts.
 7. Requests, cap, abort, stale blocks, eviction, errors, status in the layout, hook result.
-8. Rule-based selection, gestures, channel cache.
+8. Rule-based selection under `groupMode="server"`: the writer map and its tests
+   (`server-selection-spec.md`, "Grouped selection"), channel cache.
 9. Spec and `aggregates` change rules; restored expansions and the `scrollTop` fix.
 10. Treegrid ARIA, announcements, totals, write rules.
 11. URL `group` param; demo `data-grid-server-grouping-demo` and its `components/registry-examples.tsx`

@@ -85,7 +85,7 @@ fields, `ServerGroupsAnswer`, group rows and ids, child lists, data-keyed `group
    | Column chooser | the pivot set: the `groupBy` column (not hideable) and every generated column, hidden ones included |
    | Filter menu, header filters, URL and view filters | the registry |
    | Sort list, header sort, the request's `sorts` | `groupBy` and pivot columns |
-   | Layout normalizer, URL layout, views layout | the registry ("Columns and layout") |
+   | Layout normalizer, URL layout, views layout | the registry plus the held set (`order`: registry ids only); other `__pivot:` ids go to the pending layout ("Columns and layout") |
 
    A sort on another column stays in `sortState` (URL and views validate sorts against the registry,
    so apply order never matters): it is not sent, not shown in the sort list, and returns when pivot
@@ -187,8 +187,8 @@ with one dev warning. When nothing valid remains, `pivot` resolves to `null` wit
   ids never enter `order` (completion would append them at the end, `compute.ts:530-543`). Moving
   generated columns is a later slice.
 - **Notes.** The core renders "+N more columns" (`labels.pivot.omitted`) and "N new columns; refresh to
-  show" (`labels.pivot.newColumns`) from the layout counts, as text in one `role="status"` element
-  beside the grid, outside the header row, announced once per spec.
+  show" (`labels.pivot.newColumns`) from the layout counts, as plain text beside the grid, outside
+  the header row and outside any live region; the grid's announcer sends one live-region text per spec.
 - **Source-column layout.** Source columns stay in the registry, so their widths, order, pins, and
   hidden state survive pivot on and off.
 - **Skeleton set.** After a spec change the previous held set stays as skeleton columns until the new
