@@ -59,6 +59,7 @@ mirror the change there.
 
 | Use | Meaning | Do not use |
 |---|---|---|
+| saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. It holds no rows and no selection. Not the view index. | |
 | add-on | An optional registry item you install, such as `data-grid-fill`. It ships hooks and components. | addon, extension |
 | plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one; not every add-on does. | |
 | row marker | The narrow column at the left edge that shows a row number, a checkbox, or a drag handle. | gutter |

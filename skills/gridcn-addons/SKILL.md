@@ -1,6 +1,6 @@
 ---
 name: gridcn-addons
-description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
+description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, saved views, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
   gridcn-version: "1.3.0"
 ---
@@ -31,6 +31,7 @@ npx shadcn add @gridcn/<item>
 | Keybindings dialog | `data-grid-keybindings` | none |
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
 | URL state | `data-grid-url-state` | `nuqs` |
+| Saved views | `data-grid-views` | none |
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
 | Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
 | Pagination | `data-grid-pagination` | none |
@@ -67,6 +68,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
+| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage`, `storageKey`, `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
 | Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
@@ -170,7 +172,7 @@ plugins, global-shortcuts) — read the relevant one before writing non-trivial 
 - Undo & redo: `/docs/addons/undo-redo.md` · Toolbar: `/docs/addons/toolbar.md`
 - Context menu: `/docs/addons/context-menu.md` · Keybindings: `/docs/addons/keybindings.md`
 - Find & replace: `/docs/addons/find-replace.md`
-- Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md`
+- Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md` · Saved views: `/docs/addons/views.md`
 - Import/export: `/docs/addons/import-export.md` · Scroll loading: `/docs/lazy-loading.md`
 - Pagination: `/docs/pagination.md` · Plugin seam: `/docs/plugins.md`
 - Global shortcuts (undo/redo outside the grid): `/docs/global-shortcuts.md`

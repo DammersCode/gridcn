@@ -21,6 +21,7 @@
     "sorting-filtering-search",
     "addons/toolbar",
     "addons/sort-list",
+    "addons/views",
     "row-operations",
     "---[Rows3]Rows & data---",
     "streaming-updates",

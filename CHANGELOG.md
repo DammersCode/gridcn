@@ -88,6 +88,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `DataGridLazyGuard` no longer warns for filter changes under `filterMode="server"`, and its message names the new prop.
 - Docs: a "Filtering a lazy grid" section with a live demo, a filter spec in the server pagination example, the server values of the header filter, and the URL state note for lazy grids.
 - `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, and `duplicateRow` accept a promise, and so do the `mapColumn` default and the `createRow` prop of the import add-on. A synchronous result takes the same path as before. A pending promise blocks a second request of the same gate. A rejection cancels with no write. The grid reads its state again when the promise settles and drops a late result for a `readOnly` grid or a row that is gone. `validateRow` does not hold the write: its verdict merges into the cell errors when it settles. Docs: an async gates demo on the validation examples.
+- Saved views: the `data-grid-views` add-on. `<DataGridViews />` and `useDataGridViews()` name, save, open, update, rename, delete, and default views of sort, filters (with groups), search, and column layout, and import or export one as bounded JSON checked against the live columns. Views persist through a storage adapter (`localStorage` with an in-memory fallback by default). The controlled pair is `value` and `onValueChange`. See the new page `/docs/addons/views`.
 
 ## 1.3.0 - 2026-10-28
 

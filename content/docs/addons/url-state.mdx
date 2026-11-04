@@ -244,3 +244,7 @@ Changing `pageSize` resets the URL's `page` to 1. A page number is only valid fo
 chosen at, so the reset is the contract of this URL composition. Note that client mode of
 `useDataGridPagination` keeps the first visible row on a page-size change instead. The two
 surfaces differ deliberately.
+
+## With saved views
+
+Mount `<DataGridUrlState>` beside [saved views](/docs/addons/views). The URL sets the first state, and a link with sort, filter, or search params wins over the default view. Opening a view writes its state to the URL. A back or forward step that changes the URL leaves the active view in place and marks it as modified.

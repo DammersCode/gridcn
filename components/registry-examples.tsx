@@ -69,6 +69,7 @@ const EXAMPLES = {
   "data-grid-checked-rows-demo": dynamic(() => import("@/registry/default/examples/data-grid-checked-rows-demo")),
   "data-grid-delete-confirm-demo": dynamic(() => import("@/registry/default/examples/data-grid-delete-confirm-demo")),
   "data-grid-touch-demo": dynamic(() => import("@/registry/default/examples/data-grid-touch-demo")),
+  "data-grid-views-demo": dynamic(() => import("@/registry/default/examples/data-grid-views-demo")),
   "data-grid-status-bar-demo": dynamic(() => import("@/registry/default/examples/data-grid-status-bar-demo")),
   "data-grid-detail-panel-demo": dynamic(() => import("@/registry/default/examples/data-grid-detail-panel-demo")),
 } satisfies Record<string, ComponentType>;
