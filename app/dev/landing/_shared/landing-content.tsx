@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { InstallCommand } from "@/components/install-command";
-import { PLAIN_PITCH } from "./data";
+import { SUBLINE } from "./data";
 import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./content";
 import { HeroActions, ReleaseBadge } from "./hero";
 import { ParityBars, ParityLegend, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "./parts";
@@ -37,8 +37,8 @@ export function LandingContent() {
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
       <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center sm:p-7">
         <ReleaseBadge />
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
-        <p className="text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Spreadsheet power. Fast, typed, complete.</h1>
+        <p className="text-lg font-medium sm:text-xl">{SUBLINE}</p>
         <p className="text-sm text-muted-foreground">
           Sort, filter, edit and paste like Excel. One command copies the code into your app: you own it, no npm dependency.{" "}
           <Link href="#perf" className="inline-block py-2 underline underline-offset-4">
@@ -64,14 +64,14 @@ export function LandingContent() {
               {href ? (
                 <Link href={href} className={tile}>
                   <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-sm font-medium">{title}</span>
-                  <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
+                  <h3 className="text-sm font-medium">{title}</h3>
+                  <span className="text-xs text-muted-foreground max-sm:line-clamp-1">{text}</span>
                 </Link>
               ) : (
                 <div className={tile}>
                   <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-sm font-medium">{title}</span>
-                  <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
+                  <h3 className="text-sm font-medium">{title}</h3>
+                  <span className="text-xs text-muted-foreground max-sm:line-clamp-1">{text}</span>
                 </div>
               )}
             </li>
@@ -137,17 +137,18 @@ export function LandingContent() {
         <p className="text-xs text-muted-foreground">Tiers as of 09/2026 (AG Grid v36, MUI X v9, TanStack Table v9). Vendors change tiers: verify before relying on this.</p>
       </Panel>
 
+      <div className="grid gap-4 lg:grid-cols-2">
       <Panel id="agents" title="Your coding agent knows gridcn" intro="Five skills for Claude Code, Cursor, Codex and other agents: the procedures and silent traps the docs alone cannot enforce.">
         <div className={`w-full max-w-md ${installFit}`}>
           <InstallCommand command="skills add DammersCode/gridcn" />
         </div>
-        <TileGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 max-sm:[&>li:nth-child(n+4)]:hidden">
+        <TileGrid className="grid-cols-1 max-sm:[&>li:nth-child(n+4)]:hidden">
           {agentSkills.map(({ icon: Icon, title, text }) => (
             <li key={title} className="bg-card">
               <Link href={`/docs/agent-skills#${title}`} className={tile}>
                 <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                <span className="font-mono text-xs font-medium">{title}</span>
-                <span className="text-xs text-muted-foreground max-sm:hidden">{text}</span>
+                <h3 className="font-mono text-xs font-medium">{title}</h3>
+                <span className="text-xs text-muted-foreground max-sm:line-clamp-1">{text}</span>
               </Link>
             </li>
           ))}
@@ -156,7 +157,7 @@ export function LandingContent() {
       </Panel>
 
       <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
-        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-sm:[&>li:nth-child(n+9)]:hidden">
+        <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 max-sm:[&>li:nth-child(n+9)]:hidden">
           {addOnTiles.map(({ icon: Icon, title, href }) => (
             <li key={title} className="bg-card">
               <Link href={href} className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted ${focus}`}>
@@ -168,6 +169,8 @@ export function LandingContent() {
         </TileGrid>
         <Link href="/docs/addons" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All add-ons →</Link>
       </Panel>
+
+            </div>
 
       <footer className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center">
         <h2 className="text-lg font-semibold tracking-tight">Start in one command</h2>

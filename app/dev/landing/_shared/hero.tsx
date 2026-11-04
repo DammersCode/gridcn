@@ -37,7 +37,7 @@ export function HeroActions({ className }: { className?: string }) {
 }
 
 export function ReleaseBadge() {
-  return <Badge variant="outline">2.0 · Open source · shadcn registry</Badge>;
+  return <Badge variant="outline">2.0 · shadcn registry</Badge>;
 }
 
 export function Install({ className }: { className?: string }) {

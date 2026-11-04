@@ -96,3 +96,5 @@ export const SITE_TAGLINE =
   "A data grid for the shadcn ecosystem. Range selection, spreadsheet clipboard and typed editors on real DOM cells. Local arrays or a server: the same grid."
 
 export const PLAIN_PITCH = "A spreadsheet-style table for React and shadcn apps, installed as source code. Local array or server: the same grid, smooth at 100k rows.";
+
+export const SUBLINE = "A data grid for React that feels like a spreadsheet and scales like a database view.";
