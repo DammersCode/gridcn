@@ -10,9 +10,11 @@ const TYPE_LABEL: Record<string, string> = {
   step: "Learning step",
   reference: "Reference page",
   cheatsheet: "Cheatsheet",
+  example: "Example page",
+  concept: "Concept page",
 };
 
-const H2_PLAN: Record<string, number> = { landing: 0, feature: 4, task: 3, step: 3, reference: 5, cheatsheet: 4 };
+const H2_PLAN: Record<string, number> = { landing: 0, feature: 4, task: 3, step: 3, reference: 5, cheatsheet: 4, example: 2, concept: 3 };
 
 function Bars({ lines, seed }: { lines: number; seed: number }) {
   const widths = [100, 96, 92, 98, 84, 100, 90, 62];
