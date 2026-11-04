@@ -175,8 +175,8 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Import</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Appended rows fight total."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
@@ -185,13 +185,13 @@ A grid feature can behave differently on a local array, on server pages and on s
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Export</th>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports the rows of the current page only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Print</th>
@@ -307,8 +307,8 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Find and replace</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -442,20 +442,9 @@ A grid feature can behave differently on a local array, on server pages and on s
 ### Import
 
 - **PC**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
-- **PS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
-- **Z**: Gap: Appended rows fight `total`.
 - **C**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
 - **SS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
 - **FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land.
-
-### Export
-
-- **PC**: Gap: Exports the rows of the current page only.
-- **PS**: Gap: Exports loaded rows only.
-- **Z**: Gap: Exports loaded rows only.
-- **SS**: Gap: Exports loaded rows only.
-- **FS**: Gap: Exports loaded rows only.
-- **API**: Gap: Exports loaded rows only.
 
 ### Print
 
@@ -479,8 +468,8 @@ A grid feature can behave differently on a local array, on server pages and on s
 
 ### Find and replace
 
-- **PS**: Gap: Loaded rows only; no server scope.
-- **Z**: Gap: Loaded rows only; no server scope.
+- **PS**: n/a: Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx).
+- **Z**: n/a: Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx).
 
 ### Scroll row fetching
 

@@ -22,6 +22,18 @@ function createImportedRow(): DemoRow {
   return { id: `imported-${importedCount++}`, name: "", email: "", age: 18, active: false, role: "User", joined: "", score: 0 };
 }
 
+type Remote = ReturnType<typeof createRemoteServer>;
+
+function createExportSource(remote: Remote) {
+  return async function* exportSource({ spec, signal }: ExportSourceContext): AsyncGenerator<DemoRow[]> {
+    for (let start = 0; ; start += BATCH) {
+      const answer = await remote.fetchRange({ start, end: start + BATCH, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
+      if (answer.rows.length === 0) return;
+      yield answer.rows;
+    }
+  };
+}
+
 /** A paged server grid whose export menu holds "Export all rows" (the whole filtered result, fetched in batches) and whose import sends the rows to the server, then refreshes. */
 export default function DataGridExportAllDemo(): ReactNode {
   const remote = useMemo(() => createRemoteServer(), []);
@@ -34,13 +46,7 @@ export default function DataGridExportAllDemo(): ReactNode {
     },
   });
 
-  async function* exportSource({ spec, signal }: ExportSourceContext): AsyncGenerator<DemoRow[]> {
-    for (let start = 0; ; start += BATCH) {
-      const answer = await remote.fetchRange({ start, end: start + BATCH, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
-      if (answer.rows.length === 0) return;
-      yield answer.rows;
-    }
-  }
+  const exportSource = useMemo(() => createExportSource(remote), [remote]);
 
   return (
     <div className="flex w-full flex-col gap-2">

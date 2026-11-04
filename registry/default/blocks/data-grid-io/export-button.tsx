@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -42,6 +42,8 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
+  const cancelExport = useCallback(() => controllerRef.current?.abort(), []);
+
   const runExport = (format: ExportFormat, all: boolean) => {
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -70,8 +72,9 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
       });
   };
 
-  const triggerButton = (onClick?: () => void) => (
-    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} onClick={onClick}>
+  const singleFormat = formats.length === 1 && !source;
+  const trigger = (
+    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} onClick={singleFormat ? () => runExport(formats[0]!, false) : undefined}>
       <Download />
     </Button>
   );
@@ -82,12 +85,12 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
     </span>
   );
 
-  if (formats.length === 1 && !source) return triggerButton(() => runExport(formats[0]!, false));
+  if (singleFormat) return trigger;
 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={triggerButton()} />
+        <DropdownMenuTrigger render={trigger} />
         <DropdownMenuContent align="start">
           {formats.includes("xlsx") && (
             <DropdownMenuItem disabled={running} onClick={() => runExport("xlsx", false)}>
@@ -109,7 +112,7 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
               {labels.io.exportAllCsv}
             </DropdownMenuItem>
           )}
-          {running && <DropdownMenuItem onClick={() => controllerRef.current?.abort()}>{labels.io.exportCancel}</DropdownMenuItem>}
+          {running && <DropdownMenuItem onClick={cancelExport}>{labels.io.exportCancel}</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
       {status}
