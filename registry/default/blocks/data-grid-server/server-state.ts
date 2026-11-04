@@ -167,7 +167,8 @@ export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey
   useEffect(() => {
     if (!busy && clock.current.waiting) {
       clock.current.waiting = false;
-      fire();
+      // A hidden page leaves the due tick to the visibility handler.
+      if (typeof document !== "undefined" && document.visibilityState !== "hidden") fire();
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [busy]);

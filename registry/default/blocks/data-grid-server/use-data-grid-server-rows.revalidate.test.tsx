@@ -116,6 +116,23 @@ describe.each([
     expect(s.fetchRows).toHaveBeenCalledTimes(3);
   });
 
+  it("does not run a waiting tick while the page is hidden, and runs it once the page is visible", async () => {
+    const s = server();
+    await mount(s, { revalidateInterval: 2000 });
+    s.state.hold = true;
+    await advance(2000);
+    expect(s.fetchRows).toHaveBeenCalledTimes(2);
+    await advance(2000);
+    setVisibility("hidden");
+    await act(async () => s.held.filter((entry) => !entry.settled).forEach((entry) => entry.resolve()));
+    await advance(20);
+    expect(s.fetchRows).toHaveBeenCalledTimes(2);
+    s.state.hold = false;
+    setVisibility("visible");
+    await advance(20);
+    expect(s.fetchRows).toHaveBeenCalledTimes(3);
+  });
+
   it("restarts the clock on a manual refresh", async () => {
     const s = server();
     const view = await mount(s, { revalidateInterval: 5000 });
