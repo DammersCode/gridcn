@@ -1365,6 +1365,11 @@
                "target": "components/data-grid-server/range-math.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-server/fetch-hygiene.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/fetch-hygiene.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-server/scroll-blocks.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/scroll-blocks.ts"
