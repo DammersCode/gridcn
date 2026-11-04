@@ -601,6 +601,11 @@
           "target": "components/data-grid/store/row-index.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/server-stale.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/server-stale.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/selection-state.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/selection-state.ts"
