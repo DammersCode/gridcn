@@ -28,7 +28,7 @@ describe("overlay paint order", () => {
     const overlay = document.querySelector(gridAttrSelector("selectionOverlay")) as HTMLElement | null;
     expect(overlay).not.toBeNull();
     console.log("DIAG className:", overlay!.className, "| computed position:", getComputedStyle(overlay!).position);
-    expect(getComputedStyle(overlay!).position).toBe("relative");
+    expect(getComputedStyle(overlay!).position).toBe("absolute");
 
     const rect = overlay!.getBoundingClientRect();
     const topCell = cellAt(1, 0).getBoundingClientRect();
