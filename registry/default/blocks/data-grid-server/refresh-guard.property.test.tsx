@@ -1,5 +1,5 @@
 /*
- * Model test of the refresh guard: a seeded interleaving of landings, failures, saves, edits, local row operations, server moves,
+ * Model test of the refresh guard: a seeded interleaving of landings, failures, saves, edits, pushes, local row operations, server moves,
  * filter changes and unmounts, checked against the rule after every step and against the backend after a final drain.
  * Remaining exemptions, each for one reason:
  * - Duplicate ids are not checked while rows that moved on the server (or shifted locally, in sequential sources) mix with older rows,
@@ -83,6 +83,8 @@ type Request = {
   savedSince: Set<string>;
   deleted0: Set<string>;
   deletedSince: Set<string>;
+  /** Pushes made while the request was open: the answer must not take them back. */
+  pushed: Map<string, string>;
   signal: AbortSignal;
   rows: Row[];
   start: number;
@@ -96,6 +98,8 @@ type Variant = { repeatRows: boolean; indexIds: boolean; unmountAtEnd: boolean }
 
 function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Variant) {
   const backend = createBackend();
+  // Pushes draw from their own stream, so adding them leaves the interleavings of the other steps as they were.
+  const pusher = prng(0x51ed270b);
   const held: Request[] = [];
   const saves: Save[] = [];
   const trace: string[] = [];
@@ -123,9 +127,9 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     return ids;
   };
   let stepStartCalls = 0;
-  const open = (request: Omit<Request, "saving0" | "savedSince" | "deleted0" | "deletedSince" | "label">, label: string) => {
+  const open = (request: Omit<Request, "saving0" | "savedSince" | "deleted0" | "deletedSince" | "pushed" | "label">, label: string) => {
     if (++fetchCalls - stepStartCalls > STEP_REQUEST_CAP) throw new Error("request loop");
-    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set(), deleted0: new Set(pendingDeletes), deletedSince: new Set() });
+    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set(), deleted0: new Set(pendingDeletes), deletedSince: new Set(), pushed: new Map() });
   };
 
   const fetchScroll = (request: ServerRowsRequest<number>): Promise<ServerRowsAnswer<Row, number>> => {
@@ -275,6 +279,11 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         else expect(copies.some((copy) => copy.name === carried.name || copy.name === known.get(carried.id)), `protected ${carried.id} took a foreign value`).toBe(true);
         return;
       }
+      const pushedName = request.pushed.get(carried.id);
+      if (pushedName !== undefined) {
+        expect(copies.some((copy) => copy.name === pushedName), `${carried.id} lost the push made during request ${request.label}`).toBe(true);
+        return;
+      }
       expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer (slot ${slot} holds ${post[slot]?.id}, request ${request.label}, protected ${[...mustKeep].join("/")}, gone ${[...gone].join("/")}, copies ${copies.map((copy) => copy.name).join("/")})`).toBe(true);
       if (slotsExact && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
     });
@@ -397,6 +406,15 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       trace.push("blockSize");
       act(() => setBlockSize(rnd.pick([10, 15, 7])));
       await flush();
+    } else if (r < 0.97) {
+      const id = loadedIds.length > 0 ? pusher.pick(loadedIds) : null;
+      if (id) {
+        const name = `${id} push${editCount++}`;
+        trace.push(`push ${id}`);
+        let applied = 0;
+        act(() => void (applied = state().actions.updateCells([{ rowId: id, columnId: "name", value: name }]).applied));
+        if (applied > 0) for (const request of held) request.pushed.set(id, name);
+      }
     } else {
       trace.push("noop");
     }

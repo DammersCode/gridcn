@@ -79,6 +79,7 @@ function mountGrid(use: () => Server, strict = false) {
     deleteByServer: (...ids: string[]) => act(() => void actions().deleteRowsById(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
     stale: () => [...store.getState().staleRowIds].sort(),
+    name: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId)?.name,
     report: (range: RowRange) => act(() => server.gridProps.onRenderedRowsChange?.(range as never)),
   };
 }
@@ -286,6 +287,58 @@ describe.each([
     await advance(10_000);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls.filter((call) => String(call[0]).includes("reshapeDelay"))).toHaveLength(1);
+  });
+
+  it("keeps a push made after the request left when its answer lands", async () => {
+    const s = server();
+    const grid = await mount(s);
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    grid.push("r1", "Pushed");
+    s.state.hold = false;
+    await s.settleHeld();
+    expect(grid.name("r1")).toBe("Pushed");
+    expect(grid.name("r2")).toBe("Person 2");
+  });
+
+  it("lets the answer win over a push made before the request left", async () => {
+    const s = server();
+    const grid = await mount(s);
+    grid.push("r2", "Old");
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    s.state.hold = false;
+    await s.settleHeld();
+    expect(grid.name("r2")).toBe("Person 2");
+    expect(grid.stale()).toEqual([]);
+  });
+
+  it("keeps the pushed cell only for the pushed column", async () => {
+    const s = server();
+    const grid = await mount(s);
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    grid.push("r1", "Pushed");
+    s.state.hold = false;
+    await s.settleHeld();
+    grid.push("r1", "Later");
+    expect(grid.name("r1")).toBe("Later");
+  });
+
+  it("drops the copy of a row that a stream delete removed while an answer was in flight", async () => {
+    const s = server();
+    const grid = await mount(s, { reshapeDelay: 60_000 });
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    grid.deleteByServer("r1");
+    s.state.hold = false;
+    await s.settleHeld();
+    expect(grid.name("r1")).toBeUndefined();
+    expect(grid.name("r2")).toBe("Person 2");
   });
 
   it("a reshape request equals the refresh request", async () => {

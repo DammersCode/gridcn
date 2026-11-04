@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowIdAtViewRow, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { rowIdAtViewRow, setCellValue, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
@@ -11,7 +11,7 @@ import { rowIdAtViewRow, setServerReshapeHandler, useDataGridStoreApi } from "@/
  * pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes
  * when no pending insert or delete is left. A pages refresh appends such a row at the page end (the page can exceed `pageSize`
  * by pending inserts); a sequential refresh that ends before a pending insert may drop it until its save settles.
- * Everything else is replaced. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
+ * Everything else is replaced, except the cells that a push wrote after the request was sent: those keep the pushed value. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
  * loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
  */
 
@@ -37,6 +37,8 @@ type Holder = {
   onSavesSettled: (() => void) | null;
   /** Called when the grid asks for a reshape: `reconcileView()`, an immediate push, or a deferred push that marked a row. */
   onReshape: ((trigger: "urgent" | "stale") => void) | null;
+  /** Cells that a push wrote while a request was open: row id -> column id -> value and the generation of the push. Dropped when no request is open. */
+  pushed: Map<string, Map<string, { value: unknown; at: number }>>;
   trackUnacknowledged: boolean;
   /** Rows with a local edit or insert that no save and no landed block has acknowledged; eviction keeps them. */
   unacknowledged: Set<string>;
@@ -77,6 +79,27 @@ function trackUnacknowledgedRows(holder: Holder, change: { source: string; ops: 
   }
 }
 
+function trackPushedCells(holder: Holder, change: { source: string; ops: readonly { type: string; rowId: string; cells?: readonly { columnId: string; value: unknown }[] }[] }) {
+  if (!holder.recording || change.source !== "stream") return;
+  for (const op of change.ops) {
+    if (op.type !== "update" || !op.cells) continue;
+    const at = ++holder.generation;
+    let cells = holder.pushed.get(op.rowId);
+    if (!cells) holder.pushed.set(op.rowId, (cells = new Map<string, { value: unknown; at: number }>()));
+    for (const cell of op.cells) cells.set(cell.columnId, { value: cell.value, at });
+  }
+}
+
+function pushedSinceOn(holder: Holder, generation: number): ReadonlyMap<string, ReadonlyMap<string, unknown>> | null {
+  let rows: Map<string, Map<string, unknown>> | null = null;
+  for (const [rowId, cells] of holder.pushed) {
+    let fresh: Map<string, unknown> | null = null;
+    for (const [columnId, cell] of cells) if (cell.at > generation) (fresh ??= new Map()).set(columnId, cell.value);
+    if (fresh) (rows ??= new Map()).set(rowId, fresh);
+  }
+  return rows;
+}
+
 function markEditedOn(holder: Holder) {
   holder.edited = true;
 }
@@ -114,8 +137,16 @@ function markSavesOn(holder: Holder): number {
 
 function pruneSavesOn(holder: Holder, oldestGeneration: number | null) {
   holder.recording = oldestGeneration !== null;
-  if (oldestGeneration === null) holder.savedAt.clear();
-  else for (const [id, at] of holder.savedAt) if (at <= oldestGeneration) holder.savedAt.delete(id);
+  if (oldestGeneration === null) {
+    holder.savedAt.clear();
+    holder.pushed.clear();
+    return;
+  }
+  for (const [id, at] of holder.savedAt) if (at <= oldestGeneration) holder.savedAt.delete(id);
+  for (const [id, cells] of holder.pushed) {
+    for (const [columnId, cell] of cells) if (cell.at <= oldestGeneration) cells.delete(columnId);
+    if (cells.size === 0) holder.pushed.delete(id);
+  }
 }
 
 function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
@@ -140,6 +171,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     onDataChange: (_next, change) => {
       trackStructural(holder, change);
       trackUnacknowledgedRows(holder, change);
+      trackPushedCells(holder, change);
     },
   };
 }
@@ -151,7 +183,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, onReshape: null, trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, onReshape: null, pushed: new Map(), trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -185,7 +217,26 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  const overlayPushed = useCallback(
+    <TData,>(rows: readonly TData[], mark: number, start: number, idOf: (row: TData, index: number) => string): TData[] => {
+      const pushed = pushedSinceOn(holder, mark);
+      const columns = holder.store?.getState().columns;
+      if (pushed === null || !columns) return rows as TData[];
+      const byId = new Map(columns.map((column) => [column.id, column] as const));
+      return rows.map((row, index) => {
+        const cells = row === undefined ? undefined : pushed.get(idOf(row, start + index));
+        if (!cells) return row;
+        let next = row;
+        for (const [columnId, value] of cells) {
+          const column = byId.get(columnId);
+          if (column) next = setCellValue(next, column as never, value as never);
+        }
+        return next;
+      });
+    },
+    [holder],
+  );
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 export const GUARD_MISSING_MESSAGE =

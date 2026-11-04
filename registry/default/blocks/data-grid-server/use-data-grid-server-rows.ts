@@ -173,7 +173,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
   const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
@@ -195,16 +195,19 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const releaseMarks = useCallback(() => {
     const { main, prefetch: ahead } = openMarks.current;
     pruneSaves(main === null ? ahead : ahead === null ? main : Math.min(main, ahead));
-  }, [pruneSaves]);
+    if (main === null && ahead === null) pruneIds(deleted.current, savingRows());
+  }, [pruneSaves, savingRows]);
 
   const commitLanding = useCallback(
     (read: ReadAnswer<TData>, landing: { key: string; view: string; start: number; guard: ProtectedRows; mark: number }) => {
       live.current.settledOnce = true;
       const guarded = unionIds(unionIds(landing.guard, savedSince(landing.mark)), protectedRows());
+      const gone = deleted.current.size > 0 ? new Set(deleted.current) : deleted.current;
+      const answerRows = overlayPushed(read.rows.filter((row) => row !== undefined) as TData[], landing.mark, 0, live.current.options.getRowId);
       setSettled((prev) => ({
         key: landing.key,
         view: landing.view,
-        rows: keepProtectedRows(read.rows.filter((row) => row !== undefined) as TData[], prev.rows, guarded, deleted.current, prev.view === landing.view, live.current.options.getRowId),
+        rows: keepProtectedRows(answerRows, prev.rows, guarded, gone, prev.view === landing.view, live.current.options.getRowId),
         totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
         hasMore: read.hasMore,
         error: null,
@@ -212,7 +215,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       const onLoaded = live.current.options.onLoaded;
       if (onLoaded) isolate("onLoaded", () => onLoaded({ start: landing.start, end: landing.start + read.rows.length }));
     },
-    [savedSince, protectedRows],
+    [savedSince, protectedRows, overlayPushed],
   );
 
   const failRequest = useCallback((requestKey: string, error: unknown) => {

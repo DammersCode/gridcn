@@ -274,7 +274,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -324,7 +324,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     const core = getCore();
     const pending = core.pending.splice(0);
     if (pending.length === 0) return;
-    const batch = pending.map(({ start, rows, guard, mark }) => ({ start, rows, guard: unionIds(guard, savedSince(mark)) }));
+    const batch = pending.map(({ start, rows, guard, mark }) => ({ start, rows: overlayPushed(rows, mark, start, live.current.options.getRowId as (row: TData | undefined, index: number) => string), guard: unionIds(guard, savedSince(mark)) }));
     const final = pending[pending.length - 1]!.final === true || core.inFlight.size === 0;
     const displaced = core.displaced;
     const memory = { orphans: core.orphans, carried: core.carried };
@@ -356,7 +356,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       for (const slot of written.restored) core.restored.add(slot);
       return evicting ? evictRows(core, written.rows, { loaded: loadedNow, keep, size, cap, protectedIds: protectedFromEviction(), idOf }) : written.rows;
     });
-  }, [getCore, protectedRows, savingRows, savedSince, unacknowledgedRows, acknowledge, blockSize, limits, protectedFromEviction]);
+  }, [getCore, protectedRows, savingRows, savedSince, overlayPushed, unacknowledgedRows, acknowledge, blockSize, limits, protectedFromEviction]);
 
   const unloadSlots = useCallback(
     (ranges: readonly RowRange[], reportAfter = false) => {
