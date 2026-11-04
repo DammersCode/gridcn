@@ -20,14 +20,14 @@ export const TAGLINE =
 export function HeroActions({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-3", className)}>
-      <Button render={<Link href="/docs" />} nativeButton={false} size="lg">
+      <Button render={<Link href="/docs" />} nativeButton={false} size="lg" className="max-sm:min-h-10">
         Get started
       </Button>
       <Button
         render={<a href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`} target="_blank" rel="noreferrer" />}
         nativeButton={false}
         variant="outline"
-        size="lg"
+        size="lg" className="max-sm:min-h-10"
       >
         <GithubIcon className="size-4" />
         GitHub

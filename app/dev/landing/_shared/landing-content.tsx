@@ -40,8 +40,8 @@ export function LandingContent() {
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">gridcn</h1>
         <p className="text-lg font-medium sm:text-xl">{PLAIN_PITCH}</p>
         <p className="text-sm text-muted-foreground">
-          Sort, filter, edit and paste like Excel. One command copies the code into your app.{" "}
-          <Link href="#perf" className="underline underline-offset-4">
+          Sort, filter, edit and paste like Excel. One command copies the code into your app: you own it, no npm dependency.{" "}
+          <Link href="#perf" className="inline-block py-2 underline underline-offset-4">
             See the numbers
           </Link>
           .
@@ -56,22 +56,6 @@ export function LandingContent() {
         </Link>
       </section>
 
-
-      <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
-        <ServerHighlights columns="grid-cols-2 lg:grid-cols-4" />
-      </Panel>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel id="parity" title="One grid, every data mode">
-          <ParitySummary />
-          <ParityBars />
-          <ParityLegend />
-          <ParityLink>Full matrix in the docs →</ParityLink>
-        </Panel>
-        <Panel id="perf" title="Measured at 100k rows">
-          <PerfStats className="[&>ul]:grid-cols-1 sm:[&>ul]:grid-cols-1" />
-        </Panel>
-      </div>
 
       <Panel id="kit" title="What you get" intro="Range selection, spreadsheet paste and a fill handle are paid features in the big grids. gridcn ships them open source, built the shadcn way.">
         <TileGrid className="grid-cols-2 lg:grid-cols-4">
@@ -94,6 +78,22 @@ export function LandingContent() {
           ))}
         </TileGrid>
       </Panel>
+
+      <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
+        <ServerHighlights columns="grid-cols-2 lg:grid-cols-4" />
+      </Panel>
+
+      <div className="flex flex-col gap-4">
+        <Panel id="parity" title="One grid, every data mode">
+          <ParitySummary />
+          <ParityBars />
+          <ParityLegend />
+          <ParityLink>Full matrix in the docs →</ParityLink>
+        </Panel>
+        <Panel id="perf" title="Measured at 100k rows">
+          <PerfStats />
+        </Panel>
+      </div>
 
       <Panel id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
         <div className="hidden overflow-x-auto sm:block">
@@ -148,7 +148,7 @@ export function LandingContent() {
         <div className={`w-full max-w-md ${installFit}`}>
           <InstallCommand command="skills add DammersCode/gridcn" />
         </div>
-        <TileGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        <TileGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 max-sm:[&>li:nth-child(n+4)]:hidden">
           {agentSkills.map(({ icon: Icon, title, text }) => (
             <li key={title} className="bg-card">
               <Link href={`/docs/agent-skills#${title}`} className={tile}>
@@ -159,6 +159,7 @@ export function LandingContent() {
             </li>
           ))}
         </TileGrid>
+        <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 sm:hidden">All five skills →</Link>
       </Panel>
 
       <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Add-ons are separate registry items you install only if you want them.">
@@ -174,10 +175,10 @@ export function LandingContent() {
         </TileGrid>
       </Panel>
 
-      <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center">
+      <footer className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center">
         <h2 className="text-lg font-semibold tracking-tight">Start in one command</h2>
         <HeroActions className="justify-center" />
-      </section>
+      </footer>
     </div>
   );
 }
