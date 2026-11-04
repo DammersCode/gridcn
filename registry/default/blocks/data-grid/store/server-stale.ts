@@ -43,7 +43,7 @@ export function markStaleRows(
   touchedRows: readonly number[],
   mark: boolean,
 ): StaleMarks {
-  const columns = mark ? serverSpecColumns(s) : null;
+  const columns = mark && isServerSpec(s) ? serverSpecColumns(s) : null;
   if (columns === null && ctx.staleRows.size === 0) return NO_MARKS;
   let added: string[] | null = null;
   let touched = false;

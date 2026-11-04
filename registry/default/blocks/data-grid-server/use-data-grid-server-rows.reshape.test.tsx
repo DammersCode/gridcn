@@ -13,11 +13,12 @@ const person = (i: number): Row => ({ id: `r${i}`, name: `Person ${i}` });
 const SORTED = { sorts: [{ columnId: "name", direction: "asc" as const }], filters: [], searchText: "" };
 
 function server({ total = 100 } = {}) {
-  const state = { hold: false };
+  const state = { hold: false, fail: false };
   const held: Array<() => void> = [];
   const fetchRows = vi.fn(
     ({ start, end }: { start: number; end: number }) =>
-      new Promise<ServerRowsAnswer<Row>>((resolve) => {
+      new Promise<ServerRowsAnswer<Row>>((resolve, reject) => {
+        if (state.fail) return reject(new Error("boom"));
         const answer = () => resolve({ rows: Array.from({ length: Math.max(0, Math.min(end, total) - start) }, (_, i) => person(start + i)), totalRowCount: total });
         if (state.hold) held.push(answer);
         else answer();
@@ -50,6 +51,8 @@ type Server = {
   gridProps: { onSortChange: (sorts: SortSpec[]) => void; onRenderedRowsChange?: (range: RowRange) => void };
   reshape: () => void;
   refresh: () => void;
+  retry: () => void;
+  error: unknown;
 };
 
 /** The hook outside the provider, the way an app mounts it, with the grid's store exposed for pushes. */
@@ -78,6 +81,7 @@ function mountGrid(use: () => Server, strict = false) {
     push: (rowId: string, value = "Aaron", options?: Parameters<ReturnType<typeof actions>["updateCells"]>[1]) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], options)),
     deleteByServer: (...ids: string[]) => act(() => void actions().deleteRowsById(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
+    error: () => server.error,
     stale: () => [...store.getState().staleRowIds].sort(),
     name: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId)?.name,
     report: (range: RowRange) => act(() => server.gridProps.onRenderedRowsChange?.(range as never)),
@@ -339,6 +343,21 @@ describe.each([
     await s.settleHeld();
     expect(grid.name("r1")).toBeUndefined();
     expect(grid.name("r2")).toBe("Person 2");
+  });
+
+  it("keeps the marks and reports the failure when the reshape request fails, and retry() repeats it", async () => {
+    const s = server();
+    const grid = await mount(s, { reshapeDelay: 1000 });
+    grid.push("r1");
+    s.state.fail = true;
+    await advance(1000);
+    expect(grid.error()).toBeInstanceOf(Error);
+    expect(grid.stale()).toEqual(["r1"]);
+    s.state.fail = false;
+    act(() => grid.server().retry());
+    await advance(20);
+    expect(grid.error()).toBeNull();
+    expect(grid.stale()).toEqual([]);
   });
 
   it("a reshape request equals the refresh request", async () => {
