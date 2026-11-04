@@ -7,6 +7,7 @@ import { resolveRefOrWarn } from "./data-write";
 
 const handles = new WeakMap<StoreApi<DataGridStoreState>, DataGridApi<unknown>>();
 const wrappers = new WeakMap<StoreApi<DataGridStoreState>, DataGridStoreWrapper>();
+const storesByWrapper = new WeakMap<DataGridStoreWrapper, StoreApi<DataGridStoreState>>();
 
 /**
  * The grid's read-only store view ({@link DataGridStoreWrapper}), one identity per store.
@@ -23,8 +24,19 @@ export function gridStoreWrapper(store: StoreApi<DataGridStoreState>): DataGridS
       subscribe: (listener) => store.subscribe(listener),
     };
     wrappers.set(store, wrapper);
+    storesByWrapper.set(wrapper, store);
   }
   return wrapper;
+}
+
+/**
+ * Registers what `reconcileView()` and `reorder: "immediate"` call on a server grid; `null` removes it. The hook
+ * `useDataGridServerRows` registers its reshape here.
+ * @internal
+ */
+export function setServerReshapeHandler(wrapper: DataGridStoreWrapper, handler: (() => void) | null): void {
+  const store = storesByWrapper.get(wrapper);
+  if (store) store.getState().dataWrite.reshape = handler;
 }
 
 /**

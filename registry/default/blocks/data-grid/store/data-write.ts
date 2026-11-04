@@ -45,7 +45,7 @@ import {
 } from "../selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
-import { markStaleRows, pruneStaleRows, staleStateAfterPrune } from "./server-stale";
+import { clearStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
 
 /**
@@ -93,10 +93,13 @@ export type DataWriteContext = {
   disposed: boolean;
   /** The stale rows with the row object and data index of their latest push; `staleRowIds` in the state is its key set. */
   staleRows: Map<string, { row: unknown; index: number }>;
+  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. */
+  reshape: (() => void) | null;
+  warnedReshape: boolean;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map() };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -1061,7 +1064,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
       ctx.rowIndexCache.rebase(nextData);
       ctx.lastEmittedData = nextData;
-      const stale = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
+      const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
+      const stale = marks.state;
       const change = { source: options?.source ?? "stream", ops: batch.ops };
       // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
@@ -1094,6 +1098,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         }),
       );
+      if (marks.touched) requestReshape(ctx, warnDev);
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
     },
@@ -1110,12 +1115,23 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     reconcileView() {
       const s = get();
       if (!s.viewStale) return;
+      let stale: Pick<DataGridStoreState, "staleRowIds"> = s;
+      if (s.staleRowIds.size > 0) {
+        if (ctx.reshape) ctx.reshape();
+        else stale = clearStaleRows(ctx);
+      }
+      if (viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+        resetDeferredRows(ctx);
+        set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
+        return;
+      }
       // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
       const viewIndex = resolveViewIndex(s, s.data, pendingRows(ctx, []));
       resetDeferredRows(ctx);
       set({
         viewIndex,
-        viewStale: false,
+        staleRowIds: stale.staleRowIds,
+        viewStale: stale.staleRowIds.size > 0,
         ...followView(s, viewIndex, s.visibleColumns),
         ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
       });

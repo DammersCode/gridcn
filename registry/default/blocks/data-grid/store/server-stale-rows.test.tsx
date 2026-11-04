@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef, FilterSpec, SortSpec } from "../data-grid";
 import { DataGridProvider, useDataGridInternalActions, useDataGridStoreApi, useDataGridViewStale } from "../store";
@@ -123,6 +123,84 @@ describe("stale rows under a server spec", () => {
     const state = grid.result.current.store.getState();
     expect(state.viewIndex).toBe(before);
     expect((state.data as Row[])[0]!.name).toBe("Aaron");
+  });
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("reshape handler", () => {
+  const withHandler = (grid: ReturnType<typeof renderGrid>) => {
+    const reshape = vi.fn();
+    grid.result.current.store.getState().dataWrite.reshape = reshape;
+    return reshape;
+  };
+
+  it('immediate marks the row and asks for a reshape once per batch', () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }, { rowId: "b", columnId: "name", value: "Abe" }], { reorder: "immediate" });
+    expect(grid.stale()).toEqual(["a", "b"]);
+    expect(grid.result.current.viewStale).toBe(true);
+    expect(reshape).toHaveBeenCalledTimes(1);
+  });
+
+  it('immediate asks again for a row that is stale already', () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "immediate" });
+    grid.push([{ rowId: "a", columnId: "name", value: "Abe" }], { reorder: "immediate" });
+    expect(reshape).toHaveBeenCalledTimes(2);
+  });
+
+  it('immediate on a column the spec does not read asks for nothing', () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "price", value: 31 }], { reorder: "immediate" });
+    expect(reshape).not.toHaveBeenCalled();
+    expect(grid.stale()).toEqual([]);
+  });
+
+  it('defer never asks for a reshape', () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    expect(reshape).not.toHaveBeenCalled();
+  });
+
+  it('immediate without a handler marks the row and warns once', () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "immediate" });
+    grid.push([{ rowId: "b", columnId: "name", value: "Abe" }], { reorder: "immediate" });
+    expect(grid.stale()).toEqual(["a", "b"]);
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("immediate"))).toHaveLength(1);
+  });
+
+  it("reconcileView without a handler clears the marks and keeps the order", () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const before = grid.result.current.store.getState().viewIndex;
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    act(() => grid.result.current.actions.reconcileView());
+    expect(grid.stale()).toEqual([]);
+    expect(grid.result.current.viewStale).toBe(false);
+    expect(grid.result.current.store.getState().viewIndex).toBe(before);
+  });
+
+  it("reconcileView with a handler calls it once and keeps the marks", () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    act(() => grid.result.current.actions.reconcileView());
+    expect(reshape).toHaveBeenCalledTimes(1);
+    expect(grid.stale()).toEqual(["a"]);
+    expect(grid.result.current.viewStale).toBe(true);
+  });
+
+  it("reconcileView does nothing while no row is stale", () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    const reshape = withHandler(grid);
+    act(() => grid.result.current.actions.reconcileView());
+    expect(reshape).not.toHaveBeenCalled();
   });
 });
 

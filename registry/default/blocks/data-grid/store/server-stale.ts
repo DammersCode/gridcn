@@ -23,9 +23,18 @@ export function isServerSpec(s: Pick<DataGridStoreState, "sortMode" | "filterMod
   return s.sortMode === "server" || s.filterMode === "server";
 }
 
+export type StaleMarks = {
+  /** The state to write; empty when no row became stale. */
+  state: Partial<DataGridStoreState>;
+  /** The batch changed a column the server spec reads, in a new or an already stale row. */
+  touched: boolean;
+};
+
+const NO_MARKS: StaleMarks = { state: {}, touched: false };
+
 /**
  * Records the rows that a push changed in a column the server spec reads. A row that is stale already
- * follows its newest object and index. Returns the state to write, or `{}` when no row became stale.
+ * follows its newest object and index.
  */
 export function markStaleRows(
   ctx: DataWriteContext,
@@ -33,24 +42,38 @@ export function markStaleRows(
   ops: readonly DataOp<unknown>[],
   touchedRows: readonly number[],
   mark: boolean,
-): Partial<DataGridStoreState> {
+): StaleMarks {
   const columns = mark ? serverSpecColumns(s) : null;
-  if (columns === null && ctx.staleRows.size === 0) return {};
+  if (columns === null && ctx.staleRows.size === 0) return NO_MARKS;
   let added: string[] | null = null;
+  let touched = false;
   for (let i = 0; i < ops.length; i++) {
     const op = ops[i]!;
     if (op.type !== "update" || !op.cells) continue;
+    const reads = columns !== null && (columns === "all" || op.cells.some((cell) => columns.has(cell.columnId)));
+    if (reads) touched = true;
     const known = ctx.staleRows.get(op.rowId);
     if (known) {
       known.row = op.row;
       known.index = touchedRows[i]!;
-    } else if (columns !== null && (columns === "all" || op.cells.some((cell) => columns.has(cell.columnId)))) {
+    } else if (reads) {
       ctx.staleRows.set(op.rowId, { row: op.row, index: touchedRows[i]! });
       (added ??= []).push(op.rowId);
     }
   }
-  if (added === null) return {};
-  return { staleRowIds: new Set([...s.staleRowIds, ...added]), viewStale: true };
+  if (added === null) return touched ? { state: {}, touched } : NO_MARKS;
+  return { state: { staleRowIds: new Set([...s.staleRowIds, ...added]), viewStale: true }, touched };
+}
+
+/** Asks the mounted server-rows hook to reshape; without it the rows stay marked and a dev warning says so once. */
+export function requestReshape(ctx: DataWriteContext, warn: (message: string) => void): void {
+  if (ctx.reshape) {
+    ctx.reshape();
+    return;
+  }
+  if (ctx.warnedReshape) return;
+  ctx.warnedReshape = true;
+  warn('reorder: "immediate" on a server sort or filter marks the rows stale and asks useDataGridServerRows to place them again, but no such hook is mounted; refetch the rows yourself');
 }
 
 /** The state that drops every stale mark. */

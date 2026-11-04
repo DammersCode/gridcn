@@ -7,7 +7,9 @@
  */
 
 import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
-import { gridStoreWrapper } from "./store/api";
+import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
+
+export { setServerReshapeHandler };
 import type { DataGridStoreWrapper } from "./types";
 
 export type { DataGridReadState, DataGridStoreWrapper } from "./types";
