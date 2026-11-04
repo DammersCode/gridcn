@@ -80,6 +80,19 @@ The Replace row holds the Replace field, the Replace button, and the Replace all
 status line shows how many cells changed and how many were skipped. With an async `validate`, it
 shows `Validating…` until the batch settles.
 
+## Rows the search covers
+
+<NewBadge />
+
+Find and Replace work on the rows the grid holds. A grid with a `totalRowCount`, or with a server
+`sortMode` or `filterMode`, holds only part of its result. The panel then shows "Searches loaded
+rows only" under the fields, and the Find field points to the note with `aria-describedby`.
+A search that finds nothing there does not mean the server result has no match.
+
+The note is off for a local grid. Client pages hold one page of the rows without a count. Pass
+`showScope: true` to `useDataGridFindReplace` to show the note there. `showScope: false` hides it.
+To search the whole result, filter or search on the server through the grid's `searchText`.
+
 ## Where Replace works
 
 Replace covers the visible columns of the rows in the view. Hidden columns, filtered-out rows,

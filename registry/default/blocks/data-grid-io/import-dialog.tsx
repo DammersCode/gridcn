@@ -47,8 +47,8 @@ export type DataGridImportDialogProps<TData> = {
   onOpenChange: (open: boolean) => void;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
   createRow: (index: number) => TData | Promise<TData>;
-  /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. */
-  onImport: (rows: TData[]) => void | Promise<void>;
+  /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. `ctx.signal` aborts when the user cancels or the dialog closes; pass it to your request. */
+  onImport: (rows: TData[], ctx: { signal: AbortSignal }) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
   /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
@@ -119,13 +119,16 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     (rows: TData[], rejected: readonly ImportRejectedCell[]) => {
       setMergeFailed(false);
       setIsValidating(true);
+      const token = ++confirmTokenRef.current;
+      const signal = abortControllerRef.current?.signal ?? new AbortController().signal;
       void Promise.resolve()
-        .then(() => onImport(rows))
+        .then(() => onImport(rows, { signal }))
         .then(() => {
-          actions.clearSelection();
+          if (confirmTokenRef.current === token) actions.clearSelection();
         })
         .then(
           () => {
+            if (confirmTokenRef.current !== token) return;
             setIsValidating(false);
             if (rejected.length > 0) {
               setRejectedCount(rejected.length);
@@ -134,6 +137,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             onOpenChange(false);
           },
           (error) => {
+            if (confirmTokenRef.current !== token) return;
             setIsValidating(false);
             setMergeFailed(true);
             if (isDev()) console.warn("[data-grid-io] onImport rejected; the dialog stays open", error);

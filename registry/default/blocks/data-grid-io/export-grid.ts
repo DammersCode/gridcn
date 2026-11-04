@@ -1,6 +1,12 @@
 import { getCellValue, sanitizeFormulaCell, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, displayText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
+import { DEFAULT_SOURCE_MAX_BYTES, DEFAULT_SOURCE_MAX_ROWS, runSourceExport, type ExportProgress, type ExportResult, type ExportSource, type ExportSourceContext } from "./export-source";
+
+const CSV_EOL = "\r\n";
+
+/** Rows an Excel worksheet holds, header row included. */
+const XLSX_MAX_ROWS = 1_048_576;
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
 export const MAX_CELL_TEXT = 32_767;
@@ -32,9 +38,19 @@ export type ExportGridOptions = {
   fileName?: string;
   /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (over 31 characters, `[]:*?/\`, `History`) rejects. */
   workbookName?: string;
-  /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. */
+  /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file stops at the Excel sheet limit. */
   maxRows?: number;
+  /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
+  source?: ExportSource;
+  /** With `source`: stop after this many bytes of file text; default 256 MiB. The export keeps what it has and reports `truncated`. */
+  maxBytes?: number;
+  /** Cancels the export. The promise rejects with the signal's reason and no file downloads. */
+  signal?: AbortSignal;
+  /** With `source`: called after each batch with the running totals. */
+  onProgress?: (progress: ExportProgress) => void;
 };
+
+export type { ExportProgress, ExportResult, ExportSource, ExportSourceContext };
 
 const NEEDS_QUOTING_DEFAULT = /["\r\n]/;
 
@@ -161,21 +177,71 @@ export async function buildXlsx(state: DataGridReadState, options: BuildXlsxOpti
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
+function loadedResult(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined): ExportResult {
+  const total = exportDataIndices(state, scope).length;
+  return { rowCount: maxRows === undefined ? total : Math.min(total, maxRows), truncated: maxRows !== undefined && total > maxRows };
+}
+
+/** Exports the rows `source` returns; CSV is written batch by batch, XLSX collects the rows first. */
+async function exportFromSource(state: DataGridReadState, source: ExportSource, options: ExportGridOptions): Promise<ExportResult> {
+  const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName = "Sheet1", signal, onProgress } = options;
+  const xlsx = format === "xlsx";
+  const maxRows = Math.min(options.maxRows ?? DEFAULT_SOURCE_MAX_ROWS, xlsx ? XLSX_MAX_ROWS - (includeHeaders ? 1 : 0) : Infinity);
+  const run = { source, maxRows, maxBytes: options.maxBytes ?? DEFAULT_SOURCE_MAX_BYTES, signal, onProgress };
+  const headers = buildExportHeaders(state);
+
+  if (!xlsx) {
+    const parts: string[] = [csvBom ? "﻿" : ""];
+    let started = false;
+    const append = (rows: readonly (readonly string[])[]): number => {
+      if (rows.length === 0) return 0;
+      const text = (started ? CSV_EOL : "") + rowsToCsv(rows, csvDelimiter, sanitizeFormulas);
+      started = true;
+      parts.push(text);
+      return new Blob([text]).size;
+    };
+    if (includeHeaders) append([headers]);
+    const result = await runSourceExport(state, run, append);
+    downloadBlob(new Blob(parts, { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
+    return result;
+  }
+
+  const table: string[][] = includeHeaders ? [headers] : [];
+  const result = await runSourceExport(state, run, (rows) => {
+    let size = 0;
+    for (const row of rows) {
+      const cut = row.map((text) => (text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text));
+      for (const text of cut) size += text.length;
+      table.push(cut);
+    }
+    return size;
+  });
+  const { writeXlsx } = await import("./xlsx-writer");
+  const bytes = await writeXlsx({ sheets: [{ name: workbookName, rows: table }] });
+  if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
+  const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  downloadBlob(blob, `${fileName}.xlsx`);
+  return result;
+}
+
 /**
  * Serializes the grid to CSV or XLSX and triggers a download. Values always go through each
  * column's cell type `toText` (never raw values), so clipboard/export fidelity matches. hucre is
  * loaded lazily (dynamic `import()`) so the dependency never loads for CSV-only consumers.
  */
-export async function exportGrid(state: DataGridReadState, options: ExportGridOptions = {}): Promise<void> {
+export async function exportGrid(state: DataGridReadState, options: ExportGridOptions = {}): Promise<ExportResult> {
+  const { source } = options;
+  if (source) return exportFromSource(state, source, options);
   const { format = "csv", scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, fileName = "export", workbookName, maxRows } = options;
   if (format === "csv") {
     const rows = buildCappedExportRows(state, scope, maxRows);
     const table = includeHeaders ? [buildExportHeaders(state), ...rows] : rows;
     const csv = (csvBom ? "\uFEFF" : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas);
     downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${fileName}.csv`);
-    return;
+    return loadedResult(state, scope, maxRows);
   }
 
   const blob = await buildXlsx(state, { scope, includeHeaders, workbookName, maxRows });
   downloadBlob(blob, `${fileName}.xlsx`);
+  return loadedResult(state, scope, maxRows);
 }

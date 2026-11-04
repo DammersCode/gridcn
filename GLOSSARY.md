@@ -79,6 +79,7 @@ mirror the change there.
 | range | A rectangle of selected cells. | |
 | quick search | The toolbar search that highlights matches and never filters rows. | |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
+| export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
 | filter node | One entry of `filterState`: a filter row or a filter group. | filter item, filter entry |
 | filter group | A box of filter nodes that match together. Its join is `and` (every child must match) or `or` (any child). A group holds one more group at most. The top level of `filterState` always combines with `and`. | filter bracket, nested filter, join operator |

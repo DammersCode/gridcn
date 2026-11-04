@@ -93,8 +93,9 @@ ignores view order entirely and exports every row of the raw `data` array as-is.
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
 cell range that covers part of a row still exports that row in full.
 
-Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
-in every scope. Export after the range you need is loaded.
+Without a `source`, export covers the rows the grid holds: a page, or the loaded blocks of a
+scroll-mode grid. Unloaded rows are skipped in every scope. To export the whole result, see
+[Export the whole result](#export-the-whole-result).
 
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
@@ -109,6 +110,53 @@ download, for uploads to a server. The xlsx file is compressed.
 
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
+
+## Export the whole result
+
+<NewBadge />
+
+A paged or scroll-mode grid holds only part of its result. Pass a `source` to export all of it.
+`source` is a function that returns the rows: an array, or an async iterable of row batches. It
+receives the grid's `spec` (sort, filters, and search text) and an `AbortSignal`. The grid applies
+nothing to the rows. Your server applies the spec.
+
+<ComponentPreview name="data-grid-export-all-demo" />
+
+```tsx
+async function* ordersSource({ spec, signal }: ExportSourceContext) {
+  for (let offset = 0; ; offset += 500) {
+    const rows = await api.orders({ ...spec, offset, limit: 500, signal });
+    if (rows.length === 0) return;
+    yield rows;
+  }
+}
+
+<DataGridExportButton options={{ source: ordersSource, maxRows: 200_000 }} />
+```
+
+With `source`, `DataGridExportButton` adds "Export all rows" items. The plain items still export the
+rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". The button
+announces the row count when the export ends, and says so when a limit made the file incomplete.
+
+For client pages (`useDataGridPagination` with `data`), pass `source: () => allRows`. The grid
+holds one page, so its sort and filter cover that page only. The source returns the rows in the
+order you choose.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `source` | none | Where the rows of the whole result come from. `scope` does not apply. |
+| `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit. |
+| `maxBytes` | 256 MiB | Stops the export after this much file text. An xlsx file counts characters. |
+| `signal` | none | Cancels the export. The promise rejects and no file downloads. |
+| `onProgress` | none | Called after each batch with `{ rowCount, byteCount }`. |
+
+`exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes`
+ended the export before the source did. The file then holds the rows read so far.
+
+Each batch must be an array, or the export rejects and downloads nothing. The export skips `null`
+and `undefined` rows. A source that returns only empty batches, or far more rows than `maxRows`,
+rejects. Formula-like CSV cells get the same quote prefix as in a loaded export. A CSV export
+writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file.
 
 ## Print
 
@@ -132,9 +180,10 @@ at 10,000 by default, further cut to fit a hard ceiling of 500,000 cells. Cell t
 32,767 characters is cut. When the cap reduces the output, the table ends with a "Printed N of M
 rows" note.
 
-<Callout type="warn" title="A lazy grid prints its loaded rows only">
-Print reads the grid's data, like export. A lazy grid prints the rows it has loaded, not the rows
-it has not loaded yet. Load the range you need first, then print.
+<Callout type="warn" title="Print covers the rows the grid holds">
+Print reads the grid's data. A grid fed by `useDataGridServerRows` prints its current page, or the
+blocks it has loaded in scroll mode, not the rest of the server result. Load the range you need
+first, then print. To print the whole result, use a CSV or xlsx export of the whole result.
 </Callout>
 
 `DataGridPrintButton` forwards its `options` prop to `printGrid`, so
@@ -218,6 +267,32 @@ formats:
 Some programs save other content with an `.xls` extension: an HTML table, Excel 2003 XML, or an
 Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupportedExcelFormat`
 message. Save such a file as `.xlsx` in Excel, then import it again.
+
+## Import into a server grid
+
+<NewBadge />
+
+The dialog never writes rows into the grid. `onImport(rows, { signal })` is the only exit. A grid
+with a `totalRowCount` or unloaded rows cannot take appended rows: the data would exceed the count,
+and the next refresh would drop them. So send the rows to your server instead:
+
+```tsx
+<DataGridImportButton
+  createRow={createRow}
+  onImport={async (rows, { signal }) => {
+    await api.createOrders(rows, { signal });
+    server.refresh();
+  }}
+/>
+```
+
+The dialog stays pending until `onImport` settles. If it rejects, the dialog stays open and the
+user can retry. `signal` aborts when the user clicks Cancel or the dialog closes. A late answer
+after that changes nothing. The server decides where the new rows sit under the current sort.
+`server.refresh()` reads the new `totalRowCount` and the rows in view.
+
+Lower `importLimits.maxRows` to what one request of yours accepts. Rows keep the ids that
+`createRow` gave them. If your server assigns ids, read them from the refreshed rows.
 
 ## Import limits
 

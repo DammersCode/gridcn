@@ -759,13 +759,18 @@
           "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
         },
         "PS": {
-          "status": "n/a",
-          "reason": "Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/import-server.browser.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "Z": {
-          "status": "gap",
-          "track": "IMP",
-          "note": "Appended rows fight `total`."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/import-server.browser.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "C": {
           "status": "n/a",
@@ -799,19 +804,25 @@
           ]
         },
         "PC": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports the rows of the current page only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "PS": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports loaded rows only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "Z": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports loaded rows only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "C": {
           "status": "supported",
@@ -820,19 +831,25 @@
           ]
         },
         "SS": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports loaded rows only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "FS": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports loaded rows only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         },
         "API": {
-          "status": "gap",
-          "track": "I",
-          "note": "Exports loaded rows only."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-io/export-source.test.ts",
+            "content/docs/addons/import-export.mdx"
+          ]
         }
       }
     },
@@ -880,7 +897,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx"
+            "tests/parity/export-print.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/print-button.browser.test.tsx"
           ]
         }
       }
@@ -1420,14 +1438,12 @@
           ]
         },
         "PS": {
-          "status": "gap",
-          "track": "FR",
-          "note": "Loaded rows only; no server scope."
+          "status": "n/a",
+          "reason": "Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."
         },
         "Z": {
-          "status": "gap",
-          "track": "FR",
-          "note": "Loaded rows only; no server scope."
+          "status": "n/a",
+          "reason": "Find and replace searches the loaded rows by design; the panel says so (find-replace-scope.browser.test.tsx)."
         },
         "C": {
           "status": "supported",

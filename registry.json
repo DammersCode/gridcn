@@ -1235,6 +1235,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/export-source.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/export-source.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/xlsx-writer.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/xlsx-writer.ts"
@@ -1896,6 +1901,40 @@
                "path": "registry/default/examples/data-grid-print-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-print-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-export-all-demo",
+         "type": "registry:example",
+         "title": "Data Grid Export All Demo",
+         "description": "A paged server grid whose export menu exports the whole filtered result through an async source in batches, and whose import sends the rows to the server and refreshes.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "DammersCode/gridcn/data-grid-server",
+            "DammersCode/gridcn/data-grid-io",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-export-all-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-export-all-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
             },
             {
                "path": "registry/default/examples/demo-data.ts",

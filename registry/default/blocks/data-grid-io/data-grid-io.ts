@@ -1,6 +1,6 @@
 /** Public entry point for the data-grid-io add-on — the only module consumers should import from. */
 
-export { exportGrid, buildXlsx, buildExportRows, buildExportHeaders, quoteCsvField, rowsToCsv, downloadBlob, type ExportGridOptions, type BuildXlsxOptions, type BuildExportRowsOptions } from "./export-grid";
+export { exportGrid, buildXlsx, buildExportRows, buildExportHeaders, quoteCsvField, rowsToCsv, downloadBlob, type ExportGridOptions, type BuildXlsxOptions, type BuildExportRowsOptions, type ExportSource, type ExportSourceContext, type ExportProgress, type ExportResult } from "./export-grid";
 export { useDataGridExport, type UseDataGridExportResult } from "./use-data-grid-export";
 
 export { printGrid, type PrintGridOptions, type PrintPageSize } from "./print-grid";

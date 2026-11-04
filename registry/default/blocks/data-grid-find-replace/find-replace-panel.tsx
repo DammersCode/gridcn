@@ -30,20 +30,24 @@ import {
   isComposingKey,
   useDataGridInputDebounce,
   useDataGridInstanceId,
+  useDataGridSelector,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_REPLACE_INPUT_LENGTH, planReplace, type ReplaceOptions } from "./plan-replace";
 
 export type PanelStore = {
-  getOptions(): ReplaceOptions;
-  setOptions(options: ReplaceOptions): void;
+  getOptions(): PanelOptions;
+  setOptions(options: PanelOptions): void;
   getState(): { open: boolean; mode: "find" | "replace"; openCount: number };
   subscribe(listener: () => void): () => void;
   open(mode: "find" | "replace"): void;
   setMode(mode: "find" | "replace"): void;
   close(): void;
 };
+
+/** Replace options plus the panel's own: `showScope` forces the loaded-rows note on or off; unset it shows when the result can exceed the loaded rows. */
+export type PanelOptions = ReplaceOptions & { showScope?: boolean };
 
 type PanelProps = { panelStore: PanelStore };
 
@@ -66,6 +70,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const capped = useDataGridSearchCapped();
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
+  const resultExceedsLoaded = useDataGridSelector<unknown, boolean>((state) => state.totalRowCount !== undefined || state.sortMode === "server" || state.filterMode === "server");
+  const showScope = panelStore.getOptions().showScope ?? resultExceedsLoaded;
+  const scopeId = useId();
 
   const delayMs = useDataGridInputDebounce();
   const [replacement, setReplacement] = useState("");
@@ -333,6 +340,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             onChange={onFindChange}
             onKeyDown={onFindKeyDown}
             aria-label={labels.findLabel}
+            aria-describedby={showScope ? scopeId : undefined}
             placeholder={labels.findLabel}
             className="h-8 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
@@ -372,6 +380,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             <ReplaceAll />
           </Button>
         </div>
+      )}
+      {showScope && (
+        <p id={scopeId} className="px-1 text-xs text-muted-foreground">
+          {labels.scopeLoadedRows}
+        </p>
       )}
       <div role="status" aria-live="polite" title={statusText} className={cn("h-5 truncate px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
         {statusText}

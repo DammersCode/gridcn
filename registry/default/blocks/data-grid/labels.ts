@@ -212,6 +212,10 @@ export type DataGridIOLabels = {
   exportButtonAriaLabel: string;
   exportXlsx: string;
   exportCsv: string;
+  exportAllXlsx: string;
+  exportAllCsv: string;
+  exportCancel: string;
+  exportDone: (rowCount: number, truncated: boolean) => string;
   importButton: string;
   importDialogTitle: string;
   importDialogDescription: string;
@@ -327,6 +331,7 @@ export type DataGridFindReplaceLabels = {
   replaced: (replaced: number, skipped: number) => string;
   moreRemain: string;
   validating: string;
+  scopeLoadedRows: string;
 };
 
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
@@ -559,6 +564,10 @@ export const DEFAULT_LABELS: DataGridLabels = {
     exportButtonAriaLabel: "Export",
     exportXlsx: "Export as Excel (.xlsx)",
     exportCsv: "Export as CSV",
+    exportAllXlsx: "Export all rows as Excel (.xlsx)",
+    exportAllCsv: "Export all rows as CSV",
+    exportCancel: "Cancel export",
+    exportDone: (rowCount, truncated) => `${rowCount.toLocaleString("en-US")} rows exported${truncated ? ", file is incomplete: a limit stopped the export" : ""}`,
     importButton: "Import",
     importDialogTitle: "Import file",
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
@@ -640,6 +649,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
     moreRemain: "More matches remain. Run Replace all again.",
     validating: "Validating…",
+    scopeLoadedRows: "Searches loaded rows only",
   },
 };
 
