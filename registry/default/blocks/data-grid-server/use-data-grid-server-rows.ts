@@ -164,7 +164,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows, setSaveStartListener, setSavesSettledListener } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
   const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
@@ -231,6 +231,13 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     setSaveStartListener(dropPrefetch);
     return () => setSaveStartListener(null);
   }, [setSaveStartListener, dropPrefetch]);
+
+  // The prefetch waits for pending saves; it runs again when the last one settles.
+  const [savesSettled, setSavesSettled] = useState(0);
+  useEffect(() => {
+    setSavesSettledListener(() => setSavesSettled((n) => n + 1));
+    return () => setSavesSettledListener(null);
+  }, [setSavesSettledListener]);
 
   useEffect(() => {
     const adoptedRequest = adoptedKey.current === key;
@@ -364,7 +371,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     return () => clearTimeout(timer);
     // The effect follows landings, not local edits of the rows.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefetchOn, settled.key, settled.error, settled.totalRowCount, settled.hasMore, key]);
+  }, [prefetchOn, settled.key, settled.error, settled.totalRowCount, settled.hasMore, key, savesSettled]);
 
   useEffect(
     () => () => {

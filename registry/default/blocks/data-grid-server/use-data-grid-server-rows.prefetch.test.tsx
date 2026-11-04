@@ -373,6 +373,20 @@ describe("prefetchNextPage with the refresh guard", () => {
     expect(t.result().gridProps.data[0]?.name).toBe("p2");
   });
 
+  it("prefetches again once the last pending save settled, so the next page shows with no request", async () => {
+    const s = server();
+    const t = mountGrid(s);
+    await advance(0);
+    await advance(0);
+    act(() => t.store().actions.commitCellValue({ rowId: "r1", columnId: "name" }, "Edited"));
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await advance(0);
+    expect(s.pages()).toEqual([1, 2, 2]);
+    act(() => t.result().pager.onPageChange(2));
+    expect(t.result().loading).toBe(false);
+    expect(s.pages().filter((page) => page === 2)).toHaveLength(2);
+  });
+
   it("starts no prefetch while a save is pending", async () => {
     const s = server();
     const t = mountGrid(s);

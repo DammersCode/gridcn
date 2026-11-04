@@ -33,6 +33,8 @@ type Holder = {
   onStructuralSettled: (() => void) | null;
   /** Called when a row's save starts. */
   onSaveStarted: (() => void) | null;
+  /** Called when the last saving row leaves `"saving"`. */
+  onSavesSettled: (() => void) | null;
   trackUnacknowledged: boolean;
   /** Rows with a local edit or insert that no save and no landed block has acknowledged; eviction keeps them. */
   unacknowledged: Set<string>;
@@ -44,6 +46,15 @@ function setListenerOn(holder: Holder, listener: (() => void) | null) {
 
 function setSaveListenerOn(holder: Holder, listener: (() => void) | null) {
   holder.onSaveStarted = listener;
+}
+
+function setSettledListenerOn(holder: Holder, listener: (() => void) | null) {
+  holder.onSavesSettled = listener;
+}
+
+function hasSaving(status: ReadonlyMap<string, string>): boolean {
+  for (const value of status.values()) if (value === "saving") return true;
+  return false;
 }
 
 function trackStructural(holder: Holder, change: { source: string; ops: readonly { type: string; rowId: string }[] }) {
@@ -81,6 +92,7 @@ function trackSaves(holder: Holder, state: DataGridReadState, prev: DataGridRead
     if (holder.recording) holder.savedAt.set(id, ++holder.generation);
   }
   if (started) holder.onSaveStarted?.();
+  if (holder.onSavesSettled && hasSaving(prev.saveStatus) && !hasSaving(state.saveStatus)) holder.onSavesSettled();
 }
 
 function savedSinceOn(holder: Holder, generation: number): ProtectedRows {
@@ -131,7 +143,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -150,6 +162,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const setSettleListener = useCallback((listener: (() => void) | null) => setListenerOn(holder, listener), [holder]);
   const setSaveStartListener = useCallback((listener: (() => void) | null) => setSaveListenerOn(holder, listener), [holder]);
+  const setSavesSettledListener = useCallback((listener: (() => void) | null) => setSettledListenerOn(holder, listener), [holder]);
   const forgetStructural = useCallback(() => {
     holder.structural.clear();
     holder.unacknowledged.clear();
@@ -163,7 +176,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, setSettleListener, setSaveStartListener, setSavesSettledListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 export const GUARD_MISSING_MESSAGE =
