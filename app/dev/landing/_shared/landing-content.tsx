@@ -27,14 +27,17 @@ function Panel({ id, title, intro, children, className, collapsed, defaultOpen }
   );
   if (collapsed) {
     return (
-      <details open={defaultOpen} className={`group border bg-card ${className ?? ""}`}>
-        <summary className="flex cursor-pointer list-none items-start justify-between gap-3 p-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
-          <div>{head}</div>
-          <span className="mt-1 shrink-0 border px-2.5 py-1 text-xs font-medium group-open:hidden">Show ▾</span>
-          <span className="mt-1 hidden shrink-0 border px-2.5 py-1 text-xs font-medium group-open:inline">Hide ▴</span>
-        </summary>
-        <div className="flex flex-col gap-3 px-4 pb-4">{children}</div>
-      </details>
+      <section aria-labelledby={id} className={`flex flex-col gap-3 border bg-card p-4 ${className ?? ""}`}>
+        <div>{head}</div>
+        <details open={defaultOpen} className="group">
+          <summary className={`w-fit cursor-pointer list-none border px-2.5 py-1 text-xs font-medium ${focus}`}>
+            <span className="group-open:hidden">Show ▾</span>
+            <span className="hidden group-open:inline">Hide ▴</span>
+            <span className="sr-only"> {title}</span>
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">{children}</div>
+        </details>
+      </section>
     );
   }
   return (
@@ -42,6 +45,64 @@ function Panel({ id, title, intro, children, className, collapsed, defaultOpen }
       <div>{head}</div>
       {children}
     </section>
+  );
+}
+
+function CompareTable({ rows, head }: { rows: typeof comparison.rows; head?: boolean }) {
+  return (
+    <>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full table-fixed text-sm">
+          {head ? (
+            <thead className="border-b bg-muted">
+              <tr>
+                <th scope="col" className="w-[28%] px-3 py-2 text-start font-medium">
+                  Capability
+                </th>
+                {comparison.columns.map((c) => (
+                  <th key={c} scope="col" className={c === "gridcn" ? "px-3 py-2 text-center font-semibold text-primary" : "px-3 py-2 text-center font-medium"}>
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          ) : (
+            <colgroup>
+              <col className="w-[28%]" />
+              <col span={comparison.columns.length} />
+            </colgroup>
+          )}
+          <tbody>
+            {rows.map(({ feature, values }) => (
+              <tr key={feature} className="border-b last:border-0">
+                <th scope="row" className="px-3 py-2 text-start font-medium">
+                  {feature}
+                </th>
+                {values.map((v, i) => (
+                  <td key={i} className={i === 0 ? "px-3 py-2 text-center font-medium" : "px-3 py-2 text-center text-muted-foreground"}>
+                    {v}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ul className="grid gap-2 sm:hidden">
+        {rows.map(({ feature, values }) => (
+          <li key={feature} className="border p-3 text-sm">
+            <p className="mb-1 font-medium">{feature}</p>
+            <p className="text-xs text-muted-foreground">
+              {comparison.columns.map((c, i) => (
+                <span key={c} className="me-3 inline-block">
+                  <span className={i === 0 ? "font-semibold text-primary" : ""}>{c.replace(" Table", "")}</span> {values[i]}
+                </span>
+              ))}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -130,45 +191,17 @@ export function LandingContent() {
         </Panel>
       </div>
 
-      <Panel collapsed id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted">
-              <tr>
-                <th scope="col" className="px-3 py-2 text-start font-medium">
-                  Capability
-                </th>
-                {comparison.columns.map((c) => (
-                  <th key={c} scope="col" className={c === "gridcn" ? "px-3 py-2 text-center font-semibold text-primary" : "px-3 py-2 text-center font-medium"}>
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.rows.map(({ feature, values }) => (
-                <tr key={feature} className="border-b last:border-0">
-                  <th scope="row" className="px-3 py-2 text-start font-medium">
-                    {feature}
-                  </th>
-                  {values.map((v, i) => (
-                    <td key={i} className={i === 0 ? "px-3 py-2 text-center font-medium" : "px-3 py-2 text-center text-muted-foreground"}>
-                      {v}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ul className="grid gap-2 sm:hidden">
-          {comparison.rows.map(({ feature, values }) => (
-            <li key={feature} className="border p-3 text-sm">
-              <p className="mb-1 font-medium">{feature}</p>
-              <p className="text-xs text-muted-foreground">{comparison.columns.map((c, i) => <span key={c} className="me-3 inline-block"><span className={i === 0 ? "font-semibold text-primary" : ""}>{c.replace(" Table", "")}</span> {values[i]}</span>)}</p>
-            </li>
-          ))}
-        </ul>
+      <Panel id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
+        <CompareTable rows={comparison.rows.slice(0, 2)} head />
+        <details className="group">
+          <summary className={`w-fit cursor-pointer list-none border px-2.5 py-1 text-xs font-medium ${focus}`}>
+            <span className="group-open:hidden">Show {comparison.rows.length - 2} more rows ▾</span>
+            <span className="hidden group-open:inline">Hide rows ▴</span>
+          </summary>
+          <div className="mt-3">
+            <CompareTable rows={comparison.rows.slice(2)} />
+          </div>
+        </details>
         <p className="text-xs text-muted-foreground">Tiers as of 09/2026 (AG Grid v36, MUI X v9, TanStack Table v9). Vendors change tiers: verify before relying on this.</p>
       </Panel>
 

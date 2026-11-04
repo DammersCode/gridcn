@@ -97,4 +97,4 @@ export const SITE_TAGLINE =
 
 export const PLAIN_PITCH = "A spreadsheet-style table for React and shadcn apps, installed as source code. Local array or server: the same grid, smooth at 100k rows.";
 
-export const SUBLINE = "A data grid for React that feels like a spreadsheet and scales like a database view.";
+export const SUBLINE = "A data grid for React that feels like a spreadsheet and stays smooth at 100k rows.";
