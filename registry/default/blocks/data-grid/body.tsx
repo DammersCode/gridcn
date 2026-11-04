@@ -10,6 +10,7 @@ import {
   useDataGridRowIds,
   useDataGridRowMarkers,
   useDataGridRowReorderEnabled,
+  useDataGridSelector,
   useDataGridStoreApi,
   type AnyColumnDef,
 } from "./store";
@@ -151,6 +152,31 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     lastFiredRangeRef.current = { start, end };
     storeApi.getState().onRenderedRowsChange?.({ start, end });
   }, [start, end, measured, storeApi]);
+
+  // autosizeOnMount: one autosize pass once the grid is measured, so the rows it samples are mounted, and the view has rows (a lazy grid waits for its
+  // first page). Runs once per mount. A saved layout wins: columns with a saved width
+  // (`columnWidths`, e.g. from `defaultColumnLayout`) keep it and are left out of the pass. The
+  // one-shot store subscription avoids re-rendering this tree per view change.
+  const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
+  const autoSizedOnMount = useRef(false);
+  useEffect(() => {
+    if (!autosizeOnMount || autoSizedOnMount.current || !measured) return;
+    const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
+    let unsubscribe: () => void = () => {};
+    const run = () => {
+      if (autoSizedOnMount.current) return;
+      const s = storeApi.getState();
+      if (s.viewIndex.length === 0) return;
+      autoSizedOnMount.current = true;
+      unsubscribe();
+      const saved = new Set(Object.keys(s.columnWidths));
+      const columnIds = (base?.columnIds ?? s.visibleColumns.map((column) => column.id)).filter((id) => !saved.has(id));
+      s.actions.autosizeColumns({ ...base, columnIds });
+    };
+    unsubscribe = storeApi.subscribe(run);
+    run();
+    return unsubscribe;
+  }, [autosizeOnMount, measured, storeApi]);
 
   // A naive "clear then repopulate" would blank the body for a frame on every window shift.
   // Rows are keyed by getRowId and mapped straight from viewRowIndices, so keyed reconciliation
