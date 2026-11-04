@@ -192,8 +192,14 @@ export function MountBench({ rows, mode, variant }: { rows: number; mode: BenchM
   }, [mode]);
 
   return (
-    <div id="bench-host" className="w-full">
-      {mode === "hydrate" && <HydrateGrid rows={rows} variant={variant} />}
-    </div>
+    <>
+      {/* Page text in the grid's fonts, so a cold run does not charge font decoding to the grid. */}
+      <p className="px-2 py-1 text-sm">
+        Mount benchmark <span className="font-medium">0123456789 Name Email Age Active Role Joined Score</span>
+      </p>
+      <div id="bench-host" className="w-full">
+        {mode === "hydrate" && <HydrateGrid rows={rows} variant={variant} />}
+      </div>
+    </>
   );
 }
