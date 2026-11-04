@@ -67,7 +67,7 @@ export type UseDataGridServerRowsResult<TData> = {
   error: unknown;
   /** Repeats the request that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the current page again and keeps the rows on screen until the answer lands. Rows with a pending save and the row under an edit keep their value, so call it after the `onSave` promise settles to pick up server-computed fields. */
+  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block never creates a duplicate id or a hole. Call it after the `onSave` promise settles to pick up server-computed fields. */
   refresh: () => void;
 };
 

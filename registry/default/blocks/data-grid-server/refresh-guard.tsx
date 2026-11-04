@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import type { DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
+/**
+ * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
+ * cell edit, a save in flight, or a save that was in flight at any moment since the request was sent: that row keeps its local
+ * value. Everything else is replaced, and a block never creates a duplicate id or a hole.
+ */
+
 /** The rows an answer must not overwrite: a save is pending, or an edit session is open. */
 export type ProtectedRows = ReadonlySet<string> | null;
 
@@ -11,42 +17,39 @@ type Holder = {
   store: DataGridStoreWrapper | null;
   everMounted: boolean;
   edited: boolean;
-  saveSeq: number;
-  /** Saves are logged only while a request is open. */
+  generation: number;
+  /** Saves are tracked only while a request is open. */
   recording: boolean;
-  /** Saves that started, in order; trimmed to the saves newer than the oldest pending request. */
-  started: { seq: number; id: string }[];
+  /** Row id -> generation of its latest save start; holds one entry per saved row, dropped when no request is open. */
+  savedAt: Map<string, number>;
 };
 
 function markEditedOn(holder: Holder) {
   holder.edited = true;
 }
 
-/** A save older than the last 10,000 saves loses protection only while a request older than that hangs. */
-export const MAX_LOGGED_SAVES = 10_000;
-
-function logSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
+function trackSaveStarts(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
   if (!holder.recording || state.saveStatus === prev.saveStatus) return;
   for (const [id, status] of state.saveStatus) {
-    if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.started.push({ seq: ++holder.saveSeq, id });
+    if (status === "saving" && prev.saveStatus.get(id) !== "saving") holder.savedAt.set(id, ++holder.generation);
   }
-  if (holder.started.length > MAX_LOGGED_SAVES) holder.started.splice(0, holder.started.length - MAX_LOGGED_SAVES);
 }
 
-function savedSinceOn(holder: Holder, mark: number): ProtectedRows {
+function savedSinceOn(holder: Holder, generation: number): ProtectedRows {
   let ids: Set<string> | null = null;
-  for (const entry of holder.started) if (entry.seq > mark) (ids ??= new Set()).add(entry.id);
+  for (const [id, at] of holder.savedAt) if (at > generation) (ids ??= new Set()).add(id);
   return ids;
 }
 
 function markSavesOn(holder: Holder): number {
   holder.recording = true;
-  return holder.saveSeq;
+  return holder.generation;
 }
 
-function pruneSavesOn(holder: Holder, oldestMark: number | null) {
-  holder.recording = oldestMark !== null;
-  holder.started = oldestMark === null ? [] : holder.started.filter((entry) => entry.seq > oldestMark);
+function pruneSavesOn(holder: Holder, oldestGeneration: number | null) {
+  holder.recording = oldestGeneration !== null;
+  if (oldestGeneration === null) holder.savedAt.clear();
+  else for (const [id, at] of holder.savedAt) if (at <= oldestGeneration) holder.savedAt.delete(id);
 }
 
 function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
@@ -55,7 +58,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     useEffect(() => {
       holder.store = store;
       holder.everMounted = true;
-      const unsubscribe = store.subscribe((state, prev) => logSaveStarts(holder, state, prev));
+      const unsubscribe = store.subscribe((state, prev) => trackSaveStarts(holder, state, prev));
       return () => {
         unsubscribe();
         holder.store = null;
@@ -68,7 +71,7 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard() {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, saveSeq: 0, recording: false, started: [] }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const protectedRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -108,6 +111,22 @@ export function unionIds(a: ProtectedRows, b: ProtectedRows): ProtectedRows {
 }
 
 export type GuardedBlock<TData> = { start: number; rows: readonly (TData | undefined)[]; guard: ProtectedRows };
+
+/** Moves the guarded rows in the given index ranges into `into`, for the block that brings their ids back. */
+export function stashGuardedRows<TData>(
+  rows: readonly (TData | undefined)[],
+  ranges: readonly { start: number; end: number }[],
+  guarded: ReadonlySet<string>,
+  into: Map<string, TData>,
+  idOf: (row: TData, index: number) => string,
+) {
+  for (const { start, end } of ranges) {
+    for (let index = start; index < Math.min(end, rows.length); index++) {
+      const row = rows[index];
+      if (row !== undefined && guarded.has(idOf(row, index))) into.set(idOf(row, index), row);
+    }
+  }
+}
 
 function findSlot<TData>(rows: readonly (TData | undefined)[], ranges: readonly { start: number; end: number }[], id: string, idOf: (row: TData, index: number) => string): number {
   for (const { start, end } of ranges) {

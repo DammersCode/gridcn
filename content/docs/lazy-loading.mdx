@@ -107,7 +107,7 @@ Behavior the grid applies by itself:
   `retry()` repeats the failed blocks only.
 - `refresh()` fetches the rendered blocks again and keeps them on screen until the answers land. It drops every
   other loaded block.
-- `gridProps.plugins` <NewBadge /> mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. A `plugins` prop of your own replaces it. Put the hook's plugins first: `plugins={[...server.gridProps.plugins, myPlugin]}`. In development, the hook warns once when a refresh runs after a grid rendered rows without the guard.
+- `gridProps.plugins` <NewBadge /> mounts the guard that applies this rule on every landing block. A `plugins` prop of your own replaces it. Put the hook's plugins first: `plugins={[...server.gridProps.plugins, myPlugin]}`. In development, the hook warns once when a refresh runs after a grid rendered rows without the guard.
 - `evict(range)` unloads rows. `getLoadedRanges()` and `unloadedCount` report what is loaded.
 
 <Callout type="warn">
@@ -337,8 +337,7 @@ const server = useDataGridServerRows<Order, string>({
   window report.
 - A change of the sort, filter, or search text drops the loaded rows and the cursor, and starts again at block 0.
 - `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land. It
-  replaces the rows up to the rendered rows and drops the rest. Rows with a pending save and the row under an edit keep their
-  value.
+  replaces the rows up to the rendered rows and drops the rest. A block that lands (refresh, retry, or window load) replaces every row it carries. A row keeps its local value when it has a pending cell edit, or a save that was in flight at any moment since the request was sent. A block never creates a duplicate id or a hole.
 - `evict` and `getLoadedRanges` do nothing useful here: a cursor chain cannot refetch an arbitrary range. The hook keeps
   every loaded row, so stop returning a cursor when the list must not grow without bound.
 

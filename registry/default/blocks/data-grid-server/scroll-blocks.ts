@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
-import { GUARD_MISSING_MESSAGE, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, stashGuardedRows, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { isolate, useServerSpec } from "./server-state";
@@ -90,8 +90,8 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   retry: () => void;
   /**
    * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
-   * source refetches from the first block up to the rendered rows. Rows with a pending save and the row under an edit keep their value, so call it after the `onSave` promise settles
-   * to pick up server-computed fields.
+   * source refetches from the first block up to the rendered rows. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block never creates a duplicate id or a hole.
+   * Call it after the `onSave` promise settles to pick up server-computed fields.
    */
   refresh: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
@@ -363,19 +363,25 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const first = !core.ready;
       const nextCount = typeof read.totalRowCount === "number" ? read.totalRowCount : (core.count ?? range.start + read.rows.length);
       const refire = first || nextCount !== core.count;
+      let keep: { displaced: Map<string, TData>; guarded: ProtectedRows; ranges: RowRange[] } | null = null;
       if (!first && nextCount !== core.count) {
         abortRequestsExcept(core, range);
+        keep = { displaced: new Map(), guarded: unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows()), ranges: core.loaded };
         core.loaded = [];
         core.failed.clear();
         core.pending.length = 0;
-        core.displaced = new Map();
+        core.displaced = keep.displaced;
         core.cleared.clear();
         core.cancelFrame?.();
         core.cancelFrame = null;
       }
       if (first) core.ready = true;
       if (core.rowsLength !== nextCount || (!first && nextCount !== core.count)) {
-        setRows(new Array<TData | undefined>(nextCount));
+        const idOf = live.current.options.getRowId;
+        setRows((prev) => {
+          if (keep !== null && keep.guarded !== null) stashGuardedRows(prev, keep.ranges, keep.guarded, keep.displaced, idOf);
+          return new Array<TData | undefined>(nextCount);
+        });
         core.rowsLength = nextCount;
       }
       core.count = nextCount;
@@ -400,7 +406,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       }
       if (refire && core.lastWindow) windowRef.current(core.lastWindow);
     },
-    [getCore, warn, commitSoon, landSequence, notifyLoaded],
+    [getCore, warn, commitSoon, landSequence, notifyLoaded, protectedRows, savedSince],
   );
 
   const runFetch = useCallback(
