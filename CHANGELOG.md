@@ -9,6 +9,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- A cell with an open editor and an error message carries the message as its `title`, so hovering it shows the message. A cell that is not being edited keeps the tooltip.
+- The inline error line of an editing cell is visible. The cell clipped it, so a rejected value showed only the red ring. The line now escapes the cell, widens to its text (up to 16rem), flips above the cell at the bottom edge of the grid, and anchors to the cell's end side at the side edges. An editing cell no longer clips its content, so a custom `Editor` wider than its cell spills over the neighbors.
+- Docs: the Validation example compares blocking and soft rules per column and fixes the rounding example ("42.9" commits as 43).
+
 ## 1.3.0 - 2026-10-28
 
 - Every data row carries `aria-selected`: `true` when the row is selected, and `false` when it is not and the grid has a checkbox row marker. A screen reader reads the checked state from the row, not only from the marker checkbox. Without a checkbox marker, an unselected row has no attribute.

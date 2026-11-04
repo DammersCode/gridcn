@@ -4,10 +4,10 @@ description: Cell validation with a plain function or a Standard Schema. One liv
 icon: ShieldCheck
 ---
 
-Nine rejection paths in one grid: a sync function, three hand-rolled Standard Schemas, a soft
+Eight rejection paths in one grid: a sync function, three hand-rolled Standard Schemas, a soft
 `onInvalid: "warn"` rule, and one column per major Standard Schema library. Type a value that
-breaks a rule and press Enter: the editor stays open with the library's own error message under
-the cell.
+breaks a rule and press Enter: a blocking rule keeps the editor open with the error
+message next to the cell. A soft rule commits the value and flags the cell.
 
 <ComponentPreview name="data-grid-validation-demo" />
 
@@ -92,16 +92,46 @@ detects the schema structurally (`"~standard" in validate`), so no adapter code 
   column takes `z.number()` / `Joi.number()` / `v.number()`.
 </Callout>
 
+## Blocking and soft rules
+
+<NewBadge />
+
+The demo lists the kind of every column above the grid. `onInvalid: "warn"` makes a rule soft.
+
+| | Blocking rule (default) | Soft rule (`onInvalid: "warn"`) |
+| --- | --- | --- |
+| Demo columns | Age, Email, SKU, Price, Zod Score, Joi Code, Valibot Tag | Notes |
+| Enter, Tab, or a click on another cell | The editor stays open | The editor closes |
+| The value | Stays out of the data | Enters the data as typed |
+| Message on hover | Yes, while the editor is open | Yes, always |
+| Message in a line next to the cell | Yes, while the editor is open | When the user edits the flagged cell again |
+| Escape | Cancels the edit and restores the old value. The error goes away | Cancels the edit. A flagged cell keeps its flag |
+| The error ends when | The user commits a valid value, or cancels with Escape | The user commits a valid value |
+| Paste and fill | Invalid cells drop | Invalid cells drop |
+
+For a value that must never reach your data, such as an amount, use a blocking rule. For a value
+that is allowed but needs a second look, such as a note that runs long, use a soft rule.
+
+Every cell that shows an error also shows its message on hover, and carries it in
+`aria-description`. A cell that is not being edited shows a tooltip. A cell with an open editor
+shows the browser's native tooltip (its `title`), and also the line next to the cell, so the user
+sees the message without a hover.
+
+A server rejection that you set with `actions.setCellErrors` looks like a soft flag: the
+same ring, tint, and tooltip, and the value stays in the grid. The cell shows the line when the
+user opens it. The next commit of a new value clears the error. See
+[Server errors](/docs/examples/validation/server-errors).
+
 ## What the demo shows
 
 - **Age**: sync function, with a toast fired from inside `validate`
 - **Email / SKU / Price**: hand-rolled Standard Schemas: sync, async (pending state, ~800 ms),
-  and a coercing one ("42.9" commits as 42. Schemas can transform, and the OUTPUT is what
+  and a coercing one ("42.9" commits as 43. Schemas can transform, and the OUTPUT is what
   commits)
 - **Notes**: `onInvalid: "warn"`: the value commits and the cell stays flagged until a valid
   re-commit
-- **Zod Score / Joi Code / Valibot Tag**: the three library columns. Break each one, and the
-  message shown is the library's own
+- **Zod Score / Joi Code / Valibot Tag**: the three library columns. Break each one to read its
+  message
 - **Bulk path**: copy a column of mixed valid/invalid ages from a spreadsheet and paste it
   onto Age: valid cells commit, invalid ones drop, and the stable toast id collapses the
   per-cell rejections into one
