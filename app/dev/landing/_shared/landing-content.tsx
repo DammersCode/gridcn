@@ -4,7 +4,7 @@ import { InstallCommand } from "@/components/install-command";
 import { SUBLINE } from "./data";
 import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./content";
 import { HeroActions, ReleaseBadge } from "./hero";
-import { ParityBars, ParityLegend, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "./parts";
+import { ParityLink, PerfStats, ServerHighlights } from "./parts";
 
 const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
@@ -177,15 +177,10 @@ export function LandingContent() {
 
       <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
         <ServerHighlights columns="grid-cols-2 lg:grid-cols-3" />
+        <ParityLink>Which features work in which data mode →</ParityLink>
       </Panel>
 
       <div className="flex flex-col gap-4">
-        <Panel id="parity" title="One grid, every data mode">
-          <ParitySummary />
-          <ParityBars />
-          <ParityLegend />
-          <ParityLink>Full matrix in the docs →</ParityLink>
-        </Panel>
         <Panel id="perf" title="Measured at 100k rows">
           <PerfStats />
         </Panel>
