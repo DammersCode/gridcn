@@ -25,14 +25,14 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>>) {
+function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>>, extra: Record<string, unknown> = {}) {
   let api: StoreApi<DataGridStoreState> | null = null;
   function Probe() {
     api = useDataGridStoreApi();
     return null;
   }
   render(
-    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={rows()} onSave={onSave}>
+    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={rows()} onSave={onSave} {...extra}>
       <Probe />
     </DataGridProvider>,
   );
@@ -114,5 +114,58 @@ describe("bound on one stream call", () => {
   it("leaves a user-source batch unbounded", () => {
     const m = mount();
     expect(m.push(manyPatches(100_001), { source: "edit" }).skipped.filter((skip) => skip.reason === "limit")).toEqual([]);
+  });
+});
+
+describe("stream delete", () => {
+  const ids = (m: ReturnType<typeof mount>) => (m.state().data as Row[]).map((row) => row.id);
+
+  it("skips onBeforeDeleteRows and onSave, reports a stream change, and unchecks the row", () => {
+    const onSave = vi.fn();
+    const onBeforeDeleteRows = vi.fn(() => true);
+    const onDataChange = vi.fn();
+    const m = mount(onSave, { onBeforeDeleteRows, onDataChange });
+    act(() => m.state().actions.setRowSelected(0, true));
+    expect(m.state().selection.rows.length).toBe(1);
+
+    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+
+    expect(ids(m)).toEqual(["b"]);
+    expect(onBeforeDeleteRows).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect(onDataChange.mock.calls[0]![1]).toMatchObject({ source: "stream", ops: [{ type: "delete", rowId: "a" }] });
+    expect(m.state().selection.rows.length).toBe(0);
+  });
+
+  it("keeps the checked state of the other rows", () => {
+    const m = mount();
+    act(() => m.state().actions.setRowSelected(1, true));
+    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+    expect(m.state().selection.rows.hasIndex(0)).toBe(true);
+  });
+
+  it("ignores ids that match no row, including a prototype key", () => {
+    const m = mount();
+    act(() => m.state().actions.deleteRowsById(["nope", "__proto__", "constructor"], { source: "stream" }));
+    expect(ids(m)).toEqual(["a", "b"]);
+  });
+
+  it("keeps the default row-operation delete through the gate and onSave", () => {
+    const onSave = vi.fn();
+    const onBeforeDeleteRows = vi.fn(() => true);
+    const m = mount(onSave, { onBeforeDeleteRows });
+    act(() => m.state().actions.deleteRowsById(["a"]));
+    expect(onBeforeDeleteRows).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes at most 100,000 ids per stream call", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    const many = Array.from({ length: 100_000 }, (_, i) => `x${i}`);
+    act(() => m.state().actions.deleteRowsById([...many, "a"], { source: "stream" }));
+    expect(ids(m)).toEqual(["a", "b"]);
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(1);
   });
 });

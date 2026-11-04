@@ -1185,9 +1185,27 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
-    deleteRowsById(rowIds) {
+    deleteRowsById(rowIds, options) {
       const s = get();
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      if (options?.source === "stream") {
+        if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
+          ctx.warnedStreamLimit = true;
+          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
+        }
+        const ops: DataOp<unknown>[] = [];
+        const seen = new Set<string>();
+        for (let i = 0; i < Math.min(rowIds.length, MAX_STREAM_PATCHES); i++) {
+          const rowId = rowIds[i]!;
+          const index = dataRowIndexByRowId.get(rowId);
+          const row = index === undefined ? undefined : s.data[index];
+          if (index === undefined || row === undefined || seen.has(rowId)) continue;
+          seen.add(rowId);
+          ops.push({ type: "delete", rowId, row, index });
+        }
+        get().actions.commitChange({ source: "stream", ops });
+        return;
+      }
       requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
     duplicateRows(viewRowIndexes) {

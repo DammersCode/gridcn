@@ -581,6 +581,12 @@ export type CellErrorTarget = {
 /** One entry for {@link DataGridActions.setCellErrors}: the target cell plus its rejection message. */
 export type CellErrorEntry = CellErrorTarget & { message: string };
 
+/** Options for {@link DataGridActions.deleteRowsById}. */
+export type DeleteRowsByIdOptions = {
+  /** `"row-operation"` (default) runs the delete gate and reaches `onSave`. `"stream"` is a push from the server. */
+  source?: "row-operation" | "stream";
+};
+
 /** Options for {@link DataGridActions.updateCells} and {@link DataGridActions.updateRows}. */
 export type UpdateCellsOptions = {
   /**
@@ -1093,8 +1099,11 @@ export type DataGridActions = {
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
   deleteRows(viewRowIndexes: number[]): void;
-  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped. */
-  deleteRowsById(rowIds: readonly string[]): void;
+  /**
+   * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
+   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, unchecks the rows, and leaves the cursor and the other checked rows where they are.
+   */
+  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): void;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
