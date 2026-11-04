@@ -121,12 +121,7 @@ function Hero({ withStats }: { withStats?: boolean }) {
           <div className={`w-full max-w-md text-start ${installFit}`}>
             <InstallCommand item="data-grid" />
           </div>
-          {!withStats && (
-            <p className="text-xs text-muted-foreground">
-              <Link href="#perf" className="underline underline-offset-4">0.3–7.6 ms streaming sort · 51 ms text sort · 100k rows</Link>
-            </p>
-          )}
-          <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
+                    <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
             <AgentIcon className="size-4" aria-hidden="true" />
             Building with an AI agent? Install the gridcn agent skills
           </Link>

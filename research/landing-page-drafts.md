@@ -129,4 +129,4 @@ All four variants share the same content: no toggles, no closing call to action,
 | a4 | Perf stats inside the hero, no perf panel | 2,751 px | 8.4 | 8.3 |
 | a5 | Dense two-column pairs | 2,613 px | 8.2 | 8.6 |
 
-The beginner prefers a4 (proof under the pitch), the senior prefers a2 (cleanest reading order). a2 now carries a one-line stat link under the install command, which gives the proof above the fold without the tall hero of a4. The code sample uses `github-light-high-contrast` in light (the default theme measured 4.57:1 for the `const` token) and the page background in dark.
+The beginner prefers a4 (proof under the pitch), the senior prefers a2 (cleanest reading order). a2 is the chosen draft. The hero has no stat line: the numbers sit in the performance panel only. The code sample uses `github-light-high-contrast` in light (the default theme measured 4.57:1 for the `const` token) and the page background in dark.
