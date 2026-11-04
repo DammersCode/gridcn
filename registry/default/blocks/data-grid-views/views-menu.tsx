@@ -199,9 +199,17 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
   const [newName, setNewName] = useState("");
   const [fileText, setFileText] = useState("");
   const [message, setMessage] = useState({ text: "", id: 0 });
+  const [problem, setProblem] = useState("");
   const nameField = useRef<HTMLInputElement>(null);
   const { activeView } = views;
-  const announce = (text: string) => setMessage((previous) => ({ text, id: previous.id + 1 }));
+  const announce = (text: string) => {
+    setProblem("");
+    setMessage((previous) => ({ text, id: previous.id + 1 }));
+  };
+  const fail = (text: string) => {
+    setProblem(text);
+    setMessage((previous) => ({ text, id: previous.id + 1 }));
+  };
   const focusNameField = () => requestAnimationFrame(() => nameField.current?.focus());
   const atLimit = views.views.length >= MAX_VIEWS;
   const canSave = !views.loading && views.failed !== "load" && !atLimit && newName.trim() !== "";
@@ -225,7 +233,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
       announce(labels.imported(result.view.name, result.dropped));
       focusNameField();
     } else {
-      announce(labels.importFailed(result.reason));
+      fail(labels.importFailed(result.reason));
     }
   };
 
@@ -316,7 +324,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
                 disabled={!activeView}
                 onClick={() => {
                   const text = views.exportView();
-                  if (text === null) return announce(labels.exportTooLarge);
+                  if (text === null) return fail(labels.exportTooLarge);
                   setFileText(text);
                   announce(labels.exported);
                 }}
@@ -329,6 +337,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
             </div>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
+          {problem ? <p className="text-destructive">{problem}</p> : null}
           <p role="status" className="sr-only">
             {/* a trailing no-break space on every second message makes a repeated text change, so it is announced again */}
             {message.text}

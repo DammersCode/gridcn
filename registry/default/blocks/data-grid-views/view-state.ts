@@ -95,6 +95,13 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
   };
 }
 
+function withoutUnusedValues(nodes: readonly FilterNode[]): FilterNode[] {
+  return nodes.map((node) => {
+    if (isFilterGroup(node)) return { join: node.join, filters: withoutUnusedValues(node.filters) };
+    return node.operator === "empty" || node.operator === "notEmpty" ? { columnId: node.columnId, operator: node.operator } : node;
+  });
+}
+
 function sortKeys(_key: string, value: unknown): unknown {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
   return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
@@ -102,8 +109,9 @@ function sortKeys(_key: string, value: unknown): unknown {
 
 /** One string per part of a state; equal strings mean the part restores the same grid. */
 export function viewPartKeys(state: DataGridViewState): { sorts: string; filters: string; search: string; layout: string } {
-  // the stored form, so a grid holding `value: ""` on an `empty` filter equals the view saved from it
-  const captured = sanitizeViewState(state, undefined).state;
+  // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
+  const captured = captureViewState(state);
+  captured.filters = withoutUnusedValues(captured.filters);
   captured.columnLayout.hidden.sort();
   return {
     sorts: JSON.stringify(captured.sorts),

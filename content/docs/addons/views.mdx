@@ -106,7 +106,7 @@ The server stores the document as it is, per user. A thrown error from `save` sh
 
 ## Share a view as text
 
-"Export active view" writes the view as JSON into the text area. Copy it to share it. "Import view" reads that text and adds it as a new view.
+"Export active view" writes the view as JSON into the text area. A view over 100,000 characters is too large to import again, so the popover reports that instead of exporting it. Copy it to share it. "Import view" reads that text and adds it as a new view.
 
 Import is bounded and checked against the live columns:
 
@@ -144,7 +144,7 @@ const views = useDataGridViews({ storage: serverViews });
 | `saveView(name)` | Saves the grid as a new view and makes it active. Returns the view, or `null` for a blank name, the view limit, or while the views load. |
 | `updateView(id?)` | Replaces a view with the grid state. Default: the active view. |
 | `renameView(id, name)`, `deleteView(id)`, `setDefaultView(id \| null)` | Return `true` when they changed something. |
-| `exportView(id?)` | The view as JSON text, or `null`. |
+| `exportView(id?)` | The view as compact JSON text, or `null` for an unknown id or a view over 100,000 characters. |
 | `importView(text, { name }?)` | `{ ok: true, view, dropped }` or `{ ok: false, reason }`. `name` is used when the file has none. |
 
 Names are trimmed and cut to 80 characters. `<DataGridViews>` also takes `className` and a `labels` object that overrides the English strings.

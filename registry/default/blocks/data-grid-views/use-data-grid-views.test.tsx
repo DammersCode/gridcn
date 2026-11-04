@@ -594,4 +594,17 @@ describe("useDataGridViews", () => {
     expect(probe.current!.views.exportView("a")).toBeNull();
     expect(probe.current!.views.exportView("b")).not.toBeNull();
   });
+
+  it("treats a live filter beyond the storage limits as a change and clears it when a view opens", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage(seeded()) });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "contains", value: "x".repeat(1001) }]));
+    expect(probe.current!.views.modified).toBe(true);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toEqual([]);
+    act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => String(i)) }]));
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toEqual([]);
+  });
 });
