@@ -434,6 +434,35 @@ describe("a local row operation on a random-access source", () => {
     expect(t.server().getLoadedRanges().length).toBeGreaterThan(0);
   });
 
+  const streamedInsert = (id: string, index: number) => ({ source: "stream" as const, ops: [{ type: "insert" as const, rowId: id, row: { id, name: "Streamed" }, index }] });
+
+  it("refetches once for a burst of streamed row operations", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    const before = t.requests();
+    act(() => {
+      for (let i = 0; i < 5; i++) t.server().gridProps.onDataChange(t.server().gridProps.data as Row[], streamedInsert(`s${i}`, 2));
+    });
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.requests() - before).toBeLessThanOrEqual(3);
+  });
+
+  it("still refreshes when an insert settles after a streamed insert that never saved", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.server().gridProps.onDataChange(t.server().gridProps.data as Row[], streamedInsert("s1", 2)));
+    await t.ready();
+    act(() => t.state().actions.insertRow(3, "below"));
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    const before = t.requests();
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    expect(t.requests() - before).toBeGreaterThan(0);
+  });
+
   it("refreshes once when a delete settles", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
