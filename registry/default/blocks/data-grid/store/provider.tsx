@@ -261,10 +261,10 @@ function useGridStoreCore<TData>(
  */
 export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
   const { store: externalStore, children, ref, ...syncProps } = props;
-  const guardrailWarnings = useRef<GuardrailWarnings>(new Set());
+  const [shellWarnings] = useState<GuardrailWarnings>(() => new Set());
   // The prop union makes a sync prop next to `store` a compile error; this catches a cast/untyped caller.
   if (externalStore && Object.values(syncProps).some((v) => v !== undefined)) {
-    warnExternalStoreSyncPropsOnce(guardrailWarnings.current);
+    warnExternalStoreSyncPropsOnce(shellWarnings);
   }
   // The rest's external-store branch types the sync keys as never; the core reads none of them when `externalStore` is set.
   const { store } = useGridStoreCore<TData>(syncProps as DataGridSyncProps<TData>, externalStore);

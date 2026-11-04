@@ -318,11 +318,10 @@ describe("resolveSaveConflict", () => {
 
   it("a thenable whose then throws refuses the change instead of leaving the row saving", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const bad = {
-      then() {
-        throw new Error("bad thenable");
-      },
-    };
+    const bad = {};
+    Reflect.set(bad, "then", () => {
+      throw new Error("bad thenable");
+    });
     const m = mount(() => bad as never);
     m.edit("a", "name", "X");
     await flush();
