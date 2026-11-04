@@ -205,6 +205,8 @@ export type DataGridGridLabels = {
   resultsCount: (count: number) => string;
   /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
   resultsCountLoaded: (count: number) => string;
+  /** Polite live-region announcement when the view turns stale: a push changed a value that the sort or filter reads (at most once per 30 seconds). */
+  viewStale: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -554,6 +556,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     allMatchingChecked: "All matching rows checked",
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
+    viewStale: "Some rows changed and may no longer match the sort or filter.",
   },
   io: {
     exportButtonAriaLabel: "Export",

@@ -119,6 +119,9 @@ function checkedChange(
 }
 
 /** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
+/** Longest wait between two "view stale" announcements of one grid. */
+const VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS = 30_000;
+
 function filterSpecKey(filters: readonly unknown[]): string {
   return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" ? undefined : value));
 }
@@ -1700,7 +1703,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Filter and sort settle the view in the same write as the spec change. Speak only when the rows or the sort order changed.
   const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
+  let staleAnnouncedAt = -Infinity;
   store.subscribe((state, prev) => {
+    if (state.viewStale && !prev.viewStale && Date.now() - staleAnnouncedAt >= VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS) {
+      staleAnnouncedAt = Date.now();
+      store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "viewStale", 0) });
+      return;
+    }
     if (resultsAnnouncementArmed && state.announceResults && typeof state.totalRowCount === "number" && state.totalRowCount !== prev.totalRowCount) {
       store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
       return;
