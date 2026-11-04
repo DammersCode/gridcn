@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { act, render } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
@@ -542,5 +542,108 @@ describe("races and cleanup", () => {
     await t.advance(100);
     expect(t.starts().filter((start) => start === 100)).toHaveLength(1);
     expect(t.starts().filter((start) => start === 0)).toHaveLength(1);
+  });
+});
+
+describe("sequential source", () => {
+  type CursorRequest = { start: number; cursor: number | undefined; signal: AbortSignal; resolve: () => void };
+
+  function setupSequence(extra: Extra = {}) {
+    const requests: CursorRequest[] = [];
+    const fetchRows = vi.fn(
+      ({ start, end, cursor, signal }: { start: number; end: number; cursor: number | undefined; signal: AbortSignal }) =>
+        new Promise<ServerRowsAnswer<Row, number>>((resolve) => {
+          const rows = Array.from({ length: end - start }, (_, i) => person(start + i));
+          requests.push({ start, cursor, signal, resolve: () => resolve({ rows, nextCursor: end }) });
+        }),
+    );
+    const view = renderHook(() => useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, ...extra }));
+    const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+    const land = async (start: number) => {
+      await act(async () => requests.find((request) => request.start === start && !request.signal.aborted)!.resolve());
+      await advance(FRAME);
+    };
+    const report = (start: number, end: number) => act(() => view.result.current.gridProps.onRenderedRowsChange({ start, end }));
+    return { view, requests, advance, land, report, starts: () => requests.map((request) => request.start) };
+  }
+
+  it("waits the load delay before it asks for the next block", async () => {
+    const t = setupSequence({ loadDelay: 100 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 10);
+    await t.advance(99);
+    expect(t.starts()).toEqual([0]);
+    await t.advance(1);
+    expect(t.starts()).toEqual([0, 10]);
+    expect(t.requests[1]!.cursor).toBe(10);
+  });
+
+  it("goes on at once after a block lands while the rendered rows still rest at the end", async () => {
+    const t = setupSequence({ loadDelay: 100 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 20);
+    await t.advance(100);
+    await t.land(10);
+    expect(t.starts()).toEqual([0, 10, 20]);
+  });
+
+  it("starts no request when the rendered rows leave the end before the delay ends", async () => {
+    const t = setupSequence({ loadDelay: 100 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 10);
+    await t.advance(60);
+    await t.report(0, 3);
+    await t.advance(200);
+    expect(t.starts()).toEqual([0]);
+  });
+
+  it("with loadDelay 0 asks for the next block in the same call", async () => {
+    const t = setupSequence({ loadDelay: 0 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 10);
+    expect(t.starts()).toEqual([0, 10]);
+  });
+
+  it("does not abort the block in flight when the rendered rows move away", async () => {
+    const t = setupSequence({ loadDelay: 0 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 10);
+    await t.report(0, 2);
+    expect(t.requests[1]!.signal.aborted).toBe(false);
+  });
+
+  it("keeps every loaded row and warns once for a maxLoadedRows that cannot apply", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const t = setupSequence({ loadDelay: 0, maxLoadedRows: 20 });
+    await t.advance(0);
+    await t.land(0);
+    for (let end = 10; end <= 60; end += 10) {
+      await t.report(0, end);
+      await t.land(end);
+    }
+    expect(t.view.result.current.getLoadedRanges()).toEqual([{ start: 0, end: 70 }]);
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("sequential source"))).toHaveLength(1);
+  });
+
+  it("does not warn when maxLoadedRows is not passed", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const t = setupSequence({ loadDelay: 0 });
+    await t.advance(0);
+    await t.land(0);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("leaves no timer after unmount while the delay runs", async () => {
+    const t = setupSequence({ loadDelay: 100 });
+    await t.advance(0);
+    await t.land(0);
+    await t.report(0, 10);
+    t.view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
