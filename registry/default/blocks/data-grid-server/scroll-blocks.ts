@@ -677,22 +677,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     armTimer(dueWanted(core.wanted, { now: Date.now(), delay: loadDelay, centre, limit: 0 }).nextAt);
   }, [getCore, blockSize, limits, overscanOf, runFetch]);
 
-  const pump = useCallback(() => {
-    const core = getCore();
-    if (core.pumping) {
-      core.pumpAgain = true;
-      return;
-    }
-    core.pumping = true;
-    try {
-      do {
-        core.pumpAgain = false;
-        startDueBlocks();
-      } while (core.pumpAgain);
-    } finally {
-      core.pumping = false;
-    }
-  }, [getCore, startDueBlocks]);
+  const pump = useCallback(() => runPumps(getCore(), startDueBlocks), [getCore, startDueBlocks]);
   useLayoutEffect(() => {
     pumpRef.current = pump;
   }, [pump]);
@@ -997,6 +982,23 @@ function unacknowledgedWithoutSave(unacknowledged: ReadonlySet<string> | null, s
   const rest = new Set<string>();
   for (const id of unacknowledged) if (!saving.has(id)) rest.add(id);
   return rest.size > 0 ? rest : null;
+}
+
+/** Runs `step` until no call asked for another pass; a call from inside `step` only asks. */
+function runPumps<TData>(core: Core<TData>, step: () => void) {
+  if (core.pumping) {
+    core.pumpAgain = true;
+    return;
+  }
+  core.pumping = true;
+  try {
+    do {
+      core.pumpAgain = false;
+      step();
+    } while (core.pumpAgain);
+  } finally {
+    core.pumping = false;
+  }
 }
 
 function stampViewed<TData>(core: Core<TData>, keep: RowRange, size: number, cap: number) {

@@ -5,9 +5,10 @@ import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
-import { MAX_ROW_COUNT, readAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
+import { readRevalidateInterval } from "./fetch-hygiene";
+import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { isolate, useControlled, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
@@ -44,6 +45,12 @@ export type UseDataGridServerRowsOptions<TData> = {
    * and every refresh restarts the clock. At least 1000. Off by default.
    */
   revalidateInterval?: number;
+  /**
+   * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
+   * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
+   * and a local insert, delete, or move drop it. Default `false`.
+   */
+  prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
   onLoaded?: (range: RowRange) => void;
   /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
@@ -106,6 +113,22 @@ export type UseDataGridServerRowsRootProps = {
 
 type Settled<TData> = { key: string; view: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown };
 
+const PREFETCH_MAX_AGE = 30_000;
+
+/** A landed prefetch waiting for the pager to reach its page. */
+type Landed<TData> = { view: string; rows: TData[]; read: ReadAnswer<TData>; guard: ProtectedRows; mark: number };
+
+/** The page request after the current page. `adopted` is set when the user reached the page while the request ran. */
+type PrefetchEntry = {
+  view: string;
+  controller: AbortController;
+  guard: ProtectedRows;
+  mark: number;
+  landed: boolean;
+  expiry: ReturnType<typeof setTimeout> | null;
+  adopted: { key: string } | null;
+};
+
 /**
  * One server data source for the grid. It owns the sort, filter, and search unless you control them, aborts the request a
  * newer state replaces, and keeps the last good rows on screen while the next request runs or after an error. The state is
@@ -136,35 +159,99 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const page = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
-  const live = useRef({ options, page, pageSize, settledOnce: false, requested: false, error: null as unknown });
+  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page, pageSize, settledOnce: false, requested: false, error: null as unknown });
   const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
   const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
+  const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
-  const view = `${serverSpecKey(spec)}|${page}|${pageSize}`;
+  const specKey = serverSpecKey(spec);
+  const view = `${specKey}|${page}|${pageSize}`;
   const key = `${view}|${tick}`;
   const deleted = useRef(new Set<string>());
+  const prefetch = useRef<PrefetchEntry | null>(null);
+  const openMarks = useRef<{ main: number | null; prefetch: number | null }>({ main: null, prefetch: null });
+  const adoptedKey = useRef<string | null>(null);
 
   const warned = useRef(new Set<string>());
+  const warn = useCallback((kind: string, message: string) => {
+    if (!isDev() || warned.current.has(kind)) return;
+    warned.current.add(kind);
+    console.warn(`[data-grid-server] ${message}`);
+  }, []);
+
+  const releaseMarks = useCallback(() => {
+    const { main, prefetch: ahead } = openMarks.current;
+    pruneSaves(main === null ? ahead : ahead === null ? main : Math.min(main, ahead));
+  }, [pruneSaves]);
+
+  const commitLanding = useCallback(
+    (read: ReadAnswer<TData>, landing: { key: string; view: string; start: number; guard: ProtectedRows; mark: number }) => {
+      live.current.settledOnce = true;
+      const guarded = unionIds(unionIds(landing.guard, savedSince(landing.mark)), protectedRows());
+      setSettled((prev) => ({
+        key: landing.key,
+        view: landing.view,
+        rows: keepProtectedRows(read.rows.filter((row) => row !== undefined) as TData[], prev.rows, guarded, deleted.current, prev.view === landing.view, live.current.options.getRowId),
+        totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
+        hasMore: read.hasMore,
+        error: null,
+      }));
+      const onLoaded = live.current.options.onLoaded;
+      if (onLoaded) isolate("onLoaded", () => onLoaded({ start: landing.start, end: landing.start + read.rows.length }));
+    },
+    [savedSince, protectedRows],
+  );
+
+  const failRequest = useCallback((requestKey: string, error: unknown) => {
+    const failure = error ?? new Error("fetchRows rejected");
+    live.current.settledOnce = true;
+    setSettled((prev) => ({ ...prev, key: requestKey, error: failure }));
+    const onError = live.current.options.onError;
+    if (onError) isolate("onError", () => onError(failure));
+  }, []);
+
+  const dropPrefetch = useCallback(() => {
+    const entry = prefetch.current;
+    if (entry === null) return;
+    prefetch.current = null;
+    if (entry.expiry !== null) clearTimeout(entry.expiry);
+    if (!entry.landed) entry.controller.abort();
+    openMarks.current.prefetch = null;
+    releaseMarks();
+    setLanded(null);
+  }, [releaseMarks]);
 
   useEffect(() => {
+    const adoptedRequest = adoptedKey.current === key;
+    adoptedKey.current = null;
+    if (adoptedRequest) return;
+    const ahead = prefetch.current;
+    if (ahead !== null && ahead.view === view && !ahead.landed) {
+      ahead.adopted = { key };
+      live.current.requested = true;
+      return () => {
+        if (prefetch.current !== ahead || ahead.adopted?.key !== key) return;
+        ahead.controller.abort();
+        prefetch.current = null;
+        openMarks.current.prefetch = null;
+        releaseMarks();
+      };
+    }
+    if (ahead !== null) dropPrefetch();
     const controller = new AbortController();
     const { page: requestPage, pageSize: requestSize } = live.current;
     const requestSpec = spec;
     const protectedAtStart = savingRows();
     const markAtStart = saveMark();
-    pruneSaves(markAtStart);
+    openMarks.current.main = markAtStart;
+    releaseMarks();
     pruneIds(deleted.current, protectedAtStart);
     const start = (requestPage - 1) * requestSize;
     const range: RowRange = { start, end: start + requestSize };
-    const warn = (kind: string, message: string) => {
-      if (!isDev() || warned.current.has(kind)) return;
-      warned.current.add(kind);
-      console.warn(`[data-grid-server] ${message}`);
-    };
     const settleMountState = live.current.requested ? Promise.resolve() : new Promise<void>((resolve) => setTimeout(resolve, 0));
     live.current.requested = true;
     // A state restored in a mount effect (URL state) replaces this request before it leaves.
@@ -176,42 +263,115 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       .then((answer) => {
         if (controller.signal.aborted) return;
         const read = readAnswer<TData>(answer, range, warn, live.current.options.getRowId);
-        live.current.settledOnce = true;
-        const guarded = unionIds(unionIds(protectedAtStart, savedSince(markAtStart)), protectedRows());
-        pruneSaves(null);
-        setSettled((prev) => ({
-          key,
-          view,
-          rows: keepProtectedRows(read.rows.filter((row) => row !== undefined) as TData[], prev.rows, guarded, deleted.current, prev.view === view, live.current.options.getRowId),
-          totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
-          hasMore: read.hasMore,
-          error: null,
-        }));
-        const onLoaded = live.current.options.onLoaded;
-        if (onLoaded) isolate("onLoaded", () => onLoaded({ start, end: start + read.rows.length }));
+        commitLanding(read, { key, view, start, guard: protectedAtStart, mark: markAtStart });
+        openMarks.current.main = null;
+        releaseMarks();
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const failure = error ?? new Error("fetchRows rejected");
-        live.current.settledOnce = true;
-        pruneSaves(null);
-        setSettled((prev) => ({ ...prev, key, error: failure }));
-        const onError = live.current.options.onError;
-        if (onError) isolate("onError", () => onError(failure));
+        openMarks.current.main = null;
+        releaseMarks();
+        failRequest(key, error);
       });
     return () => controller.abort();
     // `key` stands for spec, page, pageSize, and tick.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const loading = settled.key !== key;
-  const error = settled.key === key ? settled.error : null;
+  const prefetchOn = options.prefetchNextPage === true;
+  const startPrefetch = useCallback(() => {
+    const { page: current, pageSize: size, spec: currentSpec } = live.current;
+    const ahead = `${serverSpecKey(currentSpec)}|${current + 1}|${size}`;
+    if (prefetch.current?.view === ahead) return;
+    dropPrefetch();
+    const controller = new AbortController();
+    const entry: PrefetchEntry = { view: ahead, controller, guard: savingRows(), mark: saveMark(), landed: false, expiry: null, adopted: null };
+    prefetch.current = entry;
+    openMarks.current.prefetch = entry.mark;
+    const start = current * size;
+    const range: RowRange = { start, end: start + size };
+    new Promise<ServerRowsAnswer<TData>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: undefined, signal: controller.signal })))
+      .then((answer) => {
+        if (controller.signal.aborted) return;
+        const read = readAnswer<TData>(answer, range, warn, live.current.options.getRowId);
+        entry.landed = true;
+        if (entry.adopted !== null) {
+          commitLanding(read, { key: entry.adopted.key, view: ahead, start, guard: entry.guard, mark: entry.mark });
+          prefetch.current = null;
+          openMarks.current.prefetch = null;
+          releaseMarks();
+          return;
+        }
+        const maxAge = readRevalidateInterval(live.current.options.revalidateInterval).interval ?? PREFETCH_MAX_AGE;
+        entry.expiry = setTimeout(dropPrefetch, maxAge);
+        setLanded({ view: ahead, rows: read.rows.filter((row) => row !== undefined) as TData[], read, guard: entry.guard, mark: entry.mark });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        if (entry.adopted === null) {
+          dropPrefetch();
+          return;
+        }
+        prefetch.current = null;
+        openMarks.current.prefetch = null;
+        releaseMarks();
+        failRequest(entry.adopted.key, error);
+      });
+  }, [dropPrefetch, savingRows, saveMark, commitLanding, failRequest, releaseMarks, warn]);
+
+  const adoptable = landed !== null && landed.view === view && settled.key !== key ? landed : null;
+  const shown: Settled<TData> =
+    adoptable === null ? settled : { key, view, rows: adoptable.rows, totalRowCount: adoptable.read.totalRowCount === undefined ? settled.totalRowCount : adoptable.read.totalRowCount, hasMore: adoptable.read.hasMore, error: null };
+
+  const loading = shown.key !== key;
+  const error = shown.key === key ? shown.error : null;
   useLayoutEffect(() => {
-    Object.assign(live.current, { options, page, pageSize, error });
+    Object.assign(live.current, { options, spec, page, pageSize, error });
   });
+
+  // The pager reached the prefetched page: the landing runs without a request.
+  useLayoutEffect(() => {
+    const entry = prefetch.current;
+    if (adoptable === null || entry === null || entry.view !== adoptable.view) return;
+    adoptedKey.current = key;
+    if (entry.expiry !== null) clearTimeout(entry.expiry);
+    prefetch.current = null;
+    pruneIds(deleted.current, savingRows());
+    const { page: landedPage, pageSize: landedSize } = live.current;
+    commitLanding(adoptable.read, { key, view, start: (landedPage - 1) * landedSize, guard: adoptable.guard, mark: adoptable.mark });
+    openMarks.current.prefetch = null;
+    releaseMarks();
+    setLanded(null);
+    // The effect adopts once per landed entry and key.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [adoptable]);
+
+  useEffect(() => {
+    if (!prefetchOn || settled.key !== key || settled.error !== null) {
+      if (!prefetchOn) dropPrefetch();
+      return;
+    }
+    const hasNext = settled.totalRowCount !== null ? page * pageSize < settled.totalRowCount : settled.hasMore;
+    if (!hasNext || page + 1 > maxPage) return;
+    const timer = setTimeout(startPrefetch, 0);
+    return () => clearTimeout(timer);
+    // The effect follows landings, not local edits of the rows.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefetchOn, settled.key, settled.error, settled.totalRowCount, settled.hasMore, key]);
+
+  useEffect(
+    () => () => {
+      const entry = prefetch.current;
+      prefetch.current = null;
+      if (entry === null) return;
+      if (entry.expiry !== null) clearTimeout(entry.expiry);
+      entry.controller.abort();
+    },
+    [],
+  );
+
   const status = error !== null ? "error" : loading ? "loading" : "ready";
 
-  const specKey = serverSpecKey(spec);
   const seenSpecKey = useRef(specKey);
   const seenPage = useRef(page);
   useLayoutEffect(() => {
@@ -229,12 +389,9 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   const restartClockRef = useRef<() => void>(() => {});
   const refresh = useCallback(() => {
     restartClockRef.current();
-    if (isDev() && live.current.settledOnce && guardMissing() && !warned.current.has("guard")) {
-      warned.current.add("guard");
-      console.warn(`[data-grid-server] ${GUARD_MISSING_MESSAGE}`);
-    }
+    if (live.current.settledOnce && guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     setTick((n) => n + 1);
-  }, [guardMissing]);
+  }, [guardMissing, warn]);
   const refreshRef = useRef(refresh);
   useLayoutEffect(() => {
     refreshRef.current = refresh;
@@ -244,12 +401,16 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     restartClockRef.current = restartClock;
   }, [restartClock]);
 
-  const onDataChange = useCallback((next: readonly TData[], change: DataChange<TData>) => {
-    markEdited();
-    trackDeletes(deleted.current, change);
-    setSettled((prev) => ({ ...prev, rows: next as TData[] }));
-    live.current.options.onDataChange?.(next, change);
-  }, [markEdited]);
+  const onDataChange = useCallback(
+    (next: readonly TData[], change: DataChange<TData>) => {
+      markEdited();
+      trackDeletes(deleted.current, change);
+      if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
+      setSettled((prev) => ({ ...prev, rows: next as TData[] }));
+      live.current.options.onDataChange?.(next, change);
+    },
+    [markEdited, dropPrefetch],
+  );
   const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
   const onPageSizeChange = useCallback(
@@ -263,15 +424,15 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     page,
     pageSize,
     pageSizeOptions,
-    totalRowCount: settled.totalRowCount,
-    hasNextPage: settled.hasMore,
+    totalRowCount: shown.totalRowCount,
+    hasNextPage: shown.hasMore,
     onPageChange: setPage,
     onPageSizeChange,
   });
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
-      data: settled.rows,
+      data: shown.rows,
       getRowId,
       onDataChange,
       sortMode: "server",
@@ -282,14 +443,16 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       onFilterChange,
       searchText: spec.searchText,
       onSearchTextChange,
-      totalRowCount: settled.totalRowCount,
+      totalRowCount: shown.totalRowCount,
       keepCheckedRows: true,
       plugins,
     }),
-    [settled.rows, settled.totalRowCount, spec, getRowId, onDataChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
+    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: settled.totalRowCount, pager, status, loading, error, retry, refresh };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh };
 }
+
+const EMPTY_LIVE_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
