@@ -1,5 +1,5 @@
 import type { CellType, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, isFilterGroup, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { displayText, isBuiltInOperator, isFilterGroup, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
@@ -10,8 +10,9 @@ export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHole
 
 export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server" };
 
+/** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a custom operator holding a list. */
 export const isOwnSetFilter = (node: FilterNode, columnId: string) =>
-  !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf");
+  !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf" || (!isBuiltInOperator(node.operator) && Array.isArray(node.value)));
 
 function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown): string {
   if (!cellType) return toSafeText(raw);

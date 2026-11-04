@@ -562,7 +562,7 @@ describe("empty state", () => {
     await expect.element(page.getByText("No rows")).toBeInTheDocument();
   });
 
-  it("renders the same label text when filtered down to zero rows (data is non-empty)", async () => {
+  it("renders the no-results label when filtered down to zero rows (data is non-empty)", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid
@@ -575,7 +575,7 @@ describe("empty state", () => {
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    await expect.element(page.getByText("No rows")).toBeInTheDocument();
+    await expect.element(page.getByText("No results")).toBeInTheDocument();
   });
 
   it("a labels override renders the translated empty-state text", async () => {

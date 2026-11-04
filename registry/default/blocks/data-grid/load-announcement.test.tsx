@@ -12,6 +12,7 @@ const rows = (count: number): (Row | undefined)[] => Array.from({ length: count 
 afterEach(cleanup);
 
 type Setup = { data?: (Row | undefined)[]; totalRowCount?: number; announceResults?: boolean; filterMode?: "client" | "server" };
+type Next = { loading?: boolean; error?: unknown; data?: (Row | undefined)[]; totalRowCount?: number; searchText?: string };
 
 function mount(setup: Setup = {}) {
   let api: StoreApi<DataGridStoreState> | null = null;
@@ -19,75 +20,94 @@ function mount(setup: Setup = {}) {
     api = useDataGridStoreApi();
     return null;
   }
-  const tree = (root: { loading?: boolean; error?: unknown }, nextData?: (Row | undefined)[]) => (
+  const tree = (next: Next) => (
     <DataGridProvider
-      data={(nextData ?? setup.data ?? rows(3)) as Row[]}
+      data={(next.data ?? setup.data ?? rows(3)) as Row[]}
       columns={columns}
       getRowId={(row: Row) => row.id}
       announceResults={setup.announceResults ?? true}
-      totalRowCount={setup.totalRowCount}
+      totalRowCount={"totalRowCount" in next ? next.totalRowCount : setup.totalRowCount}
       filterMode={setup.filterMode}
+      searchText={next.searchText}
     >
       <Probe />
-      <DataGridRoot {...root} />
+      <DataGridRoot loading={next.loading} error={next.error} />
     </DataGridProvider>
   );
   const view = render(tree({ loading: true }));
-  return { live: () => api!.getState().liveAnnouncement, rerender: (root: { loading?: boolean; error?: unknown }, nextData?: (Row | undefined)[]) => view.rerender(tree(root, nextData)) };
+  return {
+    live: () => api!.getState().liveAnnouncement,
+    rerender: async (next: Next) => {
+      view.rerender(tree(next));
+      await Promise.resolve();
+    },
+  };
 }
 
 describe("load announcements", () => {
-  it("announces the server count when a load ends", async () => {
-    const grid = mount({ totalRowCount: 1234, filterMode: "server" });
+  it("announces the server count when a load that changed it ends", async () => {
+    const grid = mount({ totalRowCount: 100, filterMode: "server" });
     expect(grid.live()).toBeNull();
-    grid.rerender({ loading: false });
-    await Promise.resolve();
+    await grid.rerender({ loading: true, totalRowCount: 1234 });
+    await grid.rerender({ loading: false, totalRowCount: 1234 });
     expect(grid.live()).toMatchObject({ kind: "results", count: 1234 });
   });
 
-  it("announces the loaded rows as partial while the count is unknown and rows are missing", async () => {
+  it("announces the load that follows a changed search", async () => {
+    const grid = mount({ totalRowCount: 7, filterMode: "server" });
+    await grid.rerender({ loading: true, searchText: "berlin" });
+    await grid.rerender({ loading: false, searchText: "berlin" });
+    expect(grid.live()).toMatchObject({ kind: "results", count: 7 });
+  });
+
+  it("reads the loaded rows as partial while the count is unknown and rows are missing", async () => {
     const grid = mount({ data: [...rows(2), undefined] });
-    grid.rerender({ loading: false });
-    await Promise.resolve();
+    await grid.rerender({ loading: true, searchText: "x", data: [...rows(2), undefined] });
+    await grid.rerender({ loading: false, searchText: "x", data: [...rows(2), undefined] });
     expect(grid.live()).toMatchObject({ kind: "results", count: 2, partial: true });
   });
 
-  it("announces zero results after a load that returns no rows", async () => {
-    const grid = mount({ data: [], totalRowCount: 0, filterMode: "server" });
-    grid.rerender({ loading: false });
-    await Promise.resolve();
+  it("reads zero when a changed spec returns no rows", async () => {
+    const grid = mount({ data: rows(3), filterMode: "server" });
+    await grid.rerender({ loading: true, searchText: "zzz" });
+    await grid.rerender({ loading: false, searchText: "zzz", data: [], totalRowCount: 0 });
     expect(grid.live()).toMatchObject({ kind: "results", count: 0 });
   });
 
-  it("leaves a failed load to the alert overlay", () => {
-    const grid = mount({ totalRowCount: 10, filterMode: "server" });
-    grid.rerender({ loading: false, error: new Error("boom") });
+  it("stays quiet for a block fill or page change that changes no spec or count", async () => {
+    const grid = mount({ totalRowCount: 10_000, filterMode: "server" });
+    await grid.rerender({ loading: false });
+    await grid.rerender({ loading: true });
+    await grid.rerender({ loading: false });
     expect(grid.live()).toBeNull();
   });
 
   it("reads the rows that arrive in the same render as the end of the load", async () => {
     const grid = mount({ data: rows(50) });
-    grid.rerender({ loading: false }, rows(3));
-    await Promise.resolve();
+    await grid.rerender({ loading: true, searchText: "x" });
+    await grid.rerender({ loading: false, searchText: "x", data: rows(3) });
     expect(grid.live()).toMatchObject({ kind: "results", count: 3 });
   });
 
-  it("announces again after a retry", async () => {
+  it("leaves a failed load to the alert overlay", async () => {
     const grid = mount({ totalRowCount: 10, filterMode: "server" });
-    grid.rerender({ loading: false });
-    await Promise.resolve();
-    const first = grid.live()?.seq;
-    grid.rerender({ loading: true });
-    grid.rerender({ loading: false });
-    await Promise.resolve();
+    await grid.rerender({ loading: true, searchText: "x" });
+    await grid.rerender({ loading: false, searchText: "x", error: new Error("boom") });
+    expect(grid.live()).toBeNull();
+  });
+
+  it("announces the result of a retry after a failure", async () => {
+    const grid = mount({ totalRowCount: 10, filterMode: "server" });
+    await grid.rerender({ loading: false, error: new Error("boom") });
+    await grid.rerender({ loading: true });
+    await grid.rerender({ loading: false });
     expect(grid.live()).toMatchObject({ kind: "results", count: 10 });
-    expect(grid.live()!.seq).toBeGreaterThan(first!);
   });
 
   it("stays silent without announceResults", async () => {
     const quiet = mount({ announceResults: false, totalRowCount: 5 });
-    quiet.rerender({ loading: false });
-    await Promise.resolve();
+    await quiet.rerender({ loading: true, totalRowCount: 6 });
+    await quiet.rerender({ loading: false, totalRowCount: 6 });
     expect(quiet.live()).toBeNull();
   });
 });

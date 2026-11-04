@@ -185,7 +185,7 @@ export type DataGridMarkerLabels = {
 
 /** Core grid strings not owned by a specific add-on. */
 export type DataGridGridLabels = {
-  /** Shown when the view has zero rows (post filter/search); the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
+  /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
   /** Shown instead of `emptyState` when a filter or the search leaves zero rows. */
   noResults: string;

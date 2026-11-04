@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cellTypes, type AnyColumnDef, type FilterNode, type FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { DISTINCT_VALUES_CAP, distinctColumnValues, type DistinctValuesInput } from "./distinct-values";
+import { DISTINCT_VALUES_CAP, distinctColumnValues, isOwnSetFilter, type DistinctValuesInput } from "./distinct-values";
 
 type Row = { city?: unknown; age?: unknown; status?: unknown; day?: unknown };
 
@@ -128,5 +128,13 @@ describe("distinctColumnValues under filterMode server", () => {
       filterMode: "server",
     } as unknown as Parameters<typeof distinctColumnValues>[0];
     expect(distinctColumnValues(state, "city").values.map((v) => v.text)).toEqual(["A", "B"]);
+  });
+});
+
+describe("isOwnSetFilter", () => {
+  it("counts a custom operator holding a list as the column's own set row", () => {
+    expect(isOwnSetFilter({ columnId: "c", operator: "tagged", value: ["a"] }, "c")).toBe(true);
+    expect(isOwnSetFilter({ columnId: "c", operator: "inRegion", value: "eu" }, "c")).toBe(false);
+    expect(isOwnSetFilter({ columnId: "c", operator: "isBetween", value: ["1", "2"] }, "c")).toBe(false);
   });
 });
