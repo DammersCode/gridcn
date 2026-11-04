@@ -1,0 +1,137 @@
+import { page, userEvent } from "vitest/browser";
+import { describe, expect, it, vi } from "vitest";
+import { render } from "vitest-browser-react";
+import { DataGrid, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { lookupCellType } from "../lookup-cell-type";
+import type { LookupFetchRequest, LookupOption, LookupOptions, LookupValue } from "../lookup-model";
+import "@/app/global.css";
+
+type Row = { id: string; customer: LookupValue };
+const acme: LookupOption = { value: "c1", label: "Acme" };
+const globex: LookupOption = { value: "c2", label: "Globex" };
+
+function makeOptions(overrides: Partial<LookupOptions> = {}): LookupOptions {
+  return { fetchOptions: async () => [acme, globex], debounceMs: 0, ...overrides };
+}
+
+async function setup(options: LookupOptions, data: Row[] = [{ id: "r1", customer: acme }], readOnly = false) {
+  const onDataChange = vi.fn();
+  const columns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "id", header: "Id", accessorKey: "id", width: 60 },
+    { id: "customer", header: "Customer", accessorKey: "customer", type: "lookup", options, width: 200 },
+  ];
+  await render(
+    <div style={{ width: 400, height: 240 }}>
+      <DataGrid data={data} columns={columns} getRowId={(r) => r.id} cellTypes={{ lookup: lookupCellType }} onDataChange={onDataChange} readOnly={readOnly} />
+    </div>,
+  );
+  return { onDataChange };
+}
+
+async function openEditor() {
+  const cell = page.getByRole("gridcell").filter({ hasText: /Acme|c9/ }).first();
+  await userEvent.dblClick(cell);
+}
+
+describe("lookup editor", () => {
+  it("shows an id-only value as unresolved", async () => {
+    await setup(makeOptions(), [{ id: "r2", customer: "c9" as never }]);
+    await expect.element(page.getByText("c9")).toBeVisible();
+    expect(document.querySelector("[data-unresolved]")?.textContent).toBe("c9");
+  });
+
+  it("loads the default list on open and picks with a click", async () => {
+    const { onDataChange } = await setup(makeOptions());
+    await openEditor();
+    await page.getByRole("option", { name: "Globex" }).click();
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
+    expect((onDataChange.mock.calls[0]?.[0] as Row[])[0]?.customer).toEqual(globex);
+  });
+
+  it("picks with ArrowDown and Enter", async () => {
+    const { onDataChange } = await setup(makeOptions());
+    await openEditor();
+    await expect.element(page.getByRole("option", { name: "Globex" })).toBeVisible();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
+    expect((onDataChange.mock.calls[0]?.[0] as Row[])[0]?.customer).toEqual(globex);
+  });
+
+  it("searches as the user types and aborts the superseded request", async () => {
+    const requests: LookupFetchRequest[] = [];
+    const fetchOptions = (req: LookupFetchRequest) => {
+      requests.push(req);
+      return Promise.resolve([{ value: req.query, label: `hit ${req.query}` }]);
+    };
+    await setup(makeOptions({ fetchOptions }));
+    await openEditor();
+    await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0));
+    await userEvent.keyboard("ab");
+    await expect.element(page.getByRole("option", { name: "hit ab" })).toBeVisible();
+    expect(requests[0]?.signal.aborted).toBe(true);
+  });
+
+  it("ignores a late answer of a superseded query", async () => {
+    const pending: { query: string; resolve: (o: LookupOption[]) => void }[] = [];
+    const fetchOptions = (req: LookupFetchRequest) => new Promise<LookupOption[]>((resolve) => pending.push({ query: req.query, resolve }));
+    await setup(makeOptions({ fetchOptions }));
+    await openEditor();
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    await userEvent.keyboard("b");
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    pending[1]?.resolve([{ value: "b1", label: "Fresh" }]);
+    await expect.element(page.getByRole("option", { name: "Fresh" })).toBeVisible();
+    pending[0]?.resolve([{ value: "a1", label: "Stale" }]);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.body.textContent).not.toContain("Stale");
+  });
+
+  it("shows an error with Retry", async () => {
+    let calls = 0;
+    const fetchOptions = async () => {
+      calls++;
+      if (calls === 1) throw new Error("down");
+      return [globex];
+    };
+    await setup(makeOptions({ fetchOptions }));
+    await openEditor();
+    await page.getByRole("button", { name: "Retry" }).click();
+    await expect.element(page.getByRole("option", { name: "Globex" })).toBeVisible();
+  });
+
+  it("renders a hostile label as text", async () => {
+    await setup(makeOptions({ fetchOptions: async () => [{ value: "x", label: "<img src=x onerror=alert(1)>" }] }));
+    await openEditor();
+    await expect.element(page.getByRole("option")).toBeVisible();
+    expect(document.querySelector("[role=option] img")).toBeNull();
+    expect(document.querySelector("[role=option]")?.textContent).toContain("<img");
+  });
+
+  it("waits for minQueryLength", async () => {
+    const fetchOptions = vi.fn(async () => [acme]);
+    await setup(makeOptions({ fetchOptions, minQueryLength: 2 }));
+    await openEditor();
+    await expect.element(page.getByText("Type 2 more characters")).toBeVisible();
+    expect(fetchOptions).not.toHaveBeenCalled();
+  });
+
+  it("aborts the request and keeps the value on Escape", async () => {
+    const requests: LookupFetchRequest[] = [];
+    const fetchOptions = (req: LookupFetchRequest) => {
+      requests.push(req);
+      return new Promise<LookupOption[]>(() => {});
+    };
+    const { onDataChange } = await setup(makeOptions({ fetchOptions }));
+    await openEditor();
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(requests[0]?.signal.aborted).toBe(true));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("opens no editor on a readOnly grid", async () => {
+    await setup(makeOptions(), undefined, true);
+    await openEditor();
+    expect(document.querySelector("[role=combobox]")).toBeNull();
+  });
+});
