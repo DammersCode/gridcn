@@ -115,10 +115,20 @@ describe("onValidationError for updateCells", () => {
     });
   });
 
-  it("drops the async rejections of a batch that a read-only grid never applies", async () => {
+  it("reports the async rejections of a stream batch that lands in a read-only grid", async () => {
     const { store, onValidationError } = makeStore(asyncNonNegative);
 
     store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
+    store.setState({ readOnly: true });
+    await settle();
+
+    expect(onValidationError).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the async rejections of a user batch that a read-only grid never applies", async () => {
+    const { store, onValidationError } = makeStore(asyncNonNegative);
+
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }], { source: "edit" });
     store.setState({ readOnly: true });
     await settle();
 

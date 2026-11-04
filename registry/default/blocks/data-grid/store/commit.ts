@@ -327,7 +327,7 @@ export function computeCellPatchBatch(
       skipped.push({ patchIndex, reason: "hole" });
       continue;
     }
-    if (isColumnReadOnly(column, baseRow)) {
+    if (source === "stream" ? !column.setValue && !column.accessorKey : isColumnReadOnly(column, baseRow)) {
       skipped.push({ patchIndex, reason: "readonly" });
       continue;
     }

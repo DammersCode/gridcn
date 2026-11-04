@@ -39,9 +39,10 @@ one `update` operation per touched row. Rows you do not patch keep their identit
 
 A call with `source: "stream"` takes at most 100,000 patches <NewBadge />. The patches after the limit are skipped.
 
-A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
-patch whose value equals the current value, is also skipped. A hidden column can be patched. On a
-`readOnly` grid, every batch is a silent no-op.
+A patch with an unknown `rowId` or `columnId` is skipped. A patch whose value equals the current
+value is also skipped. A hidden column can be patched.
+
+A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows <NewBadge />. `readOnly` stops user edits, and the server stays the source of truth. A call with another `source`, for example `"edit"`, keeps every read-only check. Undo and redo of recorded pushes keep them too. A patch to a column that has neither `accessorKey` nor `setValue` is skipped with reason `readonly`, because the column has no place to write.
 
 <Callout title="Row ids, not coordinates">
   A view coordinate changes when the user sorts or filters. A row id does not, so a feed can write
@@ -252,7 +253,7 @@ const verdict = actions.updateCells(patches);
   - `unknown-row` - the row id is not in `data`.
   - `unknown-column` - the column id is not a known column.
   - `hole` - the row is an unloaded lazy hole.
-  - `readonly` - the column, or the row via `readOnly(row)`, is read-only.
+  - `readonly` - the column, or the row via `readOnly(row)`, is read-only for a call with a `source` other than `"stream"`. A `"stream"` patch gets this reason for a column with no write path.
   - `invalid` - the column's `validate` rejected the value.
   - `no-op` - the value equals the current one.
   - `saving` <NewBadge /> - the row has a save in flight. Push the value again after the save settles.

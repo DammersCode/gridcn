@@ -93,7 +93,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
    * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
    * blocks the next keydown before any passive effect runs and cancels an open edit session.
-   * Default `false`.
+   * A `"stream"` push (`updateCells`, `updateRows`, `deleteRowsById`) still writes. Default `false`.
    */
   readOnly?: boolean;
   /**
@@ -618,7 +618,8 @@ export type UpdateCellsSkip = {
   /**
    * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
    * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
-   * row, via `readOnly(row)`) is read-only; `"invalid"` — the column's `validate` rejected the
+   * row, via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
+   * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
    * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
    * `"stream"` batch met a row whose save is in flight, so push the value again after the save settles;
    * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.

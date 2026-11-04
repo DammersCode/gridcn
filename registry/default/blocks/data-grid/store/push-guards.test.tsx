@@ -5,16 +5,18 @@ import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from ".";
 import type { SaveAck } from "./write-ack";
 
-type Row = { id: string; name: string; note: string };
+type Row = { id: string; name: string; note: string; locked: string; byRow: string };
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name" },
   { id: "note", header: "Note", accessorKey: "note" },
+  { id: "locked", header: "Locked", accessorKey: "locked", readOnly: true },
+  { id: "byRow", header: "By row", accessorKey: "byRow", readOnly: (row: Row) => row.id === "b" },
 ];
 
 const rows = (): Row[] => [
-  { id: "a", name: "A", note: "a" },
-  { id: "b", name: "B", note: "b" },
+  { id: "a", name: "A", note: "a", locked: "l", byRow: "r" },
+  { id: "b", name: "B", note: "b", locked: "l", byRow: "r" },
 ];
 
 function deferred<T>() {
@@ -39,7 +41,7 @@ function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>
   const state = () => api!.getState();
   return {
     state,
-    value: (rowId: string, field: "name" | "note") => (state().data as Row[]).find((r) => r.id === rowId)![field],
+    value: (rowId: string, field: "name" | "note" | "locked" | "byRow") => (state().data as Row[]).find((r) => r.id === rowId)![field],
     push: (...args: Parameters<DataGridStoreState["actions"]["updateCells"]>) => {
       let verdict!: ReturnType<DataGridStoreState["actions"]["updateCells"]>;
       act(() => {
@@ -167,5 +169,48 @@ describe("stream delete", () => {
     act(() => m.state().actions.deleteRowsById([...many, "a"], { source: "stream" }));
     expect(ids(m)).toEqual(["a", "b"]);
     expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(1);
+  });
+});
+
+describe("stream into read-only targets", () => {
+  it("writes into a readOnly grid", () => {
+    const m = mount(undefined, { readOnly: true });
+    const verdict = m.push([{ rowId: "a", columnId: "note", value: "pushed" }]);
+    expect(verdict).toMatchObject({ applied: 1, skipped: [] });
+    expect(m.value("a", "note")).toBe("pushed");
+  });
+
+  it("writes into a read-only column and a read-only row", () => {
+    const m = mount();
+    const verdict = m.push([{ rowId: "a", columnId: "locked", value: "x" }, { rowId: "b", columnId: "byRow", value: "y" }]);
+    expect(verdict.applied).toBe(2);
+    expect(m.value("a", "locked")).toBe("x");
+    expect(m.value("b", "byRow")).toBe("y");
+  });
+
+  it('keeps every read-only check for source "edit"', () => {
+    const grid = mount();
+    const columnOnly = grid.push([{ rowId: "a", columnId: "locked", value: "x" }, { rowId: "b", columnId: "byRow", value: "y" }], { source: "edit" });
+    expect(columnOnly.skipped.map((skip) => skip.reason)).toEqual(["readonly", "readonly"]);
+    const readOnlyGrid = mount(undefined, { readOnly: true });
+    const verdict = readOnlyGrid.push([{ rowId: "a", columnId: "note", value: "x" }], { source: "edit" });
+    expect(verdict.applied).toBe(0);
+    expect(readOnlyGrid.value("a", "note")).toBe("a");
+  });
+
+  it("deletes by stream in a readOnly grid, and a user delete stays refused", () => {
+    const m = mount(undefined, { readOnly: true });
+    act(() => m.state().actions.deleteRowsById(["a"]));
+    expect(m.state().data).toHaveLength(2);
+    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+    expect(m.state().data).toHaveLength(1);
+  });
+
+  it("reports a rejected value to onValidationError in a readOnly grid", () => {
+    const onValidationError = vi.fn();
+    const m = mount(undefined, { readOnly: true, onValidationError, columns: [{ id: "note", header: "Note", accessorKey: "note", validate: (value: unknown) => (value === "bad" ? "no" : null) }] });
+    const verdict = m.push([{ rowId: "a", columnId: "note", value: "bad" }]);
+    expect(verdict.skipped).toEqual([{ patchIndex: 0, reason: "invalid" }]);
+    expect(onValidationError).toHaveBeenCalledTimes(1);
   });
 });

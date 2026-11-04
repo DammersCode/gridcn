@@ -528,7 +528,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
     const s = get();
     const onValidationError = s.onValidationError;
-    if (rejected.length === 0 || !onValidationError || s.readOnly) return;
+    if (rejected.length === 0 || !onValidationError || (s.readOnly && (batchSource ?? "stream") !== "stream")) return;
     const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
     const dataRows = new Set<number>();
     for (const { patchIndex } of rejected) {
@@ -1030,7 +1030,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     updateCells(patches, options) {
       const s = get();
-      if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
+      if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
       if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
         if (!ctx.warnedStreamLimit) {
           ctx.warnedStreamLimit = true;
@@ -1247,7 +1247,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     commitChange(change) {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly && change.source !== "stream") return;
       if (change.ops.length === 0) return;
       const nextData = applyChange(s.data, change, s.getRowId);
       // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
