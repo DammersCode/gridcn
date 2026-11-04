@@ -82,3 +82,14 @@ Reviewers: two perspectives only (beginner, senior). The mid persona scored with
 
 Open: scroll cost scores 6 (four screens at 1024 px). The add-ons, comparison and agent sections stay because the owner wants the original content back.
 Fixed: the background variants used template-built class names that Tailwind did not generate, so variants other than 4 showed blur without the wash until the classes were written out.
+
+### A2 rounds 4 and 5
+
+| Round | Beginner | Senior |
+| --- | --- | --- |
+| 4 | 8.4 | 7.8 |
+| 5 | 8.2 | 7.9 |
+
+Round 5 found two claims that fail a senior read, both fixed: "no npm dependency" is false (the registry items install `zustand`, `use-sync-external-store`, `lucide-react` and `@base-ui/react`), and the "open source" wording in the "What you get" intro. The subline "scales like a database view" is a metaphor that no number backs; the owner chose it, and the reviewer recommends "smooth at 100k rows" instead.
+
+A mean of 9 does not fit the restored content: the comparison, agents and add-ons sections alone take about 1,100 px. With every fixable item done the reviewers estimate about 8.7. Reaching 9 means cutting or collapsing one restored section.

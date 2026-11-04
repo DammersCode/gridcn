@@ -34,6 +34,17 @@ function TileGrid({ children, className }: { children: ReactNode; className: str
   return <ul className={`grid gap-px border bg-border ${className}`}>{children}</ul>;
 }
 
+function Highlighted({ code }: { code: string }) {
+  const parts = code.split(/("[^"]*"|defineColumns|DataGrid|const|as const)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 === 0 ? p : <span key={i} className={p.startsWith("\"") ? "text-primary" : "font-medium text-foreground"}>{p}</span>,
+      )}
+    </>
+  );
+}
+
 export function LandingContent() {
   const capabilities = [
     ...headlineFeatures.map((f) => ({ ...f, href: undefined as string | undefined })),
@@ -41,13 +52,13 @@ export function LandingContent() {
   ];
   return (
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
-      <section className="grid items-center gap-6 border bg-card p-6 sm:p-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <section className="grid items-center gap-6 border bg-card p-6 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:items-start lg:text-start">
         <ReleaseBadge />
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Spreadsheet power. Fast, typed, complete.</h1>
         <p className="text-lg font-medium sm:text-xl">{SUBLINE}</p>
         <p className="text-sm text-muted-foreground">
-          Sort, filter, edit and paste like Excel. One command copies the code into your app: you own it, no npm dependency.{" "}
+          Sort, filter, edit and paste like Excel. One command copies the code into your app: you own the code and install no gridcn runtime package.{" "}
           <Link href="#perf" className="inline-block py-2 underline underline-offset-4">
             See the numbers
           </Link>
@@ -62,7 +73,7 @@ export function LandingContent() {
           Building with an AI agent? Install the gridcn agent skills
         </Link>
         </div>
-        <pre aria-label="Usage example" className="max-sm:hidden min-w-0 whitespace-pre-wrap break-words border bg-background p-4 text-start font-mono text-xs leading-relaxed">{CODE}</pre>
+        <pre aria-label="Usage example" className="max-sm:hidden min-w-0 whitespace-pre-wrap break-words border bg-background p-4 text-start font-mono text-xs leading-relaxed"><Highlighted code={CODE} /></pre>
       </section>
 
 
