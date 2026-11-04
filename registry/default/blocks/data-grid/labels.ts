@@ -205,6 +205,12 @@ export type DataGridGridLabels = {
   resultsCount: (count: number) => string;
   /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
   resultsCountLoaded: (count: number) => string;
+  /** Live-region text after a save refused rows; `count` is the number of refused rows. */
+  saveRejected: (count: number) => string;
+  /** Live-region text when an undo or redo step needs rows that a lazy source has not loaded yet. */
+  historyRowsNotLoaded: string;
+  /** Live-region text when an undo or redo step is skipped because its rows no longer exist. */
+  historyRowsGone: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -554,6 +560,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
     allMatchingChecked: "All matching rows checked",
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
+    saveRejected: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} not saved`,
+    historyRowsNotLoaded: "Undo needs rows that are not loaded yet",
+    historyRowsGone: "Undo skipped: the rows no longer exist",
   },
   io: {
     exportButtonAriaLabel: "Export",

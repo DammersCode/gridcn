@@ -107,8 +107,71 @@ describe("mapColumn async", () => {
   });
 });
 
+describe("mapColumn signal", () => {
+  const preview = (mapColumn: NonNullable<Parameters<typeof useDataGridImportPreview>[0]["defaults"]>["mapColumn"]) =>
+    renderHook(() => useDataGridImportPreview({ columnFallback: (i) => `Column ${i}`, defaults: { mapColumn } }));
+
+  it("passes a signal that stays live for a sync mapping", () => {
+    const signals: AbortSignal[] = [];
+    applyImportOptions(["Name"], TARGETS, {
+      mapColumn: (_header, _index, ctx) => {
+        signals.push(ctx.signal);
+        return undefined;
+      },
+    });
+    expect(signals[0]!.aborted).toBe(false);
+  });
+
+  it("aborts the previous parse's signal when a newer parse starts, and drops its mapping", async () => {
+    vi.mocked(parseImportFile).mockResolvedValue({ rows: [["Name"], ["x"]], delimiter: "," });
+    const signals: AbortSignal[] = [];
+    const slow = deferred<string | null>();
+    const calls = [slow.promise, Promise.resolve("name")];
+    const { result } = preview((_header, _index, ctx) => {
+      signals.push(ctx.signal);
+      return calls.shift()!;
+    });
+    let first!: Promise<void>;
+    await act(async () => {
+      first = result.current.loadFile(FILE, TARGETS);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await result.current.loadFile(new File(["unused"], "b.csv"), TARGETS);
+    });
+    expect(signals[0]!.aborted).toBe(true);
+    expect(signals[1]!.aborted).toBe(false);
+    await act(async () => {
+      slow.resolve(null);
+      await first;
+    });
+    expect(result.current.preview?.fileName).toBe("b.csv");
+  });
+
+  it("aborts the signal of a pending mapping on unmount and warns nothing when it rejects", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.mocked(parseImportFile).mockResolvedValue({ rows: [["Name"], ["x"]], delimiter: "," });
+    let signal!: AbortSignal;
+    const slow = deferred<string | null>();
+    const { result, unmount } = preview((_header, _index, ctx) => {
+      signal = ctx.signal;
+      return slow.promise;
+    });
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = result.current.loadFile(FILE, TARGETS);
+      await Promise.resolve();
+    });
+    unmount();
+    expect(signal.aborted).toBe(true);
+    slow.reject(new DOMException("aborted", "AbortError"));
+    await pending;
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe("import createRow async", () => {
-  const build = (createRow: (index: number) => Row | Promise<Row>, count = 2, signal?: AbortSignal) =>
+  const build = (createRow: (index: number, ctx: { signal: AbortSignal }) => Row | Promise<Row>, count = 2, signal?: AbortSignal) =>
     buildImportedRows<Row>({
       dataRows: Array.from({ length: count }, (_, i) => [`n${i}`]),
       mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
@@ -146,6 +209,32 @@ describe("import createRow async", () => {
     controller.abort();
     d.resolve({ id: "x", name: "" });
     await expect(result).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
+  });
+
+  it("hands createRow the build's signal", () => {
+    const controller = new AbortController();
+    const signals: AbortSignal[] = [];
+    build((index, ctx) => {
+      signals.push(ctx.signal);
+      return { id: `r${index}`, name: "" };
+    }, 2, controller.signal);
+    expect(signals).toEqual([controller.signal, controller.signal]);
+  });
+
+  it("hands the chunked path the same signal, aborted by the caller", async () => {
+    const controller = new AbortController();
+    const signals = new Set<AbortSignal>();
+    const result = build(
+      (index, ctx) => {
+        signals.add(ctx.signal);
+        return Promise.resolve({ id: `r${index}`, name: "" });
+      },
+      IMPORT_CHUNK_THRESHOLD_ROWS + 1,
+      controller.signal,
+    );
+    controller.abort();
+    await expect(result).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
+    expect([...signals]).toEqual([controller.signal]);
   });
 
   it("works on the chunked large-import path", async () => {

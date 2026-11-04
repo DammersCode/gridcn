@@ -256,6 +256,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const headerHeight = headerRowHeight * headerRowCount;
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
+  const gatesPending = useDataGridStore((s) => (s.gatesPending.size === 0 ? "" : Array.from(s.gatesPending).join(" ")));
   const serverFiltered = useDataGridStore((s) => s.filterMode === "server" && (s.filterState.length > 0 || s.searchText !== ""));
   const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
@@ -605,7 +606,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
-        aria-busy={loading || undefined}
+        aria-busy={loading || gatesPending !== "" || undefined}
+        {...{ [GRID_ATTR.gatePending]: gatesPending || undefined }}
         className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}
         onKeyDown={interaction.onKeyDown}

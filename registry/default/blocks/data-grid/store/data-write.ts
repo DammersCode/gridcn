@@ -1,4 +1,6 @@
 import {
+  cellErrorKey,
+  flashCellKey,
   clampIndex,
   clearErrorsForOps,
   computeSearchMatches,
@@ -27,8 +29,9 @@ import {
   warnDev,
 } from "./commit";
 import { createWarnOnce, isThenable } from "./async-gate";
+import type { GateRun, GateTracker } from "./gate-signal";
 import { buildRollback } from "../interaction/rollback";
-import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection } from "./write-ack";
+import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
@@ -90,10 +93,14 @@ export type DataWriteContext = {
   trackWrite: ((change: DataChange<unknown>, result: PromiseLike<SaveAck>) => void) | null;
   /** Set while the grid is unmounted: a late ack neither reverts nor calls back. */
   disposed: boolean;
+  /** Aborts every pending `resolveSaveConflict` call; set by {@link createDataWriteActions}, run when the grid unmounts. */
+  abortConflicts: (() => void) | null;
+  /** The grid's async-gate tracker: pending state and abort for the row operations' consumer hooks. */
+  gates: GateTracker;
 };
 
-export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false };
+export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -121,7 +128,7 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   const onDataChange = s.onDataChange;
-  const onSave = change.source === "rollback" || change.source === "stream" ? undefined : s.onSave;
+  const onSave = change.source === "rollback" || change.source === "stream" || change.source === "id-swap" ? undefined : s.onSave;
   const observers = s.plugins.observers;
   const pluginApi = ctx.pluginApi;
   ctx.pendingEmits.push(() => {
@@ -334,6 +341,8 @@ export type DataWriteDeps = {
   ) => Partial<DataGridStoreState>;
   /** Runs `write`, which ends `session`, without the `cancel` report: the caller reports its own `onEditEnd` result. */
   endEditSession: (session: NonNullable<DataGridStoreState["editing"]>, write: () => void) => void;
+  /** Moves the store's row-id keyed bookkeeping (row validation keys, in-flight verdicts, flash timers) from `oldId` to `newId`. */
+  renameRowKeys: (oldId: string, newId: string) => void;
 };
 
 /** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row operations; `_deleteCellsById` is the internal clipboard seam, split out by the store factory. */
@@ -356,13 +365,14 @@ export type DataWriteActions = Pick<
   | "moveRowsBy"
   | "commitChange"
   | "clearSaveStatus"
+  | "replaceRowId"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
-  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession } = deps;
+  const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession, renameRowKeys } = deps;
 
   const pendingByRow = new Map<string, number>();
   const latestWriteOfRow = new Map<string, number>();
@@ -438,10 +448,56 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     return ops;
   };
+  /** The `"merge"` updates for rows whose resolver kept the user's intent (`"mine"` or a merged row) on top of the server's row. */
+  const mergeOpsOf = (s: DataGridStoreState, currentRows: ReadonlyMap<string, unknown>, answers: ReadonlyMap<string, SaveResolution<unknown>>): DataOp<unknown>[] => {
+    const ops: DataOp<unknown>[] = [];
+    if (answers.size === 0 || currentRows.size === 0) return ops;
+    const dataIndexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+    for (const [rowId, theirs] of currentRows) {
+      const answer = answers.get(rowId);
+      if (answer === undefined || answer === "theirs") continue;
+      const index = dataIndexById.get(rowId);
+      if (index === undefined) continue;
+      let target: unknown = s.data[index];
+      if (answer !== "mine") {
+        const merged = (answer as { row: unknown }).row;
+        let mergedId: string | undefined;
+        try {
+          mergedId = merged === undefined || merged === null ? undefined : s.getRowId(merged, index);
+        } catch {
+          mergedId = undefined;
+        }
+        if (mergedId !== rowId) {
+          warnGateOnce("merged row id", `resolveSaveConflict returned a row that does not have the id "${rowId}", so the server's row is taken`);
+          continue;
+        }
+        target = merged;
+      }
+      ops.push({ type: "update", rowId, row: target, prev: theirs });
+    }
+    return ops;
+  };
+  const idAlias = new Map<string, string>();
+  const liveId = (rowId: string): string => {
+    let id = rowId;
+    for (let hops = 0; hops < 16; hops++) {
+      const next = idAlias.get(id);
+      if (next === undefined) return id;
+      id = next;
+    }
+    return id;
+  };
+  const resolvingRows = new Map<string, number>();
+  const conflictAborts = new Map<string, AbortController>();
+  ctx.abortConflicts = () => {
+    for (const controller of conflictAborts.values()) controller.abort();
+    conflictAborts.clear();
+  };
   const publishSaveStatus = (): void => {
     const status = new Map<string, RowSaveStatus>();
     for (const rowId of failedRows) status.set(rowId, "failed");
     for (const rowId of pendingByRow.keys()) status.set(rowId, "saving");
+    for (const rowId of resolvingRows.keys()) status.set(rowId, "saving");
     for (const rowId of latestWriteOfRow.keys()) if (!status.has(rowId)) latestWriteOfRow.delete(rowId);
     set({ saveStatus: status.size === 0 ? EMPTY_SAVE_STATUS : status, pendingSaveCount: pendingSaves });
   };
@@ -452,59 +508,121 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       pendingByRow.set(rowId, (pendingByRow.get(rowId) ?? 0) + 1);
       latestWriteOfRow.set(rowId, seq);
       failedRows.delete(rowId);
+      conflictAborts.get(rowId)?.abort();
+      conflictAborts.delete(rowId);
     }
     pendingSaves += 1;
     publishSaveStatus();
     const settle = (ack: SaveAck, error: unknown, failed: boolean): void => {
       if (ctx.disposed) return;
-      for (const rowId of rowIds) {
+      const ids = rowIds.map(liveId);
+      for (const rowId of ids) {
         const left = (pendingByRow.get(rowId) ?? 1) - 1;
         if (left > 0) pendingByRow.set(rowId, left);
         else pendingByRow.delete(rowId);
       }
       pendingSaves -= 1;
-      const rejected = readRejections(change, ack, error, failed);
+      const rejected = readRejections(change, ack, error, failed).map((entry) => (idAlias.has(entry.rowId) ? { ...entry, rowId: liveId(entry.rowId) } : entry));
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
       const refusedRows = new Set(rejected.map((entry) => entry.rowId));
-      for (const rowId of rowIds) if (!refusedRows.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
+      for (const rowId of ids) if (!refusedRows.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
       if (rejected.length === 0) {
         publishSaveStatus();
         return;
       }
-      const s = get();
-      if (s.readOnly) {
-        if (!warnedReadOnlyRevert) {
-          warnedReadOnlyRevert = true;
-          warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
-        }
-      } else {
-        if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
-        const deleteOps = new Map(change.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
-        const currentRows = usableCurrentRows(s, change, rejected, seq, deleteOps);
-        // A row with a usable `current` gets its content from it; only a move of it reverts in place.
-        const plainOps = refusedOps(change, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
-        const revert = buildRollback({ ops: chainRefusedPrev(plainOps), source: "rollback" }, s);
-        const ops = [...revert.ops, ...currentRowOps(s, currentRows, deleteOps)];
-        try {
-          if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change });
-        } catch (error) {
-          console.error("[data-grid] the revert of a refused save threw in a callback:", error);
+      const aliased = idAlias.size > 0 ? { ...change, ops: change.ops.map((op) => (idAlias.has(op.rowId) ? { ...op, rowId: liveId(op.rowId) } : op)) } : change;
+      const deleteOps = new Map(aliased.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
+      const answers = new Map<string, SaveResolution<unknown>>();
+      const waiting: PromiseLike<void>[] = [];
+      const askedControllers = new Map<string, AbortController>();
+      const first = get();
+      const resolver = first.readOnly ? undefined : first.resolveSaveConflict;
+      if (resolver) {
+        const dataIndexById = ctx.rowIndexCache.resolve(first.data, first.getRowId);
+        const messageById = new Map<string, string>();
+        for (const entry of rejected) if (entry.message !== undefined && !messageById.has(entry.rowId)) messageById.set(entry.rowId, entry.message);
+        for (const [rowId, theirs] of usableCurrentRows(first, aliased, rejected, seq, deleteOps)) {
+          const index = dataIndexById.get(rowId);
+          if (index === undefined) continue;
+          const controller = new AbortController();
+          conflictAborts.set(rowId, controller);
+          askedControllers.set(rowId, controller);
+          const message = messageById.get(rowId);
+          let answer: SaveResolution<unknown> | PromiseLike<SaveResolution<unknown>>;
+          try {
+            answer = resolver({ rowId, mine: first.data[index], theirs, change: aliased, ...(message === undefined ? {} : { message }), signal: controller.signal });
+          } catch (callbackError) {
+            console.error("[data-grid] resolveSaveConflict threw, so the server's row is taken:", callbackError);
+            continue;
+          }
+          if (!isThenable<SaveResolution<unknown>>(answer)) {
+            answers.set(rowId, answer);
+            continue;
+          }
+          resolvingRows.set(rowId, (resolvingRows.get(rowId) ?? 0) + 1);
+          waiting.push(
+            answer.then(
+              (resolved) => void answers.set(rowId, resolved),
+              (callbackError: unknown) => void console.error("[data-grid] resolveSaveConflict rejected, so the server's row is taken:", callbackError),
+            ),
+          );
         }
       }
-      for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
-      for (const { rowId } of rejected) {
-        if (latestWriteOfRow.get(rowId) !== seq) continue;
-        if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
-        failedRows.add(rowId);
+      const finish = (): void => {
+        const s = get();
+        if (s.readOnly) {
+          if (!warnedReadOnlyRevert) {
+            warnedReadOnlyRevert = true;
+            warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
+          }
+        } else {
+          if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
+          const currentRows = usableCurrentRows(s, aliased, rejected, seq, deleteOps);
+          for (const [rowId, controller] of askedControllers) if (controller.signal.aborted) currentRows.delete(rowId);
+          const mergeOps = mergeOpsOf(s, currentRows, answers);
+          // A row with a usable `current` gets its content from it; only a move of it reverts in place.
+          const plainOps = refusedOps(aliased, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
+          const revert = buildRollback({ ops: chainRefusedPrev(plainOps), source: "rollback" }, s);
+          const ops = [...revert.ops, ...currentRowOps(s, currentRows, deleteOps)];
+          const serverRowIds = [...currentRows.keys()];
+          try {
+            if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change, ...(serverRowIds.length > 0 ? { serverRowIds } : {}) });
+            if (mergeOps.length > 0) s.actions.commitChange({ source: "merge", ops: mergeOps, reverts: change, serverRowIds: mergeOps.map((op) => op.rowId) });
+          } catch (error) {
+            console.error("[data-grid] the revert of a refused save threw in a callback:", error);
+          }
+        }
+        for (const [rowId, controller] of askedControllers) if (conflictAborts.get(rowId) === controller) conflictAborts.delete(rowId);
+        for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
+        for (const { rowId } of rejected) {
+          if (latestWriteOfRow.get(rowId) !== seq) continue;
+          if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
+          failedRows.add(rowId);
+        }
+        set({ liveAnnouncement: nextAnnouncement(get().liveAnnouncement, "saveRejected", refusedRows.size) });
+        publishSaveStatus();
+        const onSaveRejected = get().onSaveRejected;
+        if (!onSaveRejected) return;
+        try {
+          onSaveRejected({ change, rejected, error: failed ? error : null });
+        } catch (callbackError) {
+          console.error("[data-grid] onSaveRejected threw:", callbackError);
+        }
+      };
+      if (waiting.length === 0) {
+        finish();
+        return;
       }
       publishSaveStatus();
-      const onSaveRejected = get().onSaveRejected;
-      if (!onSaveRejected) return;
-      try {
-        onSaveRejected({ change, rejected, error: failed ? error : null });
-      } catch (callbackError) {
-        console.error("[data-grid] onSaveRejected threw:", callbackError);
-      }
+      void Promise.all(waiting).then(() => {
+        for (const rowId of askedControllers.keys()) {
+          const left = (resolvingRows.get(rowId) ?? 1) - 1;
+          if (left > 0) resolvingRows.set(rowId, left);
+          else resolvingRows.delete(rowId);
+        }
+        if (ctx.disposed) return;
+        finish();
+      });
     };
     result.then(
       (ack) => settle(ack, undefined, false),
@@ -605,7 +723,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
-  let deleteConfirmPending = false;
+  let deleteRun: GateRun | null = null;
   const warnGateOnce = createWarnOnce();
   const touchesUnloadedRow = (s: DataGridStoreState, dataRowIndexes: readonly number[], operation: string): boolean => {
     if (!dataRowIndexes.some((i) => s.data[i] === undefined && i >= 0 && i < s.data.length)) return false;
@@ -623,14 +741,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
     if (rowIds.length === 0) return;
-    if (deleteConfirmPending) {
+    if (deleteRun && !deleteRun.aborted) {
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
       return;
     }
     const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
+    const run = ctx.gates.begin("onBeforeDeleteRows");
     let verdict: boolean | Promise<boolean>;
     try {
-      verdict = confirm({ rowIds, hiddenCount });
+      verdict = confirm({ rowIds, hiddenCount, signal: run.signal });
     } catch (error) {
       warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
       return;
@@ -639,19 +758,24 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (verdict) deleteDataRows(dataRowIndexes);
       return;
     }
-    deleteConfirmPending = true;
+    deleteRun = run;
     const asked = { rowIdentityVersion: s.rowIdentityVersion, checked: s.selection.rows, hidden: s.hiddenCheckedRowIds };
+    const changed = (now: DataGridStoreState): boolean =>
+      now.readOnly || now.rowIdentityVersion !== asked.rowIdentityVersion || now.selection.rows !== asked.checked || now.hiddenCheckedRowIds !== asked.hidden;
+    run.watch = changed;
+    ctx.gates.hold(run);
+    const finish = (): boolean => {
+      ctx.gates.settle(run);
+      if (deleteRun === run) deleteRun = null;
+      return !run.aborted;
+    };
     Promise.resolve(verdict).then(
       (confirmed) => {
-        deleteConfirmPending = false;
-        const now = get();
-        const unchanged =
-          !now.readOnly && now.rowIdentityVersion === asked.rowIdentityVersion && now.selection.rows === asked.checked && now.hiddenCheckedRowIds === asked.hidden;
-        if (confirmed === true && unchanged) deleteDataRows(dataRowIndexes);
+        if (!finish()) return;
+        if (confirmed === true && !changed(get())) deleteDataRows(dataRowIndexes);
       },
       (error: unknown) => {
-        deleteConfirmPending = false;
-        warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+        if (finish()) warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
       },
     );
   };
@@ -736,15 +860,23 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }),
     );
   };
-  let createRowPending = false;
-  let duplicateRowPending = false;
-  const holdInsertedRows = (s: DataGridStoreState, viewRowIndex: number, position: "above" | "below", rows: unknown[]): void => {
-    createRowPending = true;
+  let createRun: GateRun | null = null;
+  let duplicateRun: GateRun | null = null;
+  const holdInsertedRows = (s: DataGridStoreState, run: GateRun, viewRowIndex: number, position: "above" | "below", rows: unknown[]): void => {
+    createRun = run;
     const anchorDataIndex = s.viewIndex[viewRowIndex];
     const anchorRowId = anchorDataIndex === undefined ? null : s.getRowId(s.data[anchorDataIndex], anchorDataIndex);
+    run.watch = (now, prev) =>
+      now.readOnly || (anchorRowId !== null && now.data !== prev.data && ctx.rowIndexCache.resolveOne(now.data, now.getRowId, anchorRowId) === undefined);
+    ctx.gates.hold(run);
+    const finish = (): boolean => {
+      ctx.gates.settle(run);
+      if (createRun === run) createRun = null;
+      return !run.aborted;
+    };
     Promise.all(rows).then(
       (resolved) => {
-        createRowPending = false;
+        if (!finish()) return;
         const now = get();
         if (now.readOnly) return;
         let anchorViewRow = viewRowIndex;
@@ -756,17 +888,29 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         commitInsertedRows(now, anchorViewRow, resolved.length, position, insertDataIndex(now, anchorViewRow, position), resolved);
       },
       (error: unknown) => {
-        createRowPending = false;
+        if (!finish()) return;
         warnGateOnce("createRow rejected", `createRow rejected, so the insert is cancelled: ${String(error)}`);
       },
     );
   };
-  const holdDuplicateCopies = (s: DataGridStoreState, copies: ReadonlyMap<number, unknown>): void => {
-    duplicateRowPending = true;
+  const holdDuplicateCopies = (s: DataGridStoreState, run: GateRun, copies: ReadonlyMap<number, unknown>): void => {
+    duplicateRun = run;
     const sourceIds = Array.from(copies.keys(), (dataIndex) => s.getRowId(s.data[dataIndex], dataIndex));
+    run.watch = (now, prev) => {
+      if (now.readOnly) return true;
+      if (now.data === prev.data) return false;
+      const rowIndex = ctx.rowIndexCache.resolve(now.data, now.getRowId);
+      return sourceIds.every((rowId) => !rowIndex.has(rowId));
+    };
+    ctx.gates.hold(run);
+    const finish = (): boolean => {
+      ctx.gates.settle(run);
+      if (duplicateRun === run) duplicateRun = null;
+      return !run.aborted;
+    };
     Promise.all(copies.values()).then(
       (resolved) => {
-        duplicateRowPending = false;
+        if (!finish()) return;
         const now = get();
         if (now.readOnly) return;
         const rowIndex = ctx.rowIndexCache.resolve(now.data, now.getRowId);
@@ -782,7 +926,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (viewRows.length > 0) finishDuplicate(now, viewRows, settled);
       },
       (error: unknown) => {
-        duplicateRowPending = false;
+        if (!finish()) return;
         warnGateOnce("duplicateRow rejected", `duplicateRow rejected, so the duplicate is cancelled: ${String(error)}`);
       },
     );
@@ -1128,7 +1272,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
         return;
       }
-      if (createRowPending) {
+      if (createRun && !createRun.aborted) {
         warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
         return;
       }
@@ -1136,9 +1280,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return;
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
-      for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i));
+      const run = ctx.gates.begin("createRow");
+      const gateCtx = { signal: run.signal };
+      for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i, gateCtx));
       if (rows.some((row) => isThenable(row))) {
-        holdInsertedRows(s, viewRowIndex, position, rows);
+        holdInsertedRows(s, run, viewRowIndex, position, rows);
         return;
       }
       commitInsertedRows(s, viewRowIndex, count, position, dataRowIndex, rows);
@@ -1159,16 +1305,17 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return;
       }
-      if (duplicateRowPending) {
+      if (duplicateRun && !duplicateRun.aborted) {
         warnGateOnce("duplicateRow pending", "a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle");
         return;
       }
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
       if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return;
-      const copies = startDuplicateCopies(s, dataRowIndexes);
+      const run = ctx.gates.begin("duplicateRow");
+      const copies = startDuplicateCopies(s, dataRowIndexes, { signal: run.signal });
       if (!copies) return;
       if (Array.from(copies.values()).some((copy) => isThenable(copy))) {
-        holdDuplicateCopies(s, copies);
+        holdDuplicateCopies(s, run, copies);
         return;
       }
       finishDuplicate(s, viewRowIndexes, copies);
@@ -1182,6 +1329,87 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (!canMoveRows(s)) return false;
       return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
+    },
+    replaceRowId(oldId, row) {
+      const s = get();
+      if (s.readOnly) return;
+      const index = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(oldId);
+      if (index === undefined) {
+        warnGateOnce("replaceRowId unknown", `replaceRowId: no row has the id "${oldId}", so nothing was swapped`);
+        return;
+      }
+      let newId: string;
+      try {
+        newId = s.getRowId(row, index);
+      } catch {
+        warnGateOnce("replaceRowId getRowId", "replaceRowId: getRowId threw for the new row, so nothing was swapped");
+        return;
+      }
+      if (newId !== oldId && ctx.rowIndexCache.resolve(s.data, s.getRowId).has(newId)) {
+        warnGateOnce("replaceRowId taken", `replaceRowId: another row already has the id "${newId}", so nothing was swapped`);
+        return;
+      }
+      const prev = s.data[index];
+      const nextData = s.data.slice();
+      nextData[index] = row;
+      const columnIds = s.columns.map((column) => column.id);
+      const moveKey = <V,>(map: Map<string, V>): void => {
+        if (!map.has(oldId)) return;
+        map.set(newId, map.get(oldId)!);
+        map.delete(oldId);
+      };
+      moveKey(pendingByRow);
+      moveKey(latestWriteOfRow);
+      moveKey(resolvingRows);
+      moveKey(conflictAborts);
+      if (failedRows.delete(oldId)) failedRows.add(newId);
+      for (const key of [...refusedPrev.keys()]) {
+        if (!key.startsWith(`${oldId}\u0000`)) continue;
+        refusedPrev.set(`${newId}${key.slice(oldId.length)}`, refusedPrev.get(key)!);
+        refusedPrev.delete(key);
+      }
+      if (newId !== oldId) idAlias.set(oldId, newId);
+      renameRowKeys(oldId, newId);
+      let cellErrors = s.cellErrors;
+      for (const columnId of columnIds) {
+        const key = cellErrorKey(oldId, columnId);
+        const message = cellErrors.get(key);
+        if (message === undefined) continue;
+        if (cellErrors === s.cellErrors) cellErrors = new Map(cellErrors);
+        (cellErrors as Map<string, string>).delete(key);
+        (cellErrors as Map<string, string>).set(cellErrorKey(newId, columnId), message);
+      }
+      let flashingCells = s.flashingCells;
+      for (const columnId of columnIds) {
+        const key = flashCellKey(oldId, columnId);
+        if (!flashingCells.has(key)) continue;
+        if (flashingCells === s.flashingCells) flashingCells = new Set(flashingCells);
+        (flashingCells as Set<string>).delete(key);
+      }
+      let hiddenCheckedRowIds = s.hiddenCheckedRowIds;
+      if (hiddenCheckedRowIds.has(oldId)) {
+        hiddenCheckedRowIds = new Set(hiddenCheckedRowIds);
+        (hiddenCheckedRowIds as Set<string>).delete(oldId);
+        (hiddenCheckedRowIds as Set<string>).add(newId);
+      }
+      const editing = s.editing?.rowId === oldId ? { ...s.editing, rowId: newId } : s.editing;
+      const change: DataChange<unknown> = { source: "id-swap", ops: [{ type: "update", rowId: oldId, row, prev }] };
+      const touched: DataOp<unknown> = { type: "update", rowId: newId, row, prev, cells: columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined })) };
+      ctx.rowIndexCache.invalidate();
+      rememberDeferredRows(ctx, [index]);
+      ctx.lastEmittedData = nextData;
+      writeThenEmit(ctx, s, nextData, change, () =>
+        set({
+          data: nextData,
+          rowIdentityVersion: s.rowIdentityVersion + 1,
+          cellErrors,
+          flashingCells,
+          hiddenCheckedRowIds,
+          editing,
+          ...reconcileAfterWrite(s, nextData, [touched]),
+        }),
+      );
+      publishSaveStatus();
     },
     clearSaveStatus() {
       if (failedRows.size === 0) return;

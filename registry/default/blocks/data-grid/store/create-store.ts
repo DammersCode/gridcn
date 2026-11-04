@@ -70,9 +70,10 @@ import {
   carryCheckedRows,
   hiddenCheckedRowsActive,
 } from "./hidden-checked-rows";
-import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
+import { resolveEditTarget, warnDev } from "./commit";
 import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { registerInternalActions } from "./internal-actions";
@@ -261,7 +262,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
-  const dataWrite = createDataWriteContext(rowIndexCache);
+  const gates = createGateTracker({
+    publish: (gatesPending) => store.setState({ gatesPending }),
+    subscribe: (listener) => store.subscribe(listener),
+  });
+  const dataWrite = createDataWriteContext(rowIndexCache, gates);
 
   const rowGestureAt = (
     s: DataGridStoreState,
@@ -478,15 +483,45 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     rowValidationKeys.set(rowId, keys);
   };
-  // rowId -> token of its newest pending async verdict; a newer run for the row supersedes the older one.
-  const pendingRowVerdicts = new Map<string, number>();
-  let rowVerdictSeq = 0;
+  // rowId -> its newest pending async verdict; a newer run for the row supersedes and aborts the older one.
+  const pendingRowVerdicts = new Map<string, GateRun>();
+  const supersedeRowVerdict = (rowId: string): void => {
+    const older = pendingRowVerdicts.get(rowId);
+    if (!older) return;
+    pendingRowVerdicts.delete(rowId);
+    gates.abortRun(older);
+  };
+  let unwatchRowVerdicts: (() => void) | null = null;
+  const watchRowVerdicts = (): void => {
+    if (unwatchRowVerdicts) return;
+    unwatchRowVerdicts = store.subscribe((now, prev) => {
+      if (pendingRowVerdicts.size === 0) {
+        unwatchRowVerdicts?.();
+        unwatchRowVerdicts = null;
+        return;
+      }
+      if (now.data === prev.data) return;
+      const index = rowIndexCache.resolve(now.data, now.getRowId);
+      for (const rowId of [...pendingRowVerdicts.keys()]) if (!index.has(rowId)) supersedeRowVerdict(rowId);
+    });
+  };
+  const renameRowKeys = (oldId: string, newId: string): void => {
+    const keys = rowValidationKeys.get(oldId);
+    if (keys) {
+      rowValidationKeys.delete(oldId);
+      rowValidationKeys.set(newId, keys.map((key) => cellErrorKey(newId, key.slice(oldId.length + 1))));
+    }
+    supersedeRowVerdict(oldId);
+  };
   const warnGateOnce = createWarnOnce();
-  const holdRowVerdict = (rowId: string, verdict: PromiseLike<Record<string, string> | null>): void => {
-    const token = ++rowVerdictSeq;
-    pendingRowVerdicts.set(rowId, token);
+  const holdRowVerdict = (rowId: string, run: GateRun, verdict: PromiseLike<Record<string, string> | null>): void => {
+    supersedeRowVerdict(rowId);
+    pendingRowVerdicts.set(rowId, run);
+    gates.hold(run);
+    watchRowVerdicts();
     const release = (): boolean => {
-      if (pendingRowVerdicts.get(rowId) !== token) return false;
+      gates.settle(run);
+      if (run.aborted || pendingRowVerdicts.get(rowId) !== run) return false;
       pendingRowVerdicts.delete(rowId);
       return true;
     };
@@ -536,17 +571,25 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       const dataRowIndex = rowIndex.get(rowId);
       if (dataRowIndex === undefined) continue;
       const row = nextData[dataRowIndex];
-      const verdict = validateRow(row, rowId);
+      const run = gates.begin("validateRow");
+      const verdict = validateRow(row, rowId, run);
       if (isThenable<Record<string, string> | null>(verdict)) {
-        holdRowVerdict(rowId, verdict);
+        holdRowVerdict(rowId, run, verdict);
         continue;
       }
-      pendingRowVerdicts.delete(rowId);
+      if (pendingRowVerdicts.size > 0) supersedeRowVerdict(rowId);
       foldRowVerdict(current, ensure, rowId, verdict);
     }
     return next ?? cellErrors;
   };
-  let editStartPending = false;
+  let editStartRun: GateRun | null = null;
+  const cursorLeft = (now: DataGridStoreState, ref: CellRef, askedActive: ViewCoord | null): boolean => {
+    if (now.readOnly) return true;
+    const active = now.activeCell;
+    if (active === askedActive) return false;
+    const coord = resolveCellRef(now, rowIndexCache, ref);
+    return !coord || !active || active.row !== coord.row || active.col !== coord.col;
+  };
   const openEditor = (s: DataGridStoreState, coord: ViewCoord, rowId: string, columnId: string, initialText: string | undefined): void => {
     if (s.editing) store.getState().actions.cancelEditing();
     store.setState({
@@ -556,13 +599,17 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       activeCell: coord,
     });
   };
-  const holdEditStart = (s: DataGridStoreState, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
-    editStartPending = true;
+  const holdEditStart = (s: DataGridStoreState, run: GateRun, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
+    gates.hold(run);
     const askedActive = s.activeCell;
+    const finish = (): boolean => {
+      gates.settle(run);
+      if (editStartRun === run) editStartRun = null;
+      return !run.aborted;
+    };
     verdict.then(
       (allowed) => {
-        editStartPending = false;
-        if (allowed === false) return;
+        if (!finish() || allowed === false) return;
         const now = store.getState();
         if (now.readOnly) return;
         const coord = resolveCellRef(now, rowIndexCache, ref);
@@ -574,7 +621,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         openEditor(now, coord, ref.rowId, ref.columnId, initialText);
       },
       (error: unknown) => {
-        editStartPending = false;
+        if (!finish()) return;
         warnGateOnce("onEditStart rejected", `onEditStart rejected, so the edit does not start: ${String(error)}`);
       },
     );
@@ -614,7 +661,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
-  if (init.selection !== undefined && init.defaultSelection !== undefined) warnBothSelectionPropsOnce();
+  if (init.selection !== undefined && init.defaultSelection !== undefined) warnDev("both `selection` and `defaultSelection` were provided; `selection` wins (controlled) and `defaultSelection` is ignored");
   let initialSelection = emptySelection();
   let initialActiveCell: ViewCoord | null = null;
   if (initSelectionValue) {
@@ -728,6 +775,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       carryRows,
       remapEditing,
       endEditSession,
+      renameRowKeys,
     });
     const { _deleteCellsById, ...publicWriteActions } = dataWriteActions;
     const internal: DataGridInternalActions = {
@@ -752,6 +800,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _cancelSelection() {
         const s = get();
+        if (editStartRun) gates.abortRun(editStartRun);
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
@@ -841,6 +890,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             inputDebounceMs: props.inputDebounceMs,
             onSave: props.onSave,
             onSaveRejected: props.onSaveRejected,
+            resolveSaveConflict: props.resolveSaveConflict,
             fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),
             plugins: nextPlugins ?? s.plugins,
@@ -1112,7 +1162,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _disposeWrites() {
         dataWrite.disposed = true;
+        dataWrite.abortConflicts?.();
+        gates.abort();
       },
+      _gates: () => gates,
       _releasePluginClaims() {
         releasePluginClaims?.();
         releasePluginClaims = null;
@@ -1172,6 +1225,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     ...NO_REMEMBERED_ROWS,
     saveStatus: EMPTY_SAVE_STATUS,
     pendingSaveCount: 0,
+    gatesPending: EMPTY_GATES_PENDING,
     editing: null,
     editingError: null,
     editingRejectionCount: 0,
@@ -1612,11 +1666,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const rowId = s.getRowId(target.row, target.dataRowIndex);
         const gate = s.onEditStart;
         if (gate) {
-          if (editStartPending) return;
-          const verdict = gate({ rowId, columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col });
+          if (editStartRun && !editStartRun.aborted) return;
+          const ref = { rowId, columnId: target.column.id };
+          const run = gates.begin("onEditStart", (now) => cursorLeft(now, ref, s.activeCell));
+          const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
           if (verdict === false) return;
           if (isThenable<boolean | void>(verdict)) {
-            holdEditStart(s, { rowId, columnId: target.column.id }, initialText, verdict);
+            editStartRun = run;
+            holdEditStart(s, run, ref, initialText, verdict);
             return;
           }
         }
@@ -1624,6 +1681,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       cancelEditing() {
         const s = get();
+        if (editStartRun) gates.abortRun(editStartRun);
         if (!s.editing) {
           set({ editingError: null });
           return;

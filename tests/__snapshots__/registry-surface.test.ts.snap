@@ -54,6 +54,7 @@ exports[`lists the runtime names of the \`data-grid\` barrel so an addition is a
   "useDataGridColumnWidths",
   "useDataGridEditing",
   "useDataGridFilterState",
+  "useDataGridGatePending",
   "useDataGridGetSelectionValues",
   "useDataGridHiddenCheckedCount",
   "useDataGridIsColumnHidden",

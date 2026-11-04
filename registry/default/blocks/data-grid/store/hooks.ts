@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import type {
@@ -21,6 +21,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
@@ -691,6 +692,17 @@ export function useDataGridRowSaveStatus(rowId: string): RowSaveStatus | undefin
 /** The number of acknowledged changes (an `onSave` promise) that have not settled. */
 export function useDataGridPendingSaveCount(): number {
   return useDataGridStore((s) => s.pendingSaveCount);
+}
+
+/** The consumer hooks whose promise has not settled (`processPaste`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`); the same empty set while none is pending. */
+export function useDataGridGatePending(): ReadonlySet<GateName> {
+  return useDataGridStore((s) => s.gatesPending);
+}
+
+/** Marks `name` pending in {@link useDataGridGatePending} while `active` is true; for add-ons that run a gate of their own. */
+export function useDataGridMarkGatePending(name: GateName, active: boolean): void {
+  const gates = useDataGridInternalActions()._gates();
+  useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
 /** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
