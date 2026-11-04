@@ -18,16 +18,16 @@ export type RowElementRegistry = {
   gridLine: (viewRowIndex: number) => number;
 };
 
-// Rows churn through unique getRowId keys during a long scroll session (e.g. 100k rows) — the
-// callback cache would otherwise grow unbounded. React unmounts stale rows (calling their ref
-// callback with null) before this component's next render, so pruning on that same rAF-driven
-// cadence is redundant work on the full-swap hot path (a Map scan for cols*rows keys every tick);
-// amortize it instead, sweeping only once the cache has grown well past a live window's size.
+// Rows churn through unique getRowId keys during a long scroll session (e.g. 100k rows). A detached
+// row keeps its callback: StrictMode detaches and re-attaches the same row, and a fresh callback
+// would give the memoized row a new `rowRef` prop on every render. Detached keys are swept in bulk
+// once enough pile up, so the cache stays bounded without a per-tick scan.
 const PRUNE_THRESHOLD = 500;
 
 export function createRowElementRegistry(): RowElementRegistry {
   const elements = new Map<string | number, HTMLDivElement>();
   const callbacks = new Map<string | number, (el: HTMLDivElement | null) => void>();
+  const detached = new Set<string | number>();
   let origin = 0;
   let lastLine = 1;
 
@@ -42,20 +42,19 @@ export function createRowElementRegistry(): RowElementRegistry {
       let cb = callbacks.get(key);
       if (!cb) {
         cb = (el) => {
-          if (el) elements.set(key, el);
-          else {
-            elements.delete(key);
-            callbacks.delete(key);
+          if (el) {
+            elements.set(key, el);
+            detached.delete(key);
+            return;
+          }
+          elements.delete(key);
+          detached.add(key);
+          if (detached.size > PRUNE_THRESHOLD) {
+            for (const k of detached) callbacks.delete(k);
+            detached.clear();
           }
         };
         callbacks.set(key, cb);
-        if (callbacks.size > PRUNE_THRESHOLD) {
-          // defensive sweep for any key whose unmount ref-callback somehow didn't fire (should not
-          // happen under normal React unmounts, but keeps the cache bounded even so).
-          for (const k of callbacks.keys()) {
-            if (!elements.has(k)) callbacks.delete(k);
-          }
-        }
       }
       return cb;
     },

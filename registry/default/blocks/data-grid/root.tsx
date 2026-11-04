@@ -18,7 +18,6 @@ import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
   useDataGridActions,
   useDataGridInternalActions,
-  useDataGridActiveColumn,
   useDataGridHasActiveCell,
   useDataGridInstanceId,
   useDataGridKeymap,
@@ -284,9 +283,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
    // scrollable data rows.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
-  // column-only primitive subscription: the root re-renders when the active COLUMN changes
-  // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
-  const activeColumn = useDataGridActiveColumn();
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
   // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
   // via its context value, on every single row/column move).
@@ -448,14 +444,18 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     contentWidth: totalWidth,
     overscan: columnOverscan,
   });
+  // The active column only when it sits outside the rendered window: moves inside the window never re-render the root.
+  const offWindowActiveColumn = useDataGridStore((s) => {
+    const col = s.activeCell?.col;
+    return col === undefined || columnWindowIndices.includes(col) ? null : col;
+  });
   const columnIndices = useMemo(() => {
-    const indices = columnWindowIndices;
     // the active cell's column always renders, even off-window, so focus survives scroll
-    if (activeColumn !== null && !indices.includes(activeColumn) && activeColumn < visibleColumns.length) {
-      return [...indices, activeColumn].sort((a, b) => a - b);
+    if (offWindowActiveColumn !== null && offWindowActiveColumn < visibleColumns.length) {
+      return [...columnWindowIndices, offWindowActiveColumn].sort((a, b) => a - b);
     }
-    return indices;
-  }, [columnWindowIndices, activeColumn, visibleColumns.length]);
+    return columnWindowIndices;
+  }, [columnWindowIndices, offWindowActiveColumn, visibleColumns.length]);
 
   // Full scroll extent includes both pinned bands: the top band sits above row 0 (part of
   // effectiveHeaderHeight already), the bottom band needs its own extra room reserved past the
@@ -524,8 +524,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     [columnIndices, visibleColumns],
   );
 
-  // Stable context value on real deps (mustFix): DataGridRoot re-renders on every activeCell move
-  // (the activeColumn subscription above), and cell.tsx/header.tsx read this context directly —
+  // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
+  // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
   // a fresh object literal here would bust every context consumer (all virtualized cells, header
   // cells) on every click/arrow-key move even though most of these fields didn't actually change.
   const contextValue = useMemo(

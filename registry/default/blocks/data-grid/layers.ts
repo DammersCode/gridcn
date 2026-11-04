@@ -49,8 +49,7 @@ export const GRID_LAYER = {
 export type GridLayer = (typeof GRID_LAYER)[keyof typeof GRID_LAYER];
 
 /** The stacking rank a body cell should carry, given its pinned and active state. */
-export function cellLayer(pinned: boolean, active: boolean): number | undefined {
+export function cellLayer(pinned: boolean, active: boolean): number {
   if (pinned) return active ? GRID_LAYER.activePinnedCell : GRID_LAYER.pinnedCell;
-  if (active) return GRID_LAYER.activeCell;
-  return undefined;
+  return active ? GRID_LAYER.activeCell : GRID_LAYER.cell;
 }
