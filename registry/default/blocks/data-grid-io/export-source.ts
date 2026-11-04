@@ -66,15 +66,22 @@ export async function runSourceExport(
   const maxSkippedRows = Math.max(maxRows, 1) * 2;
   let iterator: AsyncIterator<readonly unknown[]> | undefined;
 
-  const aborted = outer
-    ? new Promise<never>((_, reject) => {
-        const fail = () => reject(abortReason(outer));
-        if (outer.aborted) fail();
-        else outer.addEventListener("abort", fail, { once: true });
-      })
-    : null;
-  aborted?.catch(() => {});
-  const untilAborted = <T,>(promise: Promise<T>): Promise<T> => (aborted ? Promise.race([promise, aborted]) : promise);
+  const untilAborted = <T,>(promise: Promise<T>): Promise<T> => {
+    if (!outer) return promise;
+    return new Promise<T>((resolve, reject) => {
+      const fail = () => reject(abortReason(outer));
+      if (outer.aborted) return fail();
+      outer.addEventListener("abort", fail, { once: true });
+      const settle = (done: () => void) => () => {
+        outer.removeEventListener("abort", fail);
+        done();
+      };
+      promise.then(
+        (value) => settle(() => resolve(value))(),
+        (error) => settle(() => reject(error))(),
+      );
+    });
+  };
 
   const take = (batch: unknown): void => {
     if (!Array.isArray(batch)) throw new TypeError("[data-grid-io] an export source batch must be an array");

@@ -53,6 +53,7 @@ export function DataGridExportButton(props: DataGridExportButtonProps): ReactNod
         if (all && controllerRef.current === controller) setDone(labels.io.exportDone(result.rowCount, result.truncated));
       })
       .catch((error: unknown) => {
+        if (controllerRef.current !== controller) return;
         if (signal.aborted) {
           if (all) setDone(labels.io.exportCancelled);
           return;
