@@ -67,7 +67,7 @@ export type UseDataGridServerRowsResult<TData> = {
   error: unknown;
   /** Repeats the request that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block never creates a duplicate id or a hole. Call it after the `onSave` promise settles to pick up server-computed fields. */
+  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. Call it after the `onSave` promise settles to pick up server-computed fields. */
   refresh: () => void;
 };
 
@@ -136,7 +136,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", rows: [], totalRowCount: null, hasMore: false, error: null });
 
   const key = `${serverSpecKey(spec)}|${page}|${pageSize}|${tick}`;
@@ -147,7 +147,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     const controller = new AbortController();
     const { page: requestPage, pageSize: requestSize } = live.current;
     const requestSpec = spec;
-    const protectedAtStart = protectedRows();
+    const protectedAtStart = savingRows();
     const markAtStart = saveMark();
     pruneSaves(markAtStart);
     const start = (requestPage - 1) * requestSize;
@@ -167,7 +167,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       })
       .then((answer) => {
         if (controller.signal.aborted) return;
-        const read = readAnswer<TData>(answer, range, warn);
+        const read = readAnswer<TData>(answer, range, warn, live.current.options.getRowId);
         live.current.settledOnce = true;
         const guarded = unionIds(unionIds(protectedAtStart, savedSince(markAtStart)), protectedRows());
         pruneSaves(null);

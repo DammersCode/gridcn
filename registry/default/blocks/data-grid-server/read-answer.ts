@@ -26,7 +26,7 @@ export type ServerRowsPageRequest = ServerRowsRequest & {
 
 /** What `fetchRows` resolves with in every mode. */
 export type ServerRowsAnswer<TData, TCursor = never> = {
-  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. */
+  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. A repeated row id keeps its first row. */
   rows: TData[];
   /** Row count of the result. Omitted keeps the last known count; `null` declares it unknown. */
   totalRowCount?: number | null;
@@ -55,6 +55,7 @@ export function readAnswer<TData, TCursor = never>(
   answer: unknown,
   range: RowRange,
   warn: (kind: string, message: string) => void,
+  idOf?: (row: TData, index: number) => string,
 ): ReadAnswer<TData, TCursor> {
   const raw = answer as Partial<ServerRowsAnswer<TData, TCursor>> | null | undefined;
   if (!Array.isArray(raw?.rows)) throw new TypeError("fetchRows of useDataGridServerRows must resolve with { rows: TData[] }");
@@ -78,11 +79,27 @@ export function readAnswer<TData, TCursor = never>(
     totalRowCount = null;
     warn("count", "totalRowCount must be a non-negative integer or null; treating the count as unknown");
   }
+  const full = rows.length === limit;
+  if (idOf) rows = firstCopies(rows, idOf, range.start, warn);
   return {
     rows,
     totalRowCount,
-    hasMore: typeof raw.hasMore === "boolean" ? raw.hasMore : rows.length === limit,
+    hasMore: typeof raw.hasMore === "boolean" ? raw.hasMore : full,
     hasMoreSent: typeof raw.hasMore === "boolean" ? raw.hasMore : undefined,
     nextCursor: raw.nextCursor,
   };
+}
+
+/** Keeps the first row of each id, so one answer never puts the same id twice into the grid. */
+function firstCopies<TData>(rows: TData[], idOf: (row: TData, index: number) => string, start: number, warn: (kind: string, message: string) => void): TData[] {
+  const seen = new Set<string>();
+  const kept: TData[] = [];
+  rows.forEach((row, index) => {
+    const id = idOf(row, start + index);
+    if (seen.has(id)) return;
+    seen.add(id);
+    kept.push(row);
+  });
+  if (kept.length < rows.length) warn("duplicate", "fetchRows returned a duplicate row id; only the first row of each id is used, so make the sort total (add the row id as a last sort key)");
+  return kept;
 }

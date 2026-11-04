@@ -90,7 +90,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   retry: () => void;
   /**
    * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
-   * source refetches from the first block up to the rendered rows. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block never creates a duplicate id or a hole.
+   * source refetches from the first block up to the rendered rows. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
    * Call it after the `onSave` promise settles to pick up server-computed fields.
    */
   refresh: () => void;
@@ -143,12 +143,16 @@ type Core<TData> = {
   warned: Set<string>;
   /** Guarded rows an earlier block overwrote, for the block that brings their id back; empty when no request is pending. */
   displaced: Map<string, TData>;
+  /** Protected rows that are not loaded (dropped by a spec change or deleted locally); a block that carries one keeps its incoming copy. */
+  absent: Set<string>;
+  /** Ranges whose rows a local row operation moved: not loaded, but a protected row may still sit there. A landing block or an eviction removes them. */
+  stale: RowRange[];
   /** Slots a protected row moved away from; `core.loaded` stops claiming them. */
   cleared: Set<number>;
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), cleared: new Set() };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), stale: [], cleared: new Set() };
 }
 
 function scheduleFrame(callback: () => void): () => void {
@@ -170,9 +174,10 @@ function oldestMark<TData>(core: Core<TData>): number | null {
   return oldest;
 }
 
-/** A new map, because a queued commit still reads the old one. */
-function forgetDisplacedWhenIdle<TData>(core: Core<TData>) {
-  if (oldestMark(core) === null) core.displaced = new Map();
+/** Keeps the entries of rows that are still protected: a queued commit may still read or fill the map. */
+function forgetDisplacedWhenIdle<TData>(core: Core<TData>, stillProtected: ProtectedRows) {
+  if (oldestMark(core) !== null) return;
+  for (const id of core.displaced.keys()) if (!stillProtected?.has(id)) core.displaced.delete(id);
 }
 
 function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () => void) {
@@ -203,7 +208,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves } = useRefreshGuard();
+  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves } = useRefreshGuard();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -229,10 +234,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
 
   const release = useCallback(
     (core: Core<TData>) => {
-      forgetDisplacedWhenIdle(core);
+      forgetDisplacedWhenIdle(core, protectedRows());
       pruneSaves(oldestMark(core));
     },
-    [pruneSaves],
+    [pruneSaves, protectedRows],
   );
 
   const commit = useCallback(() => {
@@ -243,7 +248,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     const displaced = core.displaced;
     const length = core.kind === "sequence" ? core.rowsLength : null;
     const guarded = protectedRows();
-    const ranges = core.loaded;
+    // A sequential refresh shrinks `loaded` at its end, before the commit, so it scans the whole dense array.
+    const ranges = core.kind === "sequence" ? [{ start: 0, end: Number.MAX_SAFE_INTEGER }] : core.stale.length > 0 ? mergeRanges([...core.loaded, ...core.stale]) : core.loaded;
     const idOf = live.current.options.getRowId;
     setRows((prev) => {
       const base = length === null ? prev : Object.assign(prev.slice(), { length });
@@ -283,6 +289,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.pending.length = 0;
       pruneSaves(null);
       core.displaced = new Map();
+      core.stale = [];
+      core.absent = new Set(savingRows() ?? []);
       core.cleared.clear();
       core.cancelFrame?.();
       core.cancelFrame = null;
@@ -290,7 +298,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       core.rowsLength = size;
       setLoadedCount(0);
     },
-    [getCore, abortRequests, pruneSaves],
+    [getCore, abortRequests, pruneSaves, savingRows],
   );
 
   const windowRef = useRef<(range: RowRange) => void>(noop);
@@ -310,10 +318,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const at = refresh ? range.start : seq.length;
       let incoming = read.rows;
       const guarded = refresh ? null : unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows());
+      const idOf = live.current.options.getRowId;
       if (guarded !== null) {
-        const idOf = live.current.options.getRowId;
-        incoming = incoming.filter((row, index) => !guarded.has(idOf(row, at + index)));
+        incoming = incoming.filter((row, index) => {
+          const id = idOf(row, at + index);
+          return !guarded.has(id) || core.absent.has(id) || core.displaced.has(id);
+        });
       }
+      if (core.absent.size > 0) read.rows.forEach((row, index) => core.absent.delete(idOf(row, at + index)));
       const written = Math.min(incoming.length, range.end - range.start);
       const position = at + written;
       const serverPosition = range.start + Math.min(read.rows.length, range.end - range.start);
@@ -354,7 +366,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const land = useCallback(
     (range: RowRange, answer: unknown, sentCursor: unknown, guard: Guard) => {
       const core = getCore();
-      const read = readAnswer<TData, unknown>(answer, range, warn);
+      const read = readAnswer<TData, unknown>(answer, range, warn, live.current.options.getRowId);
       if (core.kind === "unknown") core.kind = startsSequence(read) ? "sequence" : "random";
       if (core.kind === "sequence") {
         landSequence(range, read, sentCursor, guard);
@@ -366,11 +378,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       let keep: { displaced: Map<string, TData>; guarded: ProtectedRows; ranges: RowRange[] } | null = null;
       if (!first && nextCount !== core.count) {
         abortRequestsExcept(core, range);
-        keep = { displaced: new Map(), guarded: unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows()), ranges: core.loaded };
+        keep = { displaced: new Map(), guarded: unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows()), ranges: mergeRanges([...core.loaded, ...core.stale]) };
         core.loaded = [];
         core.failed.clear();
         core.pending.length = 0;
         core.displaced = keep.displaced;
+        core.stale = [];
         core.cleared.clear();
         core.cancelFrame?.();
         core.cancelFrame = null;
@@ -383,6 +396,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
           return new Array<TData | undefined>(nextCount);
         });
         core.rowsLength = nextCount;
+      } else {
+        setRows((prev) => (prev.length === nextCount ? prev : Object.assign(prev.slice(0, nextCount), { length: nextCount })));
       }
       core.count = nextCount;
       setCount(nextCount);
@@ -399,6 +414,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       if (core.failed.size === 0) setError(null);
       if (written > 0) {
         core.loaded = mergeRanges([...core.loaded, { start: range.start, end: range.start + written }]);
+        core.stale = core.stale.flatMap((stale) => subtractRanges(stale, [{ start: range.start, end: range.start + written }]));
         setLoadedCount(sumRangeSizes(core.loaded));
         core.pending.push({ start: range.start, rows: read.rows.slice(0, written), guard: guard.ids, mark: guard.mark });
         commitSoon();
@@ -415,7 +431,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const key = rangeKey(range);
       if (core.inFlight.has(key)) return;
       const controller = new AbortController();
-      const guard: Guard = { ids: protectedRows(), mark: saveMark() };
+      const guard: Guard = { ids: savingRows(), mark: saveMark() };
       core.inFlight.set(key, { range, controller, guard });
       setLoading(true);
       const settle = () => {
@@ -455,7 +471,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         settle();
       }
     },
-    [getCore, land, protectedRows, saveMark, release],
+    [getCore, land, savingRows, saveMark, release],
   );
   useLayoutEffect(() => {
     runFetchRef.current = runFetch;
@@ -520,11 +536,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       commit();
       const kept: RowRange[] = [];
       const cleared: RowRange[] = [];
-      for (const loaded of core.loaded) {
-        kept.push(...subtractRanges(loaded, [{ start, end }]));
+      for (const loaded of mergeRanges([...core.loaded, ...core.stale])) {
         const overlap = { start: Math.max(start, loaded.start), end: Math.min(end, loaded.end) };
         if (overlap.end > overlap.start) cleared.push(overlap);
       }
+      for (const loaded of core.loaded) kept.push(...subtractRanges(loaded, [{ start, end }]));
+      core.stale = core.stale.flatMap((stale) => subtractRanges(stale, [{ start, end }]));
       core.loaded = mergeRanges(kept);
       setLoadedCount(sumRangeSizes(core.loaded));
       if (cleared.length === 0) return;
@@ -606,6 +623,19 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
     [getCore],
   );
 
+  // A local insert, delete, or move shifts rows away from the positions the loaded ranges and in-flight blocks name; the rendered window loads them again.
+  const forgetLoadedBlocks = useCallback(
+    (core: Core<TData>, inserted: number) => {
+      abortRequests();
+      core.stale = mergeRanges([...core.stale, ...core.loaded].map((range) => ({ start: range.start, end: range.end + inserted })));
+      core.loaded = [];
+      core.failed.clear();
+      setLoadedCount(0);
+      if (core.lastWindow) windowRef.current(core.lastWindow);
+    },
+    [abortRequests],
+  );
+
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
       const core = getCore();
@@ -617,10 +647,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
         return change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
       });
       if (core.kind === "sequence") followRowOperations(change);
+      for (const op of change.ops) if (op.type === "delete") core.absent.add(op.rowId);
+      if (core.kind !== "sequence" && core.ready && change.ops.some((op) => op.type !== "update")) forgetLoadedBlocks(core, change.ops.filter((op) => op.type === "insert").length);
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations, markEdited],
+    [getCore, commit, getRowId, warn, followRowOperations, forgetLoadedBlocks, markEdited],
   );
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(

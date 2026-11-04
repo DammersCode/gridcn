@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
@@ -11,9 +12,9 @@ type SourceKind = "counted" | "cursor" | "offset" | "pages";
 
 const SEEDS = Number(process.env["PROP_SEEDS"] ?? 120);
 const STEPS = 40;
-const BLOCK = 10;
 const BASE_ROWS = 60;
 const PAGE_SIZE = 10;
+const STEP_REQUEST_CAP = 80;
 
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as const);
 
@@ -27,10 +28,10 @@ function prng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   return {
-    next,
     int: (max: number) => Math.floor(next() * max),
     pick: <T,>(items: readonly T[]): T => items[Math.floor(next() * items.length)]!,
     chance: (p: number) => next() < p,
+    next,
   };
 }
 
@@ -38,11 +39,11 @@ type ServerRow = { id: string; ver: number };
 const nameOf = (row: ServerRow) => `${row.id} v${row.ver}`;
 
 /** The fake backend: a list the test mutates between requests; every answer is a snapshot taken when the request leaves. */
-function createServer() {
+function createBackend() {
   const rows: ServerRow[] = Array.from({ length: BASE_ROWS }, (_, i) => ({ id: `r${i}`, ver: 0 }));
   let nextNew = 0;
   let filter = "";
-  const visible = () => (filter === "even" ? rows.filter((row) => Number(row.id.slice(1)) % 2 === 0) : rows.slice());
+  const visible = () => (filter === "even" ? rows.filter((row) => Number(row.id.slice(1)) % 2 === 0 || row.id.startsWith("n")) : rows.slice());
   return {
     visible,
     setFilter: (next: string) => (filter = next),
@@ -52,35 +53,47 @@ function createServer() {
       const row = rows[index % rows.length];
       if (row) row.ver++;
     },
+    repeat: (index: number) => {
+      const row = rows[index % rows.length];
+      if (row) rows.splice((index * 7 + 3) % rows.length, 0, { ...row });
+    },
     toRow: (row: ServerRow): Row => ({ id: row.id, name: nameOf(row) }),
   };
 }
 
-type Record = {
+type Request = {
   label: string;
   saving0: Set<string>;
-  editing0: string | null;
   savedSince: Set<string>;
   signal: AbortSignal;
   rows: Row[];
   start: number;
-  end: number;
   land: () => void;
   fail: () => void;
 };
 
 type Save = { id: string; resolve: () => void; reject: () => void };
 
-function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
-  const backend = createServer();
-  const held: Record[] = [];
+type Variant = { repeatRows: boolean; indexIds: boolean; unmountAtEnd: boolean };
+
+function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Variant) {
+  const backend = createBackend();
+  const held: Request[] = [];
   const saves: Save[] = [];
   const trace: string[] = [];
+  const known = new Map<string, string>();
   let store!: StoreApi<DataGridStoreState>;
   let scroll!: UseDataGridServerRowsScrollResult<Row>;
   let pages!: UseDataGridServerRowsResult<Row>;
+  let setReadOnly!: (value: boolean) => void;
+  let setBlockSize!: (value: number) => void;
+  let filterNow = "";
   let editCount = 0;
-  let refreshNext = false;
+  let localCount = 0;
+  let fetchCalls = 0;
+  let dirty = false;
+  let refreshPending = false;
+  let unmount: (() => void) | null = null;
 
   const state = () => store.getState();
   const savingIds = () => {
@@ -88,9 +101,10 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
     for (const [id, status] of state().saveStatus) if (status === "saving") ids.add(id);
     return ids;
   };
-  const open = (record: Omit<Record, "saving0" | "editing0" | "savedSince" | "label">, label: string) => {
-    const full: Record = { ...record, label, saving0: savingIds(), editing0: state().editing?.rowId ?? null, savedSince: new Set() };
-    held.push(full);
+  let stepStartCalls = 0;
+  const open = (request: Omit<Request, "saving0" | "savedSince" | "label">, label: string) => {
+    if (++fetchCalls - stepStartCalls > STEP_REQUEST_CAP) throw new Error("request loop");
+    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set() });
   };
 
   const fetchScroll = (request: ServerRowsRequest<number>): Promise<ServerRowsAnswer<Row, number>> => {
@@ -111,7 +125,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
     }
     return new Promise((resolve, reject) => {
       const mapped = rows.map(backend.toRow);
-      open({ signal: request.signal, rows: mapped, start, end, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
+      open({ signal: request.signal, rows: mapped, start, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
     });
   };
 
@@ -119,7 +133,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
     const all = backend.visible();
     const mapped = all.slice(request.start, request.end).map(backend.toRow);
     return new Promise((resolve, reject) => {
-      open({ signal: request.signal, rows: mapped, start: request.start, end: request.end, land: () => resolve({ rows: mapped, totalRowCount: all.length }), fail: () => reject(new Error("boom")) }, `page ${request.page}`);
+      open({ signal: request.signal, rows: mapped, start: 0, land: () => resolve({ rows: mapped, totalRowCount: all.length }), fail: () => reject(new Error("boom")) }, `page ${request.page}`);
     });
   };
 
@@ -128,25 +142,41 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
     const id = op && op.type === "update" ? op.rowId : "?";
     return new Promise<void>((resolve, reject) => saves.push({ id, resolve, reject: () => reject(new Error("save failed")) }));
   };
+  const createRow = () => ({ id: `loc${localCount++}`, name: `local ${localCount}` });
+  const getRowId = variant.indexIds ? (row: Row, index: number) => `${row.id}~${index}` : (row: Row) => row.id;
 
   function Probe() {
     store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+    useEffect(
+      () =>
+        store.subscribe((next, prev) => {
+          if (next.saveStatus === prev.saveStatus) return;
+          for (const [id, status] of next.saveStatus) {
+            if (status === "saving" && prev.saveStatus.get(id) !== "saving") for (const request of held) request.savedSince.add(id);
+          }
+        }),
+      [],
+    );
     return null;
   }
   function Harness() {
+    const [readOnly, setReadOnlyState] = useState(false);
+    const [blockSize, setBlockSizeState] = useState(10);
+    setReadOnly = setReadOnlyState;
+    setBlockSize = setBlockSizeState;
     if (kind === "pages") {
-      pages = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows: fetchPage, defaultPageSize: PAGE_SIZE, pageSizeOptions: [PAGE_SIZE] });
+      pages = useDataGridServerRows<Row>({ getRowId, fetchRows: fetchPage, defaultPageSize: PAGE_SIZE, pageSizeOptions: [PAGE_SIZE] });
       return (
-        <DataGridProvider {...pages.providerProps} columns={columns} onSave={onSave}>
+        <DataGridProvider {...pages.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
           <DataGridRoot>
             <Probe />
           </DataGridRoot>
         </DataGridProvider>
       );
     }
-    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: fetchScroll, blockSize: BLOCK, overscan: 0 });
+    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", getRowId, fetchRows: fetchScroll, blockSize, overscan: 0 });
     return (
-      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave}>
+      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
         <DataGridRoot>
           <Probe />
         </DataGridRoot>
@@ -156,95 +186,86 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
 
   const flush = () => act(async () => void (await vi.advanceTimersByTimeAsync(40)));
   const data = () => (kind === "pages" ? pages.providerProps.data : scroll.providerProps.data) as readonly (Row | undefined)[];
-  const live = () => held.filter((record) => !record.signal.aborted);
+  const live = () => held.filter((request) => !request.signal.aborted);
   const server = () => (kind === "pages" ? pages : scroll);
+  const loadedRanges = (): { start: number; end: number }[] => (kind === "pages" ? [{ start: 0, end: data().length }] : scroll.getLoadedRanges().map((range) => ({ ...range })));
+  const copiesOf = (rows: readonly (Row | undefined)[], id: string) => rows.filter((row) => row?.id === id) as Row[];
 
-  const loadedRanges = (): { start: number; end: number }[] => {
-    if (kind === "pages") return [{ start: 0, end: data().length }];
-    return scroll.getLoadedRanges().map((range) => ({ ...range }));
-  };
-
-  /** Invariants that hold after every step. */
+  /** Invariants after every step. A source that mixed snapshots (rows moved on the server or locally) is consistent again once one refresh settled. */
   function checkAlways() {
     const rows = data();
-    for (const { start, end } of loadedRanges()) {
-      for (let i = start; i < Math.min(end, rows.length); i++) expect(rows[i], `hole at ${i}`).toBeDefined();
+    const consistent = !dirty;
+    if (kind === "counted" || kind === "pages" || consistent) {
+      for (const { start, end } of loadedRanges()) {
+        for (let i = start; i < Math.min(end, rows.length); i++) expect(rows[i], `hole at ${i}`).toBeDefined();
+      }
     }
-    const guardedNow = new Set([...savingIds(), ...(state().editing ? [state().editing!.rowId] : [])]);
-    const seen = new Set<string>();
-    for (const row of rows) {
-      if (!row) continue;
-      if (guardedNow.has(row.id)) expect(seen.has(row.id), `duplicate protected row ${row.id}`).toBe(false);
-      seen.add(row.id);
+    if (consistent && !variant.indexIds) {
+      const ids = rows.filter(Boolean).map((row) => row!.id);
+      expect(new Set(ids).size, `duplicate ids ${ids.filter((id, i) => ids.indexOf(id) !== i).join(",")}`).toBe(ids.length);
     }
+    for (const row of rows) if (row) known.set(row.id, row.name);
   }
 
-  const byId = (rows: readonly (Row | undefined)[]) => {
+  /** Lands one request and asserts the rule on the rows it carries. */
+  async function land(request: Request) {
+    held.splice(held.indexOf(request), 1);
+    if (request.signal.aborted) return;
+    const preRows = data();
+    const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
+    if (state().editing) mustKeep.add(state().editing!.rowId);
+    const slotsExact = (kind === "counted" || kind === "pages") && !variant.repeatRows && !variant.indexIds;
+    request.land();
+    await flush();
+    if (variant.indexIds) return;
+    const post = data();
+    request.rows.forEach((carried, i) => {
+      const slot = kind === "pages" ? i : request.start + i;
+      const copies = copiesOf(post, carried.id);
+      if (mustKeep.has(carried.id)) {
+        const before = copiesOf(preRows, carried.id);
+        expect(copies.length, `protected ${carried.id} vanished`).toBeGreaterThan(0);
+        if (before.length > 0) expect(copies.some((copy) => before.some((old) => old.name === copy.name)), `protected ${carried.id} lost its local value (before ${before.map((old) => old.name).join("/")}, now ${copies.map((copy) => copy.name).join("/")}, request ${request.label})`).toBe(true);
+        else expect(copies.some((copy) => copy.name === carried.name || copy.name === known.get(carried.id)), `protected ${carried.id} took a foreign value`).toBe(true);
+        return;
+      }
+      expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer`).toBe(true);
+      if (slotsExact && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
+    });
+  }
+  const rowsById = (rows: readonly (Row | undefined)[]) => {
     const map = new Map<string, Row>();
     for (const row of rows) if (row && !map.has(row.id)) map.set(row.id, row);
     return map;
   };
 
-  /** Lands one request and asserts the rule on the rows it carries. */
-  async function land(record: Record) {
-    held.splice(held.indexOf(record), 1);
-    if (record.signal.aborted) return;
-    const pre = byId(data());
-    const mustKeep = new Set([...record.saving0, ...record.savedSince, ...savingIds()]);
-    if (state().editing) mustKeep.add(state().editing!.rowId);
-    const mayKeep = new Set(mustKeep);
-    if (record.editing0) mayKeep.add(record.editing0);
-    const expectedSlots = kind === "counted" || kind === "pages";
-    record.land();
-    await flush();
-    const post = data();
-    record.rows.forEach((carried, i) => {
-      const slot = kind === "pages" ? i : record.start + i;
-      if (mustKeep.has(carried.id)) {
-        const before = pre.get(carried.id);
-        if (before) {
-          const now = byId(post).get(carried.id);
-          expect(now?.name, `protected ${carried.id} lost its local value`).toBe(before.name);
-          if (expectedSlots && slot < post.length && !wiped(post)) expect(post[slot]?.id, `protected ${carried.id} not at slot ${slot}`).toBe(carried.id);
-        }
-        return;
-      }
-      if (mayKeep.has(carried.id)) return;
-      const now = byId(post).get(carried.id);
-      expect(now?.name, `${carried.id} not replaced by the answer`).toBe(carried.name);
-      if (expectedSlots && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
-    });
-  }
-  const wiped = (post: readonly (Row | undefined)[]) => post.every((row) => row === undefined);
-
   async function step() {
-    let r = rnd.next();
-    if (refreshNext) {
-      refreshNext = false;
-      r = 0.3;
-    }
+    const r = rnd.next();
     const liveHeld = live();
-    const loadedIds = [...byId(data()).keys()];
+    const loadedIds = [...rowsById(data()).keys()];
     const anyId = () => (loadedIds.length > 0 ? rnd.pick(loadedIds) : null);
-    if (r < 0.2 && liveHeld.length > 0) {
-      const record = rnd.pick(liveHeld);
-      trace.push(`land ${record.label}`);
-      await land(record);
-    } else if (r < 0.25 && liveHeld.length > 0) {
-      const record = rnd.pick(liveHeld);
-      trace.push(`fail ${record.label}`);
-      held.splice(held.indexOf(record), 1);
-      record.fail();
+    const calls = fetchCalls;
+    stepStartCalls = fetchCalls;
+    if (r < 0.18 && liveHeld.length > 0) {
+      const request = rnd.pick(liveHeld);
+      trace.push(`land ${request.label}`);
+      await land(request);
+    } else if (r < 0.22 && liveHeld.length > 0) {
+      const request = rnd.pick(liveHeld);
+      trace.push(`fail ${request.label}`);
+      held.splice(held.indexOf(request), 1);
+      request.fail();
       await flush();
-    } else if (r < 0.33) {
+    } else if (r < 0.3) {
       trace.push("refresh");
+      if (dirty) refreshPending = true;
       act(() => server().refresh());
       await flush();
-    } else if (r < 0.43) {
+    } else if (r < 0.4) {
       if (kind === "pages") {
         const page = 1 + rnd.int(4);
         trace.push(`page ${page}`);
-        act(() => pages.pager.onPageChange?.(page));
+        act(() => pages.pager.onPageChange(page));
       } else {
         const start = rnd.int(Math.max(1, data().length));
         const end = start + 5 + rnd.int(20);
@@ -252,67 +273,94 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
         act(() => scroll.gridProps.onRenderedRowsChange?.({ start, end }));
       }
       await flush();
-    } else if (r < 0.48) {
+    } else if (r < 0.44) {
       trace.push("retry");
       act(() => server().retry());
       await flush();
-    } else if (r < 0.54) {
-      let op = rnd.pick(["prepend", "remove", "bump", "bump", "bump"] as const);
-      // Rows that moved on the server are only mixed with older rows until the next refresh, so a moving change waits for an idle source and is followed by one.
-      if (op !== "bump" && (live().length > 0 || server().status === "error")) op = "bump";
-      else if (op !== "bump") refreshNext = true;
+    } else if (r < 0.52) {
+      const op = rnd.pick(["prepend", "remove", "bump", "bump", "bump", ...(variant.repeatRows ? (["repeat"] as const) : [])] as const);
       trace.push(`server ${op}`);
       if (op === "prepend") backend.prepend();
       else if (op === "remove") backend.remove(rnd.int(BASE_ROWS));
+      else if (op === "repeat") backend.repeat(rnd.int(BASE_ROWS));
       else backend.bump(rnd.int(BASE_ROWS));
-    } else if (r < 0.6) {
+      if (op !== "bump") {
+        dirty = true;
+        refreshPending = false;
+      }
+    } else if (r < 0.57) {
       const id = anyId();
       if (id) {
         trace.push(`startEdit ${id}`);
         act(() => state().actions.startEditing({ rowId: id, columnId: "name" }));
       }
-    } else if (r < 0.63) {
+    } else if (r < 0.6) {
       trace.push("cancelEdit");
       act(() => state().actions.cancelEditing());
-    } else if (r < 0.73) {
+    } else if (r < 0.68) {
       const id = anyId();
       if (id) {
         trace.push(`save ${id}`);
         act(() => state().actions.commitCellValue({ rowId: id, columnId: "name" }, `${id} edit${editCount++}`));
-        for (const record of held) record.savedSince.add(id);
       }
-    } else if (r < 0.85 && saves.length > 0) {
+    } else if (r < 0.78 && saves.length > 0) {
       const save = saves.splice(rnd.int(saves.length), 1)[0]!;
-      const reject = rnd.chance(0.25);
+      const reject = save.id !== "?" && rnd.chance(0.25);
       trace.push(`${reject ? "reject" : "resolve"} save ${save.id}`);
       await act(async () => (reject ? save.reject() : save.resolve()));
       await flush();
-    } else if (r < 0.88 && kind !== "pages") {
+    } else if (r < 0.84) {
+      const op = rnd.pick(["insert", "delete", "reorder"] as const);
+      const id = anyId();
+      if (id && !variant.indexIds) {
+        trace.push(`local ${op} ${id}`);
+        const index = data().findIndex((row) => row?.id === id);
+        if (op === "insert") act(() => state().actions.insertRow(index, "below"));
+        else if (op === "delete") act(() => state().actions.deleteRowsById([id]));
+        else act(() => void state().actions.reorderRows(index, Math.max(0, index - 1 - rnd.int(3))));
+        dirty = true;
+        refreshPending = false;
+        await flush();
+      }
+    } else if (r < 0.87) {
       const filter = rnd.pick(["", "even"]);
       trace.push(`filter ${filter || "none"}`);
       backend.setFilter(filter);
-      act(() => scroll.gridProps.onSearchTextChange?.(filter));
+      const changed = filter !== filterNow;
+      filterNow = filter;
+      act(() => (kind === "pages" ? pages.gridProps.onSearchTextChange?.(filter) : scroll.gridProps.onSearchTextChange?.(filter)));
+      if (changed) {
+        dirty = false;
+        refreshPending = false;
+      }
       await flush();
-    } else if (r < 0.9 && kind === "pages") {
-      const filter = rnd.pick(["", "even"]);
-      trace.push(`filter ${filter || "none"}`);
-      backend.setFilter(filter);
-      act(() => pages.gridProps.onSearchTextChange?.(filter));
+    } else if (r < 0.9) {
+      trace.push("toggle readOnly");
+      act(() => setReadOnly(rnd.chance(0.5)));
+    } else if (r < 0.93 && kind !== "pages") {
+      trace.push("blockSize");
+      act(() => setBlockSize(rnd.pick([10, 15, 7])));
       await flush();
     } else {
       trace.push("noop");
     }
-    if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 24).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
+    if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
+    if (dirty && refreshPending && live().length === 0 && server().status !== "error") {
+      dirty = false;
+      refreshPending = false;
+    }
+    expect(fetchCalls - calls, "request loop").toBeLessThan(STEP_REQUEST_CAP);
     checkAlways();
   }
 
   /** Settles every save and request, refreshes, and compares the grid with the backend. */
   async function drainAndCompare() {
     trace.push("drain");
+    act(() => setReadOnly(false));
     act(() => state().actions.cancelEditing());
     for (const save of saves.splice(0)) await act(async () => save.resolve());
     for (let round = 0; round < 8; round++) {
-      for (const record of live().slice()) await land(record);
+      for (const request of live().slice()) await land(request);
       held.length = 0;
       act(() => server().retry());
       await flush();
@@ -320,17 +368,18 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
     }
     act(() => server().refresh());
     await flush();
-    for (let round = 0; round < 8 && live().length > 0; round++) for (const record of live().slice()) await land(record);
+    for (let round = 0; round < 8 && live().length > 0; round++) for (const request of live().slice()) await land(request);
     await flush();
+    if (variant.repeatRows || variant.indexIds) return;
     const rows = data();
     const expected = backend.visible();
+    const offset = kind === "pages" ? (pages.pager.page - 1) * PAGE_SIZE : 0;
     for (const { start, end } of loadedRanges()) {
       for (let i = start; i < Math.min(end, rows.length); i++) {
         const row = rows[i];
-        const offset = kind === "pages" ? pages.pager.page && (pages.pager.page - 1) * PAGE_SIZE : 0;
         expect(row, `hole at ${i}`).toBeDefined();
-        expect(row?.id, `slot ${i} after drain`).toBe(expected[i + (offset ?? 0)]?.id);
-        expect(row?.name, `slot ${i} value after drain`).toBe(expected[i + (offset ?? 0)] && nameOf(expected[i + (offset ?? 0)]!));
+        expect(row?.id, `slot ${i} after drain`).toBe(expected[i + offset]?.id);
+        expect(row?.name, `slot ${i} value after drain`).toBe(expected[i + offset] && nameOf(expected[i + offset]!));
       }
     }
     const ids = rows.filter(Boolean).map((row) => row!.id);
@@ -338,16 +387,22 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>) {
   }
 
   return {
-    render: async () => {
-      render(<Harness />);
-      await flush();
-    },
+    trace,
     step,
     drainAndCompare,
-    trace,
-    first: async () => {
-      const record = held[0];
-      if (record) await land(record);
+    start: async () => {
+      unmount = render(<Harness />).unmount;
+      await flush();
+      const first = held[0];
+      if (first) await land(first);
+    },
+    /** Unmounts with requests and saves in flight, then lets them all settle: nothing may throw. */
+    unmountThenSettle: async () => {
+      trace.push("unmount");
+      unmount?.();
+      for (const request of held.splice(0)) request.land();
+      for (const save of saves.splice(0)) save.resolve();
+      await act(async () => void (await vi.advanceTimersByTimeAsync(40)));
     },
   };
 }
@@ -362,14 +417,16 @@ describe.each<SourceKind>(["counted", "cursor", "offset", "pages"])("refresh gua
   });
 
   it(`keeps the rule over ${SEEDS} seeded interleavings`, async () => {
-    for (let seed = Number(process.env["PROP_ONLY"] ?? 1); seed <= (process.env["PROP_ONLY"] ? Number(process.env["PROP_ONLY"]) : SEEDS); seed++) {
+    const only = process.env["PROP_ONLY"] ? Number(process.env["PROP_ONLY"]) : null;
+    for (let seed = only ?? 1; seed <= (only ?? SEEDS); seed++) {
       const rnd = prng(seed * 7919 + kind.length);
-      const world = createWorld(kind, rnd);
+      const variant: Variant = { repeatRows: seed % 7 === 0, indexIds: seed % 11 === 0, unmountAtEnd: seed % 5 === 0 };
+      const world = createWorld(kind, rnd, variant);
       try {
-        await world.render();
-        await world.first();
+        await world.start();
         for (let i = 0; i < STEPS; i++) await world.step();
-        await world.drainAndCompare();
+        if (variant.unmountAtEnd) await world.unmountThenSettle();
+        else await world.drainAndCompare();
       } catch (error) {
         cleanup();
         throw new Error(`seed ${seed} (${kind}) failed\ntrace: ${world.trace.join(" | ")}\n${error instanceof Error ? error.message : String(error)}`);

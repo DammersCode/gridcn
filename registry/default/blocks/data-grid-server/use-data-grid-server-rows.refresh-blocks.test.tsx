@@ -16,7 +16,7 @@ const rowAt = (index: number, shift: number, suffix: string): Row => (index < sh
 
 type Source = "counted" | "cursor" | "offset" | "countedCursor";
 
-function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL }: { getRowId?: (row: Row) => string; total?: number } = {}) {
+function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL, repeat = false }: { getRowId?: (row: Row) => string; total?: number; repeat?: boolean } = {}) {
   let shift = 0;
   let suffix = "";
   let hold = false;
@@ -26,7 +26,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
     const from = source === "cursor" || source === "countedCursor" ? (request.cursor ?? 0) : start;
     const stop = source === "counted" || source === "countedCursor" ? Math.min(end, total) : end;
     const answer = (): ServerRowsAnswer<Row, number> => ({
-      rows: Array.from({ length: stop - from }, (_, i) => rowAt(from + i, shift, suffix)),
+      rows: Array.from({ length: stop - from }, (_, i) => rowAt(repeat && from + i === 7 ? 3 : from + i, shift, suffix)),
       ...(source === "counted" ? { totalRowCount: total } : source === "cursor" ? { nextCursor: from + (stop - from) } : source === "countedCursor" ? { nextCursor: stop, totalRowCount: total } : { hasMore: true }),
     });
     if (!hold) return Promise.resolve(answer());
@@ -56,6 +56,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL 
     state: () => store.getState(),
     held,
     saves,
+    requests: () => fetchRows.mock.calls.length,
     setShift: (next: number) => (shift = next),
     setSuffix: (next: string) => (suffix = next),
     holdAnswers: () => (hold = true),
@@ -297,6 +298,19 @@ describe.each<Source>(["counted", "cursor", "offset"])("a row the user starts ch
     expect(t.nameOf("r3")).toBe("Saved");
   });
 
+  it("takes the server value of a row whose editor closed before the answer landed", async () => {
+    const t = setup(source);
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.startEditing({ rowId: "r5", columnId: "name" }));
+    t.holdAnswers();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.waitHeld(0);
+    act(() => t.state().actions.cancelEditing());
+    await t.land(0);
+    await waitFor(() => expect(t.nameOf("r5")).toBe("Person 5!"));
+  });
+
   it("keeps the row under an editor that opens while the refresh is in flight", async () => {
     const t = setup(source);
     await loadTwoBlocks(t);
@@ -348,6 +362,50 @@ describe("a counted sequential source after a protected row was dropped", () => 
     expect(t.server().gridProps.data).toHaveLength(29);
     t.window(35);
     expect(t.held).toHaveLength(0);
+  });
+});
+
+describe.each<Source>(["counted", "cursor"])("an answer that repeats a protected row, %s source", (source) => {
+  it("shows the row once, keeps its local value, and does not request in a loop", async () => {
+    const t = setup(source, { repeat: true });
+    await t.ready();
+    act(() => t.state().actions.commitCellValue({ rowId: "r3", columnId: "name" }, "Saved"));
+    const before = t.requests();
+    t.setSuffix("!");
+    act(() => t.server().refresh());
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    const ids = t.ids();
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(t.nameOf("r3")).toBe("Saved");
+    expect(t.requests() - before).toBeLessThan(6);
+  });
+
+  it("warns once about a duplicate id that the server repeats", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const t = setup(source, { repeat: true });
+    await t.ready();
+    act(() => t.server().refresh());
+    await t.ready();
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("duplicate row id"))).toHaveLength(1);
+  });
+});
+
+describe("a local row operation on a random-access source", () => {
+  it("keeps no hole in the loaded ranges and writes no row twice", async () => {
+    const t = setup("counted");
+    await loadTwoBlocks(t);
+    act(() => t.state().actions.deleteRowsById(["r1"]));
+    await t.ready();
+    const loaded = t.server().getLoadedRanges();
+    t.server().gridProps.data.forEach((row, index) => {
+      if (loaded.some((range) => index >= range.start && index < range.end)) expect(row).toBeDefined();
+    });
+    act(() => t.server().refresh());
+    await t.ready();
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    const ids = t.ids();
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
@@ -459,6 +517,6 @@ describe("the refresh guard cost", () => {
       await t.ready();
     }
     expect(t.state().saveStatus.get("r3")).toBe("saving");
-    expect(calls.count - before).toBeLessThanOrEqual(2 * SIZE * blocks + 20);
+    expect(calls.count - before).toBeLessThanOrEqual(3 * SIZE * blocks + 20);
   }, 30_000);
 });

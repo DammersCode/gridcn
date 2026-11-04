@@ -6,8 +6,9 @@ import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-gr
 
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
- * cell edit, a save in flight, or a save that was in flight at any moment since the request was sent: that row keeps its local
- * value. Everything else is replaced, and a block never creates a duplicate id or a hole.
+ * cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. Everything
+ * else is replaced. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its
+ * loaded range; rows that moved on the server can mix with older rows until the next refresh settles.
  */
 
 /** The rows an answer must not overwrite: a save is pending, or an edit session is open. */
@@ -73,20 +74,23 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
 export function useRefreshGuard() {
   const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
-  const protectedRows = useCallback((): ProtectedRows => {
+  const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
     if (!state) return null;
     const ids = new Set<string>();
     for (const [rowId, status] of state.saveStatus) if (status === "saving") ids.add(rowId);
-    if (state.editing) ids.add(state.editing.rowId);
     return ids.size > 0 ? ids : null;
   }, [holder]);
+  const protectedRows = useCallback((): ProtectedRows => {
+    const editing = holder.store?.getState().editing;
+    return editing ? unionIds(savingRows(), new Set([editing.rowId])) : savingRows();
+  }, [holder, savingRows]);
   const guardMissing = useCallback(() => holder.edited && !holder.everMounted, [holder]);
   const markEdited = useCallback(() => markEditedOn(holder), [holder]);
   const saveMark = useCallback(() => markSavesOn(holder), [holder]);
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  return { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves };
 }
 
 export const GUARD_MISSING_MESSAGE =
@@ -168,9 +172,8 @@ export function writeBlocks<TData>(
       if (incomingId !== undefined && guarded.has(incomingId)) {
         if (occupantId === incomingId) continue;
         if (occupantId !== undefined && guarded.has(occupantId)) displaced.set(occupantId, occupant as TData);
-        const kept = displaced.get(incomingId);
-        const from = kept === undefined ? findSlot(next, ranges, incomingId, idOf) : -1;
-        const local = kept ?? (from >= 0 ? next[from] : undefined);
+        const from = findSlot(next, ranges, incomingId, idOf);
+        const local = from >= 0 ? next[from] : displaced.get(incomingId);
         next[slot] = local ?? incoming;
         if (local !== undefined && from >= 0) {
           next[from] = undefined;
