@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
-import { LazyHeroDemo } from "../landing/_shared/lazy-demo";
+import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityBars, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
 import { BackdropVeil } from "../landing/_shared/veil";
@@ -20,7 +20,7 @@ export default function LandingA() {
           <Install />
         </section>
 
-        <LazyHeroDemo className="h-[26rem]" />
+        <GridMock />
 
         <section aria-labelledby="perf">
           <SectionHead title="Measured at 100k rows" />

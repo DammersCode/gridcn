@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
-import { LazyHeroDemo } from "../landing/_shared/lazy-demo";
+import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityHeatmap, ParityLink, ParitySummary, PerfStats, SectionHead, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
 import { BackdropVeil } from "../landing/_shared/veil";
 
-// DEV-ONLY draft B "Split": text left, live grid right, bento below, veil strongest in the center column. Delete when a draft is chosen.
+// DEV-ONLY draft B "Split": text left, static grid picture right, bento below, veil strongest in the center column. Delete when a draft is chosen.
 export default function LandingB() {
   return (
     <DraftShell name="B · Split">
@@ -23,7 +23,7 @@ export default function LandingB() {
             <HeroActions />
             <Install />
           </div>
-          <LazyHeroDemo className="h-[26rem]" />
+          <GridMock />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">

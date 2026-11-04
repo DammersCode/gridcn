@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { addOns, coreFeatures } from "../landing/_shared/data";
 import { HeroActions, Install, ReleaseBadge, TAGLINE } from "../landing/_shared/hero";
-import { LazyHeroDemo } from "../landing/_shared/lazy-demo";
+import { GridMock } from "../landing/_shared/grid-mock";
 import { ParityCounts, ParityLink, ParitySummary, PerfStats, ServerHighlights } from "../landing/_shared/parts";
 import { DraftShell } from "../landing/_shared/shell";
 import { Tabs } from "../landing/_shared/tabs";
@@ -23,7 +23,7 @@ export default function LandingC() {
           <Install />
         </section>
 
-        <LazyHeroDemo className="h-[22rem]" />
+        <GridMock />
 
         <Tabs
           tabs={[
