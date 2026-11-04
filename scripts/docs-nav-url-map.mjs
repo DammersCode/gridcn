@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Builds the old-to-new URL map for a navigation candidate. Usage: node scripts/docs-nav-url-map.mjs <candidate.txt> [--json]
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import fs, { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
 const candidateFile = process.argv[2];
 const asJson = process.argv.includes("--json");
+const asAnchors = process.argv.includes("--anchors");
 const kebab = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 function candidateLines(file) {
@@ -92,7 +93,36 @@ const rows = oldPages.map((old) => {
   return { old: oldUrl(old), file: old + ".mdx", slugs, target: target?.url ?? null, split: slugs.length > 1 };
 });
 
-if (asJson) console.log(JSON.stringify(rows, null, 1));
+const headingSlug = (h) => h.replace(/\[#[^\]]+\]\s*$/, "").replace(/<[^>]+>/g, "").trim().toLowerCase().replace(/[`*_~]/g, "").replace(/[^\p{L}\p{N}\s-]/gu, "").trim().replace(/\s+/g, "-");
+if (asAnchors) {
+  const sections = [];
+  for (const row of readFileSync("research/docs-navigation/content-map.md", "utf8").split(/\r?\n/)) {
+    if (!row.startsWith("| ") || row.startsWith("| Slug") || row.startsWith("|---")) continue;
+    const [, slugCell, sourceCell] = row.split("|").map((x) => x.trim());
+    const slugs = slugCell.replace(/`/g, "").split(",").map((x) => x.trim());
+    for (const m of sourceCell.matchAll(/`([^`]+)`\s*\(([^)]*)\)/g)) sections.push({ old: m[1], slugs, titles: m[2].split(/,\s*|\s+and\s+/).map((x) => x.replace(/`/g, "").trim().toLowerCase()) });
+  }
+  const out = {};
+  let exact = 0;
+  let fallback = 0;
+  const needReview = [];
+  for (const r of rows) {
+    const src = readFileSync(join("content/docs", r.file), "utf8");
+    for (const m of src.matchAll(/^## (.+)$/gm)) {
+      const title = m[1].replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase();
+      const hit = sections.find((x) => x.old === r.file.replace(/\.mdx$/, "") && x.titles.some((t) => t && (title === t || title.startsWith(t) || t.startsWith(title))));
+      const slug = hit?.slugs.find((x) => bySlug.has(x));
+      const target = slug ? bySlug.get(slug).url : r.target;
+      slug ? exact++ : fallback++;
+      if (!slug && r.split) needReview.push(r.file + "#" + headingSlug(m[1]));
+      out[headingSlug(m[1])] = out[headingSlug(m[1])] ?? target + "#" + headingSlug(m[1]);
+    }
+  }
+  console.error(`anchors in split pages that need a manual target: ${needReview.length}`);
+  fs.writeFileSync(process.env.ANCHOR_REVIEW ?? "/dev/null", needReview.join("\n"));
+  console.error(`H2 anchors: ${exact} mapped to a section page, ${fallback} fall back to the page target`);
+  console.log(JSON.stringify(out, null, 1));
+} else if (asJson) console.log(JSON.stringify(rows, null, 1));
 else {
   console.log("| Old URL | New URL | Pages it feeds |\n|---|---|---|");
   for (const r of rows) console.log(`| \`${r.old}\` | ${r.target ? "`" + r.target + "`" : "**unmapped**"} | ${r.slugs.length} |`);

@@ -1,0 +1,46 @@
+{
+ "c13-tasks-final.txt": {
+  "areas": 6,
+  "groups": 34,
+  "pages": 202,
+  "medianScreens": 2.4,
+  "maxScreens": 5.6,
+  "over5Screens": 1,
+  "maxWords": 1400,
+  "avgWords": 573,
+  "maxRowsVisible": 21
+ },
+ "c14-topics-final.txt": {
+  "areas": 6,
+  "groups": 31,
+  "pages": 185,
+  "medianScreens": 2.4,
+  "maxScreens": 5.6,
+  "over5Screens": 1,
+  "maxWords": 1400,
+  "avgWords": 613,
+  "maxRowsVisible": 18
+ },
+ "c10-four-areas.txt": {
+  "areas": 4,
+  "groups": 28,
+  "pages": 181,
+  "medianScreens": 2.4,
+  "maxScreens": 5.6,
+  "over5Screens": 1,
+  "maxWords": 1400,
+  "avgWords": 613,
+  "maxRowsVisible": 50
+ },
+ "current": {
+  "areas": 1,
+  "groups": 10,
+  "pages": 100,
+  "medianScreens": 2.4,
+  "maxScreens": 22.8,
+  "over5Screens": 30,
+  "maxWords": 4186,
+  "avgWords": 768,
+  "maxRowsVisible": 54
+ }
+}
