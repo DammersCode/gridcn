@@ -102,3 +102,18 @@ A mean of 9 does not fit the restored content: the comparison, agents and add-on
 | Senior | 8.3 (8.6 without the subline "scales like a database view") |
 
 Comparison and add-ons collapse into native `<details>` panels; agent skills stay open. Height at 1024 px is about 3,000 px (3.9 screens), at 375 px about 4,000 to 4,400 px. A mean of 9 needs the agent panel collapsed too, a 40 px header (site layout), and a measured subline.
+
+### A2 round 7 (last)
+
+| Perspective | Mean |
+| --- | --- |
+| Beginner | 8.7 |
+| Senior | 8.6 |
+
+The subline is "A data grid for React that feels like a spreadsheet and stays smooth at 100k rows." (backed by `content/docs/performance.mdx`). Section headings sit above the show and hide toggles, the comparison shows two rows with a toggle for the rest, and agent skills stay open on request.
+
+What holds the mean below 9:
+
+- Scroll cost scores 7: agents, add-ons and comparison come from the original page. Collapsing agents and add-ons by default would reach 8 or 9, at the price of hiding the AI content.
+- Header icon buttons are 34 px. This is site layout code, left as is.
+- The background canvas animates continuously.

@@ -31,8 +31,8 @@ function Panel({ id, title, intro, children, className, collapsed, defaultOpen }
         <div>{head}</div>
         <details open={defaultOpen} className="group">
           <summary className={`inline-flex min-h-10 w-fit cursor-pointer list-none items-center border px-3 text-xs font-medium ${focus}`}>
-            <span className="group-open:hidden">Show ▾</span>
-            <span className="hidden group-open:inline">Hide ▴</span>
+            <span className="group-open:hidden">Show <span aria-hidden="true">▾</span></span>
+            <span className="hidden group-open:inline">Hide <span aria-hidden="true">▴</span></span>
             <span className="sr-only"> {title}</span>
           </summary>
           <div className="mt-3 flex flex-col gap-3">{children}</div>
@@ -195,8 +195,8 @@ export function LandingContent() {
         <CompareTable rows={comparison.rows.slice(0, 2)} head />
         <details className="group">
           <summary className={`inline-flex min-h-10 w-fit cursor-pointer list-none items-center border px-3 text-xs font-medium ${focus}`}>
-            <span className="group-open:hidden">Show {comparison.rows.length - 2} more rows ▾</span>
-            <span className="hidden group-open:inline">Hide rows ▴</span>
+            <span className="group-open:hidden">Show {comparison.rows.length - 2} more rows <span aria-hidden="true">▾</span></span>
+            <span className="hidden group-open:inline">Hide rows <span aria-hidden="true">▴</span></span>
           </summary>
           <div className="mt-3">
             <CompareTable rows={comparison.rows.slice(2)} />
