@@ -85,17 +85,20 @@ actions.updateCells(patches, { reorder: "immediate" });
 If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
 `viewStale` stays false for a feed that writes only non-sorted columns.
 
-`"immediate"` does not re-sort all rows. It removes each patched row from the order, tests it
-against the active filter again, and puts it back at the position a full sort gives it. The
-cost is set by the number of patched rows, not by the number of rows in the grid.
+`"immediate"` does not re-sort all rows. It finds each patched row and keeps the order array when
+every row still sits between its neighbours. Otherwise it removes the patched rows, tests them
+against the active filter again, and puts them back at the positions a full sort gives them. A
+batch that writes no sort or filter column skips this work.
 
-At 100,000 rows with one sort column, a production build measures:
+Each call also copies the data array and, when a row moves, the order array. The cost therefore
+grows with the row count, even for one patched row. On a desktop machine, a call measures:
 
-| Rows in the batch | Cost per call |
-| --- | --- |
-| 1 | 0.3-0.5 ms |
-| 20 | 0.9 ms |
-| 256 | 7.6 ms |
+| Rows in the grid | Patched rows per call | Cost per call |
+| --- | --- | --- |
+| 100,000 | 1 | 1.3 ms |
+| 100,000 | 100 | 4 ms |
+| 1,000,000 | 1 | 9 ms |
+| 1,000,000 | 100 | 30 ms |
 
 Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
 sort or filter changed in the same tick, or when a column supplies its own comparator.
