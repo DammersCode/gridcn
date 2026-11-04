@@ -5,6 +5,6 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default function DevLayout({ children }: { children: ReactNode }) {
-  if (process.env.NODE_ENV === "production") notFound();
+  if (process.env.NODE_ENV === "production" && !process.env["GRIDCN_DEV_ROUTES"]) notFound();
   return children;
 }
