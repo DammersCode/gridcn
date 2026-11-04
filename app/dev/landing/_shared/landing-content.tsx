@@ -22,14 +22,13 @@ const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm
 async function HeroCode() {
   const code = await highlight(CODE, {
     lang: "tsx",
-    themes: { light: "github-light", dark: "github-dark" },
+    themes: { light: "github-light-high-contrast", dark: "github-dark" },
     components: {
       pre: (props) => (
         <pre
           {...props}
-          aria-label="Usage example"
           tabIndex={0}
-          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed max-sm:hidden dark:!bg-[var(--shiki-dark-bg)] dark:[&_span]:!text-[var(--shiki-dark)]"
+          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed max-sm:hidden dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
         />
       ),
     },
@@ -122,12 +121,19 @@ function Hero({ withStats }: { withStats?: boolean }) {
           <div className={`w-full max-w-md text-start ${installFit}`}>
             <InstallCommand item="data-grid" />
           </div>
+          {!withStats && (
+            <p className="text-xs text-muted-foreground">
+              <Link href="#perf" className="underline underline-offset-4">0.3–7.6 ms streaming sort · 51 ms text sort · 100k rows</Link>
+            </p>
+          )}
           <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
             <AgentIcon className="size-4" aria-hidden="true" />
             Building with an AI agent? Install the gridcn agent skills
           </Link>
         </div>
-        <HeroCode />
+        <div role="group" aria-label="Usage example" className="min-w-0 max-sm:hidden">
+          <HeroCode />
+        </div>
       </div>
       {withStats && <PerfStats />}
     </section>

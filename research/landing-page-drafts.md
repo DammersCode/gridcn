@@ -117,3 +117,16 @@ What holds the mean below 9:
 - Scroll cost scores 7: agents, add-ons and comparison come from the original page. Collapsing agents and add-ons by default would reach 8 or 9, at the price of hiding the AI content.
 - Header icon buttons are 34 px. This is site layout code, left as is.
 - The background canvas animates continuously.
+
+### A2 iterations (round 8)
+
+All four variants share the same content: no toggles, no closing call to action, no parity matrix, a syntax-highlighted code sample in the hero.
+
+| Variant | Idea | Height at 1024 px | Beginner | Senior |
+| --- | --- | --- | --- | --- |
+| a2 | Base order: kit, server, perf, comparison, agents and add-ons | 2,821 px | 8.4 | 8.6 |
+| a3 | Agent skills right after the hero | 2,825 px | 8.1 | 8.3 |
+| a4 | Perf stats inside the hero, no perf panel | 2,751 px | 8.4 | 8.3 |
+| a5 | Dense two-column pairs | 2,613 px | 8.2 | 8.6 |
+
+The beginner prefers a4 (proof under the pitch), the senior prefers a2 (cleanest reading order). a2 now carries a one-line stat link under the install command, which gives the proof above the fold without the tall hero of a4. The code sample uses `github-light-high-contrast` in light (the default theme measured 4.57:1 for the `const` token) and the page background in dark.
