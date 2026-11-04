@@ -8,6 +8,12 @@ import { ParityBars, ParityLegend, ParityLink, ParitySummary, PerfStats, ServerH
 
 const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
+const CODE = `const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text"},
+  { id: "age", header: "Age", accessorKey: "age", type: "number"},
+] as const);
+
+<DataGrid defaultData={rows} columns={columns} />`;
 const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
 
 function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
@@ -35,7 +41,8 @@ export function LandingContent() {
   ];
   return (
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
-      <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 border bg-card p-6 text-center sm:p-7">
+      <section className="grid items-center gap-6 border bg-card p-6 sm:p-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:items-start lg:text-start">
         <ReleaseBadge />
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Spreadsheet power. Fast, typed, complete.</h1>
         <p className="text-lg font-medium sm:text-xl">{SUBLINE}</p>
@@ -46,7 +53,7 @@ export function LandingContent() {
           </Link>
           .
         </p>
-        <HeroActions className="justify-center" />
+        <HeroActions className="justify-center lg:justify-start" />
         <div className={`w-full max-w-md text-start ${installFit}`}>
           <InstallCommand item="data-grid" />
         </div>
@@ -54,6 +61,8 @@ export function LandingContent() {
           <AgentIcon className="size-4" aria-hidden="true" />
           Building with an AI agent? Install the gridcn agent skills
         </Link>
+        </div>
+        <pre aria-label="Usage example" className="min-w-0 whitespace-pre-wrap break-words border bg-background p-4 text-start font-mono text-xs leading-relaxed">{CODE}</pre>
       </section>
 
 

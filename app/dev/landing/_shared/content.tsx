@@ -48,7 +48,6 @@ export const addOnTiles = [
   { icon: Link2, title: 'URL state', href: '/docs/addons/url-state' },
   { icon: Pin, title: 'Pinned rows and aggregates', href: '/docs/addons/pinned-rows' },
   { icon: Users, title: 'Multiplayer presence', href: '/docs/addons/presence' },
-  { icon: Bookmark, title: 'Saved views', href: '/docs/addons/views' },
   { icon: Blocks, title: 'Context menu', href: '/docs/addons/context-menu' },
   { icon: Keyboard, title: 'Keybindings dialog', href: '/docs/addons/keybindings' },
   { icon: Gauge, title: 'Status bar', href: '/docs/addons/status-bar' },
