@@ -213,12 +213,13 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   }
 
   function Lazy({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
+    const [served, setServed] = useState<readonly Row[]>(rows);
     const server = useDataGridServerRows<Row>({
       mode: "scroll",
       getRowId,
       blockSize: options.initialLoad ?? rows.length,
       overscan: 0,
-      fetchRows: async ({ start, end }) => ({ rows: rows.slice(start, end), totalRowCount: rows.length }),
+      fetchRows: async ({ start, end }) => ({ rows: served.slice(start, end), totalRowCount: served.length }),
     });
     const { data, onRenderedRowsChange, totalRowCount } = server.providerProps;
     loadRows = (start, end) => onRenderedRowsChange({ start, end });
@@ -233,6 +234,8 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
         {...baseProps}
         onDataChange={(next: readonly Row[], change: DataChange<Row>) => {
           rec(next, change);
+          const deleted = new Set(change.ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])));
+          if (deleted.size) setServed((current) => current.filter((row) => !deleted.has(getRowId(row))));
           server.providerProps.onDataChange(next, change);
         }}
         {...extra}
