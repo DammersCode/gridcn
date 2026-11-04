@@ -42,6 +42,10 @@ function setListenerOn(holder: Holder, listener: (() => void) | null) {
   holder.onStructuralSettled = listener;
 }
 
+function setSaveListenerOn(holder: Holder, listener: (() => void) | null) {
+  holder.onSaveStarted = listener;
+}
+
 function trackStructural(holder: Holder, change: { source: string; ops: readonly { type: string; rowId: string }[] }) {
   if (change.source === "stream" || change.source === "rollback") return;
   const status = holder.store?.getState().saveStatus;
@@ -145,7 +149,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const saveMark = useCallback(() => markSavesOn(holder), [holder]);
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const setSettleListener = useCallback((listener: (() => void) | null) => setListenerOn(holder, listener), [holder]);
-  const setSaveStartListener = useCallback((listener: (() => void) | null) => void (holder.onSaveStarted = listener), [holder]);
+  const setSaveStartListener = useCallback((listener: (() => void) | null) => setSaveListenerOn(holder, listener), [holder]);
   const forgetStructural = useCallback(() => {
     holder.structural.clear();
     holder.unacknowledged.clear();
