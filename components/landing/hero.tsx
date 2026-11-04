@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { InstallCommand } from "@/components/install-command";
 import { gitConfig } from "@/lib/shared";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +12,6 @@ function GithubIcon(props: ComponentProps<"svg">) {
     </svg>
   );
 }
-
-export const TAGLINE =
-  "A data grid for the shadcn ecosystem. Range selection, spreadsheet clipboard and typed editors on real DOM cells. Local arrays or a server: the same grid.";
 
 export function HeroActions({ className }: { className?: string }) {
   return (
@@ -40,10 +36,3 @@ export function ReleaseBadge() {
   return <Badge variant="outline">2.0 · shadcn registry</Badge>;
 }
 
-export function Install({ className }: { className?: string }) {
-  return (
-    <div className={cn("w-full min-w-0 max-w-md overflow-x-auto text-start", className)}>
-      <InstallCommand item="data-grid" />
-    </div>
-  );
-}

@@ -3,11 +3,9 @@ import type { ReactNode } from "react";
 import { highlight } from "fumadocs-core/highlight";
 import { InstallCommand } from "@/components/install-command";
 import { SUBLINE } from "./data";
-import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./content";
+import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
-import { ParityLink, PerfStats, ServerHighlights } from "./parts";
-
-export type LandingVariant = "base" | "agents" | "proof" | "dense";
+import { DataModesLink, PerfStats, ServerHighlights } from "./parts";
 
 const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
@@ -106,7 +104,7 @@ function TileGrid({ children, className }: { children: ReactNode; className: str
   return <ul className={`grid gap-px border bg-border ${className}`}>{children}</ul>;
 }
 
-function Hero({ withStats }: { withStats?: boolean }) {
+function Hero() {
   return (
     <section className="flex flex-col gap-5 border bg-card p-6 sm:p-7">
       <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
@@ -130,7 +128,6 @@ function Hero({ withStats }: { withStats?: boolean }) {
           <HeroCode />
         </div>
       </div>
-      {withStats && <PerfStats />}
     </section>
   );
 }
@@ -166,7 +163,7 @@ function ServerPanel() {
   return (
     <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
       <ServerHighlights columns="grid-cols-2 lg:grid-cols-3" />
-      <ParityLink>Which features work in which data mode →</ParityLink>
+      <DataModesLink>Which features work in which data mode →</DataModesLink>
     </Panel>
   );
 }
@@ -187,13 +184,13 @@ function ComparePanel() {
   );
 }
 
-function AgentsPanel({ wide }: { wide?: boolean }) {
+function AgentsPanel() {
   return (
     <Panel id="agents" title="Your coding agent knows gridcn" intro="Five skills for Claude Code, Cursor, Codex and other agents: the procedures and silent traps the docs alone cannot enforce.">
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" />
       </div>
-      <TileGrid className={wide ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5" : "grid-cols-1"}>
+      <TileGrid className="grid-cols-1">
         {agentSkills.map(({ icon: Icon, title, text }) => (
           <li key={title} className="bg-card">
             <Link href={`/docs/agent-skills#${title}`} className={tile}>
@@ -208,15 +205,15 @@ function AgentsPanel({ wide }: { wide?: boolean }) {
   );
 }
 
-function AddOnsPanel({ wide }: { wide?: boolean }) {
+function AddOnsPanel() {
   return (
     <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
-      <TileGrid className={wide ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-2"}>
+      <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
             <Link
               href={href}
-              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted ${wide ? "" : "lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start"} ${focus}`}
+              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start ${focus}`}
             >
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
               {title}
@@ -230,57 +227,18 @@ function AddOnsPanel({ wide }: { wide?: boolean }) {
 
 const pair = "grid items-start gap-4 lg:grid-cols-2";
 
-export function LandingContent({ variant = "base" }: { variant?: LandingVariant }) {
+export function LandingPage() {
   return (
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
-      <Hero withStats={variant === "proof"} />
-      {variant === "base" && (
-        <>
-          <KitPanel />
-          <ServerPanel />
-          <PerfPanel />
-          <ComparePanel />
-          <div className={pair}>
-            <AgentsPanel />
-            <AddOnsPanel />
-          </div>
-        </>
-      )}
-      {variant === "agents" && (
-        <>
-          <AgentsPanel wide />
-          <ServerPanel />
-          <PerfPanel />
-          <KitPanel />
-          <ComparePanel />
-          <AddOnsPanel wide />
-        </>
-      )}
-      {variant === "proof" && (
-        <>
-          <ServerPanel />
-          <KitPanel />
-          <ComparePanel />
-          <div className={pair}>
-            <AgentsPanel />
-            <AddOnsPanel />
-          </div>
-        </>
-      )}
-      {variant === "dense" && (
-        <>
-          <div className={pair}>
-            <KitPanel />
-            <ServerPanel />
-          </div>
-          <PerfPanel />
-          <div className={pair}>
-            <ComparePanel />
-            <AgentsPanel />
-          </div>
-          <AddOnsPanel wide />
-        </>
-      )}
+      <Hero />
+      <KitPanel />
+      <ServerPanel />
+      <PerfPanel />
+      <ComparePanel />
+      <div className={pair}>
+        <AgentsPanel />
+        <AddOnsPanel />
+      </div>
     </div>
   );
 }

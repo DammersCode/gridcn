@@ -15,14 +15,12 @@ import {
   MousePointer2,
   PaintBucket,
   Palette,
-  Pencil,
   Pin,
   Radio,
   RefreshCw,
   Shapes,
   Undo2,
   Users,
-  Bookmark,
   Search,
 } from "lucide-react";
 
