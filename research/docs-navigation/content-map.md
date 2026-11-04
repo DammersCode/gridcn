@@ -28,7 +28,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | global-shortcuts | `global-shortcuts` | move |
 | sorting, filtering, search | `sorting-filtering-search` (Sorting, Filtering, Search) | split |
 | initial-view | `sorting-filtering-search` (Initial sort, filter, and search) | split |
-| sort-list | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge |
+| sort-list | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge; the add-on keeps its own page |
 | server-sort-filter | `sorting-filtering-search` (Controlled mode), `recipes/data-fetching/server-side-sort-filter` | merge |
 | toolbar | `addons/toolbar` (Wiring, The pieces) | split |
 | header-filter | `addons/toolbar` (Header filter, Filter menu keyboard) | split |
@@ -80,7 +80,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | scroll-errors | `lazy-loading` (Errors, Memory and retention), `lazy-loading-advanced` (When a block fails permanently) | merge |
 | scroll-sort-filter | `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid) | split |
 | scroll-no-total | `lazy-loading` (A source with no total) | split |
-| scroll-selection | `lazy-loading` (Selecting, copying, and exporting) | split |
+| server-selection | `selection-keyboard` (Selection over a server result), `lazy-loading` (Selecting, copying, and exporting) | merge |
 | scroll-fetch-libs | `lazy-loading-advanced` (Wiring a fetch/cache library) | move |
 | pagination | `pagination` (link the one-hook path first) | rewrite |
 | pagination-url | `pagination` (Composing with url-state) | split |
@@ -114,3 +114,9 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | playground | `playground` | move |
 | df-server-side, df-round-trip, df-tanstack, detail-panel, bulk-actions, remember-view, multiple-grids, edit-row-form, auth-gated, recipe-custom-cell | `recipes/**` (titles made unique) | move |
 | ex-* | `examples/**` (titles made unique, ORM and swr and react-query pages grouped) | move |
+| keeping-fast | `performance` (guidance sections moved off the landing) | split |
+| ref-store-hooks | `api-reference` (store hooks and selectors) | split plus new text |
+| ref-style-surface, style-surface-concept | `styling-theming` (class and data-attribute surface) | split |
+| options-* (one page per add-on, A to Z) | the option tables of each add-on page and `api-reference` (Add-on option types) | move, generated where possible |
+| initial-view | `sorting-filtering-search` (Initial sort, filter, and search), now a section of `sorting` | merge |
+| undo-programmatic | `addons/undo-redo` (Programmatic changes, Which changes are recorded, Dataset changes) | split |

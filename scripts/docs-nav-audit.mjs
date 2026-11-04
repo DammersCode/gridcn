@@ -103,6 +103,7 @@ const BUDGETS = {
   reference: { target: [300, 1500], hard: 2000, screens: 14, h2: [3, 10] },
   cheatsheet: { target: [0, 1200], hard: 1200, screens: 12, h2: [2, 10] },
   example: { target: [100, 500], hard: 800, screens: 6, h2: [0, 5] },
+  concept: { target: [300, 1000], hard: 1200, screens: 6, h2: [2, 5] },
 };
 
 function pageType(path, src = "") {

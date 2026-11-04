@@ -85,7 +85,7 @@ const PRIMARY = { "project-status": "version-policy", "quick-start": "first-grid
 const byName = (old) => old.split("/").pop();
 const rows = oldPages.map((old) => {
   const preferred = PRIMARY[old] ?? byName(old);
-  const slugs = [...(map.get(old) ?? (PRIMARY[old] ? [PRIMARY[old]] : []))].sort((a, b) => (b === preferred ? 1 : 0) - (a === preferred ? 1 : 0));
+  const slugs = [...new Set([...(PRIMARY[old] ? [PRIMARY[old]] : []), ...(map.get(old) ?? [])])].sort((a, b) => (b === preferred ? 1 : 0) - (a === preferred ? 1 : 0));
   const primary = slugs.length ? bySlug.get(slugs[0]) : null;
   const landing = slugs.length > 1 && slugs[0] !== preferred ? [...bySlug.values()].find((v) => v.group === primary.group && v.type === "landing") : null;
   const target = landing ?? primary;

@@ -21,6 +21,7 @@ Every page has exactly one type. The type decides the budget and the template. T
 | Task | How do I do X? | 200 to 800 / 1,000 | 6 | 2 to 5 | Goal sentence; numbered steps; result; Related |
 | Step | What is the next step of the path? | 200 to 600 / 800 | 5 | 2 to 4 | Outcome first; steps; visible result; Next link |
 | Reference | What is the exact contract? | 300 to 1,500 / 2,000 | 14 | 3 to 10 | Summary table; per-concern sections; caveats; Related |
+| Concept | Why does it work this way? | 300 to 1,000 / 1,200 | 6 | 2 to 5 | Question the reader has; the model in short sentences; consequences; Related. No props table |
 | Example | What does a working demo look like? | 100 to 500 / 800 | 6 | 0 to 5 | Live demo; what it shows; Related |
 | Cheatsheet | What is the value or key? | tables only / 1,200 | 12 | 2 to 10 | Tables with a one-line purpose each; every row links to its page |
 
@@ -36,7 +37,8 @@ Every page has exactly one type. The type decides the budget and the template. T
 - P5. A page has one concept. When two H2 clusters answer different questions for different readers, they are two pages.
 - P6. One fact has one canonical page. All other pages link it in one line (the dedup map in `docs-prose-audit.md`
   stays in force). Version facts live on the version policy page, the row ceiling on the row limits page. A support matrix
-  is generated from one data file and stated on one page; other pages link to it.
+  has one data file. Pages may show generated views of it (the feature matrix with client and server columns); the page
+  that explains each mode owns the prose, and each matrix row links to it.
 - P7. A page ends with a Related section of 1 to 5 links. Landing pages are exempt. A Step page ends with a Next link
   instead.
 - P8. Every page has a `description` of at most 160 characters that states what the page lets the reader do.
@@ -60,7 +62,7 @@ Every page has exactly one type. The type decides the budget and the template. T
   group (and the open subgroups of a third level).
 - S6. Groups are collapsible folders. The group of the current page is open; every other group is closed. A closed group
   opens on its landing page, so no page hides behind a second click.
-- S7. Every group has a Landing page (`index.mdx`) that is the group's first sidebar entry. The landing page introduces
+- S7. A landing page may carry its group's overview text within the Landing budget. Every group has a Landing page (`index.mdx`) that is the group's first sidebar entry. The landing page introduces
   each child in one line.
 - S8. Split a page when it breaks P1, P2, or P5, or when two thirds of its inbound deep links go to one H2 cluster. Each
   new page gets the type that fits it.
@@ -88,7 +90,7 @@ Every page has exactly one type. The type decides the budget and the template. T
   pages ("Save edits to a server"). An example page under `examples/` is the exception: its title is the task as a noun phrase plus "example" ("Pin rows example").
 - N5. A slug is the kebab-case of the title, at most four words. Folder names are the group names in kebab-case. The URL
   map of the migration plan is generated from titles, so this rule holds by construction.
-- N6. A page declares its type in frontmatter as `type: landing | feature | task | step | reference | cheatsheet`. The audit
+- N6. A page declares its type in frontmatter as `type: landing | feature | concept | task | step | reference | example | cheatsheet`. The audit
   script reads it. An `index.mdx` without a `type` is a Landing page; a page without a `type` counts as Feature. The field
   needs one line in the page schema of `source.config.ts`.
 - N7. An H2 title is front-loaded: the first two words carry the topic. It is not a question and not a sentence.
