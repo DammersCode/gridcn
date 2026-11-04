@@ -16,7 +16,7 @@
 // Columns: "text" and "num" declare the built-in cell types (the grid's default sort path); "free" declares
 // none (default collator path). Data is seeded, so every run and every checkout sees the same rows.
 import { build } from "esbuild";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 import { performance, PerformanceObserver } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 import path from "node:path";
@@ -106,7 +106,6 @@ function makeColumns(count, seed) {
   return { name, free, digits, int, float, dirty };
 }
 
-const ROLE_NAMES = ["Eager Eagle", "Quick Lion", "Silent Tiger", "Bold Bear", "Swift Wolf"];
 
 /** Rows shaped like app/dev/benchmark's dataset: 25 distinct names, ages 18-67, scores 0-99. */
 function makeDatasetColumns(count) {
