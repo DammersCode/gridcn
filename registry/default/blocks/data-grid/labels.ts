@@ -561,8 +561,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
     saveRejected: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} not saved`,
-    historyRowsNotLoaded: "Undo needs rows that are not loaded yet",
-    historyRowsGone: "Undo skipped: the rows no longer exist",
+    historyRowsNotLoaded: "Undo or redo needs rows that are not loaded yet",
+    historyRowsGone: "Undo or redo skipped: the rows no longer exist",
   },
   io: {
     exportButtonAriaLabel: "Export",

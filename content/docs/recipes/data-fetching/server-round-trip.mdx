@@ -184,7 +184,10 @@ A save conflict is a refused save for which the server sent its current row (`cu
 - The context holds `rowId`, `mine` (the row in the grid), `theirs` (the server's row), `change` (the refused change), `message` (the text of the rejection), and `signal`.
 - `"theirs"` or no answer takes the server's row, as part of the `"rollback"` change.
 - `"mine"` keeps the row in the grid. `{ row }` saves a merged row. Both commit one `"merge"` change on top of the server's row. The `"merge"` change reaches `onSave`, so your app saves again with the version it now knows. History does not record it.
-- A merged row must have the id `rowId`. If it has another id, the grid takes the server's row and warns once in development.
+- The types are `SaveConflictContext<TData>` (the argument) and `SaveResolution<TData>` (the answer).
+- A merged row must have the id `rowId`. If it has another id, the grid takes the server's row and warns once in development. Any other answer than `"theirs"`, `"mine"`, or `{ row }` takes the server's row.
+- `"mine"` commits the whole row, so it overwrites fields that another user changed on the server. Use `{ row }` to merge field by field.
+- A refused `"merge"` change that carries `current` calls the resolver again, with the merge change as `change`. Answer `"theirs"` to stop the loop.
 - If the resolver throws or its promise rejects, the grid takes the server's row and logs the error.
 - A resolver can return a promise. The row stays `saving` until the promise settles. If a newer write to the row starts, or the grid unmounts, `signal` aborts and the grid ignores the answer. The usual revert of the cell applies.
 - When several writes to one row are in flight, only the latest write can start a conflict. The grid reverts every other refused write cell by cell and drops its `current`. The grid does not call the resolver while a newer write to the row is pending.

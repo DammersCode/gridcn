@@ -237,4 +237,70 @@ describe("resolveSaveConflict", () => {
     await flush();
     expect(m.state().liveAnnouncement).toMatchObject({ kind: "saveRejected", count: 1 });
   });
+
+  it.each([null, 42, { nope: 1 }])("treats the answer %j as the server's row and still reports the refusal", async (answer) => {
+    const onSaveRejected = vi.fn();
+    const m = mount(() => Promise.resolve(refuse()), { resolveSaveConflict: (() => answer) as never, onSaveRejected });
+    m.edit("a", "name", "X");
+    await flush();
+    expect(m.row("a")).toEqual(theirs);
+    expect(m.state().saveStatus.get("a")).toBe("failed");
+    expect(onSaveRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it("a plain refusal of another row in the same change still fails and reverts while an async resolver waits", async () => {
+    const answer = deferred<SaveResolution<Row>>();
+    const bTheirs: Row = { id: "b", name: "SRV-B", note: "b", version: 2 };
+    const m = mount(() => Promise.resolve({ rejected: [{ rowId: "a", current: theirs }, { rowId: "b", current: bTheirs }] }), {
+      resolveSaveConflict: (ctx) => (ctx.rowId === "a" ? answer.promise : "theirs"),
+    });
+    act(() => m.state().actions.applyCellUpdates([{ viewRowIndex: 0, columnId: "name", value: "X" }, { viewRowIndex: 1, columnId: "name", value: "Y" }], "edit"));
+    await flush();
+    answer.resolve("theirs");
+    await flush();
+    expect(m.row("a")).toEqual(theirs);
+    expect(m.row("b")).toEqual(bTheirs);
+    expect(m.state().saveStatus.get("a")).toBe("failed");
+    expect(m.state().saveStatus.get("b")).toBe("failed");
+  });
+
+  it("an id swap while the resolver waits leaves no stuck saving row and reverts per cell", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const answer = deferred<SaveResolution<Row>>();
+    const swapped: Row = { ...theirs, id: "a" };
+    const m = mount(() => Promise.resolve({ rejected: [{ rowId: "a", current: swapped }] }), { resolveSaveConflict: () => answer.promise });
+    m.edit("a", "name", "X");
+    await flush();
+    act(() => m.state().actions.replaceRowId("a", { ...m.row("a"), id: "z" }));
+    answer.resolve("theirs");
+    await flush();
+    expect(m.state().saveStatus.get("z")).toBe("failed");
+    expect(m.state().saveStatus.has("a")).toBe(false);
+    expect((m.state().data as Row[]).find((r) => r.id === "z")?.name).toBe("A");
+  });
+
+  it("a cell-level refusal with current resolves the whole row", async () => {
+    const seen: string[] = [];
+    const m = mount(() => Promise.resolve({ rejected: [{ rowId: "a", columnId: "name", current: theirs }] }), { resolveSaveConflict: (ctx) => void seen.push(ctx.rowId) });
+    m.edit("a", "name", "X");
+    await flush();
+    expect(seen).toEqual(["a"]);
+    expect(m.row("a")).toEqual(theirs);
+  });
+
+  it("a refused merge change calls the resolver again and the resolver can stop with theirs", async () => {
+    const answers: SaveResolution<Row>[] = ["mine", "theirs"];
+    const sources: string[] = [];
+    const m = mount(() => Promise.resolve(refuse()), {
+      resolveSaveConflict: (ctx) => {
+        sources.push(ctx.change.source);
+        return answers.shift();
+      },
+    });
+    m.edit("a", "name", "X");
+    await flush();
+    await flush();
+    expect(sources).toEqual(["edit", "merge"]);
+    expect(m.row("a")).toEqual(theirs);
+  });
 });

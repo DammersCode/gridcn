@@ -35,6 +35,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
   const state = () => api!.getState();
   return {
     state,
+    setState: (partial: Partial<DataGridStoreState>) => api!.setState(partial),
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree(next)),
     ids: () => (state().data as Row[]).map((r) => r.id),
     swap: (oldId: string, row: Row) => act(() => state().actions.replaceRowId(oldId, row)),
@@ -64,17 +65,16 @@ describe("replaceRowId", () => {
     const before = { active: m.state().activeCell, coord: m.state().editing?.coord };
     expect(m.state().editing?.rowId).toBe("tmp-1");
     m.swap("tmp-1", server);
+    expect(before.active).not.toBeNull();
     expect(m.state().activeCell).toEqual(before.active);
     expect(m.state().editing).toMatchObject({ rowId: "42", columnId: "note", coord: before.coord });
   });
 
-  it("keeps checked rows (view-index channel) on the swapped row", () => {
+  it("moves a checked row that a filter hides to the new id", () => {
     const m = mount();
-    act(() => m.state().actions.checkRowRange(0));
-    const checked = m.state().selection.rows.toArray();
-    expect(checked).toEqual([0]);
+    act(() => m.setState({ hiddenCheckedRowIds: new Set(["tmp-1", "b"]) }));
     m.swap("tmp-1", server);
-    expect(m.state().selection.rows.toArray()).toEqual(checked);
+    expect([...m.state().hiddenCheckedRowIds].sort()).toEqual(["42", "b"]);
   });
 
   it("moves cell errors, hidden checked rows and save status to the new id", async () => {
@@ -134,6 +134,7 @@ describe("replaceRowId", () => {
     m.rerender({ readOnly: true });
     m.swap("tmp-1", server);
     expect(m.ids()).toEqual(["tmp-1", "b", "c"]);
+    expect(warn).toHaveBeenCalledTimes(2);
   });
 
   it("does not re-sort: the row keeps its view position until reconcileView", () => {
@@ -142,5 +143,47 @@ describe("replaceRowId", () => {
     m.swap("tmp-1", { ...server, name: "ZZZ" });
     expect([...m.state().viewIndex]).toEqual(viewBefore);
     expect(m.state().viewStale).toBe(true);
+  });
+
+  it("keeps the save bookkeeping when the server keeps the client id", async () => {
+    let resolve!: (ack: SaveAck<Row>) => void;
+    const pending = new Promise<SaveAck<Row>>((res) => {
+      resolve = res;
+    });
+    const m = mount({ onSave: (() => pending) as never });
+    act(() => m.state().actions.commitCellValue({ rowId: "tmp-1", columnId: "note" }, "N"));
+    m.swap("tmp-1", { id: "tmp-1", name: "A", note: "N" });
+    expect(m.state().saveStatus.get("tmp-1")).toBe("saving");
+    resolve({ rejected: [{ rowId: "tmp-1" }] });
+    await flush();
+    expect(m.state().saveStatus.get("tmp-1")).toBe("failed");
+    expect((m.state().data[0] as Row).note).toBe("a");
+  });
+
+  it("does not alias a later row that reuses the old id", async () => {
+    const m = mount({ onSave: (() => Promise.resolve(undefined)) as never, createRow: () => ({ id: "tmp-1", name: "N", note: "n" }) });
+    m.swap("tmp-1", server);
+    act(() => m.state().actions.insertRow(0, "below"));
+    expect(m.ids()).toContain("tmp-1");
+    act(() => m.state().actions.commitCellValue({ rowId: "tmp-1", columnId: "note" }, "X"));
+    await flush();
+    expect(m.state().saveStatus.size).toBe(0);
+    expect(m.state().pendingSaveCount).toBe(0);
+  });
+
+  it("replaceRowIds swaps several rows in one write and one id-swap change", () => {
+    const changes: DataChange<Row>[] = [];
+    const m = mount({ onDataChange: (_n: readonly Row[], c: DataChange<Row>) => void changes.push(c) });
+    act(() => m.state().actions.replaceRowIds([{ oldId: "tmp-1", row: server }, { oldId: "b", row: { id: "43", name: "B", note: "b" } }]));
+    expect(m.ids()).toEqual(["42", "43", "c"]);
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.ops).toHaveLength(2);
+  });
+
+  it("runs validateRow again for the swapped row", () => {
+    const validateRow = vi.fn(() => null);
+    const m = mount({ validateRow });
+    m.swap("tmp-1", server);
+    expect(validateRow).toHaveBeenCalledWith(server, "42", expect.anything());
   });
 });

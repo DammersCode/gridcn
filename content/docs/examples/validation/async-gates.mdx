@@ -98,8 +98,8 @@ function PendingLabel() {
 }
 ```
 
-The set is empty while no gate runs. The grid root also sets `aria-busy="true"` and `data-gate-pending`
-while a gate runs. The attribute value lists the gate names, separated by spaces, for example
+The set is empty while no gate runs. The grid root also sets `data-gate-pending`
+while a gate runs. It does not set `aria-busy`, because the live region sits inside the root and a busy root can mute announcements. The attribute value lists the gate names, separated by spaces, for example
 `data-gate-pending="processPaste validateRow"`. Style the busy grid with CSS on
 `[data-gate-pending]`.
 

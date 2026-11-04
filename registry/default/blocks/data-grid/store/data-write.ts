@@ -366,6 +366,7 @@ export type DataWriteActions = Pick<
   | "commitChange"
   | "clearSaveStatus"
   | "replaceRowId"
+  | "replaceRowIds"
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
@@ -477,15 +478,19 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     return ops;
   };
-  const idAlias = new Map<string, string>();
-  const liveId = (rowId: string): string => {
-    let id = rowId;
-    for (let hops = 0; hops < 16; hops++) {
-      const next = idAlias.get(id);
-      if (next === undefined) return id;
-      id = next;
+  /** An acknowledged write in flight; `alias` maps the row ids it was tracked under to the ids a swap gave them since. */
+  type LiveWrite = { rowIds: Set<string>; alias: Map<string, string> };
+  const liveWrites = new Set<LiveWrite>();
+  const retargetLiveWrites = (oldId: string, newId: string): void => {
+    for (const write of liveWrites) {
+      let moved = false;
+      for (const [from, to] of write.alias) {
+        if (to !== oldId) continue;
+        write.alias.set(from, newId);
+        moved = true;
+      }
+      if (!moved && write.rowIds.has(oldId)) write.alias.set(oldId, newId);
     }
-    return id;
   };
   const resolvingRows = new Map<string, number>();
   const conflictAborts = new Map<string, AbortController>();
@@ -501,8 +506,16 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     for (const rowId of latestWriteOfRow.keys()) if (!status.has(rowId)) latestWriteOfRow.delete(rowId);
     set({ saveStatus: status.size === 0 ? EMPTY_SAVE_STATUS : status, pendingSaveCount: pendingSaves });
   };
+  const normalizeResolution = (answer: unknown): SaveResolution<unknown> => {
+    if (answer === "mine") return "mine";
+    if (typeof answer === "object" && answer !== null && (answer as { row?: unknown }).row != null) return answer as { row: unknown };
+    return "theirs";
+  };
   ctx.trackWrite = (change, result) => {
     const rowIds = [...new Set(change.ops.map((op) => op.rowId))];
+    const write: LiveWrite = { rowIds: new Set(rowIds), alias: new Map() };
+    const liveId = (rowId: string): string => write.alias.get(rowId) ?? rowId;
+    liveWrites.add(write);
     const seq = ++writeSeq;
     for (const rowId of rowIds) {
       pendingByRow.set(rowId, (pendingByRow.get(rowId) ?? 0) + 1);
@@ -522,53 +535,61 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         else pendingByRow.delete(rowId);
       }
       pendingSaves -= 1;
-      const rejected = readRejections(change, ack, error, failed).map((entry) => (idAlias.has(entry.rowId) ? { ...entry, rowId: liveId(entry.rowId) } : entry));
+      const rejectedAtSettle = readRejections(change, ack, error, failed);
+      const refusedAtSettle = new Set(rejectedAtSettle.map((entry) => liveId(entry.rowId)));
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
-      const refusedRows = new Set(rejected.map((entry) => entry.rowId));
-      for (const rowId of ids) if (!refusedRows.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
-      if (rejected.length === 0) {
+      for (const rowId of ids) if (!refusedAtSettle.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
+      if (rejectedAtSettle.length === 0) {
+        liveWrites.delete(write);
         publishSaveStatus();
         return;
       }
-      const aliased = idAlias.size > 0 ? { ...change, ops: change.ops.map((op) => (idAlias.has(op.rowId) ? { ...op, rowId: liveId(op.rowId) } : op)) } : change;
-      const deleteOps = new Map(aliased.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
-      const answers = new Map<string, SaveResolution<unknown>>();
+      const originOf = new Map(ids.map((id, i) => [id, rowIds[i]!] as const));
+      const view = () => {
+        const retarget = write.alias.size > 0;
+        const rejected = retarget ? rejectedAtSettle.map((entry) => ({ ...entry, rowId: liveId(entry.rowId) })) : rejectedAtSettle;
+        const aliased = retarget ? { ...change, ops: change.ops.map((op) => (write.alias.has(op.rowId) ? { ...op, rowId: liveId(op.rowId) } : op)) } : change;
+        const deleteOps = new Map(aliased.ops.flatMap((op) => (op.type === "delete" ? [[op.rowId, op] as const] : [])));
+        return { rejected, aliased, deleteOps, refusedRows: new Set(rejected.map((entry) => entry.rowId)) };
+      };
+      const asked = new Map<string, { controller: AbortController; answer?: SaveResolution<unknown> }>();
       const waiting: PromiseLike<void>[] = [];
-      const askedControllers = new Map<string, AbortController>();
       const first = get();
       const resolver = first.readOnly ? undefined : first.resolveSaveConflict;
+      const start = view();
       if (resolver) {
         const dataIndexById = ctx.rowIndexCache.resolve(first.data, first.getRowId);
         const messageById = new Map<string, string>();
-        for (const entry of rejected) if (entry.message !== undefined && !messageById.has(entry.rowId)) messageById.set(entry.rowId, entry.message);
-        for (const [rowId, theirs] of usableCurrentRows(first, aliased, rejected, seq, deleteOps)) {
+        for (const entry of start.rejected) if (entry.message !== undefined && !messageById.has(entry.rowId)) messageById.set(entry.rowId, entry.message);
+        for (const [rowId, theirs] of usableCurrentRows(first, start.aliased, start.rejected, seq, start.deleteOps)) {
           const index = dataIndexById.get(rowId);
           if (index === undefined) continue;
           const controller = new AbortController();
           conflictAborts.set(rowId, controller);
-          askedControllers.set(rowId, controller);
+          const entry: { controller: AbortController; answer?: SaveResolution<unknown> } = { controller };
+          asked.set(originOf.get(rowId) ?? rowId, entry);
           const message = messageById.get(rowId);
           let answer: SaveResolution<unknown> | PromiseLike<SaveResolution<unknown>>;
           try {
-            answer = resolver({ rowId, mine: first.data[index], theirs, change: aliased, ...(message === undefined ? {} : { message }), signal: controller.signal });
+            answer = resolver({ rowId, mine: first.data[index], theirs, change: start.aliased, ...(message === undefined ? {} : { message }), signal: controller.signal });
           } catch (callbackError) {
             console.error("[data-grid] resolveSaveConflict threw, so the server's row is taken:", callbackError);
             continue;
           }
           if (!isThenable<SaveResolution<unknown>>(answer)) {
-            answers.set(rowId, answer);
+            entry.answer = normalizeResolution(answer);
             continue;
           }
-          resolvingRows.set(rowId, (resolvingRows.get(rowId) ?? 0) + 1);
           waiting.push(
             answer.then(
-              (resolved) => void answers.set(rowId, resolved),
+              (resolved) => void (entry.answer = normalizeResolution(resolved)),
               (callbackError: unknown) => void console.error("[data-grid] resolveSaveConflict rejected, so the server's row is taken:", callbackError),
             ),
           );
         }
       }
       const finish = (): void => {
+        const { rejected, aliased, deleteOps, refusedRows } = view();
         const s = get();
         if (s.readOnly) {
           if (!warnedReadOnlyRevert) {
@@ -578,7 +599,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         } else {
           if (refusedPrev.size > MAX_CHAINED_CELLS) refusedPrev.clear();
           const currentRows = usableCurrentRows(s, aliased, rejected, seq, deleteOps);
-          for (const [rowId, controller] of askedControllers) if (controller.signal.aborted) currentRows.delete(rowId);
+          const answers = new Map<string, SaveResolution<unknown>>();
+          for (const [origin, entry] of asked) {
+            const id = liveId(origin);
+            if (entry.controller.signal.aborted) currentRows.delete(id);
+            else if (entry.answer !== undefined) answers.set(id, entry.answer);
+          }
           const mergeOps = mergeOpsOf(s, currentRows, answers);
           // A row with a usable `current` gets its content from it; only a move of it reverts in place.
           const plainOps = refusedOps(aliased, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
@@ -587,19 +613,25 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           const serverRowIds = [...currentRows.keys()];
           try {
             if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change, ...(serverRowIds.length > 0 ? { serverRowIds } : {}) });
-            if (mergeOps.length > 0) s.actions.commitChange({ source: "merge", ops: mergeOps, reverts: change, serverRowIds: mergeOps.map((op) => op.rowId) });
           } catch (error) {
             console.error("[data-grid] the revert of a refused save threw in a callback:", error);
           }
+          try {
+            if (mergeOps.length > 0) s.actions.commitChange({ source: "merge", ops: mergeOps, reverts: change, serverRowIds: mergeOps.map((op) => op.rowId) });
+          } catch (error) {
+            console.error("[data-grid] the merge of a save conflict threw in a callback:", error);
+          }
         }
-        for (const [rowId, controller] of askedControllers) if (conflictAborts.get(rowId) === controller) conflictAborts.delete(rowId);
+        for (const [origin, entry] of asked) if (conflictAborts.get(liveId(origin)) === entry.controller) conflictAborts.delete(liveId(origin));
         for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
         for (const { rowId } of rejected) {
           if (latestWriteOfRow.get(rowId) !== seq) continue;
           if (failedRows.size >= MAX_FAILED_ROWS) failedRows.delete(failedRows.values().next().value!);
           failedRows.add(rowId);
         }
-        set({ liveAnnouncement: nextAnnouncement(get().liveAnnouncement, "saveRejected", refusedRows.size) });
+        const refusedInChange = [...refusedRows].filter((rowId) => write.rowIds.has(rowId) || [...write.alias.values()].includes(rowId)).length;
+        set({ liveAnnouncement: nextAnnouncement(get().liveAnnouncement, "saveRejected", refusedInChange) });
+        liveWrites.delete(write);
         publishSaveStatus();
         const onSaveRejected = get().onSaveRejected;
         if (!onSaveRejected) return;
@@ -613,9 +645,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         finish();
         return;
       }
+      const held = [...start.refusedRows].map((id) => originOf.get(id) ?? id);
+      for (const rowId of held) resolvingRows.set(rowId, (resolvingRows.get(rowId) ?? 0) + 1);
       publishSaveStatus();
       void Promise.all(waiting).then(() => {
-        for (const rowId of askedControllers.keys()) {
+        for (const origin of held) {
+          const rowId = liveId(origin);
           const left = (resolvingRows.get(rowId) ?? 1) - 1;
           if (left > 0) resolvingRows.set(rowId, left);
           else resolvingRows.delete(rowId);
@@ -1331,73 +1366,87 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
     },
     replaceRowId(oldId, row) {
+      get().actions.replaceRowIds([{ oldId, row }]);
+    },
+    replaceRowIds(swaps) {
       const s = get();
-      if (s.readOnly) return;
-      const index = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(oldId);
-      if (index === undefined) {
-        warnGateOnce("replaceRowId unknown", `replaceRowId: no row has the id "${oldId}", so nothing was swapped`);
-        return;
+      if (s.readOnly || swaps.length === 0) return;
+      const indexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      const oldIds = new Set(swaps.map((swap) => swap.oldId));
+      const claimed = new Set<string>();
+      const plan: { oldId: string; newId: string; index: number; row: unknown }[] = [];
+      for (const { oldId, row } of swaps) {
+        const index = indexById.get(oldId);
+        if (index === undefined || claimed.has(`old:${oldId}`)) {
+          warnGateOnce("replaceRowId unknown", `replaceRowId: no row has the id "${oldId}", or it is swapped twice, so that swap was skipped`);
+          continue;
+        }
+        let newId: string;
+        try {
+          newId = s.getRowId(row, index);
+        } catch {
+          warnGateOnce("replaceRowId getRowId", "replaceRowId: getRowId threw for the new row, so that swap was skipped");
+          continue;
+        }
+        if (newId !== oldId && ((indexById.has(newId) && !oldIds.has(newId)) || claimed.has(newId))) {
+          warnGateOnce("replaceRowId taken", `replaceRowId: another row already has the id "${newId}", so that swap was skipped`);
+          continue;
+        }
+        claimed.add(`old:${oldId}`);
+        claimed.add(newId);
+        plan.push({ oldId, newId, index, row });
       }
-      let newId: string;
-      try {
-        newId = s.getRowId(row, index);
-      } catch {
-        warnGateOnce("replaceRowId getRowId", "replaceRowId: getRowId threw for the new row, so nothing was swapped");
-        return;
-      }
-      if (newId !== oldId && ctx.rowIndexCache.resolve(s.data, s.getRowId).has(newId)) {
-        warnGateOnce("replaceRowId taken", `replaceRowId: another row already has the id "${newId}", so nothing was swapped`);
-        return;
-      }
-      const prev = s.data[index];
+      if (plan.length === 0) return;
       const nextData = s.data.slice();
-      nextData[index] = row;
+      for (const { index, row } of plan) nextData[index] = row;
+      const renamed = plan.filter((entry) => entry.newId !== entry.oldId);
       const columnIds = s.columns.map((column) => column.id);
-      const moveKey = <V,>(map: Map<string, V>): void => {
-        if (!map.has(oldId)) return;
-        map.set(newId, map.get(oldId)!);
-        map.delete(oldId);
-      };
-      moveKey(pendingByRow);
-      moveKey(latestWriteOfRow);
-      moveKey(resolvingRows);
-      moveKey(conflictAborts);
-      if (failedRows.delete(oldId)) failedRows.add(newId);
-      for (const key of [...refusedPrev.keys()]) {
-        if (!key.startsWith(`${oldId}\u0000`)) continue;
-        refusedPrev.set(`${newId}${key.slice(oldId.length)}`, refusedPrev.get(key)!);
-        refusedPrev.delete(key);
-      }
-      if (newId !== oldId) idAlias.set(oldId, newId);
-      renameRowKeys(oldId, newId);
       let cellErrors = s.cellErrors;
-      for (const columnId of columnIds) {
-        const key = cellErrorKey(oldId, columnId);
-        const message = cellErrors.get(key);
-        if (message === undefined) continue;
-        if (cellErrors === s.cellErrors) cellErrors = new Map(cellErrors);
-        (cellErrors as Map<string, string>).delete(key);
-        (cellErrors as Map<string, string>).set(cellErrorKey(newId, columnId), message);
-      }
       let flashingCells = s.flashingCells;
-      for (const columnId of columnIds) {
-        const key = flashCellKey(oldId, columnId);
-        if (!flashingCells.has(key)) continue;
-        if (flashingCells === s.flashingCells) flashingCells = new Set(flashingCells);
-        (flashingCells as Set<string>).delete(key);
-      }
       let hiddenCheckedRowIds = s.hiddenCheckedRowIds;
-      if (hiddenCheckedRowIds.has(oldId)) {
-        hiddenCheckedRowIds = new Set(hiddenCheckedRowIds);
-        (hiddenCheckedRowIds as Set<string>).delete(oldId);
-        (hiddenCheckedRowIds as Set<string>).add(newId);
+      for (const { oldId, newId } of renamed) {
+        for (const map of [pendingByRow, latestWriteOfRow, resolvingRows, conflictAborts] as Map<string, unknown>[]) {
+          if (!map.has(oldId)) continue;
+          map.set(newId, map.get(oldId));
+          map.delete(oldId);
+        }
+        if (failedRows.delete(oldId)) failedRows.add(newId);
+        for (const key of [...refusedPrev.keys()]) {
+          if (!key.startsWith(`${oldId}\u0000`)) continue;
+          refusedPrev.set(`${newId}${key.slice(oldId.length)}`, refusedPrev.get(key)!);
+          refusedPrev.delete(key);
+        }
+        retargetLiveWrites(oldId, newId);
+        renameRowKeys(oldId, newId);
+        for (const columnId of columnIds) {
+          const key = cellErrorKey(oldId, columnId);
+          const message = cellErrors.get(key);
+          if (message !== undefined) {
+            if (cellErrors === s.cellErrors) cellErrors = new Map(cellErrors);
+            (cellErrors as Map<string, string>).delete(key);
+            (cellErrors as Map<string, string>).set(cellErrorKey(newId, columnId), message);
+          }
+          const flashKey = flashCellKey(oldId, columnId);
+          if (flashingCells.has(flashKey)) {
+            if (flashingCells === s.flashingCells) flashingCells = new Set(flashingCells);
+            (flashingCells as Set<string>).delete(flashKey);
+          }
+        }
+        if (hiddenCheckedRowIds.has(oldId)) {
+          if (hiddenCheckedRowIds === s.hiddenCheckedRowIds) hiddenCheckedRowIds = new Set(hiddenCheckedRowIds);
+          (hiddenCheckedRowIds as Set<string>).delete(oldId);
+          (hiddenCheckedRowIds as Set<string>).add(newId);
+        }
       }
-      const editing = s.editing?.rowId === oldId ? { ...s.editing, rowId: newId } : s.editing;
-      const change: DataChange<unknown> = { source: "id-swap", ops: [{ type: "update", rowId: oldId, row, prev }] };
-      const touched: DataOp<unknown> = { type: "update", rowId: newId, row, prev, cells: columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined })) };
+      const editingSwap = s.editing ? renamed.find((entry) => entry.oldId === s.editing!.rowId) : undefined;
+      const editing = editingSwap && s.editing ? { ...s.editing, rowId: editingSwap.newId } : s.editing;
+      const change: DataChange<unknown> = { source: "id-swap", ops: plan.map(({ oldId, row, index }) => ({ type: "update" as const, rowId: oldId, row, prev: s.data[index] })) };
       ctx.rowIndexCache.invalidate();
-      rememberDeferredRows(ctx, [index]);
+      rememberDeferredRows(ctx, plan.map((entry) => entry.index));
       ctx.lastEmittedData = nextData;
+      const swapped = plan.map(({ newId, row, index }): DataOp<unknown> => ({ type: "update", rowId: newId, row, prev: s.data[index] }));
+      cellErrors = applyRowValidation(s, cellErrors, nextData, swapped);
+      const touched: DataOp<unknown> = { ...swapped[0]!, cells: columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined })) } as DataOp<unknown>;
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,

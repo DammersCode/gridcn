@@ -952,9 +952,14 @@ export type DataGridActions = {
    * One write: the row keeps its data position and view position, `onDataChange` fires once with `source: "id-swap"`
    * (`onSave` does not see it, history does not record it), and every state keyed by the old id follows: the open
    * edit, cell errors, checked rows a filter hides, flashes, save status, saves still in flight and undo entries.
-   * No-op with a development warning on a `readOnly` grid, an unknown `oldId`, or a new id another row holds.
+   * No-op on a `readOnly` grid; a development warning for an unknown `oldId` or a new id another row holds. `validateRow` runs again for the swapped row; flashes of the row end.
    */
   replaceRowId(oldId: string, row: unknown): void;
+  /**
+   * `replaceRowId` for many rows in one write: one `onDataChange` with one `"id-swap"` change, one pass over `data`. Use it
+   * after a batch create. A swap that fails its checks is skipped with a development warning; the others apply.
+   */
+  replaceRowIds(swaps: readonly { oldId: string; row: unknown }[]): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;
   /**

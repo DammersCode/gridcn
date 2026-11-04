@@ -606,7 +606,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         aria-colcount={visibleColumns.length}
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
-        aria-busy={loading || gatesPending !== "" || undefined}
+        aria-busy={loading || undefined}
         {...{ [GRID_ATTR.gatePending]: gatesPending || undefined }}
         className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}

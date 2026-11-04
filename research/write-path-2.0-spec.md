@@ -36,7 +36,8 @@ type SaveResolution<TData> = "theirs" | "mine" | { row: TData } | void;
   `"merge"` change: `update` with `prev: theirs` and `row: mine` (or the merged row). `onSave` receives
   it, so the app saves again with the version it now knows. `"merge"` is not recorded by history.
 - A returned `row` must have id `rowId`; another id falls back to `"theirs"` with one warning.
-- A throw or a rejected promise falls back to `"theirs"` and logs.
+- A throw, a rejected promise or any answer that is not `"theirs"`, `"mine"` or `{ row }` falls back to `"theirs"` (a throw and a rejection also log).
+- A refused `"merge"` change that carries `current` calls the resolver again, with the merge change as `change`. The resolver stops the loop by answering `"theirs"`. `"mine"` commits the whole row, so it overwrites fields that another user changed; `{ row }` merges field by field.
 - While an async resolver is pending the row stays `saving`. If a newer write to the row starts, or
   the grid unmounts, `signal` aborts and the answer is ignored: the plain per-cell revert applies, as
   for any superseded refusal.
@@ -62,10 +63,16 @@ the new id.
   filter input changed (same rule as `updateCells`). The active cell, the selection and the open edit
   session keep their cells.
 - Id-keyed state follows in the same `set`: `editing.rowId`, `cellErrors`, `hiddenCheckedRowIds`,
-  `flashingCells`, `saveStatus`, the pending, failed and latest-write maps, the refused-value chains,
-  and in-flight verdicts of `validateRow`.
-- A save still in flight for `oldId` settles against the new id (an alias map). An ack that names
-  either id works. A revert of such a change is per cell; a whole-row `update` revert cannot restore
+  `saveStatus`, the pending, failed, latest-write and resolving maps, and the refused-value chains.
+  Flashes of the row end. An in-flight `validateRow` verdict of the row is cancelled and `validateRow`
+  runs again for the swapped row.
+- `actions.replaceRowIds(swaps)` swaps many rows in one write and one `onDataChange`; `replaceRowId` is
+  its one-row form. A swap that fails its checks is skipped with a warning; the others apply.
+- A swap that keeps the id (the server accepts the client id) replaces the row and changes no bookkeeping.
+- A pending gate that waits on the swapped row (an open delete confirmation, `createRow`,
+  `duplicateRow` or `onEditStart` on the row) is aborted: the swap changes the id-to-position map.
+- A save still in flight for `oldId` settles against the new id: each in-flight write keeps its own alias
+  map, so a later row that reuses `oldId` is unaffected. An ack that names either id works. A revert of such a change is per cell; a whole-row `update` revert cannot restore
   an old-id snapshot and is skipped.
 - History rewrites its entries: every op with `rowId === oldId` gets the new id, and each snapshot of
   that row takes the fields that differ between the old and the new row (plain objects). A snapshot
@@ -95,14 +102,13 @@ and the import hooks (`mapColumn`, the import `createRow`).
 - Every gate gets `signal` as the last argument: `processPaste({ cells, target, signal })`,
   `validateRow(row, rowId, { signal })`, `onEditStart(cell)` becomes `onEditStart(cell, { signal })`,
   `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`,
-  `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`, `mapColumn(header, ctx)` adds `signal` to
-  its ctx.
+  `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`, `mapColumn(header, index, { signal })`.
 - The signal aborts when a newer run of the same gate supersedes this one (a `validateRow` of the same
   row, an `onEditStart` after the cursor moved or Escape), when the grid unmounts, and when the
   result can no longer apply (the dataset changed). An aborted gate result is dropped; the store is
   read again after every await, and `readOnly` re-checked.
 - Pending state: `useDataGridGatePending()` returns the set of gate names that run now. The
-  grid root carries `aria-busy="true"` and `data-gate-pending` (space separated names) while the set is
+  grid root carries `data-gate-pending` (space separated names) while the set is
   not empty.
 - A second request for a latch gate (`createRow`, `duplicateRow`, `processPaste`,
   `onBeforeDeleteRows`) still warns once per instance and is ignored.
@@ -130,8 +136,7 @@ Before `undo` or `redo` writes, the plugin checks that every row the change need
 
 ## 6. History across dataset swaps (R)
 
-- `datasetKey` change still clears both stacks, now with `onSkip`-free silence: the swap is the app's
-  action.
+- A `datasetKey` change clears both stacks without `onSkip`: the swap is the app's own action.
 - Without `datasetKey`, `replaceData`, a page change and a `data` prop swap leave entries whose rows
   are gone. The check in section 5 handles them: an undo over such an entry is `"rows-gone"`, never a
   silent no-op. Pagination keeps client pages in one `data` (no swap). Server pagination swaps; pass
@@ -150,5 +155,5 @@ Unit (store): conflict resolver (theirs, mine, merged, bad id, throw, async, sup
 readOnly, two writes in flight, cell-level `columnId`); `replaceRowId` (state following, controlled
 echo, in-flight ack, history rewrite, bad inputs); gate signals (abort on supersede and unmount,
 pending set); history checks (unloaded, gone, refused undo, server-changed); warnings once per
-instance. Browser: row `aria-busy`, live-region text, gate `aria-busy` on the root. Both client
+instance. Browser: row `aria-busy`, live-region text, `data-gate-pending` on the root. Both client
 (local `data`) and server (`onSave` mock) paths.

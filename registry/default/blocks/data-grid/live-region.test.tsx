@@ -42,11 +42,11 @@ describe("LiveRegion write states", () => {
 
   it("reads a history step blocked by unloaded rows", () => {
     const announce = mount();
-    expect(announce({ kind: "historyBlocked", count: 3, seq: 1, partial: true })).toBe("Undo needs rows that are not loaded yet");
+    expect(announce({ kind: "historyBlocked", count: 3, seq: 1, partial: true })).toBe("Undo or redo needs rows that are not loaded yet");
   });
 
   it("reads a history step skipped because the rows are gone", () => {
     const announce = mount();
-    expect(announce({ kind: "historyBlocked", count: 3, seq: 1 })).toBe("Undo skipped: the rows no longer exist");
+    expect(announce({ kind: "historyBlocked", count: 3, seq: 1 })).toBe("Undo or redo skipped: the rows no longer exist");
   });
 });

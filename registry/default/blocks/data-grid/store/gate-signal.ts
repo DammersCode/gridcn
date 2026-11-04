@@ -93,7 +93,7 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
   const watchStore = (): void => {
     if (unwatch) return;
     unwatch = host.subscribe((now, prev) => {
-      for (const run of [...live]) {
+      for (const run of live) {
         if (run.watch?.(now, prev)) tracker.abortRun(run);
       }
     });

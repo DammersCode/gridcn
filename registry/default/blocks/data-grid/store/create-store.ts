@@ -572,7 +572,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       if (dataRowIndex === undefined) continue;
       const row = nextData[dataRowIndex];
       const run = gates.begin("validateRow");
-      const verdict = validateRow(row, rowId, run);
+      const verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
       if (isThenable<Record<string, string> | null>(verdict)) {
         holdRowVerdict(rowId, run, verdict);
         continue;

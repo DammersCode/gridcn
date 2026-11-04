@@ -26,7 +26,6 @@ async function mountGrid(props: Pick<DataGridSyncProps<Row>, "onEditStart" | "va
 describe("grid root gate state", () => {
   it("carries no busy state while no gate is pending", async () => {
     await mountGrid({});
-    expect(gridEl().hasAttribute("aria-busy")).toBe(false);
     expect(gridEl().hasAttribute("data-gate-pending")).toBe(false);
   });
 
@@ -35,10 +34,11 @@ describe("grid root gate state", () => {
     await mountGrid({ onEditStart: () => d.promise });
     await userEvent.click(cellEl(0));
     await userEvent.keyboard("{Enter}");
-    await expect.poll(() => gridEl().getAttribute("aria-busy")).toBe("true");
+    await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(true);
+    expect(gridEl().hasAttribute("aria-busy")).toBe(false);
     expect(gridEl().getAttribute("data-gate-pending")).toBe("onEditStart");
     d.resolve(true);
-    await expect.poll(() => gridEl().hasAttribute("aria-busy")).toBe(false);
+    await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(false);
     expect(gridEl().hasAttribute("data-gate-pending")).toBe(false);
   });
 
@@ -68,6 +68,6 @@ describe("grid root gate state", () => {
     await userEvent.keyboard("X{Enter}");
     await expect.poll(() => gridEl().getAttribute("data-gate-pending")).toBe("validateRow");
     verdict.resolve(null);
-    await expect.poll(() => gridEl().hasAttribute("aria-busy")).toBe(false);
+    await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(false);
   });
 });
