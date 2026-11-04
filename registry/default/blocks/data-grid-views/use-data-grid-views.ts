@@ -91,8 +91,8 @@ function callSafely<T>(callback: ((arg: T) => void) | undefined, arg: T): void {
   if (!callback) return;
   try {
     callback(arg);
-  } catch {
-    // consumer code failed; the hook keeps working
+  } catch (cause) {
+    console.error("[data-grid-views] a callback threw", cause);
   }
 }
 
@@ -120,9 +120,11 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
   const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable }])), [allColumns]);
-  const latest = useRef({ columnMap, onValueChange, onError, value, enableDefaultView, defaultValue });
+  // opting a column out of sort or filter UI does not stop programmatic specs, so applying a saved view checks ids only
+  const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, {}])), [allColumns]);
+  const latest = useRef({ columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue });
   useLayoutEffect(() => {
-    latest.current = { columnMap, onValueChange, onError, value, enableDefaultView, defaultValue };
+    latest.current = { columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue };
   });
 
   const [document, setDocument] = useState<DataGridViewsDocument | null>(null);
@@ -149,6 +151,9 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     return captureViewState({ sorts: s.sortState, filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
   }, [storeApi]);
 
+  /** The grid state in the form that reloads unchanged: lists and strings already at their limits. */
+  const readSavableState = useCallback(() => sanitizeViewState(readState(), undefined).state, [readState]);
+
   const reportError = useCallback((kind: "load" | "save", cause: unknown) => {
     failedRef.current = kind;
     setError(cause);
@@ -164,7 +169,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
 
   const applyState = useCallback(
     (state: DataGridViewState) => {
-      const clean = sanitizeViewState(state, latest.current.columnMap).state;
+      const clean = sanitizeViewState(state, latest.current.knownColumns).state;
       const wanted = viewPartKeys(clean);
       const now = viewPartKeys(readState());
       if (wanted.sorts !== now.sorts) actions.setSorts(clean.sorts);
@@ -221,10 +226,17 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     [flushSaves],
   );
 
+  const loadedKeyRef = useRef(storageKey);
   useEffect(() => {
     const controller = new AbortController();
     documentRef.current = null;
     setDocument(null);
+    if (loadedKeyRef.current !== storageKey) {
+      loadedKeyRef.current = storageKey;
+      appliedIdRef.current = undefined;
+      if (latest.current.value === undefined) setInternalActiveId(null);
+      notify(null);
+    }
     void (async () => {
       let raw: unknown;
       try {
@@ -254,7 +266,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       }
     })();
     return () => controller.abort();
-  }, [storageKey, loadAttempt, storeApi, readState, applyState, setActive, reportError, clearError]);
+  }, [storageKey, loadAttempt, storeApi, readState, applyState, setActive, notify, reportError, clearError]);
 
   useEffect(() => {
     if (!loaded || appliedIdRef.current === activeViewId) return;
@@ -294,13 +306,13 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const current = documentRef.current;
       const clean = cleanViewName(name);
       if (!current || clean === "" || current.views.length >= MAX_VIEWS) return null;
-      const view: DataGridView = { id: createViewId(), name: clean, state: readState() };
+      const view: DataGridView = { id: createViewId(), name: clean, state: readSavableState() };
       commit({ ...current, views: [...current.views, view] });
       setAppliedKey(viewStateKey(view.state));
       setActive(view.id);
       return view;
     },
-    [commit, readState, setActive],
+    [commit, readSavableState, setActive],
   );
 
   const updateView = useCallback(
@@ -308,12 +320,12 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const current = documentRef.current;
       const targetId = id ?? activeIdNow();
       if (!current || !targetId || !current.views.some((v) => v.id === targetId)) return false;
-      const state = readState();
+      const state = readSavableState();
       commit({ ...current, views: current.views.map((v) => (v.id === targetId ? { ...v, state } : v)) });
       if (targetId === activeIdNow()) setAppliedKey(viewStateKey(state));
       return true;
     },
-    [activeIdNow, commit, readState],
+    [activeIdNow, commit, readSavableState],
   );
 
   const renameView = useCallback(

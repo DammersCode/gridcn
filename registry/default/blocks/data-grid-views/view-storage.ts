@@ -35,19 +35,21 @@ const memoryByKey = new Map<string, DataGridViewsDocument>();
 
 /**
  * Stores views as one JSON entry in `localStorage`. When the browser blocks or fills the store,
- * `save` keeps the document in memory for this page and then throws, so the hook reports the
- * failure. Malformed text counts as no document; text over the size limit throws.
+ * `save` keeps the document in memory for this page, and `load` returns it until a save succeeds, then
+ * throws so the hook reports the failure. Malformed text counts as no document; text over the size limit throws.
  */
 export function createLocalStorageViewsStorage(key = "gridcn-views"): DataGridViewsStorage {
   return {
     load: () => {
+      const unsaved = memoryByKey.get(key);
+      if (unsaved) return unsaved;
       let text: string | null | undefined;
       try {
         text = readStorage()?.getItem(key);
       } catch {
-        return memoryByKey.get(key);
+        return undefined;
       }
-      if (text == null) return memoryByKey.get(key);
+      if (text == null) return undefined;
       if (text.length > MAX_DOCUMENT_LENGTH) throw new Error("The stored views are too large to read");
       try {
         return JSON.parse(text) as unknown;
@@ -56,10 +58,15 @@ export function createLocalStorageViewsStorage(key = "gridcn-views"): DataGridVi
       }
     },
     save: (next) => {
-      memoryByKey.set(key, next);
-      const store = readStorage();
-      if (!store) throw new Error("Browser storage is not available");
-      store.setItem(key, JSON.stringify(next));
+      try {
+        const store = readStorage();
+        if (!store) throw new Error("Browser storage is not available");
+        store.setItem(key, JSON.stringify(next));
+        memoryByKey.delete(key);
+      } catch (cause) {
+        memoryByKey.set(key, next);
+        throw cause;
+      }
     },
   };
 }

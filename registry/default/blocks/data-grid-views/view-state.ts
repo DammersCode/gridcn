@@ -162,14 +162,18 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { 
 
 type FilterBudget = { leaves: number; groups: number };
 
-function sanitizeFilterValue(operator: string, raw: unknown): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   const text = (v: unknown): v is string => typeof v === "string" && v.length <= MAX_TEXT_LENGTH;
   if (operator === "empty" || operator === "notEmpty") return { ok: true, value: undefined };
   if (operator === "isBetween") return Array.isArray(raw) && raw.length === 2 && text(raw[0]) && text(raw[1]) ? { ok: true, value: [raw[0], raw[1]] } : { ok: false };
   if (operator === "isAnyOf" || operator === "isNoneOf") {
     if (!Array.isArray(raw) || !raw.every(text)) return { ok: false };
     // a truncated exclusion list would match more rows than the view meant
-    if (raw.length > MAX_LIST_ENTRIES) return operator === "isNoneOf" ? { ok: false } : { ok: true, value: raw.slice(0, MAX_LIST_ENTRIES) };
+    if (raw.length > MAX_LIST_ENTRIES) {
+      if (operator === "isNoneOf") return { ok: false };
+      tally.dropped += raw.length - MAX_LIST_ENTRIES;
+      return { ok: true, value: raw.slice(0, MAX_LIST_ENTRIES) };
+    }
     return { ok: true, value: [...raw] };
   }
   return text(raw) ? { ok: true, value: raw } : { ok: false };
@@ -197,7 +201,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
       continue;
     }
     const { columnId, operator } = entry;
-    const value = typeof operator === "string" && FILTER_OPERATORS.has(operator) ? sanitizeFilterValue(operator, entry.value) : ({ ok: false } as const);
+    const value = typeof operator === "string" && FILTER_OPERATORS.has(operator) ? sanitizeFilterValue(operator, entry.value, tally) : ({ ok: false } as const);
     if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
       tally.dropped++;
       continue;

@@ -238,10 +238,10 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
           </Button>
         }
       />
-      <PopoverContent align="start" className="w-80 gap-3 p-3" aria-label={labels.views}>
+      <PopoverContent align="start" className="max-h-(--available-height) w-80 gap-3 overflow-y-auto p-3" aria-label={labels.views}>
         <div data-grid-views="" className="flex flex-col gap-3">
           {views.loading ? <p className="text-muted-foreground">{labels.loading}</p> : null}
-          {views.error ? (
+          {views.failed ? (
             <div role="alert" className="flex items-center justify-between gap-2 text-destructive">
               <span>{views.failed === "load" ? labels.loadFailed : labels.saveFailed}</span>
               <Button type="button" size="sm" variant="outline" onClick={views.retry}>
@@ -249,7 +249,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               </Button>
             </div>
           ) : null}
-          {!views.loading && views.views.length === 0 ? <p className="text-muted-foreground">{labels.empty}</p> : null}
+          {!views.loading && views.failed !== "load" && views.views.length === 0 ? <p className="text-muted-foreground">{labels.empty}</p> : null}
           {views.views.length > 0 ? (
             <ul className="flex flex-col gap-1" aria-label={labels.views}>
               {views.views.map((view) => (
@@ -304,7 +304,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               aria-label={labels.fileLabel}
               spellCheck={false}
               rows={4}
-              className="resize-y font-mono text-xs"
+              className="max-h-40 resize-y font-mono text-xs"
             />
             <div className="flex items-center gap-1">
               <Button

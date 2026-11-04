@@ -44,7 +44,7 @@ Opening a view runs the same actions as a user gesture, and only for the parts t
 
 The button shows the name of the active view. A "Modified" badge appears when the grid differs from that view. The popover has:
 
-- one row per view: a button to open it, a star to make it the default, a pencil to rename it, and a trash button that asks twice before it deletes
+- one row per view: a button to open it, a star to make it the default, a pencil to rename it, and a trash button that deletes on the second press
 - "Update" for the active view, shown only while the grid differs from it
 - a name field and "Save as new view"
 - a text area with "Export active view" and "Import view"
@@ -71,7 +71,7 @@ const [viewId, setViewId] = useState<string | null>(null);
 <DataGridViews value={viewId} onValueChange={setViewId} />;
 ```
 
-When `value` changes, the hook opens that view. A pick only calls `onValueChange`; the grid changes when you pass the new `value` back. Saving or importing a view opens it at once and then calls `onValueChange` with its id. `onValueChange` also fires when the active view is deleted.
+When `value` changes, the hook opens that view. A pick only calls `onValueChange`; the grid changes when you pass the new `value` back. Saving or importing a view opens it at once and then calls `onValueChange` with its id. `onValueChange` also fires when the active view is deleted and when the default view opens after the load.
 
 ## Storage
 

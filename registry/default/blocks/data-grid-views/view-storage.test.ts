@@ -46,13 +46,30 @@ describe("createLocalStorageViewsStorage", () => {
     expect(await createLocalStorageViewsStorage("k2").load(ctx)).toEqual(doc);
   });
 
-  it("falls back to memory when reading throws", async () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-      throw new DOMException("denied", "SecurityError");
-    });
+  it("falls back to memory when the store is blocked", async () => {
+    for (const method of ["getItem", "setItem"] as const) {
+      vi.spyOn(Storage.prototype, method).mockImplementation(() => {
+        throw new DOMException("denied", "SecurityError");
+      });
+    }
     const storage = createLocalStorageViewsStorage("k3");
     expect(await storage.load(ctx)).toBeUndefined();
-    await storage.save(doc);
+    expect(() => storage.save(doc)).toThrow();
     expect(await storage.load(ctx)).toEqual(doc);
+  });
+
+  it("prefers the unsaved document over an older stored one, and forgets it after a good save", async () => {
+    const older = { ...doc, defaultViewId: null };
+    localStorage.setItem("k4", JSON.stringify(older));
+    const failing = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    const storage = createLocalStorageViewsStorage("k4");
+    expect(() => storage.save(doc)).toThrow();
+    expect(await createLocalStorageViewsStorage("k4").load(ctx)).toEqual(doc);
+    failing.mockRestore();
+    await storage.save(doc);
+    localStorage.clear();
+    expect(await createLocalStorageViewsStorage("k4").load(ctx)).toBeUndefined();
   });
 });

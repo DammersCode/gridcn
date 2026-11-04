@@ -509,4 +509,72 @@ describe("useDataGridViews", () => {
     expect(page).toBe(2);
     expect(fetchRows.mock.calls.length).toBe(calls);
   });
+
+  it("keeps programmatic specs on columns that opt out of sort and filter UI when a view opens", async () => {
+    const lockedColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, filterable: false },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, sortable: false },
+    ] as const);
+    const doc = seeded();
+    doc.views[0]!.state = { ...emptyViewState(), filters: [{ columnId: "name", operator: "notEquals", value: "Bob" }], sorts: [{ columnId: "age", direction: "asc" }] };
+    const probe: { current: Probe | null } = { current: null };
+    render(
+      <DataGridProvider data={rows} columns={lockedColumns} getRowId={(r) => r.id}>
+        <Harness options={{ storage: createMemoryViewsStorage(doc) }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>,
+    );
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "notEquals", value: "Bob" }]);
+    expect(probe.current!.sort).toEqual([{ columnId: "age", direction: "asc" }]);
+  });
+
+  it("stores a view in the form that reloads unchanged", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage() });
+    await ready(probe);
+    act(() => probe.current!.actions.setSearch("x".repeat(900)));
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Long search");
+    });
+    expect(saved!.state.searchText).toHaveLength(500);
+  });
+
+  it("clears an uncontrolled active view when the storage key changes", async () => {
+    localStorage.setItem("key-c", JSON.stringify(seeded()));
+    localStorage.setItem("key-d", JSON.stringify(seeded()));
+    const probe: { current: Probe | null } = { current: null };
+    const tree = (storageKey: string) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <Harness options={{ storageKey }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>
+    );
+    const view = render(tree("key-c"));
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.views.activeViewId).toBe("a");
+    view.rerender(tree("key-d"));
+    await waitFor(() => expect(probe.current!.views.activeViewId).toBeNull());
+    localStorage.clear();
+  });
+
+  it("sends the sort and filter of a view to a server grid", async () => {
+    const fetchRows = vi.fn(async ({ start, end }: { start: number; end: number }) => ({ rows: rows.slice(start, end), totalRowCount: 2 }));
+    let latest: UseDataGridViewsResult | null = null;
+    function ServerGrid() {
+      const server = useDataGridServerRows<Row>({ mode: "pages", getRowId: (r) => r.id, defaultPageSize: 5, fetchRows });
+      return (
+        <DataGridProvider columns={columns} {...server.providerProps}>
+          <Harness options={{ storage: createMemoryViewsStorage(seeded()), enableDefaultView: false }} onProbe={(p) => (latest = p.views)} />
+        </DataGridProvider>
+      );
+    }
+    render(<ServerGrid />);
+    await waitFor(() => expect(latest?.loading).toBe(false));
+    await waitFor(() => expect(fetchRows).toHaveBeenCalled());
+    act(() => latest!.selectView("a"));
+    await waitFor(() =>
+      expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ spec: { sorts: [{ columnId: "age", direction: "desc" }], searchText: expect.any(String) } }),
+    );
+  });
 });
