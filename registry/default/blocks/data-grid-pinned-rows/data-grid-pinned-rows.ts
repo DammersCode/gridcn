@@ -10,3 +10,13 @@ export {
   type UseDataGridAggregateOptions,
   type DataGridAggregateReporterProps,
 } from "./use-data-grid-aggregate";
+export {
+  useDataGridServerAggregate,
+  DataGridServerAggregateReporter,
+  MAX_SERVER_AGGREGATE_TEXT,
+  type FetchAggregatesRequest,
+  type ServerAggregateResult,
+  type ServerAggregateStatus,
+  type UseDataGridServerAggregateOptions,
+  type DataGridServerAggregateReporterProps,
+} from "./use-data-grid-server-aggregate";

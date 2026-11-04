@@ -825,7 +825,7 @@
          "name": "data-grid-pinned-rows",
          "type": "registry:block",
          "title": "Data Grid Pinned Rows",
-         "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands.",
+         "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands, and useDataGridServerAggregate shows values a server computes for the whole result.",
          "author": "gridcn",
          "dependencies": [
             "zustand@^5.0.15"
@@ -858,6 +858,11 @@
                "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts",
                "type": "registry:component",
                "target": "components/data-grid-pinned-rows/use-data-grid-aggregate.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-server-aggregate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-pinned-rows/use-data-grid-server-aggregate.ts"
             }
          ],
          "categories": [
