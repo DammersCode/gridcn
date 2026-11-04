@@ -118,7 +118,7 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
       release(run);
     },
     abort(names) {
-      for (const run of [...live]) if (!names || names.includes(run.name)) tracker.abortRun(run);
+      for (const run of Array.from(live)) if (!names || names.includes(run.name)) tracker.abortRun(run);
     },
     track(name) {
       const run = new GateRun(name);

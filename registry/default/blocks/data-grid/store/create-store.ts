@@ -502,7 +502,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       }
       if (now.data === prev.data) return;
       const index = rowIndexCache.resolve(now.data, now.getRowId);
-      for (const rowId of [...pendingRowVerdicts.keys()]) if (!index.has(rowId)) supersedeRowVerdict(rowId);
+      for (const rowId of Array.from(pendingRowVerdicts.keys())) if (!index.has(rowId)) supersedeRowVerdict(rowId);
     });
   };
   const renameRowKeys = (oldId: string, newId: string): void => {

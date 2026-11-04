@@ -536,6 +536,11 @@
                "target": "components/data-grid/store/async-gate.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/gate-signal.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/gate-signal.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/commit.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/commit.ts"

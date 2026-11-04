@@ -1411,7 +1411,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           map.delete(oldId);
         }
         if (failedRows.delete(oldId)) failedRows.add(newId);
-        for (const key of [...refusedPrev.keys()]) {
+        for (const key of Array.from(refusedPrev.keys())) {
           if (!key.startsWith(`${oldId}\u0000`)) continue;
           refusedPrev.set(`${newId}${key.slice(oldId.length)}`, refusedPrev.get(key)!);
           refusedPrev.delete(key);
