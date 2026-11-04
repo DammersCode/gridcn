@@ -30,7 +30,7 @@ function Panel({ id, title, intro, children, className, collapsed, defaultOpen }
       <section aria-labelledby={id} className={`flex flex-col gap-3 border bg-card p-4 ${className ?? ""}`}>
         <div>{head}</div>
         <details open={defaultOpen} className="group">
-          <summary className={`w-fit cursor-pointer list-none border px-2.5 py-1 text-xs font-medium ${focus}`}>
+          <summary className={`inline-flex min-h-10 w-fit cursor-pointer list-none items-center border px-3 text-xs font-medium ${focus}`}>
             <span className="group-open:hidden">Show ▾</span>
             <span className="hidden group-open:inline">Hide ▴</span>
             <span className="sr-only"> {title}</span>
@@ -194,7 +194,7 @@ export function LandingContent() {
       <Panel id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
         <CompareTable rows={comparison.rows.slice(0, 2)} head />
         <details className="group">
-          <summary className={`w-fit cursor-pointer list-none border px-2.5 py-1 text-xs font-medium ${focus}`}>
+          <summary className={`inline-flex min-h-10 w-fit cursor-pointer list-none items-center border px-3 text-xs font-medium ${focus}`}>
             <span className="group-open:hidden">Show {comparison.rows.length - 2} more rows ▾</span>
             <span className="hidden group-open:inline">Hide rows ▴</span>
           </summary>
