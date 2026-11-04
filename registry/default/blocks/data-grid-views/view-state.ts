@@ -1,7 +1,9 @@
 import type { ColumnLayout, FilterNode, FilterOperator, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
+/** Largest stored document, in characters; a save over it is refused so the next load can read it. */
+export const MAX_DOCUMENT_LENGTH = 1_000_000;
 export const MAX_VIEW_NAME_LENGTH = 80;
 /** Largest view file `parseViewFile` reads, in characters. */
 export const MAX_VIEW_FILE_LENGTH = 100_000;
@@ -36,7 +38,7 @@ export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?:
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
 
-const FILTER_OPERATORS: ReadonlySet<string> = new Set([
+const OPERATORS = [
   "contains",
   "notContains",
   "equals",
@@ -52,7 +54,13 @@ const FILTER_OPERATORS: ReadonlySet<string> = new Set([
   "isBetween",
   "isAnyOf",
   "isNoneOf",
-] satisfies FilterOperator[]);
+] as const satisfies readonly FilterOperator[];
+
+/** Fails to compile when a `FilterOperator` is missing from `OPERATORS`, which would drop saved filters silently. */
+const operatorsAreExhaustive: Exclude<FilterOperator, (typeof OPERATORS)[number]> extends never ? true : never = true;
+void operatorsAreExhaustive;
+
+const FILTER_OPERATORS: ReadonlySet<string> = new Set(OPERATORS);
 
 export function emptyViewState(): DataGridViewState {
   return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
@@ -92,11 +100,21 @@ function sortKeys(_key: string, value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 }
 
-/** A string that is equal for two states that restore the same view. */
-export function viewStateKey(state: DataGridViewState): string {
+/** One string per part of a state; equal strings mean the part restores the same grid. */
+export function viewPartKeys(state: DataGridViewState): { sorts: string; filters: string; search: string; layout: string } {
   const captured = captureViewState(state);
   captured.columnLayout.hidden.sort();
-  return JSON.stringify(captured, sortKeys);
+  return {
+    sorts: JSON.stringify(captured.sorts),
+    filters: JSON.stringify(captured.filters, sortKeys),
+    search: JSON.stringify([captured.searchText, captured.searchOptions]),
+    layout: JSON.stringify(captured.columnLayout, sortKeys),
+  };
+}
+
+/** A string that is equal for two states that restore the same view. */
+export function viewStateKey(state: DataGridViewState): string {
+  return Object.values(viewPartKeys(state)).join("|");
 }
 
 type RawSort = { columnId?: unknown; direction?: unknown };
@@ -113,6 +131,12 @@ function asRecord<T extends object>(value: unknown): T | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as T) : undefined;
 }
 
+/** Counts the entries beyond `cap` as dropped, then returns the first `cap`. */
+function boundedEntries<T>(entries: readonly T[], cap: number, tally: { dropped: number }): readonly T[] {
+  if (entries.length > cap) tally.dropped += entries.length - cap;
+  return entries.slice(0, cap);
+}
+
 function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
   if (typeof id !== "string" || id === "" || id.length > MAX_COLUMN_ID_LENGTH || id === "__proto__") return false;
   return columns === undefined || columns.has(id);
@@ -122,7 +146,7 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { 
   if (!Array.isArray(raw)) return [];
   const sorts: SortSpec[] = [];
   const seen = new Set<string>();
-  for (const item of raw.slice(0, MAX_LIST_ENTRIES)) {
+  for (const item of boundedEntries(raw, MAX_LIST_ENTRIES, tally)) {
     const entry = asRecord<RawSort>(item);
     const columnId = entry?.columnId;
     const direction = entry?.direction;
@@ -154,7 +178,7 @@ function sanitizeFilterValue(operator: string, raw: unknown): { ok: true; value:
 function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: { dropped: number }): FilterNode[] {
   if (!Array.isArray(raw)) return [];
   const out: FilterNode[] = [];
-  for (const item of raw.slice(0, MAX_FILTERS * 4)) {
+  for (const item of boundedEntries(raw, MAX_FILTERS * 4, tally)) {
     const entry = asRecord<RawFilter>(item);
     if (!entry) {
       tally.dropped++;
@@ -189,7 +213,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
 function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): string[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
-  for (const id of raw.slice(0, MAX_LAYOUT_ENTRIES)) {
+  for (const id of boundedEntries(raw, MAX_LAYOUT_ENTRIES, tally)) {
     if (acceptsColumnId(id, columns) && !seen.has(id)) seen.add(id);
     else tally.dropped++;
   }
@@ -200,12 +224,12 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: {
   const layout = asRecord<RawLayout>(raw) ?? {};
   const widths: [string, number][] = [];
   const pins: [string, "left" | "right"][] = [];
-  const widthEntries = Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}).slice(0, MAX_LAYOUT_ENTRIES);
+  const widthEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, width] of widthEntries) {
     if (acceptsColumnId(id, columns) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
     else tally.dropped++;
   }
-  const pinEntries = Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}).slice(0, MAX_LAYOUT_ENTRIES);
+  const pinEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, side] of pinEntries) {
     if (acceptsColumnId(id, columns) && (side === "left" || side === "right")) pins.push([id, side]);
     else tally.dropped++;
@@ -220,7 +244,7 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: {
 
 /**
  * Checks untrusted view state: unknown shapes, operators, and columns drop, lists and strings are
- * bounded. `dropped` counts every rejected entry so the caller can tell the user.
+ * bounded. `dropped` counts every rejected or cut entry so the caller can tell the user; text cut to its limit is not counted.
  */
 export function sanitizeViewState(raw: unknown, columns: ViewColumns | undefined): { state: DataGridViewState; dropped: number } {
   const source = asRecord<RawState>(raw);
@@ -243,10 +267,10 @@ export function cleanViewName(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().slice(0, MAX_VIEW_NAME_LENGTH) : "";
 }
 
-/** Reads a stored document; anything unreadable becomes an empty document. Column ids are not checked here: a view keeps the columns that return later. */
-export function parseViewDocument(raw: unknown): DataGridViewsDocument {
+/** Reads a stored document, or `null` when `raw` is not a version 1 document. Column ids are not checked here: a view keeps the columns that return later. */
+export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
   const source = asRecord<RawDocument>(raw);
-  if (!source || source.version !== 1 || !Array.isArray(source.views)) return emptyViewsDocument();
+  if (!source || source.version !== 1 || !Array.isArray(source.views)) return null;
   const views: DataGridView[] = [];
   const ids = new Set<string>();
   for (const item of source.views.slice(0, MAX_VIEWS * 2)) {
@@ -278,6 +302,10 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   }
   const file = asRecord<RawFile>(raw);
   if (!file || file.format !== FILE_FORMAT || file.version !== 1 || !asRecord(file.state)) return { ok: false, reason: "invalid" };
-  const { state, dropped } = sanitizeViewState(file.state, columns);
-  return { ok: true, name: cleanViewName(file.name), state, dropped };
+  const sanitized = sanitizeViewState(file.state, columns);
+  const hidden = new Set(sanitized.state.columnLayout.hidden);
+  const sorts = sanitized.state.sorts.filter((s) => !hidden.has(s.columnId));
+  const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId));
+  const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
+  return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, filters }, dropped };
 }

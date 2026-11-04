@@ -1484,7 +1484,8 @@
             "popover",
             "button",
             "badge",
-            "input"
+            "input",
+            "textarea"
          ],
          "dependencies": [
             "lucide-react@^1.46.0"
@@ -1530,7 +1531,8 @@
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-toolbar",
             "DammersCode/gridcn/data-grid-sort-list",
-            "DammersCode/gridcn/data-grid-views"
+            "DammersCode/gridcn/data-grid-views",
+            "button"
          ],
          "files": [
             {

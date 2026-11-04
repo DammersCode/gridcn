@@ -27,13 +27,17 @@ result of that size (`null`: size unknown). It switches on two things.
 
 ```ts
 type SelectedRows =
-  | { mode: "ids"; ids: readonly string[]; excludedIds: readonly []; count: number }
-  | { mode: "allMatching"; ids: readonly []; excludedIds: readonly string[]; count: number | undefined };
+  | { mode: "ids"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly string[]; count: number; spec: ServerSpec }
+  | { mode: "allMatching"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly string[]; count: number | null; spec: ServerSpec };
 ```
+
+2.0 widens this shape for server grouping (`research/server-grouping-spec.md`, "Selection and row
+ids"): `groups` (empty until group checks ship), `ids` and `excludedIds` in both modes (disjoint),
+`spec` in both modes, and `null` for an unknown count.
 
 - `ids`: the checked loaded rows plus the remembered ones. Unloaded rows have no id and are left out.
 - `excludedIds`: remembered exclusions plus the unchecked loaded rows of the view.
-- `count` in `allMatching`: `totalRowCount - excludedIds.length`, `undefined` when the size is unknown.
+- `count` in `allMatching`: `totalRowCount - excludedIds.length`, `null` when the size is unknown.
 
 ## Rules
 
@@ -62,7 +66,7 @@ type SelectedRows =
 | Local array, client pagination | no `totalRowCount`: unchanged. With it (data is the whole result), the same rules apply |
 | Server pagination | pass `totalRowCount={total}`; checks survive a page change; `allMatching` available |
 | Lazy, known total | pass `totalRowCount={total}`; checks survive an eviction |
-| Lazy, unknown total (infinite) | pass `totalRowCount={null}`; `count` is `undefined` in `allMatching` |
+| Lazy, unknown total (infinite) | pass `totalRowCount={null}`; `count` is `null` in `allMatching` |
 | `sortMode` or `filterMode` `"server"` | remembered checks stay on (they used to be ignored) |
 | Controlled `selection` | still carries the visible rows only |
 

@@ -11,6 +11,7 @@ import {
   type FilterNode,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridViews, type UseDataGridViewsOptions, type UseDataGridViewsResult } from "./use-data-grid-views";
 import { createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
 import { emptyViewState, type DataGridViewsDocument } from "./view-state";
@@ -353,22 +354,31 @@ describe("useDataGridViews", () => {
   });
 
   it("loads once per mount under StrictMode", async () => {
-    const load = vi.fn(() => seeded());
+    const load = vi.fn((_ctx: { signal: AbortSignal }) => seeded());
     const { probe } = setup({ storage: { load, save: () => {} } }, {}, undefined, true);
     await ready(probe);
     expect(probe.current!.views.views).toHaveLength(2);
+    expect(load.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(load.mock.calls.at(-1)![0].signal.aborted).toBe(false);
   });
 
   it("ignores a result that lands after unmount", async () => {
     let resolve: (doc: DataGridViewsDocument) => void = () => {};
-    const storage: DataGridViewsStorage = { load: () => new Promise((r) => (resolve = r)), save: () => {} };
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { view } = setup({ storage });
+    let signal: AbortSignal | undefined;
+    const storage: DataGridViewsStorage = {
+      load: (ctx) => {
+        signal = ctx.signal;
+        return new Promise((r) => (resolve = r));
+      },
+      save: () => {},
+    };
+    const onError = vi.fn();
+    const { view } = setup({ storage, onError });
     view.unmount();
+    expect(signal?.aborted).toBe(true);
     resolve(seeded());
     await Promise.resolve();
-    expect(errors).not.toHaveBeenCalled();
-    errors.mockRestore();
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it("default storage reads and writes localStorage", async () => {
@@ -379,5 +389,124 @@ describe("useDataGridViews", () => {
     act(() => void probe.current!.views.deleteView("a"));
     await waitFor(() => expect(JSON.parse(localStorage.getItem("views-test")!).views).toHaveLength(1));
     localStorage.clear();
+  });
+
+  it("opening a view calls only the callbacks of the parts that differ", async () => {
+    const onSortChange = vi.fn();
+    const onFilterChange = vi.fn();
+    const { probe } = setup({ storage: createMemoryViewsStorage(seeded()) }, { sortState: [], filterState: [], onSortChange, onFilterChange });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("b"));
+    expect(onFilterChange).toHaveBeenCalledTimes(1);
+    expect(onSortChange).not.toHaveBeenCalled();
+  });
+
+  it("with an async controlled value, a save keeps the grid until the parent accepts the id", async () => {
+    const storage = createMemoryViewsStorage(seeded());
+    const probe: { current: Probe | null } = { current: null };
+    const tree = (value: string | null) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <Harness options={{ storage, value }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>
+    );
+    const view = render(tree("a"));
+    await ready(probe);
+    await waitFor(() => expect(probe.current!.sort).toEqual([{ columnId: "age", direction: "desc" }]));
+    act(() => probe.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Name sort");
+    });
+    expect(probe.current!.sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    view.rerender(tree(saved!.id));
+    expect(probe.current!.sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    expect(probe.current!.views.modified).toBe(false);
+  });
+
+  it("with a controlled value, a pick that the parent rejects changes nothing", async () => {
+    const onValueChange = vi.fn();
+    const { probe } = setup({ storage: createMemoryViewsStorage(seeded()), value: null, onValueChange });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(onValueChange).toHaveBeenCalledWith("a");
+    expect(probe.current!.sort).toEqual([]);
+  });
+
+  it("does not load a document in an unknown format and keeps it from being overwritten", async () => {
+    const save = vi.fn();
+    const storage: DataGridViewsStorage = { load: () => ({ version: 9, views: [] }), save };
+    const { probe } = setup({ storage });
+    await waitFor(() => expect(probe.current!.views.failed).toBe("load"));
+    let saved: unknown = "x";
+    act(() => {
+      saved = probe.current!.views.saveView("Mine");
+    });
+    expect(saved).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("refuses to save a document over the size limit and reports it", async () => {
+    const save = vi.fn();
+    const onError = vi.fn();
+    const filters = Array.from({ length: 64 }, () => ({ columnId: "name", operator: "equals", value: "y".repeat(1000) }));
+    const huge = Array.from({ length: 50 }, (_, i) => ({ id: `h${i}`, name: "n", state: { ...emptyViewState(), filters } }));
+    const storage: DataGridViewsStorage = { load: () => ({ version: 1, defaultViewId: null, views: huge }), save };
+    const { probe } = setup({ storage, onError });
+    await ready(probe);
+    act(() => void probe.current!.views.renameView("h0", "renamed"));
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(save).not.toHaveBeenCalled();
+    expect(probe.current!.views.failed).toBe("save");
+  });
+
+  it("loads again and drops the old views when the storage key changes", async () => {
+    localStorage.setItem("key-a", JSON.stringify(seeded()));
+    localStorage.setItem("key-b", JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "z", name: "Zed", state: emptyViewState() }] }));
+    const probe: { current: Probe | null } = { current: null };
+    const tree = (storageKey: string) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <Harness options={{ storageKey }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>
+    );
+    const view = render(tree("key-a"));
+    await ready(probe);
+    expect(probe.current!.views.views).toHaveLength(2);
+    view.rerender(tree("key-b"));
+    await waitFor(() => expect(probe.current!.views.views.map((v) => v.id)).toEqual(["z"]));
+    localStorage.clear();
+  });
+
+  it("keeps retry stable across renders", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage(seeded()) });
+    await ready(probe);
+    const first = probe.current!.views.retry;
+    act(() => void probe.current!.views.renameView("a", "x"));
+    expect(probe.current!.views.retry).toBe(first);
+  });
+
+  it("keeps the page of a server grid when a view changes only the layout", async () => {
+    const fetchRows = vi.fn(async ({ start, end }: { start: number; end: number }) => ({ rows: rows.slice(start, end), totalRowCount: 40 }));
+    const layoutOnly = seeded();
+    layoutOnly.views[1]!.state = { ...emptyViewState(), columnLayout: { widths: { name: 150 }, order: [], pins: {}, hidden: [] } };
+    let latest: UseDataGridViewsResult | null = null;
+    let page = 0;
+    function ServerGrid() {
+      const server = useDataGridServerRows<Row>({ mode: "pages", getRowId: (r) => r.id, defaultPageSize: 1, fetchRows });
+      page = server.pager.page;
+      return (
+        <DataGridProvider columns={columns} {...server.providerProps}>
+          <Harness options={{ storage: createMemoryViewsStorage(layoutOnly), enableDefaultView: false }} onProbe={(p) => (latest = p.views)} />
+          <button onClick={() => server.pager.onPageChange(2)}>next</button>
+        </DataGridProvider>
+      );
+    }
+    const view = render(<ServerGrid />);
+    await waitFor(() => expect(latest?.loading).toBe(false));
+    act(() => view.getByText("next").click());
+    await waitFor(() => expect(page).toBe(2));
+    const calls = fetchRows.mock.calls.length;
+    act(() => latest!.selectView("b"));
+    expect(page).toBe(2);
+    expect(fetchRows.mock.calls.length).toBe(calls);
   });
 });

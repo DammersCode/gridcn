@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   useDataGridActions,
   useDataGridAllColumns,
@@ -10,13 +10,16 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
+  MAX_DOCUMENT_LENGTH,
   MAX_VIEWS,
   captureViewState,
   cleanViewName,
+  emptyViewsDocument,
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
   serializeViewFile,
+  viewPartKeys,
   viewStateKey,
   type DataGridView,
   type DataGridViewState,
@@ -27,16 +30,20 @@ import { createLocalStorageViewsStorage, type DataGridViewsStorage } from "./vie
 
 /** Options for {@link useDataGridViews}. */
 export type UseDataGridViewsOptions = {
-  /** Where views persist. Default: `localStorage` under `storageKey`, with an in-memory fallback. The first load reads it once; a new `storageKey` loads again. */
+  /**
+   * Where views persist. Default: `localStorage` under `storageKey`. The first load reads it once;
+   * a new `storageKey` loads again. Remount the grid with a new `key` to switch to another
+   * `storage` object, for example another user's.
+   */
   storage?: DataGridViewsStorage;
   /** `localStorage` key of the default storage; ignored when `storage` is set. Default `"gridcn-views"`. */
   storageKey?: string;
-  /** Id of the active view. Controlled: the hook applies a view when this changes and reports picks through `onValueChange`. */
+  /** Id of the active view. Controlled: the hook opens a view when this changes, and picks only call `onValueChange`. */
   value?: string | null;
   /** First active view id when `value` is not set. */
   defaultValue?: string | null;
   onValueChange?: (id: string | null) => void;
-  /** Apply the default view after load when the grid still holds its start state and `value` and `defaultValue` are unset. Default `true`. */
+  /** Open the default view after load when the grid still holds its start state and `value` and `defaultValue` are unset. Default `true`. */
   enableDefaultView?: boolean;
   /** Called with a load or save failure. */
   onError?: (error: unknown) => void;
@@ -60,9 +67,11 @@ export type UseDataGridViewsResult = {
   saving: boolean;
   /** The latest load or save failure, else `null`. */
   error: unknown;
-  /** Repeats the failed load or save. */
+  /** Which request `error` belongs to. */
+  failed: "load" | "save" | null;
+  /** Repeats the failed load or save. Stable. */
   retry: () => void;
-  /** Applies a view (again, to revert changes) and makes it active; `null` only clears the active view. */
+  /** Opens a view (again, to revert changes) and makes it active; `null` only clears the active view. With a controlled `value`, a pick only calls `onValueChange`. */
   selectView: (id: string | null) => void;
   /** Saves the grid state under `name` and makes the new view active. `null` for a blank name, the view limit, or before the load ends. */
   saveView: (name: string) => DataGridView | null;
@@ -73,9 +82,19 @@ export type UseDataGridViewsResult = {
   setDefaultView: (id: string | null) => boolean;
   /** The view as JSON text, or `null` for an unknown id. Default: the active view. */
   exportView: (id?: string) => string | null;
-  /** Reads JSON from `exportView`, drops what the live columns lack, and saves it as a new active view. */
-  importView: (text: string) => ImportViewResult;
+  /** Reads JSON from `exportView`, drops what the live columns lack, and saves it as a new active view named `options.name` when the file has none. */
+  importView: (text: string, options?: { name?: string }) => ImportViewResult;
 };
+
+/** Calls a consumer callback; a throw must not break the hook. */
+function callSafely<T>(callback: ((arg: T) => void) | undefined, arg: T): void {
+  if (!callback) return;
+  try {
+    callback(arg);
+  } catch {
+    // consumer code failed; the hook keeps working
+  }
+}
 
 function createViewId(): string {
   return `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -83,8 +102,8 @@ function createViewId(): string {
 
 /**
  * Saves and restores named grid views: sort, filters, search, and column layout. Call it inside the
- * grid provider. Applying a view runs the same store actions as a user gesture, so controlled
- * `sortState` and `filterState` receive their change callbacks.
+ * grid provider. Opening a view runs the same store actions as a user gesture, only for the parts
+ * that differ, so controlled `sortState` and `filterState` receive their change callbacks.
  */
 export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseDataGridViewsResult {
   const { storageKey, value, defaultValue, onValueChange, enableDefaultView = true, onError } = options;
@@ -102,10 +121,13 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
 
   const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable }])), [allColumns]);
   const latest = useRef({ columnMap, onValueChange, onError, value, enableDefaultView, defaultValue });
-  latest.current = { columnMap, onValueChange, onError, value, enableDefaultView, defaultValue };
+  useLayoutEffect(() => {
+    latest.current = { columnMap, onValueChange, onError, value, enableDefaultView, defaultValue };
+  });
 
   const [document, setDocument] = useState<DataGridViewsDocument | null>(null);
   const documentRef = useRef<DataGridViewsDocument | null>(null);
+  const loaded = document !== null;
   const [internalActiveId, setInternalActiveId] = useState<string | null>(defaultValue ?? null);
   const activeViewId = value !== undefined ? value : internalActiveId;
   const [appliedKey, setAppliedKey] = useState<string | null>(null);
@@ -113,11 +135,14 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [failed, setFailed] = useState<"load" | "save" | null>(null);
+  const failedRef = useRef<"load" | "save" | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const pendingSaveRef = useRef<DataGridViewsDocument | null>(null);
   const savingRef = useRef(false);
   const storageRef = useRef(storage);
-  storageRef.current = storage;
+  useLayoutEffect(() => {
+    storageRef.current = storage;
+  });
 
   const readState = useCallback((): DataGridViewState => {
     const s = storeApi.getState();
@@ -125,59 +150,66 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   }, [storeApi]);
 
   const reportError = useCallback((kind: "load" | "save", cause: unknown) => {
+    failedRef.current = kind;
     setError(cause);
     setFailed(kind);
-    try {
-      latest.current.onError?.(cause);
-    } catch {
-      // a throwing consumer callback must not break the hook
-    }
+    callSafely(latest.current.onError, cause);
+  }, []);
+
+  const clearError = useCallback(() => {
+    failedRef.current = null;
+    setError(null);
+    setFailed(null);
   }, []);
 
   const applyState = useCallback(
     (state: DataGridViewState) => {
       const clean = sanitizeViewState(state, latest.current.columnMap).state;
-      actions.setSorts(clean.sorts);
-      actions.setFilters(clean.filters);
-      actions.setSearch(clean.searchText, clean.searchOptions);
-      actions.setColumnLayout(clean.columnLayout);
+      const wanted = viewPartKeys(clean);
+      const now = viewPartKeys(readState());
+      if (wanted.sorts !== now.sorts) actions.setSorts(clean.sorts);
+      if (wanted.filters !== now.filters) actions.setFilters(clean.filters);
+      if (wanted.search !== now.search) actions.setSearch(clean.searchText, clean.searchOptions);
+      if (wanted.layout !== now.layout) actions.setColumnLayout(clean.columnLayout);
       // the store fills in layout parts a view leaves out, so the baseline reads the layout back
       setAppliedKey(viewStateKey({ ...clean, columnLayout: storeApi.getState().columnLayout }));
     },
-    [actions, storeApi],
+    [actions, readState, storeApi],
   );
 
-  const setActive = useCallback((id: string | null) => {
-    appliedIdRef.current = id;
-    if (latest.current.value === undefined) setInternalActiveId(id);
-    try {
-      latest.current.onValueChange?.(id);
-    } catch {
-      // a throwing consumer callback must not break the hook
-    }
-  }, []);
+  const notify = useCallback((id: string | null) => callSafely(latest.current.onValueChange, id), []);
+
+  /** Makes `id` active for a state the grid already holds. */
+  const setActive = useCallback(
+    (id: string | null) => {
+      appliedIdRef.current = id;
+      if (latest.current.value === undefined) setInternalActiveId(id);
+      notify(id);
+    },
+    [notify],
+  );
 
   const flushSaves = useCallback(async () => {
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
-    try {
-      while (pendingSaveRef.current) {
-        const next = pendingSaveRef.current;
-        pendingSaveRef.current = null;
-        try {
-          await storageRef.current.save(next);
-          setError(null);
-          setFailed(null);
-        } catch (cause) {
-          reportError("save", cause);
-        }
+    while (pendingSaveRef.current) {
+      const next = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      if (JSON.stringify(next).length > MAX_DOCUMENT_LENGTH) {
+        reportError("save", new Error("The saved views are too large to store"));
+        continue;
       }
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
+      try {
+        await storageRef.current.save(next);
+        clearError();
+      } catch (cause) {
+        reportError("save", cause);
+      }
     }
-  }, [reportError]);
+    savingRef.current = false;
+    setSaving(false);
+  }, [clearError, reportError]);
 
   const commit = useCallback(
     (next: DataGridViewsDocument) => {
@@ -191,54 +223,70 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
 
   useEffect(() => {
     const controller = new AbortController();
+    documentRef.current = null;
+    setDocument(null);
     void (async () => {
+      let raw: unknown;
       try {
-        const loaded = parseViewDocument(await storageRef.current.load({ signal: controller.signal }));
-        if (controller.signal.aborted) return;
-        documentRef.current = loaded;
-        setDocument(loaded);
-        setError(null);
-        setFailed(null);
-        const { value: controlled, defaultValue: seed, enableDefaultView: useDefault } = latest.current;
-        const initial = storeApi.getInitialState();
-        const untouched =
-          viewStateKey(readState()) ===
-          viewStateKey(captureViewState({ sorts: initial.sortState, filters: initial.filterState, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
-        const view = useDefault && controlled === undefined && seed === undefined && untouched ? loaded.views.find((v) => v.id === loaded.defaultViewId) : undefined;
-        if (view) {
-          applyState(view.state);
-          setActive(view.id);
-        }
+        raw = await storageRef.current.load({ signal: controller.signal });
       } catch (cause) {
         if (!controller.signal.aborted) reportError("load", cause);
+        return;
+      }
+      if (controller.signal.aborted) return;
+      const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
+      if (!parsed) {
+        reportError("load", new Error("The saved views are in an unknown format"));
+        return;
+      }
+      documentRef.current = parsed;
+      setDocument(parsed);
+      clearError();
+      const { value: controlled, defaultValue: seed, enableDefaultView: useDefault } = latest.current;
+      const initial = storeApi.getInitialState();
+      const untouched =
+        viewStateKey(readState()) ===
+        viewStateKey(captureViewState({ sorts: initial.sortState, filters: initial.filterState, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
+      const view = useDefault && controlled === undefined && seed === undefined && untouched ? parsed.views.find((v) => v.id === parsed.defaultViewId) : undefined;
+      if (view) {
+        applyState(view.state);
+        setActive(view.id);
       }
     })();
     return () => controller.abort();
-  }, [storageKey, loadAttempt, storeApi, readState, applyState, setActive, reportError]);
+  }, [storageKey, loadAttempt, storeApi, readState, applyState, setActive, reportError, clearError]);
 
   useEffect(() => {
-    if (!document || appliedIdRef.current === activeViewId) return;
+    if (!loaded || appliedIdRef.current === activeViewId) return;
     appliedIdRef.current = activeViewId;
-    const view = document.views.find((v) => v.id === activeViewId);
+    const view = documentRef.current?.views.find((v) => v.id === activeViewId);
     if (view) applyState(view.state);
-  }, [document, activeViewId, applyState]);
-
-  const currentKey = useMemo(
-    () => viewStateKey({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout }),
-    [sortState, filterState, searchText, searchOptions, columnLayout],
-  );
+  }, [loaded, activeViewId, applyState]);
 
   const views = document?.views ?? EMPTY_VIEWS;
   const activeView = views.find((v) => v.id === activeViewId) ?? null;
+
+  const currentKey = useMemo(
+    () => (activeView ? viewStateKey({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout }) : null),
+    [activeView, sortState, filterState, searchText, searchOptions, columnLayout],
+  );
+
+  const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);
 
   const selectView = useCallback(
     (id: string | null) => {
       const view = id === null ? undefined : documentRef.current?.views.find((v) => v.id === id);
       if (id !== null && !view) return;
+      const controlled = latest.current.value !== undefined;
+      if (controlled) {
+        if (view && latest.current.value === id) applyState(view.state);
+        else notify(id);
+        return;
+      }
       if (view) applyState(view.state);
       setActive(id);
     },
-    [applyState, setActive],
+    [applyState, notify, setActive],
   );
 
   const saveView = useCallback(
@@ -258,14 +306,14 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const updateView = useCallback(
     (id?: string) => {
       const current = documentRef.current;
-      const targetId = id ?? appliedIdRef.current;
+      const targetId = id ?? activeIdNow();
       if (!current || !targetId || !current.views.some((v) => v.id === targetId)) return false;
       const state = readState();
       commit({ ...current, views: current.views.map((v) => (v.id === targetId ? { ...v, state } : v)) });
-      if (targetId === appliedIdRef.current) setAppliedKey(viewStateKey(state));
+      if (targetId === activeIdNow()) setAppliedKey(viewStateKey(state));
       return true;
     },
-    [commit, readState],
+    [activeIdNow, commit, readState],
   );
 
   const renameView = useCallback(
@@ -284,10 +332,10 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const current = documentRef.current;
       if (!current || !current.views.some((v) => v.id === id)) return false;
       commit({ ...current, views: current.views.filter((v) => v.id !== id), defaultViewId: current.defaultViewId === id ? null : current.defaultViewId });
-      if (appliedIdRef.current === id) setActive(null);
+      if (activeIdNow() === id) setActive(null);
       return true;
     },
-    [commit, setActive],
+    [activeIdNow, commit, setActive],
   );
 
   const setDefaultView = useCallback(
@@ -300,20 +348,23 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     [commit],
   );
 
-  const exportView = useCallback((id?: string) => {
-    const targetId = id ?? appliedIdRef.current ?? undefined;
-    const view = documentRef.current?.views.find((v) => v.id === targetId);
-    return view ? serializeViewFile(view) : null;
-  }, []);
+  const exportView = useCallback(
+    (id?: string) => {
+      const targetId = id ?? activeIdNow();
+      const view = documentRef.current?.views.find((v) => v.id === targetId);
+      return view ? serializeViewFile(view) : null;
+    },
+    [activeIdNow],
+  );
 
   const importView = useCallback(
-    (text: string): ImportViewResult => {
+    (text: string, importOptions?: { name?: string }): ImportViewResult => {
       const current = documentRef.current;
       if (!current) return { ok: false, reason: "loading" };
       if (current.views.length >= MAX_VIEWS) return { ok: false, reason: "limit" };
       const parsed = parseViewFile(text, latest.current.columnMap);
       if (!parsed.ok) return parsed;
-      const view: DataGridView = { id: createViewId(), name: parsed.name || "Imported view", state: parsed.state };
+      const view: DataGridView = { id: createViewId(), name: parsed.name || cleanViewName(importOptions?.name) || "View", state: parsed.state };
       commit({ ...current, views: [...current.views, view] });
       applyState(view.state);
       setActive(view.id);
@@ -323,22 +374,23 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   );
 
   const retry = useCallback(() => {
-    if (failed === "load") setLoadAttempt((n) => n + 1);
-    else if (failed === "save" && documentRef.current) {
+    if (failedRef.current === "load") setLoadAttempt((n) => n + 1);
+    else if (failedRef.current === "save" && documentRef.current) {
       pendingSaveRef.current = documentRef.current;
       void flushSaves();
     }
-  }, [failed, flushSaves]);
+  }, [flushSaves]);
 
   return {
     views,
     activeViewId,
     activeView,
-    modified: activeView !== null && appliedKey !== null && currentKey !== appliedKey,
+    modified: currentKey !== null && appliedKey !== null && currentKey !== appliedKey,
     defaultViewId: document?.defaultViewId ?? null,
     loading: document === null && failed !== "load",
     saving,
     error,
+    failed,
     retry,
     selectView,
     saveView,

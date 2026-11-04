@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { Bookmark, Check, Pencil, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type ImportViewResult, type UseDataGridViewsOptions } from "./use-data-grid-views";
-import { MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
+import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
 
 /** User-facing strings of {@link DataGridViews}. */
 export type DataGridViewsLabels = {
@@ -19,6 +20,8 @@ export type DataGridViewsLabels = {
   empty: string;
   loadFailed: string;
   saveFailed: string;
+  limit: string;
+  importedName: string;
   retry: string;
   setDefault: (name: string) => string;
   unsetDefault: (name: string) => string;
@@ -50,6 +53,8 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   empty: "No saved views yet.",
   loadFailed: "Saved views could not be loaded.",
   saveFailed: "Your last change could not be saved.",
+  limit: `The limit of ${MAX_VIEWS} views is reached.`,
+  importedName: "Imported view",
   retry: "Retry",
   setDefault: (name) => `Use ${name} as the default view`,
   unsetDefault: (name) => `Stop using ${name} as the default view`,
@@ -69,7 +74,7 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   renamed: (name) => `Renamed to ${name}`,
   deleted: (name) => `Deleted view ${name}`,
   applied: (name) => `Applied view ${name}`,
-  imported: (name, dropped) => (dropped > 0 ? `Imported view ${name}. ${dropped} entries for missing columns were left out.` : `Imported view ${name}`),
+  imported: (name, dropped) => (dropped > 0 ? `Imported view ${name}. Left out because they do not fit this grid: ${dropped}.` : `Imported view ${name}`),
   exported: "Exported the active view as JSON below",
   importFailed: (reason) =>
     reason === "too-large" ? "The text is too long to be a view." : reason === "limit" ? "The view limit is reached." : reason === "loading" ? "Views are still loading." : "The text is not a valid view.",
@@ -90,6 +95,7 @@ function ViewRow({
   onSetDefault,
   onRename,
   onDelete,
+  onAfterDelete,
 }: {
   view: DataGridView;
   active: boolean;
@@ -99,13 +105,19 @@ function ViewRow({
   onSetDefault: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onAfterDelete: () => void;
 }) {
+  const renameButton = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(view.name);
   const [confirming, setConfirming] = useState(false);
 
-  const commitRename = () => {
+  const stopEditing = () => {
     setEditing(false);
+    requestAnimationFrame(() => renameButton.current?.focus());
+  };
+  const commitRename = () => {
+    stopEditing();
     if (name.trim() !== "" && name.trim() !== view.name) onRename(name);
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -116,7 +128,7 @@ function ViewRow({
     } else if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      setEditing(false);
+      stopEditing();
     }
   };
 
@@ -127,7 +139,7 @@ function ViewRow({
         <Button type="button" size="sm" onClick={commitRename}>
           {labels.confirmRename}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+        <Button type="button" size="sm" variant="ghost" onClick={stopEditing}>
           {labels.cancel}
         </Button>
       </li>
@@ -147,6 +159,7 @@ function ViewRow({
         type="button"
         variant="ghost"
         size="icon-sm"
+        ref={renameButton}
         aria-label={labels.rename(view.name)}
         onClick={() => {
           setName(view.name);
@@ -161,7 +174,11 @@ function ViewRow({
         size="icon-sm"
         aria-label={confirming ? labels.confirmDelete(view.name) : labels.delete(view.name)}
         onBlur={() => setConfirming(false)}
-        onClick={() => (confirming ? onDelete() : setConfirming(true))}
+        onClick={() => {
+          if (!confirming) return setConfirming(true);
+          onDelete();
+          onAfterDelete();
+        }}
       >
         <Trash2 />
       </Button>
@@ -179,14 +196,20 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
   const views = useDataGridViews(options);
   const [newName, setNewName] = useState("");
   const [fileText, setFileText] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState({ text: "", id: 0 });
+  const nameField = useRef<HTMLInputElement>(null);
   const { activeView } = views;
+  const announce = (text: string) => setMessage((previous) => ({ text, id: previous.id + 1 }));
+  const focusNameField = () => requestAnimationFrame(() => nameField.current?.focus());
+  const atLimit = views.views.length >= MAX_VIEWS;
+  const canSave = !views.loading && views.failed !== "load" && !atLimit && newName.trim() !== "";
 
   const save = () => {
+    if (!canSave) return;
     const saved = views.saveView(newName);
     if (!saved) return;
     setNewName("");
-    setMessage(labels.saved(saved.name));
+    announce(labels.saved(saved.name));
   };
   const onSaveKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (isComposingKey(event) || event.key !== "Enter") return;
@@ -194,12 +217,13 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
     save();
   };
   const runImport = () => {
-    const result = views.importView(fileText);
+    const result = views.importView(fileText, { name: labels.importedName });
     if (result.ok) {
       setFileText("");
-      setMessage(labels.imported(result.view.name, result.dropped));
+      announce(labels.imported(result.view.name, result.dropped));
+      focusNameField();
     } else {
-      setMessage(labels.importFailed(result.reason));
+      announce(labels.importFailed(result.reason));
     }
   };
 
@@ -214,12 +238,12 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
           </Button>
         }
       />
-      <PopoverContent align="start" className="w-80 gap-3 p-3">
+      <PopoverContent align="start" className="w-80 gap-3 p-3" aria-label={labels.views}>
         <div data-grid-views="" className="flex flex-col gap-3">
           {views.loading ? <p className="text-muted-foreground">{labels.loading}</p> : null}
           {views.error ? (
             <div role="alert" className="flex items-center justify-between gap-2 text-destructive">
-              <span>{views.loading || views.views.length === 0 ? labels.loadFailed : labels.saveFailed}</span>
+              <span>{views.failed === "load" ? labels.loadFailed : labels.saveFailed}</span>
               <Button type="button" size="sm" variant="outline" onClick={views.retry}>
                 {labels.retry}
               </Button>
@@ -237,15 +261,16 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
                   labels={labels}
                   onSelect={() => {
                     views.selectView(view.id);
-                    setMessage(labels.applied(view.name));
+                    announce(labels.applied(view.name));
                   }}
                   onSetDefault={() => views.setDefaultView(view.id === views.defaultViewId ? null : view.id)}
                   onRename={(name) => {
-                    if (views.renameView(view.id, name)) setMessage(labels.renamed(name.trim()));
+                    if (views.renameView(view.id, name)) announce(labels.renamed(name.trim()));
                   }}
                   onDelete={() => {
-                    if (views.deleteView(view.id)) setMessage(labels.deleted(view.name));
+                    if (views.deleteView(view.id)) announce(labels.deleted(view.name));
                   }}
+                  onAfterDelete={focusNameField}
                 />
               ))}
             </ul>
@@ -256,26 +281,30 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               variant="outline"
               size="sm"
               onClick={() => {
-                if (views.updateView()) setMessage(labels.updated(activeView.name));
+                if (views.updateView()) {
+                  announce(labels.updated(activeView.name));
+                  focusNameField();
+                }
               }}
             >
               {labels.updateActive(activeView.name)}
             </Button>
           ) : null}
           <div className="flex items-center gap-1">
-            <Input value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
-            <Button type="button" size="sm" disabled={newName.trim() === "" || views.loading} onClick={save}>
+            <Input ref={nameField} value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
+            <Button type="button" size="sm" disabled={!canSave} onClick={save}>
               {labels.saveNew}
             </Button>
           </div>
           <div className="flex flex-col gap-1.5">
-            <textarea
+            <Textarea
               value={fileText}
               onChange={(e) => setFileText(e.target.value)}
+              maxLength={MAX_VIEW_FILE_LENGTH}
               aria-label={labels.fileLabel}
               spellCheck={false}
               rows={4}
-              className="w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-1.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="resize-y font-mono text-xs"
             />
             <div className="flex items-center gap-1">
               <Button
@@ -287,7 +316,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
                   const text = views.exportView();
                   if (text === null) return;
                   setFileText(text);
-                  setMessage(labels.exported);
+                  announce(labels.exported);
                 }}
               >
                 {labels.exportView}
@@ -297,8 +326,11 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               </Button>
             </div>
           </div>
+          {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
           <p role="status" className="sr-only">
-            {message}
+            {/* a trailing no-break space on every second message makes a repeated text change, so it is announced again */}
+            {message.text}
+            {message.id % 2 === 0 ? " " : ""}
           </p>
         </div>
       </PopoverContent>

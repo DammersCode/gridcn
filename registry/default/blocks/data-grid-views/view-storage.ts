@@ -1,11 +1,11 @@
-import type { DataGridViewsDocument } from "./view-state";
-
-const MAX_STORED_LENGTH = 1_000_000;
+import { MAX_DOCUMENT_LENGTH, type DataGridViewsDocument } from "./view-state";
 
 /**
  * Where saved views live. `load` returns the stored document (any shape; the hook validates it) or
- * `undefined` for none; its signal aborts on unmount. `save` receives the whole document and is
- * never aborted, so a save started just before unmount still lands. Both may be sync or async.
+ * `undefined` for none. Throw from `load` when the store cannot be read, so the hook keeps the
+ * stored views instead of replacing them. `load` gets a signal that aborts on unmount. `save`
+ * receives the whole document and is never aborted, so a save started just before unmount still
+ * lands. Both may be sync or async.
  */
 export type DataGridViewsStorage = {
   load: (ctx: { signal: AbortSignal }) => unknown | Promise<unknown>;
@@ -31,27 +31,35 @@ function readStorage(): Storage | undefined {
   }
 }
 
-/** Stores views as one JSON entry in `localStorage`; a blocked or full store falls back to memory. */
+const memoryByKey = new Map<string, DataGridViewsDocument>();
+
+/**
+ * Stores views as one JSON entry in `localStorage`. When the browser blocks or fills the store,
+ * `save` keeps the document in memory for this page and then throws, so the hook reports the
+ * failure. Malformed text counts as no document; text over the size limit throws.
+ */
 export function createLocalStorageViewsStorage(key = "gridcn-views"): DataGridViewsStorage {
-  let memory: DataGridViewsDocument | undefined;
   return {
     load: () => {
+      let text: string | null | undefined;
       try {
-        const text = readStorage()?.getItem(key);
-        if (text == null) return memory;
-        if (text.length > MAX_STORED_LENGTH) return undefined;
+        text = readStorage()?.getItem(key);
+      } catch {
+        return memoryByKey.get(key);
+      }
+      if (text == null) return memoryByKey.get(key);
+      if (text.length > MAX_DOCUMENT_LENGTH) throw new Error("The stored views are too large to read");
+      try {
         return JSON.parse(text) as unknown;
       } catch {
-        return memory;
+        return undefined;
       }
     },
     save: (next) => {
-      memory = next;
-      try {
-        readStorage()?.setItem(key, JSON.stringify(next));
-      } catch {
-        // storage is full or blocked: the in-memory copy still serves this page
-      }
+      memoryByKey.set(key, next);
+      const store = readStorage();
+      if (!store) throw new Error("Browser storage is not available");
+      store.setItem(key, JSON.stringify(next));
     },
   };
 }

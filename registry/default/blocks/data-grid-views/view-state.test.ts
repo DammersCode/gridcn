@@ -201,9 +201,9 @@ describe("parseViewDocument", () => {
     expect(parseViewDocument(valid)).toEqual({ version: 1, defaultViewId: "a", views: [{ id: "a", name: "First", state }] });
   });
 
-  it("returns an empty document for garbage", () => {
+  it("returns null for anything that is not a version 1 document", () => {
     for (const bad of [null, 5, "x", [], { version: 2, views: [] }, { version: 1, views: "no" }]) {
-      expect(parseViewDocument(bad)).toEqual({ version: 1, defaultViewId: null, views: [] });
+      expect(parseViewDocument(bad)).toBeNull();
     }
   });
 
@@ -213,15 +213,15 @@ describe("parseViewDocument", () => {
       defaultViewId: "zzz",
       views: [{ id: "a", name: " ", state }, { id: "b", name: "B", state }, { id: "b", name: "B2", state }, { id: 7, name: "N", state }],
     });
-    expect(result.views.map((v) => v.id)).toEqual(["b"]);
-    expect(result.defaultViewId).toBeNull();
+    expect(result!.views.map((v) => v.id)).toEqual(["b"]);
+    expect(result!.defaultViewId).toBeNull();
   });
 
   it("caps the view count and the name length", () => {
     const views = Array.from({ length: MAX_VIEWS + 20 }, (_, i) => ({ id: `v${i}`, name: "n".repeat(MAX_VIEW_NAME_LENGTH + 40), state }));
     const result = parseViewDocument({ version: 1, defaultViewId: null, views });
-    expect(result.views).toHaveLength(MAX_VIEWS);
-    expect(result.views[0]!.name).toHaveLength(MAX_VIEW_NAME_LENGTH);
+    expect(result!.views).toHaveLength(MAX_VIEWS);
+    expect(result!.views[0]!.name).toHaveLength(MAX_VIEW_NAME_LENGTH);
   });
 });
 
@@ -243,6 +243,28 @@ describe("view files", () => {
     const text = serializeViewFile({ name: "First", state: { ...state, sorts: [{ columnId: "gone", direction: "asc" }] } });
     const parsed = parseViewFile(text, columns);
     expect(parsed.ok && parsed.dropped).toBe(1);
+  });
+
+  it("drops sorts and filters on columns the imported layout hides", () => {
+    const text = serializeViewFile({
+      name: "Hidden",
+      state: { ...state, sorts: [{ columnId: "secret", direction: "asc" }, { columnId: "age", direction: "asc" }], filters: [{ columnId: "secret", operator: "equals", value: "x" }, { columnId: "name", operator: "equals", value: "a" }] },
+    });
+    const parsed = parseViewFile(text, new Map([["name", {}], ["age", {}], ["secret", {}]]));
+    expect(parsed).toMatchObject({ ok: true, dropped: 2 });
+    expect(parsed.ok && parsed.state.sorts).toEqual([{ columnId: "age", direction: "asc" }]);
+    expect(parsed.ok && parsed.state.filters).toEqual([{ columnId: "name", operator: "equals", value: "a" }]);
+  });
+
+  it("counts entries cut by a list limit", () => {
+    const sorts = Array.from({ length: 1200 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" }));
+    expect(sanitizeViewState({ ...state, sorts }, undefined).dropped).toBeGreaterThanOrEqual(200);
+  });
+
+  it("caps an isAnyOf list at 1000 entries", () => {
+    const value = Array.from({ length: 1500 }, (_, i) => String(i));
+    const result = sanitizeViewState({ ...state, filters: [{ columnId: "name", operator: "isAnyOf", value }] }, columns);
+    expect((result.state.filters[0] as { value: string[] }).value).toHaveLength(1000);
   });
 
   it("names a nameless file", () => {

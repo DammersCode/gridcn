@@ -30,20 +30,20 @@ describe("createLocalStorageViewsStorage", () => {
     expect(await createLocalStorageViewsStorage("k1").load(ctx)).toEqual(doc);
   });
 
-  it("treats malformed or oversize text as no document", async () => {
+  it("treats malformed text as no document and throws on oversize text", async () => {
     localStorage.setItem("bad", "{nope");
     expect(await createLocalStorageViewsStorage("bad").load(ctx)).toBeUndefined();
     localStorage.setItem("big", "x".repeat(1_100_000));
-    expect(await createLocalStorageViewsStorage("big").load(ctx)).toBeUndefined();
+    expect(() => createLocalStorageViewsStorage("big").load(ctx)).toThrow();
   });
 
-  it("falls back to memory when writing throws", async () => {
+  it("keeps the document in memory and throws when writing fails", async () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new DOMException("full", "QuotaExceededError");
     });
     const storage = createLocalStorageViewsStorage("k2");
-    await storage.save(doc);
-    expect(await storage.load(ctx)).toEqual(doc);
+    expect(() => storage.save(doc)).toThrow();
+    expect(await createLocalStorageViewsStorage("k2").load(ctx)).toEqual(doc);
   });
 
   it("falls back to memory when reading throws", async () => {

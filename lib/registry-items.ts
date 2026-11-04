@@ -18,6 +18,7 @@ export type RegistryItemName =
   | "data-grid-status-bar"
   | "data-grid-toolbar"
   | "data-grid-url-state"
+  | "data-grid-views"
   | "data-grid-actions-demo"
   | "data-grid-find-replace-demo"
   | "data-grid-cell-errors-demo"
@@ -79,5 +80,6 @@ export type RegistryItemName =
   | "data-grid-styling-patterns-demo"
   | "data-grid-touch-demo"
   | "data-grid-url-state-demo"
+  | "data-grid-views-demo"
   | "data-grid-validation-demo"
   | "dropzone";

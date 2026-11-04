@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DataGridBody,
   DataGridHeader,
@@ -55,6 +56,22 @@ const SEED: DataGridViewsDocument = {
   ],
 };
 
+/** Stands in for an API: every call waits, and the document lives outside the browser store. */
+function createSimulatedServerStorage(): DataGridViewsStorage {
+  let stored: DataGridViewsDocument = SEED;
+  const wait = () => new Promise((resolve) => setTimeout(resolve, 300));
+  return {
+    load: async () => {
+      await wait();
+      return stored;
+    },
+    save: async (next) => {
+      await wait();
+      stored = next;
+    },
+  };
+}
+
 function createDemoStorage(): DataGridViewsStorage {
   const local = createLocalStorageViewsStorage("gridcn-demo-views");
   return { load: async (ctx) => (await local.load(ctx)) ?? SEED, save: local.save };
@@ -62,14 +79,23 @@ function createDemoStorage(): DataGridViewsStorage {
 
 export default function DataGridViewsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(80), []);
-  const storage = useMemo(createDemoStorage, []);
+  const [where, setWhere] = useState<"browser" | "server">("browser");
+  const storage = useMemo(() => (where === "browser" ? createDemoStorage() : createSimulatedServerStorage()), [where]);
 
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="m-0 text-sm text-muted-foreground">
-        Sort, filter, search, or hide a column, then open Views and save the result. Pick a view to restore it. Views stay in this browser.
+        Sort, filter, search, or hide a column, then open Views and save the result. Pick a view to restore it. Pick where the views live: this browser, or a simulated server with a slow async adapter.
       </p>
-      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
+      <div className="flex gap-1">
+        <Button type="button" size="sm" variant={where === "browser" ? "secondary" : "outline"} aria-pressed={where === "browser"} onClick={() => setWhere("browser")}>
+          This browser
+        </Button>
+        <Button type="button" size="sm" variant={where === "server" ? "secondary" : "outline"} aria-pressed={where === "server"} onClick={() => setWhere("server")}>
+          Simulated server
+        </Button>
+      </div>
+      <DataGridProvider key={where} data={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
         <DataGridToolbar>
           <DataGridViews storage={storage} />
           <DataGridSearch />
