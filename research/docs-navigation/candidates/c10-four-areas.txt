@@ -68,7 +68,7 @@
 ## Performance
 - performance | Performance | landing | 400
 - benchmark-results | Benchmark results | reference | 900
-- run-benchmark | Run the benchmark yourself | task | 600
+- run-benchmark | Run it yourself | task | 600
 - virtualization | Virtualization | feature | 900
 - row-limits | Row limits | reference | 400
 ## Accessibility
