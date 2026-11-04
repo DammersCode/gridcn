@@ -91,13 +91,14 @@ export function LandingBackground({ variant }: { variant: BgVariant }) {
 
 export function BgPlayground({ children, initial = 2, switcher = true }: { children: ReactNode; initial?: number; switcher?: boolean }) {
   const [id, setId] = useState(initial);
+  const [open, setOpen] = useState(true);
   const variant = bgVariants.find((v) => v.id === id) ?? bgVariants[0];
   return (
     <>
       <LandingBackground variant={variant} />
       {switcher && <div className="fixed start-2 top-16 z-50 flex max-w-[calc(100vw-1rem)] flex-col gap-1 border bg-card p-2 text-xs shadow-sm" role="radiogroup" aria-label="Background approach">
-        <p className="font-medium">Background approach (dev only)</p>
-        {bgVariants.map((v) => (
+        <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="px-2 py-1 text-start font-medium">Background approach {id}/10 {open ? "−" : "+"}</button>
+        {open && bgVariants.map((v) => (
           <button
             key={v.id}
             type="button"
