@@ -76,6 +76,16 @@ export function requestReshape(ctx: DataWriteContext, warn: (message: string) =>
   warn('reorder: "immediate" on a server sort or filter marks the rows stale and asks useDataGridServerRows to place them again, but no such hook is mounted; refetch the rows yourself');
 }
 
+/** Points the stale rows that an own write replaced at their new row object, so only a delivery from the server unmarks them. */
+export function followStaleRows(ctx: DataWriteContext, ops: readonly DataOp<unknown>[]): void {
+  if (ctx.staleRows.size === 0) return;
+  for (const op of ops) {
+    if (op.type !== "update") continue;
+    const known = ctx.staleRows.get(op.rowId);
+    if (known) known.row = op.row;
+  }
+}
+
 /** The state that drops every stale mark. */
 export function clearStaleRows(ctx: DataWriteContext): Pick<DataGridStoreState, "staleRowIds" | "viewStale"> {
   ctx.staleRows.clear();

@@ -45,7 +45,7 @@ import {
 } from "../selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
-import { clearStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
+import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, UpdateCellsVerdict } from "./types";
 
 /**
@@ -127,6 +127,7 @@ export function writeThenEmit(
   change: DataChange<unknown>,
   write: () => void,
 ): void {
+  followStaleRows(ctx, change.ops);
   const onDataChange = s.onDataChange;
   const onSave = change.source === "rollback" || change.source === "stream" ? undefined : s.onSave;
   const observers = s.plugins.observers;
@@ -1250,6 +1251,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (s.readOnly && change.source !== "stream") return;
       if (change.ops.length === 0) return;
       const nextData = applyChange(s.data, change, s.getRowId);
+      followStaleRows(ctx, change.ops);
       // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
       let applied = nextData.length !== s.data.length;
       if (!applied) {

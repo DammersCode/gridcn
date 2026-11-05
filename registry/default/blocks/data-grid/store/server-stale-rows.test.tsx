@@ -290,6 +290,61 @@ describe("stale row prune", () => {
   });
 });
 
+describe("stale marks follow the grid's own writes", () => {
+  const foreignSync = (grid: ReturnType<typeof renderGrid>) => {
+    const data = grid.result.current.store.getState().data as Row[];
+    const next = data.slice();
+    next[next.length - 1] = { ...next[next.length - 1]! };
+    grid.update({ data: next, sortMode: "server", sortState: sortByName });
+  };
+  const marked = () => {
+    const grid = renderGrid({ data: seed(), sortMode: "server", sortState: sortByName });
+    grid.push([{ rowId: "a", columnId: "name", value: "Aaron" }]);
+    return grid;
+  };
+
+  it("keeps the mark after the user edits another column of the row", () => {
+    const grid = marked();
+    act(() => grid.result.current.actions.commitCellValue({ rowId: "a", columnId: "price" }, 77));
+    foreignSync(grid);
+    expect(grid.stale()).toEqual(["a"]);
+    expect(grid.result.current.viewStale).toBe(true);
+  });
+
+  it("keeps the mark after an app commitChange updates the row", () => {
+    const grid = marked();
+    const row = (grid.result.current.store.getState().data as Row[])[0]!;
+    act(() => grid.result.current.actions.commitChange({ source: "app", ops: [{ type: "update", rowId: "a", row: { ...row, price: 5 }, prev: row }] }));
+    foreignSync(grid);
+    expect(grid.stale()).toEqual(["a"]);
+  });
+
+  it("keeps the mark after a commitChange that updates the row and inserts another", () => {
+    const grid = marked();
+    const row = (grid.result.current.store.getState().data as Row[])[0]!;
+    act(() =>
+      grid.result.current.actions.commitChange({
+        source: "app",
+        ops: [
+          { type: "update", rowId: "a", row: { ...row, price: 5 }, prev: row },
+          { type: "insert", rowId: "z", row: { id: "z", name: "Zed", price: 1 }, index: 3 },
+        ],
+      }),
+    );
+    expect(grid.stale()).toEqual(["a"]);
+    foreignSync(grid);
+    expect(grid.stale()).toEqual(["a"]);
+  });
+
+  it("keeps the mark when the user deletes another row", () => {
+    const grid = marked();
+    act(() => grid.result.current.actions.deleteRowsById(["c"]));
+    foreignSync(grid);
+    expect(grid.stale()).toEqual(["a"]);
+    expect(grid.result.current.viewStale).toBe(true);
+  });
+});
+
 describe("client modes keep their reorder contract", () => {
   it('defer flips viewStale on a sort column and marks no row', () => {
     const grid = renderGrid({ data: seed(), sortState: sortByName });
