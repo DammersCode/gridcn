@@ -5,6 +5,20 @@ generators read the candidate file. Candidates B and C need their own content-ma
 [docs-navigation-ruleset.md](docs-navigation-ruleset.md), [docs-navigation-comparison.md](docs-navigation-comparison.md),
 `research/docs-navigation/content-map.md`, `url-map.json`, `anchor-map.json`.
 
+## 0. Decisions
+
+The owner decided:
+
+- One navigation: Topics (candidate A). Tasks stay reachable through the task finder and the Learning path. No second
+  navigation is kept.
+- The page count does not limit the design. A split is fine when the rules say so.
+- The glossary stays small. Common words such as keyboard shortcuts get no entry.
+- `AGENTS.md` may change. It already points to the ruleset and the audit script. The add-on page structure rule changes in
+  the skeleton PR (option tables move to the Add-on options pages).
+- Areas: six (Learn, Build, Server, Evaluate, Reference, Examples). The ruleset allows 4 to 6 with a cap of 7. Six keeps
+  each area under 10 groups and under 25 visible rows, and the Evaluate tab paid off in the senior reviews.
+- The defects of the audit are fixed during the migration (section 9).
+
 ## 1. Order of work
 
 Other sessions add server pages to the docs on `release/2.0`. A move while they write causes conflicts. Do the move in
@@ -190,7 +204,33 @@ Plan:
   regenerates it (`pnpm docs:changes --release 2.0.0`), as the docs rules say.
 - Page dots appear when the release command runs, not in the move commits.
 
-## 9. Risks
+## 9. Defects fixed during the migration
+
+| Defect (from the audit) | Fixed in |
+|---|---|
+| Row ceiling stated twice with different numbers (Performance, Virtualization, Project status) | The row limits page is the only statement; the other pages link it |
+| `index` says pre-1.0 while Project status says 1.0.0 and the tags are at 1.3.0 | The version policy page is the only version statement; the intro links it |
+| Undo on refused saves differs between `data-modes` and `addons/undo-redo` | The server undo page owns it |
+| Paste rejection differs between `clipboard` and `editing-cell-types` | The validation page owns it; the clipboard page links it |
+| Ten duplicate titles (Pinning x2, Row operations x2, Custom cell type x2, TanStack Query x2, SWR x2) | The split PRs rename the second page (rule N2) |
+| `/docs/addons` index exists but sits outside the sidebar | The feature matrix page replaces it |
+| 52 of 100 pages end without Related or Next links | Each split PR adds them (P7) |
+| Server data in four places | The Server area owns it; the recipes fold into its pages |
+| `lib/llms-tasks.ts` points to a heading that was renamed | A separate commit before the skeleton PR |
+| Gate failures of the docs shell (labelled `nav`, `aria-current`, text on the mobile menu control, area switcher in one tap) | Layout PR (section 9a) |
+
+### 9a. Layout work from the gate
+
+`research/docs-navigation/gate-results.md` lists four failed checks and one partial. The fixes sit in
+`components/docs-sidebar.tsx` and the docs layout, not in the content:
+
+- Wrap the sidebar and the "On this page" list in `nav` elements with labels.
+- Set `aria-current="page"` on the active sidebar link.
+- Build the group rows as a disclosure (a button with `aria-expanded`) next to the landing link.
+- Give the mobile menu control a visible text label, and show the area switcher in the first tap.
+- Add a browser test for the gate to the polish PR.
+
+## 10. Risks
 
 | Risk | Mitigation |
 |---|---|
@@ -200,7 +240,7 @@ Plan:
 | Reviewer noise in the scores | Runs on near-identical versions differ by 0.5 on the mean; do not tune the tree to a single run |
 | Sidebar with ten closed groups feels hidden | The area landing lists groups; test with the Fumadocs sidebar before the skeleton PR |
 
-## 10. Verification checklist
+## 11. Verification checklist
 
 - Every old URL answers 308 with the target in `url-map.json` (script it).
 - Every old anchor of a moved section lands on its new page (spot check the 79 manual ones).
