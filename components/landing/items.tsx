@@ -22,12 +22,16 @@ import {
   Undo2,
   Users,
   Search,
+  Command,
+  PanelBottom,
+  Rows3,
+  type LucideIcon,
 } from "lucide-react";
 
-export const headlineFeatures = [
+export const headlineFeatures: { icon: LucideIcon; title: string; text: string; href?: string }[] = [
   { icon: MousePointer2, title: "Range selection", text: "Anchor and rectangular range, Ctrl-click multi-range, keyboard extension." },
-  { icon: Clipboard, text: "Native copy, cut and paste in TSV and HTML. Round-trips with Excel, Sheets and Numbers.", title: "Spreadsheet clipboard" },
-  { icon: PaintBucket, title: "Fill handle", text: 'Drag to tile a selection, with series inference: "Item 1" becomes "Item 2".' },
+  { icon: Clipboard, title: "Spreadsheet clipboard", text: "Native copy, cut and paste in TSV and HTML. Round-trips with Excel, Sheets and Numbers." },
+  { icon: PaintBucket, title: "Fill handle", text: "Drag to tile a selection, with series inference: \"Item 1\" becomes \"Item 2\"." },
 ];
 
 export const coreTraits = [
@@ -39,20 +43,20 @@ export const coreTraits = [
 ];
 
 export const addOnTiles = [
-  { icon: PaintBucket, title: 'Fill handle', href: '/docs/addons/fill' },
-  { icon: Undo2, title: 'Undo and redo', href: '/docs/addons/undo-redo' },
-  { icon: Search, title: 'Find and replace', href: '/docs/addons/find-replace' },
-  { icon: FileSpreadsheet, title: 'Import and export', href: '/docs/addons/import-export' },
-  { icon: Link2, title: 'URL state', href: '/docs/addons/url-state' },
-  { icon: Pin, title: 'Pinned rows and aggregates', href: '/docs/addons/pinned-rows' },
-  { icon: Users, title: 'Multiplayer presence', href: '/docs/addons/presence' },
-  { icon: Blocks, title: 'Context menu', href: '/docs/addons/context-menu' },
-  { icon: Keyboard, title: 'Keybindings dialog', href: '/docs/addons/keybindings' },
-  { icon: Gauge, title: 'Status bar', href: '/docs/addons/status-bar' },
-  { icon: ArrowUpDown, title: 'Toolbar and search', href: '/docs/addons/toolbar' },
-  { icon: ListOrdered, title: 'Sort list', href: '/docs/addons/sort-list' },
-  { icon: ListOrdered, title: 'Pagination', href: '/docs/pagination' },
-  { icon: CloudDownload, title: 'Server rows', href: '/docs/lazy-loading' },
+  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
+  { icon: Undo2, title: "Undo and redo", href: "/docs/addons/undo-redo" },
+  { icon: Search, title: "Find and replace", href: "/docs/addons/find-replace" },
+  { icon: FileSpreadsheet, title: "Import and export", href: "/docs/addons/import-export" },
+  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
+  { icon: Pin, title: "Pinned rows and aggregates", href: "/docs/addons/pinned-rows" },
+  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
+  { icon: Blocks, title: "Context menu", href: "/docs/addons/context-menu" },
+  { icon: Command, title: "Keybindings dialog", href: "/docs/addons/keybindings" },
+  { icon: PanelBottom, title: "Status bar", href: "/docs/addons/status-bar" },
+  { icon: ArrowUpDown, title: "Toolbar and search", href: "/docs/addons/toolbar" },
+  { icon: ListOrdered, title: "Sort list", href: "/docs/addons/sort-list" },
+  { icon: Rows3, title: "Pagination", href: "/docs/pagination" },
+  { icon: CloudDownload, title: "Server rows", href: "/docs/lazy-loading" },
 ];
 
 export const agentSkills = [

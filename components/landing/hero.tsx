@@ -23,7 +23,8 @@ export function HeroActions({ className }: { className?: string }) {
         render={<a href={`https://github.com/${gitConfig.user}/${gitConfig.repo}`} target="_blank" rel="noreferrer" />}
         nativeButton={false}
         variant="outline"
-        size="lg" className="max-sm:min-h-10"
+        size="lg"
+        className="max-sm:min-h-10"
       >
         <GithubIcon className="size-4" />
         GitHub

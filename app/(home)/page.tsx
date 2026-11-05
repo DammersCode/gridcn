@@ -2,14 +2,17 @@ import type { Metadata } from "next";
 import { LandingBackground } from "@/components/landing/background";
 import { LandingPage } from "@/components/landing/landing-page";
 
+const description =
+  "Spreadsheet power for React: range selection, spreadsheet clipboard, typed cell editors, server data and virtualized rendering, smooth at 100k rows.";
+
 export const metadata: Metadata = {
+  description,
   openGraph: {
     type: "website",
     url: "/",
     siteName: "gridcn",
     title: "gridcn",
-    description:
-      "Spreadsheet power for React: range selection, spreadsheet clipboard, typed cell editors, server data and virtualized rendering, smooth at 100k rows.",
+    description,
   },
 };
 

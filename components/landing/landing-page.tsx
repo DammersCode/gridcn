@@ -26,7 +26,7 @@ async function HeroCode() {
         <pre
           {...props}
           tabIndex={0}
-          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed max-sm:hidden dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
+          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
         />
       ),
     },
@@ -133,7 +133,7 @@ function Hero() {
 }
 
 function KitPanel() {
-  const capabilities = [...headlineFeatures.map((f) => ({ ...f, href: undefined as string | undefined })), ...coreTraits];
+  const capabilities = [...headlineFeatures, ...coreTraits];
   return (
     <Panel id="kit" title="What you get" intro="Range selection, spreadsheet paste and a fill handle are paid features in the big grids. gridcn ships them free, built the shadcn way.">
       <TileGrid className="grid-cols-2 lg:grid-cols-4">
@@ -162,7 +162,7 @@ function KitPanel() {
 function ServerPanel() {
   return (
     <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
-      <ServerHighlights columns="grid-cols-2 lg:grid-cols-3" />
+      <ServerHighlights />
       <DataModesLink>Which features work in which data mode →</DataModesLink>
     </Panel>
   );
