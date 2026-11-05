@@ -5,21 +5,24 @@ import { DataGridProvider, DataGridRoot, defineColumns, type RowRange, type Sort
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridServerRows, type ServerRowsAnswer, type ServerRowsRequest, type UseDataGridServerRowsOptions, type UseDataGridServerRowsScrollOptions } from "./use-data-grid-server-rows";
 
-type Row = { id: string; name: string };
+type Row = { id: string; name: string; price: number };
 type Fetch = (request: ServerRowsRequest<number>) => Promise<ServerRowsAnswer<Row, number>>;
 
-const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as const);
-const person = (i: number): Row => ({ id: `r${i}`, name: `Person ${i}` });
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+] as const);
+const person = (i: number): Row => ({ id: `r${i}`, name: `Person ${i}`, price: 10 });
 const SORTED = { sorts: [{ columnId: "name", direction: "asc" as const }], filters: [], searchText: "" };
 
 function server({ total = 100 } = {}) {
-  const state = { hold: false, fail: false };
+  const state = { hold: false, fail: false, override: {} as Record<string, Partial<Row>> };
   const held: Array<() => void> = [];
   const fetchRows = vi.fn(
     ({ start, end }: { start: number; end: number }) =>
       new Promise<ServerRowsAnswer<Row>>((resolve, reject) => {
         if (state.fail) return reject(new Error("boom"));
-        const answer = () => resolve({ rows: Array.from({ length: Math.max(0, Math.min(end, total) - start) }, (_, i) => person(start + i)), totalRowCount: total });
+        const answer = () => resolve({ rows: Array.from({ length: Math.max(0, Math.min(end, total) - start) }, (_, i) => ({ ...person(start + i), ...state.override[`r${start + i}`] })), totalRowCount: total });
         if (state.hold) held.push(answer);
         else answer();
       }),
@@ -81,13 +84,15 @@ function mountGrid(use: () => Server, strict = false) {
     server: () => server,
     view,
     push: (rowId: string, value = "Aaron", options?: Parameters<ReturnType<typeof actions>["updateCells"]>[1]) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], options)),
-    pushNow: async (rowId: string, value: string) => void actions().updateCells([{ rowId, columnId: "name", value }]),
+    pushNow: async (rowId: string, value: string | undefined, changes?: Partial<Row>) => void (changes ? actions().updateRows([{ rowId, changes }]) : actions().updateCells([{ rowId, columnId: "name", value }])),
     deleteByServer: (...ids: string[]) => act(() => void actions().deleteRowsById(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
     error: () => server.error,
     ids: () => (store.getState().data as readonly (Row | undefined)[]).map((row) => row?.id),
     goToPage: (page: number) => act(() => server.pager!.onPageChange(page)),
     stale: () => [...store.getState().staleRowIds].sort(),
+    row: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId),
+    pushCells: (rowId: string, changes: Partial<Row>) => act(() => void actions().updateRows([{ rowId, changes }])),
     name: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId)?.name,
     report: (range: RowRange) => act(() => server.gridProps.onRenderedRowsChange?.(range as never)),
   };
@@ -363,6 +368,23 @@ describe.each([
     await advance(20);
     expect(grid.error()).toBeNull();
     expect(grid.stale()).toEqual([]);
+  });
+
+  it("lays only the pushed cell on a row that landed between the push and its render", async () => {
+    const s = server();
+    const grid = await mount(s);
+    grid.pushCells("r2", { name: "A", price: 5 });
+    s.state.override["r2"] = { name: "B", price: 10 };
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    s.state.hold = false;
+    await act(async () => {
+      s.releaseHeld();
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+      await grid.pushNow("r2", undefined, { price: 7 });
+    });
+    expect(grid.row("r2")).toMatchObject({ name: "B", price: 7 });
   });
 
   it("a reshape request equals the refresh request", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
+import type { DataChange, DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
 import { rowIdAtViewRow, setCellValue, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
@@ -217,6 +217,13 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
+  const replayable = useCallback(
+    <TData,>(change: DataChange<TData>, rows: readonly (TData | undefined)[], idOf: (row: TData, index: number) => string): DataChange<TData> => {
+      const columns = holder.store?.getState().columns;
+      return columns ? narrowStreamUpdates(change, rows, idOf, columns) : change;
+    },
+    [holder],
+  );
   const overlayPushed = useCallback(
     <TData,>(rows: readonly TData[], mark: number, start: number, idOf: (row: TData, index: number) => string): TData[] => {
       const pushed = pushedSinceOn(holder, mark);
@@ -236,7 +243,40 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
     },
     [holder],
   );
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, replayable, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+}
+
+/**
+ * A push that lands after a block replaced its row carries the whole row it was made on. When the latest row is another object,
+ * a stream update keeps only its cells, so the push does not bring back the old values of the other cells.
+ */
+export function narrowStreamUpdates<TData>(
+  change: DataChange<TData>,
+  rows: readonly (TData | undefined)[],
+  idOf: (row: TData, index: number) => string,
+  columns: readonly { id: string }[],
+): DataChange<TData> {
+  if (change.source !== "stream" || !change.ops.some((op) => op.type === "update" && op.cells)) return change;
+  const wanted = new Set(change.ops.flatMap((op) => (op.type === "update" && op.cells ? [op.rowId] : [])));
+  const latest = new Map<string, TData>();
+  rows.forEach((row, index) => {
+    if (row === undefined) return;
+    const id = idOf(row, index);
+    if (wanted.has(id) && !latest.has(id)) latest.set(id, row);
+  });
+  const byId = new Map(columns.map((column) => [column.id, column] as const));
+  const ops = change.ops.map((op) => {
+    if (op.type !== "update" || !op.cells) return op;
+    const current = latest.get(op.rowId);
+    if (current === undefined || current === op.prev) return op;
+    let row = current;
+    for (const cell of op.cells) {
+      const column = byId.get(cell.columnId);
+      if (column) row = setCellValue(row, column as never, cell.value as never);
+    }
+    return { ...op, row };
+  });
+  return { ...change, ops };
 }
 
 export const GUARD_MISSING_MESSAGE =
