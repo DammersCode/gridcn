@@ -203,7 +203,7 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 through `actions.commitChange` as one `source: "import"` change with an explicit `delete` and
 `insert` operations batch, so the replace lands on the undo stack as a single entry.
 
-A `commitChange` with `source: "import"` <NewBadge /> runs the grid's `validateRow` for each inserted row, so
+A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so
 imported rows show the same cross-field errors as edited rows. You need no extra validation call after
 the commit. See [Cross-field rules](/docs/editing-cell-types#cross-field-rules-validaterow).
 

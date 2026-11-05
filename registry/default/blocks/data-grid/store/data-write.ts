@@ -309,8 +309,8 @@ function rowsToValidate(ops: readonly DataOp<unknown>[]): DataOp<unknown>[] {
   return rows;
 }
 
-/** `commitChange` sources whose rows go through `validateRow`: the app's own bulk writes, which no gesture validates. */
-const VALIDATED_SOURCES: ReadonlySet<DataChange<unknown>["source"]> = new Set(["import", "app"]);
+/** A `"stream"` change carries a server push, which `updateCells` validates with its own rules; every other `commitChange` source goes through `validateRow`. */
+const UNVALIDATED_SOURCE: DataChange<unknown>["source"] = "stream";
 
 type SetState = (partial: Partial<DataGridStoreState>) => void;
 type GetState = () => DataGridStoreState;
@@ -1511,7 +1511,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = nextData;
       pruneRowValidationKeys(nextData, s.getRowId);
       const pruned = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
-      const cellErrors = VALIDATED_SOURCES.has(change.source) ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
+      const cellErrors = change.source !== UNVALIDATED_SOURCE ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
       const view = rebuildRowOpView(s, nextData);
       if (!movesRows) {
         writeThenEmit(ctx, s, nextData, change, () =>

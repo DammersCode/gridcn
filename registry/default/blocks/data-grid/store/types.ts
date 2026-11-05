@@ -133,12 +133,12 @@ export type DataGridSyncProps<TData = unknown> = {
   resolveSaveConflict?: (ctx: SaveConflictContext<TData>) => SaveResolution<TData> | PromiseLike<SaveResolution<TData>>;
   /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
-   * (edit, paste, fill, delete-contents, updateCells/updateRows, and a `commitChange` with `source: "import"` or `"app"`, where it
-   * validates the inserted and updated rows) — the row already has ALL of the
+   * (edit, paste, fill, delete-contents, updateCells/updateRows, and every `commitChange` except a `"stream"`
+   * change, where it validates the inserted and updated rows, so an import, an undo and a rollback validate too) — the row already has ALL of the
    * gesture's cells applied, so the verdict is independent of column order inside a paste. Return
    * `columnId -> message` to surface errors (they land in `cellErrors`, same display as server
-   * errors), `null` when the row is fine. Values still commit either way. Not run on row
-   * insert/duplicate/delete or on consumer `data` replacement. A promise does not hold the write:
+   * errors), `null` when the row is fine. Values still commit either way. Not run on
+   * `insertRow`/`duplicateRows`/delete or on consumer `data` replacement. A promise does not hold the write:
    * its verdict merges into `cellErrors` when it settles. A newer verdict for the same row
    * supersedes a pending one, and a verdict for a row that is gone is dropped. A
    * rejection adds no error. `signal` aborts when a newer run for the same row supersedes this one,

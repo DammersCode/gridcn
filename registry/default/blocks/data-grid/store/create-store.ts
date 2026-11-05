@@ -514,6 +514,25 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     supersedeRowVerdict(oldId);
   };
   const warnGateOnce = createWarnOnce();
+  // Verdicts that settle in the same tick merge into cellErrors with one copy and one write.
+  const settledVerdicts: { rowId: string; verdict: Record<string, string> | null }[] = [];
+  const flushSettledVerdicts = (): void => {
+    const batch = settledVerdicts.splice(0);
+    const s = store.getState();
+    const index = rowIndexCache.resolve(s.data, s.getRowId);
+    let next: Map<string, string> | null = null;
+    for (const { rowId, verdict } of batch) {
+      if (!index.has(rowId)) continue;
+      foldRowVerdict(
+        () => next ?? s.cellErrors,
+        () => next ?? (next = new Map(s.cellErrors)),
+        rowId,
+        verdict,
+      );
+    }
+    const merged = next as Map<string, string> | null;
+    if (merged) store.setState({ cellErrors: merged });
+  };
   const holdRowVerdict = (rowId: string, run: GateRun, verdict: PromiseLike<Record<string, string> | null>): void => {
     supersedeRowVerdict(rowId);
     pendingRowVerdicts.set(rowId, run);
@@ -528,18 +547,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     verdict.then(
       (resolved) => {
         if (!release()) return;
-        const s = store.getState();
-        const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(rowId);
-        if (dataRowIndex === undefined) return;
-        let next: Map<string, string> | null = null;
-        foldRowVerdict(
-          () => next ?? s.cellErrors,
-          () => next ?? (next = new Map(s.cellErrors)),
-          rowId,
-          resolved,
-        );
-        const merged = next as Map<string, string> | null;
-        if (merged) store.setState({ cellErrors: merged });
+        settledVerdicts.push({ rowId, verdict: resolved });
+        if (settledVerdicts.length === 1) queueMicrotask(flushSettledVerdicts);
       },
       (error: unknown) => {
         if (release()) warnGateOnce("validateRow", `validateRow rejected, so the row gets no verdict: ${String(error)}`);

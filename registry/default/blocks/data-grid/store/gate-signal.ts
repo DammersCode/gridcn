@@ -61,6 +61,7 @@ export type GateTrackerHost = {
 
 export function createGateTracker(host: GateTrackerHost): GateTracker {
   const live = new Set<GateRun>();
+  const watchedRuns = new Set<GateRun>();
   const counts = new Map<GateName, number>();
   let unwatch: (() => void) | null = null;
   let watched = 0;
@@ -81,7 +82,10 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
 
   const release = (run: GateRun): void => {
     if (!live.delete(run)) return;
-    if (run.watch) watched--;
+    if (run.watch) {
+      watched--;
+      watchedRuns.delete(run);
+    }
     const count = (counts.get(run.name) ?? 1) - 1;
     const changed = count <= 0;
     if (changed) counts.delete(run.name);
@@ -93,7 +97,7 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
   const watchStore = (): void => {
     if (unwatch) return;
     unwatch = host.subscribe((now, prev) => {
-      for (const run of live) {
+      for (const run of Array.from(watchedRuns)) {
         if (run.watch?.(now, prev)) tracker.abortRun(run);
       }
     });
@@ -108,6 +112,7 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
       counts.set(run.name, count + 1);
       if (run.watch) {
         watched++;
+        watchedRuns.add(run);
         watchStore();
       }
       if (count === 0) publish();

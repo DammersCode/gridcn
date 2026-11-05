@@ -36,6 +36,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree(next)),
     commit: (change: DataChange<unknown>) => act(() => state().actions.commitChange(change)),
     errors: () => Object.fromEntries(state().cellErrors),
+    subscribe: (listener: () => void) => api!.subscribe(listener),
   };
 }
 
@@ -58,7 +59,7 @@ describe("commitChange runs validateRow for imports and app changes", () => {
   });
 
   it("never validates the rows an import deletes", () => {
-    const validateRow = vi.fn(needsAt);
+    const validateRow = vi.fn((row: Row, _rowId: string) => needsAt(row));
     const m = mount({ validateRow });
     m.commit(replaceAll([{ id: "n1", name: "N1", email: "ok@x" }]));
     expect(validateRow.mock.calls.map(([, rowId]) => rowId)).toEqual(["n1"]);
@@ -73,12 +74,34 @@ describe("commitChange runs validateRow for imports and app changes", () => {
     expect(m.errors()).toEqual({});
   });
 
-  it.each(["history", "rollback", "merge", "id-swap", "stream", "edit"] as const)("does not run for source %s", (source) => {
+  it("does not run for a stream change", () => {
     const validateRow = vi.fn(needsAt);
     const m = mount({ validateRow });
     const a = initial()[0]!;
-    m.commit({ source, ops: [{ type: "update", rowId: "a", row: { ...a, name: "A2" }, prev: a }] });
+    m.commit({ source: "stream", ops: [{ type: "update", rowId: "a", row: { ...a, name: "A2" }, prev: a }] });
     expect(validateRow).not.toHaveBeenCalled();
+  });
+
+  it.each(["history", "rollback", "merge"] as const)("re-validates the restored row for source %s, so a stale cross-field error goes", (source) => {
+    const noX = (row: Row) => (row.name === "X" ? { email: "no X" } : null);
+    const m = mount({ validateRow: noX });
+    const a = initial()[0]!;
+    const bad = { ...a, name: "X" };
+    m.commit({ source: "app", ops: [{ type: "update", rowId: "a", row: bad, prev: a }] });
+    expect(m.errors()).toEqual({ "a:email": "no X" });
+    m.commit({ source, ops: [{ type: "update", rowId: "a", row: a, prev: bad, cells: [{ columnId: "name", value: "A", prev: "X" }] }] });
+    expect(m.errors()).toEqual({});
+  });
+
+  it("an undo cancels a pending verdict of the row it restores", async () => {
+    const verdicts = [Promise.resolve({ email: "stale" }), Promise.resolve(null)];
+    const m = mount({ validateRow: (() => verdicts.shift()!) as never });
+    const a = initial()[0]!;
+    const bad = { ...a, name: "X" };
+    m.commit({ source: "app", ops: [{ type: "update", rowId: "a", row: bad, prev: a }] });
+    m.commit({ source: "history", ops: [{ type: "update", rowId: "a", row: a, prev: bad }] });
+    await flush();
+    expect(m.errors()).toEqual({});
   });
 
   it("does nothing on a readOnly grid", () => {
@@ -131,7 +154,7 @@ describe("commitChange runs validateRow for imports and app changes", () => {
     expect(m.errors()).toEqual({ "n1:email": "needs @" });
   });
 
-  it("server pagination: a page of imported rows is validated by its row ids", () => {
+  it("server pagination (a totalRowCount window): an imported page is validated by its row ids", () => {
     const m = mount({ validateRow: needsAt, totalRowCount: 500 });
     m.commit(replaceAll([{ id: "p2-1", name: "P", email: "bad" }]));
     expect(m.errors()).toEqual({ "p2-1:email": "needs @" });
@@ -165,5 +188,20 @@ describe("commitChange runs validateRow for imports and app changes", () => {
     expect(validateRow).toHaveBeenCalledTimes(100_000);
     expect(m.state().cellErrors.size).toBe(100);
     expect(elapsed).toBeLessThan(3000);
+  });
+
+  it("settles an async verdict for each of 20k imported rows without a per-row write", async () => {
+    const m = mount({ validateRow: (row: Row) => Promise.resolve(needsAt(row)) });
+    const rows = Array.from({ length: 20_000 }, (_, i) => ({ id: `n${i}`, name: `N${i}`, email: i % 100 === 0 ? "bad" : "ok@x" }));
+    let writes = 0;
+    const stop = m.subscribe(() => void writes++);
+    const start = performance.now();
+    m.commit(replaceAll(rows));
+    await flush();
+    await flush();
+    stop();
+    expect(m.state().cellErrors.size).toBe(200);
+    expect(performance.now() - start).toBeLessThan(3000);
+    expect(writes).toBeLessThan(20);
   });
 });
