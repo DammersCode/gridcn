@@ -195,7 +195,6 @@
 - types-index | Types and hooks | landing | 200
 - ref-types | Exported types | reference | 600
 - ref-store-hooks | Store hooks | reference | 600
-- hooks-az | Hooks A to Z | cheatsheet | 500 | hooks
 - use-debounce | useDebounce | reference | 300
 - use-debounced-input | useDebouncedInput | reference | 400
 - is-composing-key | isComposingKey | reference | 300
@@ -212,7 +211,7 @@
 ### Rows, pages, and menus
 - options-rows-pages-menus-index | Rows, pages, and menus options | landing | 100
 - options-context-menu | Context menu options | reference | 500
-- options-pagination | Pagination options | reference | 400
+- options-pagination | Client pagination options | reference | 400 | page size options
 - options-pinned-rows | Pinned rows options | reference | 400
 ### Selection and shortcuts
 - options-selection-shortcuts-index | Selection and shortcuts options | landing | 100
@@ -233,6 +232,8 @@
 - cheat-shortcuts | Keyboard shortcuts | cheatsheet | 800
 - cheat-props | Props A to Z | cheatsheet | 1100
 - cheat-events | Events A to Z | cheatsheet | 900
+- hooks-az | Hooks A to Z | cheatsheet | 500 | hooks
+- options-az | Options A to Z | cheatsheet | 600 | add-on options, option names
 - ref-messages | Messages | reference | 1500 | error message, warning, console warning
 @ Examples
 ## Basic examples

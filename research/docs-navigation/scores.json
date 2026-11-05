@@ -590,5 +590,53 @@
    "D8": 8
   },
   "mean": 8.13
+ },
+ {
+  "run": "r15-beginner-a",
+  "persona": "beginner",
+  "navigation": "c19-topics-v4",
+  "mean": 8.94
+ },
+ {
+  "run": "r15-beginner-b",
+  "persona": "beginner",
+  "navigation": "c19-topics-v4",
+  "mean": 8.94
+ },
+ {
+  "run": "r15-senior-a",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "mean": 8.94
+ },
+ {
+  "run": "r15-senior-b",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "mean": 9.06
+ },
+ {
+  "run": "r16-beginner-a",
+  "persona": "beginner",
+  "navigation": "c19-topics-v4",
+  "mean": 8.88
+ },
+ {
+  "run": "r16-senior-a",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "mean": 8.88
+ },
+ {
+  "run": "r17-beginner-a",
+  "persona": "beginner",
+  "navigation": "c19-topics-v4",
+  "mean": 8.75
+ },
+ {
+  "run": "r17-senior-a",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "mean": 8.88
  }
 ]

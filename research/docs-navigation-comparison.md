@@ -42,7 +42,7 @@ the pilot. Rows A and B are the final versions of their lines, scored by one beg
 | Navigation | Beginner | Senior (mean of runs) | Mean |
 |---|---|---|---|
 | Today (100 pages) | 5.13 | 5.19 (two runs) | 5.16 |
-| A: Topics (C19, last polish not re-scored) | 8.81 | 8.63 (8.75 and 8.5) | 8.72 |
+| A: Topics (C19, final, 8 runs on rounds 15 to 17) | 8.88 (4 runs) | 8.94 (4 runs) | 8.91 |
 | B: Tasks (C17) | 8.44 | 8.47 (8.44 and 8.5) | 8.45 |
 | C: Four areas (C10, one earlier version) | not run | 7.63 | 7.63 |
 
@@ -59,7 +59,7 @@ By dimension:
 | First success | 6.5 | 9 | 9 | 9 | 9 |
 | Growth resilience | 4 | 9 | 9 | 8 | 8.25 |
 
-No candidate reaches the owner's mean of 9.0. A reaches 8.72, which is 0.28 short. The reviewers' noise is 0.5 on the mean:
+No candidate reaches the owner's mean of 9.0. A reaches 8.91 over eight runs of the final version (range 8.75 to 9.06; one senior run reached 9.06), which is 0.09 short and inside the 0.5 noise. The reviewers' noise is 0.5 on the mean:
 two senior runs on the same version of A differed by 0.25, and the senior scores of near-identical versions of a line
 differed by 0.5. The gap between A and B (0.27) and the gap between A and 9.0 are inside that noise.
 
@@ -141,7 +141,7 @@ Planned screens use 250 words per screen and ignore code. Today's numbers come f
 
 | Measure | Today | A: Topics | B: Tasks | C: Four areas |
 |---|---|---|---|---|
-| Pages | 100 | 203 | 201 | 183 |
+| Pages | 100 | 225 | 201 | 183 |
 | Sidebar areas | 1 | 6 | 6 | 4 |
 | Groups | 10 | 36 | 36 | 28 |
 | Most rows visible at once | 54 | 16 | 17 | 21 |

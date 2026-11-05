@@ -5,8 +5,8 @@ import { CANDIDATES, loadCandidate } from "./_lib";
 
 const SCORES: Record<string, { beginner: string; senior: string; pros: string; cons: string }> = {
   a: {
-    beginner: "8.81",
-    senior: "8.63",
+    beginner: "8.88",
+    senior: "8.94",
     pros: "Best beginner score of the last two rounds and best senior score of the last round; a feature page keeps concept and examples together; learning path 9.5 with the beginner.",
     cons: "Feature pages run 900 to 1,200 words; several groups sit at 7 pages; server pages stay feature-shaped.",
   },
