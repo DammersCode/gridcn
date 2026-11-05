@@ -1,9 +1,9 @@
 ---
 title: Header filter
-description: Put a value-list filter button in each column header, so users check the values to keep, with counts, a search box, and optional server values.
+description: Put a set filter button in each column header, so users check the values to keep, with counts, a search box, and optional server values.
 icon: Filter
 type: feature
-aliases: ["column filter", "filter by column", "set filter"]
+aliases: ["column filter", "filter by column", "excel filter list"]
 ---
 
 A column header can hold its own filter button. The button opens a popover with a searchable list of the column's values. Users check the values to keep. `DataGridHeaderFilter` is that button. Pass it to the `renderHeaderFilter` slot of `DataGridRoot`.
@@ -66,12 +66,12 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 ## The popover
 
 - The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
-- The popover opens with focus in the search box, which narrows the list. "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text.
+- The popover opens with focus in the search box, which narrows the list. "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. The box is empty when none of those values is checked, indeterminate when some are, and checked when all are.
 - The status line reads "N of M selected" for the values the search shows. Set the text with `labels.toolbar.headerFilterSelectedCount`.
 - The counts include only the rows that pass every other top-level filter. The column's own top-level set filter never hides its own values. A set filter of the column inside a group counts like any other filter.
-- Apply writes `isAnyOf` with the checked values when fewer values are checked than unchecked. It writes `isNoneOf` with the unchecked values when more are checked. On a tie it keeps the operator of the column's current set filter, or `isAnyOf` when there is none. Checking every listed value removes the set filter, apart from values the list does not show.
-- Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list says when the column has some.
-- Apply is disabled while no value is checked, and while the stored list would hold more than 1,000 entries. A message explains the second case.
+- If the user checks fewer values than they leave unchecked, Apply writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. On a tie, it keeps the operator of the column's current set filter, or uses `isAnyOf` if there is none. Checking every listed value removes the set filter, apart from values the list does not show. A value that enters the data later passes `isNoneOf`.
+- Apply <NewBadge /> keeps every other filter. That includes condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line <NewBadge /> under the list tells the user that the column has some.
+- Apply stays off while the user checks no value. If the stored list needs more than 1,000 entries, Apply also stays off, and a message explains why.
 - Clear removes every filter of the column at every level, and removes the groups this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
 
@@ -86,43 +86,47 @@ The filter works in a read-only grid, because filtering writes no data.
 
 To change the first key, bind `openColumnFilter` in the grid's `keymap`. The filter menu uses the same list for `isAnyOf` and `isNoneOf` on a column without `choices`.
 
-## Server values [#server-values]
+## Server values
 
-Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server. The popover calls it when it opens and once for each debounced search. The `isAnyOf` input of the filter menu calls it the same way.
+<NewBadge />
 
-```tsx fragment="props of DataGridProvider"
-<DataGridProvider
-  fetchFilterValues={async ({ columnId, query, signal }) => {
-    const url = `/api/values/${columnId}?q=${encodeURIComponent(query)}`;
-    const response = await fetch(url, { signal });
-    return { values: await response.json() };
-  }}
-  // ...
-/>
+Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server. The popover calls it when it opens and once for each debounced search. The `isAnyOf` input of the filter menu calls it the same way. This function reads the values from an API:
+
+```ts
+import type { FetchFilterValues } from "@/components/data-grid/data-grid";
+
+export const fetchFilterValues: FetchFilterValues = async (ctx) => {
+  const { columnId, query, signal } = ctx;
+  const url = `/api/values/${columnId}?q=${encodeURIComponent(query)}`;
+  const response = await fetch(url, { signal });
+  return { values: await response.json() };
+};
 ```
 
-The function receives `{ columnId, query, filters, signal }`. It returns `{ values: { label: string; count?: number }[] }`.
+Pass it as `fetchFilterValues={fetchFilterValues}` to `DataGridProvider`. The function receives `{ columnId, query, filters, signal }`. It returns `{ values: { label: string; count?: number }[] }`.
+
+{/* props: FetchFilterValuesContext */}
 
 | Field | Meaning |
 |---|---|
 | `columnId` | The column of the popover. |
-| `query` | The text of the search box. The grid does not filter the answer with it. Treat it as untrusted input. |
+| `query` <NewBadge /> | The text of the search box. The grid does not filter the answer with it. Treat it as untrusted input. |
 | `filters` | Every filter except the top-level set filter of this column. Use it to count values over the other filters, or ignore it. |
 | `signal` | Aborts when the search changes, the popover closes, or the grid unmounts. |
 
 The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request, or an answer without a `values` array, shows one error line, and the next open asks again. Set the texts with `labels.toolbar.headerFilterLoading` and `labels.toolbar.headerFilterError`.
 
-A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each label at 1,000 characters, and renders it as text. A list from the server stores the checked values with `isAnyOf`, unless the column already holds one `isNoneOf` entry. Checked values stay checked when a search hides them.
+A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each label at 1,000 characters, and renders it as text. A list from the server stores the checked values with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
 
-## Server mode [#server-mode]
+## Server mode
 
-Without `fetchFilterValues`, the list shows the values of the loaded rows. The popover then shows the hint "From loaded rows" when `sortMode` or `filterMode` is `"server"`, or when the data holds unloaded rows. A value that exists only on the server is missing from the list. Set the text with `labels.toolbar.headerFilterLoadedRowsOnly`.
+Without `fetchFilterValues`, the list shows the values of the loaded rows. The popover then shows the hint "From loaded rows" if `sortMode` or `filterMode` is `"server"`, or if the data holds unloaded rows. A value that exists only on the server is missing from the list. Set the text with `labels.toolbar.headerFilterLoadedRowsOnly`.
 
-The request is `fetchFilterValues`. The response is the values list. The filter itself reaches your server through `onFilterChange` and `request.spec.filters`. See [Filtering](/docs/sort-filter-search/filtering#server-mode).
+The request is `fetchFilterValues`. The answer is the set values. The filter itself reaches your server through `onFilterChange` and `request.spec.filters`. See [Filtering](/docs/sort-filter-search/filtering#server-mode).
 
 ## Related
 
 - [Filtering](/docs/sort-filter-search/filtering): operators, groups, and the filter menu
 - [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options): the full prop list
-- [Server rows contract](/docs/contracts/server-rows-contract): the request and response shapes
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and answer shapes
 - [Column headers and groups](/docs/columns/column-headers-groups): the header slots

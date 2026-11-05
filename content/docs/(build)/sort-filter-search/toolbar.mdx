@@ -12,9 +12,9 @@ aliases: ["toolbar slots", "button bar"]
 
 <InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
 
-## Wiring [#wiring]
+## Wiring
 
-The toolbar sits between the provider and the root, so it needs the split form of the grid: `DataGridProvider`, `DataGridRoot`, `DataGridHeader`, and `DataGridBody`. A single `<DataGrid>` has no slot for it:
+The toolbar sits between the provider and the root. The `<DataGrid>` wrapper renders its children inside the root, so the toolbar needs the split form of the grid:
 
 ```tsx
 "use client";
@@ -63,7 +63,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 
 `DataGridToolbar` takes `className` and `children`. It carries the `data-grid-toolbar` attribute, which scopes the search shortcut to the grid.
 
-## The pieces [#the-pieces]
+## The pieces
 
 - `DataGridSearch` is the quick-search input with match navigation. See [Quick search](/docs/sort-filter-search/quick-search).
 - `DataGridFilterMenu` is the filter popover. See [Filtering](/docs/sort-filter-search/filtering#filter-menu).
@@ -73,7 +73,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 
 The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns too. The demo above lists a hidden column in the sort list this way. It also passes `operatorsForColumn` to the filter menu, which limits the Name column to `equals` and `notEquals`.
 
-## Toolbar order [#toolbar-order]
+## Toolbar order
 
 The convention is search first, because users look for data before they shape it. Then come the filter menu and the sort list, which change the rows. Then comes the columns menu. Import and export buttons follow, import first. Your own buttons come last.
 

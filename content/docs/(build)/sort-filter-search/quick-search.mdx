@@ -1,10 +1,110 @@
 ---
 title: Quick search
-description: Quick search.
+description: Add a search box that highlights matching cells, jumps between them, and never hides rows.
+icon: Search
 type: feature
-aliases: ["search box"]
+aliases: ["search box", "find in grid", "highlight matches"]
 ---
 
-{/* docs-stub */}
+Users type a word and the grid highlights every cell that holds it. `DataGridSearch` is the input. It counts the matches, and it moves the active cell from match to match. Search never hides rows. A [filter](/docs/sort-filter-search/filtering) hides rows.
 
-This page is being written.
+<ComponentPreview name="data-grid-sorting-filtering-demo" />
+
+`DataGridSearch` comes with the [toolbar add-on](/docs/sort-filter-search/toolbar). Put it first in the toolbar:
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+type Person = { id: string; name: string; city: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "city", header: "City", accessorKey: "city" },
+]);
+
+export function PeopleGrid({ rows }: { rows: Person[] }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      defaultSearchText="ams"
+    >
+      <DataGridToolbar>
+        <DataGridSearch placeholder="Find a person" />
+      </DataGridToolbar>
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## What search matches [#search]
+
+The search is a literal text match that ignores case by default. It ignores spaces at both ends of the text. It reads the visible columns of the rows in the current view. A filtered-out row is not searched.
+
+The search reads each cell as its search text. That is the `toSearchText` of its cell type, or else its `toText`. A column without a registered `type` matches its raw value as text. The built-in `select` type declares `toSearchText`, so a `select` column matches the choice label. Its filters match the stored value.
+
+`actions.setSearch(text, { matchCase, wholeCell })` sets the search options. `matchCase` respects letter case. `wholeCell` matches only cells that equal the text. Both default to `false` and stay set across later searches. The [find and replace](/docs/sort-filter-search/find-replace) panel sets them.
+
+Search keeps at most 1,000 matches. Past that cap the counter reads the current match and `1000+`, for example `3/1000+`. Set that text with `labels.toolbar.searchMatchesCapped`.
+
+## Navigate matches
+
+The counter shows `current/total`, and `0/0` when nothing matches. The next and previous buttons wrap around. A jump moves the active cell to the match and scrolls it into view.
+
+| Key | Action |
+|---|---|
+| <kbd>Enter</kbd> | Goes to the next match. When typed text is still waiting, it commits the text and goes to the first match. |
+| <kbd>Shift</kbd>+<kbd>Enter</kbd> | Goes to the previous match. |
+| <kbd>Escape</kbd> | Clears the text and the search. |
+| <kbd>Mod</kbd>+<kbd>F</kbd> | Focuses the input, or selects its text when it has focus. |
+
+<kbd>Mod</kbd>+<kbd>F</kbd> works while focus is inside the grid or its toolbar. Anywhere else on the page, the browser's own find opens. Several grids on one page each take the key when they hold focus. When a toolbar you build yourself carries the `data-grid-toolbar` attribute and contains the `DataGridSearch`, it counts as part of the grid. Native find cannot see rows that virtualization has not rendered, so the grid takes the key. To keep the browser's find in the grid, pass `captureFindShortcut={false}` to `DataGridSearch`.
+
+With the find and replace add-on mounted, <kbd>Mod</kbd>+<kbd>F</kbd> in the grid opens its panel instead. Both show the same search text.
+
+## Typing delay
+
+The input waits `inputDebounceMs` <NewBadge /> after the last keystroke before it searches. The provider prop defaults to 200. `0` searches on each keystroke. The wait also applies to the filter value inputs, the header filter search, and the find and replace field. `debounceMs` on `DataGridSearch` overrides it for one box.
+
+Typed text <NewBadge /> is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is still waiting. While an IME composes, nothing commits. The composed text commits when the composition ends. See [useDebouncedInput](/docs/types-hooks/use-debounced-input).
+
+{/* props: DataGridSearchProps */}
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `placeholder` | `string` | none | Placeholder text. The default comes from `labels.toolbar.searchPlaceholder`. |
+| `debounceMs` | `number` | none | Typing delay in ms. The default is the provider's `inputDebounceMs`. |
+| `captureFindShortcut` | `boolean` | `true` | Takes <kbd>Mod</kbd>+<kbd>F</kbd> while focus is in the grid. |
+| `className` | `string` | none | Classes for the root. |
+
+`defaultSearchText` seeds the text once. `searchText` and `onSearchTextChange(next)` control it.
+
+## Server mode
+
+Search has no server mode. It highlights and navigates the rows the grid holds, in every data mode. In scroll mode, rows that are not loaded yet are not searched. `sortMode` and `filterMode` do not change this.
+
+`useDataGridServerRows` puts the search text in each request as `request.spec.searchText`. Your server can narrow the rows by it. The grid still only highlights the rows that come back.
+
+## Related
+
+- [Toolbar](/docs/sort-filter-search/toolbar): where the input sits
+- [Find and replace](/docs/sort-filter-search/find-replace): search with replace
+- [Filtering](/docs/sort-filter-search/filtering): hide rows by value
+- [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options): the full prop list

@@ -3,18 +3,18 @@ title: "Sorting"
 description: "Order rows by one or more columns from the headers or from a toolbar sort list, and hand the sort to your server in server mode."
 icon: ListOrdered
 type: feature
-aliases: ["sort list", "multi sort", "order rows"]
+aliases: ["sort list", "multi sort", "multi-column sort", "sort by column"]
 ---
 
-Users order rows by one column or by several. Every grid sorts its `data` by `sortState`. A header click sets that state when `headerClickBehavior="sort"`. The `data-grid-sort-list` add-on adds a toolbar button with a popover that adds, removes, and reorders sorts without the headers.
+Users order rows by one column or by several. Every grid sorts its `data` by `sortState`. With `headerClickBehavior="sort"`, a header click sets that state. The `data-grid-sort-list` add-on adds a toolbar button with a popover that adds, removes, and reorders sorts without the headers.
 
 <ComponentPreview name="data-grid-sort-list-demo" />
 
 <InstallCommand item="data-grid-sort-list" manual manualSlot={<ManualInstall item="data-grid-sort-list" />} />
 
-## Sort from the headers [#sorting]
+The sample below also uses `DataGridToolbar`. Install the [toolbar add-on](/docs/sort-filter-search/toolbar) as well.
 
-The default `headerClickBehavior` is `"select"`, so a header click selects the column. With `"sort"`, a plain click cycles the column through ascending, descending, and no sort. <kbd>Shift</kbd>+click adds the column to the sort and cycles it in place on the next click. A new column joins at the end, so the first sort stays primary.
+This grid sorts from the headers, from the sort list, and from a seeded sort:
 
 ```tsx
 "use client";
@@ -26,6 +26,8 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
+import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
 
 type Person = { id: string; name: string; age: number };
 
@@ -41,7 +43,11 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
       columns={columns}
       getRowId={(row) => row.id}
       headerClickBehavior="sort"
+      defaultSortState={[{ columnId: "age", direction: "desc" }]}
     >
+      <DataGridToolbar>
+        <DataGridSortList />
+      </DataGridToolbar>
       <DataGridRoot className="h-96">
         <DataGridHeader />
         <DataGridBody />
@@ -51,36 +57,33 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 }
 ```
 
-A sort arrow shows on string headers in `"sort"` mode. In the default mode, a sort that comes from the sort list or the URL reorders rows without an arrow. Set `headerClickBehavior="sort"` to show it.
+## Sort from the headers [#sorting]
+
+The default `headerClickBehavior` is `"select"`, so a header click selects the column. With `"sort"`, a plain click cycles the column: ascending first, then descending, then no sort. <kbd>Shift</kbd>+click adds the column to the sort. A new column joins at the end, so the first sort stays primary. Another <kbd>Shift</kbd>+click cycles that column in place.
+
+In `"sort"` mode, a string header shows a sort arrow. In the default mode, a sort from the sort list or the URL reorders rows without an arrow. To show the arrow, set `headerClickBehavior="sort"`.
 
 `sortable: false` on a column removes it from the header click and from the sort list. Code can still sort it with `actions.setSorts()`. Read the sorts with `useDataGridSortState()`.
 
-## Sort order [#sort-order]
+## Sort order
 
-The first sort is primary. Each later sort only orders rows that the earlier sorts leave tied. Rows that tie on every sort keep their original order.
+The first sort is primary. Each later sort orders only the rows that the earlier sorts leave tied. Rows that tie on every sort keep their original order.
 
 A column compares two rows with the first of these that applies:
 
 1. The column `sortCompare(rowA, rowB)`. A result of `0`, `NaN`, or a thrown error passes the pair to the text compare.
-2. The `compare` of the column's declared cell type. Numbers sort by value, dates by time, and `select` columns by choice label.
-3. A text compare that is case-insensitive and reads digit runs as numbers, so `item2` comes before `item10`. A column without a `type` uses it.
+2. The `compare` of the column's declared cell type. Numbers sort by value, dates in date order, and `select` columns by choice label. A `text` column compares with the locale order, so `item10` comes before `item2`.
+3. A text compare that ignores case and reads digit runs as numbers, so `item2` comes before `item10`. A column without a `type` uses it.
+
+For numbers, set `type: "number"`. The text compare reads `1.5` as 1 and 5, and it puts negative numbers backwards.
 
 The direction applies to all three. Empty cells sort last in both directions.
 
-## Sort list [#sort-list]
+## Sort list
 
-Put `DataGridSortList` in a `DataGridToolbar`. The button shows a count badge when a sort is active. Each row of the popover has a column select, a direction select, a remove button, and a drag handle. A column is offered once, and `sortable: false` columns are not offered. The popover also has "Add sort" and "Clear all" buttons.
+`DataGridSortList` belongs in a `DataGridToolbar`. The button shows a count badge once a sort is active. Each row of the popover has a column select, a direction select, a remove button, and a drag handle. A column appears in one row only, and `sortable: false` columns do not appear. The popover also has "Add sort" and "Clear all" buttons.
 
-```tsx fragment="toolbar inside the provider of the first sample"
-import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
-import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
-
-<DataGridToolbar>
-  <DataGridSortList />
-</DataGridToolbar>;
-```
-
-The list reads and writes the same state as the headers, so both stay in step. The order of rows in the list is the sort precedence.
+The list reads and writes the same state as the headers, so both stay in step. The order of the rows is the sort precedence.
 
 {/* props: DataGridSortListProps */}
 
@@ -89,30 +92,25 @@ The list reads and writes the same state as the headers, so both stay in step. T
 | `allColumns` | `boolean` | `false` | Offers hidden columns too. |
 | `className` | `string` | none | Classes for the button. |
 
+### Keyboard & accessibility
+
 | Key | Action |
 |---|---|
 | <kbd>Tab</kbd> | Moves through a row: column select, direction select, remove button, drag handle. |
 | <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> on the drag handle | Moves the sort one place and keeps focus on the handle. |
 | <kbd>Backspace</kbd> / <kbd>Delete</kbd> on the drag handle | Removes the sort. Focus moves to the next row's handle, then the previous one, then "Add sort". |
 
-Each move announces the new place through a polite live region. The text comes from `labels.sort.sortReorderAnnouncement`.
+Each move announces the new place through a polite live region. Set the text with `labels.sort.sortReorderAnnouncement`.
 
 ## Controlled and initial sort
 
-`defaultSortState` seeds the sort once. Later changes to it are ignored. `sortState` makes the prop the source of truth. `onSortChange(next)` fires on every user change in both cases. A controlled grid reorders rows only when the `sortState` prop changes.
+`defaultSortState` seeds the sort once, and later changes to it have no effect. `sortState` makes the prop the source of truth. `onSortChange(next)` fires on every user change in both cases. A controlled grid reorders its rows only after the `sortState` prop changes.
 
-```tsx fragment="props of DataGridProvider"
-<DataGridProvider
-  defaultSortState={[{ columnId: "age", direction: "desc" }]}
-  // ...
-/>
-```
+## Server mode
 
-## Server mode [#server-mode]
+If your server orders the rows, set `sortMode="server"`. The grid tracks the sort spec and never reorders `data`. The header cycle, `aria-sort`, the sort arrow, the sort list, and `onSortChange` all work as in client mode.
 
-Set `sortMode="server"` when your server orders the rows. The grid tracks the sort spec and never reorders `data`. The header cycle, `aria-sort`, the sort arrow, the sort list, and `onSortChange` all work as in client mode.
-
-The request is the `SortSpec[]` that `onSortChange` receives. The response is the rows, already in that order.
+The request is the `SortSpec[]` that `onSortChange` receives. The answer is the rows, already in that order.
 
 `useDataGridServerRows` sets `sortMode`, `filterMode`, and the controlled sort for you. It passes each fetch the spec as `request.spec.sorts`. Make that order total, because the hook keeps only the first row of a repeated row id. See [Query server rows](/docs/data-modes/query-server-rows) for the full flow.
 
