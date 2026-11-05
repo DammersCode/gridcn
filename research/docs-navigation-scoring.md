@@ -75,8 +75,8 @@ validation report. Reviewers record directness (does the first click lead toward
 
 1. Generate the page data: `node scripts/docs-nav-audit.mjs --json` for the current docs. A candidate navigation is a
    text file. A `@ Area` line is a tab. A `## Group` line is a folder (`{az}` marks a generated A to Z list). A
-   `### Subgroup` line is a third-level folder (`{open}` keeps it open). A `- slug | title | type | planned words` line is a
-   page. A `<< file` line includes another file, and `//` starts a comment. The first page of a group is its landing.
+   `### Subgroup` line is a third-level folder (`{open}` keeps it open). A `- slug | title | type | planned words | aliases | planned code lines` line is a
+   page (the last two columns are optional). A `<< file` line includes another file, and `//` starts a comment. The first page of a group is its landing.
    `node scripts/docs-nav-audit.mjs --candidate <file>` checks the structure rules.
 2. Give each reviewer: this file, the ruleset, the sitemap, the audit numbers, and read access to the pages it names.
    A reviewer scores one persona. Use the strongest available model at high effort, one fresh agent per persona, no shared

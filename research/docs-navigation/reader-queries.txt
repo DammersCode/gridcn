@@ -3,11 +3,12 @@ frozen columns | column-order-pin
 sticky columns | column-order-pin
 pin columns left | column-order-pin
 freeze rows | pinned-rows
-sticky header row | pinned-rows
 infinite scroll | scroll-usage
 lazy loading rows | scroll-usage
 load more rows | scroll-usage
 server side pagination | pagination
+client side pagination | pagination-client
+paging | pagination-client
 server side sorting | server-sort-filter
 export to excel | export
 export csv | export
@@ -49,3 +50,15 @@ upgrade to a new version | upgrade
 error message | ref-messages
 saved edit was refused | server-conflicts
 which props exist | cheat-props
+make a column editable | edit-activation
+what does view index mean | terms
+editable grid example | ex-editable
+quick start | first-grid
+optimistic update | server-round-trip
+rollback | server-round-trip
+conflict | server-conflicts
+master detail | detail-panel
+write a plugin | plugins-example
+custom cell type | custom-cell-example
+remap shortcuts | keybindings
+sum of selected cells | status-bar

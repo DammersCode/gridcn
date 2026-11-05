@@ -209,8 +209,8 @@ function parseCandidate(file) {
       area.groups.push(group);
       sub = null;
     } else if (line.startsWith("- ")) {
-      const [slug, title, type, words, aliases = ""] = line.slice(2).split("|").map((x) => x.trim());
-      (sub ?? group).pages.push({ slug, title, type, words: Number(words) || 0, aliases: aliases.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean) });
+      const [slug, title, type, words, aliases = "", code = ""] = line.slice(2).split("|").map((x) => x.trim());
+      (sub ?? group).pages.push({ slug, title, type, code: Number(code) || 0, words: Number(words) || 0, aliases: aliases.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean) });
     }
   }
   return areas;
@@ -221,6 +221,7 @@ function checkCandidate(file) {
   const areas = parseCandidate(file);
   const titles = new Map();
   const allUrls = new Set();
+  const aliasOwner = new Map();
   const fail = (rule, msg) => out.push(`FAIL ${rule} ${msg}`);
   const warn = (rule, msg) => out.push(`warn ${rule} ${msg}`);
   const checkGroupSize = (label, list, isSub) => {
@@ -246,7 +247,7 @@ function checkCandidate(file) {
       for (const x of g.subs) checkGroupSize(x.name, x.pages, true);
       if (g.pages[0]?.type !== "landing") fail("S7", `group "${g.name}" in "${a.name}" has no landing first`);
       for (const x of g.subs) if (x.pages[0]?.type !== "landing") warn("S7", `subgroup "${x.name}" has no landing first`);
-      if (g.subs.length && !/reference|recipes|examples/i.test(g.name)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
+      if (g.subs.length && !/reference|recipes|examples/i.test(`${a.name} ${g.name}`)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
       if (/^(architecture|advanced|misc|other|utilities)$/i.test(g.name)) fail("S13", `group "${g.name}"`);
       if (g.name.split(/\s+/).length > 4) warn("N1", `group label "${g.name}" has more than 4 words`);
       if (all.length < 2) fail("S15", `group "${g.name}" has fewer than 2 pages`);
@@ -263,6 +264,14 @@ function checkCandidate(file) {
         if (!b) fail("N6", `${p.slug} has unknown type "${p.type}"`);
         else if (p.words > b.hard) fail("P1", `${p.slug} planned ${p.words}w > ${b.hard}`);
         else if (p.words > b.target[1]) warn("P1", `${p.slug} planned ${p.words}w above target ${b.target[1]}`);
+        if (b && p.code) {
+          const planned = p.words / SCREEN_WORDS + p.code / SCREEN_CODE_LINES;
+          if (planned > b.screens) fail("P1", `${p.slug} plans ${planned.toFixed(1)} screens with ${p.code} code lines (cap ${b.screens})`);
+        }
+        for (const alias of p.aliases) {
+          if (aliasOwner.has(alias)) fail("A11", `alias "${alias}" belongs to ${aliasOwner.get(alias)} and ${p.slug}`);
+          aliasOwner.set(alias, p.slug);
+        }
         if (p.title.length > 60) fail("N1", `${p.slug} title too long`);
         if (p.title.split(/\s+/).length > 4 && p.type !== "example") warn("N1", `${p.slug} title "${p.title}" has more than 4 words`);
         const urlSlug = kebab(p.title).split("-").filter((w) => !STOP.has(w)).slice(0, 4).join("-");

@@ -104,7 +104,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   before the page lands.
 - S15. A group has at least 2 pages.
 - S16. A new feature changes at most 3 hand-written places: its page, its options section, and its example page.
-  Everything else is generated: the group landing lists (from page descriptions), the task finder entries (from the `finder`
+  A server mode adds one Server page and one row in the data modes matrix. Everything else is generated: the group landing lists (from page descriptions), the task finder entries (from the `finder`
   frontmatter line), the Terms alias table, the feature matrix, the cheatsheets, the sidebar, and the model index (A12).
 
 ## 4. Naming rules (N)
@@ -152,8 +152,8 @@ Every page has exactly one type. The type decides the budget and the template. A
   button with `aria-expanded`); sidebar links at least 24 by 24 CSS px; no horizontal page scroll at 320 CSS px (code
   blocks and data tables excepted); the same sidebar order on every page of an area; at 375 px the area switcher reachable in
   one tap and the menu control labelled with text.
-- A11. Search finds the reader's word. A Feature or Task page may list `aliases` in frontmatter, such as "frozen" or
-  "infinite scroll". Aliases enter the search index. A list of reader queries (`research/docs-navigation/reader-queries.txt`,
+- A11. Search finds the reader's word. Any page may list `aliases` in frontmatter, such as "frozen" or "infinite scroll".
+  An alias has one owner page. Aliases enter the search index. A list of reader queries (`research/docs-navigation/reader-queries.txt`,
   at least 30 lines) names for each query the page that must answer it. The built search index returns that page in the
   first 3 results. The Terms page lists every alias with the page that owns it (generated). A search with no result links the task finder
   and the Terms page.
@@ -170,8 +170,8 @@ Every page has exactly one type. The type decides the budget and the template. A
 ## 6. Where a new page goes
 
 This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
-page. A page may still land until the group reaches 12 pages. Build holds 10 groups, which is the cap (S2): the next new group
-splits the Build area first.
+page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 8, so each area has room for one
+new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |
 |---|---|---|
