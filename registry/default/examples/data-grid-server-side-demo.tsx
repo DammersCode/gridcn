@@ -57,7 +57,7 @@ export default function DataGridServerSideDemo(): ReactNode {
   const push = { live, reshapeDelay: reshapeDelay === "off" ? undefined : Number(reshapeDelay) };
   return (
     <div className="w-full flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant={mode === "pages" ? "default" : "outline"} aria-pressed={mode === "pages"} onClick={() => setMode("pages")}>
           Pages
         </Button>
