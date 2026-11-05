@@ -1,4 +1,5 @@
 // C19: topic-first, final. Column 5 (optional) lists the aliases a reader may type; the Terms page lists them.
+// C19 (round 16): option subgroups have generated landings, one both-mode cache page, planned growth named.
 // C19 (round 15): flat Contracts group, Plugins group back, concepts together, steps named plan, titles distinct.
 // C19 (round 14): one Contracts group with subgroups, code budgets on heavy pages.
 // C19 (round 13): custom code path, one sort-and-filter server page, options grouped by Build topic, cell type group.
@@ -107,6 +108,7 @@
 ## Data modes
 - server-index | Data modes | landing | 350
 - data-modes | Features by data mode | reference | 900
+- scroll-fetch-libs | Fetch with a cache | task | 800 | react query, swr, tanstack query | 50
 - server-sort-filter | Query server rows | task | 800 | server side sorting, server sort, server filter, server search, searchtext, sortmode
 - server-troubleshooting | Troubleshoot server data | task | 800
 ## Pages mode
@@ -116,7 +118,6 @@
 ## Scroll mode
 - scroll-index | Scroll mode | landing | 300
 - scroll-usage | Load rows while scrolling | task | 700 | infinite scroll, load more, lazy loading rows | 40
-- scroll-fetch-libs | Fetch with a cache | task | 800 | react query, swr, tanstack query | 50
 - scroll-no-total | Load without row count | task | 350
 - scroll-errors | Recover from load errors | task | 500
 - scroll-retention | Tune row retention | task | 350
@@ -137,7 +138,7 @@
 @ Evaluate
 ## Fit and features
 - evaluate-index | Fit and features | landing | 300
-- feature-matrix | Feature matrix | cheatsheet | 900
+- feature-matrix | Feature matrix | cheatsheet | 900 | row grouping, tree data, aggregation
 ## Performance
 - performance | Performance | landing | 350
 - benchmark-results | Benchmark results | reference | 900 | how fast, performance numbers, speed
@@ -201,22 +202,28 @@
 ## Add-on options
 - options-index | Add-on options | landing | 300
 ### Clipboard and undo
+- options-clipboard-undo-index | Clipboard and undo options | landing | 100
 - options-fill | Fill handle options | reference | 400
 - options-undo-redo | Undo and redo options | reference | 500
 ### Import and export
+- options-import-export-index | Import and export options | landing | 100
 - options-export | Export options | reference | 600
 - options-import | Import options | reference | 700
-### Rows, pages, and menus
+### Rows and pages
+- options-rows-pages-menus-index | Rows and pages options | landing | 100
 - options-context-menu | Context menu options | reference | 500
 - options-pagination | Pagination options | reference | 400
 - options-pinned-rows | Pinned rows options | reference | 400
 ### Selection and shortcuts
+- options-selection-shortcuts-index | Selection and shortcuts options | landing | 100
 - options-keybindings | Shortcut remapping options | reference | 500
 - options-status-bar | Status bar options | reference | 400
 ### Server
+- options-server-index | Server options | landing | 100
 - options-presence | Presence options | reference | 600
 - options-server-rows | Server rows options | reference | 500 | blocksize, scroll mode options
-### Sort, filter, and search
+### Sort and search
+- options-sort-filter-search-index | Sort and search options | landing | 100
 - options-find | Find and replace options | reference | 500
 - options-sort-list | Sort list options | reference | 300
 - options-toolbar | Toolbar options | reference | 600

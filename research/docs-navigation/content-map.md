@@ -143,6 +143,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | upgrade | `installation` (Pinned installs) | merge |
 | install-problems | `installation` (Alternative: GitHub registry, Framework notes, Non-default aliases, Tooltips, Where files land) | split |
 
+| scroll-fetch-libs | `lazy-loading-advanced` (Wiring a fetch/cache library), `recipes/data-fetching/tanstack-query`, `examples/data/lazy/*` and `examples/data/pagination/*` (the library variants) | move; works in both modes |
+
 ## Fact owners (P6)
 
 | Fact | Owner page |
@@ -155,3 +157,4 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | Row ceiling | Row limits (`row-limits`) |
 | Term definitions | Terms (`terms`); the State and view index page links it |
 | Commit and validation timing | Edit and validation events (`ev-edit`); the Validation page links it |
+| Undo with a live feed | Undo with server data (`server-undo`); Stream updates links it |

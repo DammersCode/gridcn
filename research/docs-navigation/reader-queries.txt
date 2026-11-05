@@ -52,7 +52,7 @@ error message | ref-messages
 saved edit was refused | server-conflicts
 which props exist | cheat-props
 make a column editable | edit-activation
-what does view index mean | terms
+what does view index mean | grid-state-model
 editable grid example | ex-editable
 quick start | first-grid
 optimistic update | server-round-trip

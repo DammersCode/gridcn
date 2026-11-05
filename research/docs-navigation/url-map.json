@@ -720,7 +720,7 @@
    "scroll-fetch-libs",
    "scroll-errors"
   ],
-  "target": "/docs/scroll-mode/fetch-cache",
+  "target": "/docs/data-modes/fetch-cache",
   "split": true
  },
  {
@@ -860,7 +860,7 @@
   "slugs": [
    "scroll-fetch-libs"
   ],
-  "target": "/docs/scroll-mode/fetch-cache",
+  "target": "/docs/data-modes/fetch-cache",
   "split": false
  },
  {

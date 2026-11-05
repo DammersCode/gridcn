@@ -188,6 +188,15 @@ new group before the cap (S2).
 | Library message | none: the Messages page is generated from the source | Messages page, index entry |
 | Breaking change | A section in the upgrade page and a line in the version policy and changelog page | |
 
+## 6a. Planned growth
+
+| Planned feature | Home |
+|---|---|
+| Row grouping and tree data | A new Build group "Grouped rows" (Build then holds 10 groups, the cap). When it lands, the Build area splits (S2) |
+| Master detail | A recipe in Build > Recipes and custom code |
+| Variable row heights | A section in Build > Columns and an options section |
+| Server pivot and aggregates | A page in Server > Data modes and a row in the data modes matrix |
+
 ## 7. Limits that need an owner decision
 
 The table of limits in the validation report lists which numbers are supported, observed, or guessed. No limit is wrong. The
