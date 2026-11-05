@@ -40,10 +40,11 @@ const checks = {
   audit: runAudit,
 };
 
+const pageUrl = (file) => `/docs/${file.replace(/^content\/docs\//, "").replace(/\.mdx$/, "").replace(/\/index$/, "")}`;
 const results = [];
 for (const name of only) {
   const result = await checks[name]();
-  if (files) result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file)) || (name === "demos" && !f.startsWith("content/docs/")));
+  if (files) result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || (name === "demos" && !f.startsWith("content/docs/")));
   results.push(result);
 }
 

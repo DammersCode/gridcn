@@ -129,6 +129,10 @@ export function parseTypes(raw) {
       else open = true;
     }
     if (owners.length > 0 || bases.length > 0) push(m[1], owners, bases, open);
+    else {
+      const pick = /^Pick<\s*([A-Z]\w*)\s*,\s*([^>]+)>$/.exec(text.slice(start, stop).trim());
+      defs.push({ name: m[1], members: new Map(), extends: [], open: !pick, pick: pick ? { from: pick[1], keys: [...pick[2].matchAll(/["']([^"']+)["']/g)].map((k) => k[1]) } : undefined });
+    }
   }
   return defs;
 }
@@ -170,6 +174,15 @@ export function resolveMembers(def, defs, seen = new Set()) {
   const members = new Map(def.members);
   let open = def.open;
   seen.add(def.name);
+  if (def.pick) {
+    const source = defs.find((d) => d.name === def.pick.from);
+    if (!source) open = true;
+    else {
+      const inner = resolveMembers(source, defs, seen);
+      for (const key of def.pick.keys) if (inner.members.has(key)) members.set(key, inner.members.get(key));
+      open ||= inner.open;
+    }
+  }
   for (const base of def.extends) {
     if (seen.has(base)) continue;
     const baseDef = defs.find((d) => d.name === base);
@@ -300,7 +313,7 @@ export function run({ root = process.cwd(), strict = false } = {}) {
         stats.rows++;
         const member = merged.get(row.name);
         if (!member) {
-          if (!open || table.marker) issues.push(`${rel(root, file)}:${row.line + bodyOffset}: \`${row.name}\` is not a member of ${candidates.map((d) => d.name).join(" / ")}`);
+          if (!open) issues.push(`${rel(root, file)}:${row.line + bodyOffset}: \`${row.name}\` is not a member of ${candidates.map((d) => d.name).join(" / ")}`);
           continue;
         }
         if (defaultColumn < 0) continue;

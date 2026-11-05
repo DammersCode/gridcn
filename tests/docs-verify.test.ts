@@ -194,6 +194,23 @@ describe("verify-docs-prose", () => {
     expect(rules(`${Array.from({ length: 14 }, () => "One two three four five six seven eight.").join(" ")}`)).toContain("long-paragraph");
   });
 
+  it("flags a code line over 80 characters but not a long import", () => {
+    const long = "x".repeat(90);
+    expect(rules(`Run it:
+
+\\n`)).toContain("long-code-line");
+    expect(rules(`Run it:
+
+\\n`)).not.toContain("long-code-line");
+  });
+
+  it("flags a code line over 80 characters but not a long import", () => {
+    const long = "x".repeat(90);
+    const fence = "```";
+    expect(rules(`Run it:\n\n${fence}ts\nconst a = "${long}";\n${fence}\n`)).toContain("long-code-line");
+    expect(rules(`Run it:\n\n${fence}ts\nimport { a } from "${long}";\n${fence}\n`)).not.toContain("long-code-line");
+  });
+
   it("accepts short active sentences and skips code, tables, and lint-ok paragraphs", () => {
     expect(rules("Set `rowHeight` to a number:\n\n```ts\nconst should = 1;\n```\n\n| a | b |\n|---|---|\n| should | may |\n")).toEqual([]);
     expect(rules("{/* lint-ok: quoted API text */}\nIt may fail.\n")).toEqual([]);

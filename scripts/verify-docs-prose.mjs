@@ -92,6 +92,7 @@ export function lintPage(body) {
   }
   for (const block of codeBlocks(body)) {
     block.code.split("\n").forEach((line, i) => {
+      if (line.length > 80 && !/^\s*(?:import|\/\/)/.test(line)) hits.push({ rule: "long-code-line", line: block.line + i, soft: false, note: `${line.length} characters, limit 80` });
       if (/(^|[\s({[,])\.\.\.(?=[\s)}\],;]|$)/.test(line)) hits.push({ rule: "omission-dots", line: block.line + i, soft: false, note: "mark an omission with a comment, not ..." });
     });
     const before = lines.slice(0, block.line - 2).reverse().find((l) => l.trim() !== "");

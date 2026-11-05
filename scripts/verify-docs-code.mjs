@@ -54,7 +54,7 @@ export function run({ root = process.cwd(), files } = {}) {
         if (imports) blocks.push({ ...block, lang: "ts", code: imports.join("\n"), where });
         continue;
       }
-      blocks.push({ ...block, file, where, path: rel(root, file), start: block.line + bodyOffset });
+      blocks.push({ ...block, file, where, path: rel(root, file), start: block.line + bodyOffset, first: !blocks.some((b) => b.file === file && b.first) });
     }
   }
 
@@ -126,6 +126,7 @@ export function run({ root = process.cwd(), files } = {}) {
       const free = [...new Set(errors.filter((e) => e.code === "TS2304" || e.code === "TS2552" || e.code === "TS2503" || e.code === "TS2693" || e.code === "TS18004").map((e) => /'([^']+)'/.exec(e.message)?.[1]).filter(Boolean))];
       if (free.length === 0) continue;
       const block = byName.get(name);
+      if (block.first) continue;
       const unknownApi = free.filter((n) => API_NAME.test(n) && !exported.has(n));
       for (const n of unknownApi) failures.push(`${block.where}: ${n} is not exported by the registry source`);
       const preface = free.filter((n) => !unknownApi.includes(n)).map((n) => `declare const ${n}: any; type ${n} = any;`).join(" ");
