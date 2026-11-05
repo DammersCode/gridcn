@@ -65,6 +65,9 @@ function createBackend() {
       const index = rows.findIndex((row) => row.id === id);
       if (index >= 0) rows.splice(index, 1);
     },
+    removeEveryCopy: (id: string) => {
+      for (let index = rows.length - 1; index >= 0; index--) if (rows[index]!.id === id) rows.splice(index, 1);
+    },
     remove: (index: number) => rows.length > 20 && rows.splice(index % rows.length, 1),
     bump: (index: number) => {
       const row = rows[index % rows.length];
@@ -92,6 +95,8 @@ type Request = {
   pushed: Map<string, string>;
   /** A push delete shifted the server positions after this request left: its slots mix with the shifted rows. */
   shifted: boolean;
+  /** The row count its answer carries; a counted source starts over when it differs from the count it holds. */
+  total?: number;
   signal: AbortSignal;
   rows: Row[];
   start: number;
@@ -159,7 +164,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     return new Promise((resolve, reject) => {
       const mapped = rows.map(backend.toRow);
-      open({ signal: request.signal, rows: mapped, start, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
+      open({ signal: request.signal, rows: mapped, start, total: kind === "counted" ? all.length : undefined, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
     });
   };
 
@@ -267,6 +272,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     if (state().editing) mustKeep.add(state().editing!.rowId);
     const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
     const soleRequest = live().length === 0 && (kind !== "pages" || shownLabel === request.label);
+    const countChanged = request.total !== undefined && request.total !== scroll.totalRowCount;
     const slotsExact = (kind === "counted" || (kind === "pages" && gone.size === 0 && !variant.repeatRows)) && !variant.indexIds;
     request.land();
     await flush();
@@ -276,7 +282,6 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {
       const slot = kind === "pages" ? i : request.start + i;
-      if (request.shifted && !gone.has(carried.id)) return;
       const copies = copiesOf(post, carried.id);
       if (gone.has(carried.id)) {
         expect(copies.length, `deleted ${carried.id} came back`).toBe(0);
@@ -295,8 +300,10 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         expect(copies.some((copy) => copy.name === pushedName), `${carried.id} lost the push made during request ${request.label}`).toBe(true);
         return;
       }
+      // An answer with a new row count starts the blocks over, and the reshape that a push delete asks for unloads the blocks outside the rendered rows.
+      if (countChanged || (kind === "counted" && streamDeleted.size > 0)) return;
       expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer (slot ${slot} holds ${post[slot]?.id}, request ${request.label}, protected ${[...mustKeep].join("/")}, gone ${[...gone].join("/")}, copies ${copies.map((copy) => copy.name).join("/")})`).toBe(true);
-      if (slotsExact && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
+      if (slotsExact && !request.shifted && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
     });
     if (soleRequest && kind === "pages") {
       for (const id of mustKeep) {
@@ -431,7 +438,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       const id = loadedIds.length > 0 ? deleter.pick(loadedIds) : null;
       if (id) {
         trace.push(`push delete ${id}`);
-        backend.removeById(id);
+        backend.removeEveryCopy(id);
         streamDeleted.add(id);
         for (const request of held) {
           request.deletedSince.add(id);
