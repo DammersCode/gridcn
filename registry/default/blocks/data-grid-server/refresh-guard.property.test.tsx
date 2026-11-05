@@ -459,8 +459,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
     if (shifted && live().length === 0 && server().status !== "error") shifted = false;
-    if (reshapeOwed && live().length === 0 && !server().loading) reshapeOwed = false;
-    if (reshapeOwed && owedAt && fetchCalls > owedAt.calls && owedAt.held.every((request) => !held.includes(request))) reshapeOwed = false;
+    if (reshapeOwed && owedAt && fetchCalls > owedAt.calls && owedAt.held.every((request) => !held.includes(request) || request.signal.aborted)) reshapeOwed = false;
     if (dirty && refreshPending && live().length === 0 && server().status !== "error" && !(variant.repeatRows && backend.hasRepeat())) {
       dirty = false;
       refreshPending = false;
