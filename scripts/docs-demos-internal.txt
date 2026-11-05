@@ -1,0 +1,1 @@
+# Registered examples that no docs page embeds on purpose. One per line, reason after #.

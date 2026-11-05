@@ -1,0 +1,132 @@
+// Shared helpers for the docs validators (verify-docs-*.mjs and docs-verify.mjs).
+import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+
+export const FAILURE_CAP = 8;
+
+export const readLf = (file) => readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+
+export function walk(dir, exts, skip = ["node_modules", ".next", ".git", ".source"]) {
+  const out = [];
+  if (!existsSync(dir)) return out;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (skip.includes(entry.name)) continue;
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(path, exts, skip));
+    else if (exts.some((ext) => entry.name.endsWith(ext))) out.push(path);
+  }
+  return out;
+}
+
+export const rel = (root, file) => relative(root, file).split(sep).join("/");
+
+export function splitFrontmatter(src) {
+  const match = /^---\n([\s\S]*?)\n---\n?/.exec(src);
+  return match ? { front: match[1], body: src.slice(match[0].length), bodyOffset: match[0].split("\n").length - 1 } : { front: "", body: src, bodyOffset: 0 };
+}
+
+export function frontField(front, name) {
+  const match = new RegExp(`^${name}:\\s*(.*)$`, "m").exec(front);
+  return match ? match[1].trim().replace(/^["']|["']$/g, "") : undefined;
+}
+
+/** Fenced blocks of a body: `{ lang, meta, code, line }`, where `line` is the first code line (1-based, body-relative). */
+export function codeBlocks(body) {
+  const blocks = [];
+  const lines = body.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const open = /^(\s*)(`{3,})([\w-]*)(.*)$/.exec(lines[i]);
+    if (!open) continue;
+    const fence = open[2];
+    const start = i + 1;
+    let end = start;
+    while (end < lines.length && !new RegExp(`^\\s*${fence}\\s*$`).test(lines[end])) end++;
+    blocks.push({ lang: open[3], meta: open[4].trim(), code: lines.slice(start, end).join("\n"), line: start + 1, endLine: end + 1 });
+    i = end;
+  }
+  return blocks;
+}
+
+/** Body with fenced code replaced by blank lines (line numbers stay) and inline code by `x`. */
+export function proseOnly(body) {
+  const lines = body.split("\n");
+  let fence = null;
+  return lines
+    .map((line) => {
+      const open = /^\s*(`{3,})/.exec(line);
+      if (fence) {
+        if (open && open[1].length >= fence.length && /^\s*`+\s*$/.test(line)) fence = null;
+        return "";
+      }
+      if (open) {
+        fence = open[1];
+        return "";
+      }
+      return line.replace(/`[^`]*`/g, "x");
+    })
+    .join("\n");
+}
+
+export const urlOfPage = (contentDir, file) => {
+  const segments = rel(contentDir, file)
+    .replace(/\.mdx?$/, "")
+    .split("/")
+    .filter((s) => !/^\(.*\)$/.test(s));
+  if (segments.at(-1) === "index") segments.pop();
+  return `/docs${segments.length ? `/${segments.join("/")}` : ""}`;
+};
+
+const slugText = (text) =>
+  text
+    .replace(/\[#[^\]]+\]\s*$/, "")
+    .replace(/<NewBadge\s*\/>/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[`*_]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/\s/g, "-");
+
+/** Anchor ids of a page body: heading slugs (with the -1 suffix for repeats), explicit `[#id]`, and `id="..."` attributes. */
+export function anchorsOf(body) {
+  const anchors = new Set();
+  const seen = new Map();
+  const lines = body.split("\n");
+  let fence = false;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) fence = !fence;
+    if (fence) continue;
+    const heading = /^#{1,6}\s+(.*)$/.exec(line);
+    if (heading) {
+      const explicit = /\[#([^\]]+)\]\s*$/.exec(heading[1]);
+      if (explicit) anchors.add(explicit[1]);
+      const base = slugText(heading[1]);
+      const count = seen.get(base) ?? 0;
+      seen.set(base, count + 1);
+      anchors.add(count ? `${base}-${count}` : base);
+    }
+    for (const id of line.matchAll(/\bid=["']([^"']+)["']/g)) anchors.add(id[1]);
+  }
+  return anchors;
+}
+
+/** Map url -> { file, anchors, front, body } for every page under `contentDir`. */
+export function pageIndex(contentDir) {
+  const pages = new Map();
+  for (const file of walk(contentDir, [".mdx"])) {
+    const { front, body } = splitFrontmatter(readLf(file));
+    pages.set(urlOfPage(contentDir, file), { file, front, body, anchors: anchorsOf(body) });
+  }
+  return pages;
+}
+
+/** Cap a failure list for printing. */
+export function capped(list, cap = FAILURE_CAP) {
+  return list.length <= cap ? list : [...list.slice(0, cap), `... and ${list.length - cap} more`];
+}
+
+export const lineOf = (text, index) => text.slice(0, index).split("\n").length;
+
+export function isDir(path) {
+  return existsSync(path) && statSync(path).isDirectory();
+}

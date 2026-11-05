@@ -1,0 +1,40 @@
+---
+title: Code fixture
+description: Fixture for the docs code check.
+---
+
+A good block that compiles:
+
+```tsx
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+
+const state = useDataGridState({ data: [] as { id: string }[] });
+void state;
+```
+
+A block with a type error:
+
+```ts
+const count: number = "three";
+```
+
+A fragment without a reason:
+
+```tsx fragment
+<Thing />
+```
+
+A fragment with a reason, whose import still resolves:
+
+```tsx fragment="JSX only"
+import { DataGridRoot } from "@/components/data-grid/data-grid";
+
+<DataGridRoot />
+```
+
+A block that uses a name the registry lacks:
+
+```tsx
+const grid = useDataGridNoSuchHook();
+void grid;
+```

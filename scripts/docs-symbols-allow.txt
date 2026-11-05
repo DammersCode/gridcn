@@ -1,0 +1,2 @@
+# Names that are not gridcn symbols but appear in docs prose. One per line, reason after #.
+onMutate # TanStack Query option
