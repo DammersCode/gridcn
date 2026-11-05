@@ -1,5 +1,27 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { displayText, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+
+/** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
+export const MAX_CELL_TEXT = 32_767;
+
+/** What a `formatCell` hook returns. `null` and `undefined` make an empty cell. */
+export type ExportCellValue = string | number | boolean | Date | null | undefined;
+
+/** What `formatCell` receives for one exported cell. */
+export type ExportCellContext<TData = unknown> = {
+  /** The raw cell value. */
+  value: unknown;
+  /** The text the column's cell type exports by default. */
+  text: string;
+  row: TData;
+  column: AnyColumnDef;
+};
+
+/** Replaces the exported value of every cell. Runs once per cell, after the cell type made its text. */
+export type FormatExportCell<TData = unknown> = (ctx: ExportCellContext<TData>) => ExportCellValue;
+
+/** One exported cell after the format step: CSV rows hold strings only, XLSX rows keep typed values. */
+export type ExportCell = string | number | boolean | Date | null;
 
 /** What an {@link ExportSource} receives. */
 export type ExportSourceContext = {
@@ -7,6 +29,8 @@ export type ExportSourceContext = {
   spec: ServerSpec;
   /** Aborts when the export is cancelled or stops at a limit. Pass it to your request. */
   signal: AbortSignal;
+  /** The ids of the columns the export writes, in order. Narrow your query to them. */
+  columnIds: readonly string[];
 };
 
 /** Rows of the whole result for an "all rows" export. Return one array, or an async iterable of batches (an async generator that pages through your API). */
@@ -30,8 +54,13 @@ export type ExportResult = {
 };
 
 /** Resolved limits and callbacks of one source export. */
-export type RunSourceOptions = {
+export type ExportRowsOptions<TData = unknown> = {
   source: ExportSource;
+  /** Column ids to write, in order; default the visible columns. An unknown id throws before the source runs. */
+  columns?: readonly string[];
+  formatCell?: FormatExportCell<TData>;
+  /** Keep numbers, booleans and Dates typed (XLSX). Default: every cell becomes a string (CSV). */
+  typed?: boolean;
   maxRows: number;
   maxBytes: number;
   signal?: AbortSignal;
@@ -63,12 +92,14 @@ function abortReason(signal: AbortSignal): unknown {
  * Reads the batches of `source`, maps each row through the cell types, and hands the text rows to
  * `onBatch` (which returns the byte size it kept). Stops at `maxRows` or `maxBytes` and aborts the source.
  */
-export async function runSourceExport(
+export async function exportRows<TData = unknown, TCell extends ExportCell = string>(
   state: DataGridReadState,
-  options: RunSourceOptions,
-  onBatch: (rows: string[][]) => number,
+  options: ExportRowsOptions<TData>,
+  onBatch: (rows: TCell[][]) => number,
 ): Promise<ExportResult> {
-  const { source, maxRows, maxBytes, signal: outer, onProgress } = options;
+  const { source, maxRows, maxBytes, signal: outer, onProgress, formatCell, typed = false } = options;
+  const columns = resolveExportColumns(state, options.columns);
+  const columnIds = columns.map((column) => column.id);
   const inner = new AbortController();
   const stop = () => inner.abort(outer?.reason);
   if (outer?.aborted) throw abortReason(outer);
@@ -112,7 +143,7 @@ export async function runSourceExport(
       if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
       const room = maxRows - rowCount;
       if (present.length > room) truncated = true;
-      const rows = buildRows(state, present.slice(0, room));
+      const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, "export", formatCell, typed) as TCell[]);
       rowCount += rows.length;
       byteCount += onBatch(rows);
       if (byteCount > maxBytes) truncated = true;
@@ -130,7 +161,7 @@ export async function runSourceExport(
   };
 
   try {
-    const result = source({ spec, signal: inner.signal });
+    const result = source({ spec, signal: inner.signal, columnIds });
     if (isAsyncIterable(result)) {
       iterator = result[Symbol.asyncIterator]();
       while (!truncated) {
@@ -154,13 +185,62 @@ export async function runSourceExport(
   return { rowCount, truncated };
 }
 
-function buildRows(state: DataGridReadState, rows: readonly unknown[]): string[][] {
-  return rows.map((row) =>
-    state.visibleColumns.map((column) => {
-      const cellType = state.cellTypes[column.type ?? "text"];
-      return cellType ? cellType.toText(getCellValue<unknown, AnyColumnDef>(row, column), column.options) : "";
-    }),
-  );
+/** Resolves column ids against all grid columns, hidden ones included; no ids means the visible columns. */
+export function resolveExportColumns(state: DataGridReadState, ids: readonly string[] | undefined): readonly AnyColumnDef[] {
+  if (ids === undefined) return state.visibleColumns;
+  const all = state.columns ?? state.visibleColumns;
+  const byId = new Map(all.map((column) => [column.id, column] as const));
+  return ids.map((id) => {
+    const column = byId.get(id);
+    if (!column) throw new RangeError(`[data-grid-io] unknown export column: ${id}`);
+    return column;
+  });
+}
+
+function cutText(text: string): string {
+  return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
+}
+
+function toCsvCell(value: ExportCellValue): string {
+  if (typeof value === "string") return cutText(value);
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  if (typeof value === "boolean") return String(value);
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? "" : value.toISOString();
+  return "";
+}
+
+function toTypedCell(value: ExportCellValue): ExportCell {
+  if (typeof value === "string") return cutText(value);
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "boolean") return value;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  return null;
+}
+
+/** Characters one exported cell adds to the file; typed cells count as `String(value)`. */
+export function exportCellSize(cell: ExportCell): number {
+  if (cell === null) return 0;
+  if (typeof cell === "string") return cell.length;
+  return cell instanceof Date ? cell.toISOString().length : String(cell).length;
+}
+
+/** Maps one row through the cell types, then `formatCell`; the loaded rows and the source rows share it. */
+export function mapExportRow<TData>(
+  state: DataGridReadState,
+  columns: readonly AnyColumnDef[],
+  row: TData,
+  text: "export" | "display",
+  formatCell: FormatExportCell<TData> | undefined,
+  typed: boolean,
+): ExportCell[] {
+  return columns.map((column) => {
+    const cellType = state.cellTypes[column.type ?? "text"];
+    const value = getCellValue<unknown, AnyColumnDef>(row, column);
+    const cellText = cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
+    if (!formatCell) return cellText;
+    const formatted = formatCell({ value, text: cellText, row, column });
+    return typed ? toTypedCell(formatted) : toCsvCell(formatted);
+  });
 }
 
 /** Clamps a caller limit to a non-negative integer: `NaN` falls back, `Infinity` becomes the largest safe integer. */

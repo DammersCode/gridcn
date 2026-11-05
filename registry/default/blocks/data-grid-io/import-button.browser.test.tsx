@@ -637,7 +637,7 @@ describe("DataGridImportButton with a rejecting onImport", () => {
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
-          onImport={() => Promise.reject(new Error("merge failed"))}
+          onImport={() => Promise.reject(undefined)}
         />
         <DataGridRoot className="h-[200px]">
           <DataGridHeader />

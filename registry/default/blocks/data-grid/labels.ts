@@ -262,6 +262,7 @@ export type DataGridIOLabels = {
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
+  importFailedWithMessage: (message: string) => string;
   /** aria-label for the print toolbar button. */
   printButtonAriaLabel: string;
   /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
@@ -334,6 +335,7 @@ export type DataGridFindReplaceLabels = {
   moreRemain: string;
   validating: string;
   scopeLoadedRows: string;
+  replaceCancelled: string;
 };
 
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
@@ -604,6 +606,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
+    importFailedWithMessage: (message) => `The import failed: ${message}`,
     printButtonAriaLabel: "Print",
     printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
   },
@@ -654,6 +657,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     moreRemain: "More matches remain. Run Replace all again.",
     validating: "Validating…",
     scopeLoadedRows: "Searches loaded rows only",
+    replaceCancelled: "Replace cancelled",
   },
 };
 

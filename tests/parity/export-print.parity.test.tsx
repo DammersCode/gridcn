@@ -49,4 +49,39 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     expect(await blob!.text()).toContain("from-source");
     expect(await blob!.text()).not.toContain("Name 3");
   });
+
+  it("output receives the mode's rows with columns and formatCell applied and nothing downloads", async () => {
+    const grid = await mountMode(mode);
+    const createUrl = vi.spyOn(URL, "createObjectURL");
+    const output = vi.fn<(file: Blob, ctx: { fileName: string; format: string }) => void>();
+    const result = await exportGrid(grid.state(), {
+      output,
+      columns: ["n", "name"],
+      formatCell: ({ column, value }) => (column.id === "n" ? `#${String(value)}` : undefined),
+      csvBom: false,
+    }).finally(() => createUrl.mockRestore());
+    const [file, ctx] = output.mock.calls[0]!;
+    const lines = (await file.text()).split("\r\n");
+    expect(ctx).toMatchObject({ fileName: "export.csv", format: "csv" });
+    expect(lines[0]).toBe("N,Name");
+    expect(lines).toHaveLength(result.rowCount + 1);
+    expect(lines.slice(1)).toEqual(grid.viewIds().map((id) => `#${String(grid.cell(id, "n"))},`));
+    expect(createUrl).not.toHaveBeenCalled();
+  });
+
+  it("a source export applies columns and formatCell to the source rows and tells the source the column ids", async () => {
+    const grid = await mountMode(mode);
+    const output = vi.fn<(file: Blob) => void>();
+    const source = vi.fn((_ctx: { columnIds: readonly string[] }) => [{ n: 7, name: "from-source" }]);
+    await exportGrid(grid.state(), { output, source, columns: ["name", "n"], formatCell: ({ value }) => (typeof value === "number" ? value * 2 : `<${String(value)}>`), csvBom: false });
+    expect(source.mock.calls[0]![0].columnIds).toEqual(["name", "n"]);
+    expect(await output.mock.calls[0]![0].text()).toBe("Name,N\r\n<from-source>,14");
+  });
+
+  it("an unknown column id rejects before the source runs", async () => {
+    const grid = await mountMode(mode);
+    const source = vi.fn(() => []);
+    await expect(exportGrid(grid.state(), { source, columns: ["missing"] })).rejects.toBeInstanceOf(RangeError);
+    expect(source).not.toHaveBeenCalled();
+  });
 });

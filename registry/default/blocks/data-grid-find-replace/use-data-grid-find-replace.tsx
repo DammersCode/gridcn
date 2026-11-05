@@ -9,6 +9,13 @@ import type { ReplaceOptions } from "./plan-replace";
 export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit"> & {
   /** Shows "Searches loaded rows only" in the panel. Default: on while the grid has a `totalRowCount` or a server `sortMode` or `filterMode`; set `true` for client pages, which hold one page of the rows. */
   showScope?: boolean;
+  /**
+   * Runs after the plan is built and before it is written. Return the plan to write (it may add, drop, or
+   * change patches), or `false` to cancel. The returned plan may hold at most `replaceAllLimit` patches;
+   * more cancels the replace. Each patch still goes through the column's `fromText` and `validate`.
+   * `signal` aborts when a newer replace starts or the panel closes; a late answer is dropped.
+   */
+  onReplace?: PanelOptions["onReplace"];
 };
 
 export type UseDataGridFindReplaceResult = {

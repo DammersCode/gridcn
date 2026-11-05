@@ -28,13 +28,14 @@ import {
 import {
   GRID_ATTR,
   isComposingKey,
+  isDev,
   useDataGridInputDebounce,
   useDataGridInstanceId,
   useDataGridSelector,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MAX_REPLACE_INPUT_LENGTH, planReplace, type ReplaceOptions } from "./plan-replace";
+import { MAX_REPLACE_INPUT_LENGTH, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
 
 export type PanelStore = {
   getOptions(): PanelOptions;
@@ -47,11 +48,14 @@ export type PanelStore = {
 };
 
 /** Replace options plus the panel's own: `showScope` forces the loaded-rows note on or off; unset it shows when the result can exceed the loaded rows. */
-export type PanelOptions = ReplaceOptions & { showScope?: boolean };
+export type PanelOptions = ReplaceOptions & {
+  showScope?: boolean;
+  onReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
+};
 
 type PanelProps = { panelStore: PanelStore };
 
-type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | null;
+type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | { kind: "cancelled" } | null;
 
 
 export function FindReplacePanel({ panelStore }: PanelProps): ReactNode {
@@ -90,6 +94,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [position, setPosition] = useState<{ top: number; end: number; rtl: boolean }>({ top: 8, end: 8, rtl: false });
   const findRef = useRef<HTMLInputElement | null>(null);
   const applyTokenRef = useRef(0);
+  const hookControllerRef = useRef<AbortController | null>(null);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
@@ -101,6 +106,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     findRef.current?.select();
     return () => {
       applyTokenRef.current++;
+      hookControllerRef.current?.abort();
     };
   }, []);
 
@@ -205,38 +211,76 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const replaced = replacedRef.current;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
     const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
-    if (!only) {
-      if (!plan.remaining) replaced.clear();
-      else for (const { rowId, columnId } of plan.patches) replaced.set(rowId, (replaced.get(rowId) ?? new Set()).add(columnId));
-    }
-    const verdict = plan.patches.length === 0 ? null : api.actions.updateCells(plan.patches, { source: "replace", reorder: "defer" });
-    const token = ++applyTokenRef.current;
-    const finish = (settled: { applied: number; skipped: readonly unknown[] } | null) => {
-      setStatus({
-        kind: "replaced",
-        replaced: settled?.applied ?? 0,
-        skipped: plan.skipped.length + (settled?.skipped.length ?? 0),
-        more: plan.remaining,
-      });
-      runSearch(find, searchOptions);
-      if (only) {
-        const left = api.store.getState().searchMatches.length;
-        if (left > 0) goTo(Math.min(cursor, left - 1));
+    const run = (finalPlan: ReplacePlan) => {
+      if (!only) {
+        if (!finalPlan.remaining) replaced.clear();
+        else for (const { rowId, columnId } of finalPlan.patches) replaced.set(rowId, (replaced.get(rowId) ?? new Set()).add(columnId));
       }
+      const verdict = finalPlan.patches.length === 0 ? null : api.actions.updateCells(finalPlan.patches, { source: "replace", reorder: "defer" });
+      const token = ++applyTokenRef.current;
+      const finish = (settled: { applied: number; skipped: readonly unknown[] } | null) => {
+        setStatus({
+          kind: "replaced",
+          replaced: settled?.applied ?? 0,
+          skipped: finalPlan.skipped.length + (settled?.skipped.length ?? 0),
+          more: finalPlan.remaining,
+        });
+        runSearch(find, searchOptions);
+        if (only) {
+          const left = api.store.getState().searchMatches.length;
+          if (left > 0) goTo(Math.min(cursor, left - 1));
+        }
+      };
+      if (verdict?.pending) {
+        setStatus({ kind: "validating" });
+        void verdict.settled?.then(
+          (settled) => {
+            if (token === applyTokenRef.current) finish(settled);
+          },
+          () => {
+            if (token === applyTokenRef.current) finish(null);
+          },
+        );
+        return;
+      }
+      finish(verdict);
     };
-    if (verdict?.pending) {
-      setStatus({ kind: "validating" });
-      void verdict.settled?.then(
-        (settled) => {
-          if (token === applyTokenRef.current) finish(settled);
-        },
-        () => {
-          if (token === applyTokenRef.current) finish(null);
-        },
-      );
+
+    const onReplace = panelStore.getOptions().onReplace;
+    if (!onReplace) {
+      run(plan);
       return;
     }
-    finish(verdict);
+    hookControllerRef.current?.abort();
+    const controller = new AbortController();
+    hookControllerRef.current = controller;
+    const hookToken = ++applyTokenRef.current;
+    setStatus({ kind: "validating" });
+    const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
+    const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
+    void Promise.resolve()
+      .then(() => onReplace({ plan, signal: controller.signal }))
+      .then(
+        (result) => {
+          if (!current()) return;
+          const latest = api.store.getState();
+          if (latest.readOnly || latest.editing !== null || result === false) {
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          if (typeof result !== "object" || result === null || !Array.isArray(result.patches) || result.patches.length > limit) {
+            if (isDev()) console.warn("[data-grid-find-replace] onReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          run(result);
+        },
+        (error: unknown) => {
+          if (!current()) return;
+          if (isDev()) console.warn("[data-grid-find-replace] onReplace threw; the replace is cancelled", error);
+          setStatus({ kind: "cancelled" });
+        },
+      );
   };
 
   const replaceOne = () => {
@@ -280,6 +324,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const noResults = status === null && find.trim() !== "" && searchedText === find && !hasMatches;
   const statusText = (() => {
     if (status?.kind === "validating") return labels.validating;
+    if (status?.kind === "cancelled") return labels.replaceCancelled;
     if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
     if (find.trim() === "") return labels.typeToSearch;
     if (searchedText !== find) return "";

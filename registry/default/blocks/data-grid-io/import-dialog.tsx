@@ -17,8 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { buildImportedRows, type ImportRejectedCell } from "./build-imported-rows";
-import { useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults } from "./use-data-grid-import";
+import { IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
+import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
 import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
 import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
@@ -41,6 +41,22 @@ const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "de
 /** Mapping-select value for a source column that maps to no grid column. */
 const SKIP_VALUE = "__skip__";
 
+/** What `onImport` receives beside the rows. */
+export type ImportContext = {
+  /** Aborts when the user cancels or the dialog closes. Pass it to your request. */
+  signal: AbortSignal;
+  /** Cells whose value failed `column.validate`; each was cleared and its row is in `rows`. */
+  rejected: readonly ImportRejectedCell[];
+  fileName: string;
+  /** The sheet the rows came from; undefined for CSV. */
+  sheetName?: string;
+  /** Which file column went to which grid column. */
+  mapping: readonly ImportColumnMapping[];
+};
+
+/** Maximum characters of an `onImport` error message the dialog shows. */
+const MAX_ERROR_MESSAGE_LENGTH = 200;
+
 /** Props for {@link DataGridImportDialog}. */
 export type DataGridImportDialogProps<TData> = {
   open: boolean;
@@ -48,11 +64,25 @@ export type DataGridImportDialogProps<TData> = {
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
   createRow: (index: number) => TData | Promise<TData>;
   /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. `ctx.signal` aborts when the user cancels or the dialog closes; pass it to your request. */
-  onImport: (rows: TData[], ctx: { signal: AbortSignal }) => void | Promise<void>;
+  onImport: (rows: TData[], ctx: ImportContext) => void | Promise<void>;
+  /** Called once when `onImport` rejects, with the rejection. The dialog stays open. */
+  onImportError?: (error: unknown) => void;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
   importDefaults?: ImportDefaults;
   /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
   importLimits?: ImportLimits;
+  /** Reads the file instead of the built-in parser. Its rows are checked against `importLimits` afterwards. */
+  parseFile?: ParseFile;
+  /** File types the drop zone accepts; default csv, tsv, xls, and xlsx. Pair it with `parseFile` for other types. */
+  accept?: DropzoneAccept;
+  /** Decodes a CSV file with this `TextDecoder` label instead of UTF-8. Labels outside `IMPORT_CSV_ENCODINGS` throw a `RangeError`. */
+  csvEncoding?: string;
+  /** Rewrites or drops the data rows before they are mapped. `false` cancels the import quietly. The result is checked against `importLimits`. */
+  processImportRows?: ProcessImportRows;
+  /** Parses one cell instead of the column's `fromText`. Default: the grid's `processCellFromClipboard`, then `fromText`. The value still passes `column.validate`. */
+  processCellFromText?: ProcessCellFromText<TData>;
+  /** A file to load when the dialog opens, as if the user had chosen it. */
+  file?: File;
 };
 
 /**
@@ -64,7 +94,7 @@ export type DataGridImportDialogProps<TData> = {
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
-  const { open, onOpenChange, createRow, onImport, importDefaults, importLimits } = props;
+  const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file } = props;
   const maxFileBytes = importLimits?.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
@@ -76,8 +106,12 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
   const headerRowId = useId();
-  const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
-    useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits });
+  const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows, build } =
+    useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits, parseFile, csvEncoding });
+  const previewRef = useRef(preview);
+  useEffect(() => {
+    previewRef.current = preview;
+  });
   // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
   const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
   const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabelText(column) }))];
@@ -89,6 +123,8 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     setIsValidating(false);
     setRejectedCount(0);
     setMergeFailed(false);
+    setMergeMessage(null);
+    setBuildError(null);
     reset();
   }, [open, reset]);
 
@@ -105,10 +141,22 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       const targets: ImportTargetColumn[] = allColumns.map((c) => ({ id: c.id, headerText: c.headerText, header: c.header }));
       setRejectedCount(0);
       setMergeFailed(false);
+      setMergeMessage(null);
+      setBuildError(null);
       void loadFile(file, targets);
     },
     [allColumns, loadFile],
   );
+
+  const loadedPropFileRef = useRef<File | null>(null);
+  useEffect(() => {
+    if (!open || !file || loadedPropFileRef.current === file) return;
+    loadedPropFileRef.current = file;
+    onFile(file);
+  }, [open, file, onFile]);
+  useEffect(() => {
+    if (!open) loadedPropFileRef.current = null;
+  }, [open]);
 
   const onDropFiles = useCallback(
     (acceptedFiles: File[], rejections: DropzoneRejection[]) => {
@@ -123,14 +171,22 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const [rejectedCount, setRejectedCount] = useState(0);
   /** True when `onImport` rejected; the dialog stays open and the import can be retried. */
   const [mergeFailed, setMergeFailed] = useState(false);
+  /** Message of the last `onImport` rejection, when it had one. */
+  const [mergeMessage, setMergeMessage] = useState<string | null>(null);
+  /** Error key of a row hook or build that failed before `onImport`. */
+  const [buildError, setBuildError] = useState<ImportErrorKey | null>(null);
   const finish = useCallback(
     (rows: TData[], rejected: readonly ImportRejectedCell[]) => {
       setMergeFailed(false);
+      setMergeMessage(null);
       setIsValidating(true);
       const token = ++confirmTokenRef.current;
       const signal = abortControllerRef.current?.signal ?? new AbortController().signal;
       void Promise.resolve()
-        .then(() => onImport(rows, { signal }))
+        .then(() => {
+          const current = previewRef.current;
+          return onImport(rows, { signal, rejected, fileName: current?.fileName ?? "", sheetName: current?.sheetName, mapping: current?.mapping ?? [] });
+        })
         .then(() => {
           if (confirmTokenRef.current === token) actions.clearSelection();
         })
@@ -148,11 +204,18 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             if (confirmTokenRef.current !== token) return;
             setIsValidating(false);
             setMergeFailed(true);
-            if (isDev()) console.warn("[data-grid-io] onImport rejected; the dialog stays open", error);
+            setMergeMessage(error instanceof Error && error.message !== "" ? error.message.slice(0, MAX_ERROR_MESSAGE_LENGTH) : null);
+            if (onImportError) {
+              try {
+                onImportError(error);
+              } catch (callbackError) {
+                if (isDev()) console.warn("[data-grid-io] onImportError threw", callbackError);
+              }
+            } else if (isDev()) console.warn("[data-grid-io] onImport rejected; the dialog stays open", error);
           },
         );
     },
-    [onImport, actions, onOpenChange],
+    [onImport, onImportError, actions, onOpenChange],
   );
 
   const onConfirm = useCallback(() => {
@@ -160,37 +223,47 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     const state = storeApi.getState();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    setBuildError(null);
+    const clipboardParse = state.processCellFromClipboard as ((text: string, ctx: { row: TData; column: unknown }) => unknown) | undefined;
+    const cellParser: ProcessCellFromText<TData> | undefined =
+      processCellFromText ?? (clipboardParse ? (text, ctx) => clipboardParse(text, { row: ctx.row, column: ctx.column }) : undefined);
     // state.cellTypes comes back from the generic-erased store (TData = unknown, see core store.tsx's InternalSyncProps comment); re-widened here to this dialog's own TData. allColumns is already TData-typed via useDataGridAllColumns<TData>() above.
-    const built = buildImportedRows<TData>({
-      dataRows: importRows,
-      mapping: preview.mapping,
-      columns: allColumns,
-      cellTypes: state.cellTypes as never,
-      createRow,
-      signal: abortController.signal,
-    });
-    if (!(built instanceof Promise)) {
+    const token = ++confirmTokenRef.current;
+    const fail = (reason: unknown) => {
+      if (confirmTokenRef.current !== token) return;
+      setIsValidating(false);
+      if (reason instanceof Error && reason.message === IMPORT_CANCELLED_MESSAGE) return;
+      const key = importErrorKey(reason);
+      if (key !== null) setBuildError(key);
+    };
+    let built;
+    try {
+      built = build<TData>({
+        columns: allColumns,
+        cellTypes: state.cellTypes as never,
+        createRow,
+        signal: abortController.signal,
+        processImportRows,
+        processCellFromText: cellParser,
+      });
+    } catch (reason) {
+      fail(reason);
+      return;
+    }
+    if (built !== null && !(built instanceof Promise)) {
       finish(built.rows, built.rejected);
       return;
     }
-    // A large import (chunked so the dialog can repaint and Cancel can land) or an async schema on a
-    // mapped column: the dialog stays open with Import disabled — the existing pending affordance —
-    // and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
-    const token = ++confirmTokenRef.current;
+    // A large import (chunked so the dialog can repaint and Cancel can land), a row or cell hook, or an
+    // async schema on a mapped column: the dialog stays open with Import disabled — the existing pending
+    // affordance — and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
     setIsValidating(true);
-    void built.then(
-      (result) => {
-        if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
-        setIsValidating(false);
-        finish(result.rows, result.rejected);
-      },
-      () => {
-        // cancelled (signal aborted) or a validator threw outside runValidateBatch's own guard — either way, no rows to import.
-        if (confirmTokenRef.current !== token) return;
-        setIsValidating(false);
-      },
-    );
-  }, [preview, importRows, allColumns, storeApi, createRow, finish]);
+    void Promise.resolve(built).then((result) => {
+      if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
+      setIsValidating(false);
+      if (result !== null) finish(result.rows, result.rejected);
+    }, fail);
+  }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText]);
 
   const onCancel = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -207,13 +280,13 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <div className="flex min-w-0 flex-col gap-3">
           {preview ? (
-            <Dropzone compact accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone compact accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
             </Dropzone>
           ) : (
-            <Dropzone accept={IMPORT_ACCEPT} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
+            <Dropzone accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <DropzoneEmptyState title={labels.io.chooseFile} description={`${labels.io.noFileChosen} — ${labels.io.maxFileSize(maxFileBytes)}`} />
             </Dropzone>
           )}
@@ -222,7 +295,13 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
           {rejectedCount > 0 && <p role="alert" className="text-sm text-destructive">{labels.io.importRejectedCells(rejectedCount)}</p>}
 
-          {mergeFailed && <p role="alert" className="text-sm text-destructive">{labels.io.importMergeFailed}</p>}
+          {buildError && <p role="alert" className="text-sm text-destructive">{labels.io[buildError]}</p>}
+
+          {mergeFailed && (
+            <p role="alert" className="text-sm text-destructive">
+              {mergeMessage ? labels.io.importFailedWithMessage(mergeMessage) : labels.io.importMergeFailed}
+            </p>
+          )}
 
           {preview && (
             <>

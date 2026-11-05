@@ -160,6 +160,68 @@ or `maxBytes` below 0 counts as 0. Formula-like CSV cells get the same quote pre
 loaded export. A CSV export writes the file batch by batch. An xlsx export holds all rows in memory
 until it writes the file, and an invalid `workbookName` rejects before the source runs.
 
+## Control the file
+
+<NewBadge />
+
+Three options shape the file, and one option decides where it goes. They apply to a loaded export
+and to an export with a `source`.
+
+- `output` receives the finished file instead of the browser download.
+- `columns` lists the column ids to write, in order. A hidden column is allowed. An unknown id
+  throws a `RangeError` before anything is fetched. `source` gets the same list as
+  `ctx.columnIds`, so your server can select only those columns.
+- `formatCell` returns the value of one cell.
+
+This example sends the file to your server and downloads nothing:
+
+```tsx
+<DataGridExportButton
+  options={{
+    columns: ["name", "price", "createdAt"],
+    formatCell: ({ column, value, text }) => (column.id === "price" ? Number(value) : text),
+    output: async (file, { fileName, format, signal }) => {
+      await fetch(`/api/reports/${fileName}`, { method: "PUT", body: file, signal });
+    },
+  }}
+/>
+```
+
+`output` gets a finished `Blob`. The grid never builds a URL from it. If `output` rejects, the
+export rejects. The `signal` aborts when the export is cancelled, and `output` does not run for an
+aborted export.
+
+`formatCell` runs once for every cell after the cell type made its text. `text` is that default.
+It must return at once: it cannot return a promise. To use data you fetch, load it in the `source`.
+It may return a string, a number, a boolean, a `Date`, or `null` for an empty cell.
+
+| Value | CSV | XLSX |
+|---|---|---|
+| string | written as text, cut at 32,767 characters | a text cell, cut at 32,767 characters |
+| finite number | the number as text | a number cell, so Excel can sum it |
+| boolean | `true` or `false` | a boolean cell |
+| valid `Date` | ISO 8601 text | a date cell |
+| `NaN`, `Infinity`, invalid `Date`, `null`, `undefined` | empty | empty |
+
+A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB, or CR still gets
+the quote prefix, and an XLSX string is always a text cell. The limits `maxRows` and `maxBytes`
+count the formatted output.
+
+`buildCsv(state, options)` builds the CSV `Blob` of the loaded rows without a download, like
+`buildXlsx`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads
+the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each
+batch of text rows to `onBatch`. Use it to write your own format:
+
+```tsx
+const lines: string[] = [];
+await exportRows(state, { source, maxRows: 50_000, maxBytes: 20_000_000 }, (rows) => {
+  for (const row of rows) lines.push(JSON.stringify(row));
+  return rows.length;
+});
+```
+
+`onBatch` returns the size it kept, so `maxBytes` can stop the export.
+
 ## Print
 
 `printGrid(state, options)` prints the grid's rows as a plain paged table. The browser's print
@@ -295,6 +357,74 @@ after that changes nothing. The server decides where the new rows sit under the 
 
 Lower `importLimits.maxRows` to what one request of yours accepts. Rows keep the ids that
 `createRow` gave them. If your server assigns ids, read them from the refreshed rows.
+
+## Control the import
+
+<NewBadge />
+
+Seven hook points shape the import. This line shows where each one runs:
+
+```text
+file -> parseFile -> defaultHeaderRow -> processImportRows -> column mapping -> processCellFromText -> validate -> onImport
+```
+
+Each hook is optional. Pass them to `DataGridImportButton` or `DataGridImportDialog`. Every hook
+result passes the same bounds as a built-in result, after the hook runs. A hook cannot raise a
+bound. Raise a bound with `importLimits`.
+
+```tsx
+<DataGridImportButton
+  createRow={createRow}
+  importDefaults={{ defaultHeaderRow: 3 }}
+  csvEncoding="windows-1252"
+  processImportRows={({ rows }) => rows.filter((row) => row[0] !== "TOTAL")}
+  processCellFromText={(text, { column }) => (column.id === "price" ? parsePrice(text) : text)}
+  onImport={async (rows, { signal, rejected, fileName }) => {
+    await api.import(rows, { signal, fileName, skipped: rejected.length });
+    server.refresh();
+  }}
+  onImportError={(error) => reportError(error)}
+/>
+```
+
+| Hook | Runs | What it does |
+|---|---|---|
+| `parseFile` | for every parse: file load, delimiter, sheet | Reads the file instead of the built-in parser. Return `{ rows }`: arrays of strings. The rows must fit `importLimits`. |
+| `accept` | when the drop zone opens | Sets the file types the drop zone takes. Default: csv, tsv, xls, xlsx. |
+| `csvEncoding` | when a CSV file is read | Decodes the CSV with this label instead of UTF-8. |
+| `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. Rows above it are dropped. |
+| `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
+| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. |
+| `onImport` | after the build | Gets `rows` and `{ signal, rejected, fileName, sheetName, mapping }`. |
+| `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |
+
+`csvEncoding` takes one of these labels: `utf-8`, `utf-16le`, `utf-16be`, `iso-8859-1`,
+`iso-8859-2`, `iso-8859-15`, `windows-1250`, `windows-1251`, `windows-1252`, `windows-1253`,
+`windows-1254`, `windows-1257`, `shift_jis`, `euc-jp`, `euc-kr`, `gb18030`, and `big5`. The
+list is `IMPORT_CSV_ENCODINGS`. Any other label throws a `RangeError`.
+
+`processImportRows` and `parseFile` must return arrays of strings. A result that has another shape,
+or more rows, columns, or cells than `importLimits` allows, stops the import and the dialog shows
+an error. `processCellFromText` defaults to the grid's `processCellFromClipboard`, then to the
+column's `fromText`. A promise result makes the build asynchronous. Its value still goes through the
+column's `validate`. A cell that fails is cleared. It is listed in `rejected` with the validator's
+message, cut at 200 characters.
+
+When `onImport` rejects, the dialog shows `The import failed: <message>` if the error has a
+message. Without one, it shows the generic line. Both texts come from `labels.io`.
+
+Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one that was
+dropped on the page or fetched. The dialog loads it when it opens. For a custom dialog,
+`useDataGridImportPreview` returns `build()`, which runs `processImportRows` and the row build
+for the current preview:
+
+```tsx
+const built = await preview.build({ columns, cellTypes, createRow, signal });
+if (built) await save(built.rows);
+```
+
+These hooks work the same in every data mode. A server grid sends the rows to its server in
+`onImport` and calls `server.refresh()`, as in [Import into a server grid](#import-into-a-server-grid).
 
 ## Import limits
 

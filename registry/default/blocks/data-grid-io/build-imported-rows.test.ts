@@ -128,7 +128,7 @@ describe("buildImportedRows", () => {
       { id: "row-0", name: "Alice", age: null },
       { id: "row-1", name: "Bob", age: 40 },
     ]);
-    expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age" }]);
+    expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: expect.any(String) }]);
   });
 
   it("lists every rejected cell in `rejected` with its row and source column, and still builds all rows", () => {
@@ -158,9 +158,9 @@ describe("buildImportedRows", () => {
       { id: "row-2", name: "Carol", age: null },
     ]);
     expect(result.rejected).toEqual([
-      { rowIndex: 0, importColumnIndex: 1, gridColumnId: "age" },
-      { rowIndex: 1, importColumnIndex: 0, gridColumnId: "name" },
-      { rowIndex: 2, importColumnIndex: 1, gridColumnId: "age" },
+      { rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: "must be non-negative" },
+      { rowIndex: 1, importColumnIndex: 0, gridColumnId: "name", message: "invalid name" },
+      { rowIndex: 2, importColumnIndex: 1, gridColumnId: "age", message: "must be non-negative" },
     ]);
   });
 
@@ -340,7 +340,7 @@ describe("buildImportedRows with an async schema", () => {
       { id: "row-0", name: "Alice", age: null },
       { id: "row-1", name: "Bob", age: 8 },
     ]);
-    expect(rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age" }]);
+    expect(rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: expect.any(String) }]);
   });
 });
 

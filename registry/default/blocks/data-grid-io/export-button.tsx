@@ -17,12 +17,12 @@ import type { ExportGridOptions, ExportResult } from "./export-grid";
 type ExportFormat = "xlsx" | "csv";
 
 /** Props for {@link DataGridExportButton}. */
-export type DataGridExportButtonProps = {
+export type DataGridExportButtonProps<TData = unknown> = {
   className?: string;
   /** The formats the button offers; one format exports on click, several open a menu. Default `["xlsx", "csv"]`. */
   formats?: readonly ExportFormat[];
-  /** Export options applied to both formats besides `format` itself; default `{ scope: 'view', includeHeaders: true }`. With `source`, the menu adds "all rows" items that export the source's rows; the plain items export the rows the grid holds. */
-  options?: Omit<ExportGridOptions, "format">;
+  /** Export options applied to both formats besides `format` itself, including `columns`, `formatCell`, and `output`; default `{ scope: 'view', includeHeaders: true }`. With `source`, the menu adds "all rows" items that export the source's rows; the plain items export the rows the grid holds. */
+  options?: Omit<ExportGridOptions<TData>, "format">;
   /** Receives the rejection when an export fails; without it, the failure logs a dev-only warning. */
   onError?: (error: unknown, format: ExportFormat) => void;
 };
@@ -31,7 +31,7 @@ export type DataGridExportButtonProps = {
  * Toolbar-slot export trigger: a ghost icon button opening a dropdown of xlsx/csv, wired to
  * {@link useDataGridExport}. `size-8` + ghost variant matches the toolbar's other icon buttons.
  */
-export function DataGridExportButton(props: DataGridExportButtonProps): ReactNode {
+export function DataGridExportButton<TData = unknown>(props: DataGridExportButtonProps<TData>): ReactNode {
   const { className, formats = ["xlsx", "csv"], options, onError } = props;
   const labels = useDataGridLabels();
   const { exportGrid } = useDataGridExport();

@@ -1486,6 +1486,195 @@
       }
     },
     {
+      "id": "export-hooks",
+      "feature": "Export output and cell shaping",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "import-hooks",
+      "feature": "Import hook points",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/import-export.mdx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "find-replace-hook",
+      "feature": "Replace hook",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/io-hooks.parity.test.tsx",
+            "content/docs/addons/find-replace.mdx"
+          ]
+        }
+      }
+    },
+    {
       "id": "lazy-fetch",
       "feature": "Scroll row fetching",
       "options": [

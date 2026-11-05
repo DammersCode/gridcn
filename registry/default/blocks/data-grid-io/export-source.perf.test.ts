@@ -53,4 +53,17 @@ describe("export of a 100k-row source", () => {
     expect(blob!.size).toBeGreaterThan(ROW_COUNT * COL_COUNT);
     expect(elapsed).toBeLessThan(BUDGET_MS);
   });
+
+  it("writes a CSV file with a formatCell hook within the budget", async () => {
+    const state = makeState();
+    const output = vi.fn();
+    const formatCell = ({ value, column }: { value: unknown; column: { id: string } }) => (column.id === "c0" ? Number.parseFloat(String(value).slice(6)) : String(value).toUpperCase());
+    await exportGrid(state, { source: batches, maxRows: ROW_COUNT, formatCell, output });
+    const start = performance.now();
+    const result = await exportGrid(state, { source: batches, maxRows: ROW_COUNT, formatCell, output });
+    const elapsed = performance.now() - start;
+    expect(result).toEqual({ rowCount: ROW_COUNT, truncated: false });
+    expect(output.mock.calls[1]![0].size).toBeGreaterThan(ROW_COUNT * COL_COUNT);
+    expect(elapsed).toBeLessThan(BUDGET_MS);
+  });
 });
