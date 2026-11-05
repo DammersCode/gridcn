@@ -69,12 +69,12 @@
  },
  "/docs/addons": {},
  "/docs/addons/keybindings": {
-  "the-dialog": "/docs/selection-keys/keybindings#the-dialog",
-  "binding-chips": "/docs/selection-keys/keybindings#binding-chips",
-  "shortcut-labels-for-your-own-ui": "/docs/selection-keys/keybindings#shortcut-labels-for-your-own-ui",
-  "remapping": "/docs/selection-keys/keybindings#remapping",
-  "custom-commands": "/docs/selection-keys/keybindings#custom-commands",
-  "related": "/docs/selection-keys/keybindings#related"
+  "the-dialog": "/docs/selection-keys/shortcut-remapping#the-dialog",
+  "binding-chips": "/docs/selection-keys/shortcut-remapping#binding-chips",
+  "shortcut-labels-for-your-own-ui": "/docs/selection-keys/shortcut-remapping#shortcut-labels-for-your-own-ui",
+  "remapping": "/docs/selection-keys/shortcut-remapping#remapping",
+  "custom-commands": "/docs/selection-keys/shortcut-remapping#custom-commands",
+  "related": "/docs/selection-keys/shortcut-remapping#related"
  },
  "/docs/addons/pinned-rows": {
   "wiring-it-up": "/docs/rows-menus/pinned-rows#wiring-it-up",
@@ -86,13 +86,13 @@
   "a11y": "/docs/rows-menus/pinned-rows#a11y"
  },
  "/docs/addons/presence": {
-  "api": "/docs/rows-live-data/show-other-users#api",
-  "wiring-it-up": "/docs/rows-live-data/show-other-users#wiring-it-up",
-  "zero-re-render-guarantee": "/docs/rows-live-data/show-other-users#zero-re-render-guarantee",
-  "coordinates-rowid-native-or-view-index": "/docs/rows-live-data/show-other-users#coordinates-rowid-native-or-view-index",
-  "rendering": "/docs/rows-live-data/show-other-users#rendering",
-  "scope-cuts": "/docs/rows-live-data/show-other-users#scope-cuts",
-  "broadcasting-your-selection": "/docs/rows-live-data/show-other-users#broadcasting-your-selection"
+  "api": "/docs/rows-live-data/show-presence#api",
+  "wiring-it-up": "/docs/rows-live-data/show-presence#wiring-it-up",
+  "zero-re-render-guarantee": "/docs/rows-live-data/show-presence#zero-re-render-guarantee",
+  "coordinates-rowid-native-or-view-index": "/docs/rows-live-data/show-presence#coordinates-rowid-native-or-view-index",
+  "rendering": "/docs/rows-live-data/show-presence#rendering",
+  "scope-cuts": "/docs/rows-live-data/show-presence#scope-cuts",
+  "broadcasting-your-selection": "/docs/rows-live-data/show-presence#broadcasting-your-selection"
  },
  "/docs/addons/sort-list": {
   "keyboard--accessibility": "/docs/sort-filter-search/sorting#keyboard--accessibility",
@@ -128,11 +128,11 @@
   "related": "/docs/clipboard-history/undo-redo#related"
  },
  "/docs/addons/url-state": {
-  "usage": "/docs/saved-views/url-state#usage",
-  "prefix": "/docs/saved-views/url-state#prefix",
-  "behavior": "/docs/saved-views/url-state#behavior",
-  "column-layout": "/docs/saved-views/url-state#column-layout",
-  "pagination": "/docs/saved-views/url-state#pagination"
+  "usage": "/docs/sort-filter-search/url-state#usage",
+  "prefix": "/docs/sort-filter-search/url-state#prefix",
+  "behavior": "/docs/sort-filter-search/url-state#behavior",
+  "column-layout": "/docs/sort-filter-search/url-state#column-layout",
+  "pagination": "/docs/sort-filter-search/url-state#pagination"
  },
  "/docs/agent-skills": {
   "skills": "/docs/try-automate/use-agent-skills#skills",
@@ -158,22 +158,22 @@
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
   "operation-engine": "/docs/contracts/operation-engine#operation-engine",
-  "add-on-option-types": "/docs/add-options/context-menu-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/context-menu-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/context-menu-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/context-menu-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/context-menu-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/context-menu-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/context-menu-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/context-menu-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/context-menu-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/context-menu-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/context-menu-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/context-menu-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/context-menu-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/context-menu-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/context-menu-options#usedatagridpinnedrowsoptions"
+  "add-on-option-types": "/docs/add-options/options-f/context-menu-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/options-f/context-menu-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/options-f/context-menu-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/options-f/context-menu-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/options-f/context-menu-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/options-f/context-menu-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/options-f/context-menu-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/options-f/context-menu-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/options-f/context-menu-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/options-f/context-menu-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/options-f/context-menu-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/options-f/context-menu-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/options-f/context-menu-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/options-f/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/options-f/context-menu-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/options-f/context-menu-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
   "copy": "/docs/clipboard-history/clipboard#copy",
@@ -205,8 +205,8 @@
   "rendering--performance": "/docs/concepts/cell-type-model#rendering--performance",
   "editor-ux": "/docs/concepts/cell-type-model#editor-ux",
   "typing": "/docs/concepts/cell-type-model#typing",
-  "worked-example-a-currency-cell-type": "/docs/extend-compose/build-cell-type#worked-example-a-currency-cell-type",
-  "testing-your-cell-type": "/docs/extend-compose/build-cell-type#testing-your-cell-type"
+  "worked-example-a-currency-cell-type": "/docs/recipes-extensions/build-cell-type#worked-example-a-currency-cell-type",
+  "testing-your-cell-type": "/docs/recipes-extensions/build-cell-type#testing-your-cell-type"
  },
  "/docs/data-modes": {
   "data-modes": "/docs/data-modes#data-modes",
@@ -561,7 +561,7 @@
   "engine-work": "/docs/plugins/plugin-commands-keys#engine-work",
   "what-a-plugin-can-reach": "/docs/plugins/plugin-shape#what-a-plugin-can-reach",
   "identity": "/docs/plugins/plugin-shape#identity",
-  "worked-example-highlight-a-column": "/docs/extend-compose/build-highlight-plugin#worked-example-highlight-a-column",
+  "worked-example-highlight-a-column": "/docs/recipes-extensions/build-highlight-plugin#worked-example-highlight-a-column",
   "ssr": "/docs/plugins/plugin-shape#ssr",
   "related": "/docs/plugins#related"
  },
@@ -618,9 +618,9 @@
   "related": "/docs/editing-cells/lock-cells-role#related"
  },
  "/docs/recipes/editing/custom-cell-type": {
-  "format-the-display": "/docs/extend-compose/build-cell-type#format-the-display",
-  "use-a-built-in-type": "/docs/extend-compose/build-cell-type#use-a-built-in-type",
-  "write-a-cell-type": "/docs/extend-compose/build-cell-type#write-a-cell-type"
+  "format-the-display": "/docs/recipes-extensions/build-cell-type#format-the-display",
+  "use-a-built-in-type": "/docs/recipes-extensions/build-cell-type#use-a-built-in-type",
+  "write-a-cell-type": "/docs/recipes-extensions/build-cell-type#write-a-cell-type"
  },
  "/docs/recipes/editing/edit-row-with-form": {
   "related": "/docs/editing-cells/edit-rows-forms#related"
@@ -631,23 +631,23 @@
   "editing--access": "/docs/terms-help/task-finder#editing--access"
  },
  "/docs/recipes/ui-patterns/bulk-actions": {
-  "one-write-per-button": "/docs/extend-compose/run-bulk-actions#one-write-per-button",
-  "export-only-the-checked-rows": "/docs/extend-compose/run-bulk-actions#export-only-the-checked-rows",
-  "related": "/docs/extend-compose/run-bulk-actions#related"
+  "one-write-per-button": "/docs/recipes-extensions/run-bulk-actions#one-write-per-button",
+  "export-only-the-checked-rows": "/docs/recipes-extensions/run-bulk-actions#export-only-the-checked-rows",
+  "related": "/docs/recipes-extensions/run-bulk-actions#related"
  },
  "/docs/recipes/ui-patterns/detail-panel": {
-  "open-the-panel": "/docs/extend-compose/open-detail-panel#open-the-panel",
-  "mouse": "/docs/extend-compose/open-detail-panel#mouse",
-  "keyboard": "/docs/extend-compose/open-detail-panel#keyboard",
-  "follow-the-active-row": "/docs/extend-compose/open-detail-panel#follow-the-active-row",
-  "focus-and-escape": "/docs/extend-compose/open-detail-panel#focus-and-escape",
-  "related": "/docs/extend-compose/open-detail-panel#related"
+  "open-the-panel": "/docs/recipes-extensions/open-detail-panel#open-the-panel",
+  "mouse": "/docs/recipes-extensions/open-detail-panel#mouse",
+  "keyboard": "/docs/recipes-extensions/open-detail-panel#keyboard",
+  "follow-the-active-row": "/docs/recipes-extensions/open-detail-panel#follow-the-active-row",
+  "focus-and-escape": "/docs/recipes-extensions/open-detail-panel#focus-and-escape",
+  "related": "/docs/recipes-extensions/open-detail-panel#related"
  },
  "/docs/recipes/ui-patterns/multiple-grids": {
-  "related": "/docs/extend-compose/link-multiple-grids#related"
+  "related": "/docs/recipes-extensions/link-multiple-grids#related"
  },
  "/docs/recipes/ui-patterns/remember-view": {
-  "related": "/docs/saved-views/remember-view#related"
+  "related": "/docs/columns/remember-view#related"
  },
  "/docs/row-operations": {
   "enable-props": "/docs/rows-menus/row-operations#enable-props",

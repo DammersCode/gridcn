@@ -74,7 +74,7 @@
    "keybindings",
    "cheat-shortcuts"
   ],
-  "target": "/docs/selection-keys/keybindings",
+  "target": "/docs/selection-keys/shortcut-remapping",
   "split": true
  },
  {
@@ -92,7 +92,7 @@
   "slugs": [
    "presence"
   ],
-  "target": "/docs/rows-live-data/show-other-users",
+  "target": "/docs/rows-live-data/show-presence",
   "split": false
  },
  {
@@ -140,7 +140,7 @@
   "slugs": [
    "url-state"
   ],
-  "target": "/docs/saved-views/url-state",
+  "target": "/docs/sort-filter-search/url-state",
   "split": false
  },
  {
@@ -215,7 +215,7 @@
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/extend-compose",
+  "target": "/docs/recipes-extensions",
   "split": true
  },
  {
@@ -873,7 +873,7 @@
   "slugs": [
    "custom-cell-example"
   ],
-  "target": "/docs/extend-compose/build-cell-type",
+  "target": "/docs/recipes-extensions/build-cell-type",
   "split": false
  },
  {
@@ -900,7 +900,7 @@
   "slugs": [
    "bulk-actions"
   ],
-  "target": "/docs/extend-compose/run-bulk-actions",
+  "target": "/docs/recipes-extensions/run-bulk-actions",
   "split": false
  },
  {
@@ -909,7 +909,7 @@
   "slugs": [
    "detail-panel"
   ],
-  "target": "/docs/extend-compose/open-detail-panel",
+  "target": "/docs/recipes-extensions/open-detail-panel",
   "split": false
  },
  {
@@ -918,7 +918,7 @@
   "slugs": [
    "multiple-grids"
   ],
-  "target": "/docs/extend-compose/link-multiple-grids",
+  "target": "/docs/recipes-extensions/link-multiple-grids",
   "split": false
  },
  {
@@ -927,7 +927,7 @@
   "slugs": [
    "remember-view"
   ],
-  "target": "/docs/saved-views/remember-view",
+  "target": "/docs/columns/remember-view",
   "split": false
  },
  {

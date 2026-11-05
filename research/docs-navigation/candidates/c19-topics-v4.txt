@@ -209,12 +209,14 @@
 - options-pagination | Pagination options | reference | 400
 - options-pinned-rows | Pinned rows options | reference | 400
 - options-presence | Presence options | reference | 600
-### Options S to U
-- options-s-u | Options S to U | landing | 100
+### Options S
+- options-s | Options S | landing | 100
 - options-server-rows | Server rows options | reference | 500
 - options-keybindings | Shortcut remapping options | reference | 500
 - options-sort-list | Sort list options | reference | 300
 - options-status-bar | Status bar options | reference | 400
+### Options T to U
+- options-t-u | Options T to U | landing | 100
 - options-toolbar | Toolbar options | reference | 600
 - options-undo-redo | Undo and redo options | reference | 500
 - options-url-state | URL state options | reference | 400
