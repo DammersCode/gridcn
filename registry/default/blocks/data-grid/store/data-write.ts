@@ -299,7 +299,7 @@ function keepRows(remap: Partial<DataGridStoreState>, rows: CompactSelectionLike
   return selection && selection.rows !== rows ? { ...remap, selection: { ...selection, rows } } : remap;
 }
 
-/** Rows inserted or updated by `ops`, as the `update` ops `validateRow` runs for. */
+/** The rows `ops` inserts or updates, as the `update` entries that `validateRow` runs for. */
 function rowsToValidate(ops: readonly DataOp<unknown>[]): DataOp<unknown>[] {
   const rows: DataOp<unknown>[] = [];
   for (const op of ops) {
