@@ -114,6 +114,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   const streamDeleted = new Set<string>();
   /** A push delete asked for a reshape that has not run yet: until it does, blocks outside the rendered rows may be unloaded. */
   let reshapeOwed = false;
+  /** The requests held and the request count at the latest push delete: the reshape has evicted once the hook sent a newer request and these settled. */
+  let owedAt: { calls: number; held: Request[] } | null = null;
   const held: Request[] = [];
   const saves: Save[] = [];
   const trace: string[] = [];
@@ -441,6 +443,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         backend.removeEveryCopy(id);
         streamDeleted.add(id);
         reshapeOwed = true;
+        owedAt = { calls: fetchCalls, held: [...held] };
         for (const request of held) {
           request.deletedSince.add(id);
           request.shifted = true;
@@ -457,6 +460,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
     if (shifted && live().length === 0 && server().status !== "error") shifted = false;
     if (reshapeOwed && live().length === 0 && !server().loading) reshapeOwed = false;
+    if (reshapeOwed && owedAt && fetchCalls > owedAt.calls && owedAt.held.every((request) => !held.includes(request))) reshapeOwed = false;
     if (dirty && refreshPending && live().length === 0 && server().status !== "error" && !(variant.repeatRows && backend.hasRepeat())) {
       dirty = false;
       refreshPending = false;
