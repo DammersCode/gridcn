@@ -535,9 +535,9 @@
   "what-the-license-does-not-grant": "/docs/support-upgrades/license-credits#what-the-license-does-not-grant"
  },
  "/docs/pagination": {
-  "client-mode": "/docs/pages-mode/load-rows-page#client-mode",
-  "server-mode": "/docs/pages-mode/load-rows-page#server-mode",
-  "without-a-total": "/docs/pages-mode/load-rows-page#without-a-total",
+  "client-mode": "/docs/rows-pages-menus/client-pagination#client-mode",
+  "server-mode": "/docs/add-options/server-options/server-rows-options#server-mode",
+  "without-a-total": "/docs/add-options/server-options/server-rows-options#without-a-total",
   "datagridpaginationbar-": "/docs/pages-mode/load-rows-page#datagridpaginationbar-",
   "composition": "/docs/pages-mode/load-rows-page#composition",
   "composing-with-data-grid-url-state": "/docs/pages-mode/load-rows-page#composing-with-data-grid-url-state"
@@ -591,12 +591,12 @@
   "pick-where-the-spec-runs": "/docs/data-modes#pick-where-the-spec-runs"
  },
  "/docs/recipes/data-fetching/server-round-trip": {
-  "initial-fetch": "/docs/save-server/save-roll-back#initial-fetch",
-  "translate-operations-into-api-calls": "/docs/save-server/save-roll-back#translate-operations-into-api-calls",
-  "strategy-a-optimistic-roll-back-on-failure": "/docs/save-server/save-roll-back#strategy-a-optimistic-roll-back-on-failure",
-  "strategy-b-refetch-on-settle": "/docs/save-server/save-roll-back#strategy-b-refetch-on-settle",
+  "initial-fetch": "/docs/save-server/save-revert#initial-fetch",
+  "translate-operations-into-api-calls": "/docs/save-server/save-revert#translate-operations-into-api-calls",
+  "strategy-a-optimistic-roll-back-on-failure": "/docs/save-server/save-revert#strategy-a-optimistic-roll-back-on-failure",
+  "strategy-b-refetch-on-settle": "/docs/save-server/save-revert#strategy-b-refetch-on-settle",
   "strategy-c-acknowledge-each-change": "/docs/save-server/handle-refused-saves#strategy-c-acknowledge-each-change",
-  "the-failure-path": "/docs/save-server/save-roll-back#the-failure-path"
+  "the-failure-path": "/docs/save-server/save-revert#the-failure-path"
  },
  "/docs/recipes/data-fetching/server-side": {
   "one-hook-for-pages": "/docs/contracts/server-rows-contract#one-hook-for-pages",

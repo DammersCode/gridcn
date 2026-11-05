@@ -37,9 +37,6 @@ installation.mdx#pinned-installs
 installation.mdx#alternative-github-registry-no-setup
 installation.mdx#tooltips
 installation.mdx#where-files-land
-pagination.mdx#client-mode
-pagination.mdx#server-mode
-pagination.mdx#without-a-total
 pagination.mdx#datagridpaginationbar-
 pagination.mdx#composition
 pagination.mdx#composing-with-data-grid-url-state

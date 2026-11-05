@@ -733,7 +733,8 @@
    "server-sort-filter",
    "scroll-no-total",
    "server-selection",
-   "server-troubleshooting"
+   "server-troubleshooting",
+   "options-server-rows"
   ],
   "target": "/docs/scroll-mode",
   "split": true
@@ -752,7 +753,9 @@
   "file": "pagination.mdx",
   "slugs": [
    "pagination",
-   "pagination-url"
+   "pagination-url",
+   "pagination-client",
+   "options-server-rows"
   ],
   "target": "/docs/pages-mode/load-rows-page",
   "split": true
@@ -837,7 +840,7 @@
    "server-round-trip",
    "server-conflicts"
   ],
-  "target": "/docs/save-server/save-roll-back",
+  "target": "/docs/save-server/save-revert",
   "split": true
  },
  {

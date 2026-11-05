@@ -134,3 +134,6 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ref-plugin | none: the contract page is new, `plugins-shape` keeps the model | new text |
 | ref-messages | none: one H2 per error and warning the library prints or throws, generated from the source | new, generated |
 | server-sort-filter | `sorting-filtering-search` (Controlled mode), `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid), `recipes/data-fetching/server-side-sort-filter` | merge |
+| pagination-client | `pagination` (client mode sections) | split |
+| options-server-rows | `lazy-loading` (Usage), `pagination` (server mode sections): the options of `useDataGridServerRows` | split |
+| extension-path, ep-choose, ep-cell, ep-plugin | none: four short steps that link the custom cell type and plugin pages | new text |
