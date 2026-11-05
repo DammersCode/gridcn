@@ -100,6 +100,43 @@ describe("onReplace", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("drops a late answer when the replacement text or an option changes", async () => {
+    const onDataChange = vi.fn();
+    type Plan = { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean };
+    let release!: (value: Plan) => void;
+    const onReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
+    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    await replaceAll();
+    await vi.waitFor(() => expect(onReplace).toHaveBeenCalledTimes(1));
+    await userEvent.click(page.getByRole("textbox", { name: "Replace with" }));
+    await userEvent.keyboard("x");
+    release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(onDataChange).not.toHaveBeenCalled();
+
+    await userEvent.click(page.getByRole("button", { name: "Replace all" }));
+    await vi.waitFor(() => expect(onReplace).toHaveBeenCalledTimes(2));
+    await userEvent.click(page.getByRole("button", { name: "Match case" }));
+    release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("drops a late answer that arrives before the Find text is committed", async () => {
+    const onDataChange = vi.fn();
+    type Plan = { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean };
+    let release!: (value: Plan) => void;
+    const onReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
+    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    await replaceAll();
+    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
+    await userEvent.click(page.getByRole("textbox", { name: "Find" }));
+    await userEvent.keyboard("s");
+    release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
   it("cancels a plan whose patches have no row and column ids", async () => {
     const onDataChange = vi.fn();
     vi.spyOn(console, "warn").mockImplementation(() => {});

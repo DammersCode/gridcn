@@ -231,7 +231,10 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       setIsValidating(false);
       if (reason instanceof Error && reason.message === IMPORT_CANCELLED_MESSAGE) return;
       const key = importErrorKey(reason);
-      if (key === null) return;
+      if (key === null) {
+        if (!abortController.signal.aborted) setBuildError("importBuildFailed");
+        return;
+      }
       setBuildError(key === "errorTooManyCells" || key === "errorNoRows" ? key : "importBuildFailed");
     };
     let built;

@@ -186,6 +186,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
+    applyTokenRef.current++;
+    hookControllerRef.current?.abort();
     replacedRef.current.clear();
     jumpOnCommitRef.current = null;
     findInput.inputProps.onChange(event);

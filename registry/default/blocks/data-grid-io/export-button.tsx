@@ -47,20 +47,21 @@ export function DataGridExportButton<TData = unknown>(props: DataGridExportButto
   const runExport = (format: ExportFormat, all: boolean) => {
     const controller = new AbortController();
     controllerRef.current = controller;
+    const tracked = all || loadedOptions.output !== undefined;
     setDone("");
-    setRunning(all || loadedOptions.output !== undefined);
+    setRunning(tracked);
     const signal = loadedOptions.signal ? AbortSignal.any([controller.signal, loadedOptions.signal]) : controller.signal;
     exportGrid({ ...loadedOptions, format, signal, ...(all ? { source } : {}) })
       .then((result: ExportResult) => {
-        if (all && controllerRef.current === controller) setDone(labels.io.exportDone(result.rowCount, result.truncated));
+        if (tracked && controllerRef.current === controller) setDone(labels.io.exportDone(result.rowCount, result.truncated));
       })
       .catch((error: unknown) => {
         const current = controllerRef.current === controller;
         if (signal.aborted) {
-          if (all && current) setDone(labels.io.exportCancelled);
+          if (tracked && current) setDone(labels.io.exportCancelled);
           return;
         }
-        if (all && current) setDone(labels.io.exportFailed);
+        if (tracked && current) setDone(labels.io.exportFailed);
         if (onError) {
           onError(error, format);
           return;
@@ -74,7 +75,7 @@ export function DataGridExportButton<TData = unknown>(props: DataGridExportButto
 
   const singleFormat = formats.length === 1 && !source;
   const trigger = (
-    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} onClick={singleFormat ? () => runExport(formats[0]!, false) : undefined}>
+    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} aria-disabled={(singleFormat && running) || undefined} onClick={singleFormat ? () => !running && runExport(formats[0]!, false) : undefined}>
       <Download />
     </Button>
   );

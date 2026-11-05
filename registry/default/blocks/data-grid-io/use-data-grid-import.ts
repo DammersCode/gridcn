@@ -135,7 +135,7 @@ const MAX_SHEET_NAME_CHARS = 255;
 function sanitizeParsedFile(parsed: ParsedImportFile): ParsedImportFile {
   const delimiter = parsed.delimiter === "," || parsed.delimiter === ";" || parsed.delimiter === "\t" ? parsed.delimiter : undefined;
   const sheetNames = Array.isArray(parsed.sheetNames)
-    ? parsed.sheetNames.filter((name): name is string => typeof name === "string").slice(0, MAX_SHEET_NAMES).map((name) => name.slice(0, MAX_SHEET_NAME_CHARS))
+    ? parsed.sheetNames.filter((name): name is string => typeof name === "string").map((name) => name.slice(0, MAX_SHEET_NAME_CHARS)).filter((name, index, all) => all.indexOf(name) === index).slice(0, MAX_SHEET_NAMES)
     : undefined;
   const sheetName = typeof parsed.sheetName === "string" ? parsed.sheetName.slice(0, MAX_SHEET_NAME_CHARS) : undefined;
   return { rows: parsed.rows, delimiter, sheetNames, sheetName };
