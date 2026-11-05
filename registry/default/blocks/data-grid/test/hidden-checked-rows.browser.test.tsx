@@ -102,7 +102,7 @@ describe("keepHiddenCheckedRows in a browser", () => {
     await userEvent.click(checkboxAt(1));
 
     await userEvent.keyboard(deleteRowsChord);
-    expect(confirm).toHaveBeenCalledWith({ rowIds: ["row-0", "row-1"], hiddenCount: 0 });
+    expect(confirm).toHaveBeenCalledWith({ rowIds: ["row-0", "row-1"], hiddenCount: 0, signal: expect.any(AbortSignal) });
     expect(onDataChange).not.toHaveBeenCalled();
 
     answer = true;
