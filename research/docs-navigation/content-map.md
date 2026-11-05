@@ -81,7 +81,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | scroll-usage | `lazy-loading` (Editing loaded rows) | merge |
 | scroll-errors | `lazy-loading` (Errors), `lazy-loading-advanced` (When a block fails permanently) | merge |
 | scroll-retention | `lazy-loading` (Memory & retention) | split |
-| scroll-sort-filter | `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid) | split |
+| server-sort-filter | `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid) | split |
 | scroll-no-total | `lazy-loading` (A source with no total) | split |
 | server-selection | `selection-keyboard` (Selection over a server result), `lazy-loading` (Selecting, copying, and exporting) | merge |
 | scroll-fetch-libs | `lazy-loading-advanced` (Wiring a fetch/cache library) | move |
@@ -133,3 +133,4 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ref-server-rows | `recipes/data-fetching/server-side` (the server contract, async gates, races) | rewrite as a contract |
 | ref-plugin | none: the contract page is new, `plugins-shape` keeps the model | new text |
 | ref-messages | none: one H2 per error and warning the library prints or throws, generated from the source | new, generated |
+| server-sort-filter | `sorting-filtering-search` (Controlled mode), `lazy-loading` (Sorting a scroll grid, Filtering a scroll grid), `recipes/data-fetching/server-side-sort-filter` | merge |

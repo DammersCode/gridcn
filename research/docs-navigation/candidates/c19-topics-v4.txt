@@ -1,12 +1,13 @@
 // C19: topic-first, final. Column 5 (optional) lists the aliases a reader may type; the Terms page lists them.
+// C19 (round 13): custom code path, one sort-and-filter server page, options grouped by Build topic, cell type group.
 // C19 (round 12): column 5 = aliases (one owner each), column 6 = planned code lines.
 // C19 (round 11): The last polish after the round-9 scoring (plugin commands moved, group renamed, keeping-fast retitled) is not re-scored. Paths per goal (Learning path, Server path), three persona entries on the home page,
 // at most 9 groups per area, at most 20 rows visible, consolidated option pages, landing titles equal group labels.
 @ Learn
 ## Learning path
 - index | Start here | landing | 300
-- install | Install gridcn | step | 450
-- first-grid | Render your first grid | step | 500 | quick start, hello world
+- install | Install gridcn | step | 450 | | 20
+- first-grid | Render your first grid | step | 500 | quick start, hello world | 40
 - learn-columns | Define columns | step | 500
 - learn-edit | Edit cells | step | 500
 - learn-state | Keep edits in state | step | 600
@@ -20,11 +21,11 @@
 - sp-save | Plan server saves | step | 350
 - sp-failures | Handle failures | step | 300
 - sp-live | Go live with streaming | step | 300
-## Extension path
-- extension-path | Extension path | landing | 300
-- ep-choose | Pick an extension point | step | 300
-- ep-cell | Add a cell type | step | 350
-- ep-plugin | Add a plugin | step | 350
+## Custom code path
+- extension-path | Custom code path | landing | 300
+- ep-choose | Pick a code route | step | 300
+- ep-cell | Start a cell type | step | 350
+- ep-plugin | Start a plugin | step | 350
 ## Terms and help
 - lookup-index | Terms and help | landing | 250
 - find-task | Task finder | cheatsheet | 900
@@ -37,14 +38,14 @@
 @ Build
 ## Editing cells
 - editing-index | Editing cells | landing | 250
-- edit-activation | Edit activation | feature | 700 | make a column editable, editable column
-- cell-types | Built-in cell types | feature | 1100 | dropdown, date picker, select cell, number cell
-- validation | Validation | feature | 900 | validate cell, invalid value
+- edit-activation | Edit activation | feature | 700 | make a column editable, editable column, read only column
+- cell-types | Built-in cell types | feature | 1100 | dropdown, date picker, select cell, number cell | 40
+- validation | Validation | feature | 900 | validate cell, invalid value | 40
 - display-override | Display override | feature | 400
 - edit-row-form | Edit rows in forms | task | 530
 - auth-gated | Lock cells by role | task | 300
-## Clipboard and history
-- clipboard-index | Clipboard and history | landing | 250
+## Clipboard and undo
+- clipboard-index | Clipboard and undo | landing | 250
 - clipboard | Clipboard | feature | 900 | copy paste, paste from excel
 - fill | Fill handle | feature | 855 | autofill, drag fill
 - undo-redo | Undo and redo | feature | 900
@@ -66,9 +67,10 @@
 - quick-search | Quick search | feature | 450 | search box
 - find-replace | Find and replace | feature | 1100 | | 20
 - url-state | URL state | feature | 1000 | query string, bookmark view, share view, persist sort and filter | 40
-## Rows and menus
-- rows-index | Rows and menus | landing | 250
-- row-operations | Row operations | feature | 900
+- remember-view | Remember filters and layout | task | 300 | remember column layout, restore view
+## Rows, pages, and menus
+- rows-index | Rows, pages, and menus | landing | 250
+- row-operations | Row operations | feature | 900 | add a row, delete rows
 - row-reorder | Row reorder | feature | 600
 - row-markers | Row markers | feature | 500
 - pinned-rows | Pinned rows | feature | 1100 | freeze rows, sticky rows
@@ -81,7 +83,6 @@
 - column-order-pin | Column order and pinning | feature | 700 | frozen columns, freeze columns, sticky columns, pin left
 - column-headers | Column headers and groups | feature | 600
 - column-visibility | Column visibility | feature | 600 | hide columns, show columns
-- remember-view | Remember the view | task | 300 | remember column layout
 ## Theme, style, and language
 - look-index | Theme, style, and language | landing | 250
 - style-tokens | Colors and radius | feature | 900 | dark mode, theme, border radius
@@ -93,9 +94,9 @@
 - io-index | Import and export | landing | 250
 - export | Export | feature | 900 | csv export, excel export, xlsx download
 - import | Import | feature | 1000 | csv import, excel import, csv upload
-## Recipes and extensions
-- extend-index | Recipes and extensions | landing | 250
-- custom-cell-example | Build a cell type | task | 800 | custom cell type | 60
+## Recipes and custom code
+- extend-index | Recipes and custom code | landing | 250
+- custom-cell-example | Write a cell type | task | 800 | custom cell type | 60
 - plugins-example | Build a highlight plugin | task | 600 | write a plugin
 - detail-panel | Open a detail panel | task | 500 | master detail, expand row
 - bulk-actions | Run bulk actions | task | 335 | multi row action
@@ -104,11 +105,11 @@
 ## Data modes
 - server-index | Data modes | landing | 350
 - data-modes | Features by data mode | reference | 900
+- server-sort-filter | Server sort and filter | task | 800 | server side sorting, server sort, server filter, sortmode
 - server-troubleshooting | Troubleshoot server data | task | 800
 ## Pages mode
 - pages-index | Pages mode | landing | 250
 - pagination | Load rows by page | task | 800 | server pagination, server side pagination | 50
-- server-sort-filter | Pages sort and filter | feature | 700 | server side sorting, server sort, server filter
 - pagination-url | Keep pages in URL | task | 350
 ## Scroll mode
 - scroll-index | Scroll mode | landing | 300
@@ -158,24 +159,27 @@
 @ Reference
 ## Components and props
 - ref-index | Components and props | landing | 250
-- ref-datagrid | DataGrid props | reference | 1200
+- ref-datagrid | DataGrid props | reference | 1200 | getrowid, row id, props
 - ref-provider | DataGridProvider | reference | 500
 - ref-columndef | ColumnDef | reference | 900
 - ref-labels | Labels | reference | 700
 ## Events and state
 - events-index | Events and state | landing | 200
 - events-model | Event shapes | reference | 600
-- ev-data | Data change events | reference | 900
+- ev-data | Data change events | reference | 900 | ondatachange
 - ev-sort-filter | Sort and filter events | reference | 450
-- ev-edit | Edit and validation events | reference | 700
+- ev-edit | Edit and validation events | reference | 700 | validaterow, onedit
 - ev-cell | Selection and cell events | reference | 1000
 - ev-columns | Column and viewport events | reference | 600
 ## Contracts
 - contracts-index | Contracts | landing | 200
-- ref-celltype | CellType contract | reference | 1400
 - ref-server-rows | Server rows contract | reference | 1100
 - ref-style-surface | Style contract | reference | 700
 - ref-engine | Operation engine | reference | 500
+## Cell types
+- celltypes-index | Cell types | landing | 200
+- ref-celltype | CellType contract | reference | 1400 | | 30
+- custom-cell-model | Cell type model | concept | 700
 ## Plugins
 - plugins-index | Plugins | landing | 250
 - ref-plugin | Plugin contract | reference | 900
@@ -187,7 +191,6 @@
 - concepts-index | Concepts | landing | 250
 - selection-model | Selection model | concept | 700
 - styling-model | Styling model | concept | 500
-- custom-cell-model | Cell type model | concept | 700
 ## Types and hooks
 - types-index | Types and hooks | landing | 200
 - ref-types | Exported types | reference | 600
@@ -197,35 +200,33 @@
 - is-composing-key | isComposingKey | reference | 300
 ## Add-on options {az}
 - options-index | Add-on options | landing | 300
-### Options A to F
-- options-a-f | Options A to F | landing | 100
-- options-context-menu | Context menu options | reference | 500
-- options-export | Export options | reference | 600
+### Clipboard and undo options
 - options-fill | Fill handle options | reference | 400
-- options-find | Find and replace options | reference | 500
-### Options I to P
-- options-i-p | Options I to P | landing | 100
-- options-import | Import options | reference | 700
-- options-pagination | Pagination options | reference | 400
-- options-pinned-rows | Pinned rows options | reference | 400
-- options-presence | Presence options | reference | 600
-### Options S
-- options-s | Options S | landing | 100
-- options-server-rows | Server rows options | reference | 500
-- options-keybindings | Shortcut remapping options | reference | 500
-- options-sort-list | Sort list options | reference | 300
-- options-status-bar | Status bar options | reference | 400
-### Options T to U
-- options-t-u | Options T to U | landing | 100
-- options-toolbar | Toolbar options | reference | 600
 - options-undo-redo | Undo and redo options | reference | 500
+### Selection and keys options
+- options-keybindings | Shortcut remapping options | reference | 500
+- options-status-bar | Status bar options | reference | 400
+### Sort, filter, and search options
+- options-find | Find and replace options | reference | 500
+- options-toolbar | Toolbar options | reference | 600
+- options-sort-list | Sort list options | reference | 300
 - options-url-state | URL state options | reference | 400
+### Rows, pages, and menus options
+- options-context-menu | Context menu options | reference | 500
+- options-pinned-rows | Pinned rows options | reference | 400
+- options-pagination | Pagination options | reference | 400
+### Import and export options
+- options-export | Export options | reference | 600
+- options-import | Import options | reference | 700
+### Server options
+- options-server-rows | Server rows options | reference | 500 | blocksize, scroll mode options
+- options-presence | Presence options | reference | 600
 ## Cheatsheets and messages
 - cheat-index | Cheatsheets and messages | landing | 150
 - cheat-shortcuts | Keyboard shortcuts | cheatsheet | 800
 - cheat-props | Props A to Z | cheatsheet | 1100
 - cheat-events | Events A to Z | cheatsheet | 900
-- ref-messages | Messages | reference | 900 | error message, warning, console warning
+- ref-messages | Messages | reference | 1500 | error message, warning, console warning
 @ Examples
 ## Basic examples
 - examples-index | Basic examples | landing | 250

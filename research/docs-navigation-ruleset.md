@@ -62,7 +62,8 @@ Every page has exactly one type. The type decides the budget and the template. A
   the concepts it uses.
 - P11. No page has fewer than 80 words, and no page is only links, unless it is a Landing page.
 - P12. A docs-changes marker (`<NewBadge />`) follows `AGENTS.md`. A moved section keeps its badge.
-- P13. A Feature page whose behavior differs between client and server mode has an H2 named "Server mode". It states the
+- P13. A Feature page whose behavior differs between client and server mode has an H2 named "Server mode". A page with a
+  sibling for the other mode links that sibling in the first screen. It states the
   request and the response and links the Server page that owns the detail. The feature list comes from
   `research/parity-matrix.json` (cells that are not `n/a`).
 - P14. The bodies of tabs count toward P1 and P4. The audit script counts them.
@@ -103,7 +104,8 @@ Every page has exactly one type. The type decides the budget and the template. A
 - S14. A new feature gets its page in the area where its reader looks. When the group is at its cap, the group splits
   before the page lands.
 - S15. A group has at least 2 pages.
-- S16. A new feature changes at most 3 hand-written places: its page, its options section, and its example page.
+- S16. A new feature changes at most 3 hand-written places: its page, its Add-on options page, and its example page (when it
+  has a demo).
   A server mode adds one Server page and one row in the data modes matrix. Everything else is generated: the group landing lists (from page descriptions), the task finder entries (from the `finder`
   frontmatter line), the Terms alias table, the feature matrix, the cheatsheets, the sidebar, and the model index (A12).
 
@@ -175,7 +177,7 @@ new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |
 |---|---|---|
-| Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, A to Z), an example page | Landing lists, task finder entry, feature matrix row, cheatsheet rows, model index, status line |
+| Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, grouped by the Build group of its topic), an example page when it has a demo | Landing lists, task finder entry, feature matrix row, cheatsheet rows, model index, status line |
 | Server feature | A page in the Server group of its mode, a row in the data modes matrix | Feature matrix row, a step link in the Server path when it changes the route |
 | Event or callback | A section in the matching Events page | Row in the events cheatsheet, anchor (N9) |
 | Cell type | A section in the built-in cell types page, an example page | Cheatsheet rows |

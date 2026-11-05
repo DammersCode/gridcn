@@ -246,7 +246,7 @@ function checkCandidate(file) {
       if (!g.az && !g.pages.some((p) => p.type === "step")) checkGroupSize(g.name, g.pages, false);
       for (const x of g.subs) checkGroupSize(x.name, x.pages, true);
       if (g.pages[0]?.type !== "landing") fail("S7", `group "${g.name}" in "${a.name}" has no landing first`);
-      for (const x of g.subs) if (x.pages[0]?.type !== "landing") warn("S7", `subgroup "${x.name}" has no landing first`);
+      for (const x of g.subs) if (!g.az && x.pages[0]?.type !== "landing") warn("S7", `subgroup "${x.name}" has no landing first`);
       if (g.subs.length && !/reference|recipes|examples/i.test(`${a.name} ${g.name}`)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
       if (/^(architecture|advanced|misc|other|utilities)$/i.test(g.name)) fail("S13", `group "${g.name}"`);
       if (g.name.split(/\s+/).length > 4) warn("N1", `group label "${g.name}" has more than 4 words`);

@@ -21,23 +21,23 @@
   "sending-your-selection": "/docs/rows-live-data/broadcast-your-selection#sending-your-selection"
  },
  "/docs/addons/context-menu": {
-  "header-surface": "/docs/rows-menus/context-menu#header-surface",
-  "cell-surface-row-operation-items": "/docs/rows-menus/context-menu#cell-surface-row-operation-items",
-  "custom-menu-items": "/docs/rows-menus/context-menu#custom-menu-items",
-  "touch": "/docs/rows-menus/context-menu#touch",
-  "paste-permission": "/docs/rows-menus/context-menu#paste-permission",
-  "internationalization": "/docs/rows-menus/context-menu#internationalization",
-  "related": "/docs/rows-menus/context-menu#related"
+  "header-surface": "/docs/rows-pages-menus/context-menu#header-surface",
+  "cell-surface-row-operation-items": "/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items",
+  "custom-menu-items": "/docs/rows-pages-menus/context-menu#custom-menu-items",
+  "touch": "/docs/rows-pages-menus/context-menu#touch",
+  "paste-permission": "/docs/rows-pages-menus/context-menu#paste-permission",
+  "internationalization": "/docs/rows-pages-menus/context-menu#internationalization",
+  "related": "/docs/rows-pages-menus/context-menu#related"
  },
  "/docs/addons/fill": {
-  "wiring-it-up": "/docs/clipboard-history/fill-handle#wiring-it-up",
-  "tiling-vs-series-inference": "/docs/clipboard-history/fill-handle#tiling-vs-series-inference",
-  "forcing-a-plain-copy": "/docs/clipboard-history/fill-handle#forcing-a-plain-copy",
-  "custom-series-detection": "/docs/clipboard-history/fill-handle#custom-series-detection",
-  "keyboard-fill": "/docs/clipboard-history/fill-handle#keyboard-fill",
-  "touch": "/docs/clipboard-history/fill-handle#touch",
-  "turning-fill-off": "/docs/clipboard-history/fill-handle#turning-fill-off",
-  "onfill": "/docs/clipboard-history/fill-handle#onfill"
+  "wiring-it-up": "/docs/clipboard-undo/fill-handle#wiring-it-up",
+  "tiling-vs-series-inference": "/docs/clipboard-undo/fill-handle#tiling-vs-series-inference",
+  "forcing-a-plain-copy": "/docs/clipboard-undo/fill-handle#forcing-a-plain-copy",
+  "custom-series-detection": "/docs/clipboard-undo/fill-handle#custom-series-detection",
+  "keyboard-fill": "/docs/clipboard-undo/fill-handle#keyboard-fill",
+  "touch": "/docs/clipboard-undo/fill-handle#touch",
+  "turning-fill-off": "/docs/clipboard-undo/fill-handle#turning-fill-off",
+  "onfill": "/docs/clipboard-undo/fill-handle#onfill"
  },
  "/docs/addons/find-replace": {
   "find": "/docs/sort-filter-search/find-replace#find",
@@ -77,13 +77,13 @@
   "related": "/docs/selection-keys/shortcut-remapping#related"
  },
  "/docs/addons/pinned-rows": {
-  "wiring-it-up": "/docs/rows-menus/pinned-rows#wiring-it-up",
-  "api": "/docs/rows-menus/pinned-rows#api",
-  "computing-a-totals-row": "/docs/rows-menus/pinned-rows#computing-a-totals-row",
-  "custom-reducers": "/docs/rows-menus/pinned-rows#custom-reducers",
-  "manual-computation": "/docs/rows-menus/pinned-rows#manual-computation",
-  "geometry": "/docs/rows-menus/pinned-rows#geometry",
-  "a11y": "/docs/rows-menus/pinned-rows#a11y"
+  "wiring-it-up": "/docs/rows-pages-menus/pinned-rows#wiring-it-up",
+  "api": "/docs/rows-pages-menus/pinned-rows#api",
+  "computing-a-totals-row": "/docs/rows-pages-menus/pinned-rows#computing-a-totals-row",
+  "custom-reducers": "/docs/rows-pages-menus/pinned-rows#custom-reducers",
+  "manual-computation": "/docs/rows-pages-menus/pinned-rows#manual-computation",
+  "geometry": "/docs/rows-pages-menus/pinned-rows#geometry",
+  "a11y": "/docs/rows-pages-menus/pinned-rows#a11y"
  },
  "/docs/addons/presence": {
   "api": "/docs/rows-live-data/show-presence#api",
@@ -115,17 +115,17 @@
   "related": "/docs/sort-filter-search/toolbar#related"
  },
  "/docs/addons/undo-redo": {
-  "how-it-works": "/docs/clipboard-history/undo-redo#how-it-works",
-  "quick-start-usedatagridstate": "/docs/clipboard-history/undo-redo#quick-start-usedatagridstate",
-  "composable-usedatagridhistory": "/docs/clipboard-history/undo-redo#composable-usedatagridhistory",
-  "programmatic-changes-record": "/docs/clipboard-history/undo-code-changes#programmatic-changes-record",
-  "which-changes-are-recorded": "/docs/clipboard-history/undo-code-changes#which-changes-are-recorded",
+  "how-it-works": "/docs/clipboard-undo/undo-redo#how-it-works",
+  "quick-start-usedatagridstate": "/docs/clipboard-undo/undo-redo#quick-start-usedatagridstate",
+  "composable-usedatagridhistory": "/docs/clipboard-undo/undo-redo#composable-usedatagridhistory",
+  "programmatic-changes-record": "/docs/clipboard-undo/undo-code-changes#programmatic-changes-record",
+  "which-changes-are-recorded": "/docs/clipboard-undo/undo-code-changes#which-changes-are-recorded",
   "rolling-back-a-failed-save": "/docs/save-server/undo-server-data#rolling-back-a-failed-save",
-  "capped-stack": "/docs/clipboard-history/undo-redo#capped-stack",
-  "dataset-changes": "/docs/clipboard-history/undo-code-changes#dataset-changes",
-  "read-only-grids": "/docs/clipboard-history/undo-redo#read-only-grids",
+  "capped-stack": "/docs/clipboard-undo/undo-redo#capped-stack",
+  "dataset-changes": "/docs/clipboard-undo/undo-code-changes#dataset-changes",
+  "read-only-grids": "/docs/clipboard-undo/undo-redo#read-only-grids",
   "with-scroll-mode": "/docs/save-server/undo-server-data#with-scroll-mode",
-  "related": "/docs/clipboard-history/undo-redo#related"
+  "related": "/docs/clipboard-undo/undo-redo#related"
  },
  "/docs/addons/url-state": {
   "usage": "/docs/sort-filter-search/url-state#usage",
@@ -151,37 +151,37 @@
   "plugins": "/docs/components-props/data-grid-provider#plugins",
   "hooks": "/docs/components-props/data-grid-provider#hooks",
   "columndeftdata-tvalue": "/docs/components-props/column-def#columndeftdata-tvalue",
-  "celltypetdata-tvalue-toptions": "/docs/contracts/cell-type-contract#celltypetdata-tvalue-toptions",
-  "gridcelltypes": "/docs/contracts/cell-type-contract#gridcelltypes",
-  "definecelltypekey-type": "/docs/contracts/cell-type-contract#definecelltypekey-type",
-  "usecelleditorprops-codec": "/docs/contracts/cell-type-contract#usecelleditorprops-codec",
+  "celltypetdata-tvalue-toptions": "/docs/cell-types/cell-type-contract#celltypetdata-tvalue-toptions",
+  "gridcelltypes": "/docs/cell-types/cell-type-contract#gridcelltypes",
+  "definecelltypekey-type": "/docs/cell-types/cell-type-contract#definecelltypekey-type",
+  "usecelleditorprops-codec": "/docs/cell-types/cell-type-contract#usecelleditorprops-codec",
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
   "operation-engine": "/docs/contracts/operation-engine#operation-engine",
-  "add-on-option-types": "/docs/add-options/options-f/context-menu-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/options-f/context-menu-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/options-f/context-menu-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/options-f/context-menu-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/options-f/context-menu-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/options-f/context-menu-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/options-f/context-menu-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/options-f/context-menu-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/options-f/context-menu-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/options-f/context-menu-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/options-f/context-menu-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/options-f/context-menu-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/options-f/context-menu-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/options-f/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/options-f/context-menu-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/options-f/context-menu-options#usedatagridpinnedrowsoptions"
+  "add-on-option-types": "/docs/add-options/rows-pages-menus-options/context-menu-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
-  "copy": "/docs/clipboard-history/clipboard#copy",
-  "formula-sanitizing": "/docs/clipboard-history/clipboard#formula-sanitizing",
-  "paste": "/docs/clipboard-history/clipboard#paste",
-  "overrides": "/docs/clipboard-history/clipboard#overrides",
-  "context-menu-paste": "/docs/clipboard-history/clipboard#context-menu-paste",
-  "known-limitations": "/docs/clipboard-history/clipboard#known-limitations"
+  "copy": "/docs/clipboard-undo/clipboard#copy",
+  "formula-sanitizing": "/docs/clipboard-undo/clipboard#formula-sanitizing",
+  "paste": "/docs/clipboard-undo/clipboard#paste",
+  "overrides": "/docs/clipboard-undo/clipboard#overrides",
+  "context-menu-paste": "/docs/clipboard-undo/clipboard#context-menu-paste",
+  "known-limitations": "/docs/clipboard-undo/clipboard#known-limitations"
  },
  "/docs/columns": {
   "resize": "/docs/columns/column-sizing#resize",
@@ -198,15 +198,15 @@
   "persisting-a-users-layout": "/docs/columns/column-visibility#persisting-a-users-layout"
  },
  "/docs/custom-cell-types": {
-  "the-mental-model": "/docs/concepts/cell-type-model#the-mental-model",
-  "the-contract-member-by-member": "/docs/contracts/cell-type-contract#the-contract-member-by-member",
-  "keypoint-checklist": "/docs/concepts/cell-type-model#keypoint-checklist",
-  "value-pipeline": "/docs/concepts/cell-type-model#value-pipeline",
-  "rendering--performance": "/docs/concepts/cell-type-model#rendering--performance",
-  "editor-ux": "/docs/concepts/cell-type-model#editor-ux",
-  "typing": "/docs/concepts/cell-type-model#typing",
-  "worked-example-a-currency-cell-type": "/docs/recipes-extensions/build-cell-type#worked-example-a-currency-cell-type",
-  "testing-your-cell-type": "/docs/recipes-extensions/build-cell-type#testing-your-cell-type"
+  "the-mental-model": "/docs/cell-types/cell-type-model#the-mental-model",
+  "the-contract-member-by-member": "/docs/cell-types/cell-type-contract#the-contract-member-by-member",
+  "keypoint-checklist": "/docs/cell-types/cell-type-model#keypoint-checklist",
+  "value-pipeline": "/docs/cell-types/cell-type-model#value-pipeline",
+  "rendering--performance": "/docs/cell-types/cell-type-model#rendering--performance",
+  "editor-ux": "/docs/cell-types/cell-type-model#editor-ux",
+  "typing": "/docs/cell-types/cell-type-model#typing",
+  "worked-example-a-currency-cell-type": "/docs/recipes-custom-code/write-cell-type#worked-example-a-currency-cell-type",
+  "testing-your-cell-type": "/docs/recipes-custom-code/write-cell-type#testing-your-cell-type"
  },
  "/docs/data-modes": {
   "data-modes": "/docs/data-modes#data-modes",
@@ -524,8 +524,8 @@
   "editing-loaded-rows": "/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows",
   "errors": "/docs/scroll-mode/recover-load-errors#errors",
   "memory--retention": "/docs/scroll-mode/tune-row-retention#memory--retention",
-  "sorting-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#sorting-a-scroll-grid",
-  "filtering-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#filtering-a-scroll-grid",
+  "sorting-a-scroll-grid": "/docs/data-modes/server-sort-filter#sorting-a-scroll-grid",
+  "filtering-a-scroll-grid": "/docs/data-modes/server-sort-filter#filtering-a-scroll-grid",
   "a-source-with-no-total": "/docs/scroll-mode/load-without-row-count#a-source-with-no-total",
   "selecting-copying-and-exporting": "/docs/rows-live-data/select-server-rows#selecting-copying-and-exporting"
  },
@@ -561,7 +561,7 @@
   "engine-work": "/docs/plugins/plugin-commands-keys#engine-work",
   "what-a-plugin-can-reach": "/docs/plugins/plugin-shape#what-a-plugin-can-reach",
   "identity": "/docs/plugins/plugin-shape#identity",
-  "worked-example-highlight-a-column": "/docs/recipes-extensions/build-highlight-plugin#worked-example-highlight-a-column",
+  "worked-example-highlight-a-column": "/docs/recipes-custom-code/build-highlight-plugin#worked-example-highlight-a-column",
   "ssr": "/docs/plugins/plugin-shape#ssr",
   "related": "/docs/plugins#related"
  },
@@ -618,9 +618,9 @@
   "related": "/docs/editing-cells/lock-cells-role#related"
  },
  "/docs/recipes/editing/custom-cell-type": {
-  "format-the-display": "/docs/recipes-extensions/build-cell-type#format-the-display",
-  "use-a-built-in-type": "/docs/recipes-extensions/build-cell-type#use-a-built-in-type",
-  "write-a-cell-type": "/docs/recipes-extensions/build-cell-type#write-a-cell-type"
+  "format-the-display": "/docs/recipes-custom-code/write-cell-type#format-the-display",
+  "use-a-built-in-type": "/docs/recipes-custom-code/write-cell-type#use-a-built-in-type",
+  "write-a-cell-type": "/docs/recipes-custom-code/write-cell-type#write-a-cell-type"
  },
  "/docs/recipes/editing/edit-row-with-form": {
   "related": "/docs/editing-cells/edit-rows-forms#related"
@@ -631,34 +631,34 @@
   "editing--access": "/docs/terms-help/task-finder#editing--access"
  },
  "/docs/recipes/ui-patterns/bulk-actions": {
-  "one-write-per-button": "/docs/recipes-extensions/run-bulk-actions#one-write-per-button",
-  "export-only-the-checked-rows": "/docs/recipes-extensions/run-bulk-actions#export-only-the-checked-rows",
-  "related": "/docs/recipes-extensions/run-bulk-actions#related"
+  "one-write-per-button": "/docs/recipes-custom-code/run-bulk-actions#one-write-per-button",
+  "export-only-the-checked-rows": "/docs/recipes-custom-code/run-bulk-actions#export-only-the-checked-rows",
+  "related": "/docs/recipes-custom-code/run-bulk-actions#related"
  },
  "/docs/recipes/ui-patterns/detail-panel": {
-  "open-the-panel": "/docs/recipes-extensions/open-detail-panel#open-the-panel",
-  "mouse": "/docs/recipes-extensions/open-detail-panel#mouse",
-  "keyboard": "/docs/recipes-extensions/open-detail-panel#keyboard",
-  "follow-the-active-row": "/docs/recipes-extensions/open-detail-panel#follow-the-active-row",
-  "focus-and-escape": "/docs/recipes-extensions/open-detail-panel#focus-and-escape",
-  "related": "/docs/recipes-extensions/open-detail-panel#related"
+  "open-the-panel": "/docs/recipes-custom-code/open-detail-panel#open-the-panel",
+  "mouse": "/docs/recipes-custom-code/open-detail-panel#mouse",
+  "keyboard": "/docs/recipes-custom-code/open-detail-panel#keyboard",
+  "follow-the-active-row": "/docs/recipes-custom-code/open-detail-panel#follow-the-active-row",
+  "focus-and-escape": "/docs/recipes-custom-code/open-detail-panel#focus-and-escape",
+  "related": "/docs/recipes-custom-code/open-detail-panel#related"
  },
  "/docs/recipes/ui-patterns/multiple-grids": {
-  "related": "/docs/recipes-extensions/link-multiple-grids#related"
+  "related": "/docs/recipes-custom-code/link-multiple-grids#related"
  },
  "/docs/recipes/ui-patterns/remember-view": {
-  "related": "/docs/columns/remember-view#related"
+  "related": "/docs/sort-filter-search/remember-filters-layout#related"
  },
  "/docs/row-operations": {
-  "enable-props": "/docs/rows-menus/row-operations#enable-props",
-  "confirm-a-delete": "/docs/rows-menus/row-operations#confirm-a-delete",
-  "default-shortcuts": "/docs/rows-menus/row-operations#default-shortcuts",
-  "reorder": "/docs/rows-menus/row-reorder#reorder",
-  "context-menu": "/docs/rows-menus/row-operations#context-menu",
-  "programmatic-actions": "/docs/rows-menus/row-operations-code#programmatic-actions",
+  "enable-props": "/docs/rows-pages-menus/row-operations#enable-props",
+  "confirm-a-delete": "/docs/rows-pages-menus/row-operations#confirm-a-delete",
+  "default-shortcuts": "/docs/rows-pages-menus/row-operations#default-shortcuts",
+  "reorder": "/docs/rows-pages-menus/row-reorder#reorder",
+  "context-menu": "/docs/rows-pages-menus/row-operations#context-menu",
+  "programmatic-actions": "/docs/rows-pages-menus/row-operations-code#programmatic-actions",
   "scroll-mode": "/docs/rows-live-data/change-server-rows#scroll-mode",
-  "row-markers": "/docs/rows-menus/row-markers#row-markers",
-  "custom-markers": "/docs/rows-menus/row-markers#custom-markers"
+  "row-markers": "/docs/rows-pages-menus/row-markers#row-markers",
+  "custom-markers": "/docs/rows-pages-menus/row-markers#custom-markers"
  },
  "/docs/selection-keyboard": {
   "selection-model": "/docs/concepts/selection-model#selection-model",
@@ -683,7 +683,7 @@
   "search": "/docs/sort-filter-search/sorting#search",
   "sort-list-toolbar-add-on": "/docs/sort-filter-search/sorting#sort-list-toolbar-add-on",
   "initial-sort-filter-and-search": "/docs/sort-filter-search/sorting#initial-sort-filter-and-search",
-  "controlled-mode-server-side-sortfilter": "/docs/pages-mode/pages-sort-filter#controlled-mode-server-side-sortfilter"
+  "controlled-mode-server-side-sortfilter": "/docs/data-modes/server-sort-filter#controlled-mode-server-side-sortfilter"
  },
  "/docs/streaming-updates": {
   "usage": "/docs/rows-live-data/stream-updates#usage",

@@ -10,6 +10,7 @@ server side pagination | pagination
 client side pagination | pagination-client
 paging | pagination-client
 server side sorting | server-sort-filter
+sort mode server | server-sort-filter
 export to excel | export
 export csv | export
 import excel file | import
@@ -62,3 +63,9 @@ write a plugin | plugins-example
 custom cell type | custom-cell-example
 remap shortcuts | keybindings
 sum of selected cells | status-bar
+getRowId | ref-datagrid
+onDataChange | ev-data
+validateRow | ev-edit
+blockSize | options-server-rows
+add a row | row-operations
+read only column | edit-activation

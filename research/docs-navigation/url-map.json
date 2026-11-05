@@ -26,7 +26,7 @@
   "slugs": [
    "context-menu"
   ],
-  "target": "/docs/rows-menus/context-menu",
+  "target": "/docs/rows-pages-menus/context-menu",
   "split": false
  },
  {
@@ -35,7 +35,7 @@
   "slugs": [
    "fill"
   ],
-  "target": "/docs/clipboard-history/fill-handle",
+  "target": "/docs/clipboard-undo/fill-handle",
   "split": false
  },
  {
@@ -83,7 +83,7 @@
   "slugs": [
    "pinned-rows"
   ],
-  "target": "/docs/rows-menus/pinned-rows",
+  "target": "/docs/rows-pages-menus/pinned-rows",
   "split": false
  },
  {
@@ -131,7 +131,7 @@
    "undo-programmatic",
    "server-undo"
   ],
-  "target": "/docs/clipboard-history/undo-redo",
+  "target": "/docs/clipboard-undo/undo-redo",
   "split": true
  },
  {
@@ -190,7 +190,7 @@
   "slugs": [
    "clipboard"
   ],
-  "target": "/docs/clipboard-history/clipboard",
+  "target": "/docs/clipboard-undo/clipboard",
   "split": false
  },
  {
@@ -215,7 +215,7 @@
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/recipes-extensions",
+  "target": "/docs/recipes-custom-code",
   "split": true
  },
  {
@@ -730,7 +730,7 @@
    "scroll-usage",
    "scroll-errors",
    "scroll-retention",
-   "scroll-sort-filter",
+   "server-sort-filter",
    "scroll-no-total",
    "server-selection",
    "server-troubleshooting"
@@ -873,7 +873,7 @@
   "slugs": [
    "custom-cell-example"
   ],
-  "target": "/docs/recipes-extensions/build-cell-type",
+  "target": "/docs/recipes-custom-code/write-cell-type",
   "split": false
  },
  {
@@ -900,7 +900,7 @@
   "slugs": [
    "bulk-actions"
   ],
-  "target": "/docs/recipes-extensions/run-bulk-actions",
+  "target": "/docs/recipes-custom-code/run-bulk-actions",
   "split": false
  },
  {
@@ -909,7 +909,7 @@
   "slugs": [
    "detail-panel"
   ],
-  "target": "/docs/recipes-extensions/open-detail-panel",
+  "target": "/docs/recipes-custom-code/open-detail-panel",
   "split": false
  },
  {
@@ -918,7 +918,7 @@
   "slugs": [
    "multiple-grids"
   ],
-  "target": "/docs/recipes-extensions/link-multiple-grids",
+  "target": "/docs/recipes-custom-code/link-multiple-grids",
   "split": false
  },
  {
@@ -927,7 +927,7 @@
   "slugs": [
    "remember-view"
   ],
-  "target": "/docs/columns/remember-view",
+  "target": "/docs/sort-filter-search/remember-filters-layout",
   "split": false
  },
  {
@@ -941,7 +941,7 @@
    "row-operations-code",
    "server-row-ops"
   ],
-  "target": "/docs/rows-menus",
+  "target": "/docs/rows-pages-menus",
   "split": true
  },
  {
