@@ -34,7 +34,7 @@ export function parseCandidate(file) {
       }
       else if (/^###\s/.test(line)) subgroup = line.replace(/^###\s*/, "").replace(/\{[^}]*\}/g, "").trim();
       else if (line.startsWith("## ")) {
-        group = line.replace(/^##s*/, "").replace(/{[^}]*}/g, "").trim();
+        group = line.replace(/^##\s*/, "").replace(/{[^}]*}/g, "").trim();
         subgroup = "";
       }
       else if (/^-\s/.test(line)) {
@@ -99,12 +99,20 @@ function demosIn(root, sources, slug, title) {
   return { files: files.map((f) => rel(root, f)), demos: [...found] };
 }
 
+/** Pages the perf-docs session writes under content/docs/performance/. The fleet leaves them out and the merge takes them from that branch. */
+const PERF_DOCS = new Set(["performance", "benchmark-results", "run-benchmark"]);
 const DEMO_RULE = { feature: "decide", task: "decide", example: "yes", step: "no", reference: "no", concept: "no", landing: "no", cheatsheet: "no" };
 const CODE_RULE = { feature: "yes", task: "yes", step: "yes", example: "yes", reference: "table+sample", concept: "no", landing: "no", cheatsheet: "no" };
 
 export function buildWorklist({ candidate, contentMap, urlMap, root = process.cwd(), batchWords = 7000, batchPages = 10 }) {
   const mapped = new Map();
-  if (urlMap) for (const entry of JSON.parse(readLf(urlMap))) if (entry.slugs.length === 1) mapped.set(entry.slugs[0], entry.target);
+  const filesBySlug = new Map();
+  if (urlMap) {
+    for (const entry of JSON.parse(readLf(urlMap))) {
+      if (entry.slugs.length === 1) mapped.set(entry.slugs[0], entry.target);
+      for (const slug of entry.slugs) filesBySlug.set(slug, [...(filesBySlug.get(slug) ?? []), `content/docs/${entry.file}`]);
+    }
+  }
   const pages = parseCandidate(candidate);
   const map = parseContentMap(contentMap);
   const groupSlug = new Map();
@@ -118,11 +126,15 @@ export function buildWorklist({ candidate, contentMap, urlMap, root = process.cw
     const sources = [...new Set(entries.flatMap((e) => e.sources))];
     const kinds = [...new Set(entries.map((e) => actionOf(e.kind)))];
     const action = p.type === "landing" ? "new" : kinds.length === 0 ? "unmapped" : kinds.length === 1 ? kinds[0] : kinds.join("+");
-    const carried = demosIn(root, sources, p.slug, p.title);
+    const found = demosIn(root, sources, p.slug, p.title);
+    const allFiles = [...new Set([...found.files, ...(filesBySlug.get(p.slug) ?? []).filter((file) => existsSync(join(root, file)))])];
+    const demoNames = new Set(found.demos);
+    for (const file of allFiles) for (const m of readLf(join(root, file)).matchAll(/<ComponentPreview\s+name=["']([\w-]+)["']/g)) demoNames.add(m[1]);
+    const carried = { files: allFiles, demos: [...demoNames] };
     const generated = /cheat-|find-task|feature-matrix|ref-messages|^terms$/.test(p.slug) || entries.some((e) => /generated/.test(e.kind) || /generated/.test(e.note));
     const buildFeature = p.type === "feature" && p.area === "Build";
     const wave = generated ? 3 : p.type === "landing" ? 3 : /^(move|split|merge)/.test(action) && !action.includes("new") ? 1 : 2;
-    return { ...p, url, urlSource: mapped.has(p.slug) ? "url-map" : "derived", wave, owner: generated ? "generator" : "writer", action, sources, sourceFiles: carried.files, carriedDemos: carried.demos, demo: p.type === "feature" || p.type === "task" ? (carried.demos.length ? "carry (max 1 unless variants)" : DEMO_RULE[p.type]) : DEMO_RULE[p.type] ?? "no", code: CODE_RULE[p.type] ?? "no", generated, parity: buildFeature ? PARITY[p.slug] ?? [] : [], parityOwnerOf: Object.entries(PARITY_ELSEWHERE).filter(([, slug]) => slug === p.slug).map(([id]) => id) };
+    return { ...p, landing: first, url, urlSource: mapped.has(p.slug) ? "url-map" : "derived", wave, owner: generated ? "generator" : PERF_DOCS.has(p.slug) ? "perf-docs" : "writer", action, sources, sourceFiles: carried.files, carriedDemos: carried.demos, demo: p.type === "feature" || p.type === "task" ? (carried.demos.length ? "carry (max 1 unless variants)" : DEMO_RULE[p.type]) : DEMO_RULE[p.type] ?? "no", code: CODE_RULE[p.type] ?? "no", generated, parity: buildFeature ? PARITY[p.slug] ?? [] : [], parityOwnerOf: Object.entries(PARITY_ELSEWHERE).filter(([, slug]) => slug === p.slug).map(([id]) => id) };
   });
   // Batches pack whole groups (folders) of one area and one wave in sidebar order, so writers never share a file; a group over the limit splits.
   // Generated pages belong to generator tasks (batch "G"); landings are batched last (wave 3) because they list their children.
@@ -130,6 +142,7 @@ export function buildWorklist({ candidate, contentMap, urlMap, root = process.cw
   const batches = new Map();
   const writers = rows.filter((r) => r.owner === "writer");
   for (const r of rows.filter((x) => x.owner === "generator")) r.batch = "G";
+  for (const r of rows.filter((x) => x.owner === "perf-docs")) r.batch = "P";
   for (const wave of [1, 2, 3]) {
     let current = [];
     let words = 0;

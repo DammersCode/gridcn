@@ -25,9 +25,14 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
   const titles = new Map();
   const aliasOwner = new Map();
   const serverModePages = new Map();
+  const rows = [];
   if (worklist && existsSync(join(root, worklist))) {
-    for (const row of JSON.parse(readLf(join(root, worklist))).pages ?? []) if (row.parity?.length) serverModePages.set(row.url, row.parity);
-  }
+    for (const row of JSON.parse(readLf(join(root, worklist))).pages ?? []) {
+      rows.push(row);
+      if (row.parity?.length) serverModePages.set(row.url, row.parity);
+    }
+  } else if (worklist && requireRelated) failures.push(`work list ${worklist} not found`);
+  const pageAliases = new Map();
   let pages = 0;
   let noRelated = 0;
   for (const file of walk(contentDir, [".mdx"])) {
@@ -42,7 +47,7 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     if (!title) failures.push(`${here}: no title`);
     else {
       if (title.length > MAX_TITLE) failures.push(`${here}: title is ${title.length} characters, limit ${MAX_TITLE}`);
-      if (titles.has(title)) failures.push(`${here}: title "${title}" is also the title of ${titles.get(title)}`);
+      if (titles.has(title)) failures.push(`${here}: title "${title}" is also the title of ${titles.get(title)}`, `${titles.get(title)}: title "${title}" is also the title of ${here}`);
       titles.set(title, here);
     }
     if (!description) failures.push(`${here}: no description`);
@@ -50,9 +55,10 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     if (type && !PAGE_TYPES.includes(type)) failures.push(`${here}: unknown type "${type}"`);
     if (requireType && !type) failures.push(`${here}: no type in the frontmatter`);
     if (/^status:/m.test(front)) failures.push(`${here}: remove the status: line (content/docs-changes.json holds page status)`);
+    pageAliases.set(urlOfPage(contentDir, file), { here, aliases: aliasesOf(front).map((a) => a.toLowerCase()) });
     for (const alias of aliasesOf(front)) {
       const owner = aliasOwner.get(alias.toLowerCase());
-      if (owner) failures.push(`${here}: alias "${alias}" is also owned by ${owner}`);
+      if (owner) failures.push(`${here}: alias "${alias}" is also owned by ${owner}`, `${owner}: alias "${alias}" is also owned by ${here}`);
       else aliasOwner.set(alias.toLowerCase(), here);
     }
     const fenced = new Set();
@@ -71,7 +77,7 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
         noRelated++;
         (requireRelated ? failures : warnings).push(`${here}: no Related section`);
       } else {
-        if (h2.at(-1) !== related) warnings.push(`${here}: Related is not the last section`);
+        if (h2.at(-1) !== related) (requireRelated ? failures : warnings).push(`${here}: Related is not the last section`);
         const end = h2.find((h) => h.line > related.line)?.line ?? lines.length;
         const links = lines.slice(related.line, end).join("\n").match(/\]\(\/docs[^)]*\)|href="\/docs/g)?.length ?? 0;
         if (links < 1 || links > 5) failures.push(`${here}: Related has ${links} docs links, expected 1 to 5`);
@@ -82,6 +88,13 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     if (type === "feature") {
       const firstH2 = h2[0]?.line ?? lines.length;
       if (!/<ComponentPreview/.test(lines.slice(0, firstH2).join("\n")) && !/^demos:\s*none/m.test(front)) warnings.push(`${here}: feature page has no demo before the first H2 (add "demos: none" when a code sample explains it)`);
+    }
+  }
+  if (requireRelated) {
+    for (const row of rows) {
+      const found = pageAliases.get(row.url);
+      if (!found) failures.push(`work list: ${row.slug} has no page at ${row.url}`);
+      else for (const alias of row.aliases ?? []) if (!found.aliases.includes(alias.toLowerCase())) failures.push(`${found.here}: alias "${alias}" from the work list is missing`);
     }
   }
   if (existsSync(join(root, ".git")) || existsSync(join(root, "..", ".git"))) {

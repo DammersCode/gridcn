@@ -86,8 +86,8 @@ export function lintPage(body) {
     }
     const sentences = sentencesOf(p.text);
     const words = wordCount(clean(p.text));
-    if (!p.item && words > MAX_PARAGRAPH_WORDS) hits.push({ rule: "long-paragraph", line: p.line, soft: false, note: `${words} words, limit ${MAX_PARAGRAPH_WORDS}` });
-    if (!p.item && sentences.length > MAX_PARAGRAPH_SENTENCES) hits.push({ rule: "long-paragraph", line: p.line, soft: false, note: `${sentences.length} sentences, limit ${MAX_PARAGRAPH_SENTENCES}` });
+    if (words > MAX_PARAGRAPH_WORDS) hits.push({ rule: "long-paragraph", line: p.line, soft: false, note: `${words} words, limit ${MAX_PARAGRAPH_WORDS}` });
+    if (sentences.length > MAX_PARAGRAPH_SENTENCES) hits.push({ rule: "long-paragraph", line: p.line, soft: false, note: `${sentences.length} sentences, limit ${MAX_PARAGRAPH_SENTENCES}` });
     for (const sentence of sentences) {
       const count = wordCount(sentence);
       if (count > MAX_SENTENCE_WORDS) hits.push({ rule: "long-sentence", line: p.line, soft: false, note: `${count} words: ${sentence.slice(0, 50)}` });
@@ -118,8 +118,13 @@ export function lintPage(body) {
   const bulletAt = lines.map((line, i) => (/^\s*[-*]\s/.test(line) && !fencedLine.has(i + 1) ? i : -1)).filter((i) => i >= 0);
   const relatedHeading = (i) => /^##\s+(related|next|where next)\b/i.test(lines[headingAt.filter((h) => h < i).at(-1)] ?? "");
   for (const i of bulletAt) {
-    const near = (j) => j >= 0 && j < lines.length && /^\s*[-*]\s/.test(lines[j]);
-    const neighbour = near(i - 1) || near(i + 1) || (lines[i - 1]?.trim() === "" && near(i - 2)) || (lines[i + 1]?.trim() === "" && near(i + 2)) || /^\s{2,}\S/.test(lines[i + 1] ?? "");
+    const isBullet = (j) => /^\s*[-*]\s/.test(lines[j] ?? "");
+    const isContinuation = (j) => /^\s{2,}\S/.test(lines[j] ?? "") && !isBullet(j);
+    let up = i - 1;
+    while (up >= 0 && (lines[up].trim() === "" || isContinuation(up))) up--;
+    let down = i + 1;
+    while (down < lines.length && (lines[down].trim() === "" || isContinuation(down))) down++;
+    const neighbour = (up >= 0 && isBullet(up)) || isBullet(down);
     if (!neighbour && !relatedHeading(i)) hits.push({ rule: "one-item-list", line: i + 1, soft: false, note: "write a one-item list as prose" });
   }
   for (const i of numberedAt) {

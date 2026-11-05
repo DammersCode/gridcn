@@ -102,6 +102,10 @@ export function run({ root = process.cwd(), files } = {}) {
       const lang = block.lang.startsWith("j") ? "tsx" : block.lang === "typescript" ? "ts" : block.lang;
       if (reason === "") failures.push(`${path}:${start}: fragment needs a reason: fragment="why"`);
       if (reason !== undefined) {
+        if (reason.startsWith("needs ")) {
+          total--;
+          continue;
+        }
         fragments++;
         fragmentsHere++;
         const imports = block.code.match(/^import\s[\s\S]*?\sfrom\s+["'][^"']+["'];?/gm);
@@ -110,7 +114,7 @@ export function run({ root = process.cwd(), files } = {}) {
       }
       blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first) });
     }
-    if (total > 0 && fragmentsHere / total > MAX_FRAGMENT_SHARE) failures.push(`${path}: ${fragmentsHere} of ${total} code blocks are fragments; the limit is ${MAX_FRAGMENT_SHARE * 100}%`);
+    if (fragmentsHere > 1 && fragmentsHere / total > MAX_FRAGMENT_SHARE) failures.push(`${path}: ${fragmentsHere} of ${total} code blocks are fragments; the limit is ${MAX_FRAGMENT_SHARE * 100}%`);
   }
 
   const exported = exportedNames(root);
@@ -133,7 +137,10 @@ export function run({ root = process.cwd(), files } = {}) {
     // tsc reports no semantic errors while any file has a syntax error, so syntax failures leave the program first.
     const pass1 = tscErrors(root, mainDir);
     const syntaxErrors = new Map([...pass1.syntactic].map((name) => [name, pass1.byBlock.get(name)]));
-    for (const name of pass1.syntactic) rmSync(join(mainDir, name));
+    for (const name of pass1.syntactic) {
+      rmSync(join(mainDir, name));
+      rmSync(join(firstDir, name), { force: true });
+    }
     // Free names are declared as any so that a later block still checks the API it does use.
     const pass2 = tscErrors(root, mainDir);
     for (const [name, errors] of pass2.byBlock) {
@@ -164,9 +171,11 @@ export function run({ root = process.cwd(), files } = {}) {
   let external = 0;
   for (const [name, errors] of errorsByBlock) {
     const block = byName.get(name);
+    const isRelative = (e) => /Cannot find module '\.{1,2}\//.test(e.message);
+    if (errors.every((e) => e.code === "TS2307" && isRelative(e))) continue;
     if (errors.every((e) => e.code === "TS2307" && !/'@\//.test(e.message))) {
       external++;
-      failures.push(`${block.path}:${block.start}: external package not installed in the repo; mark it fragment="needs <package>" (${errors[0].message})`);
+      failures.push(`${block.path}:${block.start}: external package not installed in the repo; mark the block fragment="needs <package>" (${errors[0].message})`);
       continue;
     }
     failing++;

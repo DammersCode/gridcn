@@ -2,11 +2,11 @@
 // Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
 //   [--final]  the definition-of-done run: strict props, a type on every page, Related on every page, the work list, demo warnings as failures
-//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--json]
+//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--base <git ref>] [--json]
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { capped, normalizeFile } from "./docs-verify-lib.mjs";
+import { capped, normalizeFile, urlOfPage } from "./docs-verify-lib.mjs";
 import { run as runCode } from "./verify-docs-code.mjs";
 import { run as runDemos } from "./verify-docs-demos.mjs";
 import { run as runLinks } from "./verify-docs-links.mjs";
@@ -41,16 +41,18 @@ const checks = {
   symbols: () => runSymbols({ root }),
   demos: () => runDemos({ root, strictRules: final }),
   prose: () => runProse({ root, files }),
-  structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist }),
+  structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist, base: has("--base") ? arg("--base") : undefined }),
   audit: runAudit,
 };
 
-const pageUrl = (file) => `/docs/${file.replace(/^content\/docs\//, "").replace(/\.mdx$/, "").replace(/\/index$/, "")}`;
+const contentDir = join(root, "content/docs");
+const pageUrl = (file) => urlOfPage(contentDir, join(root, file));
+const isGlobal = (f) => /^(baseline:|migration:|content\/docs-changes\.json|scripts\/docs-nav-audit|the audit failed|cannot compare|next\.config\.mjs:)/.test(f);
 const results = [];
 for (const name of only) {
   const result = await checks[name]();
   if (files) {
-    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || (name === "demos" && !f.startsWith("content/docs/")));
+    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || isGlobal(f) || (name === "demos" && !f.startsWith("content/docs/")));
   }
   results.push(result);
 }

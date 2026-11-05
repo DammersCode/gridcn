@@ -217,7 +217,7 @@ function splitRow(line) {
 }
 
 /** Props tables of a page body: `{ line, marker, headers, rows: [{ name, cells }] }`. */
-export function propsTables(body) {
+export function propsTables(body, { small = false } = {}) {
   const lines = proseOnly(body).split("\n");
   const raw = body.split("\n");
   const tables = [];
@@ -235,7 +235,7 @@ export function propsTables(body) {
       let m = i - 1;
       while (m >= 0 && lines[m].trim() === "" && raw[m].trim() === "") m--;
       const marker = /^\{\/\*\s*props:\s*([^*]+?)\s*\*\/\}$/.exec(raw[m]?.trim() ?? "")?.[1]?.split(/\s*,\s*/);
-      if (rows.length >= 3 || (marker && rows.length >= 1)) tables.push({ line: i + 1, marker, headers, rows });
+      if (rows.length >= 3 || (marker && rows.length >= 1) || (small && rows.length >= 1 && headers.some((h) => h === "type" || h === "default"))) tables.push({ line: i + 1, marker, headers, rows });
     }
     i = end - 1;
   }
@@ -271,7 +271,7 @@ export function run({ root = process.cwd(), strict = false } = {}) {
   const stats = { tables: 0, pinned: 0, guessed: 0, unmatched: 0, rows: 0, unverifiedDefaults: 0, suspect: 0, undocumented: 0 };
   for (const file of walk(join(root, "content/docs"), [".mdx"])) {
     const { body, bodyOffset } = splitFrontmatter(readLf(file));
-    for (const table of propsTables(body)) {
+    for (const table of propsTables(body, { small: strict })) {
       stats.tables++;
       const where = `${rel(root, file)}:${table.line + bodyOffset}`;
       const names = table.rows.map((r) => r.name);

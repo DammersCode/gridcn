@@ -25,7 +25,7 @@ live demo, and trivial hooks get a code sample only.
 
 ### Page actions
 
-Counts come from `research/docs-rewrite-worklist.json` (225 pages for C19; regenerate it whenever the candidate changes with
+Counts come from `research/docs-rewrite-worklist.json` (225 pages for C19, 34 writer batches; regenerate it whenever the candidate changes with
 `node scripts/docs-rewrite-worklist.mjs --candidate <file> --content-map <file> --url-map <file>`). One row per target page:
 source pages, action, type, word budget, demo need, code need, wave, batch, parity ids. The table
 `research/docs-rewrite-worklist.md` is the human view.
@@ -40,7 +40,8 @@ source pages, action, type, word budget, demo need, code need, wave, batch, pari
 | unmapped | 1 | `hooks-az` has no content-map row. The navigation session owns the decision. |
 
 8 pages are generated (task finder, Terms alias table, feature matrix, Messages, cheatsheets): they belong to generator tasks
-(batch `G`), not to writers. 12 of 31 example pages have no source page that the script can name; a human names it.
+(batch `G`), not to writers. 3 pages (`performance`, `benchmark-results`, `run-benchmark`) belong to the perf-docs session
+(batch `P`): the fleet leaves them out, and the merge takes them from that branch.
 New-page families the owner named: the performance chapter (`performance/`, written by the perf-docs session), the three
 hook pages, the Server path, the Messages reference, Terms and help, saved views (`remember-view`), and the add-on options
 pages (generated from the types with `<AutoTypeTable>`).
@@ -61,9 +62,9 @@ pages (generated from the types with `<AutoTypeTable>`).
 | Wave | Content | Who |
 |---|---|---|
 | 0 Freeze | Merge the docs-touching branches (section 5). Regenerate the work list, URL map, and anchor map. Skeleton PR: `git mv`, `meta.json`, redirects, codemod, `type` and the other keys in the schema. | Integrator (navigation session), not the fleet |
-| 1 Cut | The 148 `move`, `split`, and `merge` pages in 22 batches. Creates the headings that later pages link. | Sonnet writers, Opus verifiers |
-| 2 Write | The 26 `new` content pages and 3 `rewrite` pages in 6 batches: Learning path, Server path, Extension path, contracts, upgrade, row limits. The 6 contract pages are written by Opus. | Sonnet writers, Opus verifiers |
-| 3 Generate and link | 7 landing batches (they list their children, so they come last) and the generator tasks (batch `G`: finder, Terms alias table, feature matrix, cheatsheets, Messages, options pages, landing lists). Then skills, README, `llms.txt`, changelog line, redirects. | Sonnet writers and coders, Opus reviewer |
+| 1 Cut | The 148 `move`, `split`, and `merge` pages in 22 batches (Edit cells, Events, Contracts, Upgrade, Row limits, and the other topic groups). Creates the headings that later pages link. | Sonnet writers, Opus verifiers |
+| 2 Write | 21 pages in 5 batches: 18 `new` pages (Server path, contracts `ref-server-rows` and `ref-plugin`, store hooks, Learning path steps), 2 `split+new`, 3 `rewrite` (Start here, Install, Pagination). The three contract pages of wave 1 (`ref-celltype`, `ref-style-surface`, `ref-engine`) and these two get a second Opus verifier round. | Sonnet writers, Opus verifiers |
+| 3 Generate and link | 7 landing batches (42 landings; they list their children, so they come last) and the generator tasks (batch `G`: finder, Terms alias table, feature matrix, cheatsheets, Messages, options pages, landing lists). Then skills, README, `llms.txt`, changelog line, redirects. | Sonnet writers and coders, Opus reviewer |
 | 4 Whole site | `docs:verify --final`, A10 gate, search test, persona runs (beginner and senior), fix rounds. | Opus reviewers, Haiku for mechanical re-checks |
 
 A batch never mixes waves. Wave 2 may start in an area once that area's wave-1 batches are accepted.
@@ -116,7 +117,7 @@ All live in `scripts/`, share `docs-verify-lib.mjs`, and print at most 5 failure
 | `docs-rewrite-worklist.mjs` | Work list | Candidate plus content map to JSON and a table. Not part of `docs:verify`. |
 | `docs-nav-audit.mjs` | D8, D15 | Belongs to the navigation branch. `docs:verify` runs it when the file exists. |
 
-Tests: `tests/docs-verify.test.ts` and `tests/docs-verify-more.test.ts` (fixture sites; a positive and a negative case for the link, code, props, demo, structure, and work-list checks, and the main prose rules).
+Tests: `tests/docs-verify.test.ts` and `tests/docs-verify-more.test.ts` (fixture sites; a positive and a negative case for the link, code, props, demo, structure, and prose checks; the work list has a wave and URL case).
 
 ### Wiring into `pnpm lint`
 
@@ -129,7 +130,7 @@ and in CI as a separate step until the rewrite lands, then join the lint.
 
 | Check | Result |
 |---|---|
-| links | 8 dead of 887: 5 in `recipes/data-fetching/server-side` and `examples/validation/async-gates` (they point at `/docs/pagination` and server-side headings that no longer exist), `api-reference` and `app/(home)/page.tsx` (`#define-columns`), and `lib/llms-tasks.ts` (`#sorting-a-lazy-grid`; the `llms.txt` route throws on it). 57 absolute site links in `skills/**` and `public/skills/**` are checked now (0 dead) |
+| links | 8 dead of 887: 5 in `recipes/data-fetching/server-side` and `examples/validation/async-gates` (they point at `/docs/pagination` and server-side headings that no longer exist), `api-reference` and `app/(home)/page.tsx` (`#define-columns`), and `lib/llms-tasks.ts` (`#sorting-a-lazy-grid`; the `llms.txt` route throws on it). 68 absolute site URLs in `skills/**` and `public/skills/**` (plain text and inline code) are checked now (0 dead) |
 | code | 245 `js`/`ts`/`tsx` blocks: 74 fail to compile (a syntax error, an undefined name in the first sample, or a real API mismatch such as a `DataChange` that is not generic), 7 need a package the repo lacks (drizzle, prisma, supabase, i18next, a Vite plugin), 164 pass; 0 fragments marked. An earlier run reported 34 because it silently dropped syntax errors |
 | props | 16 tables, 67 rows: 0 pinned, 13 guessed, 3 unmatched. In strict mode all 16 fail (unpinned or unmatched). Of 8 guessed-type mismatches, the reviewer found 5 are guesser errors (`blockSize`, `overscan`, three required-looking members); pinning the marker settles them. The API pages already use `<AutoTypeTable>`, which cannot drift |
 | symbols | 704 names, 0 unknown (one allow-list entry) |
@@ -179,11 +180,11 @@ Live branches in the last run: `feat/pin-start-end` 31, `feat/sr-announcements` 
 | Whole-site reviewer | Opus, two personas | Built site or sources, scoring file | Scores per task and dimension |
 
 Loop per batch: writer, scripts, verifier, fix, verifier again. Two fix rounds at most; then the integrator rewrites the page.
-Up to 6 writers run at once (the compile step is CPU heavy). Expected size: 35 batches (22 in wave 1, 6 in wave 2, 7 landing batches), 8
+Up to 6 writers run at once (the compile step is CPU heavy). Expected size: 34 batches (22 in wave 1, 5 in wave 2, 7 landing batches), 8
 generator tasks, 1 link-sync task, plus fix rounds: about 50 writer runs and 90 verifier runs.
 
 The persona run uses the task battery in `docs-navigation-scoring.md` (B1 to B7, E1 to E9, X1 to X5) on the finished
-site, one beginner and two senior runs, scored on D1 to D8 of that file.
+site, one beginner and two senior runs, scored on the eight scoring dimensions of that file.
 
 ## 7. Pilot
 
@@ -224,23 +225,15 @@ is not isolated.
 `--baseline` finds them. They stay unmapped on purpose: the integrator maps them in `anchor-map.json` (D2 fails until then).
 The writer brief now says to keep old ids with `[#old-id]` and to report each dropped anchor.
 
-**Changes the pilot forced** (all committed):
-
-- The code check reported nothing for a block with a syntax error. Fixed; the failing blocks rose from 34 to 81.
-- Parallel runs shared one directory. Each run now has its own.
-- Imports of hook and lib items (`@/components/gridcn/*`) did not resolve. They do now.
-- `Pick<>` option types did not resolve, and tables with fewer than three rows or a `Result` header were skipped.
-- `--files` hid orphan demos and inbound links to a changed page. Both now stay visible.
-- Warnings were not printed. `--warnings` prints them.
-- The first sample of a page may not use an undefined name. Later samples may (free names become `any`).
-- A code line over 80 characters fails (imports and comments excepted).
-- The one-item-list rule counted a numbered step list with code between steps as several lists. It counts per section now.
-- The briefs gained the truth rules (prove every kept claim; diff the dropped facts; dry-read samples), the full links run, the
-  demo-precedence rule, and the report fields (kept claims, dropped facts, product bugs).
+**Changes the pilot forced** (all committed, see the log): syntax errors in samples are reported (the baseline rose from 34 to
+81 failing blocks); compile runs use their own directory; hook and lib imports and `Pick<>` option types resolve;
+`--files` keeps orphan demos and inbound links visible; `--warnings` prints warnings; the first sample of a page may not use
+an undefined name; code lines over 80 characters fail. The briefs gained the truth rules (prove every kept claim, diff the
+dropped facts, dry-read samples), the anchor rule, the demo-precedence rule, and the report fields.
 
 **Cost.** One page cost about 3 writer runs and 3 verifier runs. The verifier does the real work: most of the 18 must-fix findings of
 round 1 across the three pages were claims against code or samples that the scripts accepted. Plan for 2.5 verifier rounds per
-page on average, so about 80 Opus runs for 35 batches of up to 10 pages (a batch is verified as one unit, with one report).
+page on average, so about 80 Opus runs for 34 batches of up to 10 pages (a batch is verified as one unit, with one report).
 Cap at 3 verifier rounds; then the integrator finishes the page and a final verifier reads only the changed lines.
 
 ## 8. What waits for the final navigation
@@ -283,7 +276,7 @@ What is ready now: the validators, the work-list generator, the briefs, and the 
 
 ## Appendix A: writer brief
 
-Fill the slots, then hand it to a Sonnet writer. The orchestrator also gives the worktree path.
+Fill the slots (`ROW`, `TARGET_FILES`, `TEMPLATE`, `SERVER_RULE`, `FILES_CSV`, `BASELINE_REF` = the last release tag), then hand it to a Sonnet writer. The orchestrator also gives the worktree path.
 
 Rewrite the pages of ONE batch (one to ten pages, same steps for each) of the gridcn docs (React data grid, shadcn registry, Fumadocs MDX in `content/docs`). Work only in your batch branch. No AI attribution anywhere. No competitor or other-product names. English only. Do not commit unless told.
 
@@ -319,7 +312,7 @@ You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your hea
 - Keep the id of every old heading you rewrite with `[#old-id]` when its section still exists. If a section goes away or merges, list each dropped anchor with the page that now holds the content (the integrator maps it). `--baseline` finds them.
 
 ## Check yourself before you report
-From the worktree run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}} --warnings` and then `node scripts/docs-verify.mjs --only links,demos --baseline {{BASELINE_REF}}`. A failure that names another batch's page is not yours; say so in the report. Fix every failure and read every warning for your file. Re-read the page as a beginner: a wall of text? an undefined term? a sample that does not run when pasted?
+From the worktree run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}} --warnings --audit scripts/docs-nav-audit.mjs` and then `node scripts/docs-verify.mjs --only links,demos --baseline {{BASELINE_REF}} --migration research/docs-navigation`. A failure that names another batch's page is not yours; say so in the report. Fix every failure and read every warning for your file. Re-read the page as a beginner: a wall of text? an undefined term? a sample that does not run when pasted?
 
 ## Report (return exactly this)
 - files changed, word count
@@ -331,14 +324,14 @@ From the worktree run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}
 
 ## Appendix B: verifier brief
 
-Fill the slots, then hand it to an Opus verifier. The verifier never edits batch pages beyond mechanical fixes.
+Fill the slots (`FILES`, `FILES_CSV`, `ROWS`, `REPORT`, `BASELINE_REF`), then hand it to an Opus verifier. The verifier never edits batch pages beyond mechanical fixes.
 
 You verify the work of a docs writer. You did not write it. Default to rejecting when unsure. You may fix mechanical defects yourself (typos, a wrong anchor, a missing `fragment` reason); everything else goes back as a finding. Never edit pages other than the batch pages. No AI attribution anywhere. English only.
 
 Slots the orchestrator fills: `{{FILES}}`, `{{FILES_CSV}}`, `{{ROWS}}` (work-list rows), `{{REPORT}}` (the writer report: treat every claim in it as unproven).
 
 ## Step 1: machine checks (do not trust the writer's paste)
-Run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}} --warnings` (add `--audit <path to docs-nav-audit.mjs>` until it is in the repo) and the full `node scripts/docs-verify.mjs --only links,demos --baseline {{BASELINE_REF}}` (a changed heading breaks inbound links and old anchors; a dropped demo leaves an orphan). A failure blocks. Read every warning that names your files. Run it twice if a failure names a page that is not yours: parallel runs of other verifiers can interfere.
+Run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}} --warnings --audit scripts/docs-nav-audit.mjs` and the full `node scripts/docs-verify.mjs --only links,demos --baseline {{BASELINE_REF}} --migration research/docs-navigation` (a changed heading breaks inbound links and old anchors; a dropped demo leaves an orphan). A failure blocks. Read every warning that names your files. A failure that names a page outside your batch is not yours; say so in the report.
 
 ## Step 2: claims against code
 For each page take every behavioral claim (default, what a callback receives, when it fires, server-mode request and response, shortcut, limit, what a warning prints) and open the source or the test that proves it. Record `claim -> file:line -> ok | wrong | unprovable`. At least 10 per page (all under 10). Words "never", "always", "nothing" need proof for every case. Wrong or unprovable blocks.

@@ -32,11 +32,17 @@ const normalizePath = (path) => path.replace(/\.mdx?$/, "").replace(/\/$/, "") |
 
 function targetsOf(file, text) {
   const out = [];
-  const add = (target, index) => out.push({ target, line: lineOf(text, index) });
+  const seen = new Set();
+  const add = (target, index) => {
+    const key = `${lineOf(text, index)}:${target}`;
+    if (!seen.has(key)) out.push({ target, line: lineOf(text, index) });
+    seen.add(key);
+  };
   if (/\.(mdx?|ts|tsx)$/.test(file) || file.endsWith("registry.json")) {
     for (const m of text.matchAll(/\]\(([^)\s]+)/g)) add(m[1], m.index);
     for (const m of text.matchAll(/\bhref=["']([^"']+)["']/g)) add(m[1], m.index);
   }
+  for (const m of text.matchAll(/https:\/\/gridcn\.vercel\.app\/docs[\w./#-]*/g)) add(m[0].replace(/[.,;:]+$/, ""), m.index);
   if (!/\.mdx?$/.test(file)) for (const m of text.matchAll(/["'`(\s]((?:https?:\/\/[^/\s"'`]+)?\/docs(?:[/#][\w./#-]*)?)/g)) add(m[1], m.index);
   return out;
 }

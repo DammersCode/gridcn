@@ -10,6 +10,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": true,
    "url": "/docs",
    "urlSource": "url-map",
    "wave": 3,
@@ -29,7 +30,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B29"
+   "batch": "B28"
   },
   {
    "slug": "install",
@@ -46,6 +47,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/install-gridcn",
    "urlSource": "derived",
    "wave": 2,
@@ -82,6 +84,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/render-your-first-grid",
    "urlSource": "derived",
    "wave": 1,
@@ -113,6 +116,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/define-columns",
    "urlSource": "derived",
    "wave": 2,
@@ -145,6 +149,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/edit-cells",
    "urlSource": "derived",
    "wave": 2,
@@ -177,6 +182,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/keep-edits-state",
    "urlSource": "derived",
    "wave": 2,
@@ -209,6 +215,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/select-paste",
    "urlSource": "derived",
    "wave": 2,
@@ -241,6 +248,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/sort-filter-rows",
    "urlSource": "derived",
    "wave": 2,
@@ -273,6 +281,7 @@
    "area": "Learn",
    "group": "Learning path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/learning-path/style-grid",
    "urlSource": "derived",
    "wave": 2,
@@ -305,6 +314,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/server-path",
    "urlSource": "derived",
    "wave": 3,
@@ -318,7 +328,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B29"
+   "batch": "B28"
   },
   {
    "slug": "sp-choose",
@@ -330,6 +340,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-path/compare-data-modes",
    "urlSource": "derived",
    "wave": 2,
@@ -355,6 +366,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-path/load-server-rows",
    "urlSource": "derived",
    "wave": 2,
@@ -380,6 +392,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-path/plan-server-saves",
    "urlSource": "derived",
    "wave": 2,
@@ -405,6 +418,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-path/handle-failures",
    "urlSource": "derived",
    "wave": 2,
@@ -430,6 +444,7 @@
    "area": "Learn",
    "group": "Server path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-path/go-live-streaming",
    "urlSource": "derived",
    "wave": 2,
@@ -455,6 +470,7 @@
    "area": "Learn",
    "group": "Custom code path",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/custom-code-path",
    "urlSource": "derived",
    "wave": 3,
@@ -468,7 +484,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B29"
+   "batch": "B28"
   },
   {
    "slug": "ep-choose",
@@ -480,6 +496,7 @@
    "area": "Learn",
    "group": "Custom code path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/custom-code-path/pick-code-route",
    "urlSource": "derived",
    "wave": 2,
@@ -505,6 +522,7 @@
    "area": "Learn",
    "group": "Custom code path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/custom-code-path/plan-cell-type",
    "urlSource": "derived",
    "wave": 2,
@@ -530,6 +548,7 @@
    "area": "Learn",
    "group": "Custom code path",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/custom-code-path/plan-plugin",
    "urlSource": "derived",
    "wave": 2,
@@ -555,6 +574,7 @@
    "area": "Learn",
    "group": "Terms and help",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/terms-help",
    "urlSource": "derived",
    "wave": 3,
@@ -568,7 +588,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B29"
+   "batch": "B28"
   },
   {
    "slug": "find-task",
@@ -580,13 +600,17 @@
    "area": "Learn",
    "group": "Terms and help",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/terms-help/task-finder",
    "urlSource": "url-map",
    "wave": 3,
    "owner": "generator",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/recipes/data-fetching/index.mdx",
+    "content/docs/recipes/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -611,6 +635,7 @@
    "area": "Learn",
    "group": "Terms and help",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/terms-help/terms",
    "urlSource": "derived",
    "wave": 3,
@@ -645,6 +670,7 @@
    "area": "Learn",
    "group": "Terms and help",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/terms-help/fix-install-problems",
    "urlSource": "derived",
    "wave": 1,
@@ -674,6 +700,7 @@
    "area": "Learn",
    "group": "Try and automate",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/try-automate",
    "urlSource": "derived",
    "wave": 3,
@@ -687,7 +714,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B29"
+   "batch": "B28"
   },
   {
    "slug": "playground",
@@ -699,6 +726,7 @@
    "area": "Learn",
    "group": "Try and automate",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/try-automate/playground-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -730,6 +758,7 @@
    "area": "Learn",
    "group": "Try and automate",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/try-automate/use-agent-skills",
    "urlSource": "url-map",
    "wave": 1,
@@ -759,20 +788,28 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/editing-cells",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/editing-cell-types.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-cell-types-demo",
+    "data-grid-date-picker-demo",
+    "data-grid-validation-demo",
+    "data-grid-cell-errors-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "edit-activation",
@@ -790,6 +827,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/editable-columns",
    "urlSource": "derived",
    "wave": 1,
@@ -830,6 +868,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/built-cell-types",
    "urlSource": "derived",
    "wave": 1,
@@ -869,6 +908,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/validation",
    "urlSource": "derived",
    "wave": 1,
@@ -909,6 +949,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/display-override",
    "urlSource": "derived",
    "wave": 1,
@@ -943,6 +984,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/edit-rows-forms",
    "urlSource": "url-map",
    "wave": 1,
@@ -952,7 +994,9 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/recipes/editing/edit-row-with-form.mdx"
+   ],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -971,6 +1015,7 @@
    "area": "Build",
    "group": "Editing cells",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/editing-cells/lock-cells-role",
    "urlSource": "url-map",
    "wave": 1,
@@ -1001,6 +1046,7 @@
    "area": "Build",
    "group": "Clipboard and undo",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/clipboard-undo",
    "urlSource": "derived",
    "wave": 3,
@@ -1014,7 +1060,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "clipboard",
@@ -1030,6 +1076,7 @@
    "area": "Build",
    "group": "Clipboard and undo",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/clipboard-undo/clipboard",
    "urlSource": "url-map",
    "wave": 1,
@@ -1066,6 +1113,7 @@
    "area": "Build",
    "group": "Clipboard and undo",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/clipboard-undo/fill-handle",
    "urlSource": "url-map",
    "wave": 1,
@@ -1099,6 +1147,7 @@
    "area": "Build",
    "group": "Clipboard and undo",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/clipboard-undo/undo-redo",
    "urlSource": "derived",
    "wave": 1,
@@ -1132,6 +1181,7 @@
    "area": "Build",
    "group": "Clipboard and undo",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/clipboard-undo/undo-code-changes",
    "urlSource": "derived",
    "wave": 1,
@@ -1163,20 +1213,28 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/selection-shortcuts",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/selection-keyboard.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-demo",
+    "data-grid-touch-demo",
+    "data-grid-checked-rows-demo",
+    "data-grid-server-selection-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "pointer-selection",
@@ -1188,6 +1246,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/pointer-selection",
    "urlSource": "derived",
    "wave": 1,
@@ -1225,6 +1284,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/checked-rows",
    "urlSource": "derived",
    "wave": 1,
@@ -1264,6 +1324,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/keyboard-navigation",
    "urlSource": "derived",
    "wave": 1,
@@ -1301,6 +1362,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/global-shortcuts",
    "urlSource": "derived",
    "wave": 1,
@@ -1336,6 +1398,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/shortcut-remapping",
    "urlSource": "derived",
    "wave": 1,
@@ -1370,6 +1433,7 @@
    "area": "Build",
    "group": "Selection and shortcuts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/selection-shortcuts/status-bar",
    "urlSource": "url-map",
    "wave": 1,
@@ -1401,20 +1465,25 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/sort-filter-search",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/sorting-filtering-search.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-sorting-filtering-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "sorting",
@@ -1428,6 +1497,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/sorting",
    "urlSource": "url-map",
    "wave": 1,
@@ -1464,6 +1534,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/filtering",
    "urlSource": "derived",
    "wave": 1,
@@ -1500,6 +1571,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/header-filter",
    "urlSource": "derived",
    "wave": 1,
@@ -1536,6 +1608,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/toolbar",
    "urlSource": "derived",
    "wave": 1,
@@ -1572,6 +1645,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/quick-search",
    "urlSource": "derived",
    "wave": 1,
@@ -1605,6 +1679,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/find-replace",
    "urlSource": "url-map",
    "wave": 1,
@@ -1643,6 +1718,7 @@
    "area": "Build",
    "group": "Sort, filter, and search",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/sort-filter-search/url-state",
    "urlSource": "url-map",
    "wave": 1,
@@ -1677,20 +1753,27 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/rows-pages-menus",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/row-operations.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-delete-confirm-demo",
+    "data-grid-row-markers-demo",
+    "data-grid-custom-markers-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "row-operations",
@@ -1706,6 +1789,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/row-operations",
    "urlSource": "derived",
    "wave": 1,
@@ -1744,6 +1828,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/row-order",
    "urlSource": "derived",
    "wave": 1,
@@ -1777,6 +1862,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/row-markers",
    "urlSource": "derived",
    "wave": 1,
@@ -1813,6 +1899,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/pinned-rows",
    "urlSource": "url-map",
    "wave": 1,
@@ -1851,6 +1938,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/client-pagination",
    "urlSource": "derived",
    "wave": 1,
@@ -1860,7 +1948,8 @@
     "pagination"
    ],
    "sourceFiles": [
-    "content/docs/pagination.mdx"
+    "content/docs/pagination.mdx",
+    "content/docs/examples/data/pagination/client.mdx"
    ],
    "carriedDemos": [
     "data-grid-pagination-demo",
@@ -1885,6 +1974,7 @@
    "area": "Build",
    "group": "Rows, pages, and menus",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-pages-menus/context-menu",
    "urlSource": "url-map",
    "wave": 1,
@@ -1917,20 +2007,26 @@
    "area": "Build",
    "group": "Columns",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/columns",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/columns.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-pinning-demo",
+    "data-grid-custom-headers-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "column-sizing",
@@ -1946,6 +2042,7 @@
    "area": "Build",
    "group": "Columns",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/columns/column-sizing",
    "urlSource": "derived",
    "wave": 1,
@@ -1985,6 +2082,7 @@
    "area": "Build",
    "group": "Columns",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/columns/column-order-pinning",
    "urlSource": "derived",
    "wave": 1,
@@ -2017,6 +2115,7 @@
    "area": "Build",
    "group": "Columns",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/columns/column-headers-groups",
    "urlSource": "derived",
    "wave": 1,
@@ -2052,6 +2151,7 @@
    "area": "Build",
    "group": "Columns",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/columns/column-visibility",
    "urlSource": "derived",
    "wave": 1,
@@ -2084,20 +2184,28 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/theme-style-language",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/styling-theming.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-demo",
+    "data-grid-conditional-styling-demo",
+    "data-grid-styling-patterns-demo",
+    "data-grid-loading-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "style-tokens",
@@ -2113,6 +2221,7 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/theme-style-language/colors-radius",
    "urlSource": "derived",
    "wave": 2,
@@ -2147,6 +2256,7 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/theme-style-language/style-overrides",
    "urlSource": "derived",
    "wave": 1,
@@ -2184,6 +2294,7 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/theme-style-language/density-small-screens",
    "urlSource": "derived",
    "wave": 1,
@@ -2220,6 +2331,7 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/theme-style-language/loading-state",
    "urlSource": "derived",
    "wave": 1,
@@ -2261,6 +2373,7 @@
    "area": "Build",
    "group": "Theme, style, and language",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/theme-style-language/labels-i18n",
    "urlSource": "url-map",
    "wave": 1,
@@ -2298,20 +2411,26 @@
    "area": "Build",
    "group": "Import and export",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/import-export",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/addons/import-export.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-io-demo",
+    "data-grid-print-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "export",
@@ -2329,6 +2448,7 @@
    "area": "Build",
    "group": "Import and export",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/import-export/export",
    "urlSource": "derived",
    "wave": 1,
@@ -2368,6 +2488,7 @@
    "area": "Build",
    "group": "Import and export",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/import-export/import",
    "urlSource": "derived",
    "wave": 1,
@@ -2402,20 +2523,26 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/recipes-custom-code",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/custom-cell-types.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-cell-types-demo",
+    "data-grid-custom-cell-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B30"
+   "batch": "B29"
   },
   {
    "slug": "custom-cell-example",
@@ -2429,6 +2556,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/write-cell-type",
    "urlSource": "url-map",
    "wave": 1,
@@ -2438,7 +2566,8 @@
     "custom-cell-types"
    ],
    "sourceFiles": [
-    "content/docs/custom-cell-types.mdx"
+    "content/docs/custom-cell-types.mdx",
+    "content/docs/recipes/editing/custom-cell-type.mdx"
    ],
    "carriedDemos": [
     "data-grid-cell-types-demo",
@@ -2464,6 +2593,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/write-plugin",
    "urlSource": "derived",
    "wave": 1,
@@ -2496,6 +2626,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/open-detail-panel",
    "urlSource": "url-map",
    "wave": 1,
@@ -2530,6 +2661,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/run-bulk-actions",
    "urlSource": "url-map",
    "wave": 1,
@@ -2563,6 +2695,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/link-multiple-grids",
    "urlSource": "url-map",
    "wave": 1,
@@ -2596,6 +2729,7 @@
    "area": "Build",
    "group": "Recipes and custom code",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/recipes-custom-code/remember-filters-layout",
    "urlSource": "url-map",
    "wave": 1,
@@ -2626,6 +2760,7 @@
    "area": "Server",
    "group": "Data modes",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/data-modes",
    "urlSource": "derived",
    "wave": 3,
@@ -2635,7 +2770,8 @@
     "data-modes"
    ],
    "sourceFiles": [
-    "content/docs/data-modes.mdx"
+    "content/docs/data-modes.mdx",
+    "content/docs/recipes/data-fetching/index.mdx"
    ],
    "carriedDemos": [],
    "demo": "no",
@@ -2643,7 +2779,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B31"
+   "batch": "B30"
   },
   {
    "slug": "data-modes",
@@ -2655,6 +2791,7 @@
    "area": "Server",
    "group": "Data modes",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/data-modes/data-mode-support",
    "urlSource": "derived",
    "wave": 1,
@@ -2690,6 +2827,7 @@
    "area": "Server",
    "group": "Data modes",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/data-modes/fetch-cache",
    "urlSource": "url-map",
    "wave": 1,
@@ -2705,10 +2843,19 @@
     "content/docs/lazy-loading-advanced.mdx",
     "content/docs/recipes/data-fetching/tanstack-query.mdx",
     "content/docs/examples/data/lazy/index.mdx",
-    "content/docs/examples/data/pagination/index.mdx"
+    "content/docs/examples/data/pagination/index.mdx",
+    "content/docs/examples/data/lazy/react-query.mdx",
+    "content/docs/examples/data/lazy/swr.mdx",
+    "content/docs/examples/data/pagination/react-query.mdx",
+    "content/docs/examples/data/pagination/swr.mdx"
    ],
-   "carriedDemos": [],
-   "demo": "decide",
+   "carriedDemos": [
+    "data-grid-lazy-react-query-demo",
+    "data-grid-lazy-swr-demo",
+    "data-grid-pagination-react-query-demo",
+    "data-grid-pagination-swr-demo"
+   ],
+   "demo": "carry (max 1 unless variants)",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2732,6 +2879,7 @@
    "area": "Server",
    "group": "Data modes",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/data-modes/query-server-rows",
    "urlSource": "derived",
    "wave": 1,
@@ -2770,6 +2918,7 @@
    "area": "Server",
    "group": "Data modes",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/data-modes/troubleshoot-server-data",
    "urlSource": "derived",
    "wave": 2,
@@ -2806,6 +2955,7 @@
    "area": "Server",
    "group": "Server pagination",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/server-pagination",
    "urlSource": "derived",
    "wave": 3,
@@ -2819,7 +2969,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B31"
+   "batch": "B30"
   },
   {
    "slug": "pagination",
@@ -2834,6 +2984,7 @@
    "area": "Server",
    "group": "Server pagination",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-pagination/load-rows-page",
    "urlSource": "derived",
    "wave": 2,
@@ -2866,6 +3017,7 @@
    "area": "Server",
    "group": "Server pagination",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-pagination/keep-pages-url",
    "urlSource": "derived",
    "wave": 1,
@@ -2898,20 +3050,28 @@
    "area": "Server",
    "group": "Scroll mode",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/scroll-mode",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/lazy-loading.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-lazy-demo",
+    "data-grid-server-side-demo",
+    "data-grid-server-filter-demo",
+    "data-grid-open-ended-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B31"
+   "batch": "B30"
   },
   {
    "slug": "scroll-usage",
@@ -2927,6 +3087,7 @@
    "area": "Server",
    "group": "Scroll mode",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/scroll-mode/load-rows-while-scrolling",
    "urlSource": "derived",
    "wave": 1,
@@ -2963,6 +3124,7 @@
    "area": "Server",
    "group": "Scroll mode",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/scroll-mode/load-without-row-count",
    "urlSource": "derived",
    "wave": 1,
@@ -2999,6 +3161,7 @@
    "area": "Server",
    "group": "Scroll mode",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/scroll-mode/recover-load-errors",
    "urlSource": "derived",
    "wave": 1,
@@ -3037,6 +3200,7 @@
    "area": "Server",
    "group": "Scroll mode",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/scroll-mode/tune-row-retention",
    "urlSource": "derived",
    "wave": 1,
@@ -3071,6 +3235,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/save-server",
    "urlSource": "derived",
    "wave": 3,
@@ -3084,7 +3249,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B31"
+   "batch": "B30"
   },
   {
    "slug": "server-saves",
@@ -3100,6 +3265,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/save-server/save-edits",
    "urlSource": "derived",
    "wave": 2,
@@ -3139,6 +3305,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/save-server/save-revert",
    "urlSource": "derived",
    "wave": 1,
@@ -3173,6 +3340,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/save-server/handle-refused-saves",
    "urlSource": "derived",
    "wave": 1,
@@ -3204,6 +3372,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/save-server/show-errors-cells",
    "urlSource": "derived",
    "wave": 1,
@@ -3238,6 +3407,7 @@
    "area": "Server",
    "group": "Save to a server",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/save-server/undo-server-data",
    "urlSource": "derived",
    "wave": 1,
@@ -3269,6 +3439,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/rows-live-data",
    "urlSource": "derived",
    "wave": 3,
@@ -3282,7 +3453,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B31"
+   "batch": "B30"
   },
   {
    "slug": "server-row-ops",
@@ -3294,6 +3465,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-live-data/change-server-rows",
    "urlSource": "derived",
    "wave": 1,
@@ -3329,6 +3501,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-live-data/select-server-rows",
    "urlSource": "derived",
    "wave": 1,
@@ -3373,6 +3546,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-live-data/stream-updates",
    "urlSource": "url-map",
    "wave": 1,
@@ -3410,6 +3584,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-live-data/show-presence",
    "urlSource": "url-map",
    "wave": 1,
@@ -3443,6 +3618,7 @@
    "area": "Server",
    "group": "Rows and live data",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/rows-live-data/broadcast-your-selection",
    "urlSource": "url-map",
    "wave": 1,
@@ -3472,6 +3648,7 @@
    "area": "Evaluate",
    "group": "Fit and features",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/fit-features",
    "urlSource": "derived",
    "wave": 3,
@@ -3485,7 +3662,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B32"
+   "batch": "B31"
   },
   {
    "slug": "feature-matrix",
@@ -3501,6 +3678,7 @@
    "area": "Evaluate",
    "group": "Fit and features",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/fit-features/feature-matrix",
    "urlSource": "url-map",
    "wave": 3,
@@ -3532,10 +3710,11 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/performance",
    "urlSource": "derived",
    "wave": 3,
-   "owner": "writer",
+   "owner": "perf-docs",
    "action": "new",
    "sources": [
     "performance",
@@ -3552,7 +3731,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B32"
+   "batch": "P"
   },
   {
    "slug": "benchmark-results",
@@ -3568,10 +3747,11 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/performance/benchmark-results",
    "urlSource": "derived",
    "wave": 2,
-   "owner": "writer",
+   "owner": "perf-docs",
    "action": "new",
    "sources": [
     "performance/benchmark-results"
@@ -3583,7 +3763,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B27"
+   "batch": "P"
   },
   {
    "slug": "run-benchmark",
@@ -3595,10 +3775,11 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/performance/run-benchmark",
    "urlSource": "derived",
    "wave": 2,
-   "owner": "writer",
+   "owner": "perf-docs",
    "action": "new",
    "sources": [
     "performance/run-it-yourself"
@@ -3610,7 +3791,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B27"
+   "batch": "P"
   },
   {
    "slug": "keeping-fast",
@@ -3622,6 +3803,7 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/performance/performance-guidance",
    "urlSource": "derived",
    "wave": 1,
@@ -3655,6 +3837,7 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/performance/virtualization",
    "urlSource": "derived",
    "wave": 1,
@@ -3688,6 +3871,7 @@
    "area": "Evaluate",
    "group": "Performance",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/performance/row-limits",
    "urlSource": "derived",
    "wave": 1,
@@ -3723,20 +3907,25 @@
    "area": "Evaluate",
    "group": "Accessibility",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/accessibility",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/accessibility.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-announcements-demo"
+   ],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B32"
+   "batch": "B31"
   },
   {
    "slug": "a11y-conformance",
@@ -3748,6 +3937,7 @@
    "area": "Evaluate",
    "group": "Accessibility",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/accessibility/screen-reader-support",
    "urlSource": "derived",
    "wave": 1,
@@ -3781,6 +3971,7 @@
    "area": "Evaluate",
    "group": "Accessibility",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/accessibility/keyboard-test-coverage",
    "urlSource": "derived",
    "wave": 1,
@@ -3812,6 +4003,7 @@
    "area": "Evaluate",
    "group": "Accessibility",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/accessibility/accessibility-gaps",
    "urlSource": "derived",
    "wave": 1,
@@ -3843,6 +4035,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/support-upgrades",
    "urlSource": "derived",
    "wave": 3,
@@ -3856,7 +4049,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B32"
+   "batch": "B31"
   },
   {
    "slug": "version-policy",
@@ -3868,6 +4061,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/support-upgrades/version-policy-changelog",
    "urlSource": "derived",
    "wave": 1,
@@ -3897,6 +4091,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/support-upgrades/browser-framework-support",
    "urlSource": "derived",
    "wave": 1,
@@ -3930,6 +4125,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/support-upgrades/upgrade-gridcn",
    "urlSource": "derived",
    "wave": 1,
@@ -3961,6 +4157,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/support-upgrades/security-policy",
    "urlSource": "derived",
    "wave": 1,
@@ -3990,6 +4187,7 @@
    "area": "Evaluate",
    "group": "Support and upgrades",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/support-upgrades/license-credits",
    "urlSource": "url-map",
    "wave": 1,
@@ -4019,20 +4217,23 @@
    "area": "Reference",
    "group": "Components and props",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/components-props",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/api-reference.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "ref-datagrid",
@@ -4048,6 +4249,7 @@
    "area": "Reference",
    "group": "Components and props",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/components-props/data-grid-props",
    "urlSource": "derived",
    "wave": 1,
@@ -4077,6 +4279,7 @@
    "area": "Reference",
    "group": "Components and props",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/components-props/data-grid-provider",
    "urlSource": "derived",
    "wave": 1,
@@ -4106,6 +4309,7 @@
    "area": "Reference",
    "group": "Components and props",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/components-props/column-def",
    "urlSource": "derived",
    "wave": 1,
@@ -4135,6 +4339,7 @@
    "area": "Reference",
    "group": "Components and props",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/components-props/labels",
    "urlSource": "derived",
    "wave": 1,
@@ -4164,6 +4369,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/events-state",
    "urlSource": "derived",
    "wave": 3,
@@ -4183,7 +4389,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "events-model",
@@ -4195,6 +4401,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/event-shapes",
    "urlSource": "derived",
    "wave": 1,
@@ -4230,6 +4437,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/data-change-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4261,6 +4469,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/sort-filter-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4297,6 +4506,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/edit-validation-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4328,6 +4538,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/selection-cell-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4359,6 +4570,7 @@
    "area": "Reference",
    "group": "Events and state",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/events-state/column-viewport-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4390,6 +4602,7 @@
    "area": "Reference",
    "group": "Contracts",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/contracts",
    "urlSource": "derived",
    "wave": 3,
@@ -4403,7 +4616,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "ref-celltype",
@@ -4415,6 +4628,7 @@
    "area": "Reference",
    "group": "Contracts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/contracts/cell-type-contract",
    "urlSource": "derived",
    "wave": 1,
@@ -4449,6 +4663,7 @@
    "area": "Reference",
    "group": "Contracts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/contracts/server-rows-contract",
    "urlSource": "url-map",
    "wave": 2,
@@ -4458,7 +4673,8 @@
     "recipes/data-fetching/server-side"
    ],
    "sourceFiles": [
-    "content/docs/recipes/data-fetching/server-side.mdx"
+    "content/docs/recipes/data-fetching/server-side.mdx",
+    "content/docs/recipes/data-fetching/index.mdx"
    ],
    "carriedDemos": [
     "data-grid-server-side-demo"
@@ -4470,7 +4686,7 @@
    "parityOwnerOf": [
     "server-rows"
    ],
-   "batch": "B28"
+   "batch": "B27"
   },
   {
    "slug": "ref-style-surface",
@@ -4482,6 +4698,7 @@
    "area": "Reference",
    "group": "Contracts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/contracts/style-contract",
    "urlSource": "derived",
    "wave": 1,
@@ -4516,6 +4733,7 @@
    "area": "Reference",
    "group": "Contracts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/contracts/operation-engine-contract",
    "urlSource": "derived",
    "wave": 1,
@@ -4545,20 +4763,23 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/plugins",
    "urlSource": "derived",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/plugins.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "ref-plugin",
@@ -4570,6 +4791,7 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/plugins/plugin-contract",
    "urlSource": "derived",
    "wave": 2,
@@ -4585,7 +4807,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B28"
+   "batch": "B27"
   },
   {
    "slug": "plugins-commands",
@@ -4597,6 +4819,7 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/plugins/plugin-commands-shortcuts",
    "urlSource": "derived",
    "wave": 1,
@@ -4626,6 +4849,7 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/plugins/plugin-shape",
    "urlSource": "derived",
    "wave": 1,
@@ -4655,6 +4879,7 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/plugins/plugin-overlays",
    "urlSource": "derived",
    "wave": 1,
@@ -4684,6 +4909,7 @@
    "area": "Reference",
    "group": "Plugins",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/plugins/plugin-events",
    "urlSource": "derived",
    "wave": 1,
@@ -4713,6 +4939,7 @@
    "area": "Reference",
    "group": "Concepts",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/concepts",
    "urlSource": "derived",
    "wave": 3,
@@ -4726,7 +4953,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "selection-model",
@@ -4738,6 +4965,7 @@
    "area": "Reference",
    "group": "Concepts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/concepts/selection-model",
    "urlSource": "derived",
    "wave": 1,
@@ -4772,6 +5000,7 @@
    "area": "Reference",
    "group": "Concepts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/concepts/cell-type-model",
    "urlSource": "derived",
    "wave": 1,
@@ -4804,6 +5033,7 @@
    "area": "Reference",
    "group": "Concepts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/concepts/styling-model",
    "urlSource": "derived",
    "wave": 1,
@@ -4838,6 +5068,7 @@
    "area": "Reference",
    "group": "Concepts",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/concepts/state-view-index",
    "urlSource": "derived",
    "wave": 2,
@@ -4855,7 +5086,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B28"
+   "batch": "B27"
   },
   {
    "slug": "types-index",
@@ -4867,6 +5098,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/types-hooks",
    "urlSource": "derived",
    "wave": 3,
@@ -4880,7 +5112,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "ref-types",
@@ -4892,6 +5124,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/types-hooks/exported-types",
    "urlSource": "derived",
    "wave": 1,
@@ -4921,6 +5154,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/types-hooks/store-hooks",
    "urlSource": "derived",
    "wave": 2,
@@ -4938,7 +5172,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B28"
+   "batch": "B27"
   },
   {
    "slug": "use-debounce",
@@ -4950,6 +5184,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/types-hooks/use-debounce",
    "urlSource": "derived",
    "wave": 1,
@@ -4981,6 +5216,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/types-hooks/use-debounced-input",
    "urlSource": "derived",
    "wave": 1,
@@ -5010,6 +5246,7 @@
    "area": "Reference",
    "group": "Types and hooks",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/types-hooks/is-composing-key",
    "urlSource": "derived",
    "wave": 1,
@@ -5039,6 +5276,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/add-options",
    "urlSource": "derived",
    "wave": 3,
@@ -5056,7 +5294,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "options-clipboard-undo-index",
@@ -5068,6 +5306,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Clipboard and undo",
+   "landing": true,
    "url": "/docs/add-options/clipboard-undo",
    "urlSource": "derived",
    "wave": 3,
@@ -5085,7 +5324,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "options-fill",
@@ -5097,6 +5336,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Clipboard and undo",
+   "landing": false,
    "url": "/docs/add-options/clipboard-undo/fill-handle-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5126,6 +5366,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Clipboard and undo",
+   "landing": false,
    "url": "/docs/add-options/clipboard-undo/undo-redo-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5155,6 +5396,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Import and export",
+   "landing": true,
    "url": "/docs/add-options/import-export",
    "urlSource": "derived",
    "wave": 3,
@@ -5172,7 +5414,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "options-export",
@@ -5184,6 +5426,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Import and export",
+   "landing": false,
    "url": "/docs/add-options/import-export/export-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5213,6 +5456,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Import and export",
+   "landing": false,
    "url": "/docs/add-options/import-export/import-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5242,6 +5486,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Rows, pages, and menus",
+   "landing": true,
    "url": "/docs/add-options/rows-pages-menus",
    "urlSource": "derived",
    "wave": 3,
@@ -5259,7 +5504,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B33"
+   "batch": "B32"
   },
   {
    "slug": "options-context-menu",
@@ -5271,6 +5516,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Rows, pages, and menus",
+   "landing": false,
    "url": "/docs/add-options/rows-pages-menus/context-menu-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5302,6 +5548,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Rows, pages, and menus",
+   "landing": false,
    "url": "/docs/add-options/rows-pages-menus/client-pagination-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5331,6 +5578,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Rows, pages, and menus",
+   "landing": false,
    "url": "/docs/add-options/rows-pages-menus/pinned-rows-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5360,6 +5608,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Selection and shortcuts",
+   "landing": true,
    "url": "/docs/add-options/selection-shortcuts",
    "urlSource": "derived",
    "wave": 3,
@@ -5377,7 +5626,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B34"
+   "batch": "B33"
   },
   {
    "slug": "options-keybindings",
@@ -5389,6 +5638,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Selection and shortcuts",
+   "landing": false,
    "url": "/docs/add-options/selection-shortcuts/shortcut-remapping-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5418,6 +5668,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Selection and shortcuts",
+   "landing": false,
    "url": "/docs/add-options/selection-shortcuts/status-bar-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5447,6 +5698,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Server",
+   "landing": true,
    "url": "/docs/add-options/server",
    "urlSource": "derived",
    "wave": 3,
@@ -5464,7 +5716,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B34"
+   "batch": "B33"
   },
   {
    "slug": "options-presence",
@@ -5476,6 +5728,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Server",
+   "landing": false,
    "url": "/docs/add-options/server/presence-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5513,6 +5766,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Server",
+   "landing": false,
    "url": "/docs/add-options/server/server-rows-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5550,6 +5804,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Sort, filter, and search",
+   "landing": true,
    "url": "/docs/add-options/sort-filter-search",
    "urlSource": "derived",
    "wave": 3,
@@ -5567,7 +5822,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B34"
+   "batch": "B33"
   },
   {
    "slug": "options-find",
@@ -5579,6 +5834,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Sort, filter, and search",
+   "landing": false,
    "url": "/docs/add-options/sort-filter-search/find-replace-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5608,6 +5864,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Sort, filter, and search",
+   "landing": false,
    "url": "/docs/add-options/sort-filter-search/sort-list-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5637,6 +5894,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Sort, filter, and search",
+   "landing": false,
    "url": "/docs/add-options/sort-filter-search/toolbar-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5666,6 +5924,7 @@
    "area": "Reference",
    "group": "Add-on options",
    "subgroup": "Sort, filter, and search",
+   "landing": false,
    "url": "/docs/add-options/sort-filter-search/url-state-options",
    "urlSource": "derived",
    "wave": 1,
@@ -5695,6 +5954,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/cheatsheets-messages",
    "urlSource": "derived",
    "wave": 3,
@@ -5720,6 +5980,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/keyboard-shortcuts",
    "urlSource": "derived",
    "wave": 3,
@@ -5760,6 +6021,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/props-z",
    "urlSource": "derived",
    "wave": 3,
@@ -5789,6 +6051,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/events-z",
    "urlSource": "derived",
    "wave": 3,
@@ -5822,6 +6085,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/hooks-z",
    "urlSource": "derived",
    "wave": 2,
@@ -5835,7 +6099,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B28"
+   "batch": "B27"
   },
   {
    "slug": "options-az",
@@ -5850,6 +6114,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/options-z",
    "urlSource": "derived",
    "wave": 1,
@@ -5883,6 +6148,7 @@
    "area": "Reference",
    "group": "Cheatsheets and messages",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/cheatsheets-messages/messages",
    "urlSource": "derived",
    "wave": 3,
@@ -5908,20 +6174,23 @@
    "area": "Examples",
    "group": "Basic examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/basic-examples",
    "urlSource": "url-map",
    "wave": 3,
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/foundations/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-minimal",
@@ -5933,6 +6202,7 @@
    "area": "Examples",
    "group": "Basic examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/basic-examples/minimal-grid-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -5964,6 +6234,7 @@
    "area": "Examples",
    "group": "Basic examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/basic-examples/editable-grid-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -5995,6 +6266,7 @@
    "area": "Examples",
    "group": "Basic examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/basic-examples/cell-types-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6026,6 +6298,7 @@
    "area": "Examples",
    "group": "Basic examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/basic-examples/custom-cell-type-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6034,8 +6307,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/foundations/custom-cells.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-custom-cell-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6053,6 +6330,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/column-examples",
    "urlSource": "url-map",
    "wave": 3,
@@ -6061,14 +6339,16 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/columns/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-pinning-cols",
@@ -6080,6 +6360,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/pinned-columns-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6088,8 +6369,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/columns/pinning.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-pinning-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6107,6 +6392,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/column-order-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6115,8 +6401,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/columns/drag-reorder.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-column-drag-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6134,6 +6424,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/header-filter-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6142,8 +6433,13 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/columns/filtering.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-sorting-filtering-demo",
+    "data-grid-header-filter-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6161,6 +6457,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/column-headers-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6169,8 +6466,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/columns/custom-headers.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-custom-headers-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6188,6 +6489,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/column-layout-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6219,6 +6521,7 @@
    "area": "Examples",
    "group": "Column examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/column-examples/column-groups-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6250,6 +6553,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/row-examples",
    "urlSource": "url-map",
    "wave": 3,
@@ -6258,14 +6562,16 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/rows/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-pinning-rows",
@@ -6277,6 +6583,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/pinned-rows-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6285,8 +6592,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/rows/pinning.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-pinning-all-sides-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6304,6 +6615,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/row-operations-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6335,6 +6647,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/row-order-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6343,8 +6656,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/rows/drag-reorder.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-row-reorder-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6362,6 +6679,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/row-markers-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6394,6 +6712,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/row-actions-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6402,8 +6721,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/rows/actions.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-actions-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6421,6 +6744,7 @@
    "area": "Examples",
    "group": "Row examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/row-examples/streaming-rows-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6452,6 +6776,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/validation-examples",
    "urlSource": "url-map",
    "wave": 3,
@@ -6461,7 +6786,8 @@
     "examples/**"
    ],
    "sourceFiles": [
-    "content/docs/examples/validation/validation.mdx"
+    "content/docs/examples/validation/validation.mdx",
+    "content/docs/examples/validation/index.mdx"
    ],
    "carriedDemos": [
     "data-grid-validation-demo"
@@ -6471,7 +6797,7 @@
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-validation",
@@ -6483,6 +6809,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/validation-examples/validation-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6514,6 +6841,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/validation-examples/async-validation-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6545,6 +6873,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/validation-examples/server-errors-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6576,6 +6905,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/validation-examples/cross-field-validation-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6607,6 +6937,7 @@
    "area": "Examples",
    "group": "Validation examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/validation-examples/async-gates-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6638,6 +6969,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/server-data-examples",
    "urlSource": "url-map",
    "wave": 3,
@@ -6646,14 +6978,19 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/data/index.mdx",
+    "content/docs/examples/data/lazy/index.mdx",
+    "content/docs/examples/data/orm/index.mdx",
+    "content/docs/examples/data/pagination/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-server",
@@ -6665,6 +7002,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-data-examples/server-rows-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6673,8 +7011,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/data/server-side.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-server-side-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6692,6 +7034,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-data-examples/large-data-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6724,6 +7067,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-data-examples/scroll-mode-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6732,8 +7076,17 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/data/lazy/index.mdx",
+    "content/docs/examples/data/lazy/plain.mdx",
+    "content/docs/examples/data/lazy/react-query.mdx",
+    "content/docs/examples/data/lazy/swr.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-lazy-demo",
+    "data-grid-lazy-react-query-demo",
+    "data-grid-lazy-swr-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6751,6 +7104,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/server-data-examples/server-pagination-example",
    "urlSource": "derived",
    "wave": 1,
@@ -6759,8 +7113,17 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/data/pagination/client.mdx",
+    "content/docs/examples/data/pagination/index.mdx",
+    "content/docs/examples/data/pagination/react-query.mdx",
+    "content/docs/examples/data/pagination/swr.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-pagination-demo",
+    "data-grid-pagination-react-query-demo",
+    "data-grid-pagination-swr-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6778,6 +7141,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "ORM examples",
+   "landing": true,
    "url": "/docs/server-data-examples/orm-examples",
    "urlSource": "derived",
    "wave": 3,
@@ -6786,14 +7150,16 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/data/orm/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-orm-drizzle",
@@ -6805,6 +7171,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "ORM examples",
+   "landing": false,
    "url": "/docs/server-data-examples/orm-examples/drizzle-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6834,6 +7201,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "ORM examples",
+   "landing": false,
    "url": "/docs/server-data-examples/orm-examples/prisma-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6863,6 +7231,7 @@
    "area": "Examples",
    "group": "Server and data examples",
    "subgroup": "ORM examples",
+   "landing": false,
    "url": "/docs/server-data-examples/orm-examples/supabase-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6892,6 +7261,7 @@
    "area": "Examples",
    "group": "Style examples",
    "subgroup": "",
+   "landing": true,
    "url": "/docs/style-examples",
    "urlSource": "url-map",
    "wave": 3,
@@ -6900,14 +7270,16 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
+   "sourceFiles": [
+    "content/docs/examples/appearance/index.mdx"
+   ],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
    "parity": [],
    "parityOwnerOf": [],
-   "batch": "B35"
+   "batch": "B34"
   },
   {
    "slug": "ex-styling",
@@ -6919,6 +7291,7 @@
    "area": "Examples",
    "group": "Style examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/style-examples/styling-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6951,6 +7324,7 @@
    "area": "Examples",
    "group": "Style examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/style-examples/loading-state-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6982,6 +7356,7 @@
    "area": "Examples",
    "group": "Style examples",
    "subgroup": "",
+   "landing": false,
    "url": "/docs/style-examples/right-left-example",
    "urlSource": "url-map",
    "wave": 1,
@@ -6990,8 +7365,12 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [],
-   "carriedDemos": [],
+   "sourceFiles": [
+    "content/docs/examples/appearance/i18n-rtl.mdx"
+   ],
+   "carriedDemos": [
+    "data-grid-i18n-demo"
+   ],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7282,16 +7661,6 @@
   {
    "id": "B27",
    "wave": 2,
-   "area": "Evaluate",
-   "groups": [
-    "Performance"
-   ],
-   "pages": 2,
-   "words": 1500
-  },
-  {
-   "id": "B28",
-   "wave": 2,
    "area": "Reference",
    "groups": [
     "Contracts",
@@ -7304,7 +7673,7 @@
    "words": 3700
   },
   {
-   "id": "B29",
+   "id": "B28",
    "wave": 3,
    "area": "Learn",
    "groups": [
@@ -7318,7 +7687,7 @@
    "words": 1350
   },
   {
-   "id": "B30",
+   "id": "B29",
    "wave": 3,
    "area": "Build",
    "groups": [
@@ -7336,7 +7705,7 @@
    "words": 2250
   },
   {
-   "id": "B31",
+   "id": "B30",
    "wave": 3,
    "area": "Server",
    "groups": [
@@ -7350,20 +7719,19 @@
    "words": 1400
   },
   {
-   "id": "B32",
+   "id": "B31",
    "wave": 3,
    "area": "Evaluate",
    "groups": [
     "Fit and features",
-    "Performance",
     "Accessibility",
     "Support and upgrades"
    ],
-   "pages": 4,
-   "words": 1100
+   "pages": 3,
+   "words": 750
   },
   {
-   "id": "B33",
+   "id": "B32",
    "wave": 3,
    "area": "Reference",
    "groups": [
@@ -7379,7 +7747,7 @@
    "words": 1950
   },
   {
-   "id": "B34",
+   "id": "B33",
    "wave": 3,
    "area": "Reference",
    "groups": [
@@ -7389,7 +7757,7 @@
    "words": 300
   },
   {
-   "id": "B35",
+   "id": "B34",
    "wave": 3,
    "area": "Examples",
    "groups": [
