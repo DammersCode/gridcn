@@ -97,7 +97,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   the options) or A to Z.
 - S12. A goal with an ordered route has a path group in the Learn or Start area: a group of 3 to 10 Step pages. The first
   path group is the Learning path with 6 to 10 steps. Other goals, such as server data, get their own path group. A path
-  group order is its sidebar order, and each step names the next step. A step links to the task pages that hold the
+  group order is its sidebar order, and each step names the next step. A fork step names both branches and a skip link to Where next. A step links to the task pages that hold the
   detail and does not repeat them. A side page, such as install problems, sits outside the path groups.
 - S13. Group labels name the reader's goal or the thing: "Edit data", "Server data". The labels "Architecture", "Advanced",
   "Misc", "Other", and "Utilities" are not used.
@@ -172,7 +172,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 ## 6. Where a new page goes
 
 This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
-page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 9, so each area has room for one
+page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 7, so each area has room for one
 new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |

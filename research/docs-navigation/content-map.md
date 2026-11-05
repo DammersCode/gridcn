@@ -137,3 +137,15 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | pagination-client | `pagination` (client mode sections) | split |
 | options-server-rows | `lazy-loading` (Usage), `pagination` (server mode sections): the options of `useDataGridServerRows` | split |
 | extension-path, ep-choose, ep-cell, ep-plugin | none: four short steps that link the custom cell type and plugin pages | new text |
+| grid-state-model | `terms` (view index, range, active cell), `selection-keyboard` (Selection model) | new concept page built from existing definitions |
+
+## Fact owners (P6)
+
+| Fact | Owner page |
+|---|---|
+| Which data mode to choose | Data modes (`data-modes`); the Server path step links it |
+| Reverting one failed save | Save and revert (`server-round-trip`) |
+| The undo stack with server data | Undo with server data (`server-undo`) |
+| Sort, filter, and search on server rows, scroll and pages mode | Query server rows (`server-sort-filter`) |
+| Version facts | Version policy and changelog (`version-policy`) |
+| Row ceiling | Row limits (`row-limits`) |

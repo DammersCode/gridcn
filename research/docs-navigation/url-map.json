@@ -210,12 +210,12 @@
   "old": "/docs/custom-cell-types",
   "file": "custom-cell-types.mdx",
   "slugs": [
-   "celltypes-index",
+   "extend-index",
    "custom-cell-model",
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/custom-cell-types",
+  "target": "/docs/recipes-custom-code",
   "split": true
  },
  {
@@ -784,14 +784,14 @@
   "old": "/docs/plugins",
   "file": "plugins.mdx",
   "slugs": [
-   "plugins-index",
+   "extend-index",
    "plugins-shape",
    "plugins-overlays",
    "plugins-events",
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/plugins",
+  "target": "/docs/recipes-custom-code",
   "split": true
  },
  {
@@ -849,7 +849,7 @@
   "slugs": [
    "ref-server-rows"
   ],
-  "target": "/docs/contracts/server-rows-contract",
+  "target": "/docs/contracts/server-rows-style/server-rows-contract",
   "split": false
  },
  {
@@ -957,7 +957,8 @@
    "checked-rows",
    "keyboard-nav",
    "server-selection",
-   "cheat-shortcuts"
+   "cheat-shortcuts",
+   "grid-state-model"
   ],
   "target": "/docs/selection-keys",
   "split": true
@@ -1004,10 +1005,11 @@
   "old": "/docs/terms",
   "file": "terms.mdx",
   "slugs": [
-   "terms"
+   "terms",
+   "grid-state-model"
   ],
   "target": "/docs/terms-help/terms",
-  "split": false
+  "split": true
  },
  {
   "old": "/docs/virtualization",

@@ -65,7 +65,7 @@ remap shortcuts | keybindings
 sum of selected cells | status-bar
 getRowId | ref-datagrid
 onDataChange | ev-data
-validateRow | ev-edit
+validateRow | validation
 blockSize | options-server-rows
 add a row | row-operations
 read only column | edit-activation

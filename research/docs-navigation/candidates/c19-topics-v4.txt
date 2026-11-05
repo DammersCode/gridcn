@@ -1,4 +1,5 @@
 // C19: topic-first, final. Column 5 (optional) lists the aliases a reader may type; the Terms page lists them.
+// C19 (round 14): one Contracts group with subgroups, code budgets on heavy pages.
 // C19 (round 13): custom code path, one sort-and-filter server page, options grouped by Build topic, cell type group.
 // C19 (round 12): column 5 = aliases (one owner each), column 6 = planned code lines.
 // C19 (round 11): The last polish after the round-9 scoring (plugin commands moved, group renamed, keeping-fast retitled) is not re-scored. Paths per goal (Learning path, Server path), three persona entries on the home page,
@@ -6,7 +7,7 @@
 @ Learn
 ## Learning path
 - index | Start here | landing | 300
-- install | Install gridcn | step | 450 | next.js app router, vite, tailwind | 20
+- install | Install gridcn | step | 420 | next.js app router, vite, tailwind | 20
 - first-grid | Render your first grid | step | 500 | quick start, hello world | 40
 - learn-columns | Define columns | step | 500
 - learn-edit | Edit cells | step | 500
@@ -40,15 +41,15 @@
 - editing-index | Editing cells | landing | 250
 - edit-activation | Editable columns | feature | 700 | edit activation, make a column editable, read only column
 - cell-types | Built-in cell types | feature | 1100 | dropdown, date picker, select cell, number cell | 40
-- validation | Validation | feature | 900 | validate cell, invalid value | 40
+- validation | Validation | feature | 900 | validate cell, invalid value, validaterow, validate row | 40
 - display-override | Display override | feature | 400
 - edit-row-form | Edit rows in forms | task | 530
 - auth-gated | Lock cells by role | task | 300
 ## Clipboard and undo
 - clipboard-index | Clipboard and undo | landing | 250
-- clipboard | Clipboard | feature | 900 | copy paste, paste from excel
-- fill | Fill handle | feature | 855 | autofill, drag fill
-- undo-redo | Undo and redo | feature | 900
+- clipboard | Clipboard | feature | 900 | copy paste, paste from excel | 30
+- fill | Fill handle | feature | 855 | autofill, drag fill | 20
+- undo-redo | Undo and redo | feature | 900 | | 30
 - undo-programmatic | Undo for code changes | feature | 600
 ## Selection and keys
 - selection-index | Selection and keys | landing | 250
@@ -63,19 +64,19 @@
 - sorting | Sorting | feature | 1200 | sort list | 30
 - filtering | Filtering | feature | 700
 - header-filter | Header filter | feature | 450 | column filter, filter by column
-- toolbar | Toolbar | feature | 800
+- toolbar | Toolbar | feature | 800 | | 40
 - quick-search | Quick search | feature | 450 | search box
 - find-replace | Find and replace | feature | 1100 | | 20
 - url-state | URL state | feature | 1000 | query string, bookmark view, share view, persist sort and filter | 40
 - remember-view | Remember filters and layout | task | 300 | remember column layout, restore view
 ## Rows, pages, and menus
 - rows-index | Rows, pages, and menus | landing | 250
-- row-operations | Row operations | feature | 900 | add a row, delete rows
+- row-operations | Row operations | feature | 900 | add a row, delete rows | 30
 - row-reorder | Row reorder | feature | 600
 - row-markers | Row markers | feature | 500
-- pinned-rows | Pinned rows | feature | 1100 | freeze rows, sticky rows
+- pinned-rows | Pinned rows | feature | 1100 | freeze rows, sticky rows | 30
 - pagination-client | Client pagination | feature | 700 | pagination, paging, client pagination, page size | 40
-- context-menu | Context menu | feature | 1000
+- context-menu | Context menu | feature | 1000 | | 30
 - row-operations-code | Row operations in code | feature | 600
 ## Columns
 - columns-index | Columns | landing | 250
@@ -105,7 +106,7 @@
 ## Data modes
 - server-index | Data modes | landing | 350
 - data-modes | Features by data mode | reference | 900
-- server-sort-filter | Sort server rows | task | 800 | server side sorting, server sort, server filter, sortmode
+- server-sort-filter | Query server rows | task | 800 | server side sorting, server sort, server filter, server search, searchtext, sortmode
 - server-troubleshooting | Troubleshoot server data | task | 800
 ## Pages mode
 - pages-index | Pages mode | landing | 250
@@ -113,14 +114,14 @@
 - pagination-url | Keep pages in URL | task | 350
 ## Scroll mode
 - scroll-index | Scroll mode | landing | 300
-- scroll-usage | Load rows while scrolling | task | 700 | infinite scroll, load more, lazy loading rows
+- scroll-usage | Load rows while scrolling | task | 700 | infinite scroll, load more, lazy loading rows | 40
 - scroll-fetch-libs | Fetch with a cache | task | 800 | react query, swr, tanstack query | 50
 - scroll-no-total | Load without row count | task | 350
 - scroll-errors | Recover from load errors | task | 500
 - scroll-retention | Tune row retention | task | 350
 ## Save to a server
 - saving-index | Save to a server | landing | 250
-- server-saves | Save edits | task | 800
+- server-saves | Save edits | task | 800 | | 40
 - server-round-trip | Save and revert | task | 800 | optimistic update, rollback, roll back | 50
 - server-conflicts | Handle refused saves | task | 500 | conflict, refused save
 - server-errors | Show errors on cells | task | 500
@@ -129,8 +130,8 @@
 - server-rows-index | Rows and live data | landing | 250
 - server-row-ops | Change server rows | task | 800
 - server-selection | Select server rows | task | 800
-- streaming | Stream updates | task | 800 | realtime, websocket, live updates
-- presence | Show presence | task | 800 | who is online, cursors, multiplayer
+- streaming | Stream updates | task | 800 | realtime, websocket, live updates | 40
+- presence | Show presence | task | 800 | who is online, cursors, multiplayer | 40
 - presence-broadcast | Broadcast your selection | task | 345
 @ Evaluate
 ## Fit and features
@@ -167,29 +168,29 @@
 - events-model | Event shapes | reference | 600
 - ev-data | Data change events | reference | 900 | ondatachange
 - ev-sort-filter | Sort and filter events | reference | 450
-- ev-edit | Edit and validation events | reference | 700 | validaterow, onedit
+- ev-edit | Edit and validation events | reference | 700 | oneditstart, oneditend, oninvalid
 - ev-cell | Selection and cell events | reference | 1000
 - ev-columns | Column and viewport events | reference | 600
 ## Contracts
 - contracts-index | Contracts | landing | 200
-- ref-server-rows | Server rows contract | reference | 1100
-- ref-style-surface | Style contract | reference | 700
-- ref-engine | Operation engine contract | reference | 500
-## Custom cell types
-- celltypes-index | Custom cell types | landing | 200
+### Cell types
 - ref-celltype | CellType contract | reference | 1400 | | 30
 - custom-cell-model | Cell type model | concept | 700
-## Plugins
-- plugins-index | Plugins | landing | 250
+### Plugins
 - ref-plugin | Plugin contract | reference | 900
 - plugins-commands | Plugin commands and keys | reference | 700
 - plugins-shape | Plugin shape | concept | 600
 - plugins-overlays | Plugin overlays | concept | 700
 - plugins-events | Plugin events | concept | 500
+### Server rows and style
+- ref-server-rows | Server rows contract | reference | 1100
+- ref-style-surface | Style contract | reference | 700
+- styling-model | Styling model | concept | 500
+- ref-engine | Operation engine contract | reference | 500
 ## Concepts
 - concepts-index | Concepts | landing | 250
 - selection-model | Selection model | concept | 700
-- styling-model | Styling model | concept | 500
+- grid-state-model | State and view index | concept | 600
 ## Types and hooks
 - types-index | Types and hooks | landing | 200
 - ref-types | Exported types | reference | 600
@@ -197,7 +198,7 @@
 - use-debounce | useDebounce | reference | 300
 - use-debounced-input | useDebouncedInput | reference | 400
 - is-composing-key | isComposingKey | reference | 300
-## Add-on options {az}
+## Add-on options
 - options-index | Add-on options | landing | 300
 ### Clipboard and undo
 - options-fill | Fill handle options | reference | 400
@@ -207,13 +208,13 @@
 - options-status-bar | Status bar options | reference | 400
 ### Sort, filter, and search
 - options-find | Find and replace options | reference | 500
-- options-toolbar | Toolbar options | reference | 600
 - options-sort-list | Sort list options | reference | 300
+- options-toolbar | Toolbar options | reference | 600
 - options-url-state | URL state options | reference | 400
 ### Rows, pages, and menus
 - options-context-menu | Context menu options | reference | 500
+- options-pagination | Client pagination options | reference | 400
 - options-pinned-rows | Pinned rows options | reference | 400
-- options-pagination | Pagination options | reference | 400
 ### Import and export
 - options-export | Export options | reference | 600
 - options-import | Import options | reference | 700
