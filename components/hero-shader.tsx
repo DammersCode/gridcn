@@ -133,6 +133,7 @@ function setupScene(canvas: HTMLCanvasElement): () => void {
   const refreshInk = () => {
     ink = readInk();
     darkBoost = readBackgroundIsDark() ? 2.4 : 1;
+    if (state.reduced) draw();
   };
   const themeObserver = new MutationObserver(refreshInk);
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
