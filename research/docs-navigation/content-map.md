@@ -9,7 +9,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | install | `installation` (prerequisites first, add-on picker last) | rewrite |
 | first-grid | `quick-start` (first grid only) | split |
 | terms | `terms` | move |
-| learn-columns, learn-edit, learn-select, learn-sort, learn-save, learn-style | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
+| learn-columns, learn-edit, learn-state, learn-select, learn-sort, learn-style | `quick-start` (going controlled, undo and redo), demos from `examples/**` | new text, reused demos |
 | landings* | none | new (one line per child) |
 | edit-activation | `editing-cell-types` (Edit activation, Read-only) | split |
 | cell-types | `editing-cell-types` (Built-in cell types) | split |
@@ -28,7 +28,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | global-shortcuts | `global-shortcuts` | move |
 | sorting, filtering, quick-search | `sorting-filtering-search` (Sorting, Filtering, Search) | split |
 | sorting | `sorting-filtering-search` (Initial sort, filter, and search) | merge |
-| sort-list | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge; the add-on keeps its own page |
+| sorting | `addons/sort-list`, `sorting-filtering-search` (Sort list) | merge; the sort list is a section of the sorting page |
 | server-sort-filter | `sorting-filtering-search` (Controlled mode), `recipes/data-fetching/server-side-sort-filter` | merge |
 | toolbar | `addons/toolbar` (Wiring, The pieces) | split |
 | header-filter | `addons/toolbar` (Header filter, Filter menu keyboard) | split |
@@ -92,9 +92,9 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | server-troubleshooting | `data-modes`, `lazy-loading` (Errors), recipes | new text |
 | streaming | `streaming-updates` | move |
 | ev-data | `events-state` (onDataChange and the three shapes) | split |
-| ev-selection | `events-state` (onSelectionChange) | split |
+| ev-cell | `events-state` (onSelectionChange, onCellClick, onFill) | split |
 | ev-sort-filter | `events-state` (onSortChange, onFilterChange) | split |
-| ev-cell | `events-state` (columnLayout and onColumnResizing, onCellClick, onRenderedRowsChange, onFill) | split |
+| ev-columns | `events-state` (columnLayout and onColumnResizing, onRenderedRowsChange) | split |
 | ev-edit | `events-state` (Edit lifecycle and cell events) | split |
 | options-presence | `events-state` (Presence read-back) | merge |
 | events-index | `events-state` (Find the callback you need, Zero re-render guarantee, Unsupported features) | split |
@@ -127,3 +127,8 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | is-composing-key | `hooks/use-debounce` (isComposingKey) | split |
 | sp-choose, sp-load, sp-save, sp-failures, sp-live | none: five short steps that link the Server tasks | new text |
 | server-conflicts | `recipes/data-fetching/server-round-trip` (Strategy C: acknowledge each change) | split |
+| ex-orm-drizzle | `examples/data/orm/drizzle` | move |
+| ex-orm-prisma | `examples/data/orm/prisma` | move |
+| ex-orm-supabase | `examples/data/orm/supabase` | move |
+| ref-server-rows | `recipes/data-fetching/server-side` (the server contract, async gates, races) | rewrite as a contract |
+| ref-plugin | none: the contract page is new, `plugins-shape` keeps the model | new text |

@@ -85,7 +85,7 @@ const SECTION_FALLBACKS = [
   [/^examples\/validation\/server-errors$/, "ex-server-errors"], [/^examples\/validation\/cross-field$/, "ex-cross-field"],
   [/^examples\/validation\/async-gates$/, "ex-async-gates"], [/^examples\/data\/server-side$/, "ex-server"],
   [/^examples\/data\/large-data$/, "ex-large"], [/^examples\/data\/lazy\//, "ex-lazy"],
-  [/^examples\/data\/pagination\//, "ex-pages"], [/^examples\/data\/orm\//, "ex-orm"],
+  [/^examples\/data\/pagination\//, "ex-pages"], [/^examples\/data\/orm\/drizzle$/, "ex-orm-drizzle"], [/^examples\/data\/orm\/prisma$/, "ex-orm-prisma"], [/^examples\/data\/orm\/supabase$/, "ex-orm-supabase"], [/^examples\/data\/orm\/index$/, "ex-orm-index"],
   [/^examples\/appearance\/styling$/, "ex-styling"], [/^examples\/appearance\/loading-states$/, "ex-loading"],
   [/^examples\/appearance\/i18n-rtl$/, "ex-rtl"], [/^examples\/index$/, "examples-index"],
   [/^examples\/columns\/index$/, "ex-columns-index"], [/^examples\/rows\/index$/, "ex-rows-index"],

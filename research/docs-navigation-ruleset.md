@@ -145,7 +145,8 @@ page. A page may still land until the group reaches 12 pages.
 | Event or callback | A section in the matching Events page and a row in the events cheatsheet |
 | Cell type | A section in the built-in cell types task page and an example page |
 | Prop | A row in the matching props page; the props cheatsheet is generated |
-| Behavior that needs a reason | A Concept page in Reference > Concepts |
+| Behavior that needs a reason | A Concept page in Reference > Concepts, or in the Reference group of its topic when the topic has one (plugins) |
+| Server feature that works in both modes | A task or feature page in Server > Data modes and a row in the data modes matrix |
 | Breaking change | A section in the upgrade page and a line in the version policy and changelog page |
 
 ## 7. Exceptions

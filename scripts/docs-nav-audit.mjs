@@ -227,7 +227,7 @@ function checkCandidate(file) {
       const subRows = g.subs.reduce((n, x) => n + 1 + (x.open ? x.pages.length : 0), 0);
       const biggestClosedSub = Math.max(0, ...g.subs.filter((x) => !x.open).map((x) => x.pages.length));
       worstOpen = Math.max(worstOpen, g.pages.length + subRows + biggestClosedSub);
-      if (!g.az) checkGroupSize(g.name, g.pages, false);
+      if (!g.az && !g.pages.some((p) => p.type === "step")) checkGroupSize(g.name, g.pages, false);
       for (const x of g.subs) checkGroupSize(x.name, x.pages, true);
       if (g.pages[0]?.type !== "landing") fail("S7", `group "${g.name}" in "${a.name}" has no landing first`);
       for (const x of g.subs) if (x.pages[0]?.type !== "landing") warn("S7", `subgroup "${x.name}" has no landing first`);

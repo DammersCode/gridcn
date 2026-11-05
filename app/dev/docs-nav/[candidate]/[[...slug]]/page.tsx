@@ -127,10 +127,44 @@ export default async function Page({ params }: { params: Promise<{ candidate: st
         ) : (
           <Outline page={page} />
         )}
-        <div className="not-prose mt-10 flex justify-between gap-3 border-t pt-4 text-sm">
-          {index > 0 ? <Link href={pages[index - 1].url}>Previous: {pages[index - 1].title}</Link> : <span />}
-          {index < pages.length - 1 ? <Link href={pages[index + 1].url}>Next: {pages[index + 1].title}</Link> : <span />}
-        </div>
+        {stepNo > 0 && (
+          <div className="not-prose mt-10 border-t pt-4 text-sm">
+            <p className="text-muted-foreground mb-2 text-xs">Steps in this path</p>
+            <ol className="mb-4 list-decimal ps-5">
+              {steps.map((p) => (
+                <li key={p.url}>
+                  <Link href={p.url} className={p.url === url ? "font-medium" : "text-muted-foreground"}>
+                    {p.title}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            <div className="flex justify-between gap-3">
+              {stepNo > 1 ? <Link href={steps[stepNo - 2].url}>Previous: {steps[stepNo - 2].title}</Link> : <span />}
+              {stepNo < steps.length ? <Link href={steps[stepNo].url}>Next: {steps[stepNo].title}</Link> : <span />}
+            </div>
+            {stepNo === steps.length && (
+              <div className="mt-4 rounded-md border p-3">
+                <p className="mb-1 font-medium">Where next</p>
+                <ul className="list-disc ps-5">
+                  {[entry("server-path"), entry("find-task"), entry("layout-index") ?? entry("editing-index")]
+                    .filter((x): x is Page => Boolean(x) && x!.url !== page.url)
+                    .slice(0, 3)
+                    .map((x) => (
+                      <li key={x.url}>
+                        <Link href={x.url}>{x.title}</Link>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        {page.slug === "index" && entry("find-task") && (
+          <p className="not-prose mt-6 text-sm">
+            Looking for something specific? <Link className="underline" href={entry("find-task")!.url}>Open the task finder</Link>.
+          </p>
+        )}
       </DocsBody>
     </DocsPage>
   );
