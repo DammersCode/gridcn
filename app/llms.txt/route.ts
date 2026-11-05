@@ -35,9 +35,9 @@ const TAIL = [
   '',
   '## Optional',
   '',
-  `- [Add-ons overview](${BASE}/docs/addons.md): One page per add-on block.`,
-  `- [Project status](${BASE}/docs/project-status.md): Scope, decisions, open questions.`,
-  `- [License](${BASE}/docs/license.md): Apache License 2.0. Legal text: [LICENSE](https://github.com/DammersCode/gridcn/blob/main/LICENSE).`,
+  `- [Feature matrix](${BASE}/docs/fit-features/feature-matrix.md): Every feature with core or add-on, client or server support.`,
+  `- [Version policy](${BASE}/docs/support-upgrades/version-policy-changelog.md): Versions, changelog, and what a release changes.`,
+  `- [License](${BASE}/docs/support-upgrades/license-credits.md): Apache License 2.0. Legal text: [LICENSE](https://github.com/DammersCode/gridcn/blob/main/LICENSE).`,
   '- [GitHub](https://github.com/DammersCode/gridcn): Source code, issues.',
   '',
 ].join('\n');

@@ -2,18 +2,18 @@ export type LlmsTask = { intent: string; slug: string[]; anchor?: string; label:
 
 /** Intent → docs page (and heading anchor). The llms.txt route fails the build when a page or anchor is missing. */
 export const LLMS_TASKS: LlmsTask[] = [
-  { intent: "Delete the selected rows in bulk", slug: ["row-operations"], anchor: "programmatic-actions", label: "Row operations: Programmatic actions" },
-  { intent: "Sort on the server", slug: ["sorting-filtering-search"], anchor: "controlled-mode-server-side-sortfilter", label: "Sorting, filtering & search: Controlled mode" },
-  { intent: "Sort a lazy grid on the server", slug: ["lazy-loading"], anchor: "sorting-a-lazy-grid", label: "Lazy loading: Sorting a lazy grid" },
-  { intent: "Export CSV only, or choose export options", slug: ["addons", "import-export"], anchor: "export", label: "Import & export: Export" },
-  { intent: "Load rows lazily with a total and a loading state", slug: ["lazy-loading"], label: "Lazy loading" },
-  { intent: "Undo and redo", slug: ["addons", "undo-redo"], anchor: "quick-start-usedatagridstate", label: "Undo & redo: Quick start" },
-  { intent: "Control the selection from app state", slug: ["events-state"], anchor: "controlling-the-selection", label: "Events & state: Controlling the selection" },
-  { intent: "Persist the column layout (widths, order, pins, hidden)", slug: ["columns"], anchor: "persisting-a-users-layout", label: "Columns: Persisting a user's layout" },
-  { intent: "Limit imported files (size, rows, columns)", slug: ["addons", "import-export"], anchor: "import-limits", label: "Import & export: Import limits" },
-  { intent: "Add a custom cell type", slug: ["custom-cell-types"], label: "Custom cell types" },
-  { intent: "Paginate with bookmarkable pages", slug: ["pagination"], label: "Pagination" },
-  { intent: "Find a callback or event", slug: ["events-state"], anchor: "find-the-callback-you-need", label: "Events & state: Find the callback you need" },
+  { intent: "Delete the selected rows in bulk", slug: ["rows-pages-menus", "row-operations"], label: "Row operations" },
+  { intent: "Sort on the server", slug: ["data-modes", "query-server-rows"], label: "Query server rows" },
+  { intent: "Sort a scroll-mode grid on the server", slug: ["data-modes", "query-server-rows"], label: "Query server rows" },
+  { intent: "Export CSV only, or choose export options", slug: ["import-export", "export"], label: "Export" },
+  { intent: "Load rows while scrolling with a total and a loading state", slug: ["scroll-mode", "load-rows-while-scrolling"], label: "Load rows while scrolling" },
+  { intent: "Undo and redo", slug: ["clipboard-undo", "undo-redo"], label: "Undo and redo" },
+  { intent: "Control the selection from app state", slug: ["events-state", "selection-cell-events"], label: "Selection and cell events" },
+  { intent: "Persist the column layout (widths, order, pins, hidden)", slug: ["columns", "column-visibility"], label: "Column visibility" },
+  { intent: "Limit imported files (size, rows, columns)", slug: ["import-export", "import"], label: "Import" },
+  { intent: "Add a custom cell type", slug: ["recipes-custom-code", "write-cell-type"], label: "Write a cell type" },
+  { intent: "Paginate with bookmarkable pages", slug: ["server-pagination", "keep-pages-url"], label: "Keep pages in URL" },
+  { intent: "Find a callback or event", slug: ["events-state"], label: "Events and state" },
 ];
 
 export const SKILL_NAMES = ["gridcn-performance", "gridcn-custom-cell-type", "gridcn-data-source", "gridcn-addons", "gridcn-upgrade"];

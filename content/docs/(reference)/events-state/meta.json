@@ -1,0 +1,12 @@
+{
+  "title": "Events and state",
+  "pages": [
+    "index",
+    "event-shapes",
+    "data-change-events",
+    "sort-filter-events",
+    "edit-validation-events",
+    "selection-cell-events",
+    "column-viewport-events"
+  ]
+}

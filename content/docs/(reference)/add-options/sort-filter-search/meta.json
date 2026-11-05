@@ -1,0 +1,10 @@
+{
+  "title": "Sort, filter, and search",
+  "pages": [
+    "index",
+    "find-replace-options",
+    "sort-list-options",
+    "toolbar-options",
+    "url-state-options"
+  ]
+}

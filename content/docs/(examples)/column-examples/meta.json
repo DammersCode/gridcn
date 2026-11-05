@@ -1,0 +1,12 @@
+{
+  "title": "Column examples",
+  "pages": [
+    "index",
+    "pinned-columns-example",
+    "column-order-example",
+    "header-filter-example",
+    "column-headers-example",
+    "column-layout-example",
+    "column-groups-example"
+  ]
+}

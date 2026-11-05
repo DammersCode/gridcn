@@ -1,0 +1,41 @@
+---
+title: "Validation examples"
+description: Cell validation with plain functions or Standard Schema libraries, async checks, server errors, and cross-field rules.
+icon: ShieldCheck
+type: landing
+---
+
+Validation in four forms, plus async gates: synchronous rules as a plain function or a Standard Schema library
+column (Zod, Joi, Valibot), async checks with a visible pending state, server-side rejections
+painted after commit, and cross-field rules via `validateRow`. Async gates cover a server check on paste, edit start,
+and row insert. Each page embeds the live
+registry example. The [editing guide](/docs/editing-cells/validation#validation) has the full
+reference.
+
+<Cards>
+  <Card
+    title="Validation"
+    href="/docs/validation-examples/validation-example"
+    description="One rule per column: function form plus a column per Standard Schema library."
+  />
+  <Card
+    title="Async validation"
+    href="/docs/validation-examples/async-validation-example"
+    description="Pending state while a schema resolves, supersede on newer commits, bulk paths."
+  />
+  <Card
+    title="Server errors"
+    href="/docs/validation-examples/server-errors-example"
+    description="Painting post-commit rejections with setCellErrors / clearCellErrors."
+  />
+  <Card
+    title="Cross-field"
+    href="/docs/validation-examples/cross-field-validation-example"
+    description="Row-level rules with validateRow — End must stay at or after Start."
+  />
+  <Card
+    title="Async gates"
+    href="/docs/validation-examples/async-gates-example"
+    description="Await a server in processPaste, validateRow, createRow, and the other event-time gates."
+  />
+</Cards>

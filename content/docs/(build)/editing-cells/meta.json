@@ -1,0 +1,12 @@
+{
+  "title": "Editing cells",
+  "pages": [
+    "index",
+    "editable-columns",
+    "built-cell-types",
+    "validation",
+    "display-override",
+    "edit-rows-forms",
+    "lock-cells-role"
+  ]
+}

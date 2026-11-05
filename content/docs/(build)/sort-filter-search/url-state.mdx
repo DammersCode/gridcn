@@ -1,0 +1,248 @@
+---
+title: "URL state"
+description: Sync sort, filter, search, column layout, and pagination to the URL via nuqs.
+icon: Link2
+type: feature
+aliases: ["query string", "bookmark view", "share view", "persist sort and filter"]
+---
+
+`data-grid-url-state` syncs the sort, filter, search, and pagination state of the grid with the
+URL using [nuqs](https://nuqs.dev).
+
+<ComponentPreview name="data-grid-url-state-demo" />
+
+<InstallCommand item="data-grid-url-state" manual manualSlot={<ManualInstall item="data-grid-url-state" />} />
+
+## Usage
+
+Mount `<DataGridUrlState>` once inside `<DataGridProvider>`, under a `NuqsAdapter` for your
+framework somewhere above it in the tree:
+
+```tsx
+"use client";
+
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { DataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+import { DataGridToolbar, DataGridSearch, DataGridFilterMenu } from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+function OrdersGrid() {
+  return (
+    <NuqsAdapter>
+      <DataGridProvider {...grid} columns={columns}>
+        <DataGridUrlState prefix="orders" />
+        <DataGridToolbar>
+          <DataGridSearch />
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </NuqsAdapter>
+  );
+}
+```
+
+`nuqs/adapters/next/app` is the Next.js App Router adapter shown above. Outside the App Router,
+import `NuqsAdapter` from your framework's adapter instead:
+
+```tsx
+// Next.js Pages Router
+import { NuqsAdapter } from "nuqs/adapters/next/pages";
+// React Router v7 (Vite)
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+// TanStack Router
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+// Plain React without a router (Vite)
+import { NuqsAdapter } from "nuqs/adapters/react";
+```
+
+The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list every adapter and its setup.
+
+<Callout type="warn" title="NuqsAdapter must not be nested">
+  If your app already renders a `NuqsAdapter` once near the root, the common case, drop the inner
+  one shown above. `DataGridUrlState` only needs one `NuqsAdapter` somewhere above it in the tree.
+</Callout>
+
+<Callout type="warn" title="Suspense required when statically prerendering">
+  Because the adapter reads `useSearchParams()`, wrap the grid in `<Suspense>` if you statically
+  prerender the page. Next.js requires this.
+</Callout>
+
+## `prefix`
+
+This namespaces the `sort`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins` URL keys, so multiple grids can coexist on
+one page without colliding:
+
+```tsx
+<DataGridUrlState prefix="orders" />
+// -> ?orders_sort=...&orders_filter=...&orders_q=...
+```
+
+A filter group <NewBadge /> is a segment `[or` or `[and`, followed by its rows, closed by a `]` segment:
+
+```txt
+?filter=country:equals:X,[or,name:contains:A,name:contains:B,]
+```
+
+The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate
+a group. A group holds one more group at most. A deeper group drops with its rows, a stray `]` is
+ignored, a group left open closes at the end, and an empty group is dropped. A flat list of rows
+without groups is written exactly as before.
+
+An older link can carry a `join=or` param. The grid reads it once: when the `filter` param has no
+group, the rows wrap in one `or` group. The grid never writes `join`, and every filter write removes it. A grid with a `prefix` reads `<prefix>_join` the same way.
+
+## Behavior
+
+- Reload the page or share a link, and the view comes back exactly as it was.
+- URL params apply to the store exactly once, on mount. After that, the store is the source of
+  truth and drives the URL, not the other way around. Call `applyFromUrl()` from
+  `useDataGridUrlState()` when the URL changed outside the grid's own writes: back/forward
+  navigation, a framework `setSearchParams`, or a query-only route change. The grid then mirrors
+  the URL: a param the URL no longer has clears its sort, filter, or search. On mount, a
+  missing param keeps the grid's initial state.
+- Sort and filter writes are immediate, since they are menu-driven, not keystroke-driven.
+  The search input already waits for the typing to pause (`inputDebounceMs`), so the URL write has no wait of its own. The URL adapter coalesces writes, so typing does not spam `history.replaceState`.
+- Every URL write uses `history: "replace"`, never `push`, so typing in search or changing a
+  filter does not pollute the browser's back and forward history.
+- The core stays router-agnostic. `data-grid-url-state` is the only piece that knows about a
+  router, and it is entirely optional.
+- A URL cannot express an unbounded view state. The `filter` param parses at most 64 filter rows and 16 groups, and
+  reads at most 256 segments. A row for a removed, hidden, or unfilterable column is dropped at every level, and a group it empties is dropped. Each `isAnyOf` list holds at most `max(number of choices, 64)`
+  values for a column with `choices`. A column with missing or empty `choices` allows 1000
+  values. An `isNoneOf` list has the same bound, and a longer list drops the whole filter
+  segment. An empty list entry (the blank value) is written as a single
+  `%`. The `sort` param keeps one direction per column (the first
+  segment wins), reads at most 256 segments, and parses at most 64 sorts. A hand-edited URL beyond these limits degrades to
+  fewer filters and sorts.
+
+The `useDataGridUrlState` hook reads the store, so a small child component inside the provider owns the wiring:
+
+```tsx
+"use client";
+
+import { useEffect } from "react";
+import { useDataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+
+function UrlStateWithPopstate({ prefix }: { prefix?: string }) {
+  const { applyFromUrl } = useDataGridUrlState({ prefix });
+
+  useEffect(() => {
+    const onPopstate = () => applyFromUrl();
+    window.addEventListener("popstate", onPopstate);
+    return () => window.removeEventListener("popstate", onPopstate);
+  }, [applyFromUrl]);
+
+  return null;
+}
+```
+
+Mount `<UrlStateWithPopstate prefix="orders" />` as a child of `<DataGridProvider>` in place
+of `<DataGridUrlState>`. The hook already syncs the URL, so a second sync instance is not
+needed. A framework router that exposes its own navigation event (for example
+`useSearchParams` changes) can call `applyFromUrl()` from that event instead of `popstate`.
+
+<Callout type="warn" title="A URL-applied sort is invisible in the default config">
+  `?sort=name:asc` reorders the rows, but the built-in sort indicator only renders in
+  `headerClickBehavior="sort"` mode, which is not the default. So in the default config a
+   deep-linked sort changes the row order with no visible arrow and no built-in UI to clear it
+   (the sort-list toolbar is a separate opt-in add-on). The sync works. The affordance is
+   missing. Make it visible and clearable:
+
+  ```tsx
+  <DataGridProvider headerClickBehavior="sort" {...grid} columns={columns}>
+  ```
+
+  or install `data-grid-sort-list` for a toolbar sort list.
+</Callout>
+
+<Callout type="warn" title="A scroll-mode grid needs sortMode and filterMode server">
+  `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. On a scroll-mode
+  grid, set `sortMode="server"` and `filterMode="server"`: the store then holds the spec and never
+  sorts or filters the partial `data`. Fetch the rows for the restored spec. Without both modes, the
+  add-on sorts and filters the partial `data` client-side. See
+  [Filtering a scroll grid](/docs/data-modes/query-server-rows#filtering-a-scroll-grid).
+</Callout>
+
+## Column layout
+
+The `layout` option picks which parts of the column layout go into the URL. The default is
+`["order", "hidden"]`: a shared link restores the column order and the hidden columns. Widths
+depend on the screen of the viewer, so `widths` and `pins` are opt-in. `layout={[]}` turns layout
+sync off. This sample adds the widths to the default parts:
+
+```tsx
+<DataGridUrlState layout={["order", "hidden", "widths"]} />
+// -> ?cols=city,name,age&hide=age&widths=name:240
+```
+
+| Part | Key | Format |
+| --- | --- | --- |
+| `order` | `cols` | Column ids, comma-separated. |
+| `hidden` | `hide` | Column ids, comma-separated. `-` means no hidden column. |
+| `widths` | `widths` | `id:px` pairs, whole pixels. |
+| `pins` | `pins` | `id:s` or `id:e` pairs. The codes `l` and `r` read as `s` and `e`. `-` means no pinned column. |
+
+The demo at the top of this page syncs the widths and the pins. Its keys start with `demo_` (the `prefix`), as in `demo_widths`.
+
+- A part is in the URL only while it differs from the layout the grid started with. The grid
+  starts with the column defs and `defaultColumnLayout`. A layout equal to it removes the key.
+- The URL changes once per committed gesture: a drop, a resize release, a pin, or a hide. A resize
+  drag does not write the URL while the pointer moves.
+- On mount, a missing key keeps the grid's initial layout. `applyFromUrl()` resets a part whose key
+  is gone.
+- Ids that match no column are dropped, and a column missing from `cols` keeps its place at the end.
+  In development, one warning names the number of dropped entries.
+- A key longer than 16,384 characters is ignored. At most 1,024 entries of a key are read.
+
+## Pagination
+
+`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, separately from
+`<DataGridUrlState>`. Pagination has no store slot, so this is a standalone hook rather than
+something `<DataGridUrlState>` mounts for you:
+
+```tsx
+"use client";
+
+import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
+import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+
+function OrdersGrid({ rows, totalRowCount }: { rows: Order[]; totalRowCount: number }) {
+  const url = useDataGridUrlPagination();
+  const { pager } = useDataGridPagination({ totalRowCount, ...url });
+
+  return (
+    <>
+      <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
+      <DataGridPaginationBar {...pager} />
+    </>
+  );
+}
+```
+
+`page` (1-based) is omitted from the URL at 1, and a `page` beyond 1,000,000 falls back to 1
+like any other invalid value. `pageSize` is omitted when it equals the configured default. Both
+writes use `history: "replace"`, same as this add-on's other params. Options: `prefix` (namespaces
+`page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize` (default 25),
+`pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default instead of being
+trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `totalRowCount` <NewBadge /> (the row count;
+see below). The result carries the resolved `pageSizeOptions`. Pass them to `useDataGridPagination`
+so the bar's page-size select and the URL's allow-list stay the same list.
+
+When you pass `totalRowCount`, an out-of-range deep-linked `page` clamps to the last page once it is
+positive. This happens on mount or when a late fetch resolves. The hook writes the clamped value
+back to the URL, so a shared link always matches the rendered view:
+
+```tsx
+const url = useDataGridUrlPagination({ totalRowCount: rows.length });
+```
+
+See [Pagination](/docs/server-pagination/load-rows-page#composing-with-data-grid-url-state) for the full composition,
+including why server mode (not client mode) is the fit.
+
+Changing `pageSize` resets the URL's `page` to 1. A page number is only valid for the size it was
+chosen at, so the reset is the contract of this URL composition. Note that client mode of
+`useDataGridPagination` keeps the first visible row on a page-size change instead. The two
+surfaces differ deliberately.

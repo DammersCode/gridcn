@@ -138,7 +138,7 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           <Step>
             <h3 className="text-xl font-semibold leading-relaxed">Prerequisites</h3>
             <p>
-              Requires <Link href="/docs/installation" className={DOCS_LINK}>`@gridcn/data-grid`</Link> installed first:
+              Requires <Link href="/docs/learning-path/install-gridcn" className={DOCS_LINK}>`@gridcn/data-grid`</Link> installed first:
             </p>
             {gridcnPrereqs.map((dep) => (
               <InstallCommand key={dep} command={`shadcn add ${dep}`} />

@@ -1,5 +1,0 @@
-{
-  "title": "Foundations",
-  "icon": "Box",
-  "pages": ["minimal-grid", "editable-grid", "cell-types", "custom-cells"]
-}

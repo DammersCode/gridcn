@@ -108,9 +108,11 @@ const LINK = /(\]\(|href=["']|["'`(\s]|^)((?:https:\/\/gridcn\.vercel\.app)?\/do
 export function rewriteLinks(text, entriesByOld, anchorMap) {
   return text.replace(LINK, (match, lead, path, hash = "") => {
     const host = path.startsWith("https://") ? "https://gridcn.vercel.app" : "";
-    const bare = path.slice(host.length);
+    const full = path.slice(host.length);
+    const trail = /[.,;:]+$/.exec(full)?.[0] ?? "";
+    const bare = full.slice(0, full.length - trail.length);
     const next = rewriteTarget(`${bare}${hash}`, entriesByOld, anchorMap);
-    return next === `${bare}${hash}` ? match : `${lead}${host}${next}`;
+    return next === `${bare}${hash}` ? match : `${lead}${host}${next}${trail}`;
   });
 }
 
@@ -118,13 +120,22 @@ function main() {
   const arg = (name) => (process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined);
   const root = process.cwd();
   const apply = process.argv.includes("--apply");
+  const linksOnly = process.argv.includes("--links-only");
   const urlMapFile = arg("--url-map");
-  const plan = planSkeleton({ candidate: arg("--candidate"), contentMap: arg("--content-map"), urlMap: urlMapFile, root });
+  const plan = linksOnly ? null : planSkeleton({ candidate: arg("--candidate"), contentMap: arg("--content-map"), urlMap: urlMapFile, root });
   const entries = JSON.parse(readLf(urlMapFile));
   const anchorMap = JSON.parse(readLf(arg("--anchor-map")));
-  const metas = metaFiles(plan.list);
-  console.log(`skeleton: ${plan.moves.length} moves, ${plan.stubs.length} stubs, ${plan.removals.length} removals, ${metas.size} meta files, ${redirectList(entries).length} redirects`);
+  if (plan) {
+    const metas = metaFiles(plan.list);
+    console.log(`skeleton: ${plan.moves.length} moves, ${plan.stubs.length} stubs, ${plan.removals.length} removals, ${metas.size} meta files, ${redirectList(entries).length} redirects`);
+  }
   if (!apply) return;
+  if (plan) writeSkeleton(root, plan, entries);
+  rewriteAll(root, entries, anchorMap);
+}
+
+function writeSkeleton(root, plan, entries) {
+  const metas = metaFiles(plan.list);
 
   for (const m of plan.moves) {
     mkdirSync(join(root, dirname(m.to)), { recursive: true });
@@ -146,7 +157,9 @@ function main() {
     writeFileSync(join(root, file), `${JSON.stringify(meta, null, 2)}\n`);
   }
   writeFileSync(join(root, "content/docs-redirects.json"), `${JSON.stringify(redirectList(entries), null, 2)}\n`);
+}
 
+function rewriteAll(root, entries, anchorMap) {
   const byOld = new Map(entries.map((e) => [e.old, e]));
   const scan = [
     ...walk(join(root, "content/docs"), [".mdx"]),

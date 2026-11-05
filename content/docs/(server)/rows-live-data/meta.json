@@ -1,0 +1,11 @@
+{
+  "title": "Rows and live data",
+  "pages": [
+    "index",
+    "change-server-rows",
+    "select-server-rows",
+    "stream-updates",
+    "show-presence",
+    "broadcast-your-selection"
+  ]
+}

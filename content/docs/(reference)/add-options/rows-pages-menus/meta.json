@@ -1,0 +1,9 @@
+{
+  "title": "Rows, pages, and menus",
+  "pages": [
+    "index",
+    "context-menu-options",
+    "client-pagination-options",
+    "pinned-rows-options"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Learning path",
+  "pages": [
+    "install-gridcn",
+    "render-your-first-grid",
+    "define-columns",
+    "edit-cells",
+    "keep-edits-state",
+    "select-paste",
+    "sort-filter-rows",
+    "style-grid"
+  ]
+}

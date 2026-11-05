@@ -1,0 +1,12 @@
+{
+  "title": "Add-on options",
+  "pages": [
+    "index",
+    "clipboard-undo",
+    "import-export",
+    "rows-pages-menus",
+    "selection-shortcuts",
+    "server",
+    "sort-filter-search"
+  ]
+}

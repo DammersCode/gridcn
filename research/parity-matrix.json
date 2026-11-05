@@ -75,25 +75,25 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/(server)/scroll-mode/index.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/(build)/sort-filter-search/index.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         },
         "FS": {
@@ -103,7 +103,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
       }
@@ -145,13 +145,13 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/(build)/sort-filter-search/index.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         },
         "FS": {
@@ -163,7 +163,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
       }
@@ -254,19 +254,19 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/(build)/sort-filter-search/index.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/(build)/sort-filter-search/index.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/(build)/sort-filter-search/index.mdx"
           ]
         },
         "FS": {
@@ -311,19 +311,19 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/(server)/scroll-mode/index.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/selection-keyboard.mdx"
+            "content/docs/(build)/selection-shortcuts/index.mdx"
           ]
         },
         "SS": {
@@ -341,7 +341,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-side.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
       }
@@ -356,7 +356,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/(build)/rows-pages-menus/index.mdx"
           ]
         },
         "PC": {
@@ -374,7 +374,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/(server)/scroll-mode/index.mdx"
           ]
         },
         "C": {
@@ -412,25 +412,25 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/(server)/scroll-mode/index.mdx"
           ]
         },
         "C": {
@@ -513,13 +513,13 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/pinned-rows.mdx"
+            "content/docs/(build)/rows-pages-menus/pinned-rows.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/pinned-rows.mdx"
+            "content/docs/(build)/rows-pages-menus/pinned-rows.mdx"
           ]
         },
         "PS": {
@@ -578,49 +578,49 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/columns.mdx"
+            "content/docs/(build)/columns/index.mdx"
           ]
         }
       },
@@ -639,7 +639,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/clipboard.mdx"
+            "content/docs/(build)/clipboard-undo/clipboard.mdx"
           ]
         },
         "PC": {
@@ -696,7 +696,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/fill.mdx"
+            "content/docs/(build)/clipboard-undo/fill-handle.mdx"
           ]
         },
         "PC": {
@@ -714,7 +714,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/fill.mdx"
+            "content/docs/(build)/clipboard-undo/fill-handle.mdx"
           ]
         },
         "C": {
@@ -751,7 +751,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/import-export.mdx"
+            "content/docs/(build)/import-export/index.mdx"
           ]
         },
         "PC": {
@@ -782,7 +782,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/import-export.mdx"
+            "content/docs/(build)/import-export/index.mdx"
           ]
         }
       }
@@ -795,7 +795,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/import-export.mdx"
+            "content/docs/(build)/import-export/index.mdx"
           ]
         },
         "PC": {
@@ -844,7 +844,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/import-export.mdx"
+            "content/docs/(build)/import-export/index.mdx"
           ]
         },
         "PC": {
@@ -893,7 +893,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/undo-redo.mdx"
+            "content/docs/(build)/clipboard-undo/undo-redo.mdx"
           ]
         },
         "PC": {
@@ -951,7 +951,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/(build)/rows-pages-menus/index.mdx"
           ]
         },
         "PC": {
@@ -970,7 +970,7 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/lazy-row-op-guard.test.tsx",
-            "content/docs/row-operations.mdx"
+            "content/docs/(build)/rows-pages-menus/index.mdx"
           ]
         },
         "C": {
@@ -994,7 +994,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/(build)/rows-pages-menus/index.mdx"
           ]
         }
       }
@@ -1052,7 +1052,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/validation/server-errors.mdx"
+            "content/docs/(examples)/validation-examples/server-errors-example.mdx"
           ]
         }
       }
@@ -1072,7 +1072,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/events-state.mdx"
+            "content/docs/(reference)/events-state/index.mdx"
           ]
         },
         "PC": {
@@ -1097,7 +1097,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/(server)/save-server/save-revert.mdx"
           ]
         },
         "SS": {
@@ -1116,7 +1116,7 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/(server)/save-server/save-revert.mdx"
           ]
         }
       }
@@ -1129,7 +1129,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/streaming-updates.mdx"
+            "content/docs/(server)/rows-live-data/stream-updates.mdx"
           ]
         },
         "PC": {
@@ -1239,7 +1239,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/accessibility.mdx"
+            "content/docs/(evaluate)/accessibility/index.mdx"
           ]
         },
         "PC": {
@@ -1295,49 +1295,49 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/presence.mdx"
+            "content/docs/(server)/rows-live-data/show-presence.mdx"
           ]
         }
       },
@@ -1354,7 +1354,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/appearance/loading-states.mdx"
+            "content/docs/(examples)/style-examples/loading-state-example.mdx"
           ]
         },
         "PC": {
@@ -1372,7 +1372,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx",
+            "content/docs/(server)/scroll-mode/index.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
@@ -1410,7 +1410,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/find-replace.mdx"
+            "content/docs/(build)/sort-filter-search/find-replace.mdx"
           ]
         },
         "PC": {
@@ -1483,7 +1483,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx",
+            "content/docs/(server)/scroll-mode/index.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
           ]
         },
@@ -1525,13 +1525,13 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "Z": {
@@ -1541,7 +1541,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "SS": {
@@ -1553,7 +1553,7 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "API": {
@@ -1579,49 +1579,49 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/custom-cell-types.mdx"
+            "content/docs/(build)/recipes-custom-code/index.mdx"
           ]
         }
       },
@@ -1645,13 +1645,13 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/(server)/server-pagination/load-rows-page.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx",
+            "content/docs/(server)/scroll-mode/index.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
             "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx"
           ]
@@ -1698,13 +1698,13 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/data/server-side.mdx"
+            "content/docs/(examples)/server-data-examples/server-rows-example.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx",
+            "content/docs/(server)/scroll-mode/index.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
@@ -1757,13 +1757,13 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/data/server-side.mdx"
+            "content/docs/(examples)/server-data-examples/server-rows-example.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading-advanced.mdx",
+            "content/docs/(server)/data-modes/fetch-cache.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },

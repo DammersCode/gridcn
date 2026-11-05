@@ -1,0 +1,11 @@
+{
+  "title": "Theme, style, and language",
+  "pages": [
+    "index",
+    "colors-radius",
+    "style-overrides",
+    "density-small-screens",
+    "loading-state",
+    "labels-i18n"
+  ]
+}

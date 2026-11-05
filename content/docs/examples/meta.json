@@ -1,6 +1,0 @@
-{
-  "title": "Examples",
-  "icon": "Blocks",
-  "defaultOpen": true,
-  "pages": ["foundations", "columns", "rows", "validation", "data", "appearance"]
-}

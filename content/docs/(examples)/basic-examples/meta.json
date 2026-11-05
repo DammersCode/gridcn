@@ -1,0 +1,10 @@
+{
+  "title": "Basic examples",
+  "pages": [
+    "index",
+    "minimal-grid-example",
+    "editable-grid-example",
+    "cell-types-example",
+    "custom-cell-type-example"
+  ]
+}

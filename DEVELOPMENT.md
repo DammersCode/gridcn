@@ -115,9 +115,9 @@ The dev server serves the payloads at `http://localhost:3000/r/<item>.json`. To 
    One-off alternative without the namespace: `npx shadcn@latest add http://localhost:3000/r/data-grid.json`.
 
 5. Files land under the consumer's alias path (`components/data-grid/*` by default), npm deps
-   from the payload are installed, and you use the components per `/docs/quick-start`.
+   from the payload are installed, and you use the components per `/docs/learning-path/render-your-first-grid`.
 
-For production there are two equivalent paths (what `/docs/installation` tells real users):
+For production there are two equivalent paths (what `/docs/learning-path/install-gridcn` tells real users):
 
 - Hosted registry: `npx shadcn add @gridcn/data-grid` — the CLI resolves the `@gridcn` scope
   from the deployed documentation site (Vercel free plan), which serves the committed `public/r/`
@@ -169,7 +169,7 @@ would, into a project you start yourself. The repository is public, so the CLI n
    Preview without writing: `npx shadcn@latest add <addr> --dry-run`, or inspect one file with
    `--view src/components/data-grid/data-grid.tsx` after install.
 
-5. Copy the two files from the [quick start](content/docs/quick-start.mdx) (`src/columns.ts`,
+5. Copy the two files from the [quick start](content/docs/(learn)/learning-path/render-your-first-grid.mdx) (`src/columns.ts`,
    `src/people-grid.tsx`) into `src/`, render `<PeopleGrid />` in `src/App.tsx`, then:
 
    ```powershell

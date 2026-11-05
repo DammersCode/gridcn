@@ -1,4 +1,4 @@
-// Checks research/parity-matrix.json and keeps content/docs/data-modes.mdx in sync with it.
+// Checks research/parity-matrix.json and keeps content/docs/(server)/data-modes/data-mode-support.mdx in sync with it.
 // `--write` regenerates the docs page; the default run fails when the page is stale.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MATRIX_FILE = "research/parity-matrix.json";
-const PAGE_FILE = "content/docs/data-modes.mdx";
+const PAGE_FILE = "content/docs/(server)/data-modes/data-mode-support.mdx";
 const BLOCKS = "registry/default/blocks";
 const OPTION_SOURCES = [
   { file: `${BLOCKS}/data-grid/store/types.ts`, type: "DataGridSyncProps" },

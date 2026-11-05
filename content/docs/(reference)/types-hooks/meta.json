@@ -1,0 +1,11 @@
+{
+  "title": "Types and hooks",
+  "pages": [
+    "index",
+    "exported-types",
+    "store-hooks",
+    "use-debounce",
+    "use-debounced-input",
+    "is-composing-key"
+  ]
+}

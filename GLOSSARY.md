@@ -4,7 +4,7 @@ The words gridcn uses. Use them in code, comments, docs, skills, messages, and c
 Add a term here before you introduce it. `scripts/verify-vocabulary.mjs` (run by `pnpm lint`)
 rejects the "Do not use" words that it can check.
 
-`content/docs/terms.mdx` is the reader-facing subset. This file is the source: edit it first, then
+`content/docs/(learn)/terms-help/terms.mdx` is the reader-facing subset. This file is the source: edit it first, then
 mirror the change there.
 
 ## Data

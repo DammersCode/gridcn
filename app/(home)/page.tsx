@@ -77,28 +77,28 @@ const coreTraits = [
     title: "Typed columns",
     description:
       "defineColumns<TData>() infers value types and per-cell-type options; accessor key typos are compile errors.",
-    href: "/docs/quick-start#define-columns",
+    href: "/docs/learning-path/render-your-first-grid#define-columns",
   },
   {
     icon: Palette,
     title: "shadcn tokens only",
     description:
       "No bespoke palette, no extra CSS files — dark mode works the moment your theme does.",
-    href: "/docs/styling-theming",
+    href: "/docs/theme-style-language",
   },
   {
     icon: Radio,
     title: "Streaming updates",
     description:
       "updateCells / updateRows push live rows into the view — incremental sort stays single-digit ms at 100k rows.",
-    href: "/docs/streaming-updates",
+    href: "/docs/rows-live-data/stream-updates",
   },
   {
     icon: Languages,
     title: "i18n & RTL ready",
     description:
       "Typed label objects for every UI string, full RTL with mirrored pinning and pointer math.",
-    href: "/docs/i18n",
+    href: "/docs/theme-style-language/labels-i18n",
   },
 ];
 
@@ -124,19 +124,19 @@ const perfStats = [
 ];
 
 const addOns = [
-  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
-  { icon: Undo2, title: "Undo & redo", href: "/docs/addons/undo-redo" },
+  { icon: PaintBucket, title: "Fill handle", href: "/docs/clipboard-undo/fill-handle" },
+  { icon: Undo2, title: "Undo & redo", href: "/docs/clipboard-undo/undo-redo" },
   {
     icon: ArrowUpDown,
     title: "Sorting & filtering",
-    href: "/docs/sorting-filtering-search",
+    href: "/docs/sort-filter-search",
   },
   {
     icon: FileSpreadsheet,
     title: "Import & export",
-    href: "/docs/addons/import-export",
+    href: "/docs/import-export",
   },
-  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
+  { icon: Link2, title: "URL state", href: "/docs/sort-filter-search/url-state" },
   {
     icon: Blocks,
     title: "Context menu",
@@ -145,23 +145,23 @@ const addOns = [
   {
     icon: MousePointer2,
     title: "Keybindings dialog",
-    href: "/docs/selection-keyboard",
+    href: "/docs/selection-shortcuts",
   },
   {
     icon: ArrowUpDown,
     title: "Toolbar & search",
-    href: "/docs/sorting-filtering-search",
+    href: "/docs/sort-filter-search",
   },
   {
     icon: ArrowUpDown,
     title: "Sort list",
-    href: "/docs/sorting-filtering-search",
+    href: "/docs/sort-filter-search",
   },
-  { icon: Pin, title: "Pinned rows", href: "/docs/addons/pinned-rows" },
-  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
-  { icon: CloudDownload, title: "Lazy loading", href: "/docs/lazy-loading" },
-  { icon: ListOrdered, title: "Pagination", href: "/docs/pagination" },
-  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cell-types" },
+  { icon: Pin, title: "Pinned rows", href: "/docs/rows-pages-menus/pinned-rows" },
+  { icon: Users, title: "Multiplayer presence", href: "/docs/rows-live-data/show-presence" },
+  { icon: CloudDownload, title: "Lazy loading", href: "/docs/scroll-mode" },
+  { icon: ListOrdered, title: "Pagination", href: "/docs/server-pagination/load-rows-page" },
+  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cells" },
 ];
 
 const agentSkills = [
@@ -247,7 +247,7 @@ export default function HomePage() {
         </p>
         <p className="text-sm text-muted-foreground">
           Works in Next.js, Vite, and any React 19 app with Tailwind v4 —{" "}
-          <Link href="/docs/project-status#framework-floors" className="underline underline-offset-4 hover:text-foreground">
+          <Link href="/docs/support-upgrades/version-policy-changelog#framework-floors" className="underline underline-offset-4 hover:text-foreground">
             see compatibility
           </Link>
           .
@@ -276,7 +276,7 @@ export default function HomePage() {
           <InstallCommand item="data-grid" />
         </div>
         <Link
-          href="/docs/agent-skills"
+          href="/docs/try-automate/use-agent-skills"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
           <Bot className="size-4" aria-hidden="true" />
@@ -486,7 +486,7 @@ export default function HomePage() {
               icon={<Icon />}
               title={title}
               description={description}
-              href={`/docs/agent-skills#${title}`}
+              href={`/docs/try-automate/use-agent-skills#${title}`}
             />
           ))}
         </Cards>

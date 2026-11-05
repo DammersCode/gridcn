@@ -1,0 +1,13 @@
+{
+  "title": "Learn",
+  "icon": "Sparkles",
+  "root": true,
+  "pages": [
+    "../index",
+    "learning-path",
+    "server-path",
+    "custom-code-path",
+    "terms-help",
+    "try-automate"
+  ]
+}

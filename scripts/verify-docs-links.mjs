@@ -25,6 +25,8 @@ export function redirectSources(root, extraFile) {
     if (!existsSync(file)) continue;
     for (const match of readFileSync(file, "utf8").matchAll(/source:\s*["']([^"']+)["']/g)) if (!match[1].includes(":")) sources.add(match[1]);
   }
+  const moved = join(root, "content/docs-redirects.json");
+  if (existsSync(moved)) for (const entry of JSON.parse(readFileSync(moved, "utf8"))) sources.add(entry.source);
   return sources;
 }
 
@@ -42,7 +44,10 @@ function targetsOf(file, text) {
     for (const m of text.matchAll(/\]\(([^)\s]+)/g)) add(m[1], m.index);
     for (const m of text.matchAll(/\bhref=["']([^"']+)["']/g)) add(m[1], m.index);
   }
-  for (const m of text.matchAll(/https:\/\/gridcn\.vercel\.app\/docs[\w./#-]*/g)) add(m[0].replace(/[.,;:]+$/, ""), m.index);
+  for (const m of text.matchAll(/https:\/\/gridcn\.vercel\.app\/docs[\w./#-]*/g)) {
+    if (text[m.index + m[0].length] === "<") continue;
+    add(m[0].replace(/[.,;:]+$/, ""), m.index);
+  }
   if (!/\.mdx?$/.test(file)) for (const m of text.matchAll(/["'`(\s]((?:https?:\/\/[^/\s"'`]+)?\/docs(?:[/#][\w./#-]*)?)/g)) add(m[1], m.index);
   return out;
 }
@@ -122,6 +127,14 @@ export function run({ root = process.cwd(), migration, redirectsFile, siteHosts 
 
 /** Destination of every redirect in next.config.mjs resolves to a page and heading. */
 function checkRedirectDestinations(root, extraFile, pages, failures) {
+  const moved = join(root, "content/docs-redirects.json");
+  if (existsSync(moved)) {
+    for (const entry of JSON.parse(readFileSync(moved, "utf8"))) {
+      const [path, anchor] = entry.destination.replace(/\.md$/, "").split("#");
+      const page = pages.get(normalizePath(path));
+      if (!page || (anchor && !page.anchors.has(anchor))) failures.push(`content/docs-redirects.json: redirect destination ${entry.destination} does not resolve`);
+    }
+  }
   for (const file of [join(root, "next.config.mjs"), ...(extraFile ? [extraFile] : [])]) {
     if (!existsSync(file)) continue;
     for (const m of readFileSync(file, "utf8").matchAll(/destination:\s*["']([^"']+)["']/g)) {

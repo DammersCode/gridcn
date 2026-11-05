@@ -9,7 +9,7 @@
          "title": "Data Grid",
          "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
          "author": "gridcn",
-         "docs": "Docs & quick start: https://gridcn.vercel.app/docs/quick-start",
+         "docs": "Docs & quick start: https://gridcn.vercel.app/docs/learning-path/render-your-first-grid",
          "cssVars": {
             "light": {
                "grid-pin-shadow": "oklch(0 0 0 / 10%)",

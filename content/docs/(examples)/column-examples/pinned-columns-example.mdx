@@ -1,0 +1,36 @@
+---
+title: "Pinned columns example"
+description: Pin columns to the start or the end, resize edges, double-click autosize, hide and restore.
+icon: Pin
+type: example
+---
+
+The column surface in one grid: Name is pinned left and Score pinned right by default, Email
+opts out of resizing, and the long Bio column is a `flex: 1` autosize target. Pinning, resize,
+reorder, and visibility are all on by default and adjustable per column (`pinnable`,
+`resizable`, `reorderable`) or grid-wide (`enableColumnPinning`, etc.). To pin rows too, see the
+[rows pinning example](/docs/row-examples/pinned-rows-example).
+
+<ComponentPreview name="data-grid-pinning-demo" />
+
+<InstallCommand item="data-grid-pinning-demo" />
+
+## What's in the demo
+
+- `pin: "left"` / `pin: "right"`: pinned bands with the frozen-edge shadow
+- `resizable: false` on Email. Drag another header's edge to resize
+- `flex: 1` on Bio: double-click a header edge to autosize to its content
+- Header dropdown (hover a header for the ghost chevron, or right-click): pin/unpin, autosize
+- Toolbar columns menu: hide a column, then restore it the same way
+
+## Behavior reference
+
+- [Pin start/end](/docs/columns/column-order-pinning#pin-startend): pin semantics and the persistent indicator
+- [Resize](/docs/columns/column-sizing#resize): drag, double-click autosize, per-column opt-out
+- [Visibility](/docs/columns/column-visibility#visibility): hide/restore and what happens to pinned state
+- [Flex fill](/docs/columns/column-sizing#flex-fill): how `flex` distributes the leftover width
+
+## Related
+
+- [Drag & drop](/docs/column-examples/column-order-example): moving columns (drag or programmatic)
+- [Column layout](/docs/column-examples/column-layout-example): persisting all of the above

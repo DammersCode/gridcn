@@ -1,0 +1,138 @@
+---
+title: "Drizzle example"
+description: The grid's server fetch contract with Drizzle. A route handler that maps sorts, filters, and page onto a query.
+icon: Database
+type: example
+---
+
+<Callout type="info" title="Recipe">
+Recipe: not a shadcn registry example. It requires a server.
+</Callout>
+
+The grid sends the whole view state. The handler maps it onto the ORM. For a `users`
+table:
+
+```ts
+// db/schema.ts
+import { pgTable, serial, text, integer } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  score: integer("score").notNull(),
+});
+```
+
+```ts
+// app/api/grid/route.ts
+import { and, asc, desc, inArray, like, notInArray, or, sql } from "drizzle-orm/pg-core";
+import { db, users } from "~/db";
+
+const COLUMN = { name: users.name, email: users.email, role: users.role, score: users.score } as const;
+
+// The body is untrusted: cap its size at the framework or proxy, and bound the tree before it reaches a query.
+function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
+  if (!Array.isArray(nodes)) throw new Error("invalid filters");
+  for (const node of nodes) {
+    if (Array.isArray(node?.filters)) {
+      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
+      assertFilterTree(node.filters, depth + 1, count);
+    } else if (typeof node?.columnId !== "string" || !Object.hasOwn(COLUMN, node.columnId) || ++count.leaves > 64) {
+      throw new Error("invalid filter");
+    }
+  }
+}
+
+export async function POST(req: Request) {
+  const { spec, start, end } = await req.json();
+  const { sorts, filters, searchText } = spec;
+  assertFilterTree(filters);
+  const limit = Math.min(Math.max(end - start, 1), 500);
+
+  const toPredicate = (f) => {
+    const col = COLUMN[f.columnId];
+    switch (f.operator) {
+      case "contains": return like(col, `%${f.value}%`);
+      case "notContains": return sql`not (${like(col, `%${f.value}%`)})`;
+      case "equals": return sql`${col} = ${f.value}`;
+      case "notEquals": return sql`${col} != ${f.value}`;
+      case "gt": return sql`${col} > ${f.value}`;
+      case "gte": return sql`${col} >= ${f.value}`;
+      case "lt": return sql`${col} < ${f.value}`;
+      case "lte": return sql`${col} <= ${f.value}`;
+      case "isAnyOf": return inArray(col, f.value);
+      case "isNoneOf": return f.value.length ? notInArray(col, f.value) : undefined;
+      // map the remaining operators the same way
+      default: return undefined;
+    }
+  };
+
+  const toWhere = (node) => {
+    if (!("filters" in node)) return toPredicate(node);
+    const children = node.filters.map(toWhere).filter(Boolean);
+    if (children.length === 0) return undefined;
+    return node.join === "or" ? or(...children) : and(...children);
+  };
+
+  const where = and(
+    searchText
+      ? or(like(users.name, `%${searchText}%`), like(users.email, `%${searchText}%`))
+      : undefined,
+    ...filters.map(toWhere),
+  );
+
+  const orderBy = sorts.length
+    ? sorts.map((s) => (s.direction === "asc" ? asc(COLUMN[s.columnId]) : desc(COLUMN[s.columnId])))
+    : [asc(users.id)];
+
+  const [count, rows] = await Promise.all([
+    db.select({ count: sql`count(*)` }).from(users).where(where),
+    db
+      .select()
+      .from(users)
+      .where(where)
+      .orderBy(...orderBy)
+      .limit(limit)
+      .offset(start),
+  ]);
+
+  return Response.json({ rows, totalRowCount: Number(count[0].count) });
+}
+```
+
+The client is the [server-side example](/docs/server-data-examples/server-rows-example) with one change: its
+`fetchRows` posts `{ spec, start, end }` to this route and returns the JSON, and the demo's fake `applyOps` becomes your `UPDATE`/
+`INSERT`/`DELETE` handler.
+
+<Callout type="warn" title="Validate the column ids">
+`f.columnId` comes from the client. Check it with `Object.hasOwn(COLUMN, id)`: the `in`
+operator also accepts inherited names such as `constructor`. An unknown id must throw a 400
+and never reach the query builder. Same for the `sorts` entries. Cap the request body size too:
+the tree limits (2 levels, 16 groups, 64 rows) do not bound a large JSON text.
+</Callout>
+
+## Shareable state
+
+Wrap the client in [DataGridUrlState](/docs/sort-filter-search/url-state) and the view state (sort, filters,
+search, page, page size) moves to the URL. The route above then reads the same values from
+the query string instead of a JSON body, and a shared link rebuilds the exact request.
+
+## Kysely
+
+The same shape one-liner-style:
+
+```ts
+const rows = await db
+  .selectFrom("users")
+  .selectAll()
+  .$dynamic((db) => {
+    for (const f of filters) db = /* map operator to .where(...), same as above */ db;
+    for (const s of sorts) db = db.orderBy(s.columnId, s.direction);
+    return db.limit(limit).offset(start);
+  })
+  .execute();
+```
+
+Count the filtered query for `totalRowCount`. Everything else carries over unchanged.

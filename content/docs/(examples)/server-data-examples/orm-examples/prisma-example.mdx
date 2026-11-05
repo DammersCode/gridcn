@@ -1,0 +1,102 @@
+---
+title: "Prisma example"
+description: The grid's server fetch contract with Prisma. The same shape as a Prisma query, operator mapping included.
+icon: Boxes
+type: example
+---
+
+<Callout type="info" title="Recipe">
+Recipe: not a shadcn registry example. It requires a server.
+</Callout>
+
+Prisma's `where` delegates line up almost one-to-one with the grid's filter operators, so
+the mapping is a table, not a switch:
+
+```ts
+// app/api/grid/route.ts
+import { Prisma } from "@prisma/client";
+import { prisma } from "~/lib/prisma";
+
+// grid operator → Prisma delegate; the "" pair is the empty/notEmpty values
+const OPS: Record<string, string> = {
+  contains: "contains",
+  notContains: "notContains",
+  equals: "equals",
+  notEquals: "notEquals",
+  startsWith: "startsWith",
+  endsWith: "endsWith",
+  gt: "gt",
+  gte: "gte",
+  lt: "lt",
+  lte: "lte",
+  empty: "equals",
+  notEmpty: "notEquals",
+};
+
+const ALLOWED = new Set(["name", "email", "role", "score"]);
+
+// The body is untrusted: cap its size at the framework or proxy, and bound the tree before it reaches a query.
+function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
+  if (!Array.isArray(nodes)) throw new Error("invalid filters");
+  for (const node of nodes) {
+    if (Array.isArray(node?.filters)) {
+      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
+      assertFilterTree(node.filters, depth + 1, count);
+    } else if (!ALLOWED.has(node?.columnId) || !Object.hasOwn(OPS, node.operator) || ++count.leaves > 64) {
+      throw new Error("invalid filter");
+    }
+  }
+}
+
+function toWhere(node): Prisma.UserWhereInput {
+  if (Array.isArray(node.filters)) {
+    if (node.filters.length === 0) return {};
+    const children = node.filters.map(toWhere);
+    return node.join === "or" ? { OR: children } : { AND: children };
+  }
+  const value = node.operator === "empty" ? "" : node.operator === "notEmpty" ? { not: "" } : node.value;
+  return { [node.columnId]: { [OPS[node.operator]]: value } };
+}
+
+export async function POST(req: Request) {
+  const { spec, start, end } = await req.json();
+  const { sorts, filters, searchText } = spec;
+  assertFilterTree(filters);
+  const limit = Math.min(Math.max(end - start, 1), 500);
+
+  const where: Prisma.UserWhereInput = {
+    ...(searchText
+      ? { OR: [{ name: { contains: searchText, mode: "insensitive" } }, { email: { contains: searchText, mode: "insensitive" } }] }
+      : {}),
+    ...(filters.length ? { AND: filters.map(toWhere) } : {}),
+  };
+
+  const [totalRowCount, rows] = await Promise.all([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      orderBy: sorts.length
+        ? sorts.map((s) => ({ [s.columnId]: s.direction }))
+        : [{ id: "asc" }],
+      skip: start,
+      take: limit,
+    }),
+  ]);
+
+  return Response.json({ rows, totalRowCount });
+}
+```
+
+Notes:
+
+- `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
+  implies. Drop it for exact semantics.
+- `isAnyOf` maps to `in: f.value`, and `isNoneOf` maps to `notIn: f.value`. Add them to the table above when you need them.
+- The client is the [server-side example](/docs/server-data-examples/server-rows-example) with one change: its `fetchRows` posts
+  `{ spec, start, end }` to this route and returns the JSON. Edits become `prisma.user.update` in the same write-through handler.
+
+## Shareable state
+
+Same as the [Drizzle recipe](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state):
+[DataGridUrlState](/docs/sort-filter-search/url-state) moves the view state to the URL, and this route reads
+it from the query string instead of a JSON body.

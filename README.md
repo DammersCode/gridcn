@@ -16,7 +16,7 @@
   <a href="https://github.com/DammersCode/gridcn/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/DammersCode/gridcn.svg?style=social"></a>
 </p>
 
-<p align="center"><a href="https://gridcn.vercel.app"><b>Documentation</b></a> · <a href="https://gridcn.vercel.app/docs/quick-start">Quick start</a> · <a href="https://gridcn.vercel.app/docs/api-reference">API reference</a></p>
+<p align="center"><a href="https://gridcn.vercel.app"><b>Documentation</b></a> · <a href="https://gridcn.vercel.app/docs/learning-path/render-your-first-grid">Quick start</a> · <a href="https://gridcn.vercel.app/docs/components-props">API reference</a></p>
 
 ---
 
@@ -38,7 +38,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, and filter are uncontrolled by default. Pass `data`, `sortState`, or `filterState` with the matching `on*Change` callback to control them. Selection and column layout stay store-owned; `onSelectionChange` and `onColumnLayoutChange` observe them.
 - **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Every user-facing string lives in one typed `labels` object with English defaults.
-- **Your theme.** Styled through your shadcn CSS tokens plus a few `--grid-*` variables, for example `--grid-column-border`. See the [styling guide](https://gridcn.vercel.app/docs/styling-theming).
+- **Your theme.** Styled through your shadcn CSS tokens plus a few `--grid-*` variables, for example `--grid-column-border`. See the [styling guide](https://gridcn.vercel.app/docs/theme-style-language).
 - **Plugins.** A single `plugins` prop mounts add-ons and your own overlays, row bands, observers, commands, and keymap entries. See the [plugin guide](https://gridcn.vercel.app/docs/plugins).
 - **Accessibility.** WAI-ARIA grid roles, roving tabindex, and live regions. axe-core reports zero violations on the test fixture in Chromium. No screen reader and no WCAG conformance audit has been run yet; see the [accessibility page](https://gridcn.vercel.app/docs/accessibility).
 
@@ -58,7 +58,7 @@ npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
 
 The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs the core from the default branch. To pin the whole install, install the core with the same ref first. An `@gridcn` add-on install fetches the core through `git ls-remote` and `raw.githubusercontent.com`, so it needs `git` and access to GitHub.
 
-The [installation docs](https://gridcn.vercel.app/docs/installation) cover prerequisites, framework notes, and known problems.
+The [installation docs](https://gridcn.vercel.app/docs/learning-path/install-gridcn) cover prerequisites, framework notes, and known problems.
 
 ## Example
 
@@ -94,7 +94,7 @@ export function PeopleGrid() {
 }
 ```
 
-The [quick start](https://gridcn.vercel.app/docs/quick-start) walks through the same example and the controlled variant.
+The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first-grid) walks through the same example and the controlled variant.
 
 ## Add-ons
 
@@ -102,20 +102,20 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 
 | Item | Adds | Docs |
 | --- | --- | --- |
-| `data-grid-fill` | Fill handle: drag-to-tile with series inference, mod+D / mod+R keyboard fill | [Fill](https://gridcn.vercel.app/docs/addons/fill) |
-| `data-grid-history` | Undo and redo | [Undo & redo](https://gridcn.vercel.app/docs/addons/undo-redo) |
-| `data-grid-toolbar` | Search, filter, header filter, and column-visibility toolbar | [Toolbar](https://gridcn.vercel.app/docs/addons/toolbar) |
-| `data-grid-sort-list` | Sort button plus popover: add, remove, and reorder multi-column sorts | [Sort list](https://gridcn.vercel.app/docs/addons/sort-list) |
-| `data-grid-context-menu` | Cell, header, and row context menus | [Context menu](https://gridcn.vercel.app/docs/addons/context-menu) |
-| `data-grid-keybindings` | Keyboard-shortcuts reference dialog | [Keybindings](https://gridcn.vercel.app/docs/addons/keybindings) |
-| `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/addons/pinned-rows) |
-| `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/addons/presence) |
-| `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/addons/find-replace) |
-| `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/addons/import-export) |
-| `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/addons/url-state) |
-| `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Lazy loading](https://gridcn.vercel.app/docs/lazy-loading) |
-| `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/pagination) |
-| `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/addons/status-bar) |
+| `data-grid-fill` | Fill handle: drag-to-tile with series inference, mod+D / mod+R keyboard fill | [Fill](https://gridcn.vercel.app/docs/clipboard-undo/fill-handle) |
+| `data-grid-history` | Undo and redo | [Undo & redo](https://gridcn.vercel.app/docs/clipboard-undo/undo-redo) |
+| `data-grid-toolbar` | Search, filter, header filter, and column-visibility toolbar | [Toolbar](https://gridcn.vercel.app/docs/sort-filter-search/toolbar) |
+| `data-grid-sort-list` | Sort button plus popover: add, remove, and reorder multi-column sorts | [Sort list](https://gridcn.vercel.app/docs/sort-filter-search/sorting) |
+| `data-grid-context-menu` | Cell, header, and row context menus | [Context menu](https://gridcn.vercel.app/docs/rows-pages-menus/context-menu) |
+| `data-grid-keybindings` | Keyboard-shortcuts reference dialog | [Keybindings](https://gridcn.vercel.app/docs/selection-shortcuts/shortcut-remapping) |
+| `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/rows-pages-menus/pinned-rows) |
+| `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/rows-live-data/show-presence) |
+| `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/sort-filter-search/find-replace) |
+| `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/import-export) |
+| `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/sort-filter-search/url-state) |
+| `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Lazy loading](https://gridcn.vercel.app/docs/scroll-mode) |
+| `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/server-pagination/load-rows-page) |
+| `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
 
 ## Agent skills
 
@@ -123,7 +123,7 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 npx skills add DammersCode/gridcn
 ```
 
-Five skills teach Claude Code, Cursor, Codex, and other coding agents the procedures and silent traps of gridcn: performance audits, custom cell types, data sources, add-on wiring, and upgrades. The [Agent Skills](https://gridcn.vercel.app/docs/agent-skills) page describes each one.
+Five skills teach Claude Code, Cursor, Codex, and other coding agents the procedures and silent traps of gridcn: performance audits, custom cell types, data sources, add-on wiring, and upgrades. The [Agent Skills](https://gridcn.vercel.app/docs/try-automate/use-agent-skills) page describes each one.
 
 ## Updating
 

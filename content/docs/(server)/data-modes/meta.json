@@ -1,0 +1,10 @@
+{
+  "title": "Data modes",
+  "pages": [
+    "index",
+    "data-mode-support",
+    "fetch-cache",
+    "query-server-rows",
+    "troubleshoot-server-data"
+  ]
+}

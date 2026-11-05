@@ -1,0 +1,12 @@
+{
+  "title": "Recipes and custom code",
+  "pages": [
+    "index",
+    "write-cell-type",
+    "write-plugin",
+    "open-detail-panel",
+    "run-bulk-actions",
+    "link-multiple-grids",
+    "remember-filters-layout"
+  ]
+}

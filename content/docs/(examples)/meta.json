@@ -1,0 +1,13 @@
+{
+  "title": "Examples",
+  "icon": "Blocks",
+  "root": true,
+  "pages": [
+    "basic-examples",
+    "column-examples",
+    "row-examples",
+    "validation-examples",
+    "server-data-examples",
+    "style-examples"
+  ]
+}

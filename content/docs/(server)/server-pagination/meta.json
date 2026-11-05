@@ -1,0 +1,8 @@
+{
+  "title": "Server pagination",
+  "pages": [
+    "index",
+    "load-rows-page",
+    "keep-pages-url"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Build",
+  "icon": "Hammer",
+  "root": true,
+  "pages": [
+    "editing-cells",
+    "clipboard-undo",
+    "selection-shortcuts",
+    "sort-filter-search",
+    "rows-pages-menus",
+    "columns",
+    "theme-style-language",
+    "import-export",
+    "recipes-custom-code"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Cheatsheets and messages",
+  "pages": [
+    "index",
+    "keyboard-shortcuts",
+    "props-z",
+    "events-z",
+    "hooks-z",
+    "options-z",
+    "messages"
+  ]
+}

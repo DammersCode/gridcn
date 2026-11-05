@@ -1,0 +1,15 @@
+{
+  "title": "Reference",
+  "icon": "BookOpen",
+  "root": true,
+  "pages": [
+    "components-props",
+    "events-state",
+    "contracts",
+    "plugins",
+    "concepts",
+    "types-hooks",
+    "add-options",
+    "cheatsheets-messages"
+  ]
+}

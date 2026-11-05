@@ -1,0 +1,11 @@
+{
+  "title": "Support and upgrades",
+  "pages": [
+    "index",
+    "version-policy-changelog",
+    "browser-framework-support",
+    "upgrade-gridcn",
+    "security-policy",
+    "license-credits"
+  ]
+}

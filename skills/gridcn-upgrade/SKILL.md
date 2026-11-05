@@ -118,9 +118,9 @@ value, press Enter, confirm the grid renders styled) passes.
 
 ## Docs
 
-- Update procedure and changelog discipline: `https://gridcn.vercel.app/docs/project-status.md`
+- Update procedure and changelog discipline: `https://gridcn.vercel.app/docs/support-upgrades/version-policy-changelog.md`
 - Install commands, aliases, barrel import paths, non-default alias pitfalls, and the Verify smoke
-  test: `https://gridcn.vercel.app/docs/installation.md`
+  test: `https://gridcn.vercel.app/docs/learning-path/install-gridcn.md`
 - Full changelog: `https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md`
 
 ## Do not

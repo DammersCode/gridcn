@@ -165,16 +165,16 @@ Each add-on's full reference (props, edge cases, worked examples) is at
 `https://gridcn.vercel.app/docs/addons/<page>.md` (or `/docs/<page>.md` for lazy-loading, pagination,
 plugins, global-shortcuts) — read the relevant one before writing non-trivial wiring:
 
-- Fill: `/docs/addons/fill.md` · Pinned rows: `/docs/addons/pinned-rows.md`
-- Presence: `/docs/addons/presence.md`, `/docs/addons/broadcasting-presence.md`
-- Undo & redo: `/docs/addons/undo-redo.md` · Toolbar: `/docs/addons/toolbar.md`
-- Context menu: `/docs/addons/context-menu.md` · Keybindings: `/docs/addons/keybindings.md`
-- Find & replace: `/docs/addons/find-replace.md`
-- Sort list: `/docs/addons/sort-list.md` · URL state: `/docs/addons/url-state.md`
-- Import/export: `/docs/addons/import-export.md` · Scroll loading: `/docs/lazy-loading.md`
-- Pagination: `/docs/pagination.md` · Plugin seam: `/docs/plugins.md`
-- Global shortcuts (undo/redo outside the grid): `/docs/global-shortcuts.md`
-- Install & dependency table: `/docs/installation.md`
+- Fill: `/docs/clipboard-undo/fill-handle.md` · Pinned rows: `/docs/rows-pages-menus/pinned-rows.md`
+- Presence: `/docs/rows-live-data/show-presence.md`, `/docs/rows-live-data/broadcast-your-selection.md`
+- Undo & redo: `/docs/clipboard-undo/undo-redo.md` · Toolbar: `/docs/sort-filter-search/toolbar.md`
+- Context menu: `/docs/rows-pages-menus/context-menu.md` · Keybindings: `/docs/selection-shortcuts/shortcut-remapping.md`
+- Find & replace: `/docs/sort-filter-search/find-replace.md`
+- Sort list: `/docs/sort-filter-search/sorting.md` · URL state: `/docs/sort-filter-search/url-state.md`
+- Import/export: `/docs/import-export.md` · Scroll loading: `/docs/scroll-mode.md`
+- Pagination: `/docs/server-pagination/load-rows-page.md` · Plugin seam: `/docs/plugins.md`
+- Global shortcuts (undo/redo outside the grid): `/docs/selection-shortcuts/global-shortcuts.md`
+- Install & dependency table: `/docs/learning-path/install-gridcn.md`
 
 ## Do not
 

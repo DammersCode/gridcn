@@ -27,9 +27,9 @@ Record which strategy was picked and why (one sentence) before writing code — 
 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
 - `data-grid-server`: for a paged server grid, `useDataGridServerRows({ getRowId, fetchRows: ({ spec, page, pageSize, start, end, signal }) => ... })` (resolve `{ rows, totalRowCount }` or `{ rows, hasMore }`) owns the spec, page, and page size unless you control them (`spec`/`onSpecChange`, `page`/`onPageChange`, `pageSize`/`onPageSizeChange`; a `useDataGridUrlPagination()` result spreads in); put your `onDataChange` and `getRowId` in its options; spread `server.gridProps` onto `DataGrid` and `server.pager` onto `DataGridPaginationBar`. It aborts stale requests, goes to page 1 on a spec change, keeps the last rows on error, and returns `status`, `loading`, `error`, `retry()`, `refresh()`. It does not set `headerClickBehavior`; pass `"sort"` yourself. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`). For a counted result that scrolls, pass `mode: "scroll"`: `fetchRows({ spec, start, end, signal })` resolves `{ rows, totalRowCount }`, the first request is block 0 (`[0, blockSize)`), the hook fetches `blockSize` blocks (default 50) around the rendered rows, spread `server.gridProps` (it carries `onRenderedRowsChange`, the error bar, and Retry), and it also returns `unloadedCount`, `getLoadedRanges()`, `evict(range)`; `retry()` repeats failed blocks only and `refresh()` refetches the rendered blocks in place. The grid warns in development when a client sort or filter changes over unloaded rows.
-- Scroll mode with a next cursor and no row count (keyset, "has more"): `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })` resolves `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor); `nextCursor: null` ends the source, and a spec change restarts it by itself. Install per https://gridcn.vercel.app/docs/lazy-loading.md.
-- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/pagination.md. Decide client mode (`const { pageData, pager } = useDataGridPagination({ data, defaultPageSize })`, hook slices) vs. server mode (`{ page, pageSize, totalRowCount, onPageChange }` fully controlled, you fetch; pass `totalRowCount: null` with `hasNextPage` when the server sends no count).
-- Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/streaming-updates.md. Skip this step if nothing needs live value pushes.
+- Scroll mode with a next cursor and no row count (keyset, "has more"): `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })` resolves `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor); `nextCursor: null` ends the source, and a spec change restarts it by itself. Install per https://gridcn.vercel.app/docs/scroll-mode.md.
+- `data-grid-pagination`: install per https://gridcn.vercel.app/docs/server-pagination/load-rows-page.md. Decide client mode (`const { pageData, pager } = useDataGridPagination({ data, defaultPageSize })`, hook slices) vs. server mode (`{ page, pageSize, totalRowCount, onPageChange }` fully controlled, you fetch; pass `totalRowCount: null` with `hasNextPage` when the server sends no count).
+- Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/rows-live-data/stream-updates.md. Skip this step if nothing needs live value pushes.
 
 Completion for this step: the grid renders and the chosen hook's `gridProps`/`pager` are spread onto the provider/root exactly as the relevant doc's usage example shows.
 
@@ -75,7 +75,7 @@ Applies to streaming on top of either:
 ## Reference
 
 - `references/server-mode.md` — server-mode wiring for scroll loading and pagination, side by side, and how to send a filter tree to an API.
-- Full docs: `https://gridcn.vercel.app/docs/lazy-loading.md`, `/docs/lazy-loading-advanced.md`, `/docs/pagination.md`, `/docs/streaming-updates.md`, `/docs/events-state.md`.
+- Full docs: `https://gridcn.vercel.app/docs/scroll-mode.md`, `/docs/data-modes/fetch-cache.md`, `/docs/server-pagination/load-rows-page.md`, `/docs/rows-live-data/stream-updates.md`, `/docs/events-state.md`.
 
 ## Do not
 

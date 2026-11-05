@@ -1,0 +1,9 @@
+{
+  "title": "ORM examples",
+  "pages": [
+    "index",
+    "drizzle-example",
+    "prisma-example",
+    "supabase-example"
+  ]
+}

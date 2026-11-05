@@ -1,0 +1,65 @@
+---
+title: "Async gates example"
+description: Await a server in processPaste, validateRow, createRow, and the other event-time gates.
+icon: Hourglass
+type: example
+---
+
+Some checks need a server before the grid acts. A paste may need normalizing. A new row may need
+an id. Each of these gates accepts a function that returns a value or a promise. The grid holds
+the gesture until the promise settles, then writes once.
+
+<ComponentPreview name="data-grid-async-gates-demo" />
+
+<InstallCommand item="data-grid-async-gates-demo" />
+
+## The gates
+
+| Gate | A promise holds | A pending promise | A rejection |
+|---|---|---|---|
+| `processPaste` | the whole paste | blocks a second paste | cancels the paste |
+| `processCellFromClipboard` | the whole paste, until every cell settles | blocks a second paste | cancels the paste |
+| `onEditStart` | the editor | blocks a second edit start | cancels the edit start |
+| `createRow` | the insert, until every row settles | blocks a second insert | cancels the insert |
+| `duplicateRow` | the duplicate, until every copy settles | blocks a second duplicate | cancels the duplicate |
+| `validateRow` | nothing. The write commits first | is replaced by a newer verdict for the same row | adds no error |
+| `mapColumn` and the import `createRow` | the import dialog | n/a | see [Import & export](/docs/import-export) |
+
+A synchronous result writes in the same call.
+
+## What the grid checks when a promise settles
+
+The grid reads its state again after the promise settles. It drops the result when:
+
+- the grid is `readOnly` now,
+- the row the gesture aimed at is gone,
+- a sort or filter changed during a paste.
+
+The grid drops these results without an error, also when a refetch removed the row. A gate gets no `AbortSignal`. Show a busy state
+while a gate is pending, because the grid blocks a second gesture of the same kind until the
+promise settles.
+
+A row that moved keeps its gesture: the grid follows the row id, not the old view position.
+`onEditStart` also drops the result when the user moved to another cell.
+
+## Client and server modes
+
+- Controlled `data`: one gesture writes one `onDataChange`, when the promise settles.
+- Pagination and lazy sources: a result for a row that left the loaded rows is dropped.
+- `sortMode="server"`: the grid never reorders rows when a promise settles. The server owns the
+  order.
+
+For a server grid, see [Server-side data](/docs/contracts/server-rows-contract#writes-and-async-gates).
+
+<Callout type="warn" title="Return a promise only from an event-time gate">
+  `processCellForClipboard`, command `when`, and the context-menu resolvers stay synchronous. The
+  browser needs their answer while the event runs. Cell render and `accessorFn` functions stay
+  synchronous too.
+</Callout>
+
+## Related
+
+- [Async validation](/docs/validation-examples/async-validation-example): schemas that return a promise.
+- [Cross-field](/docs/validation-examples/cross-field-validation-example): `validateRow`.
+- [Clipboard](/docs/clipboard-undo/clipboard#overrides): `processPaste` and `processCellFromClipboard`.
+- [Row operations](/docs/rows-pages-menus): `createRow` and `duplicateRow`.

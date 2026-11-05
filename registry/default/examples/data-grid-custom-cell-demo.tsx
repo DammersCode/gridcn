@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 /**
- * A worked "build your own cell type" example — see /docs/custom-cell-types for the full guide.
+ * A worked "build your own cell type" example — see /docs/recipes-custom-code for the full guide.
  * Storage is a plain `number | null` (currency amounts round-trip as SERIALIZABLE PRIMITIVES, the
  * same lesson the built-in date type follows by storing an ISO string rather than a Date object).
  *
@@ -148,7 +148,7 @@ const columns = [...typedColumns, ...currencyColumns];
 
 /**
  * The custom-cell-types guide's worked example: a `currency` cell type registered via the
- * `cellTypes` prop (see /docs/custom-cell-types for the `GridCellTypes` augmentation this would
+ * `cellTypes` prop (see /docs/recipes-custom-code for the `GridCellTypes` augmentation this would
  * get in a real consumer app). Try editing a cell — type a value with a currency symbol (e.g.
  * "$1,234.56") and press Enter; `fromText` strips it back to a plain number.
  */

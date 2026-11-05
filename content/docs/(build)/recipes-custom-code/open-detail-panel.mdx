@@ -1,0 +1,133 @@
+---
+title: "Open a detail panel"
+description: Show the active row in a side panel that opens on a click or a key and follows the active cell.
+type: task
+aliases: ["master detail", "expand row"]
+icon: PanelRight
+---
+
+Show the active row in a side panel that opens on a click or a key and follows the active cell. The panel does not block the grid. Because focus stays in the grid, the arrow keys keep moving the active cell. Click a cell, or press the open key on the active cell:
+
+<ComponentPreview name="data-grid-detail-panel-demo" />
+
+## Before you start
+
+Give every row a stable `id`. If rows have no `id` field, pass `getRowId`. A numeric `id` becomes a string row id. When the task must stop until the user answers, use a dialog instead. A dialog traps focus and blocks the grid.
+
+## Steps
+
+1. Hold the panel state next to the grid: an `open` flag and the `rowId` of the active row.
+2. Render the panel as an `aside` beside the grid. Give it `role="complementary"` and an `aria-label`.
+3. While `open` is false, set `inert` on the `aside`. The panel then leaves the tab order and the accessibility tree.
+4. Open the panel from `onCellClick`. Compare `ctx.columnId` to skip a checkbox column.
+5. Set `rowId` from `onActiveCellChange`. When no cell is active, the event passes `null`.
+6. Look the row up by id in your own data. The event carries the cell reference, not the row.
+7. Declare an `openRow` command in `GridActions`, define it in `commands`, and bind it in `keymap`.
+8. Close the panel on Escape inside the `aside`, then focus the grid again.
+
+## Wire the panel, the click, and the key
+
+Enter, F2, and a double-click edit the cell, so the open gesture needs its own key. The default keymap binds `Ctrl+Enter` to `scrollActiveIntoView`, so the sample binds `mod+shift+Enter`. `mod` is `Cmd` on macOS and `Ctrl` elsewhere.
+
+`onCellClick` fires for a click on any data cell. A checkbox column fires it too, so the sample skips the `active` column. The `data-[open=false]` classes slide the closed panel out of view:
+
+```tsx
+import { useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  DataGrid,
+  defineColumns,
+  type GridCommand,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string; active: boolean };
+
+declare module "@/components/data-grid/types" {
+  interface GridActions {
+    openRow: true;
+  }
+}
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+  { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+] as const);
+
+const keymap = { openRow: ["mod+shift+Enter"] };
+
+export function OrdersWithPanel({ orders }: { orders: Order[] }) {
+  const [open, setOpen] = useState(false);
+  const [rowId, setRowId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const order = orders.find((item) => item.id === rowId);
+
+  const close = () => {
+    setOpen(false);
+    containerRef.current
+      ?.querySelector<HTMLElement>('[role="grid"]')
+      ?.focus();
+  };
+
+  const commands = useMemo<Record<string, GridCommand<Order>>>(
+    () => ({
+      openRow: {
+        label: "Open row",
+        when: (ctx) => ctx.row !== undefined,
+        run: () => setOpen(true),
+      },
+    }),
+    [],
+  );
+
+  return (
+    <div ref={containerRef} className="relative overflow-hidden">
+      <DataGrid
+        className="h-[400px]"
+        data={orders}
+        columns={columns}
+        commands={commands}
+        keymap={keymap}
+        onCellClick={(ctx) => {
+          if (ctx.columnId !== "active") setOpen(true);
+        }}
+        onActiveCellChange={(next) => setRowId(next?.rowId ?? null)}
+      />
+      <aside
+        role="complementary"
+        aria-label="Row details"
+        inert={!open}
+        data-open={open}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") close();
+        }}
+        className={[
+          "absolute inset-y-0 end-0 w-64 bg-background p-4",
+          "transition-transform data-[open=false]:translate-x-full",
+          "rtl:data-[open=false]:-translate-x-full",
+        ].join(" ")}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label="Close details"
+          onClick={close}
+        >
+          ×
+        </Button>
+        <p>{order?.customer ?? "No row"}</p>
+      </aside>
+    </div>
+  );
+}
+```
+
+## Result
+
+A click on a cell, or `Ctrl+Shift+Enter` (`Cmd+Shift+Enter` on macOS) on the active cell, opens the panel. The panel shows the active row and changes as you move with the arrow keys. Escape inside the panel, or the close button, closes it and returns focus to the grid.
+
+## Related
+
+- [Keybindings: custom commands](/docs/selection-shortcuts/shortcut-remapping#custom-commands): how `commands`, `keymap`, and `GridActions` fit together.
+- [Events & state: `onCellClick`](/docs/events-state#6-oncellclick): the click callback that opens the panel.
+- [Events & state: `onActiveCellChange`](/docs/events-state#10-edit-lifecycle-and-cell-events): the callback that moves the panel.
+- [Edit a row with a form](/docs/editing-cells/edit-rows-forms): put a form in the panel and save it as one undoable change.

@@ -1,0 +1,57 @@
+---
+title: "Scroll mode example"
+description: useDataGridServerRows in scroll mode with a plain simulated-latency fetcher, as the baseline pattern.
+icon: Loader
+type: example
+---
+
+The baseline: `useDataGridServerRows({ mode: "scroll" })` owns the sparse row array and the block bookkeeping.
+You own `fetchRows({ start, end, signal, spec })`. The demo has 100,000 rows. Only the blocks that
+actually scroll into view are ever fetched, and skeleton rows hold the space until each
+block lands. The two failure buttons show the transient/permanent error split. The third
+page covers what a real fetcher replaces.
+
+<ComponentPreview name="data-grid-lazy-demo" />
+
+<InstallCommand item="data-grid-lazy-demo" />
+
+## The seam
+
+```tsx
+const server = useDataGridServerRows<Row>({
+  mode: "scroll",
+  getRowId: (row) => row.id,
+  fetchRows: async ({ start, end, signal }) => ({
+    rows: await api.fetchRows({ start, end, signal }),
+    totalRowCount: 100_000,
+  }),
+  onError: (error) => {
+    /* transient: auto-retries on next scroll; permanent: the error bar offers Retry */
+  },
+});
+```
+
+- `fetchRows` resolves the `[start, end)` slice as `rows`, positionally aligned to `start`, with the row count as
+  `totalRowCount`. The hook writes the rows into the sparse array. The core renders real rows over the skeletons.
+- `signal` aborts the in-flight request when a spec change, a count change, or an unmount replaces it. A rejection after abort
+  is ignored, so an abort is not an error. Reject with an `AbortError` and move on.
+- Failed blocks stay unloaded and the next scroll into them retries automatically
+  ("refetch on next visibility"). `onError` still fires, and the error bar of `gridProps` offers Retry for a
+  permanent failure (an expired token, for example). Call `server.retry()` to repeat the failed blocks.
+
+## Bring your own fetcher
+
+The two library pages wire the same seam to a cache so fetched blocks survive the rest of
+the session: [TanStack Query](/docs/data-modes/fetch-cache) and
+[SWR](/docs/data-modes/fetch-cache).
+
+## Behavior reference
+
+- [Lazy loading](/docs/scroll-mode): `blockSize`, `overscan`, and the server sort and filter
+- [Memory & retention](/docs/scroll-mode/tune-row-retention#memory--retention): `refresh`, `evict`, and
+  `getLoadedRanges`
+
+## Related
+
+- [Large data](/docs/server-data-examples/large-data-example): the opposite pattern: everything loaded,
+  virtualization does the work

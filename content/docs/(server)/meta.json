@@ -1,0 +1,12 @@
+{
+  "title": "Server",
+  "icon": "Server",
+  "root": true,
+  "pages": [
+    "data-modes",
+    "server-pagination",
+    "scroll-mode",
+    "save-server",
+    "rows-live-data"
+  ]
+}

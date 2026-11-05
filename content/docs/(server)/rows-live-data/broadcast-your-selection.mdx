@@ -1,0 +1,71 @@
+---
+title: "Broadcast your selection"
+description: Send your own selection to peers over a real websocket, and choose the divergence-proof payload form.
+icon: Radio
+type: task
+---
+
+Follow-up to [Multiplayer presence](/docs/rows-live-data/show-presence). The receiving side is the
+`useDataGridPresence` add-on. This page covers the other direction: broadcasting your own
+selection over a real websocket.
+
+## Wiring a real websocket
+
+The demo on the [Multiplayer presence](/docs/rows-live-data/show-presence) page simulates 3 users
+with `setInterval`. A real integration looks like this:
+
+```tsx
+"use client";
+
+import { useEffect } from "react";
+import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
+
+function usePresenceSync(roomId: string) {
+  const { plugin, setPresenceHighlights } = useDataGridPresence();
+
+  useEffect(() => {
+    const socket = new WebSocket(`wss://your-server/rooms/${roomId}`);
+    socket.onmessage = (event) => {
+      const highlights = JSON.parse(event.data);
+      setPresenceHighlights(highlights);
+    };
+    return () => socket.close();
+  }, [setPresenceHighlights, roomId]);
+
+  return plugin;
+}
+```
+
+## Sending your selection
+
+Your own selection still needs to be broadcast in the other direction. Wire `onSelectionChange`
+on `DataGridProvider` rather than hand-rolling a `useDataGridSelection()` plus `useEffect`
+subscription. It already fires on every committed change (click, extend step, row, column, or
+all selection, and clear) from the actions layer of the store. It also fires once per step of a
+drag-extend gesture, exactly the granularity that a live broadcast wants.
+
+The payload is the stable `SelectionState`: `range` corners and `rangeStack` are
+`{ rowId, columnId }` pairs, and `rowIds`/`columnIds` are stable ids. It carries no view
+positions, so a peer with a different local sort or filter resolves every ref against its own
+view. Send `next` as-is (no hooks, no column-indexing by hand):
+
+```tsx
+<DataGridProvider
+  data={data}
+  columns={columns}
+  getRowId={getRowId}
+  plugins={[plugin]}
+  onSelectionChange={(next) => {
+    if (!next.range && next.rowIds.length === 0 && next.columnIds.length === 0) {
+      // cleared — send the leave message instead
+      return;
+    }
+    socket.send(JSON.stringify({ id: userId, color, selection: next }));
+  }}
+>
+```
+
+The receiver applies the payload with `actions.setSelection(next)` or a controlled `selection`
+prop. Rows the receiver has filtered out and hidden or unknown columns are dropped, and dev
+mode warns once for the dropped refs (no mapping code on the receive side). A payload from a
+fuller view therefore applies cleanly to a narrower one.

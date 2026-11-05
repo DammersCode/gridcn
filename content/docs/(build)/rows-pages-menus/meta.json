@@ -1,0 +1,12 @@
+{
+  "title": "Rows, pages, and menus",
+  "pages": [
+    "index",
+    "row-operations",
+    "row-order",
+    "row-markers",
+    "pinned-rows",
+    "client-pagination",
+    "context-menu"
+  ]
+}

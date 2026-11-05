@@ -1,0 +1,12 @@
+{
+  "title": "Row examples",
+  "pages": [
+    "index",
+    "pinned-rows-example",
+    "row-operations-example",
+    "row-order-example",
+    "row-markers-example",
+    "row-actions-example",
+    "streaming-rows-example"
+  ]
+}
