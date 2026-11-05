@@ -1,0 +1,51 @@
+# query | slug of the page that must answer it (candidate c19)
+frozen columns | column-order-pin
+sticky columns | column-order-pin
+pin columns left | column-order-pin
+freeze rows | pinned-rows
+sticky header row | pinned-rows
+infinite scroll | scroll-usage
+lazy loading rows | scroll-usage
+load more rows | scroll-usage
+server side pagination | pagination
+server side sorting | server-sort-filter
+export to excel | export
+export csv | export
+import excel file | import
+paste from excel | clipboard
+copy cells | clipboard
+undo redo | undo-redo
+drag to fill cells | fill
+autofill | fill
+dark mode | style-tokens
+change colors | style-tokens
+border radius | style-tokens
+row height | style-density
+compact density | style-density
+translate labels | i18n
+right to left | i18n
+keyboard navigation | keyboard-nav
+keyboard shortcuts | cheat-shortcuts
+validate cell | validation
+dropdown cell | cell-types
+date picker cell | cell-types
+select rows with checkbox | checked-rows
+context menu right click | context-menu
+find and replace | find-replace
+search in the grid | quick-search
+filter by column | header-filter
+save the view in the url | url-state
+resize columns | column-sizing
+hide columns | column-visibility
+group columns under a header | column-headers
+who is online | presence
+realtime updates websocket | streaming
+virtual scrolling | virtualization
+how fast is it | benchmark-results
+one million rows | row-limits
+screen reader | a11y-conformance
+install | install
+upgrade to a new version | upgrade
+error message | cheat-messages
+saved edit was refused | server-conflicts
+which props exist | cheat-props

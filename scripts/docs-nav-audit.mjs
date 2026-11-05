@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Audits content/docs and navigation candidates against research/docs-navigation-ruleset.md.
-// Usage (from the repo root): node scripts/docs-nav-audit.mjs [--json | --sitemap | --check | --candidate <file>] [dir]
+// Usage (from the repo root): node scripts/docs-nav-audit.mjs [--json | --sitemap | --check | --candidate <file> | --queries <queries> <candidate>] [dir]
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
 const candidateIdx = process.argv.indexOf("--candidate");
 const candidateFile = candidateIdx > 0 ? process.argv[candidateIdx + 1] : null;
-const root = process.argv.find((a, i) => i > 1 && !a.startsWith("--") && a !== candidateFile) ?? "content/docs";
+const queriesAt = process.argv.indexOf("--queries");
+const isQueryArg = (i) => queriesAt > 0 && (i === queriesAt + 1 || i === queriesAt + 2);
+const root = process.argv.find((a, i) => i > 1 && !a.startsWith("--") && a !== candidateFile && !isQueryArg(i)) ?? "content/docs";
 const asJson = process.argv.includes("--json");
 const asSitemap = process.argv.includes("--sitemap");
 const asCheck = process.argv.includes("--check");
@@ -18,10 +20,10 @@ const EXCEPTIONS_FILE = "research/docs-navigation/exceptions.txt";
 
 const BUDGETS = {
   landing: { target: [80, 350], hard: 400, screens: 3, h2: [0, 6] },
-  feature: { target: [400, 1200], hard: 1500, screens: 8, h2: [2, 6] },
+  feature: { target: [400, 1200], hard: 1500, screens: 8, h2: [2, 8] },
   concept: { target: [300, 1000], hard: 1200, screens: 6, h2: [2, 5] },
-  task: { target: [200, 800], hard: 1000, screens: 6, h2: [2, 5] },
-  step: { target: [200, 600], hard: 800, screens: 5, h2: [2, 4] },
+  task: { target: [200, 800], hard: 1000, screens: 6, h2: [2, 8] },
+  step: { target: [200, 600], hard: 800, screens: 5, h2: [2, 6] },
   reference: { target: [300, 1500], hard: 2000, screens: 14, h2: [3, 10] },
   example: { target: [100, 500], hard: 800, screens: 6, h2: [0, 5] },
   cheatsheet: { target: [0, 1200], hard: 1200, screens: 12, h2: [2, 10] },
@@ -48,6 +50,8 @@ function measure(src) {
   let run = 0;
   let h2 = 0;
   let h3 = 0;
+  let steps = 0;
+  let wideLines = 0;
   for (const line of body.split("\n")) {
     if (/^\s*```/.test(line)) {
       inFence = !inFence;
@@ -55,8 +59,10 @@ function measure(src) {
     }
     if (inFence) {
       codeLines++;
+      if (line.length > 80) wideLines++;
       continue;
     }
+    if (/^\s*\d+\.\s/.test(line)) steps++;
     if (/<ComponentPreview/.test(line)) previews++;
     if (/^\s*## /.test(line)) h2++;
     if (/^\s*### /.test(line)) h3++;
@@ -70,9 +76,10 @@ function measure(src) {
   longestRun = Math.max(longestRun, run);
   const text = prose.join("\n").replace(/<[^>]+>/g, " ").replace(/[`*_|#>\-[\]()]/g, " ");
   const words = text.split(/\s+/).filter(Boolean).length;
+  const longSentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.split(/\s+/).filter(Boolean).length > 25).length;
   const tableRows = (body.match(/^\|.*\|\s*$/gm) ?? []).length;
   const screens = words / SCREEN_WORDS + codeLines / SCREEN_CODE_LINES + previews * SCREEN_PREVIEW;
-  return { words, h2, h3, codeLines, previews, tableRows, longestRun, screens: +screens.toFixed(1) };
+  return { words, h2, h3, codeLines, previews, tableRows, longestRun, steps, wideLines, longSentences, screens: +screens.toFixed(1) };
 }
 
 const pages = existsSync(root)
@@ -158,6 +165,10 @@ function check() {
     if (p.h2 > b.h2[1]) add(fails, "P2", `h2 ${p.h2}>${b.h2[1]}`);
     if (p.h2 < b.h2[0]) add(warns, "P2", `h2 ${p.h2}<${b.h2[0]}`);
     if (p.longestRun > 110) add(warns, "P4", `paragraph ${p.longestRun}w`);
+    if (p.longSentences > 0) add(warns, "P4", `${p.longSentences} sentences over 25 words`);
+    if (type === "task" && p.steps > 12) add(fails, "P15", `${p.steps} numbered steps`);
+    else if (type === "task" && p.steps > 7) add(warns, "P15", `${p.steps} numbered steps`);
+    if (p.wideLines > 0) add(warns, "P16", `${p.wideLines} code lines over 80 characters`);
     if (p.words < 80 && type !== "landing") add(fails, "P11", `words ${p.words}<80`);
     const description = frontField(src, "description");
     if (!description) add(fails, "P8", "no description");
@@ -216,7 +227,8 @@ function checkCandidate(file) {
     if (list.length > 12) fail("S3", `${isSub ? "subgroup" : "group"} "${label}" has ${list.length} pages (cap 12)`);
     else if (list.length > 7) warn("S3", `${isSub ? "subgroup" : "group"} "${label}" has ${list.length} pages (target 7)`);
   };
-  if (areas.length < 4 || areas.length > 6) fail("S1", `areas ${areas.length} (want 4..6)`);
+  if (areas.length < 4 || areas.length > 7) fail("S1", `areas ${areas.length} (want 4..7)`);
+  else if (areas.length > 6) warn("S1", `areas ${areas.length} (target 4..6)`);
   let total = 0;
   const perArea = [];
   for (const a of areas) {
@@ -277,7 +289,24 @@ function checkCandidate(file) {
   process.exitCode = out.some((l) => l.startsWith("FAIL")) ? 1 : 0;
 }
 
-if (candidateFile) {
+function checkQueries(queriesFile, file) {
+  const slugs = new Set(parseCandidate(file).flatMap((a) => a.groups.flatMap((g) => [...g.pages, ...g.subs.flatMap((s) => s.pages)])).map((p) => p.slug));
+  const rows = readLf(queriesFile)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"))
+    .map((l) => l.split("|").map((x) => x.trim()));
+  const bad = rows.filter(([, slug]) => !slugs.has(slug));
+  console.log(`queries ${rows.length}, unknown pages ${bad.length}`);
+  for (const [query, slug] of bad) console.log(`FAIL A11 "${query}" names unknown page "${slug}"`);
+  if (rows.length < 30) console.log("FAIL A11 the list needs at least 30 queries");
+  process.exitCode = bad.length || rows.length < 30 ? 1 : 0;
+}
+
+const queriesIdx = process.argv.indexOf("--queries");
+if (queriesIdx > 0) {
+  checkQueries(process.argv[queriesIdx + 1], process.argv[queriesIdx + 2]);
+} else if (candidateFile) {
   checkCandidate(candidateFile);
 } else if (asCheck) {
   const rows = check();

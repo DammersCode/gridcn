@@ -8,7 +8,7 @@ The current docs against [docs-navigation-ruleset.md](docs-navigation-ruleset.md
 | Measure | Value | Rule |
 |---|---|---|
 | Pages | 100 (75k words) | |
-| Pages failing a page rule | 38 | P1, P2, N2 |
+| Pages failing a page rule | 31 (65 more with warnings only) | P1, P2, N2 |
 | Pages above 8 screens | 16 (213 screens together) | P1 |
 | Pages under 250 words | 46 (mostly example pages) | fine for Example pages |
 | Sidebar areas | 1 | S1 wants 4 to 6 |
@@ -44,9 +44,9 @@ The current docs against [docs-navigation-ruleset.md](docs-navigation-ruleset.md
 | 15 | `accessibility` | 1,865 | 8.1 | 8 | P1 P2 | |
 | 16 | `addons/url-state` | 1,380 | 8.1 | 5 | P1 | |
 
-Also failing P2 only: `addons/undo-redo`, `addons/presence`, `addons/context-menu`, `addons/fill`, `streaming-updates`,
-`addons/find-replace`, `installation`, `agent-skills`. Task pages over budget: `recipes/data-fetching/server-side`
-(13 H2), `recipes/data-fetching/server-round-trip`, `examples/data/server-side`.
+The "Rules broken" column uses the first ruleset. With the loosened H2 bounds (feature 2 to 8, task 2 to 8, step 2 to 6), a
+page with 7 or 8 H2 no longer fails P2. Run `node scripts/docs-nav-audit.mjs --check` for the current list. The sentence,
+step, and line-width warnings (P4, P15, P16) are new and show only there.
 
 ## Structure defects (from the pilot and the sitemap)
 

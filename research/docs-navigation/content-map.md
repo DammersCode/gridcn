@@ -132,3 +132,4 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ex-orm-supabase | `examples/data/orm/supabase` | move |
 | ref-server-rows | `recipes/data-fetching/server-side` (the server contract, async gates, races) | rewrite as a contract |
 | ref-plugin | none: the contract page is new, `plugins-shape` keeps the model | new text |
+| cheat-messages | none: one H2 per error and warning the library prints or throws, generated from the source | new, generated |

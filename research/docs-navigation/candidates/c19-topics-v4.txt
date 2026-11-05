@@ -200,6 +200,7 @@
 - cheat-shortcuts | Keyboard shortcuts | cheatsheet | 800
 - cheat-props | Props A to Z | cheatsheet | 1100
 - cheat-events | Events A to Z | cheatsheet | 900
+- cheat-messages | Messages A to Z | cheatsheet | 900
 @ Examples
 ## Basic examples
 - examples-index | Basic examples | landing | 250

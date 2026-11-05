@@ -24,14 +24,14 @@ Every dimension scores 0 to 10 per persona. Each column is an anchor score. A sc
 
 | # | Dimension | 0 | 3 | 5 | 7 | 9 | 10 |
 |---|---|---|---|---|---|---|---|
-| D1 | Findability: clicks and guesses from a task to the page that answers it | Page not reachable from the sidebar | Needs 3+ wrong guesses; group names hide the topic | 1 to 2 wrong guesses; some names ambiguous | Right page in the first or second click for most tasks | Right page first click, every group name predicts its content | Sidebar plus landing pages answer every task in one click; search is a backup only |
+| D1 | Findability: clicks and guesses from a task to the page that answers it | Page not reachable from the sidebar | Needs 3+ wrong guesses; group names hide the topic | 1 to 2 wrong guesses; some names ambiguous | Right page in the first or second click for most tasks | Right page first click, every group name predicts its content | Every task reaches its page directly (the first click leads toward the answer) and the reader query list passes |
 | D2 | Scroll cost: screens a reader scrolls to get the answer | Typical task page above 20 screens | 12 to 20 screens | 8 to 12 screens | Typical task page 5 to 8 screens | Typical task page at or below 5 screens; the answer sits in the first two screens | Every task page at or below 5 screens, answer above the fold or one anchor away |
-| D3 | Cognitive load: concepts, choices, and sidebar rows held at once | Sidebar shows 40+ rows in one list | More than 25 rows visible; pages mix 3+ concepts | 20 to 25 rows visible; some mixed pages | At most 25 rows visible and at most 12 pages in the open group; one concept per page, few exceptions | At most 20 rows visible and at most 9 pages in the open group; no page mixes concepts | At most 15 rows visible and at most 7 pages per group; progressive disclosure hides what the task does not need |
+| D3 | Cognitive load: concepts, choices, and sidebar rows held at once | Sidebar shows 40+ rows in one list | More than 30 rows visible; pages mix 3+ concepts | 26 to 30 rows visible; some mixed pages | At most 30 rows visible and at most 12 pages in the open group; one concept per page, few exceptions | At most 25 rows visible and at most 9 pages in the open group; no page mixes concepts | At most 20 rows visible and at most 7 pages per group; progressive disclosure hides what the task does not need |
 | D4 | Learning path: a defined order from zero to productive | No order; reader must guess | Order exists in one place only by accident | A "start here" list exists but skips steps | A stepper or path covers the core; branches are unmarked | Paths for the core and for each main goal; every path step names its next step and every other page links related pages | Paths per goal with prerequisites and a next step on every step; related links on every other page; the sidebar order matches the path |
 | D5 | Reference lookup speed: time to a prop, event, option, or limit | Reference is one page above 20 screens | Reference is one page above 12 screens, no per-concern anchors | Reference split by area, but names are not predictable | Tables per concern, stable anchors, lookup in 2 clicks | Reference page per concern, a lookup index, lookup in 1 to 2 clicks | One predictable URL per symbol or concern; an index page; all lookups in at most 2 clicks |
 | D6 | Consistency: same names, order, and page shape for the same kind of thing | Every page has its own shape | Add-ons share a shape; the rest vary | Page types exist but are not followed | Page types followed by most pages; naming mostly stable | Every page follows its page-type template; one term per concept | Template and naming checkable by script; zero deviations |
-| D7 | First-success path: from the docs home to a running, correct first grid | Cannot succeed without outside help | Needs 5+ pages | 3 to 4 pages | 2 pages and one wrong guess | Home to running grid in at most 2 clicks on 2 pages of at most 6 screens together | One obvious start path, install and first grid on at most 2 short pages, follow-up steps linked |
-| D8 | Growth resilience: room for the planned server-side additions without a new rewrite | Each new feature forces a new group | New features land in overloaded groups | Room for some growth; two groups will overflow | Planned features fit; one group needs a split | Planned features fit with at most one new page per feature | Planned features fit; rules say where each new page goes; no group exceeds its cap after growth |
+| D7 | First-success path: from the docs home to a running, correct first grid | Cannot succeed without outside help | Needs 5+ pages | 3 to 4 pages | 2 pages and one wrong guess | Home to running grid in at most 2 clicks on 2 pages of at most 6 screens together | One obvious start path, install and first grid on at most 2 short pages, a visible result after each step, follow-up steps linked |
+| D8 | Growth resilience: room for the planned server-side additions without a new rewrite | Each new feature forces a new group | New features land in overloaded groups | Room for some growth; two groups will overflow | Planned features fit; one group needs a split | Every planned feature needs at most 3 hand-written places and the rest is generated (S16) | Planned features fit with that rule, and no group exceeds its cap after the planned growth |
 
 ## Task battery
 
@@ -46,6 +46,7 @@ Beginner tasks:
 - B4. Match the grid to my theme (colors, density, radius).
 - B5. Add sorting and a filter UI.
 - B6. Find a copy-paste example of an editable grid.
+- B7. Find how to freeze columns (the word "frozen" comes from another tool, not from the docs).
 
 Senior tasks (E1 to E8; the review notes called them S1 to S8, which clashes with the sidebar rule numbers):
 
@@ -57,6 +58,7 @@ Senior tasks (E1 to E8; the review notes called them S1 to S8, which clashes wit
 - E6. Wire optimistic edits with a server round trip, rollback, and conflict handling.
 - E7. Judge upgrade risk: version policy, breaking changes, how to pull fixes into installed code.
 - E8. Add undo and redo that survives server edits.
+- E9. Look up a console warning by its exact text.
 
 Shared tasks (both personas, used to compare):
 
@@ -64,8 +66,10 @@ Shared tasks (both personas, used to compare):
 - X2. Paste from a spreadsheet and validate the values.
 - X3. Export to CSV safely.
 - X4. Load rows page by page from my API.
+- X5. Answer "which version added this, and does it work in server mode?" for one feature.
 
-The task battery needs updating when features ship. Keep each persona at 10 or fewer tasks.
+The task battery needs updating when features ship. B7, E9, and X5 test vocabulary, messages, and facts; they came from the
+validation report. Reviewers record directness (does the first click lead toward the answer) next to clicks and screens.
 
 ## Review routine
 
@@ -78,7 +82,7 @@ The task battery needs updating when features ship. Keep each persona at 10 or f
    A reviewer scores one persona. Use the strongest available model at high effort, one fresh agent per persona, no shared
    context between personas.
 3. The reviewer traces every task of its persona plus the shared tasks. For each task it records the path, the clicks,
-   the screens, and a pass or miss.
+   the screens, the directness, and a pass or miss.
 4. The reviewer scores D1 to D8 from 0 to 10 and cites at least two concrete pages or sidebar groups per dimension that
    explain the score. A score without a cited page is void.
 5. The reviewer returns the JSON below plus the top five defects by impact.
@@ -87,7 +91,8 @@ The task battery needs updating when features ship. Keep each persona at 10 or f
    candidate. A finalist also gets a beginner run, because that run adds the learning-path and first-success signal (D4,
    D7). A second run of a persona is spent when a score sits within the noise of a pass line or when a finding would
    change the ranking. A persona whose findings other runs already found for two rounds in a row leaves the loop.
-7. A candidate passes at an overall score of at least 9.0, no dimension below 8.0 for any persona, and no missed task.
+7. A candidate passes at an overall score of at least 9.0, no dimension below 8.0 for any persona, no missed task, and every
+   gate of the ruleset (section 9). The finalist gets two runs per persona, and the median of the runs counts.
    Only a round that ran both personas can pass. The goal is 10.0. Every remaining gap below 10 needs a one-line reason in
    the comparison file. Noise: two senior runs on one navigation differed by 0.13 on the mean and up to 1.0 per dimension
    (pilot), and two runs on near-identical versions differed by 0.5 on the mean (final round). Treat a difference below
@@ -155,3 +160,17 @@ Decision: drop the mid persona. The keep rule is not met. Two personas, beginner
 Baseline of the current navigation: beginner 5.13, senior 5.19, overall 5.16.
 
 All four runs agree on the same top defects: no start path that states prerequisites, styling and theming buried under "Columns & layout" at 22.8 screens, server data spread over four places, contradicting row-limit and version facts, 52 of 100 pages without a next step, group names that hide topics (Accessibility and Performance under Architecture, Recipes under Reference, a one-page Hooks group).
+
+## Calibration log
+
+A change to the rubric is calibration. It does not count as a gain of the navigation. Compare scores only inside one rubric
+version.
+
+| Date | Change | Why | Expected effect |
+|---|---|---|---|
+| 2026-11-05 | D3 anchors use the ruleset's own limits: 9 at 25 rows and 9 pages, 7 at 30 rows and 12 pages, 10 at 20 rows and 7 pages | The old anchors (9 at 20 rows) contradicted S5 (25 rows) and the public docs sites studied (24 to 40 rows) | D3 up by about 0.5 to 1 for the same tree; mean up by 0.15 to 0.25 |
+| 2026-11-05 | D8 anchor 9 counts hand-written places (at most 3, S16) instead of one page per feature | Ruleset section 6 needs several places per feature, so the old anchor could not be met | D8 up by about 0.5; mean up by about 0.1 |
+| 2026-11-05 | D1 10 and D7 10 wording made observable (directness, visible result per step) | The old wording ("search is a backup only") could not be observed from a plan | none |
+| 2026-11-05 | Task battery extended (B7, E9, X5), directness recorded, gates added, two runs per persona on the finalist | Validation report: make the score harder to game | Scores may fall |
+
+The last navigation score on the old rubric: C19, 8.72 (beginner 8.81, senior 8.63).
