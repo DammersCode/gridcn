@@ -3,10 +3,10 @@ title: Editable columns
 description: Choose which cells users can edit, how an edit starts, and which keys commit or cancel it.
 type: feature
 demos: none
-aliases: ["cell editor", "custom editor", "edit activation", "make a column editable", "read only column"]
+aliases: ["cell editor", "custom editor", "edit activation", "make a column editable", "read only column", "double click to edit"]
 ---
 
-Every column is editable until you lock it. The column's cell type supplies the editor, and `readOnly` locks a column, single cells, or the whole grid. An edit starts only through a deliberate gesture, so a drag to select never opens an editor.
+A column with `accessorKey` or `setValue` is editable until you lock it. The column's cell type supplies the editor, and `readOnly` locks a column, single cells, or the whole grid. An edit starts only through a deliberate gesture, so a drag to select never opens an editor.
 
 ## Start an edit [#edit-activation]
 
@@ -22,14 +22,14 @@ Checkbox cells have no editor. A click on the box toggles the value. A click els
 
 ## Commit or cancel an edit [#commit-cancel]
 
-While an editor is open, the editor owns the built-in keys. The grid keymap does not run, so <kbd>Shift</kbd>+<kbd>Enter</kbd> never moves up and <kbd>Tab</kbd> keeps its native focus move.
+While an editor is open, the editor owns the built-in keys. Built-in grid shortcuts do not run, so <kbd>Shift</kbd>+<kbd>Enter</kbd> never moves up and <kbd>Tab</kbd> keeps its native focus move. A custom command with `scope: "editing"` or `"always"` still runs. See [Custom commands](/docs/selection-shortcuts/shortcut-remapping#custom-commands).
 
 | Editor | Commits | Cancels |
 |---|---|---|
-| `text`, `number`, `url` | <kbd>Enter</kbd> and moves down. <kbd>Tab</kbd> or a click away, in place | <kbd>Escape</kbd> |
-| `select` | Picking a choice, in place | <kbd>Escape</kbd>, or closing the list without a pick |
-| `date` | <kbd>Enter</kbd> on the typed date, and moves down. Picking a day, in place | <kbd>Escape</kbd>, or closing the popover |
-| `longText` | <kbd>Enter</kbd> and moves down. A click away, in place | <kbd>Escape</kbd> |
+| `text`, `number`, `url` | <kbd>Enter</kbd> moves down. <kbd>Tab</kbd> or a click away stays in place | <kbd>Escape</kbd> |
+| `select` | Picking a choice stays in place | <kbd>Escape</kbd>, or closing the list without a pick |
+| `date` | <kbd>Enter</kbd> on the typed date moves down. Picking a day stays in place | <kbd>Escape</kbd>, or closing the popover |
+| `longText` | <kbd>Enter</kbd> moves down. A click away stays in place | <kbd>Escape</kbd> |
 
 In a `longText` editor, <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. A rejected value keeps the editor open. See [Validation](/docs/editing-cells/validation).
 
@@ -60,11 +60,11 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-A locked cell rejects typed edits, paste, fill, and clear. A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
+A locked cell rejects typed edits, paste, fill, and clear. Unless the column sets `readOnly: false`, cells in pinned rows stay locked. A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
 
 <Callout title="Grid-wide read-only wins">
-  `readOnly` on `<DataGrid>` disables editing and delete in every column, whatever the column
-  says. If it turns on during an edit, the grid cancels the edit and discards the draft.
+  `readOnly` on `<DataGrid>` (`<DataGridProvider readOnly>` in a composed grid) disables editing
+  and delete in every column, whatever the column says. If it turns on during an edit, the grid cancels the edit and discards the draft.
 </Callout>
 
 ## Veto an edit [#veto-edit]
@@ -92,11 +92,30 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 }
 ```
 
-`onEditEnd` reports `commit`, `cancel`, or `rejected` for each session. See [Edit and validation events](/docs/events-state/edit-validation-events).
+When an edit ends, `onEditEnd` reports `commit` or `cancel`. For each refused commit, it reports `rejected`, and the editor stays open. See [Edit and validation events](/docs/events-state/edit-validation-events).
 
 ## Props [#props]
 
-The column props are `type`, `options`, `readOnly`, `accessorFn`, and `setValue`. The grid props are `readOnly`, `onEditStart`, `onEditEnd`, and `keymap`. [Column definition](/docs/components-props/column-def) and [DataGrid props](/docs/components-props/data-grid-props) list the types and defaults.
+{/* props: ColumnDef */}
+
+| Prop | Type | Default |
+|---|---|---|
+| `type` | `string` | `"text"` |
+| `options` | `unknown` | - |
+| `readOnly` | `boolean \| ((row) => boolean)` | - |
+| `accessorFn` | `(row) => value` | - |
+| `setValue` | `(row, value) => row` | - |
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+|---|---|---|
+| `readOnly` | `boolean` | `false` |
+| `onEditStart` | `(cell) => boolean \| void \| Promise<boolean \| void>` | - |
+| `onEditEnd` | `(event) => void` | - |
+| `keymap` | `Keymap` | - |
+
+[Column definition](/docs/components-props/column-def) and [DataGrid props](/docs/components-props/data-grid-props) list every prop.
 
 ## Related
 

@@ -1,10 +1,68 @@
 ---
 title: Display override
-description: Display override.
+description: Draw a column's cells with your own React content while the cell type keeps editing, sorting, and copying.
 type: feature
+demos: none
 aliases: ["cell renderer", "rendercell", "custom display"]
 ---
 
-{/* docs-stub */}
+`renderCell` replaces how a column draws its cells and keeps everything else. The cell type still supplies the editor, the sort order, and the text for copy, paste, and export. Use it for a progress bar, a badge, or an icon on a value that a built-in type already stores and edits. If you need a new editor or a new way to read text, write a [cell type](/docs/recipes-custom-code/write-cell-type) instead.
 
-This page is being written.
+## Override the display [#display-override-without-a-new-type]
+
+Set `renderCell` on the column and return a React node. This column draws a score as a bar:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Player = { id: string; name: string; score: number | null };
+
+const columns = defineColumns<Player>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    renderCell: ({ value }) => (
+      <div className="h-2 w-full rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: `${value ?? 0}%` }}
+        />
+      </div>
+    ),
+  },
+]);
+
+export function Players({ players }: { players: Player[] }) {
+  return <DataGrid data={players} columns={columns} />;
+}
+```
+
+When the user edits the cell, the type's editor replaces your content. A row that has not loaded yet shows a skeleton, and `renderCell` does not run for it.
+
+Render the value as React text. Never pass a cell value to `dangerouslySetInnerHTML`.
+
+## Arguments [#render-arguments]
+
+`renderCell` receives one object:
+
+- `value`: the cell value, read through `accessorKey` or `accessorFn`.
+- `row`: the full data row.
+- `rowId`: the row id.
+- `columnId`: the column id.
+- `viewRowIndex`: the position in the sorted and filtered view. The position moves with the view, so identify a row by `rowId`.
+- `column`: the column definition. Read the column options from `column.options`.
+- `isActive`: `true` while the cell is the active cell.
+
+## When a cell re-renders [#re-render]
+
+The grid skips a cell that did not change. A cell draws again after a change to its row, its value, its column definition, or its active state. If `renderCell` reads other state, such as a role or a theme, build a new `columns` array after that state changes.
+
+## Related
+
+- [Built-in cell types](/docs/editing-cells/built-cell-types): the types whose display you can override.
+- [Cell type model](/docs/concepts/cell-type-model): which parts of the pipeline `renderCell` leaves in place.
+- [Column definition](/docs/components-props/column-def): the `renderCell` signature.
+- [Write a cell type](/docs/recipes-custom-code/write-cell-type): replace the editor and the text pipeline too.

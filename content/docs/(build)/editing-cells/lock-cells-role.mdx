@@ -1,44 +1,81 @@
 ---
 title: "Lock cells by role"
-description: Derive read-only rows and hidden columns from the user session.
+description: Make cells read-only and remove columns based on the role of the signed-in user.
 icon: Lock
 type: task
+aliases: ["permissions", "auth gated cells", "access control"]
 ---
 
-Derive `readOnly` and column visibility from your own session or auth hook, per column, per row,
-or both. `readOnly` accepts a function of the row (see
-[Editing & cell types](/docs/editing-cells/editable-columns#read-only)), so a role check reads naturally:
+The grid has no role model. Derive the lock from your own session or auth hook. A column's `readOnly` function locks cells. The `columns` array decides which columns exist.
+
+Before you start, know the limit of the check. A role rule in the grid changes only what the browser shows and accepts. Enforce the same rule on your server.
+
+## Steps
+
+1. Read the role from your session hook inside a hook that builds the columns.
+2. Lock a column for a role with `readOnly`. The function receives the row, so a role gate and a per-row gate combine in one expression.
+3. Leave a column out of the array for the roles that must not see it.
+4. Return the array from `useMemo` on the role. The grid then receives a new array only after a role change.
 
 ```tsx
-function useOrderColumns(): ColumnDef<Order>[] {
+import { useMemo } from "react";
+import { defineColumns, type ColumnDef } from "@/components/data-grid/data-grid";
+
+type Role = "admin" | "member" | "guest";
+type Order = {
+  id: string;
+  customerName: string;
+  price: number;
+  internalNote: string;
+  locked: boolean;
+};
+
+// Replace this stub with your own auth hook.
+function useSession(): { role: Role } {
+  return { role: "member" };
+}
+
+export function useOrderColumns(): ColumnDef<Order>[] {
   const { role } = useSession();
 
-  const columns = defineColumns<Order>()([
-    { id: "customerName", header: "Customer", accessorKey: "customerName", type: "text" },
-    {
-      id: "price",
-      header: "Price",
-      accessorKey: "price",
-      type: "number",
-      readOnly: (row) => role !== "admin" || row.locked,
-    },
-    {
-      id: "internalNote",
-      header: "Internal note",
-      accessorKey: "internalNote",
-      type: "text",
-      hidden: role === "guest",
-    },
-  ]);
-  return [...columns];
+  return useMemo(() => {
+    const columns = defineColumns<Order>()([
+      { id: "customerName", header: "Customer", accessorKey: "customerName" },
+      {
+        id: "price",
+        header: "Price",
+        accessorKey: "price",
+        type: "number",
+        readOnly: (row) => role !== "admin" || row.locked,
+      },
+      {
+        id: "internalNote",
+        header: "Internal note",
+        accessorKey: "internalNote",
+      },
+    ]);
+    return columns.filter(
+      (column) => role !== "guest" || column.id !== "internalNote",
+    );
+  }, [role]);
 }
 ```
 
-`price` composes two conditions: a role gate (only `admin` can edit it) and a per-row gate
-(a `locked` order is read-only for everyone). `internalNote` is hidden outright for `guest`,
-computed once per render from the same session hook, not per row.
+Call the hook in your grid component and pass its result as `columns`.
+
+## Result
+
+`price` combines two conditions: only an `admin` can edit it, and a `locked` order accepts no edits from anyone. A locked cell rejects typed edits, paste, fill, and clear. A `guest` gets no `internalNote` column.
+
+When the role changes, the new array replaces the columns, and the new `readOnly` rule applies from then on.
+
+<Callout type="warn" title="Hidden columns are not removed columns">
+  `hidden: true` hides a column, but the user can show it again from the columns menu. Leave the
+  column out of the array to remove it.
+</Callout>
 
 ## Related
 
-- [Editing & cell types: Read-only](/docs/editing-cells/editable-columns#read-only): the `readOnly` forms.
-- [Columns: Visibility](/docs/columns/column-visibility#visibility): hidden columns.
+- [Editable columns](/docs/editing-cells/editable-columns#read-only): the `readOnly` forms and grid-wide `readOnly`.
+- [Column visibility](/docs/columns/column-visibility): `hidden` and the columns menu.
+- [Cell type model](/docs/concepts/cell-type-model): how a column's type drives its cells.
