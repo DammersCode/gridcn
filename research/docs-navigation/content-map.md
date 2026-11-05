@@ -37,7 +37,6 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | row-operations | `row-operations` (Enable props, Confirm a delete, Default shortcuts, Context menu) | split |
 | row-reorder | `row-operations` (Reorder) | split |
 | row-markers | `row-operations` (Row markers) | split |
-| row-operations-code | `row-operations` (Programmatic actions) | split |
 | server-row-ops | `row-operations` (Scroll mode), `data-modes` (Notes) | split |
 | pinned-rows | `addons/pinned-rows` | move |
 | fill | `addons/fill` | move |
@@ -139,7 +138,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | extension-path, ep-choose, ep-cell, ep-plugin | none: four short steps that link the custom cell type and plugin pages | new text |
 | grid-state-model | `terms` (view index, range, active cell) | new concept page built from the definitions; Selection model keeps `selection-keyboard` |
 
-| install | `installation` (Prerequisites, Verify), `quick-start` | rewrite as a short step with a visible result |
+| install | `installation` (Prerequisites, Verify), `quick-start` | rewrite as a short step with a visible result; the dependency table moves to install-problems |
 | upgrade | `installation` (Pinned installs) | merge |
 | install-problems | `installation` (Alternative: GitHub registry, Framework notes, Non-default aliases, Tooltips, Where files land) | split |
 

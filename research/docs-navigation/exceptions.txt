@@ -1,1 +1,3 @@
 # rule page reason
+
+N4 options-*-index generated landing titles read '<subgroup label> options' so they differ from the Build landing of the same label

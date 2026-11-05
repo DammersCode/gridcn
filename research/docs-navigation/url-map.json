@@ -758,7 +758,7 @@
    "pagination-client",
    "options-server-rows"
   ],
-  "target": "/docs/pages-mode/load-rows-page",
+  "target": "/docs/server-pagination/load-rows-page",
   "split": true
  },
  {
@@ -932,7 +932,7 @@
   "slugs": [
    "remember-view"
   ],
-  "target": "/docs/sort-filter-search/remember-filters-layout",
+  "target": "/docs/recipes-custom-code/remember-filters-layout",
   "split": false
  },
  {
@@ -943,7 +943,6 @@
    "row-operations",
    "row-reorder",
    "row-markers",
-   "row-operations-code",
    "server-row-ops"
   ],
   "target": "/docs/rows-pages-menus",

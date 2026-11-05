@@ -52,7 +52,7 @@ error message | ref-messages
 saved edit was refused | server-conflicts
 which props exist | cheat-props
 make a column editable | edit-activation
-what does view index mean | grid-state-model
+what does view index mean | terms
 editable grid example | ex-editable
 quick start | first-grid
 optimistic update | server-round-trip
@@ -71,7 +71,7 @@ add a row | row-operations
 read only column | edit-activation
 date editor | cell-types
 grid shows nothing | install-problems
-controlled data | learn-state
+controlled data | ev-data
 next.js app router | install
 cell renderer | display-override
 reorder rows | row-reorder

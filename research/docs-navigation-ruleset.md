@@ -173,7 +173,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 ## 6. Where a new page goes
 
 This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
-page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 7, so each area has room for one
+page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 8, so each area has room for one
 new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |
@@ -192,9 +192,9 @@ new group before the cap (S2).
 
 | Planned feature | Home |
 |---|---|
-| Row grouping and tree data | A new Build group "Grouped rows" (Build then holds 10 groups, the cap). When it lands, the Build area splits (S2) |
+| Row grouping and tree data | A new Build group "Grouped rows" (Build then holds 10 groups, the cap). The next Build group splits the area into Build and Customize (S2) |
 | Master detail | A recipe in Build > Recipes and custom code |
-| Variable row heights | A section in Build > Columns and an options section |
+| Variable row heights | A section on Build > Theme, style, and language > Density and small screens, which owns row height |
 | Server pivot and aggregates | A page in Server > Data modes and a row in the data modes matrix |
 
 ## 7. Limits that need an owner decision

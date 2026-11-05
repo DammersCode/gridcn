@@ -158,22 +158,22 @@
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
   "operation-engine": "/docs/contracts/operation-engine-contract#operation-engine",
-  "add-on-option-types": "/docs/add-options/rows-pages/context-menu-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/rows-pages/context-menu-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/rows-pages/context-menu-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/rows-pages/context-menu-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/rows-pages/context-menu-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/rows-pages/context-menu-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/rows-pages/context-menu-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages/context-menu-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/rows-pages/context-menu-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/rows-pages/context-menu-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/rows-pages/context-menu-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages/context-menu-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages/context-menu-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/rows-pages/context-menu-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages/context-menu-options#usedatagridpinnedrowsoptions"
+  "add-on-option-types": "/docs/add-options/rows-pages-menus/context-menu-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
   "copy": "/docs/clipboard-undo/clipboard#copy",
@@ -538,9 +538,9 @@
   "client-mode": "/docs/rows-pages-menus/client-pagination#client-mode",
   "server-mode": "/docs/add-options/server/server-rows-options#server-mode",
   "without-a-total": "/docs/add-options/server/server-rows-options#without-a-total",
-  "datagridpaginationbar-": "/docs/pages-mode/load-rows-page#datagridpaginationbar-",
-  "composition": "/docs/pages-mode/load-rows-page#composition",
-  "composing-with-data-grid-url-state": "/docs/pages-mode/load-rows-page#composing-with-data-grid-url-state"
+  "datagridpaginationbar-": "/docs/server-pagination/load-rows-page#datagridpaginationbar-",
+  "composition": "/docs/server-pagination/load-rows-page#composition",
+  "composing-with-data-grid-url-state": "/docs/server-pagination/load-rows-page#composing-with-data-grid-url-state"
  },
  "/docs/performance": {
   "limits": "/docs/performance#limits",
@@ -555,10 +555,10 @@
   "coordinate-space-view-index-not-rowid": "/docs/plugins/plugin-overlays#coordinate-space-view-index-not-rowid",
   "row-bands": "/docs/plugins/plugin-overlays#row-bands",
   "observing-data-changes": "/docs/plugins/plugin-events#observing-data-changes",
-  "commands-and-keymaps": "/docs/plugins/plugin-commands-keys#commands-and-keymaps",
-  "pluggable-built-ins": "/docs/plugins/plugin-commands-keys#pluggable-built-ins",
-  "a-plugins-own-keymap-entries": "/docs/plugins/plugin-commands-keys#a-plugins-own-keymap-entries",
-  "engine-work": "/docs/plugins/plugin-commands-keys#engine-work",
+  "commands-and-keymaps": "/docs/plugins/plugin-commands-shortcuts#commands-and-keymaps",
+  "pluggable-built-ins": "/docs/plugins/plugin-commands-shortcuts#pluggable-built-ins",
+  "a-plugins-own-keymap-entries": "/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries",
+  "engine-work": "/docs/plugins/plugin-commands-shortcuts#engine-work",
   "what-a-plugin-can-reach": "/docs/plugins/plugin-shape#what-a-plugin-can-reach",
   "identity": "/docs/plugins/plugin-shape#identity",
   "worked-example-highlight-a-column": "/docs/recipes-custom-code/write-plugin#worked-example-highlight-a-column",
@@ -647,7 +647,7 @@
   "related": "/docs/recipes-custom-code/link-multiple-grids#related"
  },
  "/docs/recipes/ui-patterns/remember-view": {
-  "related": "/docs/sort-filter-search/remember-filters-layout#related"
+  "related": "/docs/recipes-custom-code/remember-filters-layout#related"
  },
  "/docs/row-operations": {
   "enable-props": "/docs/rows-pages-menus/row-operations#enable-props",
@@ -655,7 +655,7 @@
   "default-shortcuts": "/docs/rows-pages-menus/row-operations#default-shortcuts",
   "reorder": "/docs/rows-pages-menus/row-order#reorder",
   "context-menu": "/docs/rows-pages-menus/row-operations#context-menu",
-  "programmatic-actions": "/docs/rows-pages-menus/row-operations-code#programmatic-actions",
+  "programmatic-actions": "/docs/rows-pages-menus#programmatic-actions",
   "scroll-mode": "/docs/rows-live-data/change-server-rows#scroll-mode",
   "row-markers": "/docs/rows-pages-menus/row-markers#row-markers",
   "custom-markers": "/docs/rows-pages-menus/row-markers#custom-markers"
