@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChangeWith, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import { applyChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { pruneIds, rowOfStreamUpdate, trackDeletes, useRefreshGuard } from "./refresh-guard";
@@ -132,7 +132,7 @@ describe("replaying a stream update", () => {
     const idOf = (row: Item) => (calls++, row.id);
     const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { ...rows[5]!, price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
     const change = { source: "stream" as const, ops: [op] };
-    const next = applyChange(rows, change, idOf, rowOfStreamUpdate(change, cols));
+    const next = applyChangeWith(rows, change, idOf, { rowOfUpdate: rowOfStreamUpdate(change, cols) });
     expect(calls).toBe(rows.length);
     expect(next[5]).toBe(op.row);
   });
@@ -141,7 +141,16 @@ describe("replaying a stream update", () => {
     const landed = { id: "r5", name: "B", price: 10 };
     const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { id: "r5", name: "A", price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
     const change = { source: "stream" as const, ops: [op] };
-    expect(applyChange([landed], change, (row) => row.id, rowOfStreamUpdate(change, cols))[0]).toEqual({ id: "r5", name: "B", price: 7 });
+    expect(applyChangeWith([landed], change, (row) => row.id, { rowOfUpdate: rowOfStreamUpdate(change, cols) })[0]).toEqual({ id: "r5", name: "B", price: 7 });
+  });
+
+  it("writes only the cells onto the first copy of a repeated id", () => {
+    const first = { id: "r5", name: "B", price: 10 };
+    const second = { id: "r5", name: "C", price: 20 };
+    const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { id: "r5", name: "A", price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
+    const change = { source: "stream" as const, ops: [op] };
+    const next = applyChangeWith([first, second], change, (row) => row.id, { rowOfUpdate: rowOfStreamUpdate(change, cols) });
+    expect(next).toEqual([{ id: "r5", name: "B", price: 7 }, second]);
   });
 
   it("keeps the whole row of a user edit", () => {

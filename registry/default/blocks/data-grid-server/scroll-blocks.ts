@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
 import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
@@ -932,7 +932,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
         if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
-        return change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId, streamUpdateRow(change)) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
+        return change.ops.length > 0 ? (applyChangeWith(prev as TData[], change, getRowId, { rowOfUpdate: streamUpdateRow(change) }) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
       });
       if (core.kind === "sequence") followRowOperations(change);
       trackDeletes(core.deleted, change);

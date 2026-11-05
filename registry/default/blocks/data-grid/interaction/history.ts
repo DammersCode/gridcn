@@ -53,15 +53,22 @@ export function invertChange<TData>(change: DataChange<TData>, source: "history"
  * ones produced by inverting a delete batch) are therefore applied in
  * ascending-index order regardless of the order they appear in `ops`, so a
  * multi-row batch round-trips through invertChange correctly.
- *
- * `rowOfUpdate` picks the row an `update` operation writes, given the row currently in `data`;
- * it defaults to the operation's own `row`. It runs for unique row ids only.
  */
-export function applyChange<TData>(
+export function applyChange<TData>(data: readonly TData[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string): TData[] {
+  return applyChangeWith(data, change, getRowId);
+}
+
+export type ApplyChangeOptions<TData> = {
+  /** Picks the row an `update` operation writes, given the row currently in `data`. Default: the operation's own `row`. */
+  rowOfUpdate?: (op: Extract<DataOp<TData>, { type: "update" }>, current: TData) => TData;
+};
+
+/** {@link applyChange} with options; internal to the add-ons, not on the consumer barrel. */
+export function applyChangeWith<TData>(
   data: readonly TData[],
   change: DataChange<TData>,
   getRowId: (row: TData, index: number) => string,
-  rowOfUpdate?: (op: Extract<DataOp<TData>, { type: "update" }>, current: TData) => TData,
+  { rowOfUpdate }: ApplyChangeOptions<TData> = {},
 ): TData[] {
   const indexById = new Map<string, number>();
   const idByIndex = new Array<string>(data.length);
@@ -132,7 +139,7 @@ export function applyChange<TData>(
         if (next >= indices.length) break;
         const target = indices[next]!;
         if (op.type === "update") {
-          updateByIndex.set(target, op.row);
+          updateByIndex.set(target, rowOfUpdate ? rowOfUpdate(op, data[target]!) : op.row);
         } else {
           deleteIndices.add(target);
           if (op.type === "move") inserts.push({ type: "insert", rowId: op.rowId, row: op.row, index: op.to });
