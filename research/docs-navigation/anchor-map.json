@@ -151,29 +151,29 @@
   "plugins": "/docs/components-props/data-grid-provider#plugins",
   "hooks": "/docs/components-props/data-grid-provider#hooks",
   "columndeftdata-tvalue": "/docs/components-props/column-def#columndeftdata-tvalue",
-  "celltypetdata-tvalue-toptions": "/docs/cell-types/cell-type-contract#celltypetdata-tvalue-toptions",
-  "gridcelltypes": "/docs/cell-types/cell-type-contract#gridcelltypes",
-  "definecelltypekey-type": "/docs/cell-types/cell-type-contract#definecelltypekey-type",
-  "usecelleditorprops-codec": "/docs/cell-types/cell-type-contract#usecelleditorprops-codec",
+  "celltypetdata-tvalue-toptions": "/docs/custom-cell-types/cell-type-contract#celltypetdata-tvalue-toptions",
+  "gridcelltypes": "/docs/custom-cell-types/cell-type-contract#gridcelltypes",
+  "definecelltypekey-type": "/docs/custom-cell-types/cell-type-contract#definecelltypekey-type",
+  "usecelleditorprops-codec": "/docs/custom-cell-types/cell-type-contract#usecelleditorprops-codec",
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
-  "operation-engine": "/docs/contracts/operation-engine#operation-engine",
-  "add-on-option-types": "/docs/add-options/rows-pages-menus-options/context-menu-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus-options/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus-options/context-menu-options#usedatagridpinnedrowsoptions"
+  "operation-engine": "/docs/contracts/operation-engine-contract#operation-engine",
+  "add-on-option-types": "/docs/add-options/rows-pages-menus/context-menu-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
   "copy": "/docs/clipboard-undo/clipboard#copy",
@@ -198,13 +198,13 @@
   "persisting-a-users-layout": "/docs/columns/column-visibility#persisting-a-users-layout"
  },
  "/docs/custom-cell-types": {
-  "the-mental-model": "/docs/cell-types/cell-type-model#the-mental-model",
-  "the-contract-member-by-member": "/docs/cell-types/cell-type-contract#the-contract-member-by-member",
-  "keypoint-checklist": "/docs/cell-types/cell-type-model#keypoint-checklist",
-  "value-pipeline": "/docs/cell-types/cell-type-model#value-pipeline",
-  "rendering--performance": "/docs/cell-types/cell-type-model#rendering--performance",
-  "editor-ux": "/docs/cell-types/cell-type-model#editor-ux",
-  "typing": "/docs/cell-types/cell-type-model#typing",
+  "the-mental-model": "/docs/custom-cell-types/cell-type-model#the-mental-model",
+  "the-contract-member-by-member": "/docs/custom-cell-types/cell-type-contract#the-contract-member-by-member",
+  "keypoint-checklist": "/docs/custom-cell-types/cell-type-model#keypoint-checklist",
+  "value-pipeline": "/docs/custom-cell-types/cell-type-model#value-pipeline",
+  "rendering--performance": "/docs/custom-cell-types/cell-type-model#rendering--performance",
+  "editor-ux": "/docs/custom-cell-types/cell-type-model#editor-ux",
+  "typing": "/docs/custom-cell-types/cell-type-model#typing",
   "worked-example-a-currency-cell-type": "/docs/recipes-custom-code/write-cell-type#worked-example-a-currency-cell-type",
   "testing-your-cell-type": "/docs/recipes-custom-code/write-cell-type#testing-your-cell-type"
  },
@@ -237,13 +237,13 @@
   "related": "/docs/data-modes#related"
  },
  "/docs/editing-cell-types": {
-  "edit-activation": "/docs/editing-cells/edit-activation#edit-activation",
+  "edit-activation": "/docs/editing-cells/editable-columns#edit-activation",
   "built-in-cell-types": "/docs/editing-cells/built-cell-types#built-in-cell-types",
   "date-specifics": "/docs/editing-cells/built-cell-types#date-specifics",
   "number-formatting": "/docs/editing-cells/built-cell-types#number-formatting",
   "url-links": "/docs/editing-cells/built-cell-types#url-links",
   "long-text": "/docs/editing-cells/built-cell-types#long-text",
-  "read-only": "/docs/editing-cells/edit-activation#read-only",
+  "read-only": "/docs/editing-cells/editable-columns#read-only",
   "validation": "/docs/editing-cells/validation#validation",
   "soft-rules-oninvalid": "/docs/editing-cells/validation#soft-rules-oninvalid",
   "transforms-are-committed": "/docs/editing-cells/validation#transforms-are-committed",
@@ -311,9 +311,9 @@
   "related": "/docs/column-examples/column-headers-example#related"
  },
  "/docs/examples/columns/drag-reorder": {
-  "whats-in-the-demo": "/docs/column-examples/column-drag-example#whats-in-the-demo",
-  "behavior-reference": "/docs/column-examples/column-drag-example#behavior-reference",
-  "related": "/docs/column-examples/column-drag-example#related"
+  "whats-in-the-demo": "/docs/column-examples/column-order-example#whats-in-the-demo",
+  "behavior-reference": "/docs/column-examples/column-order-example#behavior-reference",
+  "related": "/docs/column-examples/column-order-example#related"
  },
  "/docs/examples/columns/filtering": {
   "whats-in-the-demo": "/docs/column-examples/header-filter-example#whats-in-the-demo",
@@ -414,10 +414,10 @@
   "behavior-reference": "/docs/row-examples/row-actions-example#behavior-reference"
  },
  "/docs/examples/rows/drag-reorder": {
-  "whats-in-the-demo": "/docs/row-examples/row-drag-example#whats-in-the-demo",
-  "marker-drag-vs-programmatic": "/docs/row-examples/row-drag-example#marker-drag-vs-programmatic",
-  "no-op-guards": "/docs/row-examples/row-drag-example#no-op-guards",
-  "related": "/docs/row-examples/row-drag-example#related"
+  "whats-in-the-demo": "/docs/row-examples/row-reorder-example#whats-in-the-demo",
+  "marker-drag-vs-programmatic": "/docs/row-examples/row-reorder-example#marker-drag-vs-programmatic",
+  "no-op-guards": "/docs/row-examples/row-reorder-example#no-op-guards",
+  "related": "/docs/row-examples/row-reorder-example#related"
  },
  "/docs/examples/rows": {},
  "/docs/examples/rows/pinning": {
@@ -524,8 +524,8 @@
   "editing-loaded-rows": "/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows",
   "errors": "/docs/scroll-mode/recover-load-errors#errors",
   "memory--retention": "/docs/scroll-mode/tune-row-retention#memory--retention",
-  "sorting-a-scroll-grid": "/docs/data-modes/server-sort-filter#sorting-a-scroll-grid",
-  "filtering-a-scroll-grid": "/docs/data-modes/server-sort-filter#filtering-a-scroll-grid",
+  "sorting-a-scroll-grid": "/docs/data-modes/sort-server-rows#sorting-a-scroll-grid",
+  "filtering-a-scroll-grid": "/docs/data-modes/sort-server-rows#filtering-a-scroll-grid",
   "a-source-with-no-total": "/docs/scroll-mode/load-without-row-count#a-source-with-no-total",
   "selecting-copying-and-exporting": "/docs/rows-live-data/select-server-rows#selecting-copying-and-exporting"
  },
@@ -536,8 +536,8 @@
  },
  "/docs/pagination": {
   "client-mode": "/docs/rows-pages-menus/client-pagination#client-mode",
-  "server-mode": "/docs/add-options/server-options/server-rows-options#server-mode",
-  "without-a-total": "/docs/add-options/server-options/server-rows-options#without-a-total",
+  "server-mode": "/docs/add-options/server/server-rows-options#server-mode",
+  "without-a-total": "/docs/add-options/server/server-rows-options#without-a-total",
   "datagridpaginationbar-": "/docs/pages-mode/load-rows-page#datagridpaginationbar-",
   "composition": "/docs/pages-mode/load-rows-page#composition",
   "composing-with-data-grid-url-state": "/docs/pages-mode/load-rows-page#composing-with-data-grid-url-state"
@@ -561,7 +561,7 @@
   "engine-work": "/docs/plugins/plugin-commands-keys#engine-work",
   "what-a-plugin-can-reach": "/docs/plugins/plugin-shape#what-a-plugin-can-reach",
   "identity": "/docs/plugins/plugin-shape#identity",
-  "worked-example-highlight-a-column": "/docs/recipes-custom-code/build-highlight-plugin#worked-example-highlight-a-column",
+  "worked-example-highlight-a-column": "/docs/recipes-custom-code/write-highlight-plugin#worked-example-highlight-a-column",
   "ssr": "/docs/plugins/plugin-shape#ssr",
   "related": "/docs/plugins#related"
  },
@@ -683,7 +683,7 @@
   "search": "/docs/sort-filter-search/sorting#search",
   "sort-list-toolbar-add-on": "/docs/sort-filter-search/sorting#sort-list-toolbar-add-on",
   "initial-sort-filter-and-search": "/docs/sort-filter-search/sorting#initial-sort-filter-and-search",
-  "controlled-mode-server-side-sortfilter": "/docs/data-modes/server-sort-filter#controlled-mode-server-side-sortfilter"
+  "controlled-mode-server-side-sortfilter": "/docs/data-modes/sort-server-rows#controlled-mode-server-side-sortfilter"
  },
  "/docs/streaming-updates": {
   "usage": "/docs/rows-live-data/stream-updates#usage",

@@ -6,11 +6,11 @@
 @ Learn
 ## Learning path
 - index | Start here | landing | 300
-- install | Install gridcn | step | 450 | | 20
+- install | Install gridcn | step | 450 | next.js app router, vite, tailwind | 20
 - first-grid | Render your first grid | step | 500 | quick start, hello world | 40
 - learn-columns | Define columns | step | 500
 - learn-edit | Edit cells | step | 500
-- learn-state | Keep edits in state | step | 600
+- learn-state | Keep edits in state | step | 600 | controlled data, controlled mode | 30
 - learn-select | Select and paste | step | 500
 - learn-sort | Sort and filter rows | step | 500
 - learn-style | Style the grid | step | 500
@@ -29,8 +29,8 @@
 ## Terms and help
 - lookup-index | Terms and help | landing | 250
 - find-task | Task finder | cheatsheet | 900
-- terms | Terms | cheatsheet | 600 | view index, glossary, definition
-- install-problems | Fix install problems | task | 500
+- terms | Terms | cheatsheet | 1000 | view index, glossary, definition
+- install-problems | Fix install problems | task | 500 | grid shows nothing, blank grid
 ## Try and automate
 - tools-index | Try and automate | landing | 200
 - playground | Playground example | example | 300
@@ -38,7 +38,7 @@
 @ Build
 ## Editing cells
 - editing-index | Editing cells | landing | 250
-- edit-activation | Edit activation | feature | 700 | make a column editable, editable column, read only column
+- edit-activation | Editable columns | feature | 700 | edit activation, make a column editable, read only column
 - cell-types | Built-in cell types | feature | 1100 | dropdown, date picker, select cell, number cell | 40
 - validation | Validation | feature | 900 | validate cell, invalid value | 40
 - display-override | Display override | feature | 400
@@ -97,7 +97,7 @@
 ## Recipes and custom code
 - extend-index | Recipes and custom code | landing | 250
 - custom-cell-example | Write a cell type | task | 800 | custom cell type | 60
-- plugins-example | Build a highlight plugin | task | 600 | write a plugin
+- plugins-example | Write a highlight plugin | task | 600 | write a plugin
 - detail-panel | Open a detail panel | task | 500 | master detail, expand row
 - bulk-actions | Run bulk actions | task | 335 | multi row action
 - multiple-grids | Link multiple grids | task | 300 | sync grids, linked grids
@@ -105,7 +105,7 @@
 ## Data modes
 - server-index | Data modes | landing | 350
 - data-modes | Features by data mode | reference | 900
-- server-sort-filter | Server sort and filter | task | 800 | server side sorting, server sort, server filter, sortmode
+- server-sort-filter | Sort server rows | task | 800 | server side sorting, server sort, server filter, sortmode
 - server-troubleshooting | Troubleshoot server data | task | 800
 ## Pages mode
 - pages-index | Pages mode | landing | 250
@@ -115,7 +115,6 @@
 - scroll-index | Scroll mode | landing | 300
 - scroll-usage | Load rows while scrolling | task | 700 | infinite scroll, load more, lazy loading rows
 - scroll-fetch-libs | Fetch with a cache | task | 800 | react query, swr, tanstack query | 50
-- scroll-sort-filter | Scroll sort and filter | feature | 700
 - scroll-no-total | Load without row count | task | 350
 - scroll-errors | Recover from load errors | task | 500
 - scroll-retention | Tune row retention | task | 350
@@ -175,9 +174,9 @@
 - contracts-index | Contracts | landing | 200
 - ref-server-rows | Server rows contract | reference | 1100
 - ref-style-surface | Style contract | reference | 700
-- ref-engine | Operation engine | reference | 500
-## Cell types
-- celltypes-index | Cell types | landing | 200
+- ref-engine | Operation engine contract | reference | 500
+## Custom cell types
+- celltypes-index | Custom cell types | landing | 200
 - ref-celltype | CellType contract | reference | 1400 | | 30
 - custom-cell-model | Cell type model | concept | 700
 ## Plugins
@@ -200,25 +199,25 @@
 - is-composing-key | isComposingKey | reference | 300
 ## Add-on options {az}
 - options-index | Add-on options | landing | 300
-### Clipboard and undo options
+### Clipboard and undo
 - options-fill | Fill handle options | reference | 400
 - options-undo-redo | Undo and redo options | reference | 500
-### Selection and keys options
+### Selection and keys
 - options-keybindings | Shortcut remapping options | reference | 500
 - options-status-bar | Status bar options | reference | 400
-### Sort, filter, and search options
+### Sort, filter, and search
 - options-find | Find and replace options | reference | 500
 - options-toolbar | Toolbar options | reference | 600
 - options-sort-list | Sort list options | reference | 300
 - options-url-state | URL state options | reference | 400
-### Rows, pages, and menus options
+### Rows, pages, and menus
 - options-context-menu | Context menu options | reference | 500
 - options-pinned-rows | Pinned rows options | reference | 400
 - options-pagination | Pagination options | reference | 400
-### Import and export options
+### Import and export
 - options-export | Export options | reference | 600
 - options-import | Import options | reference | 700
-### Server options
+### Server
 - options-server-rows | Server rows options | reference | 500 | blocksize, scroll mode options
 - options-presence | Presence options | reference | 600
 ## Cheatsheets and messages
@@ -237,7 +236,7 @@
 ## Column examples
 - ex-columns-index | Column examples | landing | 150
 - ex-pinning-cols | Pinned columns example | example | 215
-- ex-col-drag | Column drag example | example | 170
+- ex-col-drag | Column order example | example | 170
 - ex-col-filter | Header filter example | example | 360
 - ex-col-headers | Column headers example | example | 150
 - ex-col-layout | Column layout example | example | 225
@@ -246,7 +245,7 @@
 - ex-rows-index | Row examples | landing | 150
 - ex-pinning-rows | Pinned rows example | example | 210
 - ex-row-ops | Row operations example | example | 280
-- ex-row-drag | Row drag example | example | 500
+- ex-row-drag | Row reorder example | example | 500
 - ex-row-markers | Row markers example | example | 180
 - ex-row-actions | Row actions example | example | 290
 - ex-row-stream | Streaming rows example | example | 165

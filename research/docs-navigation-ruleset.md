@@ -172,13 +172,13 @@ Every page has exactly one type. The type decides the budget and the template. A
 ## 6. Where a new page goes
 
 This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
-page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 8, so each area has room for one
+page. A page may still land until the group reaches 12 pages. Build holds 9 groups and Reference 9, so each area has room for one
 new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |
 |---|---|---|
 | Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, grouped by the Build group of its topic), an example page when it has a demo | Landing lists, task finder entry, feature matrix row, cheatsheet rows, model index, status line |
-| Server feature | A page in the Server group of its mode, a row in the data modes matrix | Feature matrix row, a step link in the Server path when it changes the route |
+| Server feature | A page in the Server group of its mode, a row in the data modes matrix, a step link in the Server path when it changes the route | Feature matrix row |
 | Event or callback | A section in the matching Events page | Row in the events cheatsheet, anchor (N9) |
 | Cell type | A section in the built-in cell types page, an example page | Cheatsheet rows |
 | Prop | A row in the matching props page | Props cheatsheet, anchor (N9) |

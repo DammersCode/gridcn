@@ -333,7 +333,7 @@
   "slugs": [
    "ex-col-drag"
   ],
-  "target": "/docs/column-examples/column-drag-example",
+  "target": "/docs/column-examples/column-order-example",
   "split": false
  },
  {
@@ -561,7 +561,7 @@
   "slugs": [
    "ex-row-drag"
   ],
-  "target": "/docs/row-examples/row-drag-example",
+  "target": "/docs/row-examples/row-reorder-example",
   "split": false
  },
  {
