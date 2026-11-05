@@ -1,2 +1,1 @@
 # rule page reason
-N1 performance/run-it-yourself.mdx The slug is fixed by the benchmark pages that another work stream writes.

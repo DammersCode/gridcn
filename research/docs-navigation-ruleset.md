@@ -86,7 +86,8 @@ Every page has exactly one type. The type decides the budget and the template. A
 - S6. Groups are collapsible folders. The group of the current page is open. Every other group is closed. A closed group
   opens on its landing page, so no page hides behind a second click.
 - S7. Every group has a Landing page that is the group's first sidebar entry. The landing page lists each child with its
-  description, and the list is generated. It may carry the group's overview text within the Landing budget.
+  description, and the list is generated. A generated group of option pages may use subgroups without their own landing,
+  when its landing lists every page under its subgroup name. It may carry the group's overview text within the Landing budget.
 - S8. Split a page when it breaks P1, P2, or P5, or when two thirds of its inbound deep links go to one H2 cluster. Each
   new page gets the type that fits it.
 - S9. Merge a page into its parent when it breaks the lower bound of P2 or P11.

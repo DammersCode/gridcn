@@ -74,7 +74,7 @@
    "keybindings",
    "cheat-shortcuts"
   ],
-  "target": "/docs/selection-keys/shortcut-remapping",
+  "target": "/docs/selection-shortcuts/shortcut-remapping",
   "split": true
  },
  {
@@ -110,7 +110,7 @@
   "slugs": [
    "status-bar"
   ],
-  "target": "/docs/selection-keys/status-bar",
+  "target": "/docs/selection-shortcuts/status-bar",
   "split": false
  },
  {
@@ -561,7 +561,7 @@
   "slugs": [
    "ex-row-drag"
   ],
-  "target": "/docs/row-examples/row-reorder-example",
+  "target": "/docs/row-examples/row-order-example",
   "split": false
  },
  {
@@ -670,7 +670,7 @@
    "global-shortcuts",
    "cheat-shortcuts"
   ],
-  "target": "/docs/selection-keys/global-shortcuts",
+  "target": "/docs/selection-shortcuts/global-shortcuts",
   "split": true
  },
  {
@@ -707,7 +707,8 @@
   "file": "installation.mdx",
   "slugs": [
    "install",
-   "install-problems"
+   "install-problems",
+   "upgrade"
   ],
   "target": "/docs/learning-path/install-gridcn",
   "split": true
@@ -784,14 +785,14 @@
   "old": "/docs/plugins",
   "file": "plugins.mdx",
   "slugs": [
-   "extend-index",
+   "plugins-index",
    "plugins-shape",
    "plugins-overlays",
    "plugins-events",
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/recipes-custom-code",
+  "target": "/docs/plugins",
   "split": true
  },
  {
@@ -817,7 +818,8 @@
    "learn-state",
    "learn-select",
    "learn-sort",
-   "learn-style"
+   "learn-style",
+   "install"
   ],
   "target": "/docs/learning-path/render-your-first-grid",
   "split": true
@@ -849,7 +851,7 @@
   "slugs": [
    "ref-server-rows"
   ],
-  "target": "/docs/contracts/server-rows-style/server-rows-contract",
+  "target": "/docs/contracts/server-rows-contract",
   "split": false
  },
  {
@@ -957,10 +959,9 @@
    "checked-rows",
    "keyboard-nav",
    "server-selection",
-   "cheat-shortcuts",
-   "grid-state-model"
+   "cheat-shortcuts"
   ],
-  "target": "/docs/selection-keys",
+  "target": "/docs/selection-shortcuts",
   "split": true
  },
  {

@@ -137,7 +137,11 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | pagination-client | `pagination` (client mode sections) | split |
 | options-server-rows | `lazy-loading` (Usage), `pagination` (server mode sections): the options of `useDataGridServerRows` | split |
 | extension-path, ep-choose, ep-cell, ep-plugin | none: four short steps that link the custom cell type and plugin pages | new text |
-| grid-state-model | `terms` (view index, range, active cell), `selection-keyboard` (Selection model) | new concept page built from existing definitions |
+| grid-state-model | `terms` (view index, range, active cell) | new concept page built from the definitions; Selection model keeps `selection-keyboard` |
+
+| install | `installation` (Prerequisites, Verify), `quick-start` | rewrite as a short step with a visible result |
+| upgrade | `installation` (Pinned installs) | merge |
+| install-problems | `installation` (Alternative: GitHub registry, Framework notes, Non-default aliases, Tooltips, Where files land) | split |
 
 ## Fact owners (P6)
 
@@ -149,3 +153,5 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | Sort, filter, and search on server rows, scroll and pages mode | Query server rows (`server-sort-filter`) |
 | Version facts | Version policy and changelog (`version-policy`) |
 | Row ceiling | Row limits (`row-limits`) |
+| Term definitions | Terms (`terms`); the State and view index page links it |
+| Commit and validation timing | Edit and validation events (`ev-edit`); the Validation page links it |

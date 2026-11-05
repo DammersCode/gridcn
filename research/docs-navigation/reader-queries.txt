@@ -73,3 +73,6 @@ date editor | cell-types
 grid shows nothing | install-problems
 controlled data | learn-state
 next.js app router | install
+cell renderer | display-override
+reorder rows | row-reorder
+tooltip provider | install-problems

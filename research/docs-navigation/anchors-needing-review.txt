@@ -33,10 +33,6 @@ global-shortcuts.mdx#related
 hooks/use-debounce.mdx#related
 installation.mdx#install-the-core-grid
 installation.mdx#add-optional-pieces
-installation.mdx#pinned-installs
-installation.mdx#alternative-github-registry-no-setup
-installation.mdx#tooltips
-installation.mdx#where-files-land
 pagination.mdx#datagridpaginationbar-
 pagination.mdx#composition
 pagination.mdx#composing-with-data-grid-url-state

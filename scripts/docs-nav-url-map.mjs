@@ -29,6 +29,8 @@ function candidateLines(file) {
     .flatMap((l) => (l.startsWith("<< ") ? candidateLines(join(dirname(file), l.slice(3).trim())) : [l]));
 }
 
+// A slug is fixed at creation (N5): a retitled page keeps its URL.
+const SLUG_OVERRIDES = { "run-benchmark": "run-it-yourself" };
 const bySlug = new Map();
 let group = "";
 let sub = "";
@@ -41,7 +43,7 @@ for (const raw of candidateLines(candidateFile)) {
   } else if (line.startsWith("- ")) {
     const [slug, title, type] = line.slice(2).split("|").map((x) => x.trim());
     const base = sub ? `/docs/${kebab(group)}/${kebab(sub)}` : `/docs/${kebab(group)}`;
-    const url = slug === "index" ? "/docs" : type === "landing" ? base : `${base}/${kebab(title)}`;
+    const url = SLUG_OVERRIDES[slug] ? `${base}/${SLUG_OVERRIDES[slug]}` : slug === "index" ? "/docs" : type === "landing" ? base : `${base}/${kebab(title)}`;
     bySlug.set(slug, { title, type, group, sub, url });
   }
 }
