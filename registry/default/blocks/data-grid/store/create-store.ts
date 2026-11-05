@@ -485,7 +485,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   // rowId -> its newest pending async verdict; a newer run for the row supersedes and aborts the older one.
   const pendingRowVerdicts = new Map<string, GateRun>();
+  // Verdicts that settled in this tick and wait for their write; a newer run for the row drops its entry.
+  const settledVerdicts = new Map<string, Record<string, string> | null>();
   const supersedeRowVerdict = (rowId: string): void => {
+    settledVerdicts.delete(rowId);
     const older = pendingRowVerdicts.get(rowId);
     if (!older) return;
     pendingRowVerdicts.delete(rowId);
@@ -515,13 +518,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   const warnGateOnce = createWarnOnce();
   // Verdicts that settle in the same tick merge into cellErrors with one copy and one write.
-  const settledVerdicts: { rowId: string; verdict: Record<string, string> | null }[] = [];
   const flushSettledVerdicts = (): void => {
-    const batch = settledVerdicts.splice(0);
+    const batch = Array.from(settledVerdicts);
+    settledVerdicts.clear();
     const s = store.getState();
     const index = rowIndexCache.resolve(s.data, s.getRowId);
     let next: Map<string, string> | null = null;
-    for (const { rowId, verdict } of batch) {
+    for (const [rowId, verdict] of batch) {
       if (!index.has(rowId)) continue;
       foldRowVerdict(
         () => next ?? s.cellErrors,
@@ -547,8 +550,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     verdict.then(
       (resolved) => {
         if (!release()) return;
-        settledVerdicts.push({ rowId, verdict: resolved });
-        if (settledVerdicts.length === 1) queueMicrotask(flushSettledVerdicts);
+        settledVerdicts.set(rowId, resolved);
+        if (settledVerdicts.size === 1) queueMicrotask(flushSettledVerdicts);
       },
       (error: unknown) => {
         if (release()) warnGateOnce("validateRow", `validateRow rejected, so the row gets no verdict: ${String(error)}`);
@@ -586,7 +589,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         holdRowVerdict(rowId, run, verdict);
         continue;
       }
-      if (pendingRowVerdicts.size > 0) supersedeRowVerdict(rowId);
+      if (pendingRowVerdicts.size > 0 || settledVerdicts.size > 0) supersedeRowVerdict(rowId);
       foldRowVerdict(current, ensure, rowId, verdict);
     }
     return next ?? cellErrors;

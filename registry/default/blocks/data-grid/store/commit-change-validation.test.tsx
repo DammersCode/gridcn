@@ -204,4 +204,20 @@ describe("commitChange runs validateRow for imports and app changes", () => {
     expect(performance.now() - start).toBeLessThan(3000);
     expect(writes).toBeLessThan(20);
   });
+
+  it("a sync verdict that lands between an async verdict's settle and its write wins", async () => {
+    let resolve!: (value: Record<string, string>) => void;
+    const first = new Promise<Record<string, string>>((res) => {
+      resolve = res;
+    });
+    const verdicts: Array<PromiseLike<Record<string, string> | null> | null> = [first, null];
+    const m = mount({ validateRow: (() => verdicts.shift() ?? null) as never });
+    const a = initial()[0]!;
+    m.commit({ source: "app", ops: [{ type: "update", rowId: "a", row: { ...a, name: "X" }, prev: a }] });
+    resolve({ email: "stale" });
+    await first;
+    m.commit({ source: "app", ops: [{ type: "update", rowId: "a", row: { ...a, name: "Y" }, prev: { ...a, name: "X" } }] });
+    await flush();
+    expect(m.errors()).toEqual({});
+  });
 });
