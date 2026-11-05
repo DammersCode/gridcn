@@ -56,6 +56,12 @@ The reader is external. They never saw our plan, our alternatives, or our IDE:
 - Introduce a code sample with one sentence ending in a colon. Mark omissions with a comment in the sample's language, never `...`.
 - Numbered lists only when item order carries meaning: evaluation order, precedence, display order, or steps the reader runs in sequence. Everything else takes bullets. Never a one-item list — write it as prose.
 
+Docs navigation: the tree, page types, word and screen budgets, titles, and slugs follow `research/docs-navigation-ruleset.md`.
+
+- A page declares `type:` in frontmatter (`landing`, `feature`, `concept`, `task`, `step`, `reference`, `example`, `cheatsheet`). The type sets the budget and the template.
+- `node scripts/docs-nav-audit.mjs --check` reports a page that breaks its budget. `--candidate <file>` checks a navigation file.
+- A slug is fixed at creation. A moved page or anchor gets a redirect.
+
 Component and addon page structure (match the existing pages):
 
 1. One short paragraph: the problem the add-on solves and the API that solves it.
