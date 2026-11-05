@@ -9,7 +9,8 @@ import { readLf, walk, rel } from "./docs-verify-lib.mjs";
 const STOP = new Set(["a", "an", "the", "to", "in", "of", "by", "from", "with", "and", "for", "on", "at"]);
 
 export const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-export const slugOf = (title) => kebab(title).split("-").filter((w) => w && !STOP.has(w)).slice(0, 4).join("-");
+const SLUG_OVERRIDES = { "Add-ons A to Z": "add-ons-a-z" };
+export const slugOf = (title) => SLUG_OVERRIDES[title] ?? kebab(title).split("-").filter((w) => w && !STOP.has(w)).slice(0, 4).join("-");
 
 /** Parse the candidate file: pages in sidebar order with area, group, subgroup. */
 export function parseCandidate(file) {
@@ -131,7 +132,7 @@ export function buildWorklist({ candidate, contentMap, urlMap, root = process.cw
     const demoNames = new Set(found.demos);
     for (const file of allFiles) for (const m of readLf(join(root, file)).matchAll(/<ComponentPreview\s+name=["']([\w-]+)["']/g)) demoNames.add(m[1]);
     const carried = { files: allFiles, demos: [...demoNames] };
-    const generated = /cheat-|find-task|feature-matrix|ref-messages|^terms$/.test(p.slug) || entries.some((e) => /generated/.test(e.kind) || /generated/.test(e.note));
+    const generated = /cheat-|find-task|feature-matrix|addons-az|ref-messages|^terms$/.test(p.slug) || entries.some((e) => /generated/.test(e.kind) || /generated/.test(e.note));
     const buildFeature = p.type === "feature" && p.area === "Build";
     const wave = generated ? 3 : p.type === "landing" ? 3 : /^(move|split|merge)/.test(action) && !action.includes("new") ? 1 : 2;
     return { ...p, landing: first, url, urlSource: mapped.has(p.slug) ? "url-map" : "derived", wave, owner: generated ? "generator" : PERF_DOCS.has(p.slug) ? "perf-docs" : "writer", action, sources, sourceFiles: carried.files, carriedDemos: carried.demos, demo: p.type === "feature" || p.type === "task" ? (carried.demos.length ? "carry (max 1 unless variants)" : DEMO_RULE[p.type]) : DEMO_RULE[p.type] ?? "no", code: CODE_RULE[p.type] ?? "no", generated, parity: buildFeature ? PARITY[p.slug] ?? [] : [], parityOwnerOf: Object.entries(PARITY_ELSEWHERE).filter(([, slug]) => slug === p.slug).map(([id]) => id) };

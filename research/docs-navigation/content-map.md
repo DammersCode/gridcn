@@ -109,6 +109,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | cheat-props | `api-reference` | new, generated |
 | cheat-events | `events-state` (Find the callback you need) | new, generated |
 | feature-matrix | `data-modes` (Matrix), `addons/index` | new |
+| addons-az | none: generated from `registry.json` and `research/parity-matrix.json`; links only | new, generated |
 | find-task | none | new |
 | install-problems | `installation` (Framework notes, Non-default aliases, Verify) | split |
 | version-policy, support-matrix, upgrade, security-policy | `project-status` | split |

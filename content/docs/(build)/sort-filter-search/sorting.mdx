@@ -1,64 +1,124 @@
 ---
 title: "Sorting"
-description: "The data-grid-sort-list add-on: a toolbar button and popover to add, remove, and reorder sorts."
+description: "Order rows by one or more columns from the headers or from a toolbar sort list, and hand the sort to your server in server mode."
 icon: ListOrdered
 type: feature
-aliases: ["sort list"]
+aliases: ["sort list", "multi sort", "order rows"]
 ---
 
-Click-to-sort headers work without any add-on, but `data-grid-sort-list` gives users a toolbar
-button and popover to add, remove, and reorder sorts without touching the headers. This is
-useful when columns are narrow, or when you prefer not to rely on shift-click for
-multi-column sort.
+Users order rows by one column or by several. Every grid sorts its `data` by `sortState`. A header click sets that state when `headerClickBehavior="sort"`. The `data-grid-sort-list` add-on adds a toolbar button with a popover that adds, removes, and reorders sorts without the headers.
 
 <ComponentPreview name="data-grid-sort-list-demo" />
 
 <InstallCommand item="data-grid-sort-list" manual manualSlot={<ManualInstall item="data-grid-sort-list" />} />
 
-```tsx
-import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+## Sort from the headers [#sorting]
 
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridToolbar>
-    <DataGridSortList />
-  </DataGridToolbar>
-  <DataGridRoot>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-</DataGridProvider>;
+The default `headerClickBehavior` is `"select"`, so a header click selects the column. With `"sort"`, a plain click cycles the column through ascending, descending, and no sort. <kbd>Shift</kbd>+click adds the column to the sort and cycles it in place on the next click. A new column joins at the end, so the first sort stays primary.
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; age: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+export function PeopleGrid({ rows }: { rows: Person[] }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      headerClickBehavior="sort"
+    >
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
 ```
 
-Each row has a column select, an ascending/descending select, a remove button, and a drag handle.
-Precedence is array order in `SortSpec[]`, changed by dragging the drag handle (`@dnd-kit/react`) or
-through the keyboard (see below). It reads and writes the same `useDataGridSortState()` and
-`useDataGridActions().setSorts()` as click-to-sort headers, so the two UIs stay in sync
-automatically. The button shows a count badge once one or more sorts are applied, matching the
-badge of `DataGridFilterMenu`.
+A sort arrow shows on string headers in `"sort"` mode. In the default mode, a sort that comes from the sort list or the URL reorders rows without an arrow. Set `headerClickBehavior="sort"` to show it.
+
+`sortable: false` on a column removes it from the header click and from the sort list. Code can still sort it with `actions.setSorts()`. Read the sorts with `useDataGridSortState()`.
+
+## Sort order [#sort-order]
+
+The first sort is primary. Each later sort only orders rows that the earlier sorts leave tied. Rows that tie on every sort keep their original order.
+
+A column compares two rows with the first of these that applies:
+
+1. The column `sortCompare(rowA, rowB)`. A result of `0`, `NaN`, or a thrown error passes the pair to the text compare.
+2. The `compare` of the column's declared cell type. Numbers sort by value, dates by time, and `select` columns by choice label.
+3. A text compare that is case-insensitive and reads digit runs as numbers, so `item2` comes before `item10`. A column without a `type` uses it.
+
+The direction applies to all three. Empty cells sort last in both directions.
+
+## Sort list [#sort-list]
+
+Put `DataGridSortList` in a `DataGridToolbar`. The button shows a count badge when a sort is active. Each row of the popover has a column select, a direction select, a remove button, and a drag handle. A column is offered once, and `sortable: false` columns are not offered. The popover also has "Add sort" and "Clear all" buttons.
+
+```tsx fragment="toolbar inside the provider of the first sample"
+import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+<DataGridToolbar>
+  <DataGridSortList />
+</DataGridToolbar>;
+```
+
+The list reads and writes the same state as the headers, so both stay in step. The order of rows in the list is the sort precedence.
+
+{/* props: DataGridSortListProps */}
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `allColumns` | `boolean` | `false` | Lists every column in the select, including hidden ones, instead of only the visible columns. |
-
-## Keyboard & accessibility
+| `allColumns` | `boolean` | `false` | Offers hidden columns too. |
+| `className` | `string` | none | Classes for the button. |
 
 | Key | Action |
 |---|---|
-| <kbd>Tab</kbd> | Moves through a row's controls, in order: column select, direction select, remove, drag handle |
-| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> (drag handle focused) | Moves that sort row one position up/down, which changes precedence |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> (drag handle focused) | Picks up/drops the row for pointer-equivalent keyboard dragging (`@dnd-kit/react`'s keyboard sensor) |
-| <kbd>Backspace</kbd> / <kbd>Delete</kbd> (drag handle focused) | Removes that sort row |
+| <kbd>Tab</kbd> | Moves through a row: column select, direction select, remove button, drag handle. |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> on the drag handle | Moves the sort one place and keeps focus on the handle. |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> on the drag handle | Removes the sort. Focus moves to the next row's handle, then the previous one, then "Add sort". |
 
-Plain `ArrowUp` or `ArrowDown` on a focused drag handle always moves the row by exactly one position.
-The keyboard sensor of `@dnd-kit/react` also offers its own gesture for that key, but gridcn
-checks the plain arrow press first, and it wins. Every reorder announces the change through a polite
-`aria-live` region (`labels.sort.sortReorderAnnouncement`, for example "Age sort moved to
-position 1 of 2"). Focus never gets lost. After a reorder, focus stays on the moved row's drag handle.
-After deleting a row, focus moves to the next row's drag handle, or to the "Add sort" button once the
-list is empty.
+Each move announces the new place through a polite live region. The text comes from `labels.sort.sortReorderAnnouncement`.
+
+## Controlled and initial sort
+
+`defaultSortState` seeds the sort once. Later changes to it are ignored. `sortState` makes the prop the source of truth. `onSortChange(next)` fires on every user change in both cases. A controlled grid reorders rows only when the `sortState` prop changes.
+
+```tsx fragment="props of DataGridProvider"
+<DataGridProvider
+  defaultSortState={[{ columnId: "age", direction: "desc" }]}
+  // ...
+/>
+```
+
+## Server mode [#server-mode]
+
+Set `sortMode="server"` when your server orders the rows. The grid tracks the sort spec and never reorders `data`. The header cycle, `aria-sort`, the sort arrow, the sort list, and `onSortChange` all work as in client mode.
+
+The request is the `SortSpec[]` that `onSortChange` receives. The response is the rows, already in that order.
+
+`useDataGridServerRows` sets `sortMode`, `filterMode`, and the controlled sort for you. It passes each fetch the spec as `request.spec.sorts`. Make that order total, because the hook keeps only the first row of a repeated row id. See [Query server rows](/docs/data-modes/query-server-rows) for the full flow.
 
 ## Related
 
-- [Sorting, filtering & search](/docs/sort-filter-search): the core sort behavior and
-  `headerClickBehavior`
-- [Toolbar](/docs/sort-filter-search/toolbar): the frame the button lives in
+- [Sort list options](/docs/add-options/sort-filter-search/sort-list-options): the full prop list
+- [Filtering](/docs/sort-filter-search/filtering): hide rows by value
+- [Sort and filter events](/docs/events-state/sort-filter-events): `onSortChange` and its siblings
+- [Query server rows](/docs/data-modes/query-server-rows): the server flow

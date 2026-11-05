@@ -1,10 +1,226 @@
 ---
 title: Shortcut remapping
-description: Shortcut remapping.
+description: Change, add, or remove key bindings, bind your own commands, and show users a shortcuts dialog that always matches the live keymap.
+icon: Keyboard
 type: feature
-aliases: ["keybindings", "rebind keys", "remap shortcuts"]
+aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "custom commands"]
 ---
 
-{/* docs-stub */}
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them: `DataGridKeybindingsDialog` lists the effective keymap, including your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
-This page is being written.
+<ComponentPreview name="data-grid-keybindings-demo" />
+
+<InstallCommand item="data-grid-keybindings" manual manualSlot={<ManualInstall item="data-grid-keybindings" />} />
+
+## The dialog [#the-dialog]
+
+The dialog reads the keymap and the labels through the store, so it mounts inside `DataGridProvider`. The `?` shortcut reads the root's container, so it mounts inside `DataGridRoot`:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridKeybindingsDialog,
+  DataGridKeybindingsShortcut,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+] as const);
+
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DataGridProvider data={orders} columns={columns} getRowId={(order) => order.id}>
+      <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+        <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them after the keymap entries. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
+
+<Callout type="warn" title="The ? shortcut claims a key">
+  While `DataGridKeybindingsShortcut` is mounted and the grid has focus, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
+</Callout>
+
+## Binding chips [#binding-chips]
+
+`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses:
+
+```tsx
+import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybindings";
+
+export function UndoHint() {
+  return <BindingChips binding="mod+shift+ArrowUp" />;
+}
+```
+
+## Shortcut labels for your own UI [#shortcut-labels-for-your-own-ui]
+
+`formatShortcut(binding)` returns the display tokens of a binding. `isMacPlatform()` reports the platform check that the labels use. Both come from the `data-grid` entry point:
+
+```tsx
+import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid";
+
+export const undoTokens = formatShortcut("mod+shift+z", isMacPlatform());
+```
+
+The tokens are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. Modifiers render as glyphs on macOS, iOS, and iPadOS, and as words elsewhere. `ctrl` always renders as `Ctrl`.
+
+The platform check reads `navigator`, which does not exist during server rendering. There the labels render as words. `BindingChips` renders words on the server and switches to glyphs after hydration. For your own labels, compute them after mount.
+
+## Remapping [#remapping]
+
+The `keymap` prop merges over `DEFAULT_KEYMAP`. It replaces only the actions that you name. The prop lives on `DataGridProvider` and on the `DataGrid` wrapper, not on `DataGridRoot`:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title", type: "text" },
+] as const);
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      getRowId={(task) => task.id}
+      keymap={{
+        // keep mod+a and add a second binding
+        selectAll: ["mod+a", "mod+shift+a"],
+        // an empty list unbinds the action
+        selectColumn: [],
+      }}
+    />
+  );
+}
+```
+
+A binding string is modifiers plus a key, joined with `+`. The modifiers are `mod`, `ctrl`, `shift`, and `alt`. `mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. `ctrl` is the physical <kbd>Ctrl</kbd> key on every platform. Use it where <kbd>Cmd</kbd> is reserved by the OS, as `selectColumn` does with <kbd>Ctrl</kbd>+<kbd>Space</kbd>. The modifiers of the event must equal the modifiers of the binding, so `"/"` does not match <kbd>Shift</kbd>+<kbd>/</kbd>.
+
+The key is one of these:
+
+- A letter, written in lower case. Matching ignores case.
+- A digit.
+- A function key, `F1` to `F24`.
+- A named key: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, or `Delete`. Other stable names such as `Insert` or `MediaPlayPause` bind the same way.
+- Any single printable character.
+- The space bar, written as a literal space, as in `"shift+ "`.
+
+The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding that can never match warns in the browser console in development. The `KeyBinding` type names one binding string.
+
+The matcher is source-agnostic. The in-grid handler and the [global shortcuts](/docs/selection-shortcuts/global-shortcuts) layer read the same `keymap`, so a remapped action changes on both.
+
+When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination.
+
+The type-to-replace trigger (`typeToReplace`) has no default binding. Any unbound printable key on the active cell starts an edit seeded with the typed character. When `keymap` defines `typeToReplace`, that entry takes the action over exclusively:
+
+- `typeToReplace: ["F3"]` starts a plain edit on <kbd>F3</kbd> only.
+- `typeToReplace: []` disables it.
+- A printable key such as `"a"` starts the edit seeded with that character.
+
+## Custom commands [#custom-commands]
+
+A `keymap` binding for a name that is no built-in action runs the matching `commands` entry. Each entry is a `GridCommand`:
+
+```tsx
+import { DataGridProvider, DataGridRoot, defineColumns } from "@/components/data-grid/data-grid";
+import type { GridCommand, Keymap } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+] as const);
+
+const keymap = { saveRow: ["mod+s"] } as Keymap;
+
+const commands: Record<string, GridCommand<Order>> = {
+  saveRow: {
+    run: (ctx) => console.log("save", ctx.row),
+    when: (ctx) => ctx.cell !== null,
+    label: "Save row",
+    group: "editing",
+  },
+};
+
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  return (
+    <DataGridProvider
+      data={orders}
+      columns={columns}
+      getRowId={(order) => order.id}
+      keymap={keymap}
+      commands={commands}
+    >
+      <DataGridRoot />
+    </DataGridProvider>
+  );
+}
+```
+
+{/* props: GridCommand */}
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `run` | `(ctx: GridCommandCtx) => void` | required | Runs when a bound key fires. |
+| `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key. |
+| `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. |
+| `label` | `string` | humanized name | The row label in the dialog. |
+| `group` | `CommandGroup` | `"other"` | The section in the dialog. |
+
+{/* props: GridCommandCtx */}
+
+| Prop | Type | Description |
+|---|---|---|
+| `api` | `DataGridApi` | The handle that `useDataGridApi` returns. |
+| `cell` | `CellRef \| null` | The active cell as a `{ rowId, columnId }` ref, or `null`. |
+| `viewRowIndex` | `number \| null` | The view index of the active row, or `null`. |
+| `viewColumnIndex` | `number \| null` | The view index of the active column, or `null`. |
+| `row` | `TData \| undefined` | The data row of the active cell. |
+| `readOnly` | `boolean` | The effective `readOnly` flag of the grid. |
+
+On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot resolve.
+
+`scope` selects when the command dispatches. `"grid"` dispatches while no edit session is open. `"editing"` dispatches while an edit session is open, including editors without a text input, such as the select list and the date calendar. `"always"` dispatches in both cases. An `"editing"` command never takes over a grid binding: while no edit session is open, the grid keeps its built-in bindings on that key.
+
+Three more rules apply:
+
+- A name that shadows a built-in action wins over it. Development mode warns once. The pluggable names `undo`, `redo`, `fillDown`, `fillRight`, `openFindReplace`, and `openFind` do not warn.
+- A bound name with neither a built-in handler nor a `commands` entry does nothing. Development mode warns once.
+- A key bound to two or more actions follows the tie rules in [Remapping](#remapping).
+
+To list a new name in the `keymap` type, merge it into the `GridActions` interface:
+
+```ts fragment="module augmentation"
+declare module "@/components/data-grid/types" {
+  interface GridActions {
+    saveRow: true;
+  }
+}
+```
+
+## Related
+
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the default keymap table
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): the layer that follows remapped bindings outside the grid
+- [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options): props of the dialog and the shortcut
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts): bindings that a plugin ships

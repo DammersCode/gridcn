@@ -1,9 +1,123 @@
 ---
 title: Undo for code changes
-description: Undo for code changes.
+description: Make changes that your code applies undoable with record or a change source, pick which sources the history keeps, and reset it for a new dataset.
 type: feature
+aliases: ["programmatic undo", "recordsources", "datasetkey"]
+icon: Undo2
+demos: none
 ---
 
-{/* docs-stub */}
+History records the changes that go through the grid's write path. A change that your code makes by replacing the `data` prop does not go through it, so the history never sees it. To make such a change undoable, apply it with `record`, or choose which sources the history keeps. [Undo and redo](/docs/clipboard-undo/undo-redo) shows the basic setup.
 
-This page is being written.
+## Programmatic changes: record [#programmatic-changes-record]
+
+`record(change, label?)` applies a change to the grid as one write and registers it as one undo entry. You build the change from operations (`ops`) that address rows by row id. `record` sets the source to `"app"`. It does nothing on a `readOnly` grid or before the grid mounts.
+
+This button adds a row that Ctrl+Z removes:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function MyGrid() {
+  const [data, setData] = useState<readonly Row[]>([]);
+  const history = useDataGridHistory<Row>();
+
+  const addRow = () => {
+    const row = { id: crypto.randomUUID(), name: "New row" };
+    history.record(
+      {
+        source: "app",
+        ops: [{ type: "insert", rowId: row.id, row, index: data.length }],
+      },
+      "Add row",
+    );
+  };
+
+  return (
+    <>
+      <button onClick={addRow}>Add row</button>
+      <DataGrid
+        data={data}
+        columns={columns}
+        onDataChange={setData}
+        plugins={[history.plugin]}
+      />
+    </>
+  );
+}
+```
+
+Do not also set your own state. The grid emits the new array through `onDataChange`, and your handler stores it. The `label` travels with the entry. No API reads the entries back.
+
+## Which changes are recorded [#which-changes-are-recorded]
+
+Every change carries a `source`. By default the history records these sources:
+
+| Source | Origin |
+| --- | --- |
+| `edit` | A cell edit |
+| `paste` | A paste |
+| `fill` | A fill |
+| `delete` | Clearing the cells of a selection |
+| `row-operation` | Inserting, duplicating, deleting, or moving rows |
+| `import` | A change that your code tags as an import |
+| `replace` | A find and replace |
+| `app` | `record` |
+
+The history never records `history` (an undo or a redo) or `rollback`, whatever the list says. It skips `stream` by default, so a live feed of `updateCells` batches cannot fill the stack. `updateCells` tags its batch `"stream"` unless you pass a `source`. To make a batch undoable, pass `source: "edit"`. Render the component under the grid's provider, for example in a toolbar:
+
+```tsx
+import { useDataGridApi } from "@/components/data-grid/data-grid";
+
+function ClearNameButton({ rowId }: { rowId: string }) {
+  const { actions } = useDataGridApi();
+
+  const clear = () =>
+    actions.updateCells(
+      [{ rowId, columnId: "name", value: "" }],
+      { source: "edit" },
+    );
+
+  return <button onClick={clear}>Clear name</button>;
+}
+```
+
+To change the list, pass `recordSources` to `useDataGridHistory` or `useDataGridState`. This list records edits, pastes, and stream batches:
+
+```tsx
+const history = useDataGridHistory<Row>({
+  recordSources: ["edit", "paste", "stream"],
+});
+```
+
+## Dataset changes [#dataset-changes]
+
+Entries refer to rows of the old dataset. After you swap the data, an undo could insert rows that no longer belong. Pass the identity of the dataset as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render never clears them.
+
+```tsx
+const [datasetId, setDatasetId] = useState("2025");
+const [data, setData] = useState<readonly Row[]>(rowsFor("2025"));
+const history = useDataGridHistory<Row>({ datasetKey: datasetId });
+
+function openDataset(id: string) {
+  setData(rowsFor(id));
+  setDatasetId(id);
+}
+```
+
+A dataset id and a version counter both work. The key only has to differ between datasets. For a reset without a key, such as a reset button, call `clear()`.
+
+## Related
+
+- [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [Undo with server data](/docs/save-server/undo-server-data)
+- [Stream updates](/docs/rows-live-data/stream-updates)
+- [Data change events](/docs/events-state/data-change-events)

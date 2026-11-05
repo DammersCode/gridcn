@@ -54,8 +54,9 @@ pages (generated from the types with `<AutoTypeTable>`).
 - The integrator, not a writer, owns inbound link fixes in other pages, dropped-anchor entries in the anchor map, `meta.json`,
   `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `next.config.mjs`, `skills/**`, `public/skills/**`, `README.md`,
   `CHANGELOG.md`, and `content/docs-changes.json`. A writer lists the change it needs in its report.
-- Every parallel writer works in its own git worktree on its own branch `docs/rewrite-Bnn`, cut from the integration branch
-  `docs/rewrite` (itself cut from the skeleton commit). The worktree needs the `node_modules` junction; it needs no dev server.
+- Writers share one worktree (the branch of this plan): batches write disjoint files, validators use their own temp
+  directories, and the integrator commits per batch with explicit paths. A failure that names another batch's page is not
+  the writer's.
 
 ### Order
 
@@ -278,7 +279,7 @@ What is ready now: the validators, the work-list generator, the briefs, and the 
 
 Fill the slots (`ROW`, `TARGET_FILES`, `TEMPLATE`, `SERVER_RULE`, `FILES_CSV`, `BASELINE_REF` = the last release tag), then hand it to a Sonnet writer. The orchestrator also gives the worktree path.
 
-Rewrite the pages of ONE batch (one to ten pages, same steps for each) of the gridcn docs (React data grid, shadcn registry, Fumadocs MDX in `content/docs`). Work only in your batch branch. No AI attribution anywhere. No competitor or other-product names. English only. Do not commit unless told.
+Rewrite the pages of ONE batch (one to ten pages, same steps for each) of the gridcn docs (React data grid, shadcn registry, Fumadocs MDX in `content/docs`). Work in the worktree named at the top of your brief; other batches write other files at the same time. No AI attribution anywhere. No competitor or other-product names. English only. Do not commit, do not run pnpm install or a dev server.
 
 Slots the orchestrator fills: `{{ROW}}` (the work-list row: slug, title, type, words, aliases, action, parity ids, sources, carried demos), `{{TARGET_FILES}}`, `{{TEMPLATE}}`, `{{SERVER_RULE}}`, `{{FILES_CSV}}`.
 

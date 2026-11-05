@@ -1,10 +1,124 @@
 ---
 title: Checked rows
-description: Checked rows.
+description: Let users check rows with markers, ranges, or keys, keep the checks across cell clicks and filters, and run row operations on them.
 type: feature
-aliases: ["checkbox selection", "select rows"]
+aliases: ["checkbox selection", "select rows", "row checkboxes", "hidden checked rows"]
 ---
 
-{/* docs-stub */}
+A checked row is a row whose marker checkbox is on. Users check rows with the marker checkbox, the row number, the header checkbox, or the keyboard. Checked rows follow their records when a sort or a new `data` array rebuilds the view. Row operations such as Delete rows act on them.
 
-This page is being written.
+<ComponentPreview name="data-grid-checked-rows-demo" />
+
+## Check a range of rows [#checking-a-range-of-rows]
+
+The row that you checked or unchecked last is the anchor. A <kbd>Shift</kbd> step checks the rows from the anchor to the target row. Each <kbd>Shift</kbd> step replaces the previous one, so the range grows and shrinks. Rows outside the range keep their state.
+
+| Gesture | Result |
+|---|---|
+| Click a checkbox | Toggles the row. The row becomes the anchor. |
+| Click a number | Checks only this row and unchecks the others. If this row is the only checked row, it unchecks it. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click | Toggles the row and keeps the other checked rows. |
+| <kbd>Shift</kbd>+click | Checks the rows from the anchor to the clicked row. If the anchor row is unchecked, the range unchecks its rows. |
+| <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+click | Keeps the current range and adds the rows from the anchor to the clicked row. |
+| Press a number or a checkbox and drag | Moves the end of the range with the pointer. A drag that starts on a checked checkbox unchecks the rows. |
+| <kbd>Shift</kbd>+press and drag | Moves the end of the range from the anchor row. |
+| <kbd>Shift</kbd>+click without an anchor | Starts at the active row. Without an active row, it checks only the clicked row. |
+
+A sort or a filter ends the range. The next <kbd>Shift</kbd>+click then starts from the anchor row. The header checkbox and <kbd>Esc</kbd> clear the anchor. The next <kbd>Shift</kbd>+click then starts at the active row.
+
+For example, click row 1, <kbd>Shift</kbd>+click row 5, and <kbd>Shift</kbd>+click row 3. Rows 1 to 3 are checked.
+
+## Check rows by keyboard [#checking-rows-by-keyboard]
+
+The marker checkboxes are not tab stops. These keys check rows instead:
+
+- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (`toggleRow`) checks or unchecks the active row. The other checked rows stay checked.
+- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) checks every row, or unchecks them when every row is checked. It does what the header checkbox does.
+- <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) checks only the active row. It follows the rules of a click on a number.
+
+After `selectRow` or `toggleRow`, these keys move the end of the range and the active row:
+
+- <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) check the rows from the anchor to the new end. They shrink the range when you reverse.
+- <kbd>Shift</kbd>+<kbd>Home</kbd>, <kbd>End</kbd>, <kbd>PageUp</kbd>, and <kbd>PageDown</kbd> move the end to the first row, the last row, or one page away.
+
+After a click on a cell, <kbd>Shift</kbd>+<kbd>Arrow</kbd> extends the cell range. Without a row check, <kbd>Shift</kbd>+<kbd>Home</kbd> and its siblings do nothing, and the browser keeps them.
+
+To check rows that are not adjacent, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which keeps the selection. Then press `toggleRow` on each row.
+
+A check or an uncheck reads the number of checked rows in the grid's live region, for example "3 rows checked". Pressing <kbd>Esc</kbd> reads the drop too. The count includes hidden checked rows. The `labels.grid.rowsChecked` label sets the text.
+
+## Keep checked rows [#checked-rows]
+
+By default, selecting a cell clears the checked rows. A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
+
+Set `keepCheckedRows` to keep the checks when a user selects cells:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+] as const);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return (
+    <DataGrid
+      data={orders}
+      columns={columns}
+      getRowId={(order) => order.id}
+      rowMarkers="checkbox"
+      keepCheckedRows
+    />
+  );
+}
+```
+
+With `keepCheckedRows`, a cell click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checked rows as they are. <kbd>Esc</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+
+While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
+
+## Hidden checked rows
+
+A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` together with `keepCheckedRows` to remember them. The grid checks a remembered row again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
+
+Hidden checked rows stay out of every row operation, the controlled `selection`, and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing. The context menu items for Delete rows and Duplicate row are disabled.
+
+<kbd>Esc</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them. Switching to `sortMode="server"` clears them.
+
+`useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`.
+
+The grid remembers at most 100,000 hidden checked rows and warns once in development when it drops more. Without `totalRowCount`, a grid that sorts on the server ignores the option, and so does a grid with unloaded rows. Both warn once in development.
+
+## Server mode
+
+A server grid holds one page, or the loaded part of a lazy source. Set `totalRowCount` to the size of the whole result and pass `keepCheckedRows`. A checked row that leaves `data` then stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep the check. `keepHiddenCheckedRows` is not needed. `useDataGridServerRows` sets both props in `gridProps`.
+
+[Select server rows](/docs/rows-live-data/select-server-rows) covers selecting every matching row and sending the selection to your server.
+
+## Checked row props
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+|---|---|---|
+| `enableRowSelection` | `boolean` | `true` |
+| `keepCheckedRows` | `boolean` | `false` |
+| `keepHiddenCheckedRows` | `boolean` | `false` |
+| `totalRowCount` | `number \| null` | none |
+| `announceResults` | `boolean` | `false` |
+| `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean \| Promise<boolean>` | none |
+
+- `keepHiddenCheckedRows` takes effect only with `keepCheckedRows`.
+- `announceResults` reads the row count of the view after a filter or sort change. See [Screen reader support](/docs/accessibility/screen-reader-support).
+- `onBeforeDeleteRows` runs before every row delete and cancels it when it returns `false`. See [Row operations](/docs/rows-pages-menus/row-operations).
+
+## Related
+
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection): cell, row, and column gestures
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the full keymap
+- [Row markers](/docs/rows-pages-menus/row-markers): the checkbox and number column
+- [Select server rows](/docs/rows-live-data/select-server-rows): checks across pages
+- [Selection model](/docs/concepts/selection-model): how the channels relate

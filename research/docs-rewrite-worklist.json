@@ -57,13 +57,8 @@
     "installation",
     "quick-start"
    ],
-   "sourceFiles": [
-    "content/docs/installation.mdx",
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -93,12 +88,8 @@
    "sources": [
     "quick-start"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -126,12 +117,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -159,12 +146,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -192,12 +175,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -225,12 +204,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -258,12 +233,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -291,12 +262,8 @@
     "quick-start",
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/quick-start.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "yes",
    "generated": false,
@@ -607,10 +574,7 @@
    "owner": "generator",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/recipes/data-fetching/index.mdx",
-    "content/docs/recipes/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -644,9 +608,7 @@
    "sources": [
     "terms"
    ],
-   "sourceFiles": [
-    "content/docs/terms.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -679,9 +641,7 @@
    "sources": [
     "installation"
    ],
-   "sourceFiles": [
-    "content/docs/installation.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -735,12 +695,8 @@
    "sources": [
     "playground"
    ],
-   "sourceFiles": [
-    "content/docs/playground.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-playground-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -767,9 +723,7 @@
    "sources": [
     "agent-skills"
    ],
-   "sourceFiles": [
-    "content/docs/agent-skills.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -795,15 +749,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -836,16 +783,9 @@
    "sources": [
     "editing-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -877,16 +817,9 @@
    "sources": [
     "editing-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -917,16 +850,9 @@
    "sources": [
     "editing-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -958,16 +884,9 @@
    "sources": [
     "editing-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -994,9 +913,7 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/editing/edit-row-with-form.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -1025,9 +942,7 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/editing/auth-gated-cells.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -1085,13 +1000,9 @@
    "sources": [
     "clipboard"
    ],
-   "sourceFiles": [
-    "content/docs/clipboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1122,13 +1033,9 @@
    "sources": [
     "addons/fill"
    ],
-   "sourceFiles": [
-    "content/docs/addons/fill.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-fill-patterns-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1156,13 +1063,9 @@
    "sources": [
     "addons/undo-redo"
    ],
-   "sourceFiles": [
-    "content/docs/addons/undo-redo.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-history-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1190,13 +1093,9 @@
    "sources": [
     "addons/undo-redo"
    ],
-   "sourceFiles": [
-    "content/docs/addons/undo-redo.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-history-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1220,15 +1119,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -1255,16 +1147,9 @@
    "sources": [
     "selection-keyboard"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1293,16 +1178,9 @@
    "sources": [
     "selection-keyboard"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1333,16 +1211,9 @@
    "sources": [
     "selection-keyboard"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1371,13 +1242,9 @@
    "sources": [
     "global-shortcuts"
    ],
-   "sourceFiles": [
-    "content/docs/global-shortcuts.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-global-shortcuts-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1407,13 +1274,9 @@
    "sources": [
     "addons/keybindings"
    ],
-   "sourceFiles": [
-    "content/docs/addons/keybindings.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-keybindings-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1442,13 +1305,9 @@
    "sources": [
     "addons/status-bar"
    ],
-   "sourceFiles": [
-    "content/docs/addons/status-bar.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-status-bar-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1472,12 +1331,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/sorting-filtering-search.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -1507,15 +1362,9 @@
     "sorting-filtering-search",
     "addons/sort-list"
    ],
-   "sourceFiles": [
-    "content/docs/sorting-filtering-search.mdx",
-    "content/docs/addons/sort-list.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo",
-    "data-grid-sort-list-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1543,13 +1392,9 @@
    "sources": [
     "sorting-filtering-search"
    ],
-   "sourceFiles": [
-    "content/docs/sorting-filtering-search.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1580,16 +1425,9 @@
    "sources": [
     "addons/toolbar"
    ],
-   "sourceFiles": [
-    "content/docs/addons/toolbar.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo",
-    "data-grid-filter-operators-demo",
-    "data-grid-header-filter-demo",
-    "data-grid-server-filter-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1617,16 +1455,9 @@
    "sources": [
     "addons/toolbar"
    ],
-   "sourceFiles": [
-    "content/docs/addons/toolbar.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo",
-    "data-grid-filter-operators-demo",
-    "data-grid-header-filter-demo",
-    "data-grid-server-filter-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1654,13 +1485,9 @@
    "sources": [
     "sorting-filtering-search"
    ],
-   "sourceFiles": [
-    "content/docs/sorting-filtering-search.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1688,13 +1515,9 @@
    "sources": [
     "addons/find-replace"
    ],
-   "sourceFiles": [
-    "content/docs/addons/find-replace.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-find-replace-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1728,13 +1551,9 @@
     "addons/url-state",
     "url-state-options"
    ],
-   "sourceFiles": [
-    "content/docs/addons/url-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-url-state-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1760,14 +1579,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/row-operations.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-delete-confirm-demo",
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -1798,15 +1611,9 @@
    "sources": [
     "row-operations"
    ],
-   "sourceFiles": [
-    "content/docs/row-operations.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-delete-confirm-demo",
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1837,15 +1644,9 @@
    "sources": [
     "row-operations"
    ],
-   "sourceFiles": [
-    "content/docs/row-operations.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-delete-confirm-demo",
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1871,15 +1672,9 @@
    "sources": [
     "row-operations"
    ],
-   "sourceFiles": [
-    "content/docs/row-operations.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-delete-confirm-demo",
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -1908,13 +1703,9 @@
    "sources": [
     "addons/pinned-rows"
    ],
-   "sourceFiles": [
-    "content/docs/addons/pinned-rows.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinned-rows-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1947,15 +1738,9 @@
    "sources": [
     "pagination"
    ],
-   "sourceFiles": [
-    "content/docs/pagination.mdx",
-    "content/docs/examples/data/pagination/client.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pagination-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -1983,14 +1768,9 @@
    "sources": [
     "addons/context-menu"
    ],
-   "sourceFiles": [
-    "content/docs/addons/context-menu.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-context-menu-demo",
-    "data-grid-context-menu-slots-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2014,13 +1794,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/columns.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo",
-    "data-grid-custom-headers-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -2051,14 +1826,9 @@
    "sources": [
     "columns"
    ],
-   "sourceFiles": [
-    "content/docs/columns.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo",
-    "data-grid-custom-headers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -2091,14 +1861,9 @@
    "sources": [
     "columns"
    ],
-   "sourceFiles": [
-    "content/docs/columns.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo",
-    "data-grid-custom-headers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2124,14 +1889,9 @@
    "sources": [
     "columns"
    ],
-   "sourceFiles": [
-    "content/docs/columns.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo",
-    "data-grid-custom-headers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2160,14 +1920,9 @@
    "sources": [
     "columns"
    ],
-   "sourceFiles": [
-    "content/docs/columns.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo",
-    "data-grid-custom-headers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2191,15 +1946,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -2230,16 +1978,9 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2265,16 +2006,9 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2303,16 +2037,9 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2340,16 +2067,9 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -2383,18 +2103,9 @@
     "i18n",
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/i18n.mdx",
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-i18n-demo",
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2418,13 +2129,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/addons/import-export.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-io-demo",
-    "data-grid-print-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -2457,14 +2163,9 @@
    "sources": [
     "addons/import-export"
    ],
-   "sourceFiles": [
-    "content/docs/addons/import-export.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-io-demo",
-    "data-grid-print-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -2497,14 +2198,9 @@
    "sources": [
     "addons/import-export"
    ],
-   "sourceFiles": [
-    "content/docs/addons/import-export.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-io-demo",
-    "data-grid-print-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [
@@ -2530,13 +2226,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/custom-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-custom-cell-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -2565,15 +2256,9 @@
    "sources": [
     "custom-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/custom-cell-types.mdx",
-    "content/docs/recipes/editing/custom-cell-type.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-custom-cell-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2602,9 +2287,7 @@
    "sources": [
     "plugins"
    ],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -2636,13 +2319,9 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/ui-patterns/detail-panel.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-detail-panel-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2671,9 +2350,7 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/ui-patterns/bulk-actions.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -2705,9 +2382,7 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/ui-patterns/multiple-grids.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -2739,9 +2414,7 @@
     "recipes/ui-patterns/*",
     "recipes/editing/*"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/ui-patterns/remember-view.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -2769,10 +2442,7 @@
    "sources": [
     "data-modes"
    ],
-   "sourceFiles": [
-    "content/docs/data-modes.mdx",
-    "content/docs/recipes/data-fetching/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -2800,9 +2470,7 @@
    "sources": [
     "data-modes"
    ],
-   "sourceFiles": [
-    "content/docs/data-modes.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -2839,23 +2507,9 @@
     "examples/data/lazy/*",
     "examples/data/pagination/*"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading-advanced.mdx",
-    "content/docs/recipes/data-fetching/tanstack-query.mdx",
-    "content/docs/examples/data/lazy/index.mdx",
-    "content/docs/examples/data/pagination/index.mdx",
-    "content/docs/examples/data/lazy/react-query.mdx",
-    "content/docs/examples/data/lazy/swr.mdx",
-    "content/docs/examples/data/pagination/react-query.mdx",
-    "content/docs/examples/data/pagination/swr.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-react-query-demo",
-    "data-grid-lazy-swr-demo",
-    "data-grid-pagination-react-query-demo",
-    "data-grid-pagination-swr-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2890,18 +2544,9 @@
     "recipes/data-fetching/server-side-sort-filter",
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/sorting-filtering-search.mdx",
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo",
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2928,17 +2573,9 @@
     "data-modes",
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/data-modes.mdx",
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -2993,14 +2630,9 @@
    "sources": [
     "pagination"
    ],
-   "sourceFiles": [
-    "content/docs/pagination.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pagination-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3026,14 +2658,9 @@
    "sources": [
     "pagination"
    ],
-   "sourceFiles": [
-    "content/docs/pagination.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pagination-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3057,15 +2684,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -3096,16 +2716,9 @@
    "sources": [
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3133,16 +2746,9 @@
    "sources": [
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3171,17 +2777,9 @@
     "lazy-loading",
     "lazy-loading-advanced"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx",
-    "content/docs/lazy-loading-advanced.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3209,16 +2807,9 @@
    "sources": [
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3275,14 +2866,9 @@
     "events-state",
     "data-modes"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx",
-    "content/docs/data-modes.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3314,13 +2900,9 @@
    "sources": [
     "recipes/data-fetching/server-round-trip"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/data-fetching/server-round-trip.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-write-ack-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3349,13 +2931,9 @@
    "sources": [
     "recipes/data-fetching/server-round-trip"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/data-fetching/server-round-trip.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-write-ack-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3381,16 +2959,9 @@
    "sources": [
     "editing-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/editing-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-date-picker-demo",
-    "data-grid-validation-demo",
-    "data-grid-cell-errors-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3416,13 +2987,9 @@
    "sources": [
     "addons/undo-redo"
    ],
-   "sourceFiles": [
-    "content/docs/addons/undo-redo.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-history-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3475,16 +3042,9 @@
     "row-operations",
     "data-modes"
    ],
-   "sourceFiles": [
-    "content/docs/row-operations.mdx",
-    "content/docs/data-modes.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-delete-confirm-demo",
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3511,21 +3071,9 @@
     "selection-keyboard",
     "lazy-loading"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx",
-    "content/docs/lazy-loading.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo",
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3555,13 +3103,9 @@
    "sources": [
     "streaming-updates"
    ],
-   "sourceFiles": [
-    "content/docs/streaming-updates.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-streaming-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3593,13 +3137,9 @@
    "sources": [
     "addons/presence"
    ],
-   "sourceFiles": [
-    "content/docs/addons/presence.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-presence-demo"
-   ],
-   "demo": "carry (max 1 unless variants)",
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
    "code": "yes",
    "generated": false,
    "parity": [],
@@ -3627,9 +3167,7 @@
    "sources": [
     "addons/broadcasting-presence"
    ],
-   "sourceFiles": [
-    "content/docs/addons/broadcasting-presence.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -3688,10 +3226,36 @@
     "data-modes",
     "addons/index"
    ],
-   "sourceFiles": [
-    "content/docs/data-modes.mdx",
-    "content/docs/addons/index.mdx"
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "no",
+   "code": "no",
+   "generated": true,
+   "parity": [],
+   "parityOwnerOf": [],
+   "batch": "G"
+  },
+  {
+   "slug": "addons-az",
+   "title": "Add-ons A to Z",
+   "type": "cheatsheet",
+   "words": 700,
+   "aliases": [
+    "list of add-ons",
+    "all add-ons"
    ],
+   "codeLines": 0,
+   "area": "Evaluate",
+   "group": "Fit and features",
+   "subgroup": "",
+   "landing": false,
+   "url": "/docs/fit-features/add-ons-a-z",
+   "urlSource": "derived",
+   "wave": 3,
+   "owner": "generator",
+   "action": "new",
+   "sources": [],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -3720,12 +3284,8 @@
     "performance",
     "performance/index"
    ],
-   "sourceFiles": [
-    "content/docs/performance.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-performance-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -3812,12 +3372,8 @@
    "sources": [
     "performance"
    ],
-   "sourceFiles": [
-    "content/docs/performance.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-performance-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -3846,9 +3402,7 @@
    "sources": [
     "virtualization"
    ],
-   "sourceFiles": [
-    "content/docs/virtualization.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -3882,14 +3436,8 @@
     "virtualization",
     "project-status"
    ],
-   "sourceFiles": [
-    "content/docs/performance.mdx",
-    "content/docs/virtualization.mdx",
-    "content/docs/project-status.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-performance-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -3914,12 +3462,8 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/accessibility.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-announcements-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -3946,12 +3490,8 @@
    "sources": [
     "accessibility"
    ],
-   "sourceFiles": [
-    "content/docs/accessibility.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-announcements-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -3980,12 +3520,8 @@
    "sources": [
     "accessibility"
    ],
-   "sourceFiles": [
-    "content/docs/accessibility.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-announcements-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4012,12 +3548,8 @@
    "sources": [
     "accessibility"
    ],
-   "sourceFiles": [
-    "content/docs/accessibility.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-announcements-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4070,9 +3602,7 @@
    "sources": [
     "project-status"
    ],
-   "sourceFiles": [
-    "content/docs/project-status.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4100,9 +3630,7 @@
    "sources": [
     "project-status"
    ],
-   "sourceFiles": [
-    "content/docs/project-status.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4135,10 +3663,7 @@
     "project-status",
     "installation"
    ],
-   "sourceFiles": [
-    "content/docs/project-status.mdx",
-    "content/docs/installation.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "decide",
    "code": "yes",
@@ -4166,9 +3691,7 @@
    "sources": [
     "project-status"
    ],
-   "sourceFiles": [
-    "content/docs/project-status.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4196,9 +3719,7 @@
    "sources": [
     "license"
    ],
-   "sourceFiles": [
-    "content/docs/license.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4224,9 +3745,7 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -4258,9 +3777,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4288,9 +3805,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4318,9 +3833,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4348,9 +3861,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4378,12 +3889,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -4410,12 +3917,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4446,12 +3949,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4478,12 +3977,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4515,12 +4010,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4547,12 +4038,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4579,12 +4066,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4638,14 +4121,8 @@
     "custom-cell-types",
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/custom-cell-types.mdx",
-    "content/docs/api-reference.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-custom-cell-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4672,13 +4149,8 @@
    "sources": [
     "recipes/data-fetching/server-side"
    ],
-   "sourceFiles": [
-    "content/docs/recipes/data-fetching/server-side.mdx",
-    "content/docs/recipes/data-fetching/index.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-server-side-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4707,15 +4179,8 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -4742,9 +4207,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4770,9 +4233,7 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -4828,9 +4289,7 @@
    "sources": [
     "plugins"
    ],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -4858,9 +4317,7 @@
    "sources": [
     "plugins"
    ],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -4888,9 +4345,7 @@
    "sources": [
     "plugins"
    ],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -4918,9 +4373,7 @@
    "sources": [
     "plugins"
    ],
-   "sourceFiles": [
-    "content/docs/plugins.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -4974,15 +4427,8 @@
    "sources": [
     "selection-keyboard"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -5009,13 +4455,8 @@
    "sources": [
     "custom-cell-types"
    ],
-   "sourceFiles": [
-    "content/docs/custom-cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo",
-    "data-grid-custom-cell-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -5042,15 +4483,8 @@
    "sources": [
     "styling-theming"
    ],
-   "sourceFiles": [
-    "content/docs/styling-theming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-conditional-styling-demo",
-    "data-grid-styling-patterns-demo",
-    "data-grid-loading-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -5077,9 +4511,7 @@
    "sources": [
     "terms"
    ],
-   "sourceFiles": [
-    "content/docs/terms.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5133,9 +4565,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5163,9 +4593,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5193,9 +4621,7 @@
    "sources": [
     "hooks/use-debounce"
    ],
-   "sourceFiles": [
-    "content/docs/hooks/use-debounce.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5225,9 +4651,7 @@
    "sources": [
     "hooks/use-debounce"
    ],
-   "sourceFiles": [
-    "content/docs/hooks/use-debounce.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5255,9 +4679,7 @@
    "sources": [
     "hooks/use-debounce"
    ],
-   "sourceFiles": [
-    "content/docs/hooks/use-debounce.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5285,9 +4707,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5315,9 +4735,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5345,9 +4763,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5375,9 +4791,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5405,9 +4819,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5435,9 +4847,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5465,9 +4875,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5495,9 +4903,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5525,9 +4931,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5557,9 +4961,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5587,9 +4989,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5617,9 +5017,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5647,9 +5045,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5677,9 +5073,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5707,9 +5101,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5738,13 +5130,8 @@
     "events-state",
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx",
-    "content/docs/api-reference.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -5776,17 +5163,8 @@
     "lazy-loading",
     "pagination"
    ],
-   "sourceFiles": [
-    "content/docs/lazy-loading.mdx",
-    "content/docs/pagination.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-server-side-demo",
-    "data-grid-server-filter-demo",
-    "data-grid-open-ended-demo",
-    "data-grid-pagination-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
    "generated": false,
@@ -5813,9 +5191,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -5843,9 +5219,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5873,9 +5247,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5903,9 +5275,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5933,9 +5303,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "table+sample",
@@ -5991,19 +5359,8 @@
     "global-shortcuts",
     "addons/keybindings"
    ],
-   "sourceFiles": [
-    "content/docs/selection-keyboard.mdx",
-    "content/docs/global-shortcuts.mdx",
-    "content/docs/addons/keybindings.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo",
-    "data-grid-touch-demo",
-    "data-grid-checked-rows-demo",
-    "data-grid-server-selection-demo",
-    "data-grid-global-shortcuts-demo",
-    "data-grid-keybindings-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": true,
@@ -6030,9 +5387,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -6060,12 +5415,8 @@
    "sources": [
     "events-state"
    ],
-   "sourceFiles": [
-    "content/docs/events-state.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-events-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": true,
@@ -6123,9 +5474,7 @@
    "sources": [
     "api-reference"
    ],
-   "sourceFiles": [
-    "content/docs/api-reference.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -6181,9 +5530,7 @@
    "owner": "writer",
    "action": "new",
    "sources": [],
-   "sourceFiles": [
-    "content/docs/examples/foundations/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -6211,12 +5558,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/foundations/minimal-grid.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-minimal-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6243,12 +5586,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/foundations/editable-grid.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6275,12 +5614,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/foundations/cell-types.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-types-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6307,12 +5642,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/foundations/custom-cells.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-custom-cell-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6339,9 +5670,7 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -6369,12 +5698,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/pinning.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6401,12 +5726,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/drag-reorder.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-column-drag-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6433,13 +5754,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/filtering.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-sorting-filtering-demo",
-    "data-grid-header-filter-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6466,12 +5782,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/custom-headers.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-custom-headers-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6498,12 +5810,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/column-layout.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-column-layout-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6530,12 +5838,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/columns/column-groups.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-column-groups-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6562,9 +5866,7 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -6592,12 +5894,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/pinning.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pinning-all-sides-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6624,12 +5922,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/row-operations.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-row-ops-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6656,12 +5950,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/drag-reorder.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-row-reorder-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6688,13 +5978,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/row-markers.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-row-markers-demo",
-    "data-grid-custom-markers-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6721,12 +6006,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/actions.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-actions-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6753,12 +6034,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/rows/streaming.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-streaming-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6785,13 +6062,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/validation.mdx",
-    "content/docs/examples/validation/index.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-validation-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "no",
    "code": "no",
    "generated": false,
@@ -6818,12 +6090,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/validation.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-validation-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6850,12 +6118,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/async-validation.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-validation-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6882,12 +6146,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/server-errors.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cell-errors-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6914,12 +6174,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/cross-field.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-cross-field-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6946,12 +6202,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/validation/async-gates.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-async-gates-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -6978,12 +6230,7 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/index.mdx",
-    "content/docs/examples/data/lazy/index.mdx",
-    "content/docs/examples/data/orm/index.mdx",
-    "content/docs/examples/data/pagination/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -7011,12 +6258,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/server-side.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-server-side-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7043,13 +6286,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/large-data.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-large-data-demo",
-    "data-grid-performance-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7076,17 +6314,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/lazy/index.mdx",
-    "content/docs/examples/data/lazy/plain.mdx",
-    "content/docs/examples/data/lazy/react-query.mdx",
-    "content/docs/examples/data/lazy/swr.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-lazy-demo",
-    "data-grid-lazy-react-query-demo",
-    "data-grid-lazy-swr-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7113,17 +6342,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/pagination/client.mdx",
-    "content/docs/examples/data/pagination/index.mdx",
-    "content/docs/examples/data/pagination/react-query.mdx",
-    "content/docs/examples/data/pagination/swr.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-pagination-demo",
-    "data-grid-pagination-react-query-demo",
-    "data-grid-pagination-swr-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7150,9 +6370,7 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/orm/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -7180,9 +6398,7 @@
    "sources": [
     "examples/data/orm/drizzle"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/orm/drizzle.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
@@ -7210,9 +6426,7 @@
    "sources": [
     "examples/data/orm/prisma"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/orm/prisma.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
@@ -7240,9 +6454,7 @@
    "sources": [
     "examples/data/orm/supabase"
    ],
-   "sourceFiles": [
-    "content/docs/examples/data/orm/supabase.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
@@ -7270,9 +6482,7 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/appearance/index.mdx"
-   ],
+   "sourceFiles": [],
    "carriedDemos": [],
    "demo": "no",
    "code": "no",
@@ -7300,13 +6510,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/appearance/styling.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-styling-patterns-demo",
-    "data-grid-conditional-styling-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7333,12 +6538,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/appearance/loading-states.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-loading-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,
@@ -7365,12 +6566,8 @@
    "sources": [
     "examples/**"
    ],
-   "sourceFiles": [
-    "content/docs/examples/appearance/i18n-rtl.mdx"
-   ],
-   "carriedDemos": [
-    "data-grid-i18n-demo"
-   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
    "demo": "yes",
    "code": "yes",
    "generated": false,

@@ -1,9 +1,134 @@
 ---
 title: Filtering
-description: Filtering.
+description: Hide rows that fail per-column conditions, combine conditions with and/or groups, and set filters from the filter menu or from code.
 type: feature
+aliases: ["filter groups", "and or filter", "filter operators"]
 ---
 
-{/* docs-stub */}
+A filter hides the rows that fail a condition on one column. `filterState` holds the filters as a list. The top level combines its entries with "and". A group inside the list combines its own entries with "and" or "or". Users build the list in the `DataGridFilterMenu` popover. Code sets it with `actions.setFilters()`.
 
-This page is being written.
+<ComponentPreview name="data-grid-sorting-filtering-demo" />
+
+`DataGridFilterMenu` comes with the [toolbar add-on](/docs/sort-filter-search/toolbar). Filtering from code needs no add-on.
+
+## Filter from code [#set-filters-from-code]
+
+A `FilterSpec` is one condition: `columnId`, `operator`, and `value`. A `FilterGroup` is `{ join, filters }`. Pass both kinds to `actions.setFilters()`, or seed the list once with `defaultFilterState`:
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+  type FilterNode,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; country: string; name: string };
+
+const columns = defineColumns<Order>()([
+  { id: "country", header: "Country", accessorKey: "country" },
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const filters: FilterNode[] = [
+  { columnId: "country", operator: "equals", value: "NL" },
+  {
+    join: "or",
+    filters: [
+      { columnId: "name", operator: "contains", value: "A" },
+      { columnId: "name", operator: "contains", value: "B" },
+    ],
+  },
+];
+
+function ApplyButton() {
+  const actions = useDataGridActions();
+  return <button onClick={() => actions.setFilters(filters)}>Apply</button>;
+}
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+    >
+      <ApplyButton />
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+After the click, a row stays when its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one. Any other `join` value acts as `"and"`, and an empty group matches every row.
+
+A group holds one more group at most. `setFilters` drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
+
+## Operators [#operators]
+
+Every column offers the text operators: `contains`, `notContains`, `equals`, `notEquals`, `startsWith`, `endsWith`, `empty`, and `notEmpty`. `number` and `date` columns add `gt`, `gte`, `lt`, `lte`, and `isBetween`. `text`, `number`, `date`, `select`, and untyped columns add `isAnyOf` and `isNoneOf`. The `long-text`, `url`, and `checkbox` columns offer the text operators only.
+
+| Operator | `value` | Matches a row when |
+|---|---|---|
+| Text operators | `string` | The cell text compares to the value. Case does not matter. |
+| `gt`, `gte`, `lt`, `lte` | `string` | The cell is not blank and compares to the value. |
+| `isBetween` | `[from, to]` | The cell is not blank and lies between both bounds, inclusive. An empty bound is open. |
+| `isAnyOf` | `string[]` | The cell text equals one entry. An empty list matches no row. |
+| `isNoneOf` | `string[]` | The cell text equals no entry. An empty list matches every row. |
+| `empty`, `notEmpty` | none | The cell text is empty, or is not. |
+
+Every value is text, even for number and date columns. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
+
+Three fields change this behavior for one column:
+
+- `filterOperators` replaces the list of operators the filter menu offers.
+- `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A column with a custom match drops `isAnyOf` and `isNoneOf` from its default operators.
+- `filterable: false` keeps the column out of the filter menu and the header filter.
+
+A cell type sets the same defaults with `filter.operators` and `filter.match`. The column's own fields win.
+
+## Filter menu [#filter-menu]
+
+The popover lists the filter tree. The first entry of the top level and of each group reads "Where". Later top-level entries read "And". Later entries of a group show a select with "And" and "Or". That select sets the join of the whole group, so all its entries show the same word.
+
+Each row has a column select, an operator select, a value input, a remove button, and a drag handle. "Add filter" and "Add group" sit at the foot of the popover and inside each group. A new group takes the opposite join of its parent, so a group in the top level starts as "Or". The value input follows the cell type: `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
+
+To build "(Name contains A or B) and Country = X", add a Country filter, add a group, and give the group two Name rows.
+
+The menu offers the visible columns. A filter on a hidden column keeps applying, but its row shows a raw column id and logs a development warning. Pass `allColumns` to list hidden columns. Pass `operatorsForColumn(column)` to replace the operator list per column. A returned `undefined` falls through to `filterOperators`, then the cell type, then the defaults.
+
+| Key | Action |
+|---|---|
+| <kbd>Tab</kbd> | Moves through a row: column, operator, value, remove, drag handle. |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> on the drag handle | Moves the row or group one place among its siblings. |
+| <kbd>Backspace</kbd> / <kbd>Delete</kbd> on the drag handle | Removes the row or group. |
+| <kbd>Escape</kbd> during a drag | Cancels the drag and keeps the popover open. |
+
+While a pointer drags, a line shows where the row lands. A reorder announces the new place through `labels.toolbar.filterReorderAnnouncement`. Focus stays on the moved handle. After a removal it moves to a sibling's handle, or to "Add filter" when none is left.
+
+## Controlled and initial filters
+
+`filterState` makes the prop the source of truth, and `onFilterChange(next)` fires on every change. A controlled grid updates only when the prop changes. `defaultFilterState` seeds the list once.
+
+## Server mode [#server-mode]
+
+Set `filterMode="server"` when your server filters the rows. The grid tracks `filterState`, shows the filter indicators, and calls `onFilterChange`. It never filters `data`.
+
+The request is the `FilterNode[]` that `onFilterChange` receives. The response is the rows that match. `useDataGridServerRows` sets `filterMode` for you and passes each fetch the list as `request.spec.filters`. See [Query server rows](/docs/data-modes/query-server-rows).
+
+The value lists of the header filter and the `isAnyOf` input read the loaded rows. Pass `fetchFilterValues` to read them from your server. See [Header filter](/docs/sort-filter-search/header-filter#server-values).
+
+## Related
+
+- [Header filter](/docs/sort-filter-search/header-filter): a value list in each column header
+- [Toolbar](/docs/sort-filter-search/toolbar): the filter menu, search, and columns menu
+- [Quick search](/docs/sort-filter-search/quick-search): highlights matches and never hides rows
+- [Sort and filter events](/docs/events-state/sort-filter-events): `onFilterChange` and its siblings

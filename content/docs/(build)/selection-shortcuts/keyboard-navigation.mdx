@@ -1,10 +1,84 @@
 ---
 title: Keyboard navigation
-description: Keyboard navigation.
+description: Move, extend, edit, and select with the keyboard, and find the key chords for rows, headers, and select all.
 type: feature
-aliases: ["arrow keys", "tab key"]
+aliases: ["arrow keys", "tab key", "keyboard shortcuts in the grid", "default keymap"]
+demos: none
 ---
 
-{/* docs-stub */}
+The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid.
 
-This page is being written.
+## Keyboard map [#keyboard-map]
+
+The table lists the default bindings, generated from `DEFAULT_KEYMAP`:
+
+<KeymapTable />
+
+`mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. Copy, cut, and paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, X, V) are native browser clipboard events, not keymap entries. The table lists them for completeness. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) changes any binding.
+
+## Move and edit
+
+- Arrow keys move the active cell. In a right-to-left grid, <kbd>ArrowRight</kbd> moves to the next column on the screen.
+- <kbd>Alt</kbd>+<kbd>Arrow</kbd> moves the active cell and keeps the selection.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Arrow</kbd> jumps to the edge of the data. It stops at the last non-empty cell of a run, or at the first non-empty cell after a gap.
+- <kbd>PageUp</kbd> and <kbd>PageDown</kbd> move by the visible rows minus four.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Enter</kbd> scrolls the active cell into view without moving it.
+- <kbd>Enter</kbd>, <kbd>F2</kbd>, and <kbd>Space</kbd> start an edit. On a checkbox cell they toggle the value. A read-only grid does not edit.
+- A printable key on the active cell starts an edit seeded with that character. A checkbox cell ignores it.
+- <kbd>Alt</kbd>+<kbd>Enter</kbd> opens the link of a link cell in a new tab.
+
+## Undo and redo outside the grid [#undo-and-redo-outside-the-grid]
+
+The in-grid undo and redo bindings work only while focus is inside the grid. [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) extends them to a toolbar or any other focus position.
+
+## Moving rows [#moving-rows]
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of the selected range, or the active row.
+
+They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which defaults to `true`. A read-only grid ignores them. See [Row order](/docs/rows-pages-menus/row-order).
+
+## Opening the column filter [#opening-the-column-filter]
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (`openColumnMenu`) opens the column menu, which needs a `renderHeaderMenu` slot.
+
+## Two-stage Ctrl+A [#two-stage-ctrla]
+
+The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects the data region around the active cell: the rectangle of adjacent rows and columns that hold values. When the active cell is empty, the region is that cell. Press the keys again to select the whole grid. When the data fills the whole grid, the first press selects everything.
+
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells. It never checks rows, so it does not change `useDataGridSelectedRows()` or `selectAllMatching()`. The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
+
+## Escape clears the selection
+
+With no editor open, <kbd>Esc</kbd> (`cancel`) clears the whole selection: the cell range and its stack, the checked rows, and the selected columns. To keep a selection across <kbd>Esc</kbd>, unbind `cancel`. The built-in text editors still cancel an edit on <kbd>Esc</kbd>.
+
+The following example unbinds `cancel`:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title", type: "text" },
+] as const);
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      getRowId={(task) => task.id}
+      keymap={{ cancel: [] }}
+    />
+  );
+}
+```
+
+## Related
+
+- [Checked rows](/docs/selection-shortcuts/checked-rows#checking-rows-by-keyboard): the chords that check rows
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): change or add bindings
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): undo, redo, and more outside the grid
+- [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts): the lookup sheet

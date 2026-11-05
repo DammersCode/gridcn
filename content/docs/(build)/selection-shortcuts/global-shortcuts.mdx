@@ -1,10 +1,116 @@
 ---
 title: Global shortcuts
-description: Global shortcuts.
+description: Keep undo, redo, and other grid actions working while focus sits on a toolbar, a side panel, or the page body.
 type: feature
-aliases: ["hotkeys", "shortcuts outside the grid"]
+aliases: ["hotkeys", "shortcuts outside the grid", "window keydown", "undo from toolbar"]
 ---
 
-{/* docs-stub */}
+The grid handles keys only while DOM focus is inside it. When focus sits on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> does not reach the grid. `DataGridGlobalShortcuts` mounts a window listener that keeps undo and redo active at every focus position. Flags add more actions.
 
-This page is being written.
+<ComponentPreview name="data-grid-global-shortcuts-demo" />
+
+The component ships with the core `data-grid` item. Undo and redo need the [Undo and redo](/docs/clipboard-undo/undo-redo) add-on.
+
+## How it works [#how-it-works]
+
+`DataGridGlobalShortcuts` renders nothing. It listens for `keydown` on the window. A gate of seven rules decides whether an event reaches the grid. The rules run in this order, and the first hit skips the event:
+
+1. IME composition is in progress.
+2. The event is already `defaultPrevented`. The page or the grid handled it first.
+3. The target is an editable element: `input`, `textarea`, `select`, or `contenteditable`. The field keeps its native undo and redo.
+4. The target is inside any grid. The handler of that grid owns the key.
+5. This grid is not the last focused grid that mounts the component.
+6. An edit session is open. The editor owns the key, also in a popup such as the select list.
+7. The key resolves to no enabled action through the effective keymap.
+
+When the gate passes, the component runs the action through the same dispatch as the in-grid binding. For undo and redo, that is the `undo` and `redo` command of the history add-on. Without the add-on, the grid cancels the key's default action and does nothing else.
+
+## Usage [#usage]
+
+Mount the component inside the grid. The toolbar sits anywhere outside it:
+
+```tsx
+import {
+  DataGrid,
+  DataGridBody,
+  DataGridGlobalShortcuts,
+  DataGridHeader,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+] as const);
+
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  const grid = useDataGridState(orders, { getRowId: (order) => order.id });
+
+  return (
+    <>
+      {/* a toolbar here, outside the grid */}
+      <DataGrid {...grid} columns={columns}>
+        <DataGridGlobalShortcuts />
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGrid>
+    </>
+  );
+}
+```
+
+Pass one or more flags to choose the actions. Any flag replaces the default set with exactly the flags you pass:
+
+```tsx
+import { DataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
+
+export function Shortcuts() {
+  return <DataGridGlobalShortcuts selectAll deleteRows />;
+}
+```
+
+Omit every flag to enable undo and redo.
+
+| Flag | Enables | Needs |
+|---|---|---|
+| `undo` | The undo binding. | The Undo and redo add-on |
+| `redo` | The redo bindings. | The Undo and redo add-on |
+| `fillDown` | The fill-down binding. | The [Fill handle](/docs/clipboard-undo/fill-handle) add-on |
+| `fillRight` | The fill-right binding. | The Fill handle add-on |
+| `selectAll` | The select-all binding. | Nothing |
+| `insertRowAbove` | The insert-row-above binding. | `createRow` |
+| `insertRowBelow` | The insert-row-below binding. | `createRow` |
+| `duplicateRow` | The duplicate-row binding. | `duplicateRow` |
+| `deleteRows` | The delete-rows binding. | A writable grid |
+
+Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For example, `insertRowBelow` does nothing without `createRow`, and the row actions do nothing in a read-only grid. The listener reads the effective keymap, so a remapped binding applies to the global layer too. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#remapping).
+
+<Callout type="warn">
+Keep <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> in every remapped binding of a flagged action. The default bindings of all nine actions include it. The layer does not check modifiers, so a bare key binding would fire on that key anywhere on the page, outside fields and grids.
+</Callout>
+
+## Multiple grids [#multiple-grids]
+
+When several grids with the component share a page, the last focused grid owns the shortcut. When focus moves to grid B, undo and redo target the history of B. Until focus returns to grid A, they target the history of A.
+
+A grid without the component never claims the shortcut. If you add the component to one of two grids, the layer does nothing until the user focuses that grid.
+
+The last DOM focus decides. When your app switches tabs without a focus change, call the history API of the active grid, for example `grid.history.undo()`.
+
+<Callout type="warn" title="Page-wide mod+z">
+If your app registers its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler, both listeners see the same event. The layer skips an event that is already `defaultPrevented`, and it calls `preventDefault` when it handles one. Check `event.defaultPrevented` in your handler.
+</Callout>
+
+## Out of scope [#out-of-scope]
+
+- **Copy and paste:** the flag list has no clipboard action. For a programmatic paste, call `useDataGridClipboard().pasteFromClipboard()`.
+- **Navigation:** the flag list has no move or jump action, so the arrow keys stay with the page.
+- **Select all by default:** the page owns <kbd>Mod</kbd>+<kbd>A</kbd> until you set the `selectAll` flag.
+
+## Related
+
+- [Undo and redo](/docs/clipboard-undo/undo-redo): the commands this component reaches
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): the effective keymap
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the in-grid keymap table

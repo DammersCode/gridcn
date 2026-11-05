@@ -138,6 +138,7 @@
 ## Fit and features
 - evaluate-index | Fit and features | landing | 300
 - feature-matrix | Feature matrix | cheatsheet | 900 | row grouping, tree data, aggregation
+- addons-az | Add-ons A to Z | cheatsheet | 700 | list of add-ons, all add-ons
 ## Performance
 - performance | Performance | landing | 350
 - benchmark-results | Benchmark results | reference | 900 | how fast, performance numbers, speed

@@ -1,9 +1,112 @@
 ---
 title: Row markers
-description: Row markers.
+description: Add a row-number, checkbox, or drag-handle column at the start of the grid, and replace its cells and its header with your own content.
 type: feature
+aliases: ["row numbers", "row checkboxes", "select rows column"]
+icon: ListChecks
 ---
 
-{/* docs-stub */}
+Users need a place to grab a whole row. The marker column sits at the start of the grid and shows a row number, a checkbox, a drag handle, or a mix. It is not one of your `columns`. Column reorder and resize do not affect it, and it has no column index. Its width depends on the mode.
 
-This page is being written.
+<ComponentPreview name="data-grid-row-markers-demo" />
+
+## Choose a mode
+
+Set `rowMarkers` on the grid. The default is `"none"`, which renders no marker column:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+function MyGrid() {
+  return <DataGrid defaultData={rows} columns={columns} rowMarkers="both" />;
+}
+```
+
+| Mode | Shows | Width |
+| --- | --- | --- |
+| `"none"` | No marker column. | none |
+| `"number"` | The 1-based view row index. | 44 px |
+| `"checkbox"` | A row checkbox, and a select-all checkbox in the header. | 36 px |
+| `"both"` | The row number. A checkbox replaces it on hover and on a selected row. | 56 px |
+| `"reorder"` | A drag handle in the whole cell. | 32 px |
+| `"reorder-number"` | The drag handle, then the number. | 56 px |
+| `"reorder-checkbox"` | The drag handle, then the checkbox. | 48 px |
+| `"reorder-both"` | The drag handle and the content of `"both"`. | 64 px |
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `rowMarkers` | `RowMarkersMode` | `"none"` |
+| `enableRowSelection` | `boolean` | `true` |
+
+## Selecting rows
+
+A press on a marker cell selects its row. Press and drag to select a range of rows. <kbd>Shift</kbd> extends the range, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds a row. A press on the checkbox toggles that row and keeps the other checks. The select-all checkbox in the header is checked, indeterminate, or unchecked, depending on the rows channel.
+
+The checkboxes are not tab stops. Use <kbd>Shift</kbd>+<kbd>Space</kbd> to select the active row and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to toggle it. `enableRowSelection={false}` turns off the marker gestures and <kbd>Shift</kbd>+<kbd>Space</kbd>. See [Pointer selection](/docs/selection-shortcuts/pointer-selection) and [Checked rows](/docs/selection-shortcuts/checked-rows).
+
+The `reorder` family adds a drag handle to the marker cell. Only the handle starts a reorder. The number and the checkbox keep selecting rows. See [Row order](/docs/rows-pages-menus/row-order).
+
+The built-in checkboxes take their aria-labels from `labels.markers.selectRow` and `labels.markers.selectAll`.
+
+## Custom markers
+
+`DataGridRoot` and `DataGrid` accept two render props. They replace the content of the marker column and keep its chrome and its gestures:
+
+{/* props: DataGridRootProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `renderMarker` | `MarkerCellRenderer` | built-in number and checkbox |
+| `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
+
+`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. `isRowChannelSelected` is true if the row is selected as a whole. `isCellSelected` is true if the selection covers at least one cell of the row. A cell click flips only the second flag. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In `"number"` mode, the header has no checkbox, so the renderer fills the blank cell.
+
+The mode still sets the width. With `"none"`, the grid renders no marker column and calls neither function. A press or drag on a marker cell still selects rows. Define both functions at module scope, because a new function on every render re-renders every marker cell:
+
+```tsx
+import { Check, Circle } from "lucide-react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import type { MarkerCellRenderer } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+const renderMarker: MarkerCellRenderer = ({ isRowChannelSelected }) =>
+  isRowChannelSelected ? (
+    <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
+  ) : (
+    <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />
+  );
+
+function MyGrid() {
+  return <DataGrid defaultData={rows} columns={columns} rowMarkers="number" renderMarker={renderMarker} />;
+}
+```
+
+Interactive content in a custom marker needs its own accessible name. The grid supplies the `labels.markers` names only for its built-in controls.
+
+## Server mode
+
+The number is the position in the view. It is not a server row number, so it restarts at 1 on each page of a paginated grid. For select-all over a whole server result, see [Select server rows](/docs/rows-live-data/select-server-rows).
+
+## Related
+
+- [Row order](/docs/rows-pages-menus/row-order): the drag handle zone and the move keys
+- [Checked rows](/docs/selection-shortcuts/checked-rows): how checks survive filters and pages
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection): the marker press and drag gestures
+- [Labels](/docs/components-props/labels): translate the marker names

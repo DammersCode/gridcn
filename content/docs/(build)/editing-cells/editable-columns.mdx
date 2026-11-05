@@ -1,10 +1,107 @@
 ---
 title: Editable columns
-description: Editable columns.
+description: Choose which cells users can edit, how an edit starts, and which keys commit or cancel it.
 type: feature
+demos: none
 aliases: ["cell editor", "custom editor", "edit activation", "make a column editable", "read only column"]
 ---
 
-{/* docs-stub */}
+Every column is editable until you lock it. The column's cell type supplies the editor, and `readOnly` locks a column, single cells, or the whole grid. An edit starts only through a deliberate gesture, so a drag to select never opens an editor.
 
-This page is being written.
+## Start an edit [#edit-activation]
+
+A click selects a cell and never starts an edit. An edit starts in one of three ways:
+
+- Double-click the cell.
+- Press <kbd>Enter</kbd>, <kbd>F2</kbd>, or <kbd>Space</kbd> on the active cell. The editor opens with the current value.
+- Type a printable character on the active cell. The editor opens with only that character and replaces the old value (type-to-replace).
+
+The `edit` action owns <kbd>Enter</kbd>, <kbd>F2</kbd>, and <kbd>Space</kbd>, so <kbd>Space</kbd> never replaces the value. The `typeToReplace` action has no key binding. Any unbound printable key triggers it. Set `keymap.typeToReplace` to move the trigger to other keys, or to `[]` to turn type-to-replace off. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping).
+
+Checkbox cells have no editor. A click on the box toggles the value. A click elsewhere in the cell selects it, and a second click toggles it. <kbd>Enter</kbd>, <kbd>F2</kbd>, and <kbd>Space</kbd> toggle the active cell. A drag that starts on a checkbox cell selects a range and toggles nothing.
+
+## Commit or cancel an edit [#commit-cancel]
+
+While an editor is open, the editor owns the built-in keys. The grid keymap does not run, so <kbd>Shift</kbd>+<kbd>Enter</kbd> never moves up and <kbd>Tab</kbd> keeps its native focus move.
+
+| Editor | Commits | Cancels |
+|---|---|---|
+| `text`, `number`, `url` | <kbd>Enter</kbd> and moves down. <kbd>Tab</kbd> or a click away, in place | <kbd>Escape</kbd> |
+| `select` | Picking a choice, in place | <kbd>Escape</kbd>, or closing the list without a pick |
+| `date` | <kbd>Enter</kbd> on the typed date, and moves down. Picking a day, in place | <kbd>Escape</kbd>, or closing the popover |
+| `longText` | <kbd>Enter</kbd> and moves down. A click away, in place | <kbd>Escape</kbd> |
+
+In a `longText` editor, <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. A rejected value keeps the editor open. See [Validation](/docs/editing-cells/validation).
+
+An open edit stays bound to its row id and column id. A sort, a filter, a column reorder, or a row operation that moves the cell moves the editor with it, and the draft survives. If the row or column leaves the view, the grid cancels the edit and discards the draft.
+
+## Lock cells [#read-only]
+
+Set `readOnly` on a column to `true`, or to a function of the row:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; email: string; total: number; locked: boolean };
+
+const columns = defineColumns<Order>()([
+  { id: "email", header: "Email", accessorKey: "email", readOnly: true },
+  {
+    id: "total",
+    header: "Total",
+    accessorKey: "total",
+    type: "number",
+    readOnly: (row) => row.locked,
+  },
+]);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return <DataGrid data={orders} columns={columns} />;
+}
+```
+
+A locked cell rejects typed edits, paste, fill, and clear. A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
+
+<Callout title="Grid-wide read-only wins">
+  `readOnly` on `<DataGrid>` disables editing and delete in every column, whatever the column
+  says. If it turns on during an edit, the grid cancels the edit and discards the draft.
+</Callout>
+
+## Veto an edit [#veto-edit]
+
+`onEditStart` runs before an editor opens on an editable cell. Return `false` to refuse the edit. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+]);
+const frozenIds = new Set(["task-1"]);
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      onEditStart={({ rowId }) => !frozenIds.has(rowId)}
+    />
+  );
+}
+```
+
+`onEditEnd` reports `commit`, `cancel`, or `rejected` for each session. See [Edit and validation events](/docs/events-state/edit-validation-events).
+
+## Props [#props]
+
+The column props are `type`, `options`, `readOnly`, `accessorFn`, and `setValue`. The grid props are `readOnly`, `onEditStart`, `onEditEnd`, and `keymap`. [Column definition](/docs/components-props/column-def) and [DataGrid props](/docs/components-props/data-grid-props) list the types and defaults.
+
+## Related
+
+- [Built-in cell types](/docs/editing-cells/built-cell-types): the editor each type opens.
+- [Validation](/docs/editing-cells/validation): reject a value before it commits.
+- [Cell type model](/docs/concepts/cell-type-model): how a type turns text into a value.
+- [Column definition](/docs/components-props/column-def): every column prop.
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): move the edit keys.

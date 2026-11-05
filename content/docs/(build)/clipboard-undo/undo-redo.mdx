@@ -1,9 +1,141 @@
 ---
 title: Undo and redo
-description: Undo and redo.
+description: Undo and redo edits, pastes, fills, and row operations with Ctrl+Z and Ctrl+Y, or with your own toolbar buttons.
 type: feature
+aliases: ["history", "ctrl z", "usedatagridhistory", "usedatagridstate"]
+icon: Undo2
 ---
 
-{/* docs-stub */}
+A user who pastes over the wrong cells needs a way back. The `data-grid-history` add-on keeps a stack of changes and reverts them. `useDataGridState` gives a grid undo and redo in one call. `useDataGridHistory` adds the same stack to a grid whose data you own.
 
-This page is being written.
+<ComponentPreview name="data-grid-history-demo" />
+
+<InstallCommand item="data-grid-history" manual manualSlot={<ManualInstall item="data-grid-history" />} />
+
+## How it works [#how-it-works]
+
+Each entry on the stack is one change: the operations (`ops`) of one `onDataChange` call. A paste, a fill, and the delete of a range are one entry each. Operations address rows by row id, so an entry finds its row again after a sort or a filter moves it.
+
+Undo applies the inverse of the most recent entry as one change with `source: "history"`. Redo applies the entry again. A new change clears the redo stack.
+
+If a row id no longer exists, for example after a refresh removed the row, the grid skips that operation and raises no error. If no operation of an entry applies, the grid writes nothing.
+
+## Quick start: useDataGridState [#quick-start-usedatagridstate]
+
+`useDataGridState` owns the `data` array and passes it to the grid on every render as the controlled `data` prop. Undo and redo rely on that echo. The hook is not `defaultData`, which seeds the grid once and ignores later values. If you want history, use the hook. Spread its result onto `DataGrid`:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function MyGrid() {
+  const grid = useDataGridState(rows);
+  const { canUndo, canRedo, undo, redo } = grid.history;
+
+  return (
+    <>
+      <button disabled={!canUndo} onClick={undo}>Undo</button>
+      <button disabled={!canRedo} onClick={redo}>Redo</button>
+      <DataGrid {...grid} columns={columns} />
+    </>
+  );
+}
+```
+
+Result: edit a cell, then press Undo. The cell returns to its earlier value and Redo turns on.
+
+`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, list them before the spread entry: `plugins={[fillPlugin, ...grid.plugins]}`.
+
+## Keyboard [#keyboard]
+
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> undoes.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redo.
+
+The keys work while focus is in the grid. While a cell editor is open, the editor keeps them for its own text. Without this add-on, both keys do nothing. Remap them with the `undo` and `redo` actions of the [`keymap` prop](/docs/selection-shortcuts/shortcut-remapping).
+
+When you mount [`DataGridGlobalShortcuts`](/docs/selection-shortcuts/global-shortcuts), the keys also work while focus is outside the grid. They skip text fields.
+
+## Composable: useDataGridHistory [#composable-usedatagridhistory]
+
+If you own the data array, call `useDataGridHistory` and pass its `plugin` to the grid. Your `onDataChange` keeps feeding your state. The hook records each change after your handler runs:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function MyGrid() {
+  const [data, setData] = useState<readonly Row[]>(rows);
+  const history = useDataGridHistory<Row>({ capacity: 50 });
+
+  return (
+    <>
+      <button disabled={!history.canUndo} onClick={history.undo}>Undo</button>
+      <DataGrid
+        data={data}
+        columns={columns}
+        onDataChange={setData}
+        plugins={[history.plugin]}
+      />
+    </>
+  );
+}
+```
+
+The result has the members of `grid.history` above, plus `plugin`.
+
+### Options
+
+{/* props: UseDataGridHistoryOptions */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `capacity` | `number` | `100` |
+| `datasetKey` | `string \| number` | none |
+| `recordSources` | `readonly DataChange<TData>["source"][]` | all except `"stream"` |
+
+`useDataGridState` takes `getRowId`, `capacity`, and `datasetKey`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
+
+## Capped stack [#capped-stack]
+
+`capacity` limits the entries on the undo stack. The default is 100. When the stack is full, the oldest entries drop first. `capacity` counts entries, not operations: a paste of 10,000 cells is one entry.
+
+## Read-only grids [#read-only-grids]
+
+A `readOnly` grid refuses writes, so it records nothing. `undo` and `redo` do nothing and keep their entries. `canUndo` stays `true` for entries that exist from before. Bind your buttons to `readOnly` as well:
+
+```tsx
+<button disabled={readOnly || !grid.history.canUndo}
+  onClick={grid.history.undo}>
+  Undo
+</button>
+```
+
+## Server mode
+
+Undo works in every data mode. Entries address rows by row id, so they follow server sort, server filter, and pages.
+
+`onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` returns a promise and the server refuses a change, the grid reverts that change and removes its entry from the stack.
+
+In scroll mode, undo skips rows that are not loaded. In development, it warns once. [Undo with server data](/docs/save-server/undo-server-data) covers the combination.
+
+## Related
+
+- [Undo for code changes](/docs/clipboard-undo/undo-code-changes)
+- [Undo with server data](/docs/save-server/undo-server-data)
+- [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options)
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts)

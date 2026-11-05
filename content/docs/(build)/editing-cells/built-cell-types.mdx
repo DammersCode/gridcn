@@ -1,10 +1,157 @@
 ---
 title: Built-in cell types
-description: Built-in cell types.
+description: Pick a built-in cell type for each column and set its options, such as number format, date picker, select choices, links, and long text.
 type: feature
 aliases: ["number format", "dropdown", "date picker", "select cell", "number cell"]
 ---
 
-{/* docs-stub */}
+A cell type decides how a column shows a value, which editor it opens, and how copied text turns back into a value. gridcn ships seven: `text`, `number`, `checkbox`, `select`, `date`, `url`, and `longText`. Set `type` on the column and pass the type's settings in `options`. A column without `type` uses `text`.
 
-This page is being written.
+The demo opens the two date editors. Press <kbd>Enter</kbd> on a date cell:
+
+<ComponentPreview name="data-grid-date-picker-demo" />
+
+## Types and options [#built-in-cell-types]
+
+{/* props: GridCellTypes */}
+
+| Name | Value | Options |
+|---|---|---|
+| `text` | `string` | None |
+| `number` | `number \| null` | `min`, `max`, `step`, `decimals`, `format`, `locale` |
+| `checkbox` | `boolean` | None |
+| `select` | `string \| null` | `choices` |
+| `date` | ISO `yyyy-mm-dd` string or `null` | `min`, `max`, `displayFormat`, `locale`, `calendarTrigger` |
+| `url` | `string \| null` | `label` |
+| `longText` | `string` | `maxLength`, `placeholder` |
+
+Each type reads and writes text the same way. The cell shows `toDisplayText`, or `toText` when the type has none. Copy and export use `toText`. Sort uses `compare`. [Cell type model](/docs/concepts/cell-type-model) describes the pipeline.
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = {
+  id: string;
+  name: string;
+  age: number | null;
+  active: boolean;
+  role: string | null;
+  joined: string | null;
+};
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    options: { min: 0, max: 120 },
+  },
+  { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+  {
+    id: "role",
+    header: "Role",
+    accessorKey: "role",
+    type: "select",
+    options: {
+      choices: [
+        { value: "admin", label: "Admin" },
+        { value: "user", label: "User" },
+      ],
+    },
+  },
+  { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
+]);
+
+export function People({ people }: { people: Person[] }) {
+  return <DataGrid data={people} columns={columns} />;
+}
+```
+
+Text that a type cannot parse becomes an empty value. A `number` editor commits `null` for `garbage`, and a `date` editor does the same. A column `validate` can refuse the empty value. See [Validation](/docs/editing-cells/validation).
+
+## Number formatting [#number-formatting]
+
+The editor parses a comma as the decimal separator, rounds to `decimals`, and clamps to `min` and `max`. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
+
+`format` takes `Intl.NumberFormatOptions` and `locale` defaults to `"en-US"`. They change only the display. The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per format object.
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Product = { id: string; price: number | null };
+
+const columns = defineColumns<Product>()([
+  {
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
+    type: "number",
+    options: { format: { style: "currency", currency: "USD" } },
+  },
+]);
+```
+
+## Date [#date-specifics]
+
+The stored value and the clipboard text are always ISO `yyyy-mm-dd`. `displayFormat` takes `Intl.DateTimeFormatOptions` and `locale` defaults to `"en-US"`. They change only the display.
+
+The editor is a popover with a typed input and a calendar. The input accepts ISO text or any text that `Date` parses. A text that names no real calendar day or falls outside `min` and `max` becomes an empty value. <kbd>Enter</kbd> commits the typed text and moves down. Picking a day commits and stays in place.
+
+`calendarTrigger` shows the editor as a typed input with a calendar button. The calendar stays closed until the button opens it, and the button toggles it. The button label comes from `labels.grid.dateCalendarAriaLabel`. Without `calendarTrigger`, the calendar opens when the edit starts.
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; due: string | null };
+
+const columns = defineColumns<Task>()([
+  {
+    id: "due",
+    header: "Due",
+    accessorKey: "due",
+    type: "date",
+    options: {
+      displayFormat: { year: "numeric", month: "short", day: "numeric" },
+      locale: "en-US",
+      calendarTrigger: true,
+    },
+  },
+]);
+```
+
+## Select and checkbox [#select-checkbox]
+
+A `select` cell stores the choice `value` and shows its `label`. Display, search, sort, filter, and copy all use the label. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
+
+The grid caches lookups for each `choices` array. Pass a new array to change the choices, and never change the array in place.
+
+A `checkbox` cell toggles in place and has no editor. A locked cell does not toggle. Copy writes `true` or `false`. Paste reads `true`, `1`, `yes`, `x`, and `on` in any letter case as `true`, and any other text as `false`.
+
+## URL links [#url-links]
+
+A `url` cell stores the URL as text and shows it as a link. The link opens in a new tab without a referrer and is not a tab stop. A click on the link only selects the cell. <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd>+click on macOS) opens the link, and a middle-click opens it through the browser. <kbd>Alt</kbd>+<kbd>Enter</kbd> (the `openLink` action) opens the link of the active cell, also in a read-only grid.
+
+`options.label` maps the stored URL to the link text. Copy and export keep the URL.
+
+<Callout type="warn" title="Only http, https, and mailto render as links">
+  The allow-list is fixed. A `javascript:` or `data:` value, a relative value, and a URL longer
+  than 2,048 characters render as plain text, and `openLink` does not open them.
+</Callout>
+
+## Long text [#long-text]
+
+A `longText` cell stores multi-line text as it is. The cell shows one line: the first 500 characters, with line breaks as spaces. The editor is a popover with a textarea that opens over the cell.
+
+<kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
+
+`maxLength` defaults to 100,000. The textarea enforces it while typing. The type's own `validate` rejects pasted, filled, or imported text over 100,000 characters. A column with a smaller `maxLength` needs its own `validate` to reject the same text on those paths.
+
+## Related
+
+- [Editable columns](/docs/editing-cells/editable-columns): the keys each editor reads.
+- [Validation](/docs/editing-cells/validation): reject values by column.
+- [Cell type model](/docs/concepts/cell-type-model): the value pipeline behind every type.
+- [Write a cell type](/docs/recipes-custom-code/write-cell-type): add a type of your own.
+- [Cell types example](/docs/basic-examples/cell-types-example): all types in one grid.

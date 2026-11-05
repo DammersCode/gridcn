@@ -1,9 +1,85 @@
 ---
 title: Toolbar
-description: Toolbar.
+description: Lay out the grid toolbar with quick search, the filter menu, the sort list, the columns menu, and your own buttons.
+icon: PanelTop
 type: feature
+aliases: ["toolbar slots", "button bar"]
 ---
 
-{/* docs-stub */}
+`data-grid-toolbar` is a flex frame for the toolbar of a grid. It renders its children from left to right in the order you write them. Each piece works alone, so dropping one leaves the others in the same relative order. The add-on also ships the pieces that sit in the frame: `DataGridSearch`, `DataGridFilterMenu`, `DataGridColumnsMenu`, and `DataGridHeaderFilter`.
 
-This page is being written.
+<ComponentPreview name="data-grid-filter-operators-demo" />
+
+<InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
+
+## Wiring [#wiring]
+
+The toolbar sits between the provider and the root, so it needs the split form of the grid: `DataGridProvider`, `DataGridRoot`, `DataGridHeader`, and `DataGridBody`. A single `<DataGrid>` has no slot for it:
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridColumnsMenu,
+  DataGridFilterMenu,
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+type Person = { id: string; name: string; age: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+export function PeopleGrid({ rows }: { rows: Person[] }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+    >
+      <DataGridToolbar>
+        <DataGridSearch />
+        <DataGridFilterMenu />
+        <DataGridColumnsMenu />
+      </DataGridToolbar>
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+`DataGridToolbar` takes `className` and `children`. It carries the `data-grid-toolbar` attribute, which scopes the search shortcut to the grid.
+
+## The pieces [#the-pieces]
+
+- `DataGridSearch` is the quick-search input with match navigation. See [Quick search](/docs/sort-filter-search/quick-search).
+- `DataGridFilterMenu` is the filter popover. See [Filtering](/docs/sort-filter-search/filtering#filter-menu).
+- `DataGridSortList` is the sort popover from its own add-on. See [Sorting](/docs/sort-filter-search/sorting#sort-list).
+- `DataGridColumnsMenu` shows and hides columns. Pin controls live in the header menu.
+- `DataGridHeaderFilter` is not a toolbar child. See [Header filter](/docs/sort-filter-search/header-filter).
+
+The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns too. The demo above lists a hidden column in the sort list this way. It also passes `operatorsForColumn` to the filter menu, which limits the Name column to `equals` and `notEquals`.
+
+## Toolbar order [#toolbar-order]
+
+The convention is search first, because users look for data before they shape it. Then come the filter menu and the sort list, which change the rows. Then comes the columns menu. Import and export buttons follow, import first. Your own buttons come last.
+
+## Related
+
+- [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options): the full prop list
+- [Quick search](/docs/sort-filter-search/quick-search): the search input
+- [Filtering](/docs/sort-filter-search/filtering): the filter menu
+- [Column visibility](/docs/columns/column-visibility): what the columns menu changes

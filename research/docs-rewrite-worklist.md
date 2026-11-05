@@ -27,87 +27,88 @@
 | B01 | 1 | `playground` | Playground example | example | move | 300 | yes | yes | `playground` |
 | B01 | 1 | `agent-skills` | Use agent skills | task | move | 800 | yes | decide | `agent-skills` |
 | B29 | 3 | `editing-index` | Editing cells | landing | new | 250 | no | no | none |
-| B02 | 1 | `edit-activation` | Editable columns | feature | split | 700 | yes | carry (max 1 unless variants) | `editing-cell-types` |
-| B02 | 1 | `cell-types` | Built-in cell types | feature | split | 1100 | yes | carry (max 1 unless variants) | `editing-cell-types` |
-| B02 | 1 | `validation` | Validation | feature | split | 900 | yes | carry (max 1 unless variants) | `editing-cell-types` |
-| B02 | 1 | `display-override` | Display override | feature | split | 400 | yes | carry (max 1 unless variants) | `editing-cell-types` |
+| B02 | 1 | `edit-activation` | Editable columns | feature | split | 700 | yes | decide | `editing-cell-types` |
+| B02 | 1 | `cell-types` | Built-in cell types | feature | split | 1100 | yes | decide | `editing-cell-types` |
+| B02 | 1 | `validation` | Validation | feature | split | 900 | yes | decide | `editing-cell-types` |
+| B02 | 1 | `display-override` | Display override | feature | split | 400 | yes | decide | `editing-cell-types` |
 | B02 | 1 | `edit-row-form` | Edit rows in forms | task | move | 530 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B02 | 1 | `auth-gated` | Lock cells by role | task | move | 300 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B29 | 3 | `clipboard-index` | Clipboard and undo | landing | new | 250 | no | no | none |
-| B03 | 1 | `clipboard` | Clipboard | feature | move | 900 | yes | carry (max 1 unless variants) | `clipboard` |
-| B03 | 1 | `fill` | Fill handle | feature | move | 855 | yes | carry (max 1 unless variants) | `addons/fill` |
-| B03 | 1 | `undo-redo` | Undo and redo | feature | split | 900 | yes | carry (max 1 unless variants) | `addons/undo-redo` |
-| B03 | 1 | `undo-programmatic` | Undo for code changes | feature | split | 600 | yes | carry (max 1 unless variants) | `addons/undo-redo` |
+| B03 | 1 | `clipboard` | Clipboard | feature | move | 900 | yes | decide | `clipboard` |
+| B03 | 1 | `fill` | Fill handle | feature | move | 855 | yes | decide | `addons/fill` |
+| B03 | 1 | `undo-redo` | Undo and redo | feature | split | 900 | yes | decide | `addons/undo-redo` |
+| B03 | 1 | `undo-programmatic` | Undo for code changes | feature | split | 600 | yes | decide | `addons/undo-redo` |
 | B29 | 3 | `selection-index` | Selection and shortcuts | landing | new | 250 | no | no | none |
-| B04 | 1 | `pointer-selection` | Pointer selection | feature | split | 800 | yes | carry (max 1 unless variants) | `selection-keyboard` |
-| B04 | 1 | `checked-rows` | Checked rows | feature | split | 600 | yes | carry (max 1 unless variants) | `selection-keyboard` |
-| B04 | 1 | `keyboard-nav` | Keyboard navigation | feature | split | 900 | yes | carry (max 1 unless variants) | `selection-keyboard` |
-| B04 | 1 | `global-shortcuts` | Global shortcuts | feature | move | 850 | yes | carry (max 1 unless variants) | `global-shortcuts` |
-| B04 | 1 | `keybindings` | Shortcut remapping | feature | move | 1200 | yes | carry (max 1 unless variants) | `addons/keybindings` |
-| B04 | 1 | `status-bar` | Status bar | feature | move | 550 | yes | carry (max 1 unless variants) | `addons/status-bar` |
+| B04 | 1 | `pointer-selection` | Pointer selection | feature | split | 800 | yes | decide | `selection-keyboard` |
+| B04 | 1 | `checked-rows` | Checked rows | feature | split | 600 | yes | decide | `selection-keyboard` |
+| B04 | 1 | `keyboard-nav` | Keyboard navigation | feature | split | 900 | yes | decide | `selection-keyboard` |
+| B04 | 1 | `global-shortcuts` | Global shortcuts | feature | move | 850 | yes | decide | `global-shortcuts` |
+| B04 | 1 | `keybindings` | Shortcut remapping | feature | move | 1200 | yes | decide | `addons/keybindings` |
+| B04 | 1 | `status-bar` | Status bar | feature | move | 550 | yes | decide | `addons/status-bar` |
 | B29 | 3 | `sfs-index` | Sort, filter, and search | landing | new | 250 | no | no | none |
-| B05 | 1 | `sorting` | Sorting | feature | split+merge | 1200 | yes | carry (max 1 unless variants) | `sorting-filtering-search`, `addons/sort-list` |
-| B05 | 1 | `filtering` | Filtering | feature | split | 700 | yes | carry (max 1 unless variants) | `sorting-filtering-search` |
-| B05 | 1 | `header-filter` | Header filter | feature | split | 450 | yes | carry (max 1 unless variants) | `addons/toolbar` |
-| B05 | 1 | `toolbar` | Toolbar | feature | split | 800 | yes | carry (max 1 unless variants) | `addons/toolbar` |
-| B05 | 1 | `quick-search` | Quick search | feature | split | 450 | yes | carry (max 1 unless variants) | `sorting-filtering-search` |
-| B05 | 1 | `find-replace` | Find and replace | feature | move | 1100 | yes | carry (max 1 unless variants) | `addons/find-replace` |
-| B05 | 1 | `url-state` | URL state | feature | move | 1000 | yes | carry (max 1 unless variants) | `addons/url-state`, `url-state-options` |
+| B05 | 1 | `sorting` | Sorting | feature | split+merge | 1200 | yes | decide | `sorting-filtering-search`, `addons/sort-list` |
+| B05 | 1 | `filtering` | Filtering | feature | split | 700 | yes | decide | `sorting-filtering-search` |
+| B05 | 1 | `header-filter` | Header filter | feature | split | 450 | yes | decide | `addons/toolbar` |
+| B05 | 1 | `toolbar` | Toolbar | feature | split | 800 | yes | decide | `addons/toolbar` |
+| B05 | 1 | `quick-search` | Quick search | feature | split | 450 | yes | decide | `sorting-filtering-search` |
+| B05 | 1 | `find-replace` | Find and replace | feature | move | 1100 | yes | decide | `addons/find-replace` |
+| B05 | 1 | `url-state` | URL state | feature | move | 1000 | yes | decide | `addons/url-state`, `url-state-options` |
 | B29 | 3 | `rows-index` | Rows, pages, and menus | landing | new | 250 | no | no | none |
-| B06 | 1 | `row-operations` | Row operations | feature | split | 1100 | yes | carry (max 1 unless variants) | `row-operations` |
-| B06 | 1 | `row-reorder` | Row order | feature | split | 600 | yes | carry (max 1 unless variants) | `row-operations` |
-| B06 | 1 | `row-markers` | Row markers | feature | split | 500 | yes | carry (max 1 unless variants) | `row-operations` |
-| B06 | 1 | `pinned-rows` | Pinned rows | feature | move | 1100 | yes | carry (max 1 unless variants) | `addons/pinned-rows` |
-| B06 | 1 | `pagination-client` | Client pagination | feature | split | 700 | yes | carry (max 1 unless variants) | `pagination` |
-| B06 | 1 | `context-menu` | Context menu | feature | move | 1000 | yes | carry (max 1 unless variants) | `addons/context-menu` |
+| B06 | 1 | `row-operations` | Row operations | feature | split | 1100 | yes | decide | `row-operations` |
+| B06 | 1 | `row-reorder` | Row order | feature | split | 600 | yes | decide | `row-operations` |
+| B06 | 1 | `row-markers` | Row markers | feature | split | 500 | yes | decide | `row-operations` |
+| B06 | 1 | `pinned-rows` | Pinned rows | feature | move | 1100 | yes | decide | `addons/pinned-rows` |
+| B06 | 1 | `pagination-client` | Client pagination | feature | split | 700 | yes | decide | `pagination` |
+| B06 | 1 | `context-menu` | Context menu | feature | move | 1000 | yes | decide | `addons/context-menu` |
 | B29 | 3 | `columns-index` | Columns | landing | new | 250 | no | no | none |
-| B07 | 1 | `column-sizing` | Column sizing | feature | split | 800 | yes | carry (max 1 unless variants) | `columns` |
-| B07 | 1 | `column-order-pin` | Column order and pinning | feature | split | 700 | yes | carry (max 1 unless variants) | `columns` |
-| B07 | 1 | `column-headers` | Column headers and groups | feature | split | 600 | yes | carry (max 1 unless variants) | `columns` |
-| B07 | 1 | `column-visibility` | Column visibility | feature | split | 600 | yes | carry (max 1 unless variants) | `columns` |
+| B07 | 1 | `column-sizing` | Column sizing | feature | split | 800 | yes | decide | `columns` |
+| B07 | 1 | `column-order-pin` | Column order and pinning | feature | split | 700 | yes | decide | `columns` |
+| B07 | 1 | `column-headers` | Column headers and groups | feature | split | 600 | yes | decide | `columns` |
+| B07 | 1 | `column-visibility` | Column visibility | feature | split | 600 | yes | decide | `columns` |
 | B29 | 3 | `look-index` | Theme, style, and language | landing | new | 250 | no | no | none |
-| B25 | 2 | `style-tokens` | Colors and radius | feature | split+new | 900 | yes | carry (max 1 unless variants) | `styling-theming` |
-| B07 | 1 | `style-overrides` | Style overrides | feature | split | 700 | yes | carry (max 1 unless variants) | `styling-theming` |
-| B07 | 1 | `style-density` | Density and small screens | feature | split | 700 | yes | carry (max 1 unless variants) | `styling-theming` |
-| B07 | 1 | `loading-state` | Loading state | feature | split | 350 | yes | carry (max 1 unless variants) | `styling-theming` |
-| B07 | 1 | `i18n` | Labels and i18n | feature | merge | 1000 | yes | carry (max 1 unless variants) | `i18n`, `styling-theming` |
+| B25 | 2 | `style-tokens` | Colors and radius | feature | split+new | 900 | yes | decide | `styling-theming` |
+| B07 | 1 | `style-overrides` | Style overrides | feature | split | 700 | yes | decide | `styling-theming` |
+| B07 | 1 | `style-density` | Density and small screens | feature | split | 700 | yes | decide | `styling-theming` |
+| B07 | 1 | `loading-state` | Loading state | feature | split | 350 | yes | decide | `styling-theming` |
+| B07 | 1 | `i18n` | Labels and i18n | feature | merge | 1000 | yes | decide | `i18n`, `styling-theming` |
 | B29 | 3 | `io-index` | Import and export | landing | new | 250 | no | no | none |
-| B08 | 1 | `export` | Export | feature | split+merge | 900 | yes | carry (max 1 unless variants) | `addons/import-export` |
-| B08 | 1 | `import` | Import | feature | split+merge | 1000 | yes | carry (max 1 unless variants) | `addons/import-export` |
+| B08 | 1 | `export` | Export | feature | split+merge | 900 | yes | decide | `addons/import-export` |
+| B08 | 1 | `import` | Import | feature | split+merge | 1000 | yes | decide | `addons/import-export` |
 | B29 | 3 | `extend-index` | Recipes and custom code | landing | new | 250 | no | no | none |
-| B08 | 1 | `custom-cell-example` | Write a cell type | task | split | 800 | yes | carry (max 1 unless variants) | `custom-cell-types` |
+| B08 | 1 | `custom-cell-example` | Write a cell type | task | split | 800 | yes | decide | `custom-cell-types` |
 | B08 | 1 | `plugins-example` | Write a plugin | task | split | 600 | yes | decide | `plugins` |
-| B08 | 1 | `detail-panel` | Open a detail panel | task | move | 500 | yes | carry (max 1 unless variants) | `recipes/ui-patterns/*`, `recipes/editing/*` |
+| B08 | 1 | `detail-panel` | Open a detail panel | task | move | 500 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B08 | 1 | `bulk-actions` | Run bulk actions | task | move | 335 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B08 | 1 | `multiple-grids` | Link multiple grids | task | move | 300 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B08 | 1 | `remember-view` | Remember filters and layout | task | move | 300 | yes | decide | `recipes/ui-patterns/*`, `recipes/editing/*` |
 | B30 | 3 | `server-index` | Data modes | landing | new | 350 | no | no | `data-modes` |
 | B09 | 1 | `data-modes` | Data mode support | reference | move | 900 | table+sample | no | `data-modes` |
-| B09 | 1 | `scroll-fetch-libs` | Fetch with a cache | task | move | 800 | yes | carry (max 1 unless variants) | `lazy-loading-advanced`, `recipes/data-fetching/tanstack-query`, `examples/data/lazy/*`, `examples/data/pagination/*` |
-| B09 | 1 | `server-sort-filter` | Query server rows | task | merge+split | 800 | yes | carry (max 1 unless variants) | `sorting-filtering-search`, `recipes/data-fetching/server-side-sort-filter`, `lazy-loading` |
-| B26 | 2 | `server-troubleshooting` | Troubleshoot server data | task | new | 800 | yes | carry (max 1 unless variants) | `data-modes`, `lazy-loading` |
+| B09 | 1 | `scroll-fetch-libs` | Fetch with a cache | task | move | 800 | yes | decide | `lazy-loading-advanced`, `recipes/data-fetching/tanstack-query`, `examples/data/lazy/*`, `examples/data/pagination/*` |
+| B09 | 1 | `server-sort-filter` | Query server rows | task | merge+split | 800 | yes | decide | `sorting-filtering-search`, `recipes/data-fetching/server-side-sort-filter`, `lazy-loading` |
+| B26 | 2 | `server-troubleshooting` | Troubleshoot server data | task | new | 800 | yes | decide | `data-modes`, `lazy-loading` |
 | B30 | 3 | `pages-index` | Server pagination | landing | new | 250 | no | no | none |
-| B26 | 2 | `pagination` | Load rows by page | task | rewrite | 800 | yes | carry (max 1 unless variants) | `pagination` |
-| B09 | 1 | `pagination-url` | Keep pages in URL | task | split | 350 | yes | carry (max 1 unless variants) | `pagination` |
+| B26 | 2 | `pagination` | Load rows by page | task | rewrite | 800 | yes | decide | `pagination` |
+| B09 | 1 | `pagination-url` | Keep pages in URL | task | split | 350 | yes | decide | `pagination` |
 | B30 | 3 | `scroll-index` | Scroll mode | landing | new | 300 | no | no | none |
-| B09 | 1 | `scroll-usage` | Load rows while scrolling | task | split+merge | 700 | yes | carry (max 1 unless variants) | `lazy-loading` |
-| B09 | 1 | `scroll-no-total` | Load without row count | task | split | 350 | yes | carry (max 1 unless variants) | `lazy-loading` |
-| B09 | 1 | `scroll-errors` | Recover from load errors | task | merge | 500 | yes | carry (max 1 unless variants) | `lazy-loading`, `lazy-loading-advanced` |
-| B09 | 1 | `scroll-retention` | Tune row retention | task | split | 350 | yes | carry (max 1 unless variants) | `lazy-loading` |
+| B09 | 1 | `scroll-usage` | Load rows while scrolling | task | split+merge | 700 | yes | decide | `lazy-loading` |
+| B09 | 1 | `scroll-no-total` | Load without row count | task | split | 350 | yes | decide | `lazy-loading` |
+| B09 | 1 | `scroll-errors` | Recover from load errors | task | merge | 500 | yes | decide | `lazy-loading`, `lazy-loading-advanced` |
+| B09 | 1 | `scroll-retention` | Tune row retention | task | split | 350 | yes | decide | `lazy-loading` |
 | B30 | 3 | `saving-index` | Save to a server | landing | new | 250 | no | no | none |
-| B26 | 2 | `server-saves` | Save edits | task | new | 800 | yes | carry (max 1 unless variants) | `events-state`, `data-modes` |
-| B10 | 1 | `server-round-trip` | Save and revert | task | move | 800 | yes | carry (max 1 unless variants) | `recipes/data-fetching/server-round-trip` |
-| B10 | 1 | `server-conflicts` | Handle refused saves | task | split | 500 | yes | carry (max 1 unless variants) | `recipes/data-fetching/server-round-trip` |
-| B10 | 1 | `server-errors` | Show errors on cells | task | split | 500 | yes | carry (max 1 unless variants) | `editing-cell-types` |
-| B10 | 1 | `server-undo` | Undo with server data | task | split | 700 | yes | carry (max 1 unless variants) | `addons/undo-redo` |
+| B26 | 2 | `server-saves` | Save edits | task | new | 800 | yes | decide | `events-state`, `data-modes` |
+| B10 | 1 | `server-round-trip` | Save and revert | task | move | 800 | yes | decide | `recipes/data-fetching/server-round-trip` |
+| B10 | 1 | `server-conflicts` | Handle refused saves | task | split | 500 | yes | decide | `recipes/data-fetching/server-round-trip` |
+| B10 | 1 | `server-errors` | Show errors on cells | task | split | 500 | yes | decide | `editing-cell-types` |
+| B10 | 1 | `server-undo` | Undo with server data | task | split | 700 | yes | decide | `addons/undo-redo` |
 | B30 | 3 | `server-rows-index` | Rows and live data | landing | new | 250 | no | no | none |
-| B10 | 1 | `server-row-ops` | Change server rows | task | split | 800 | yes | carry (max 1 unless variants) | `row-operations`, `data-modes` |
-| B10 | 1 | `server-selection` | Select server rows | task | split+merge | 800 | yes | carry (max 1 unless variants) | `selection-keyboard`, `lazy-loading` |
-| B10 | 1 | `streaming` | Stream updates | task | move | 800 | yes | carry (max 1 unless variants) | `streaming-updates` |
-| B10 | 1 | `presence` | Show presence | task | move | 800 | yes | carry (max 1 unless variants) | `addons/presence` |
+| B10 | 1 | `server-row-ops` | Change server rows | task | split | 800 | yes | decide | `row-operations`, `data-modes` |
+| B10 | 1 | `server-selection` | Select server rows | task | split+merge | 800 | yes | decide | `selection-keyboard`, `lazy-loading` |
+| B10 | 1 | `streaming` | Stream updates | task | move | 800 | yes | decide | `streaming-updates` |
+| B10 | 1 | `presence` | Show presence | task | move | 800 | yes | decide | `addons/presence` |
 | B10 | 1 | `presence-broadcast` | Broadcast your selection | task | move | 345 | yes | decide | `addons/broadcasting-presence` |
 | B31 | 3 | `evaluate-index` | Fit and features | landing | new | 300 | no | no | none |
 | G | 3 | `feature-matrix` | Feature matrix | cheatsheet | new (generated) | 900 | no | no | `data-modes`, `addons/index` |
+| G | 3 | `addons-az` | Add-ons A to Z | cheatsheet | new (generated) | 700 | no | no | none |
 | P | 3 | `performance` | Performance | landing | new | 350 | no | no | `performance`, `performance/index` |
 | P | 2 | `benchmark-results` | Benchmark results | reference | new | 900 | table+sample | no | `performance/benchmark-results` |
 | P | 2 | `run-benchmark` | Run the benchmark | task | new | 600 | yes | decide | `performance/run-it-yourself` |
@@ -226,4 +227,4 @@
 | B22 | 1 | `ex-loading` | Loading state example | example | move | 260 | yes | yes | `examples/**` |
 | B22 | 1 | `ex-rtl` | Right-to-left example | example | move | 360 | yes | yes | `examples/**` |
 
-225 pages in 34 batches.
+226 pages in 34 batches.

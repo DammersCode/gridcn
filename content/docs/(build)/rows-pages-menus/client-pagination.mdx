@@ -1,10 +1,156 @@
 ---
 title: Client pagination
-description: Client pagination.
+description: Split a local array into pages with a pager footer, and learn what sort, filter, search, edits, and selection do on a page.
 type: feature
 aliases: ["pagination", "paging", "client pagination", "page size"]
+icon: ListOrdered
 ---
 
-{/* docs-stub */}
+Readers who want a numbered page, a page size, and a "21-40 of 240" label need a pager. `useDataGridPagination` slices an array that you hold in memory into pages. `DataGridPaginationBar` renders the footer. The grid receives only the current page. If your server returns one page per request, see [Load rows by page](/docs/server-pagination/load-rows-page).
 
-This page is being written.
+<ComponentPreview name="data-grid-pagination-demo" />
+
+<InstallCommand item="data-grid-pagination" manual manualSlot={<ManualInstall item="data-grid-pagination" />} />
+
+## Paginate a local array
+
+Pass the whole array as `data`. The hook returns `pageData`, the rows of the current page, and `pager`, everything that the footer needs:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+  useDataGridPagination,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+function OrdersGrid({ rows }: { rows: Order[] }) {
+  const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
+
+  return (
+    <>
+      <DataGrid data={pageData ?? []} columns={columns} />
+      <DataGridPaginationBar {...pager} />
+    </>
+  );
+}
+```
+
+The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. Pass `onPageSizeChange` alone to observe a change from the footer select.
+
+If the data shrinks, the hook clamps the page into range. A page-size change keeps the first visible row on screen.
+
+{/* props: UseDataGridPaginationClientOptions */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `data` | `readonly TData[]` | required |
+| `defaultPageSize` | `number` | first of `pageSizeOptions` |
+| `pageSize` | `number` | none |
+| `pageSizeOptions` | `readonly number[]` | `[10, 25, 50, 100]` |
+| `defaultPage` | `number` | `1` |
+| `page` | `number` | none |
+| `onPageChange` | `(page: number) => void` | none |
+| `onPageSizeChange` | `(pageSize: number) => void` | none |
+
+## Everything is page-local
+
+The grid never sees rows from other pages. The footer still shows the count of the whole array.
+
+- **Sort, filter, and search** work on the current page only. A search for a row on another page finds nothing.
+- **Edits** reach `onDataChange` as the page slice. Merge the slice back into your full dataset by row id. Do not pass the slice to a setter that owns the whole dataset, because that drops every other row.
+- **Inserts and deletes** change the page slice too. Apply `change.ops` to your full dataset by row id.
+- **Checked rows** follow their row ids. A page change drops the checks of rows that left the page. With `keepCheckedRows` and `keepHiddenCheckedRows`, the grid remembers them by row id and checks them again when the page returns.
+- **Streaming patches** reach rows on the current page only. `updateCells` lists the other rows in `skipped` with the reason `"unknown-row"`. Apply the feed to your full dataset and let `data` follow.
+- **Totals** from [pinned rows](/docs/rows-pages-menus/pinned-rows) cover the page.
+
+This handler merges edits into the full dataset:
+
+```tsx
+import { useCallback, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridPagination } from "@/components/data-grid-pagination/data-grid-pagination";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+function EditableOrders({ initial }: { initial: Order[] }) {
+  const [rows, setRows] = useState(initial);
+  const { pageData } = useDataGridPagination({ data: rows });
+
+  const onDataChange = useCallback((next: readonly Order[]) => {
+    setRows((prev) => {
+      const edited = new Map(next.map((row) => [row.id, row]));
+      return prev.map((row) => edited.get(row.id) ?? row);
+    });
+  }, []);
+
+  return <DataGrid data={pageData ?? []} columns={columns} onDataChange={onDataChange} />;
+}
+```
+
+To clear every selection on a page change, set `key={pager.page}` on the grid. The key change remounts it.
+
+## The pager footer
+
+`DataGridPaginationBar` takes the `pager` object, plus these props:
+
+{/* props: DataGridPaginationBarProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `className` | `string` | none |
+| `labels` | `Partial<DataGridPaginationLabels>` | `labels.pagination` defaults |
+| `windowSize` | `number` | `5` |
+| `children` | `ReactNode` | the default layout |
+
+The default layout has a range label, a page-size select, first and previous buttons, a sliding window of page numbers, and next and last buttons. The window stays centered on the current page. The footer does not read the grid store, so it works inside or outside `DataGridProvider`. Its root carries `data-grid-pagination`.
+
+With `children`, the bar renders only the parts that you pass. This footer has no page numbers:
+
+```tsx
+import {
+  DataGridPaginationBar,
+  DataGridPaginationFirst,
+  DataGridPaginationLast,
+  DataGridPaginationNext,
+  DataGridPaginationPrev,
+  DataGridPaginationRange,
+  type DataGridPaginationControls,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+function CompactBar({ pager }: { pager: DataGridPaginationControls }) {
+  return (
+    <DataGridPaginationBar {...pager}>
+      <DataGridPaginationRange />
+      <div className="flex items-center gap-1">
+        <DataGridPaginationFirst />
+        <DataGridPaginationPrev />
+        <DataGridPaginationNext />
+        <DataGridPaginationLast />
+      </div>
+    </DataGridPaginationBar>
+  );
+}
+```
+
+The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The strings come from `labels.pagination`. See [Labels](/docs/components-props/labels).
+
+## Server mode
+
+Client mode slices `data` itself. For server data, pass `page`, `pageSize`, `totalRowCount`, and `onPageChange` instead. You fetch each page. The hook returns `pageData` as `undefined`, and `DataGridPaginationBar` renders the same footer. [Load rows by page](/docs/server-pagination/load-rows-page) owns the detail. [Keep pages in the URL](/docs/server-pagination/keep-pages-url) covers a page in the address bar.
+
+## Related
+
+- [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options): the full option list
+- [Load rows by page](/docs/server-pagination/load-rows-page): the server mode of this hook
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): totals on a page
+- [Checked rows](/docs/selection-shortcuts/checked-rows): `keepCheckedRows` across pages

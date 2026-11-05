@@ -1,9 +1,100 @@
 ---
 title: Pointer selection
-description: Pointer selection.
+description: Select cell ranges, rows, and columns with a mouse, a pen, or a finger, and choose what a header click does.
 type: feature
+aliases: ["mouse selection", "drag to select", "touch selection", "header click"]
 ---
 
-{/* docs-stub */}
+Users select cells, rows, and columns with the pointer. A press and drag paints a rectangular range. A marker press selects a row. A header press selects a column. Four `enable*` props switch these channels off, and `headerClickBehavior` decides what a header click does.
 
-This page is being written.
+<ComponentPreview name="data-grid-demo" />
+
+## Mouse gestures
+
+A mouse or a pen uses these gestures:
+
+- Press a cell and drag. The grid paints a rectangular range from the pressed cell to the pointer, in any direction. It scrolls while the pointer sits near an edge.
+- <kbd>Shift</kbd>+click extends the range from the anchor cell to the clicked cell.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click adds a new range to the stack.
+- Press a column header and drag to select adjacent columns. <kbd>Shift</kbd>+click extends from the last selected column. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click adds a column.
+- Press a row marker and drag to check rows. Drag back over checked rows to shrink the range.
+
+The marker gestures are in [Checked rows](/docs/selection-shortcuts/checked-rows#checking-a-range-of-rows). The `reorder` marker modes move a row only from the drag handle, and that drag leaves the selection as it was. A drag from the number or the checkbox still selects.
+
+## Touch gestures
+
+A touch screen scrolls natively. The grid reads the input type of each press, so a laptop with a touch screen gets touch gestures from the screen and mouse gestures from the trackpad.
+
+| Gesture | Result |
+|---|---|
+| Tap a cell | Selects the cell. A scroll or a pan selects nothing. |
+| Tap a checkbox cell | Toggles the checkbox. |
+| Double-tap a cell | Starts editing, or toggles a checkbox cell. A read-only grid does not edit. |
+| Tap a column header | Selects the column. With `headerClickBehavior="sort"`, it sorts the column. |
+| Tap a row marker | Selects the row. |
+| Long-press (500 ms) a cell or a header | Fires a `contextmenu` event. The [context menu](/docs/rows-pages-menus/context-menu) add-on opens its menu. |
+| Drag a selection handle | Extends the range from the opposite corner. The grid scrolls at the edges. |
+
+After a touch selection, two handles appear at the top-start and bottom-end corners of the range. Any key press hides them. A press that moves more than 10 px counts as a pan, not a tap.
+
+The grid root sets `touch-action: manipulation`. For targets that are easier to hit, use `density="comfortable"`.
+
+## Header click behavior
+
+`headerClickBehavior` picks what a plain header click does:
+
+| Value | A plain header click |
+|---|---|
+| `"select"` | Selects the whole column. A press and drag selects adjacent columns. |
+| `"sort"` | Cycles the column through ascending, descending, and unsorted. <kbd>Shift</kbd>+click adds the column to a multi-sort. |
+| `"none"` | Does nothing. |
+
+Column selection works only in `"select"` mode. In the other two modes a column header press selects no column. Set `"none"` when a sort list or your own UI drives the sort. A column with `sortable: false` never sorts on click. [Sorting](/docs/sort-filter-search/sorting) covers the sort itself.
+
+The following example sorts on a header click:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; age: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+] as const);
+
+export function People({ rows }: { rows: Person[] }) {
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      headerClickBehavior="sort"
+    />
+  );
+}
+```
+
+## Pointer props
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+|---|---|---|
+| `enableRangeSelection` | `boolean` | `true` |
+| `enableMultiRange` | `boolean` | `true` |
+| `enableColumnSelection` | `boolean` | `true` |
+| `enableRowSelection` | `boolean` | `true` |
+| `headerClickBehavior` | `"select" \| "sort" \| "none"` | `"select"` |
+
+- `enableRangeSelection={false}` limits a cell drag and <kbd>Shift</kbd>+click to the active cell.
+- `enableMultiRange={false}` turns <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click into a plain click.
+- `enableColumnSelection={false}` makes a header press do nothing.
+- `enableRowSelection={false}` makes a marker press do nothing.
+
+## Related
+
+- [Checked rows](/docs/selection-shortcuts/checked-rows): marker gestures and row ranges
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the same selection from the keyboard
+- [Selection model](/docs/concepts/selection-model): the channels behind these gestures
+- [Sorting](/docs/sort-filter-search/sorting): what `"sort"` mode runs
