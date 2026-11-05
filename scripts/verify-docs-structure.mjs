@@ -44,6 +44,7 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     const isLanding = type === "landing" || (file.endsWith("index.mdx") && !type);
     const title = frontField(front, "title");
     const description = frontField(front, "description");
+    if (body.includes("docs-stub")) failures.push(`${here}: the page is still a stub`);
     if (!title) failures.push(`${here}: no title`);
     else {
       if (title.length > MAX_TITLE) failures.push(`${here}: title is ${title.length} characters, limit ${MAX_TITLE}`);

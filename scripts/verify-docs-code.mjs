@@ -3,7 +3,7 @@
 // The first sample of a page is checked alone, without placeholder names; later blocks may use `data`, `columns` and similar free names.
 // Usage: node scripts/verify-docs-code.mjs [--root <dir>] [--files a.mdx,b.mdx]
 import { execFileSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -103,7 +103,14 @@ export function run({ root = process.cwd(), files } = {}) {
       if (reason === "") failures.push(`${path}:${start}: fragment needs a reason: fragment="why"`);
       if (reason !== undefined) {
         if (reason.startsWith("needs ")) {
+          const pkg = reason.slice(6).trim();
+          const packageName = pkg.startsWith("@") ? pkg.split("/").slice(0, 2).join("/") : pkg.split("/")[0];
+          const specifiers = [...block.code.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
+          if (!specifiers.some((spec) => spec === pkg || spec.startsWith(`${pkg}/`))) failures.push(`${path}:${start}: the block does not import ${pkg}`);
+          else if (existsSync(join(root, "node_modules", packageName))) failures.push(`${path}:${start}: ${pkg} is installed; remove the needs marker`);
           total--;
+          const own = block.code.match(/^import\s[\s\S]*?\sfrom\s+["']@\/[^"']+["'];?/gm);
+          if (own) blocks.push({ ...block, lang: "ts", code: own.join("\n"), file, path, start });
           continue;
         }
         fragments++;
@@ -179,7 +186,7 @@ export function run({ root = process.cwd(), files } = {}) {
       continue;
     }
     failing++;
-    const first = errors[0];
+    const first = errors.find((e) => !(e.code === "TS2307" && isRelative(e))) ?? errors[0];
     failures.push(`${block.path}:${block.start + first.line - 2}: ${first.code} ${first.message}`);
   }
   return { name: "code", checked: blocks.length, fragments, failing, external, failures, warnings: [] };

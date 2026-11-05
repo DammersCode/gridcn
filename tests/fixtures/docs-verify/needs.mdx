@@ -1,0 +1,40 @@
+---
+title: Needs fixture
+description: Fixture for the needs marker of fragments.
+---
+
+An honest marker for a package the repo lacks:
+
+```tsx fragment="needs not-installed-pkg"
+import { thing } from "not-installed-pkg";
+import { DataGridRoot } from "@/components/data-grid/data-grid";
+
+void thing;
+void DataGridRoot;
+```
+
+A marker for a package the block does not import:
+
+```tsx fragment="needs left-pad-missing"
+import { DataGridRoot } from "@/components/data-grid/data-grid";
+
+void DataGridRoot;
+```
+
+A marker for an installed package:
+
+```tsx fragment="needs react"
+import { useState } from "react";
+
+void useState;
+```
+
+A marker that hides a missing registry import:
+
+```tsx fragment="needs not-installed-pkg"
+import { thing } from "not-installed-pkg";
+import { Nope } from "@/components/data-grid/does-not-exist";
+
+void thing;
+void Nope;
+```

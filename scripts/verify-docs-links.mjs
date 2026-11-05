@@ -44,7 +44,8 @@ function targetsOf(file, text) {
     for (const m of text.matchAll(/\]\(([^)\s]+)/g)) add(m[1], m.index);
     for (const m of text.matchAll(/\bhref=["']([^"']+)["']/g)) add(m[1], m.index);
   }
-  for (const m of text.matchAll(/https:\/\/gridcn\.vercel\.app\/docs[\w./#-]*/g)) {
+  for (const m of text.matchAll(/`(\/docs(?:\/[\w./#-]*)?)`/g)) add(m[1].replace(/[.,;:]+$/, ""), m.index);
+  for (const m of text.matchAll(/https?:\/\/gridcn\.vercel\.app\/docs[\w./#-]*/g)) {
     if (text[m.index + m[0].length] === "<") continue;
     add(m[0].replace(/[.,;:]+$/, ""), m.index);
   }

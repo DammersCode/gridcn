@@ -47,12 +47,12 @@ const checks = {
 
 const contentDir = join(root, "content/docs");
 const pageUrl = (file) => urlOfPage(contentDir, join(root, file));
-const isGlobal = (f) => /^(baseline:|migration:|content\/docs-changes\.json|scripts\/docs-nav-audit|the audit failed|cannot compare|next\.config\.mjs:)/.test(f);
+const isGlobal = (f) => /^(baseline:|migration:|work list .* not found|content\/docs-changes\.json|scripts\/docs-nav-audit|the audit failed|cannot compare|next\.config\.mjs:)/.test(f);
 const results = [];
 for (const name of only) {
   const result = await checks[name]();
   if (files) {
-    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || isGlobal(f) || (name === "demos" && !f.startsWith("content/docs/")));
+    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && new RegExp(` ${pageUrl(file).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[#\\s.]|$)`).test(f))) || isGlobal(f) || (name === "demos" && !f.startsWith("content/docs/")));
   }
   results.push(result);
 }
