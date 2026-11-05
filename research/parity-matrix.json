@@ -765,7 +765,7 @@
         "Z": {
           "status": "gap",
           "track": "IMP",
-          "note": "Appended rows fight `total`."
+          "note": "Rows that `onImport` appends to `data` conflict with the row total that the server reports. Send the rows to the server and load the rows again."
         },
         "C": {
           "status": "n/a",
@@ -1219,7 +1219,7 @@
         "FS": {
           "status": "gap",
           "track": "N2",
-          "note": "Deep-linked set-filter values outside static `choices` are dropped."
+          "note": "A deep-linked set-filter list keeps at most as many values as the static `choices` of the column, and at least 64. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
         },
         "API": {
           "status": "supported",
@@ -1483,7 +1483,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/load-rows-while-scrolling.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
           ]
         },
@@ -1651,7 +1651,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/load-without-row-count.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
             "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx"
           ]
@@ -1763,7 +1763,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/data-modes/fetch-cache.mdx",
+            "content/docs/(server)/scroll-mode/recover-load-errors.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },

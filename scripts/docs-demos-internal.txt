@@ -1,3 +1,8 @@
 # Registered examples that no docs page embeds on purpose. One per line, reason after #.
 data-grid-delete-confirm-demo # the Confirm a delete sample on Row operations shows the same dialog
 data-grid-context-menu-slots-demo # the Custom menu items samples on Context menu show the same resolvers
+data-grid-announcements-demo # announcements need a screen reader to observe; sr-announcements.browser.test.tsx covers the live region
+data-grid-lazy-react-query-demo # the Cache scroll blocks sample on Fetch with a cache shows the same wiring; remove when the cache example pages embed it
+data-grid-lazy-swr-demo # the Cache scroll blocks sample on Fetch with a cache shows the same wiring; remove when the cache example pages embed it
+data-grid-pagination-react-query-demo # the Cache pages sample on Fetch with a cache shows the same wiring; remove when the cache example pages embed it
+data-grid-pagination-swr-demo # the Cache pages sample on Fetch with a cache shows the same wiring; remove when the cache example pages embed it

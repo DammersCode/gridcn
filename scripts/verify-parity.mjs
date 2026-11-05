@@ -113,7 +113,7 @@ export function renderParityPage(matrix) {
   const lines = [
     "---",
     "title: Data mode support",
-    "description: Which grid features work with which data source, and where a known gap remains.",
+    "description: Look up which grid features work in each data mode, and where a known gap remains.",
     "icon: Table",
     "type: reference",
     "---",

@@ -1,5 +1,5 @@
 // Runs every docs validator and prints one line per check plus the first failures.
-// Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,audit]
+// Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,coverage,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
 //   [--final]  the definition-of-done run: strict props, a type on every page, Related on every page, the work list, demo warnings as failures
 //   [--warnings] [--all] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--base <git ref>] [--json]
@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { capped, normalizeFile, urlOfPage } from "./docs-verify-lib.mjs";
 import { run as runCode } from "./verify-docs-code.mjs";
+import { run as runCoverage } from "./verify-docs-coverage.mjs";
 import { run as runDemos } from "./verify-docs-demos.mjs";
 import { run as runLinks } from "./verify-docs-links.mjs";
 import { run as runProps } from "./verify-docs-props.mjs";
@@ -23,7 +24,7 @@ const final = has("--final");
 const DEFAULT_WORKLIST = "research/docs-rewrite-worklist.json";
 
 const files = has("--files") ? arg("--files").split(",").map((f) => normalizeFile(f, root)) : undefined;
-const only = has("--only") ? arg("--only").split(",") : ["links", "code", "props", "symbols", "demos", "prose", "structure", "audit"];
+const only = has("--only") ? arg("--only").split(",") : ["links", "code", "props", "symbols", "demos", "prose", "structure", "coverage", "audit"];
 
 function runAudit() {
   const script = has("--audit") ? arg("--audit") : join(root, "scripts/docs-nav-audit.mjs");
@@ -42,6 +43,11 @@ const checks = {
   demos: () => runDemos({ root, strictRules: final }),
   prose: () => runProse({ root, files }),
   structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist, base: has("--base") ? arg("--base") : undefined }),
+  coverage: () => {
+    const result = runCoverage({ root });
+    if (!final) return { ...result, failures: [], warnings: result.failures };
+    return result;
+  },
   audit: runAudit,
 };
 

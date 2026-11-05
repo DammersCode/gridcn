@@ -180,7 +180,11 @@ Live branches in the last run: `feat/pin-start-end` 31, `feat/sr-announcements` 
 | Generator coder | Sonnet, reviewed by Opus | One generator spec each | Script and tests |
 | Whole-site reviewer | Opus, two personas | Built site or sources, scoring file | Scores per task and dimension |
 
-Loop per batch: writer, scripts, verifier, fix, verifier again. Two fix rounds at most; then the integrator rewrites the page.
+Loop per batch: writer, scripts, then rounds. Each round is a new reviewer with a fresh context. A round with the five dimensions at zero
+(facts against the code, correctness against other pages, gaps with the coverage check, understanding, other conditions) leads to the
+closing round: three fresh reviewers in parallel (the verifier brief, a beginner who reads the pages cold and answers task questions,
+and a senior who checks precision and completeness). The batch closes when all three return zero findings of any severity. After six
+rounds without convergence the integrator stops and reports what keeps being found. The log of rounds is in section 10.
 Up to 6 writers run at once (the compile step is CPU heavy). Expected size: 34 batches (22 in wave 1, 5 in wave 2, 7 landing batches), 8
 generator tasks, 1 link-sync task, plus fix rounds: about 50 writer runs and 90 verifier runs.
 
@@ -327,7 +331,7 @@ From the worktree run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}
 
 Fill the slots (`FILES`, `FILES_CSV`, `ROWS`, `REPORT`, `BASELINE_REF`), then hand it to an Opus verifier. The verifier never edits batch pages beyond mechanical fixes.
 
-You verify the work of a docs writer. You did not write it. Default to rejecting when unsure. You may fix mechanical defects yourself (typos, a wrong anchor, a missing `fragment` reason); everything else goes back as a finding. Never edit pages other than the batch pages. No AI attribution anywhere. English only.
+You review the work of a docs writer with a fresh context: you did not write it and you have not seen earlier rounds. Default to rejecting when unsure. The batch closes only when a full round returns zero findings of any severity, nits included (each nit is fixed or answered with a written reason). You may fix mechanical defects yourself (typos, a wrong anchor, a missing `fragment` reason); everything else goes back as a finding. Never edit pages other than the batch pages. No AI attribution anywhere. English only.
 
 Slots the orchestrator fills: `{{FILES}}`, `{{FILES_CSV}}`, `{{ROWS}}` (work-list rows), `{{REPORT}}` (the writer report: treat every claim in it as unproven).
 
@@ -336,7 +340,7 @@ Run `node scripts/docs-verify.mjs --final --files {{FILES_CSV}} --warnings --aud
 
 ## Step 2: claims against code
 For each page take every behavioral claim (default, what a callback receives, when it fires, server-mode request and response, shortcut, limit, what a warning prints) and open the source or the test that proves it. Record `claim -> file:line -> ok | wrong | unprovable`. At least 10 per page (all under 10). Words "never", "always", "nothing" need proof for every case. Wrong or unprovable blocks.
-Then diff against the original (`git show HEAD:<file>`): every dropped fact is wrong (cite code) or must stay. Every kept old claim gets the same proof as a new one.
+Then diff against the original (`git show {{BASELINE_REF}}:<old page>`, never HEAD, which already holds the writer's pass): every dropped fact is wrong (cite code) or must stay. Every kept old claim gets the same proof as a new one.
 Dry-read every code sample: does it compile (the validator turns free names into `any`, so it does not prove this), run when pasted with the stated install, and produce what the prose says?
 
 ## Step 3: reader checks (named, with pass rules)
@@ -348,16 +352,37 @@ Dry-read every code sample: does it compile (the validator turns free names into
 - External reader: no history, no rejected alternatives, no editor behavior, no plan ids.
 - Parity (rows with parity ids): each non-`n/a` cell of `research/parity-matrix.json` is true as written; a `gap` cell reads as a gap; the server-mode request and response are the real ones.
 - Links: Related has 1 to 5 working links; P10 links exist; anchors you link exist.
-- Search: aliases are words a reader types that the page does not use; the title leads with the key word.
+- Search: the aliases of the work-list row stay (they name the page that owns each reader word, even when the page uses the word); extra aliases are words a reader types that the page does not use; the title leads with the key word.
+
+## Step 3b: coverage (gaps)
+Run `node scripts/docs-verify.mjs --only coverage --all` and take the names that belong to your batch's area. Every public export, option, prop, event, command, shortcut, add-on, and registry item of the area must appear on a page, or be listed in `scripts/docs-undocumented.txt` with a reason. Check each `research/parity-matrix.json` feature of the area for a client and a server statement. Read the old pages (`git show {{BASELINE_REF}}:<old page>`) and the tests of the area: a behavior a reader can hit, a known limit, an error, or an edge case that the code or a test pins and the page lacks is a gap. A fact that was valid in the old text and is missing now is a gap.
+
+## Step 3c: contradictions
+Search the other pages of the docs, `GLOSSARY.md`, `CHANGELOG.md`, and the parity matrix for statements on the same facts. A contradiction is a finding.
 
 ## Step 4: return exactly this
 ```
 verdict: accept | fix | reject
 machine: <summary lines>
 claims: <n checked, n wrong, n unprovable>   (list the wrong ones with file:line)
-findings: [{file, line, rule, problem, suggestedText, mustFix: true|false}]
+findings: [{dimension: facts|correctness|gaps|understanding|other, file, line, rule, problem, evidence, suggestedText, mustFix: true|false}]
+counts: {facts: n, correctness: n, gaps: n, understanding: n, other: n}
 fixed_by_me: <list>
 product_bugs: <behavior that looks wrong in the library, file:line>
 process_notes: <what the brief or the validators got wrong or missed>
 ```
-`mustFix` findings block. Nits never block twice. After the writer fixes, you run again; a round with no mustFix is the pass.
+Every finding counts, nits included; `mustFix` only orders the work. The round passes only with all five counts at zero. After the writer fixes, a new reviewer with a fresh context runs the same brief.
+
+## 10. Review loop log
+
+One row per round. Counts are findings by dimension: facts / correctness / gaps / understanding / other. The rule: a batch closes
+when one closing round (verifier, beginner, senior; all fresh) returns zero findings of any severity.
+
+| Batch | Round | Reviewer | Findings (f / c / g / u / o) | Result |
+|---|---|---|---|---|
+| B02 | 1, 2 | Opus verifier | 12 + 12 nits, then accept with 3 nits | closed under the old rule; needs the new loop |
+| B03 | 1, 2 | Opus verifier | 12, then 1 | closed under the old rule; needs the new loop |
+| B04 | 1, 2 | Opus verifier | 14 + 11 nits, then 2 | closed under the old rule; needs the new loop |
+| B05 | 1, 2 | Opus verifier | 15 + 9 nits, then accept with 1 nit | closed under the old rule; needs the new loop |
+| B06 | 1, 2 | Opus verifier | 13 + 10 nits, then accept with 4 nits | closed under the old rule; needs the new loop |
+| B07 | 1, 2 | Opus verifier | 6 + 10 nits, then accept with 3 nits | open |

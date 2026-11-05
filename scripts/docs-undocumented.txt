@@ -1,0 +1,2 @@
+# Public names that no docs page mentions on purpose. One per line (Name or Type.member), reason after #.
+DataSourceState # the type of the status, loading, error, retry and refresh fields of useDataGridServerRows, described field by field on the scroll-mode pages
