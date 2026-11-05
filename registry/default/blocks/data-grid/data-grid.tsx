@@ -88,7 +88,6 @@ export {
   type SelectLineActionOptions,
   type CellPatch,
   type RowPatch,
-  type DeleteRowsByIdOptions,
   type UpdateCellsOptions,
   type UpdateCellsReorder,
   type UpdateCellsSkip,

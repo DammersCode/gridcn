@@ -11,7 +11,6 @@ export type {
   SelectLineActionOptions,
   CellPatch,
   RowPatch,
-  DeleteRowsByIdOptions,
   UpdateCellsOptions,
   UpdateCellsReorder,
   UpdateCellsSkip,
