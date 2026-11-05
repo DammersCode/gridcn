@@ -152,7 +152,7 @@ The reshape request is the plain refresh request. Your server sees no new field.
 - A spec change, a page size change, or a `refresh()` call cancels the pending timer, because each of them fetches the rows anyway.
 - A reshape restarts the `revalidateInterval` clock. A sequential source skips a reshape while the rendered rows end beyond 10 blocks.
 - If the reshape request fails, the marks stay and the error bar shows. `retry()` repeats the failed blocks.
-- A row stops being stale when the answer delivers it again. An answer that holds a pushed row after the request left lays the pushed cells over its copy of the row. A push before the request left loses to the answer.
+- A row stops being stale when the answer delivers it again. An answer that holds a pushed row after the request left lays the pushed cells over its copy of the row. A push before the request left loses to the answer. A row that holds such a pushed value in a column of the sort or filter stops being stale, because the answer delivered it. The next push or reshape marks it again.
 - A push delete during a request drops the answer's copy of the row.
 - A push to a row that is not loaded is skipped with reason `unknown-row`. The next block brings the server value.
 
