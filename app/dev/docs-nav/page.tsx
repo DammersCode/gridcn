@@ -5,16 +5,16 @@ import { CANDIDATES } from "./_lib";
 
 const SCORES: Record<string, { beginner: string; senior: string; pros: string; cons: string }> = {
   a: {
-    beginner: "8.25",
-    senior: "7.5",
-    pros: "Every title says what the reader does; task pages stay at or below 800 words; best beginner scores.",
-    cons: "Most pages; concepts sit apart from tasks; senior cognitive load 6.",
+    beginner: "8.81",
+    senior: "8.63",
+    pros: "Best scores on both personas in the last rounds; a feature page keeps concept, options and examples together; learning path 9.5 with the beginner.",
+    cons: "Feature pages run 900 to 1,200 words; several groups sit at 7 pages; server pages stay feature-shaped.",
   },
   b: {
-    beginner: "n/a",
-    senior: "7.75",
-    pros: "Fewest rows per view; a feature page keeps concept, props and examples together.",
-    cons: "Long feature pages; several groups at 8 pages; server pages shaped differently from client pages.",
+    beginner: "8.44",
+    senior: "8.47",
+    pros: "Every title says what the reader does; task pages stay at or below 800 words; lookups live on reference pages.",
+    cons: "Lowest consistency and growth scores (8 each); concepts sit apart from tasks; option tables move to reference pages.",
   },
   c: {
     beginner: "n/a",
@@ -24,7 +24,7 @@ const SCORES: Record<string, { beginner: string; senior: string; pros: string; c
   },
 };
 
-const METRIC_KEY: Record<string, string> = { a: "tasks", b: "topics", c: "fourAreas" };
+const METRIC_KEY: Record<string, string> = { a: "topics", b: "tasks", c: "fourAreas" };
 
 export default function Page() {
   const metrics = JSON.parse(readFileSync(join(process.cwd(), "research/docs-navigation/metrics.json"), "utf8"));

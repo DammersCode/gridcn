@@ -111,18 +111,20 @@ if (unknown.size) {
 }
 
 const PRIMARY = {
-  "project-status": "version-policy", "quick-start": "first-grid", installation: "install", index: "index",
-  "addons/sort-list": "sort-list", "api-reference": "ref-index", "events-state": "events-index",
-  "selection-keyboard": "select-index", "custom-cell-types": "extend-index", plugins: "extend-index",
-  "recipes/data-fetching": "server-index", "lazy-loading": "scroll-index", "lazy-loading-advanced": "scroll-fetch-libs",
-  "addons/import-export": "io-index", "addons/toolbar": "toolbar", "addons/undo-redo": "undo-redo",
-  "editing-cell-types": "edit-index", columns: "layout-index", "styling-theming": "look-index", "row-operations": "rows-index",
-  "sorting-filtering-search": "sfs-index", accessibility: "a11y-index", performance: "performance",
+  "project-status": ["version-policy"], "quick-start": ["first-grid"], installation: ["install"], index: ["index"],
+  "addons/sort-list": ["sorting", "sort-list"], "api-reference": ["ref-index"], "events-state": ["events-index"],
+  "selection-keyboard": ["select-index", "selection-index"], "custom-cell-types": ["extend-index"], plugins: ["extend-index"],
+  "recipes/data-fetching": ["server-index"], "lazy-loading": ["scroll-index"], "lazy-loading-advanced": ["scroll-fetch-libs"],
+  "addons/import-export": ["io-index"], "addons/toolbar": ["toolbar"], "addons/undo-redo": ["undo-redo"],
+  "editing-cell-types": ["edit-index", "editing-index"], columns: ["layout-index", "columns-index"], "styling-theming": ["look-index"],
+  "row-operations": ["rows-index"], "sorting-filtering-search": ["sfs-index"], accessibility: ["a11y-index"], performance: ["performance"],
 };
+const firstKnown = (list) => list?.find((x) => bySlug.has(x));
 const rows = oldPages.map((old) => {
   const key = old.replace(/\/index$/, "");
-  const preferred = PRIMARY[key] ?? key.split("/").pop();
-  const slugs = [...new Set([...(PRIMARY[key] ? [PRIMARY[key]] : []), ...(map.get(old) ?? [])])]
+  const forced = firstKnown(PRIMARY[key]);
+  const preferred = forced ?? key.split("/").pop();
+  const slugs = [...new Set([...(forced ? [forced] : []), ...(map.get(old) ?? [])])]
     .filter((s) => bySlug.has(s))
     .sort((a, b) => (b === preferred ? 1 : 0) - (a === preferred ? 1 : 0));
   const primary = slugs.length ? bySlug.get(slugs[0]) : null;

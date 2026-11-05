@@ -192,6 +192,246 @@
   "mean": 7.75
  },
  {
+  "run": "score-c15-beginner-r7",
+  "persona": "beginner",
+  "navigation": "c15-tasks-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8
+  },
+  "mean": 8.38
+ },
+ {
+  "run": "score-c15-senior-r7a",
+  "persona": "senior",
+  "navigation": "c15-tasks-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 8.5,
+   "D8": 8
+  },
+  "mean": 8.31
+ },
+ {
+  "run": "score-c15-senior-r7b",
+  "persona": "senior",
+  "navigation": "c15-tasks-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 8.5,
+   "D8": 7.5
+  },
+  "mean": 8.25
+ },
+ {
+  "run": "score-c16-beginner-r7",
+  "persona": "beginner",
+  "navigation": "c16-topics-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8.5,
+   "D3": 8,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8
+  },
+  "mean": 8.31
+ },
+ {
+  "run": "score-c16-senior-r7a",
+  "persona": "senior",
+  "navigation": "c16-topics-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8,
+   "D3": 8,
+   "D4": 8,
+   "D5": 8.5,
+   "D6": 7.5,
+   "D7": 8.5,
+   "D8": 7.5
+  },
+  "mean": 8
+ },
+ {
+  "run": "score-c16-senior-r7b",
+  "persona": "senior",
+  "navigation": "c16-topics-v2",
+  "scores": {
+   "D1": 8,
+   "D2": 8,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8,
+   "D6": 7.5,
+   "D7": 8.5,
+   "D8": 7.5
+  },
+  "mean": 8.06
+ },
+ {
+  "run": "score-c17-beginner-r8",
+  "persona": "beginner",
+  "navigation": "c17-tasks-v3",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8
+  },
+  "mean": 8.44
+ },
+ {
+  "run": "score-c17-senior-r8a",
+  "persona": "senior",
+  "navigation": "c17-tasks-v3",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8
+  },
+  "mean": 8.44
+ },
+ {
+  "run": "score-c17-senior-r8b",
+  "persona": "senior",
+  "navigation": "c17-tasks-v3",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8.5
+  },
+  "mean": 8.5
+ },
+ {
+  "run": "score-c18-beginner-r8",
+  "persona": "beginner",
+  "navigation": "c18-topics-v3",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 9,
+   "D4": 9,
+   "D5": 8.5,
+   "D6": 8.5,
+   "D7": 9,
+   "D8": 8.5
+  },
+  "mean": 8.69
+ },
+ {
+  "run": "score-c18-senior-r8a",
+  "persona": "senior",
+  "navigation": "c18-topics-v3",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8
+  },
+  "mean": 8.44
+ },
+ {
+  "run": "score-c18-senior-r8b",
+  "persona": "senior",
+  "navigation": "c18-topics-v3",
+  "scores": {
+   "D1": 8,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8.5,
+   "D6": 8,
+   "D7": 9,
+   "D8": 8.5
+  },
+  "mean": 8.44
+ },
+ {
+  "run": "score-c19-beginner-r9",
+  "persona": "beginner",
+  "navigation": "c19-topics-v4",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 9,
+   "D4": 9.5,
+   "D5": 8.5,
+   "D6": 8.5,
+   "D7": 9,
+   "D8": 9
+  },
+  "mean": 8.81
+ },
+ {
+  "run": "score-c19-senior-r9a",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 9,
+   "D4": 8.5,
+   "D5": 9,
+   "D6": 8.5,
+   "D7": 9,
+   "D8": 9
+  },
+  "mean": 8.75
+ },
+ {
+  "run": "score-c19-senior-r9b",
+  "persona": "senior",
+  "navigation": "c19-topics-v4",
+  "scores": {
+   "D1": 8.5,
+   "D2": 8.5,
+   "D3": 8.5,
+   "D4": 8.5,
+   "D5": 8,
+   "D6": 8,
+   "D7": 9,
+   "D8": 9
+  },
+  "mean": 8.5
+ },
+ {
   "run": "score-c2-senior-r1",
   "persona": "senior",
   "navigation": "c2-topics-evaluate",

@@ -21,23 +21,23 @@
   "sending-your-selection": "/docs/rows-live-data/broadcast-your-selection#sending-your-selection"
  },
  "/docs/addons/context-menu": {
-  "header-surface": "/docs/rows/add-context-menu#header-surface",
-  "cell-surface-row-operation-items": "/docs/rows/add-context-menu#cell-surface-row-operation-items",
-  "custom-menu-items": "/docs/rows/add-context-menu#custom-menu-items",
-  "touch": "/docs/rows/add-context-menu#touch",
-  "paste-permission": "/docs/rows/add-context-menu#paste-permission",
-  "internationalization": "/docs/rows/add-context-menu#internationalization",
-  "related": "/docs/rows/add-context-menu#related"
+  "header-surface": "/docs/rows-menus/context-menu#header-surface",
+  "cell-surface-row-operation-items": "/docs/rows-menus/context-menu#cell-surface-row-operation-items",
+  "custom-menu-items": "/docs/rows-menus/context-menu#custom-menu-items",
+  "touch": "/docs/rows-menus/context-menu#touch",
+  "paste-permission": "/docs/rows-menus/context-menu#paste-permission",
+  "internationalization": "/docs/rows-menus/context-menu#internationalization",
+  "related": "/docs/rows-menus/context-menu#related"
  },
  "/docs/addons/fill": {
-  "wiring-it-up": "/docs/clipboard-history/fill-cells#wiring-it-up",
-  "tiling-vs-series-inference": "/docs/clipboard-history/fill-cells#tiling-vs-series-inference",
-  "forcing-a-plain-copy": "/docs/clipboard-history/fill-cells#forcing-a-plain-copy",
-  "custom-series-detection": "/docs/clipboard-history/fill-cells#custom-series-detection",
-  "keyboard-fill": "/docs/clipboard-history/fill-cells#keyboard-fill",
-  "touch": "/docs/clipboard-history/fill-cells#touch",
-  "turning-fill-off": "/docs/clipboard-history/fill-cells#turning-fill-off",
-  "onfill": "/docs/clipboard-history/fill-cells#onfill"
+  "wiring-it-up": "/docs/clipboard-history/fill-handle#wiring-it-up",
+  "tiling-vs-series-inference": "/docs/clipboard-history/fill-handle#tiling-vs-series-inference",
+  "forcing-a-plain-copy": "/docs/clipboard-history/fill-handle#forcing-a-plain-copy",
+  "custom-series-detection": "/docs/clipboard-history/fill-handle#custom-series-detection",
+  "keyboard-fill": "/docs/clipboard-history/fill-handle#keyboard-fill",
+  "touch": "/docs/clipboard-history/fill-handle#touch",
+  "turning-fill-off": "/docs/clipboard-history/fill-handle#turning-fill-off",
+  "onfill": "/docs/clipboard-history/fill-handle#onfill"
  },
  "/docs/addons/find-replace": {
   "find": "/docs/sort-filter-search/find-replace#find",
@@ -51,39 +51,39 @@
   "related": "/docs/sort-filter-search/find-replace#related"
  },
  "/docs/addons/import-export": {
-  "export": "/docs/import-export-views/export-data#export",
-  "print": "/docs/import-export-views/export-data#print",
-  "import": "/docs/import-export-views/import-data#import",
-  "choose-a-file": "/docs/import-export-views/import-data#choose-a-file",
-  "header-row": "/docs/import-export-views/import-data#header-row",
-  "delimiter": "/docs/import-export-views/import-data#delimiter",
-  "map-columns": "/docs/import-export-views/import-data#map-columns",
-  "preview": "/docs/import-export-views/import-data#preview",
-  "confirm": "/docs/import-export-views/import-data#confirm",
-  "excel-files": "/docs/import-export-views/import-data#excel-files",
-  "import-limits": "/docs/import-export-views/import-data#import-limits",
-  "import-options": "/docs/import-export-views/import-data#import-options",
-  "dropzone": "/docs/import-export-views/import-data#dropzone",
-  "styling-hooks": "/docs/import-export-views/import-data#styling-hooks",
-  "lower-level-pieces": "/docs/import-export-views/import-data#lower-level-pieces"
+  "export": "/docs/import-export-views/export#export",
+  "print": "/docs/import-export-views/export#print",
+  "import": "/docs/import-export-views/import#import",
+  "choose-a-file": "/docs/import-export-views/import#choose-a-file",
+  "header-row": "/docs/import-export-views/import#header-row",
+  "delimiter": "/docs/import-export-views/import#delimiter",
+  "map-columns": "/docs/import-export-views/import#map-columns",
+  "preview": "/docs/import-export-views/import#preview",
+  "confirm": "/docs/import-export-views/import#confirm",
+  "excel-files": "/docs/import-export-views/import#excel-files",
+  "import-limits": "/docs/import-export-views/import#import-limits",
+  "import-options": "/docs/import-export-views/import#import-options",
+  "dropzone": "/docs/import-export-views/import#dropzone",
+  "styling-hooks": "/docs/import-export-views/import#styling-hooks",
+  "lower-level-pieces": "/docs/import-export-views/import#lower-level-pieces"
  },
  "/docs/addons": {},
  "/docs/addons/keybindings": {
-  "the-dialog": "/docs/select-navigate/rebind-keys#the-dialog",
-  "binding-chips": "/docs/select-navigate/rebind-keys#binding-chips",
-  "shortcut-labels-for-your-own-ui": "/docs/select-navigate/rebind-keys#shortcut-labels-for-your-own-ui",
-  "remapping": "/docs/select-navigate/rebind-keys#remapping",
-  "custom-commands": "/docs/select-navigate/rebind-keys#custom-commands",
-  "related": "/docs/select-navigate/rebind-keys#related"
+  "the-dialog": "/docs/selection-keys/keybindings#the-dialog",
+  "binding-chips": "/docs/selection-keys/keybindings#binding-chips",
+  "shortcut-labels-for-your-own-ui": "/docs/selection-keys/keybindings#shortcut-labels-for-your-own-ui",
+  "remapping": "/docs/selection-keys/keybindings#remapping",
+  "custom-commands": "/docs/selection-keys/keybindings#custom-commands",
+  "related": "/docs/selection-keys/keybindings#related"
  },
  "/docs/addons/pinned-rows": {
-  "wiring-it-up": "/docs/rows/pin-rows#wiring-it-up",
-  "api": "/docs/rows/pin-rows#api",
-  "computing-a-totals-row": "/docs/rows/pin-rows#computing-a-totals-row",
-  "custom-reducers": "/docs/rows/pin-rows#custom-reducers",
-  "manual-computation": "/docs/rows/pin-rows#manual-computation",
-  "geometry": "/docs/rows/pin-rows#geometry",
-  "a11y": "/docs/rows/pin-rows#a11y"
+  "wiring-it-up": "/docs/rows-menus/pinned-rows#wiring-it-up",
+  "api": "/docs/rows-menus/pinned-rows#api",
+  "computing-a-totals-row": "/docs/rows-menus/pinned-rows#computing-a-totals-row",
+  "custom-reducers": "/docs/rows-menus/pinned-rows#custom-reducers",
+  "manual-computation": "/docs/rows-menus/pinned-rows#manual-computation",
+  "geometry": "/docs/rows-menus/pinned-rows#geometry",
+  "a11y": "/docs/rows-menus/pinned-rows#a11y"
  },
  "/docs/addons/presence": {
   "api": "/docs/rows-live-data/show-other-users#api",
@@ -95,44 +95,44 @@
   "broadcasting-your-selection": "/docs/rows-live-data/show-other-users#broadcasting-your-selection"
  },
  "/docs/addons/sort-list": {
-  "keyboard--accessibility": "/docs/sort-filter-search/use-sort-list#keyboard--accessibility",
-  "related": "/docs/sort-filter-search/use-sort-list#related"
+  "keyboard--accessibility": "/docs/sort-filter-search/sorting#keyboard--accessibility",
+  "related": "/docs/sort-filter-search/sorting#related"
  },
  "/docs/addons/status-bar": {
-  "which-cells-count": "/docs/columns-layout/add-status-bar#which-cells-count",
-  "which-values-count": "/docs/columns-layout/add-status-bar#which-values-count",
-  "display-and-formatting": "/docs/columns-layout/add-status-bar#display-and-formatting",
-  "when-it-computes": "/docs/columns-layout/add-status-bar#when-it-computes",
-  "props": "/docs/columns-layout/add-status-bar#props",
-  "related": "/docs/columns-layout/add-status-bar#related"
+  "which-cells-count": "/docs/selection-keys/status-bar#which-cells-count",
+  "which-values-count": "/docs/selection-keys/status-bar#which-values-count",
+  "display-and-formatting": "/docs/selection-keys/status-bar#display-and-formatting",
+  "when-it-computes": "/docs/selection-keys/status-bar#when-it-computes",
+  "props": "/docs/selection-keys/status-bar#props",
+  "related": "/docs/selection-keys/status-bar#related"
  },
  "/docs/addons/toolbar": {
-  "wiring": "/docs/sort-filter-search/add-toolbar#wiring",
-  "the-pieces": "/docs/sort-filter-search/add-toolbar#the-pieces",
-  "filter-menu-keyboard--accessibility": "/docs/sort-filter-search/filter-headers#filter-menu-keyboard--accessibility",
-  "header-filter": "/docs/sort-filter-search/filter-headers#header-filter",
-  "server-values": "/docs/sort-filter-search/filter-headers#server-values",
-  "related": "/docs/sort-filter-search/add-toolbar#related"
+  "wiring": "/docs/sort-filter-search/toolbar#wiring",
+  "the-pieces": "/docs/sort-filter-search/toolbar#the-pieces",
+  "filter-menu-keyboard--accessibility": "/docs/sort-filter-search/header-filter#filter-menu-keyboard--accessibility",
+  "header-filter": "/docs/sort-filter-search/header-filter#header-filter",
+  "server-values": "/docs/sort-filter-search/header-filter#server-values",
+  "related": "/docs/sort-filter-search/toolbar#related"
  },
  "/docs/addons/undo-redo": {
-  "how-it-works": "/docs/clipboard-history/undo-redo-edits#how-it-works",
-  "quick-start-usedatagridstate": "/docs/clipboard-history/undo-redo-edits#quick-start-usedatagridstate",
-  "composable-usedatagridhistory": "/docs/clipboard-history/undo-redo-edits#composable-usedatagridhistory",
+  "how-it-works": "/docs/clipboard-history/undo-redo#how-it-works",
+  "quick-start-usedatagridstate": "/docs/clipboard-history/undo-redo#quick-start-usedatagridstate",
+  "composable-usedatagridhistory": "/docs/clipboard-history/undo-redo#composable-usedatagridhistory",
   "programmatic-changes-record": "/docs/clipboard-history/undo-code-changes#programmatic-changes-record",
   "which-changes-are-recorded": "/docs/clipboard-history/undo-code-changes#which-changes-are-recorded",
   "rolling-back-a-failed-save": "/docs/save-server/undo-server-data#rolling-back-a-failed-save",
-  "capped-stack": "/docs/clipboard-history/undo-redo-edits#capped-stack",
+  "capped-stack": "/docs/clipboard-history/undo-redo#capped-stack",
   "dataset-changes": "/docs/clipboard-history/undo-code-changes#dataset-changes",
-  "read-only-grids": "/docs/clipboard-history/undo-redo-edits#read-only-grids",
+  "read-only-grids": "/docs/clipboard-history/undo-redo#read-only-grids",
   "with-scroll-mode": "/docs/save-server/undo-server-data#with-scroll-mode",
-  "related": "/docs/clipboard-history/undo-redo-edits#related"
+  "related": "/docs/clipboard-history/undo-redo#related"
  },
  "/docs/addons/url-state": {
-  "usage": "/docs/import-export-views/share-view#usage",
-  "prefix": "/docs/import-export-views/share-view#prefix",
-  "behavior": "/docs/import-export-views/share-view#behavior",
-  "column-layout": "/docs/import-export-views/share-view#column-layout",
-  "pagination": "/docs/import-export-views/share-view#pagination"
+  "usage": "/docs/import-export-views/url-state#usage",
+  "prefix": "/docs/import-export-views/url-state#prefix",
+  "behavior": "/docs/import-export-views/url-state#behavior",
+  "column-layout": "/docs/import-export-views/url-state#column-layout",
+  "pagination": "/docs/import-export-views/url-state#pagination"
  },
  "/docs/agent-skills": {
   "skills": "/docs/try-automate/agent-skills#skills",
@@ -157,45 +157,45 @@
   "usecelleditorprops-codec": "/docs/contracts/cell-type-contract#usecelleditorprops-codec",
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
-  "operation-engine": "/docs/types-hooks/operation-engine#operation-engine",
-  "add-on-option-types": "/docs/add-options/history-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/history-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/history-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/history-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/history-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/history-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/history-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/history-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/history-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/history-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/history-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/history-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/history-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/history-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/history-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/history-options#usedatagridpinnedrowsoptions"
+  "operation-engine": "/docs/contracts/operation-engine#operation-engine",
+  "add-on-option-types": "/docs/add-options/undo-fill-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/undo-fill-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/undo-fill-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/undo-fill-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/undo-fill-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/undo-fill-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/undo-fill-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/undo-fill-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/undo-fill-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/undo-fill-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/undo-fill-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/undo-fill-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/undo-fill-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/undo-fill-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/undo-fill-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/undo-fill-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
-  "copy": "/docs/clipboard-history/copy-paste-cells#copy",
-  "formula-sanitizing": "/docs/clipboard-history/copy-paste-cells#formula-sanitizing",
-  "paste": "/docs/clipboard-history/copy-paste-cells#paste",
-  "overrides": "/docs/clipboard-history/copy-paste-cells#overrides",
-  "context-menu-paste": "/docs/clipboard-history/copy-paste-cells#context-menu-paste",
-  "known-limitations": "/docs/clipboard-history/copy-paste-cells#known-limitations"
+  "copy": "/docs/clipboard-history/clipboard#copy",
+  "formula-sanitizing": "/docs/clipboard-history/clipboard#formula-sanitizing",
+  "paste": "/docs/clipboard-history/clipboard#paste",
+  "overrides": "/docs/clipboard-history/clipboard#overrides",
+  "context-menu-paste": "/docs/clipboard-history/clipboard#context-menu-paste",
+  "known-limitations": "/docs/clipboard-history/clipboard#known-limitations"
  },
  "/docs/columns": {
-  "resize": "/docs/columns-layout/size-columns#resize",
-  "autosize": "/docs/columns-layout/size-columns#autosize",
-  "reorder": "/docs/columns-layout/order-pin-columns#reorder",
-  "pin-startend": "/docs/columns-layout/order-pin-columns#pin-startend",
-  "persistent-pin-indicator": "/docs/columns-layout/order-pin-columns#persistent-pin-indicator",
-  "custom-headers": "/docs/columns-layout/group-column-headers#custom-headers",
-  "header-cell-contents": "/docs/columns-layout/group-column-headers#header-cell-contents",
-  "column-groups": "/docs/columns-layout/group-column-headers#column-groups",
-  "visibility": "/docs/columns-layout/hide-columns#visibility",
-  "flex-fill": "/docs/columns-layout/size-columns#flex-fill",
-  "reading-column-state": "/docs/columns-layout/hide-columns#reading-column-state",
-  "persisting-a-users-layout": "/docs/columns-layout/hide-columns#persisting-a-users-layout"
+  "resize": "/docs/columns/column-sizing#resize",
+  "autosize": "/docs/columns/column-sizing#autosize",
+  "reorder": "/docs/columns/column-order-pinning#reorder",
+  "pin-startend": "/docs/columns/column-order-pinning#pin-startend",
+  "persistent-pin-indicator": "/docs/columns/column-order-pinning#persistent-pin-indicator",
+  "custom-headers": "/docs/columns/column-headers-groups#custom-headers",
+  "header-cell-contents": "/docs/columns/column-headers-groups#header-cell-contents",
+  "column-groups": "/docs/columns/column-headers-groups#column-groups",
+  "visibility": "/docs/columns/column-visibility#visibility",
+  "flex-fill": "/docs/columns/column-sizing#flex-fill",
+  "reading-column-state": "/docs/columns/column-visibility#reading-column-state",
+  "persisting-a-users-layout": "/docs/columns/column-visibility#persisting-a-users-layout"
  },
  "/docs/custom-cell-types": {
   "the-mental-model": "/docs/concepts/cell-type-model#the-mental-model",
@@ -205,12 +205,12 @@
   "rendering--performance": "/docs/concepts/cell-type-model#rendering--performance",
   "editor-ux": "/docs/concepts/cell-type-model#editor-ux",
   "typing": "/docs/concepts/cell-type-model#typing",
-  "worked-example-a-currency-cell-type": "/docs/extend-gridcn/build-currency-cell#worked-example-a-currency-cell-type",
-  "testing-your-cell-type": "/docs/extend-gridcn/build-currency-cell#testing-your-cell-type"
+  "worked-example-a-currency-cell-type": "/docs/extend-compose/build-cell-type#worked-example-a-currency-cell-type",
+  "testing-your-cell-type": "/docs/extend-compose/build-cell-type#testing-your-cell-type"
  },
  "/docs/data-modes": {
-  "data-modes": "/docs/choose-data-mode#data-modes",
-  "matrix": "/docs/choose-data-mode#matrix",
+  "data-modes": "/docs/data-modes#data-modes",
+  "matrix": "/docs/data-modes#matrix",
   "notes": "/docs/rows-live-data/change-server-rows#notes",
   "sort": "/docs/rows-live-data/change-server-rows#sort",
   "filter-set-values": "/docs/rows-live-data/change-server-rows#filter-set-values",
@@ -234,24 +234,24 @@
   "one-server-data-source-usedatagridserverrows": "/docs/rows-live-data/change-server-rows#one-server-data-source-usedatagridserverrows",
   "error-state-and-retry": "/docs/rows-live-data/change-server-rows#error-state-and-retry",
   "debounced-text-inputs": "/docs/rows-live-data/change-server-rows#debounced-text-inputs",
-  "related": "/docs/choose-data-mode/features-data-mode#related"
+  "related": "/docs/data-modes/features-data-mode#related"
  },
  "/docs/editing-cell-types": {
-  "edit-activation": "/docs/edit-data/control-cell-editing#edit-activation",
-  "built-in-cell-types": "/docs/edit-data/choose-cell-type#built-in-cell-types",
-  "date-specifics": "/docs/edit-data/choose-cell-type#date-specifics",
-  "number-formatting": "/docs/edit-data/choose-cell-type#number-formatting",
-  "url-links": "/docs/edit-data/choose-cell-type#url-links",
-  "long-text": "/docs/edit-data/choose-cell-type#long-text",
-  "read-only": "/docs/edit-data/control-cell-editing#read-only",
-  "validation": "/docs/edit-data/validate-cells#validation",
-  "soft-rules-oninvalid": "/docs/edit-data/validate-cells#soft-rules-oninvalid",
-  "transforms-are-committed": "/docs/edit-data/validate-cells#transforms-are-committed",
-  "async-schemas": "/docs/edit-data/validate-cells#async-schemas",
-  "cross-field-rules-validaterow": "/docs/edit-data/validate-cells#cross-field-rules-validaterow",
+  "edit-activation": "/docs/editing-cells/edit-activation#edit-activation",
+  "built-in-cell-types": "/docs/editing-cells/built-cell-types#built-in-cell-types",
+  "date-specifics": "/docs/editing-cells/built-cell-types#date-specifics",
+  "number-formatting": "/docs/editing-cells/built-cell-types#number-formatting",
+  "url-links": "/docs/editing-cells/built-cell-types#url-links",
+  "long-text": "/docs/editing-cells/built-cell-types#long-text",
+  "read-only": "/docs/editing-cells/edit-activation#read-only",
+  "validation": "/docs/editing-cells/validation#validation",
+  "soft-rules-oninvalid": "/docs/editing-cells/validation#soft-rules-oninvalid",
+  "transforms-are-committed": "/docs/editing-cells/validation#transforms-are-committed",
+  "async-schemas": "/docs/editing-cells/validation#async-schemas",
+  "cross-field-rules-validaterow": "/docs/editing-cells/validation#cross-field-rules-validaterow",
   "server-errors": "/docs/save-server/show-server-errors#server-errors",
-  "display-override-without-a-new-type": "/docs/edit-data/override-cell-display#display-override-without-a-new-type",
-  "custom-cell-types": "/docs/edit-data#custom-cell-types"
+  "display-override-without-a-new-type": "/docs/editing-cells/display-override#display-override-without-a-new-type",
+  "custom-cell-types": "/docs/editing-cells#custom-cell-types"
  },
  "/docs/events-state": {
   "find-the-callback-you-need": "/docs/events-state#find-the-callback-you-need",
@@ -277,21 +277,21 @@
   "unsupported-features": "/docs/events-state#unsupported-features"
  },
  "/docs/examples/appearance/i18n-rtl": {
-  "the-labels-prop": "/docs/appearance-examples/right-left-example#the-labels-prop",
-  "rtl": "/docs/appearance-examples/right-left-example#rtl",
-  "which-i18n-library": "/docs/appearance-examples/right-left-example#which-i18n-library",
-  "related": "/docs/appearance-examples/right-left-example#related"
+  "the-labels-prop": "/docs/style-examples/right-left-example#the-labels-prop",
+  "rtl": "/docs/style-examples/right-left-example#rtl",
+  "which-i18n-library": "/docs/style-examples/right-left-example#which-i18n-library",
+  "related": "/docs/style-examples/right-left-example#related"
  },
  "/docs/examples/appearance": {},
  "/docs/examples/appearance/loading-states": {
-  "customizing-the-look": "/docs/appearance-examples/loading-state-example#customizing-the-look",
-  "related": "/docs/appearance-examples/loading-state-example#related"
+  "customizing-the-look": "/docs/style-examples/loading-state-example#customizing-the-look",
+  "related": "/docs/style-examples/loading-state-example#related"
  },
  "/docs/examples/appearance/styling": {
-  "patterns": "/docs/appearance-examples/styling-example#patterns",
-  "every-surface-one-dataset": "/docs/appearance-examples/styling-example#every-surface-one-dataset",
-  "the-contract": "/docs/appearance-examples/styling-example#the-contract",
-  "related": "/docs/appearance-examples/styling-example#related"
+  "patterns": "/docs/style-examples/styling-example#patterns",
+  "every-surface-one-dataset": "/docs/style-examples/styling-example#every-surface-one-dataset",
+  "the-contract": "/docs/style-examples/styling-example#the-contract",
+  "related": "/docs/style-examples/styling-example#related"
  },
  "/docs/examples/columns/column-groups": {
   "whats-in-the-demo": "/docs/column-examples/column-groups-example#whats-in-the-demo",
@@ -330,73 +330,73 @@
  },
  "/docs/examples/data": {},
  "/docs/examples/data/large-data": {
-  "100k-rows": "/docs/data-examples/large-data-example#100k-rows",
-  "with-an-fps-meter": "/docs/data-examples/large-data-example#with-an-fps-meter",
-  "how-it-works": "/docs/data-examples/large-data-example#how-it-works",
-  "behavior-reference": "/docs/data-examples/large-data-example#behavior-reference"
+  "100k-rows": "/docs/server-data-examples/large-data-example#100k-rows",
+  "with-an-fps-meter": "/docs/server-data-examples/large-data-example#with-an-fps-meter",
+  "how-it-works": "/docs/server-data-examples/large-data-example#how-it-works",
+  "behavior-reference": "/docs/server-data-examples/large-data-example#behavior-reference"
  },
  "/docs/examples/data/lazy": {},
  "/docs/examples/data/lazy/plain": {
-  "the-seam": "/docs/data-examples/scroll-mode-example#the-seam",
-  "bring-your-own-fetcher": "/docs/data-examples/scroll-mode-example#bring-your-own-fetcher",
-  "behavior-reference": "/docs/data-examples/scroll-mode-example#behavior-reference",
-  "related": "/docs/data-examples/scroll-mode-example#related"
+  "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
+  "bring-your-own-fetcher": "/docs/server-data-examples/scroll-mode-example#bring-your-own-fetcher",
+  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/lazy/react-query": {
-  "the-seam": "/docs/data-examples/scroll-mode-example#the-seam",
-  "behavior-reference": "/docs/data-examples/scroll-mode-example#behavior-reference",
-  "related": "/docs/data-examples/scroll-mode-example#related"
+  "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
+  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/lazy/swr": {
-  "the-seam": "/docs/data-examples/scroll-mode-example#the-seam",
-  "behavior-reference": "/docs/data-examples/scroll-mode-example#behavior-reference",
-  "related": "/docs/data-examples/scroll-mode-example#related"
+  "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
+  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/orm/drizzle": {
-  "shareable-state": "/docs/data-examples/orm-example#shareable-state",
-  "kysely": "/docs/data-examples/orm-example#kysely"
+  "shareable-state": "/docs/server-data-examples/drizzle-example#shareable-state",
+  "kysely": "/docs/server-data-examples/drizzle-example#kysely"
  },
  "/docs/examples/data/orm": {},
  "/docs/examples/data/orm/prisma": {
-  "shareable-state": "/docs/data-examples/orm-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/prisma-example#shareable-state"
  },
  "/docs/examples/data/orm/supabase": {
-  "shareable-state": "/docs/data-examples/orm-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/supabase-example#shareable-state"
  },
  "/docs/examples/data/pagination/client": {
-  "client-slice-vs-server-mode": "/docs/data-examples/pages-mode-example#client-slice-vs-server-mode",
-  "behavior-reference": "/docs/data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/data-examples/pages-mode-example#related"
+  "client-slice-vs-server-mode": "/docs/server-data-examples/pages-mode-example#client-slice-vs-server-mode",
+  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/pages-mode-example#related"
  },
  "/docs/examples/data/pagination": {},
  "/docs/examples/data/pagination/react-query": {
-  "the-wiring": "/docs/data-examples/pages-mode-example#the-wiring",
-  "the-edit-story": "/docs/data-examples/pages-mode-example#the-edit-story",
-  "behavior-reference": "/docs/data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/data-examples/pages-mode-example#related"
+  "the-wiring": "/docs/server-data-examples/pages-mode-example#the-wiring",
+  "the-edit-story": "/docs/server-data-examples/pages-mode-example#the-edit-story",
+  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/pages-mode-example#related"
  },
  "/docs/examples/data/pagination/swr": {
-  "the-wiring": "/docs/data-examples/pages-mode-example#the-wiring",
-  "the-edit-story": "/docs/data-examples/pages-mode-example#the-edit-story",
-  "behavior-reference": "/docs/data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/data-examples/pages-mode-example#related"
+  "the-wiring": "/docs/server-data-examples/pages-mode-example#the-wiring",
+  "the-edit-story": "/docs/server-data-examples/pages-mode-example#the-edit-story",
+  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
+  "related": "/docs/server-data-examples/pages-mode-example#related"
  },
  "/docs/examples/data/server-side": {
-  "the-wiring": "/docs/data-examples/server-rows-example#the-wiring",
-  "errors-and-retry": "/docs/data-examples/server-rows-example#errors-and-retry",
-  "control-the-spec-and-the-page": "/docs/data-examples/server-rows-example#control-the-spec-and-the-page",
-  "wait-for-typing-to-pause": "/docs/data-examples/server-rows-example#wait-for-typing-to-pause",
-  "notes": "/docs/data-examples/server-rows-example#notes",
-  "behavior-reference": "/docs/data-examples/server-rows-example#behavior-reference",
-  "related": "/docs/data-examples/server-rows-example#related"
+  "the-wiring": "/docs/server-data-examples/server-rows-example#the-wiring",
+  "errors-and-retry": "/docs/server-data-examples/server-rows-example#errors-and-retry",
+  "control-the-spec-and-the-page": "/docs/server-data-examples/server-rows-example#control-the-spec-and-the-page",
+  "wait-for-typing-to-pause": "/docs/server-data-examples/server-rows-example#wait-for-typing-to-pause",
+  "notes": "/docs/server-data-examples/server-rows-example#notes",
+  "behavior-reference": "/docs/server-data-examples/server-rows-example#behavior-reference",
+  "related": "/docs/server-data-examples/server-rows-example#related"
  },
  "/docs/examples/foundations/cell-types": {
   "whats-in-the-demo": "/docs/basic-examples/cell-types-example#whats-in-the-demo",
   "related": "/docs/basic-examples/cell-types-example#related"
  },
  "/docs/examples/foundations/custom-cells": {
-  "whats-in-the-demo": "/docs/basic-examples/custom-cell-example#whats-in-the-demo",
-  "related": "/docs/basic-examples/custom-cell-example#related"
+  "whats-in-the-demo": "/docs/basic-examples/custom-cell-type-example#whats-in-the-demo",
+  "related": "/docs/basic-examples/custom-cell-type-example#related"
  },
  "/docs/examples/foundations/editable-grid": {
   "whats-in-the-demo": "/docs/basic-examples/editable-grid-example#whats-in-the-demo",
@@ -469,11 +469,11 @@
   "related": "/docs/validation-examples/validation-example#related"
  },
  "/docs/global-shortcuts": {
-  "how-it-works": "/docs/select-navigate/set-global-shortcuts#how-it-works",
-  "usage": "/docs/select-navigate/set-global-shortcuts#usage",
-  "multiple-grids": "/docs/select-navigate/set-global-shortcuts#multiple-grids",
-  "out-of-scope": "/docs/select-navigate/set-global-shortcuts#out-of-scope",
-  "related": "/docs/select-navigate/set-global-shortcuts#related"
+  "how-it-works": "/docs/selection-keys/global-shortcuts#how-it-works",
+  "usage": "/docs/selection-keys/global-shortcuts#usage",
+  "multiple-grids": "/docs/selection-keys/global-shortcuts#multiple-grids",
+  "out-of-scope": "/docs/selection-keys/global-shortcuts#out-of-scope",
+  "related": "/docs/selection-keys/global-shortcuts#related"
  },
  "/docs/hooks/use-debounce": {
   "usedebounce": "/docs/types-hooks/use-debounce#usedebounce",
@@ -483,15 +483,15 @@
   "related": "/docs/types-hooks/use-debounce#related"
  },
  "/docs/i18n": {
-  "the-labels-prop": "/docs/style-translate/translate-labels#the-labels-prop",
-  "deep-merging-deeppartiallabels": "/docs/style-translate/translate-labels#deep-merging-deeppartiallabels",
-  "reading-effective-labels": "/docs/style-translate/translate-labels#reading-effective-labels",
-  "coverage-by-group": "/docs/style-translate/translate-labels#coverage-by-group",
-  "full-german-example": "/docs/style-translate/translate-labels#full-german-example",
-  "wiring-a-real-i18n-library": "/docs/style-translate/translate-labels#wiring-a-real-i18n-library",
-  "rtl-layout": "/docs/style-translate/translate-labels#rtl-layout",
-  "what-mirrors": "/docs/style-translate/translate-labels#what-mirrors",
-  "base-ui-chrome": "/docs/style-translate/translate-labels#base-ui-chrome"
+  "the-labels-prop": "/docs/theme-style-language/labels-i18n#the-labels-prop",
+  "deep-merging-deeppartiallabels": "/docs/theme-style-language/labels-i18n#deep-merging-deeppartiallabels",
+  "reading-effective-labels": "/docs/theme-style-language/labels-i18n#reading-effective-labels",
+  "coverage-by-group": "/docs/theme-style-language/labels-i18n#coverage-by-group",
+  "full-german-example": "/docs/theme-style-language/labels-i18n#full-german-example",
+  "wiring-a-real-i18n-library": "/docs/theme-style-language/labels-i18n#wiring-a-real-i18n-library",
+  "rtl-layout": "/docs/theme-style-language/labels-i18n#rtl-layout",
+  "what-mirrors": "/docs/theme-style-language/labels-i18n#what-mirrors",
+  "base-ui-chrome": "/docs/theme-style-language/labels-i18n#base-ui-chrome"
  },
  "/docs": {
   "not-an-npm-package": "/docs#not-an-npm-package",
@@ -508,11 +508,11 @@
   "prerequisites": "/docs/learning-path/install-gridcn#prerequisites",
   "tooltips": "/docs/learning-path/install-gridcn#tooltips",
   "where-files-land": "/docs/learning-path/install-gridcn#where-files-land",
-  "framework-notes": "/docs/look-things-up/fix-install-problems#framework-notes",
-  "nextjs": "/docs/look-things-up/fix-install-problems#nextjs",
-  "vite": "/docs/look-things-up/fix-install-problems#vite",
-  "non-default-aliases": "/docs/look-things-up/fix-install-problems#non-default-aliases",
-  "verify": "/docs/look-things-up/fix-install-problems#verify"
+  "framework-notes": "/docs/help/fix-install-problems#framework-notes",
+  "nextjs": "/docs/help/fix-install-problems#nextjs",
+  "vite": "/docs/help/fix-install-problems#vite",
+  "non-default-aliases": "/docs/help/fix-install-problems#non-default-aliases",
+  "verify": "/docs/help/fix-install-problems#verify"
  },
  "/docs/lazy-loading-advanced": {
   "wiring-a-fetchcache-library-react-query": "/docs/scroll-mode/fetch-cache#wiring-a-fetchcache-library-react-query",
@@ -523,15 +523,15 @@
   "editing-loaded-rows": "/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows",
   "errors": "/docs/scroll-mode/handle-load-errors#errors",
   "memory--retention": "/docs/scroll-mode/tune-row-retention#memory--retention",
-  "sorting-a-scroll-grid": "/docs/scroll-mode/sort-scroll-rows#sorting-a-scroll-grid",
-  "filtering-a-scroll-grid": "/docs/scroll-mode/sort-scroll-rows#filtering-a-scroll-grid",
+  "sorting-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#sorting-a-scroll-grid",
+  "filtering-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#filtering-a-scroll-grid",
   "a-source-with-no-total": "/docs/scroll-mode/load-without-row-count#a-source-with-no-total",
   "selecting-copying-and-exporting": "/docs/rows-live-data/select-server-rows#selecting-copying-and-exporting"
  },
  "/docs/license": {
-  "what-you-may-do": "/docs/support-upgrades/license#what-you-may-do",
-  "what-you-must-do": "/docs/support-upgrades/license#what-you-must-do",
-  "what-the-license-does-not-grant": "/docs/support-upgrades/license#what-the-license-does-not-grant"
+  "what-you-may-do": "/docs/support-upgrades/license-credits#what-you-may-do",
+  "what-you-must-do": "/docs/support-upgrades/license-credits#what-you-must-do",
+  "what-the-license-does-not-grant": "/docs/support-upgrades/license-credits#what-the-license-does-not-grant"
  },
  "/docs/pagination": {
   "client-mode": "/docs/pages-mode/load-rows-page#client-mode",
@@ -548,32 +548,32 @@
  },
  "/docs/playground": {},
  "/docs/plugins": {
-  "the-plugin-shape": "/docs/concepts/plugin-shape#the-plugin-shape",
-  "overlays": "/docs/concepts/plugin-overlays#overlays",
-  "what-ctx-provides": "/docs/concepts/plugin-overlays#what-ctx-provides",
-  "coordinate-space-view-index-not-rowid": "/docs/concepts/plugin-overlays#coordinate-space-view-index-not-rowid",
-  "row-bands": "/docs/concepts/plugin-overlays#row-bands",
-  "observing-data-changes": "/docs/concepts/plugin-events#observing-data-changes",
-  "commands-and-keymaps": "/docs/extend-gridcn/add-plugin-commands#commands-and-keymaps",
-  "pluggable-built-ins": "/docs/extend-gridcn/add-plugin-commands#pluggable-built-ins",
-  "a-plugins-own-keymap-entries": "/docs/extend-gridcn/add-plugin-commands#a-plugins-own-keymap-entries",
-  "engine-work": "/docs/extend-gridcn/add-plugin-commands#engine-work",
-  "what-a-plugin-can-reach": "/docs/concepts/plugin-shape#what-a-plugin-can-reach",
-  "identity": "/docs/concepts/plugin-shape#identity",
-  "worked-example-highlight-a-column": "/docs/extend-gridcn/build-highlight-plugin#worked-example-highlight-a-column",
-  "ssr": "/docs/concepts/plugin-shape#ssr",
-  "related": "/docs/extend-gridcn#related"
+  "the-plugin-shape": "/docs/plugins/plugin-shape#the-plugin-shape",
+  "overlays": "/docs/plugins/plugin-overlays#overlays",
+  "what-ctx-provides": "/docs/plugins/plugin-overlays#what-ctx-provides",
+  "coordinate-space-view-index-not-rowid": "/docs/plugins/plugin-overlays#coordinate-space-view-index-not-rowid",
+  "row-bands": "/docs/plugins/plugin-overlays#row-bands",
+  "observing-data-changes": "/docs/plugins/plugin-events#observing-data-changes",
+  "commands-and-keymaps": "/docs/plugins/plugin-commands-keys#commands-and-keymaps",
+  "pluggable-built-ins": "/docs/plugins/plugin-commands-keys#pluggable-built-ins",
+  "a-plugins-own-keymap-entries": "/docs/plugins/plugin-commands-keys#a-plugins-own-keymap-entries",
+  "engine-work": "/docs/plugins/plugin-commands-keys#engine-work",
+  "what-a-plugin-can-reach": "/docs/plugins/plugin-shape#what-a-plugin-can-reach",
+  "identity": "/docs/plugins/plugin-shape#identity",
+  "worked-example-highlight-a-column": "/docs/extend-compose/build-highlight-plugin#worked-example-highlight-a-column",
+  "ssr": "/docs/plugins/plugin-shape#ssr",
+  "related": "/docs/extend-compose#related"
  },
  "/docs/project-status": {
-  "version": "/docs/support-upgrades/version-policy#version",
-  "what-10-promises": "/docs/support-upgrades/version-policy#what-10-promises",
-  "changelog": "/docs/support-upgrades/version-policy#changelog",
-  "browser-support": "/docs/support-upgrades/version-policy#browser-support",
-  "framework-floors": "/docs/support-upgrades/version-policy#framework-floors",
-  "react-compiler": "/docs/support-upgrades/version-policy#react-compiler",
-  "updating-installed-code": "/docs/support-upgrades/version-policy#updating-installed-code",
-  "support--security": "/docs/support-upgrades/version-policy#support--security",
-  "next-steps": "/docs/support-upgrades/version-policy#next-steps"
+  "version": "/docs/support-upgrades/version-policy-changelog#version",
+  "what-10-promises": "/docs/support-upgrades/version-policy-changelog#what-10-promises",
+  "changelog": "/docs/support-upgrades/version-policy-changelog#changelog",
+  "browser-support": "/docs/support-upgrades/version-policy-changelog#browser-support",
+  "framework-floors": "/docs/support-upgrades/version-policy-changelog#framework-floors",
+  "react-compiler": "/docs/support-upgrades/version-policy-changelog#react-compiler",
+  "updating-installed-code": "/docs/support-upgrades/version-policy-changelog#updating-installed-code",
+  "support--security": "/docs/support-upgrades/version-policy-changelog#support--security",
+  "next-steps": "/docs/support-upgrades/version-policy-changelog#next-steps"
  },
  "/docs/quick-start": {
   "install": "/docs/learning-path/render-your-first-grid#install",
@@ -586,15 +586,15 @@
   "whats-next": "/docs/learning-path/render-your-first-grid#whats-next"
  },
  "/docs/recipes/data-fetching": {
-  "pick-the-strategy-for-your-data": "/docs/choose-data-mode#pick-the-strategy-for-your-data",
-  "pick-where-the-spec-runs": "/docs/choose-data-mode#pick-where-the-spec-runs"
+  "pick-the-strategy-for-your-data": "/docs/data-modes#pick-the-strategy-for-your-data",
+  "pick-where-the-spec-runs": "/docs/data-modes#pick-where-the-spec-runs"
  },
  "/docs/recipes/data-fetching/server-round-trip": {
   "initial-fetch": "/docs/save-server/save-roll-back#initial-fetch",
   "translate-operations-into-api-calls": "/docs/save-server/save-roll-back#translate-operations-into-api-calls",
   "strategy-a-optimistic-roll-back-on-failure": "/docs/save-server/save-roll-back#strategy-a-optimistic-roll-back-on-failure",
   "strategy-b-refetch-on-settle": "/docs/save-server/save-roll-back#strategy-b-refetch-on-settle",
-  "strategy-c-acknowledge-each-change": "/docs/save-server/save-roll-back#strategy-c-acknowledge-each-change",
+  "strategy-c-acknowledge-each-change": "/docs/save-server/handle-refused-saves#strategy-c-acknowledge-each-change",
   "the-failure-path": "/docs/save-server/save-roll-back#the-failure-path"
  },
  "/docs/recipes/data-fetching/server-side": {
@@ -614,75 +614,75 @@
  },
  "/docs/recipes/data-fetching/tanstack-query": {},
  "/docs/recipes/editing/auth-gated-cells": {
-  "related": "/docs/edit-data/lock-cells-role#related"
+  "related": "/docs/editing-cells/lock-cells-role#related"
  },
  "/docs/recipes/editing/custom-cell-type": {
-  "format-the-display": "/docs/extend-gridcn/build-currency-cell#format-the-display",
-  "use-a-built-in-type": "/docs/extend-gridcn/build-currency-cell#use-a-built-in-type",
-  "write-a-cell-type": "/docs/extend-gridcn/build-currency-cell#write-a-cell-type"
+  "format-the-display": "/docs/extend-compose/build-cell-type#format-the-display",
+  "use-a-built-in-type": "/docs/extend-compose/build-cell-type#use-a-built-in-type",
+  "write-a-cell-type": "/docs/extend-compose/build-cell-type#write-a-cell-type"
  },
  "/docs/recipes/editing/edit-row-with-form": {
-  "related": "/docs/edit-data/edit-rows-forms#related"
+  "related": "/docs/editing-cells/edit-rows-forms#related"
  },
  "/docs/recipes": {
-  "data-fetching": "/docs/look-things-up/task-finder#data-fetching",
-  "ui-patterns": "/docs/look-things-up/task-finder#ui-patterns",
-  "editing--access": "/docs/look-things-up/task-finder#editing--access"
+  "data-fetching": "/docs/help/task-finder#data-fetching",
+  "ui-patterns": "/docs/help/task-finder#ui-patterns",
+  "editing--access": "/docs/help/task-finder#editing--access"
  },
  "/docs/recipes/ui-patterns/bulk-actions": {
-  "one-write-per-button": "/docs/extend-gridcn/run-bulk-actions#one-write-per-button",
-  "export-only-the-checked-rows": "/docs/extend-gridcn/run-bulk-actions#export-only-the-checked-rows",
-  "related": "/docs/extend-gridcn/run-bulk-actions#related"
+  "one-write-per-button": "/docs/extend-compose/run-bulk-actions#one-write-per-button",
+  "export-only-the-checked-rows": "/docs/extend-compose/run-bulk-actions#export-only-the-checked-rows",
+  "related": "/docs/extend-compose/run-bulk-actions#related"
  },
  "/docs/recipes/ui-patterns/detail-panel": {
-  "open-the-panel": "/docs/extend-gridcn/open-detail-panel#open-the-panel",
-  "mouse": "/docs/extend-gridcn/open-detail-panel#mouse",
-  "keyboard": "/docs/extend-gridcn/open-detail-panel#keyboard",
-  "follow-the-active-row": "/docs/extend-gridcn/open-detail-panel#follow-the-active-row",
-  "focus-and-escape": "/docs/extend-gridcn/open-detail-panel#focus-and-escape",
-  "related": "/docs/extend-gridcn/open-detail-panel#related"
+  "open-the-panel": "/docs/extend-compose/open-detail-panel#open-the-panel",
+  "mouse": "/docs/extend-compose/open-detail-panel#mouse",
+  "keyboard": "/docs/extend-compose/open-detail-panel#keyboard",
+  "follow-the-active-row": "/docs/extend-compose/open-detail-panel#follow-the-active-row",
+  "focus-and-escape": "/docs/extend-compose/open-detail-panel#focus-and-escape",
+  "related": "/docs/extend-compose/open-detail-panel#related"
  },
  "/docs/recipes/ui-patterns/multiple-grids": {
-  "related": "/docs/extend-gridcn/link-multiple-grids#related"
+  "related": "/docs/extend-compose/link-multiple-grids#related"
  },
  "/docs/recipes/ui-patterns/remember-view": {
   "related": "/docs/import-export-views/remember-view#related"
  },
  "/docs/row-operations": {
-  "enable-props": "/docs/rows/add-delete-rows#enable-props",
-  "confirm-a-delete": "/docs/rows/add-delete-rows#confirm-a-delete",
-  "default-shortcuts": "/docs/rows/add-delete-rows#default-shortcuts",
-  "reorder": "/docs/rows/reorder-rows#reorder",
-  "context-menu": "/docs/rows/add-delete-rows#context-menu",
-  "programmatic-actions": "/docs/rows/change-rows-code#programmatic-actions",
+  "enable-props": "/docs/rows-menus/row-operations#enable-props",
+  "confirm-a-delete": "/docs/rows-menus/row-operations#confirm-a-delete",
+  "default-shortcuts": "/docs/rows-menus/row-operations#default-shortcuts",
+  "reorder": "/docs/rows-menus/row-reorder#reorder",
+  "context-menu": "/docs/rows-menus/row-operations#context-menu",
+  "programmatic-actions": "/docs/rows-menus/row-operations-code#programmatic-actions",
   "scroll-mode": "/docs/rows-live-data/change-server-rows#scroll-mode",
-  "row-markers": "/docs/rows/show-row-markers#row-markers",
-  "custom-markers": "/docs/rows/show-row-markers#custom-markers"
+  "row-markers": "/docs/rows-menus/row-markers#row-markers",
+  "custom-markers": "/docs/rows-menus/row-markers#custom-markers"
  },
  "/docs/selection-keyboard": {
   "selection-model": "/docs/concepts/selection-model#selection-model",
-  "mouse-gestures": "/docs/select-navigate/select-pointer#mouse-gestures",
-  "checking-a-range-of-rows": "/docs/select-navigate/check-rows#checking-a-range-of-rows",
-  "touch-gestures": "/docs/select-navigate/select-pointer#touch-gestures",
+  "mouse-gestures": "/docs/selection-keys/pointer-selection#mouse-gestures",
+  "checking-a-range-of-rows": "/docs/selection-keys/checked-rows#checking-a-range-of-rows",
+  "touch-gestures": "/docs/selection-keys/pointer-selection#touch-gestures",
   "configurability": "/docs/concepts/selection-model#configurability",
-  "checked-rows": "/docs/select-navigate/check-rows#checked-rows",
+  "checked-rows": "/docs/selection-keys/checked-rows#checked-rows",
   "selection-over-a-server-result": "/docs/rows-live-data/select-server-rows#selection-over-a-server-result",
   "the-select-all-banner": "/docs/rows-live-data/select-server-rows#the-select-all-banner",
-  "header-click-behavior": "/docs/select-navigate/select-pointer#header-click-behavior",
-  "keyboard-map": "/docs/select-navigate/move-keyboard#keyboard-map",
-  "undo-and-redo-outside-the-grid": "/docs/select-navigate/move-keyboard#undo-and-redo-outside-the-grid",
-  "checking-rows-by-keyboard": "/docs/select-navigate/check-rows#checking-rows-by-keyboard",
-  "moving-rows": "/docs/select-navigate/move-keyboard#moving-rows",
-  "opening-the-column-filter": "/docs/select-navigate/move-keyboard#opening-the-column-filter",
-  "two-stage-ctrla": "/docs/select-navigate/move-keyboard#two-stage-ctrla"
+  "header-click-behavior": "/docs/selection-keys/pointer-selection#header-click-behavior",
+  "keyboard-map": "/docs/selection-keys/keyboard-navigation#keyboard-map",
+  "undo-and-redo-outside-the-grid": "/docs/selection-keys/keyboard-navigation#undo-and-redo-outside-the-grid",
+  "checking-rows-by-keyboard": "/docs/selection-keys/checked-rows#checking-rows-by-keyboard",
+  "moving-rows": "/docs/selection-keys/keyboard-navigation#moving-rows",
+  "opening-the-column-filter": "/docs/selection-keys/keyboard-navigation#opening-the-column-filter",
+  "two-stage-ctrla": "/docs/selection-keys/keyboard-navigation#two-stage-ctrla"
  },
  "/docs/sorting-filtering-search": {
-  "sorting": "/docs/sort-filter-search/sort-rows#sorting",
-  "filtering": "/docs/sort-filter-search/sort-rows#filtering",
-  "search": "/docs/sort-filter-search/sort-rows#search",
-  "sort-list-toolbar-add-on": "/docs/sort-filter-search/use-sort-list#sort-list-toolbar-add-on",
-  "initial-sort-filter-and-search": "/docs/sort-filter-search/sort-rows#initial-sort-filter-and-search",
-  "controlled-mode-server-side-sortfilter": "/docs/pages-mode/sort-server#controlled-mode-server-side-sortfilter"
+  "sorting": "/docs/sort-filter-search/sorting#sorting",
+  "filtering": "/docs/sort-filter-search/sorting#filtering",
+  "search": "/docs/sort-filter-search/sorting#search",
+  "sort-list-toolbar-add-on": "/docs/sort-filter-search/sorting#sort-list-toolbar-add-on",
+  "initial-sort-filter-and-search": "/docs/sort-filter-search/sorting#initial-sort-filter-and-search",
+  "controlled-mode-server-side-sortfilter": "/docs/pages-mode/pages-sort-filter#controlled-mode-server-side-sortfilter"
  },
  "/docs/streaming-updates": {
   "usage": "/docs/rows-live-data/stream-updates#usage",
@@ -694,22 +694,22 @@
   "whole-rows": "/docs/rows-live-data/stream-updates#whole-rows"
  },
  "/docs/styling-theming": {
-  "the-color-scheme-shadcn-tokens": "/docs/style-translate/match-your-theme#the-color-scheme-shadcn-tokens",
-  "css-variables": "/docs/style-translate/match-your-theme#css-variables",
+  "the-color-scheme-shadcn-tokens": "/docs/theme-style-language/colors-radius#the-color-scheme-shadcn-tokens",
+  "css-variables": "/docs/theme-style-language/colors-radius#css-variables",
   "the-built-in-class-surface": "/docs/contracts/style-contract#the-built-in-class-surface",
   "data-attribute-contract": "/docs/contracts/style-contract#data-attribute-contract",
   "structural-attributes": "/docs/contracts/style-contract#structural-attributes",
-  "override-recipes": "/docs/style-translate/override-styles#override-recipes",
-  "programmatic-per-rowper-cell-styling": "/docs/style-translate/override-styles#programmatic-per-rowper-cell-styling",
-  "styling-a-whole-column": "/docs/style-translate/override-styles#styling-a-whole-column",
-  "fully-styling-a-column-or-row": "/docs/style-translate/override-styles#fully-styling-a-column-or-row",
-  "styling-by-state-with-css-only": "/docs/style-translate/override-styles#styling-by-state-with-css-only",
-  "small-screens": "/docs/style-translate/set-density#small-screens",
-  "density-and-row-height": "/docs/style-translate/set-density#density-and-row-height",
-  "scroll-shadows": "/docs/style-translate/set-density#scroll-shadows",
-  "loading-state": "/docs/style-translate/show-loading-state#loading-state",
-  "i18n-via-labels": "/docs/style-translate/translate-labels#i18n-via-labels",
-  "visual-defaults": "/docs/style-translate/match-your-theme#visual-defaults"
+  "override-recipes": "/docs/theme-style-language/style-overrides#override-recipes",
+  "programmatic-per-rowper-cell-styling": "/docs/theme-style-language/style-overrides#programmatic-per-rowper-cell-styling",
+  "styling-a-whole-column": "/docs/theme-style-language/style-overrides#styling-a-whole-column",
+  "fully-styling-a-column-or-row": "/docs/theme-style-language/style-overrides#fully-styling-a-column-or-row",
+  "styling-by-state-with-css-only": "/docs/theme-style-language/style-overrides#styling-by-state-with-css-only",
+  "small-screens": "/docs/theme-style-language/density-small-screens#small-screens",
+  "density-and-row-height": "/docs/theme-style-language/density-small-screens#density-and-row-height",
+  "scroll-shadows": "/docs/theme-style-language/density-small-screens#scroll-shadows",
+  "loading-state": "/docs/theme-style-language/loading-state#loading-state",
+  "i18n-via-labels": "/docs/theme-style-language/labels-i18n#i18n-via-labels",
+  "visual-defaults": "/docs/theme-style-language/colors-radius#visual-defaults"
  },
  "/docs/terms": {},
  "/docs/virtualization": {

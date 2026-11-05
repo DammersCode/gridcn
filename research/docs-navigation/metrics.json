@@ -1,25 +1,25 @@
 {
- "tasks": {
-  "areas": 6,
-  "groups": 35,
-  "pages": 205,
-  "medianScreens": 2.4,
-  "maxScreens": 5.6,
-  "over5Screens": 1,
-  "maxWords": 1400,
-  "avgWords": 573,
-  "maxRowsVisible": 21
- },
  "topics": {
   "areas": 6,
-  "groups": 32,
-  "pages": 188,
+  "groups": 36,
+  "pages": 203,
   "medianScreens": 2.4,
   "maxScreens": 5.6,
   "over5Screens": 1,
   "maxWords": 1400,
-  "avgWords": 613,
-  "maxRowsVisible": 18
+  "avgWords": 608,
+  "maxRowsVisible": 16
+ },
+ "tasks": {
+  "areas": 6,
+  "groups": 36,
+  "pages": 201,
+  "medianScreens": 2.4,
+  "maxScreens": 5.6,
+  "over5Screens": 1,
+  "maxWords": 1400,
+  "avgWords": 591,
+  "maxRowsVisible": 17
  },
  "fourAreas": {
   "areas": 4,
@@ -29,18 +29,18 @@
   "maxScreens": 5.6,
   "over5Screens": 1,
   "maxWords": 1400,
-  "avgWords": 613,
-  "maxRowsVisible": 24
+  "avgWords": 610,
+  "maxRowsVisible": 21
  },
  "current": {
   "areas": 1,
   "groups": 10,
   "pages": 100,
-  "medianScreens": 2.4,
+  "medianScreens": 2.3,
   "maxScreens": 22.7,
   "over5Screens": 30,
   "maxWords": 4162,
-  "avgWords": 768,
+  "avgWords": 746,
   "maxRowsVisible": 54
  }
 }

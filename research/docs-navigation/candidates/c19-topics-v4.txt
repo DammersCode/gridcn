@@ -1,4 +1,4 @@
-// C19: topic-first, round-8 polish. Paths per goal (Learning path, Server path), three persona entries on the home page,
+// C19: topic-first, final. The last polish after the round-9 scoring (plugin commands moved, group renamed, keeping-fast retitled) is not re-scored. Paths per goal (Learning path, Server path), three persona entries on the home page,
 // at most 9 groups per area, at most 20 rows visible, consolidated option pages, landing titles equal group labels.
 @ Learn
 ## Learning path
@@ -58,8 +58,8 @@
 - quick-search | Quick search | feature | 450
 - find-replace | Find and replace | feature | 1100
 - toolbar | Toolbar | feature | 800
-## Rows
-- rows-index | Rows | landing | 250
+## Rows and menus
+- rows-index | Rows and menus | landing | 250
 - row-operations | Row operations | feature | 900
 - row-reorder | Row reorder | feature | 600
 - row-operations-code | Row operations in code | feature | 600
@@ -89,7 +89,6 @@
 - extend-index | Extend and compose | landing | 250
 - custom-cell-example | Build a cell type | task | 800
 - plugins-example | Build a highlight plugin | task | 600
-- plugins-commands | Plugin commands and keys | feature | 700
 - detail-panel | Open a detail panel | task | 500
 - bulk-actions | Run bulk actions | task | 335
 - multiple-grids | Link multiple grids | task | 300
@@ -133,7 +132,7 @@
 - performance | Performance | landing | 350
 - benchmark-results | Benchmark results | reference | 900
 - run-benchmark | Run it yourself | task | 600
-- keeping-fast | Grid speed guidance | concept | 600
+- keeping-fast | Performance guidance | concept | 600
 - virtualization | Virtualization | concept | 900
 - row-limits | Row limits | reference | 400
 ## Accessibility
@@ -172,6 +171,7 @@
 ## Plugins
 - plugins-index | Plugins | landing | 250
 - ref-plugin | Plugin contract | reference | 900
+- plugins-commands | Plugin commands and keys | reference | 700
 - plugins-shape | Plugin shape | concept | 600
 - plugins-overlays | Plugin overlays | concept | 700
 - plugins-events | Plugin events | concept | 500

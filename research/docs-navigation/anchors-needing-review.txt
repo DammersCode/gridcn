@@ -64,6 +64,11 @@ quick-start.mdx#datagrid-is-shorthand
 quick-start.mdx#whats-next
 recipes/data-fetching/index.mdx#pick-the-strategy-for-your-data
 recipes/data-fetching/index.mdx#pick-where-the-spec-runs
+recipes/data-fetching/server-round-trip.mdx#initial-fetch
+recipes/data-fetching/server-round-trip.mdx#translate-operations-into-api-calls
+recipes/data-fetching/server-round-trip.mdx#strategy-a-optimistic-roll-back-on-failure
+recipes/data-fetching/server-round-trip.mdx#strategy-b-refetch-on-settle
+recipes/data-fetching/server-round-trip.mdx#the-failure-path
 virtualization.mdx#how-it-works
 virtualization.mdx#the-model-in-consumer-terms
 virtualization.mdx#overscan

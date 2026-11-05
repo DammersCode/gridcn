@@ -1,9 +1,9 @@
 # Docs navigation: migration plan
 
-Plan only. Nothing here is executed. It moves the docs to candidate A, Tasks (`candidates/c13-tasks-final.txt`). The
+Plan only. Nothing here is executed. It moves the docs to candidate A, Topics (`candidates/c19-topics-v4.txt`). The
 plan holds for B and C with other names, because the generators read the candidate file. Inputs:
 [docs-navigation-ruleset.md](docs-navigation-ruleset.md), [docs-navigation-comparison.md](docs-navigation-comparison.md),
-`research/docs-navigation/content-map.md`, `url-map-tasks.json`, `anchor-map-tasks.json`.
+`research/docs-navigation/content-map.md`, `url-map.json`, `anchor-map.json`.
 
 ## 1. Order of work
 
@@ -14,7 +14,7 @@ this order:
 2. Spike (half a day). Verify the three open points of section 2, then add the `type` field and the moves file.
 3. Skeleton PR. `git mv` every page to its new path, write the group folders, `meta.json` files, landings, redirects, and the
    link codemod. No text changes except links. The site builds and every old URL redirects.
-4. Split PRs, one per old page that splits (31 pages, listed in `url-map-tasks.json`, field `split`). Each PR cuts the text along the content map.
+4. Split PRs, one per old page that splits (31 pages, listed in `url-map.json`, field `split`). Each PR cuts the text along the content map.
 5. New-text PRs: the pages of section 5.
 6. Polish PR: lengths, descriptions, Related sections, and the audit gate.
 
@@ -35,11 +35,11 @@ parentheses, which Fumadocs leaves out of the URL. A trial page confirmed that `
 
 ```text
 content/docs/
-  meta.json                      {"pages": ["(learn)", "(how-to)", "(server)", "(evaluate)", "(reference)", "(examples)"]}
-  (learn)/meta.json              {"title": "Learn", "icon": "Sparkles", "root": true, "pages": ["learning-path", "look-things-up", "try-and-automate"]}
-  (learn)/learning-path/meta.json  {"title": "Learning path", "pages": ["index", "install", "render-your-first-grid", ...]}
-  (how-to)/sort-and-filter/sort-rows.mdx
-  (server)/pages-mode/load-rows-by-page.mdx
+  meta.json                      {"pages": ["(learn)", "(build)", "(server)", "(evaluate)", "(reference)", "(examples)"]}
+  (learn)/meta.json              {"title": "Learn", "icon": "Sparkles", "root": true, "pages": ["learning-path", "server-path", "help", "try-automate"]}
+  (learn)/learning-path/meta.json  {"title": "Learning path", "pages": ["install-gridcn", "render-first-grid", ...]}
+  (build)/sort-filter-search/sorting.mdx   -> /docs/sort-filter-search/sorting
+  (server)/pages-mode/load-rows-page.mdx   -> /docs/pages-mode/load-rows-page
   (evaluate)/performance/index.mdx          -> /docs/performance
   (evaluate)/performance/benchmark-results.mdx
   (evaluate)/performance/run-it-yourself.mdx
@@ -51,7 +51,7 @@ content/docs/
 - Page type goes in frontmatter: `type: landing | feature | concept | task | step | reference | example | cheatsheet`.
   `source.config.ts` uses the plain `pageSchema`. It needs `pageSchema.extend({ type: z.enum([...]).optional() })` and a zod
   import, so that Fumadocs accepts the field. The audit script reads `type:` with a regex and works without the schema.
-- Slugs are the kebab-case of the title (rule N5). The URL map is generated, so this holds.
+- Slugs are the first four words of the kebab-case title without stop words (rule N5). The URL map is generated from the titles.
 - Open points for the spike: (a) the home `/docs` is the landing of the Learning path group. The page is `content/docs/index.mdx`, outside the
   area folder. Check that the sidebar places it first in that group, and keep the group landing from needing a second
   `index.mdx`.
@@ -62,15 +62,15 @@ content/docs/
 ## 3. Redirects
 
 `next.config.mjs` `redirects()` keeps its two entries (re-pointed to the new URLs) and gains one permanent entry per old
-URL that changes: 97 of 100 pages. `/docs`, `/docs/performance`, and `/docs/accessibility` keep their URLs (the home is the landing of the Learning path group). Generate the list from
-`url-map-tasks.json`:
+URL that changes: 95 of 100 pages. `/docs`, `/docs/performance`, `/docs/accessibility`, `/docs/columns`, and `/docs/events-state` keep their URLs (the home is the landing of the Learning path group). Generate the list from
+`url-map.json`:
 
 ```js
-{ source: "/docs/editing-cell-types", destination: "/docs/edit-data", permanent: true },
+{ source: "/docs/editing-cell-types", destination: "/docs/editing-cells", permanent: true },
 ```
 
 - Split pages redirect to the landing of the new group, or to the page that keeps the old name. Example:
-  `/docs/styling-theming` goes to `/docs/style-and-translate`.
+  `/docs/styling-theming` goes to `/docs/theme-style-language`.
 - The raw-markdown endpoint `/docs/<page>.md` needs the same redirect list with `.md` appended. The rewrite
   `/docs/:path*.md` stays.
 - `app/sitemap.ts` reads the page tree. It needs no change.
@@ -80,20 +80,21 @@ URL that changes: 97 of 100 pages. `/docs`, `/docs/performance`, and `/docs/acce
 
 ## 4. Pages that split
 
-31 old pages become 2 to 23 new pages each. The full list is in `url-map-tasks.json` (field `split`). The largest:
+31 old pages become 2 to 23 new pages each. The full list is in `url-map.json` (field `split`). The largest:
 
 | Old page | Becomes |
 |---|---|
-| `api-reference` | the props pages (component, provider, column definition, labels), types, engine, store hooks, the CellType contract, a props cheatsheet, and the 13 add-on options pages |
-| `events-state` | the events index, six event pages, the shapes concept page, the save task, and an events cheatsheet |
-| `lazy-loading` | 7 pages: usage, row count, errors, retention, sort and filter, selection and export, troubleshooting |
-| `selection-keyboard` | 6 pages: selection model, pointer, checked rows, keyboard, server selection, shortcuts cheatsheet |
-| `styling-theming` | 7 pages: tokens, style contract, styling concept, overrides, density, loading, labels |
-| `hooks/use-debounce` | 3 pages in Reference > Types and hooks: `useDebounce`, `useDebouncedInput`, `isComposingKey` (the lazy-loading work splits the page; the anchors `#usedebouncedinput` and `#iscomposingkey` move to their own pages) |
-| `data-modes` | the matrix page, the server index, row operations, saving, troubleshooting, and the feature matrix; the matrix becomes one data file with generated views |
-| `editing-cell-types` | 5 pages: activation, built-in types, validation, server errors, display override |
-| `quick-start` | 8 pages: first grid and the seven learning steps |
-| `project-status` | version policy, support matrix, upgrade, changelog link, support and security |
+| `api-reference` | 15 pages: the props pages (component, provider, column definition, labels), types, engine, store hooks, the CellType contract, a props cheatsheet, and five add-on options pages |
+| `events-state` | 10 pages: the events index, four event pages, the shapes concept page, the save page, the presence options, and an events cheatsheet |
+| `lazy-loading` | 8 pages: scroll index, usage, errors, retention, sort and filter, no row count, server selection, troubleshooting |
+| `styling-theming` | 8 pages: theme landing, tokens, style contract, styling concept, overrides, density, loading, labels |
+| `quick-start` | 7 pages: first grid and six learning steps |
+| `selection-keyboard` | 7 pages: selection landing, selection model, pointer, checked rows, keyboard, server selection, shortcuts cheatsheet |
+| `editing-cell-types` | 6 pages: landing, activation, built-in types, validation, server errors, display override |
+| `plugins` | 6 pages: extend landing, plugin contract, shape, overlays, events, example |
+| `data-modes` | 6 pages: the matrix, the server index, server row operations, saving, troubleshooting, and the feature matrix; the matrix becomes one data file with generated views |
+| `project-status` | 5 pages: version policy and changelog, row limits, browser support, upgrade, security policy |
+| `hooks/use-debounce` | 3 pages in Reference > Types and hooks: `useDebounce`, `useDebouncedInput`, `isComposingKey`. The anchors `#usedebouncedinput` and `#iscomposingkey` move to their own pages |
 
 Rules for a split PR:
 
@@ -107,32 +108,31 @@ Pages that merge: `custom-cell-types` (contract goes to the CellType contract pa
 
 ## 5. New text
 
-8 pages have no source today. 13 option pages are generated from existing option tables, and 24 landings hold one line per child. A page that adds behavior needs a short spec in `research/` (AGENTS.md workflow):
+8 pages have no source today: the five Server path steps, the two benchmark pages (written by the `perf-docs` session under `content/docs/performance/`), and the plugin contract. 15 landings hold one line per child. Six option pages are built from existing option tables. A page that adds behavior needs a short spec in `research/` (AGENTS.md workflow):
 
 | Page | Note |
 |---|---|
-| Resolve save conflicts | Neither the library nor the docs have a conflict feature. Write it as a user-side pattern on `onDataChange`, with a demo or a test |
-| Plugin contract, Plugin events | The contract page is new; the events page draws on "Observing data changes" in `plugins` |
-| Server rows contract | Has a source (the server-side recipe and the lazy-loading pages), but needs a rewrite as a contract |
+| Handle refused saves | The server-round-trip recipe already holds the acknowledge-each-change strategy. The page covers refused saves in that vocabulary and needs a demo or a test |
+| Plugin contract | New. `plugins-shape` keeps the model; the contract page lists the API |
+| Server rows contract | Has a source (the server-side recipe and the lazy-loading pages) but needs a rewrite as a contract |
+| Server path steps | Five short steps that link the Server tasks and do not repeat them |
 | Fix install problems | Pulls the Vite alias, Verify, and TooltipProvider text out of `installation` |
 | Task finder, Feature matrix | Built from the index pages. The matrix is generated from one data file (see the parity matrix) |
-| Changelog, Support and security | Pages that link `CHANGELOG.md` and `SECURITY.md` |
-| Benchmark results, Run it yourself | Written by the `perf-docs` session under `content/docs/performance/` |
-| 13 Add-on options pages | Option tables move out of the add-on pages. Generate them from the types |
-| 24 group landings | One sentence per child page |
+| Benchmark results, Run it yourself | Written by the `perf-docs` session |
+| Add-on options pages | Option tables move out of the add-on pages. Generate them from the types |
 
 ## 6. Anchors
 
-Old pages have 419 H2 anchors. About 100 distinct anchored links exist today (about 175 uses) in `content/docs`, `app`, `lib`,
+Old pages have 537 H2 and H3 anchors. About 100 distinct anchored links exist today (about 175 uses) in `content/docs`, `app`, `lib`,
 and the skills. Regenerate these counts at the freeze point. Three layers:
 
 1. Codemod. A script rewrites every internal `/docs/...` link and anchor in `content/docs`, `app`, `components`, `lib`,
    `skills`, `README.md`, `GLOSSARY.md`, `research/parity-matrix.json`, and `registry.json` from the URL map and the anchor
    map. It also rewrites the about 50 same-page links (`](#anchor)`) of split pages. After it runs, no link inside the repo
    needs a runtime redirect (595 links in `content/docs` alone).
-2. Anchor map. `anchor-map-tasks.json` is keyed by old page URL, then by anchor id, because ids such as `usage` repeat on
-   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 133 of 419 sections are mapped by the
-   content map. The others fall back to the page target, which is correct for pages that moved whole. 53 anchors of split
+2. Anchor map. `anchor-map.json` is keyed by old page URL, then by anchor id, because ids such as `usage` repeat on
+   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 226 of 537 anchors are mapped by the
+   content map. The others fall back to the page target, which is correct for pages that moved whole. 79 anchors of split
    pages have no target yet (`anchors-needing-review.txt`). Assign each by hand in the split PRs.
 3. Runtime fallback for outside links. A fragment survives a redirect, but the browser does not send the old path to the
    page. The build flattens the map to `{ <new page path>: { <anchor id>: <target url> } }`. A small client component in
@@ -183,7 +183,7 @@ Plan:
   the stale badges on moved files would never go. With the moves file, it removes the badges of sections that exist in the
   old page.
 - Keep the key format. With area folders in parentheses, a path key contains the folder, for example
-  `(how-to)/sort-and-filter/sort-rows.mdx`. The plugin in `lib/source.tsx` removes only the `content/docs/` prefix, and
+  `(build)/sort-filter-search/sorting.mdx`. The plugin in `lib/source.tsx` removes only the `content/docs/` prefix, and
   `docs-changes.mjs` keys by the raw path, so both already agree. Check in the spike that Fumadocs passes the same path
   string to the plugin.
 - `pnpm lint` compares the committed file with the tagged release (`docs:changes --check`). The release commit
@@ -202,7 +202,7 @@ Plan:
 
 ## 10. Verification checklist
 
-- Every old URL answers 308 with the target in `url-map-tasks.json` (script it).
+- Every old URL answers 308 with the target in `url-map.json` (script it).
 - Every old anchor of a moved section lands on its new page (spot check the 58 manual ones).
 - `llms.txt` builds; every task link resolves.
 - The audit script passes (`--check`).

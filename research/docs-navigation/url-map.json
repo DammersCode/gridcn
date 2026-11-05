@@ -26,7 +26,7 @@
   "slugs": [
    "context-menu"
   ],
-  "target": "/docs/rows/add-context-menu",
+  "target": "/docs/rows-menus/context-menu",
   "split": false
  },
  {
@@ -35,7 +35,7 @@
   "slugs": [
    "fill"
   ],
-  "target": "/docs/clipboard-history/fill-cells",
+  "target": "/docs/clipboard-history/fill-handle",
   "split": false
  },
  {
@@ -74,7 +74,7 @@
    "keybindings",
    "cheat-shortcuts"
   ],
-  "target": "/docs/select-navigate/rebind-keys",
+  "target": "/docs/selection-keys/keybindings",
   "split": true
  },
  {
@@ -83,7 +83,7 @@
   "slugs": [
    "pinned-rows"
   ],
-  "target": "/docs/rows/pin-rows",
+  "target": "/docs/rows-menus/pinned-rows",
   "split": false
  },
  {
@@ -99,9 +99,9 @@
   "old": "/docs/addons/sort-list",
   "file": "addons/sort-list.mdx",
   "slugs": [
-   "sort-list"
+   "sorting"
   ],
-  "target": "/docs/sort-filter-search/use-sort-list",
+  "target": "/docs/sort-filter-search/sorting",
   "split": false
  },
  {
@@ -110,7 +110,7 @@
   "slugs": [
    "status-bar"
   ],
-  "target": "/docs/columns-layout/add-status-bar",
+  "target": "/docs/selection-keys/status-bar",
   "split": false
  },
  {
@@ -120,7 +120,7 @@
    "toolbar",
    "header-filter"
   ],
-  "target": "/docs/sort-filter-search/add-toolbar",
+  "target": "/docs/sort-filter-search/toolbar",
   "split": true
  },
  {
@@ -131,7 +131,7 @@
    "undo-programmatic",
    "server-undo"
   ],
-  "target": "/docs/clipboard-history/undo-redo-edits",
+  "target": "/docs/clipboard-history/undo-redo",
   "split": true
  },
  {
@@ -140,7 +140,7 @@
   "slugs": [
    "url-state"
   ],
-  "target": "/docs/import-export-views/share-view",
+  "target": "/docs/import-export-views/url-state",
   "split": false
  },
  {
@@ -181,20 +181,20 @@
   "slugs": [
    "clipboard"
   ],
-  "target": "/docs/clipboard-history/copy-paste-cells",
+  "target": "/docs/clipboard-history/clipboard",
   "split": false
  },
  {
   "old": "/docs/columns",
   "file": "columns.mdx",
   "slugs": [
-   "layout-index",
+   "columns-index",
    "column-sizing",
    "column-order-pin",
    "column-headers",
    "column-visibility"
   ],
-  "target": "/docs/columns-layout",
+  "target": "/docs/columns",
   "split": true
  },
  {
@@ -206,7 +206,7 @@
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/extend-gridcn",
+  "target": "/docs/extend-compose",
   "split": true
  },
  {
@@ -220,21 +220,21 @@
    "server-troubleshooting",
    "feature-matrix"
   ],
-  "target": "/docs/choose-data-mode/features-data-mode",
+  "target": "/docs/data-modes/features-data-mode",
   "split": true
  },
  {
   "old": "/docs/editing-cell-types",
   "file": "editing-cell-types.mdx",
   "slugs": [
-   "edit-index",
+   "editing-index",
    "edit-activation",
    "cell-types",
    "validation",
    "server-errors",
    "display-override"
   ],
-  "target": "/docs/edit-data",
+  "target": "/docs/editing-cells",
   "split": true
  },
  {
@@ -244,7 +244,7 @@
    "events-index",
    "server-saves",
    "ev-data",
-   "ev-selection",
+   "ev-cell",
    "ev-sort-filter",
    "ev-columns",
    "ev-edit",
@@ -261,7 +261,7 @@
   "slugs": [
    "ex-rtl"
   ],
-  "target": "/docs/appearance-examples/right-left-example",
+  "target": "/docs/style-examples/right-left-example",
   "split": false
  },
  {
@@ -270,7 +270,7 @@
   "slugs": [
    "ex-appearance-index"
   ],
-  "target": "/docs/appearance-examples",
+  "target": "/docs/style-examples",
   "split": false
  },
  {
@@ -279,7 +279,7 @@
   "slugs": [
    "ex-loading"
   ],
-  "target": "/docs/appearance-examples/loading-state-example",
+  "target": "/docs/style-examples/loading-state-example",
   "split": false
  },
  {
@@ -288,7 +288,7 @@
   "slugs": [
    "ex-styling"
   ],
-  "target": "/docs/appearance-examples/styling-example",
+  "target": "/docs/style-examples/styling-example",
   "split": false
  },
  {
@@ -360,7 +360,7 @@
   "slugs": [
    "ex-data-index"
   ],
-  "target": "/docs/data-examples",
+  "target": "/docs/server-data-examples",
   "split": false
  },
  {
@@ -369,7 +369,7 @@
   "slugs": [
    "ex-large"
   ],
-  "target": "/docs/data-examples/large-data-example",
+  "target": "/docs/server-data-examples/large-data-example",
   "split": false
  },
  {
@@ -379,7 +379,7 @@
    "ex-lazy",
    "ex-data-index"
   ],
-  "target": "/docs/data-examples",
+  "target": "/docs/server-data-examples",
   "split": true
  },
  {
@@ -388,7 +388,7 @@
   "slugs": [
    "ex-lazy"
   ],
-  "target": "/docs/data-examples/scroll-mode-example",
+  "target": "/docs/server-data-examples/scroll-mode-example",
   "split": false
  },
  {
@@ -397,7 +397,7 @@
   "slugs": [
    "ex-lazy"
   ],
-  "target": "/docs/data-examples/scroll-mode-example",
+  "target": "/docs/server-data-examples/scroll-mode-example",
   "split": false
  },
  {
@@ -406,44 +406,44 @@
   "slugs": [
    "ex-lazy"
   ],
-  "target": "/docs/data-examples/scroll-mode-example",
+  "target": "/docs/server-data-examples/scroll-mode-example",
   "split": false
  },
  {
   "old": "/docs/examples/data/orm/drizzle",
   "file": "examples/data/orm/drizzle.mdx",
   "slugs": [
-   "ex-orm"
+   "ex-orm-drizzle"
   ],
-  "target": "/docs/data-examples/orm-example",
+  "target": "/docs/server-data-examples/drizzle-example",
   "split": false
  },
  {
   "old": "/docs/examples/data/orm",
   "file": "examples/data/orm/index.mdx",
   "slugs": [
-   "ex-orm",
+   "ex-orm-index",
    "ex-data-index"
   ],
-  "target": "/docs/data-examples",
+  "target": "/docs/server-data-examples",
   "split": true
  },
  {
   "old": "/docs/examples/data/orm/prisma",
   "file": "examples/data/orm/prisma.mdx",
   "slugs": [
-   "ex-orm"
+   "ex-orm-prisma"
   ],
-  "target": "/docs/data-examples/orm-example",
+  "target": "/docs/server-data-examples/prisma-example",
   "split": false
  },
  {
   "old": "/docs/examples/data/orm/supabase",
   "file": "examples/data/orm/supabase.mdx",
   "slugs": [
-   "ex-orm"
+   "ex-orm-supabase"
   ],
-  "target": "/docs/data-examples/orm-example",
+  "target": "/docs/server-data-examples/supabase-example",
   "split": false
  },
  {
@@ -452,7 +452,7 @@
   "slugs": [
    "ex-pages"
   ],
-  "target": "/docs/data-examples/pages-mode-example",
+  "target": "/docs/server-data-examples/pages-mode-example",
   "split": false
  },
  {
@@ -462,7 +462,7 @@
    "ex-pages",
    "ex-data-index"
   ],
-  "target": "/docs/data-examples",
+  "target": "/docs/server-data-examples",
   "split": true
  },
  {
@@ -471,7 +471,7 @@
   "slugs": [
    "ex-pages"
   ],
-  "target": "/docs/data-examples/pages-mode-example",
+  "target": "/docs/server-data-examples/pages-mode-example",
   "split": false
  },
  {
@@ -480,7 +480,7 @@
   "slugs": [
    "ex-pages"
   ],
-  "target": "/docs/data-examples/pages-mode-example",
+  "target": "/docs/server-data-examples/pages-mode-example",
   "split": false
  },
  {
@@ -489,7 +489,7 @@
   "slugs": [
    "ex-server"
   ],
-  "target": "/docs/data-examples/server-rows-example",
+  "target": "/docs/server-data-examples/server-rows-example",
   "split": false
  },
  {
@@ -507,7 +507,7 @@
   "slugs": [
    "ex-custom"
   ],
-  "target": "/docs/basic-examples/custom-cell-example",
+  "target": "/docs/basic-examples/custom-cell-type-example",
   "split": false
  },
  {
@@ -661,7 +661,7 @@
    "global-shortcuts",
    "cheat-shortcuts"
   ],
-  "target": "/docs/select-navigate/set-global-shortcuts",
+  "target": "/docs/selection-keys/global-shortcuts",
   "split": true
  },
  {
@@ -681,7 +681,7 @@
   "slugs": [
    "i18n"
   ],
-  "target": "/docs/style-translate/translate-labels",
+  "target": "/docs/theme-style-language/labels-i18n",
   "split": false
  },
  {
@@ -735,7 +735,7 @@
   "slugs": [
    "license"
   ],
-  "target": "/docs/support-upgrades/license",
+  "target": "/docs/support-upgrades/license-credits",
   "split": false
  },
  {
@@ -779,7 +779,7 @@
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/extend-gridcn",
+  "target": "/docs/extend-compose",
   "split": true
  },
  {
@@ -789,9 +789,10 @@
    "version-policy",
    "row-limits",
    "support-matrix",
-   "upgrade"
+   "upgrade",
+   "security-policy"
   ],
-  "target": "/docs/support-upgrades/version-policy",
+  "target": "/docs/support-upgrades/version-policy-changelog",
   "split": true
  },
  {
@@ -801,9 +802,9 @@
    "first-grid",
    "learn-columns",
    "learn-edit",
+   "learn-state",
    "learn-select",
    "learn-sort",
-   "learn-save",
    "learn-style"
   ],
   "target": "/docs/learning-path/render-your-first-grid",
@@ -817,17 +818,18 @@
    "ref-server-rows",
    "find-task"
   ],
-  "target": "/docs/choose-data-mode",
+  "target": "/docs/data-modes",
   "split": true
  },
  {
   "old": "/docs/recipes/data-fetching/server-round-trip",
   "file": "recipes/data-fetching/server-round-trip.mdx",
   "slugs": [
-   "server-round-trip"
+   "server-round-trip",
+   "server-conflicts"
   ],
   "target": "/docs/save-server/save-roll-back",
-  "split": false
+  "split": true
  },
  {
   "old": "/docs/recipes/data-fetching/server-side",
@@ -853,7 +855,7 @@
   "slugs": [
    "auth-gated"
   ],
-  "target": "/docs/edit-data/lock-cells-role",
+  "target": "/docs/editing-cells/lock-cells-role",
   "split": false
  },
  {
@@ -862,7 +864,7 @@
   "slugs": [
    "custom-cell-example"
   ],
-  "target": "/docs/extend-gridcn/build-currency-cell",
+  "target": "/docs/extend-compose/build-cell-type",
   "split": false
  },
  {
@@ -871,7 +873,7 @@
   "slugs": [
    "edit-row-form"
   ],
-  "target": "/docs/edit-data/edit-rows-forms",
+  "target": "/docs/editing-cells/edit-rows-forms",
   "split": false
  },
  {
@@ -880,7 +882,7 @@
   "slugs": [
    "find-task"
   ],
-  "target": "/docs/look-things-up/task-finder",
+  "target": "/docs/help/task-finder",
   "split": false
  },
  {
@@ -889,7 +891,7 @@
   "slugs": [
    "bulk-actions"
   ],
-  "target": "/docs/extend-gridcn/run-bulk-actions",
+  "target": "/docs/extend-compose/run-bulk-actions",
   "split": false
  },
  {
@@ -898,7 +900,7 @@
   "slugs": [
    "detail-panel"
   ],
-  "target": "/docs/extend-gridcn/open-detail-panel",
+  "target": "/docs/extend-compose/open-detail-panel",
   "split": false
  },
  {
@@ -907,7 +909,7 @@
   "slugs": [
    "multiple-grids"
   ],
-  "target": "/docs/extend-gridcn/link-multiple-grids",
+  "target": "/docs/extend-compose/link-multiple-grids",
   "split": false
  },
  {
@@ -930,14 +932,14 @@
    "row-operations-code",
    "server-row-ops"
   ],
-  "target": "/docs/rows",
+  "target": "/docs/rows-menus",
   "split": true
  },
  {
   "old": "/docs/selection-keyboard",
   "file": "selection-keyboard.mdx",
   "slugs": [
-   "select-index",
+   "selection-index",
    "selection-model",
    "pointer-selection",
    "checked-rows",
@@ -945,7 +947,7 @@
    "server-selection",
    "cheat-shortcuts"
   ],
-  "target": "/docs/select-navigate",
+  "target": "/docs/selection-keys",
   "split": true
  },
  {
@@ -956,7 +958,6 @@
    "sorting",
    "filtering",
    "quick-search",
-   "sort-list",
    "server-sort-filter"
   ],
   "target": "/docs/sort-filter-search",
@@ -984,7 +985,7 @@
    "loading-state",
    "i18n"
   ],
-  "target": "/docs/style-translate",
+  "target": "/docs/theme-style-language",
   "split": true
  },
  {
@@ -993,7 +994,7 @@
   "slugs": [
    "terms"
   ],
-  "target": "/docs/look-things-up/terms",
+  "target": "/docs/help/terms",
   "split": false
  },
  {
