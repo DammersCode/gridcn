@@ -235,13 +235,13 @@ Three rules make the combination safe:
   hole. The hook's own `getRowId` option only sees loaded rows, and
   `server.gridProps.getRowId` is already wrapped to answer a placeholder id for a hole. Pass the
   plain form to the hook and `server.gridProps.getRowId` to the grid, as in the example.
-- **Evicted rows are silent no-ops.** An entry whose rows were evicted or reset out skips those
+- **Evicted rows are silent no-ops.** An entry whose rows were unloaded by `maxLoadedRows`, by `evict`, or by a reset skips those
   operations and keeps the rest, so `canUndo` can stay true on an entry that changes nothing. This is
   the same rule as the vanished row id skip above.
 - **Clear the stack when the dataset changes.** `server.refresh()` and a dataset swap drop the
   loaded rows the stack references. Pass the dataset's identity as `datasetKey`, so the stack
   clears itself on the next render. If your dataset has no stable identity, call `clear()` in
-  the same handler.
+  the same handler. A tick of `revalidateInterval` <NewBadge /> refetches the same dataset, so it needs no `clear()` and the stack stays.
 
 `undo` also dev-warns once when it runs over a sparse array.
 

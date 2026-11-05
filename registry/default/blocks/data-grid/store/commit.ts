@@ -295,6 +295,7 @@ export function computeCellPatchBatch(
   patches: readonly CellPatch[],
   rowIndex: ReadonlyMap<string, number>,
   skipValidation: boolean,
+  source: DataChange<unknown>["source"] = "stream",
 ): {
   nextData: readonly unknown[] | null;
   ops: DataOp<unknown>[];
@@ -326,8 +327,12 @@ export function computeCellPatchBatch(
       skipped.push({ patchIndex, reason: "hole" });
       continue;
     }
-    if (isColumnReadOnly(column, baseRow)) {
+    if (source === "stream" ? !column.setValue && !column.accessorKey : isColumnReadOnly(column, baseRow)) {
       skipped.push({ patchIndex, reason: "readonly" });
+      continue;
+    }
+    if (source === "stream" && s.saveStatus.get(patch.rowId) === "saving") {
+      skipped.push({ patchIndex, reason: "saving" });
       continue;
     }
 

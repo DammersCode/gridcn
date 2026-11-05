@@ -115,6 +115,8 @@ The grid core has one live region <NewBadge />, a `role="status"` element with `
 
 With `announceResults` <NewBadge />, the region also reads the number of rows in the view after a filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A server-sorted grid skips it, because the grid does not hold every row. A lazy source reads its loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). A change that leaves the rows and their order as they were, such as moving a filter row, stays quiet, and so does a filter applied on mount.
 
+When a push changes a value that the sort or filter reads, the region reads "Some rows changed and may no longer match the sort or filter." (`labels.grid.viewStale`) <NewBadge />. It reads this once when the view turns stale, and at most once every 30 seconds. A stale row carries `data-row-stale` and no ARIA state.
+
 | Prop | Type | Default |
 |---|---|---|
 | `announceResults` | `boolean` | `false` |

@@ -100,6 +100,7 @@ export const DataGridRow = memo(function DataGridRow({
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || undefined}
       {...(cellState.saveStatus === undefined ? undefined : { [GRID_ATTR.saveStatus]: cellState.saveStatus })}
+      {...(cellState.stale ? { [GRID_ATTR.rowStale]: "" } : undefined)}
       aria-selected={isChecked ? true : hasCheckboxMarker ? false : undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
       className={cn("group/row data-hovered:bg-muted/50", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}

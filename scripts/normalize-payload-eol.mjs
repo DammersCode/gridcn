@@ -36,7 +36,7 @@ function main() {
     }
     let head;
     try {
-      head = execSync(`git show HEAD:${f}`, { encoding: "utf8" });
+      head = execSync(`git show HEAD:${f}`, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
     } catch {
       console.log(`new-kept ${f}`);
       continue;

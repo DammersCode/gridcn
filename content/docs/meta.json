@@ -46,6 +46,8 @@
     "addons/import-export",
     "---[Timer]Hooks---",
     "hooks/use-debounce",
+    "hooks/use-debounced-input",
+    "hooks/is-composing-key",
     "---[Blocks]Architecture---",
     "plugins",
     "performance",

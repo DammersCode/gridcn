@@ -159,7 +159,7 @@ Pass `debounceMs` to `DataGridSearch` to override it for one search box.
 Typed text <NewBadge /> in the search box, the filter value inputs, and the find & replace field is never lost.
 Blur, Enter, and closing the popover or search box commit text that is still waiting. Escape drops it. While an IME
 composes, nothing commits; the composed text commits after the composition ends. These rules come from the
-[`useDebouncedInput`](/docs/hooks/use-debounce) hook. The set-filter search only waits `inputDebounceMs`.
+[`useDebouncedInput`](/docs/hooks/use-debounced-input) hook. The set-filter search only waits `inputDebounceMs`.
 
 `actions.setSearch(text, { matchCase, wholeCell })` sets the search options. `matchCase` respects
 letter case and `wholeCell` matches only cells that equal the search text. Both default to

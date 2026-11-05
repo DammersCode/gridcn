@@ -54,10 +54,21 @@ export function invertChange<TData>(change: DataChange<TData>, source: "history"
  * ascending-index order regardless of the order they appear in `ops`, so a
  * multi-row batch round-trips through invertChange correctly.
  */
-export function applyChange<TData>(
+export function applyChange<TData>(data: readonly TData[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string): TData[] {
+  return applyChangeWith(data, change, getRowId);
+}
+
+export type ApplyChangeOptions<TData> = {
+  /** Picks the row an `update` operation writes, given the row currently in `data`. Default: the operation's own `row`. */
+  rowOfUpdate?: (op: Extract<DataOp<TData>, { type: "update" }>, current: TData) => TData;
+};
+
+/** {@link applyChange} with options; internal to the add-ons, not on the consumer barrel. */
+export function applyChangeWith<TData>(
   data: readonly TData[],
   change: DataChange<TData>,
   getRowId: (row: TData, index: number) => string,
+  { rowOfUpdate }: ApplyChangeOptions<TData> = {},
 ): TData[] {
   const indexById = new Map<string, number>();
   const idByIndex = new Array<string>(data.length);
@@ -82,7 +93,7 @@ export function applyChange<TData>(
       }
       const idx = indexById.get(op.rowId);
       if (idx === undefined) continue;
-      if (op.type === "update") updateById.set(op.rowId, op.row);
+      if (op.type === "update") updateById.set(op.rowId, rowOfUpdate ? rowOfUpdate(op, data[idx]!) : op.row);
       else if (op.type === "delete") deleteIndices.add(idx);
       // a move is a delete + insert of the same row: the insert lands at the row's post-move slot
       else {
@@ -128,7 +139,7 @@ export function applyChange<TData>(
         if (next >= indices.length) break;
         const target = indices[next]!;
         if (op.type === "update") {
-          updateByIndex.set(target, op.row);
+          updateByIndex.set(target, rowOfUpdate ? rowOfUpdate(op, data[target]!) : op.row);
         } else {
           deleteIndices.add(target);
           if (op.type === "move") inserts.push({ type: "insert", rowId: op.rowId, row: op.row, index: op.to });

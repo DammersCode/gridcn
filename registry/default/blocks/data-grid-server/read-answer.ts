@@ -13,7 +13,7 @@ export type ServerRowsRequest<TCursor = never> = {
   end: number;
   /** Sequential scroll only: the `nextCursor` of the block before; `undefined` for the first block and for every other source. */
   cursor: TCursor | undefined;
-  /** Aborted when a newer request replaces this one, on a spec change, and on unmount. */
+  /** Aborted when a newer request replaces this one, when a scroll-mode block leaves the rendered rows by more than `overscan` plus one block, on a spec change, and on unmount. */
   signal: AbortSignal;
 };
 

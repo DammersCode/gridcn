@@ -7,7 +7,9 @@
  */
 
 import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
-import { gridStoreWrapper } from "./store/api";
+import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
+
+export { setServerReshapeHandler };
 import type { DataGridStoreWrapper } from "./types";
 
 export type { DataGridReadState, DataGridStoreWrapper } from "./types";
@@ -110,6 +112,7 @@ export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
 }
 export { setCellValue } from "./columns/column-helpers";
+export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback } from "./interaction/rollback";

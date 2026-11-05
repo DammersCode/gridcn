@@ -45,7 +45,8 @@ import {
 } from "../selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsVerdict } from "./types";
+import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -90,10 +91,16 @@ export type DataWriteContext = {
   trackWrite: ((change: DataChange<unknown>, result: PromiseLike<SaveAck>) => void) | null;
   /** Set while the grid is unmounted: a late ack neither reverts nor calls back. */
   disposed: boolean;
+  /** The stale rows with the row object and data index of their latest push; `staleRowIds` in the state is its key set. */
+  staleRows: Map<string, { row: unknown; index: number }>;
+  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelay`, `"stale"` is a deferred push that marked a row. */
+  reshape: ((trigger: "urgent" | "stale") => void) | null;
+  warnedReshape: boolean;
+  warnedStreamLimit: boolean;
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -120,6 +127,7 @@ export function writeThenEmit(
   change: DataChange<unknown>,
   write: () => void,
 ): void {
+  followStaleRows(ctx, change.ops);
   const onDataChange = s.onDataChange;
   const onSave = change.source === "rollback" || change.source === "stream" ? undefined : s.onSave;
   const observers = s.plugins.observers;
@@ -159,6 +167,9 @@ export function writeThenEmit(
     if (ctx.writeDepth === 0) flushEmits(ctx);
   }
 }
+
+/** Most patches (and, for a delete, row ids) that one `"stream"` call takes; the rest skip with reason `"limit"`. */
+export const MAX_STREAM_PATCHES = 100_000;
 
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
 const STREAM_REJECTION_SCAN_LIMIT = 16;
@@ -253,9 +264,11 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
   const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes);
+  const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,
-    viewStale: false,
+    viewStale: staleRowIds.size > 0,
+    ...(staleRowIds === s.staleRowIds ? {} : { staleRowIds }),
     ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
 }
@@ -516,7 +529,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
     const s = get();
     const onValidationError = s.onValidationError;
-    if (rejected.length === 0 || !onValidationError || s.readOnly) return;
+    if (rejected.length === 0 || !onValidationError || (s.readOnly && (batchSource ?? "stream") !== "stream")) return;
     const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
     const dataRows = new Set<number>();
     for (const { patchIndex } of rejected) {
@@ -1018,7 +1031,18 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     updateCells(patches, options) {
       const s = get();
-      if (s.readOnly || patches.length === 0) return { applied: 0, skipped: [], pending: false };
+      if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
+      if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
+        if (!ctx.warnedStreamLimit) {
+          ctx.warnedStreamLimit = true;
+          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
+        }
+        const beyond: UpdateCellsSkip[] = [];
+        for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
+        const verdict = get().actions.updateCells(patches.slice(0, MAX_STREAM_PATCHES), options);
+        const withBeyond = (v: UpdateCellsVerdict): UpdateCellsVerdict => ({ ...v, skipped: [...v.skipped, ...beyond] });
+        return verdict.settled ? { ...verdict, settled: verdict.settled.then(withBeyond) } : withBeyond(verdict);
+      }
       const skipValidation = options?.skipValidation ?? false;
 
       // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
@@ -1045,7 +1069,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
 
       const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation);
+      const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation, options?.source);
       const nextData = batch.nextData;
       if (nextData === null) {
         emitStreamRejections(patches, batch.rejected, options?.source);
@@ -1056,6 +1080,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
       ctx.rowIndexCache.rebase(nextData);
       ctx.lastEmittedData = nextData;
+      const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
+      const stale = marks.state;
       const change = { source: options?.source ?? "stream", ops: batch.ops };
       // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
@@ -1067,10 +1093,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         writeThenEmit(ctx, s, nextData, change, () =>
           set(
             reorder === "defer" && !s.viewStale
-              ? { data: nextData, viewStale: true, cellErrors }
-              : { data: nextData, cellErrors },
+              ? { data: nextData, viewStale: true, cellErrors, ...stale }
+              : { data: nextData, cellErrors, ...stale },
           ),
         );
+        if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
       }
@@ -1082,11 +1109,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           data: nextData,
           cellErrors,
           viewIndex,
-          viewStale: false,
+          viewStale: s.staleRowIds.size > 0,
+          ...stale,
           ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
           ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         }),
       );
+      if (marks.touched) requestReshape(ctx, warnDev);
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
     },
@@ -1103,12 +1132,23 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     reconcileView() {
       const s = get();
       if (!s.viewStale) return;
+      let stale: Pick<DataGridStoreState, "staleRowIds"> = s;
+      if (s.staleRowIds.size > 0) {
+        if (ctx.reshape) ctx.reshape("urgent");
+        else stale = clearStaleRows(ctx);
+      }
+      if (viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+        resetDeferredRows(ctx);
+        set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
+        return;
+      }
       // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
       const viewIndex = resolveViewIndex(s, s.data, pendingRows(ctx, []));
       resetDeferredRows(ctx);
       set({
         viewIndex,
-        viewStale: false,
+        staleRowIds: stale.staleRowIds,
+        viewStale: stale.staleRowIds.size > 0,
         ...followView(s, viewIndex, s.visibleColumns),
         ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
       });
@@ -1147,9 +1187,27 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
-    deleteRowsById(rowIds) {
+    deleteRowsById(rowIds, options) {
       const s = get();
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      if (options?.source === "stream") {
+        if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
+          ctx.warnedStreamLimit = true;
+          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
+        }
+        const ops: DataOp<unknown>[] = [];
+        const seen = new Set<string>();
+        for (let i = 0; i < Math.min(rowIds.length, MAX_STREAM_PATCHES); i++) {
+          const rowId = rowIds[i]!;
+          const index = dataRowIndexByRowId.get(rowId);
+          const row = index === undefined ? undefined : s.data[index];
+          if (index === undefined || row === undefined || seen.has(rowId)) continue;
+          seen.add(rowId);
+          ops.push({ type: "delete", rowId, row, index });
+        }
+        get().actions.commitChange({ source: "stream", ops });
+        return;
+      }
       requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
     duplicateRows(viewRowIndexes) {
@@ -1190,9 +1248,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     commitChange(change) {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly && change.source !== "stream") return;
       if (change.ops.length === 0) return;
       const nextData = applyChange(s.data, change, s.getRowId);
+      followStaleRows(ctx, change.ops);
       // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
       let applied = nextData.length !== s.data.length;
       if (!applied) {

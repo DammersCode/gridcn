@@ -28,6 +28,11 @@ mirror the change there.
 | block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
+| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | visible window |
+| keep range | The wanted range grown by one more block on each side. Scroll mode aborts and evicts only blocks outside it. | |
+| eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | purge |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateInterval`). | polling, auto-refresh |
+| prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | preload |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
@@ -36,6 +41,9 @@ mirror the change there.
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | seed | The initial value a `default*` prop gives once, at mount. | |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
+| stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | dirty row, outdated row |
+| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelay` and `reshape()` control it. | re-sort request |
 
 ## Keyboard actions
 

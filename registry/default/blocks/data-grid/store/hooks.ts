@@ -566,10 +566,11 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  const rowId = s.saveStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
+  const rowId = s.saveStatus.size === 0 && s.staleRowIds.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
   const saveStatus = rowId === undefined ? undefined : s.saveStatus.get(rowId);
+  const stale = rowId !== undefined && s.staleRowIds.has(rowId);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus };
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus, stale };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -599,6 +600,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingError === b.editingError &&
     a.editingRejectionCount === b.editingRejectionCount &&
     a.saveStatus === b.saveStatus &&
+    a.stale === b.stale &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&

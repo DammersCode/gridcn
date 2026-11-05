@@ -138,6 +138,8 @@ export const GRID_ATTR = {
   pagination: "data-grid-pagination",
   /** row.tsx: `saving` while the row's `onSave` promise is pending, `failed` after the server refused it and the grid reverted it. */
   saveStatus: "data-save-status",
+  /** row.tsx: present (`""`) on a row that a push changed in a column the server spec reads, until the server delivers it again. */
+  rowStale: "data-row-stale",
 } as const;
 
 /** A key of {@link GRID_ATTR}. */

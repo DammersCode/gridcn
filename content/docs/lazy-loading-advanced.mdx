@@ -59,10 +59,12 @@ function OrdersGrid() {
 
 `useDataGridServerRows` already merges adjacent loaded blocks and never requests a covered
 block itself. So the cache of React Query mostly pays off for blocks that get *unloaded* and
-scrolled back into view later. Two cases apply: a failed block, and a range you unload
+scrolled back into view later. Three cases apply: a failed block, a block that `maxLoadedRows` unloads, and a range you unload
 yourself with `server.evict(range)`. Use `server.getLoadedRanges()` to find the candidates for your
 policy. When the evicted range comes back into view, the refetch runs through `fetchRows`. It
 serves from cache instead of the network, as long as it is within `staleTime`.
+
+The hook aborts a block request when the rendered rows leave the block by more than `overscan` plus one block. Pass `signal` on to your client, as the example does, so an aborted block stops its network request.
 
 ## When a block fails permanently
 

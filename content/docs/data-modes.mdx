@@ -260,6 +260,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pushes into a server-ordered view</th>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">URL state</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -324,6 +335,39 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"Not a sort concern."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Not a filter concern."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Not a write concern."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Scroll fetch limits</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"A page mode request is one per state; a newer page aborts the older one."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Revalidation on a timer</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Next page prefetch</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"overscan already loads rows ahead on both sides."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pagination</th>
@@ -468,6 +512,11 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **Z**: Gap: Undo warns over rows not loaded yet.
 - **API**: Gap: The local undo stack never learns whether the server accepted the write.
 
+### Pushes into a server-ordered view
+
+- **L**: n/a: The client sorts and filters itself, so a push never leaves a row in the wrong place.
+- **PC**: n/a: The client sorts and filters itself, so a push never leaves a row in the wrong place.
+
 ### URL state
 
 - **C**: n/a: URL state drives the controlled props itself.
@@ -491,6 +540,23 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **SS**: n/a: Not a sort concern.
 - **FS**: n/a: Not a filter concern.
 - **API**: n/a: Not a write concern.
+
+### Scroll fetch limits
+
+- **L**: n/a: Rows are in memory.
+- **PC**: n/a: Rows are in memory.
+- **PS**: n/a: A page mode request is one per state; a newer page aborts the older one.
+
+### Revalidation on a timer
+
+- **L**: n/a: Rows are in memory.
+- **PC**: n/a: Rows are in memory.
+
+### Next page prefetch
+
+- **L**: n/a: Rows are in memory.
+- **PC**: n/a: Rows are in memory.
+- **Z**: n/a: `overscan` already loads rows ahead on both sides.
 
 ### Pagination
 

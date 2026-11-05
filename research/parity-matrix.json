@@ -1141,38 +1141,100 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/lazy-holes.parity.test.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "push-reshape",
+      "feature": "Pushes into a server-ordered view",
+      "options": [
+        "reshapeDelay"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.reshape.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.reshape.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx",
+            "content/docs/streaming-updates.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/push-reshape.parity.test.tsx"
           ]
         }
       }
@@ -1502,6 +1564,169 @@
         "API": {
           "status": "n/a",
           "reason": "Not a write concern."
+        }
+      }
+    },
+    {
+      "id": "fetch-limits",
+      "feature": "Scroll fetch limits",
+      "options": [
+        "loadDelay",
+        "maxConcurrentFetches",
+        "maxLoadedRows"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "n/a",
+          "reason": "A page mode request is one per state; a newer page aborts the older one."
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "revalidate",
+      "feature": "Revalidation on a timer",
+      "options": [
+        "revalidateInterval"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "page-prefetch",
+      "feature": "Next page prefetch",
+      "options": [
+        "prefetchNextPage"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Rows are in memory."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "n/a",
+          "reason": "`overscan` already loads rows ahead on both sides."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/recipes/data-fetching/server-side.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+          ]
         }
       }
     },

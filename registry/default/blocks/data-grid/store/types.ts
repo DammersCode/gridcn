@@ -93,7 +93,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
    * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
    * blocks the next keydown before any passive effect runs and cancels an open edit session.
-   * Default `false`.
+   * A `"stream"` push (`updateCells`, `updateRows`, `deleteRowsById`) still writes. Default `false`.
    */
   readOnly?: boolean;
   /**
@@ -581,6 +581,12 @@ export type CellErrorTarget = {
 /** One entry for {@link DataGridActions.setCellErrors}: the target cell plus its rejection message. */
 export type CellErrorEntry = CellErrorTarget & { message: string };
 
+/** Options for {@link DataGridActions.deleteRowsById}. */
+export type DeleteRowsByIdOptions = {
+  /** `"row-operation"` (default) runs the delete gate and reaches `onSave`. `"stream"` is a push from the server. */
+  source?: "row-operation" | "stream";
+};
+
 /** Options for {@link DataGridActions.updateCells} and {@link DataGridActions.updateRows}. */
 export type UpdateCellsOptions = {
   /**
@@ -612,10 +618,13 @@ export type UpdateCellsSkip = {
   /**
    * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
    * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
-   * row, via `readOnly(row)`) is read-only; `"invalid"` — the column's `validate` rejected the
-   * value; `"no-op"` — the value is `Object.is`-equal to the current one.
+   * row, via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
+   * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
+   * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
+   * `"stream"` batch met a row whose save is in flight, so push the value again after the save settles;
+   * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.
    */
-  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op";
+  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit";
 };
 
 /**
@@ -831,6 +840,11 @@ export type DataGridStoreState = Omit<
    * {@link useDataGridViewStale}.
    */
   viewStale: boolean;
+  /**
+   * Under a server sort or filter, the ids of loaded rows that a push changed in a column the spec reads. The row keeps
+   * its place and carries `data-row-stale` until the server delivers it again. Empty in a client grid.
+   */
+  staleRowIds: ReadonlySet<string>;
   /** Recomputed by _syncProps/setColumnOrder-ish actions that touch order/visibility. */
   visibleColumns: readonly AnyColumnDef[];
   /**
@@ -1086,8 +1100,11 @@ export type DataGridActions = {
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
   deleteRows(viewRowIndexes: number[]): void;
-  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped. */
-  deleteRowsById(rowIds: readonly string[]): void;
+  /**
+   * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
+   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, unchecks the rows, and leaves the cursor and the other checked rows where they are.
+   */
+  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): void;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
@@ -1199,7 +1216,7 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
-export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale";
 
 /** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
 export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
@@ -1324,4 +1341,6 @@ export type DataGridRowCellState = {
   selectedColRanges: readonly ColRange[];
   /** The save status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
   saveStatus: RowSaveStatus | undefined;
+  /** A push changed this row in a column the server spec reads, so it may sit at the wrong place until the server delivers it again. */
+  stale: boolean;
 };

@@ -73,6 +73,14 @@ fetchRows: async ({ spec, page, pageSize, signal }) => {
 },
 ```
 
+## Server pushes
+
+<NewBadge />
+
+The demo pushes score changes every 500 ms from a feed component inside the provider. The Server pushes switch starts and stops the feed. The Delete on server button pushes a delete with `deleteRowsById(ids, { source: "stream" })`. The Reshape delay select sets `reshapeDelay` to off or to one second.
+
+A score push marks the row with `data-row-stale` when the sort reads the score column. The demo dims the stale row from the grid root class. With the one-second delay, the hook refetches the page after the pushes and the server moves the row. See [Lazy loading: Pushes](/docs/lazy-loading#pushes).
+
 ## Notes
 
 - `filters` is the filter tree: rows and groups, with no separate join. The top level combines with "and", and a group carries its own `join`.
