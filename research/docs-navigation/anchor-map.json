@@ -366,7 +366,7 @@
  },
  "/docs/examples/data/pagination/client": {
   "client-slice-vs-server-mode": "/docs/rows-pages-menus/client-pagination#client-slice-vs-server-mode",
-  "behavior-reference": "/docs/rows-pages-menus/client-pagination#behavior-reference",
+  "behavior-reference": "/docs/rows-pages-menus/client-pagination",
   "related": "/docs/rows-pages-menus/client-pagination#related"
  },
  "/docs/examples/data/pagination": {},
@@ -654,7 +654,7 @@
   "confirm-a-delete": "/docs/rows-pages-menus/row-operations#confirm-a-delete",
   "default-shortcuts": "/docs/rows-pages-menus/row-operations#default-shortcuts",
   "reorder": "/docs/rows-pages-menus/row-order#reorder",
-  "context-menu": "/docs/rows-pages-menus/row-operations#context-menu",
+  "context-menu": "/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items",
   "programmatic-actions": "/docs/rows-pages-menus#programmatic-actions",
   "scroll-mode": "/docs/rows-live-data/change-server-rows#scroll-mode",
   "row-markers": "/docs/rows-pages-menus/row-markers#row-markers",

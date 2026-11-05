@@ -2,15 +2,15 @@
 title: Row operations
 description: Insert, duplicate, and delete rows from props, shortcuts, the context menu, or code, and ask for confirmation before a delete.
 type: feature
-aliases: ["add a row", "delete rows", "programmatic row actions"]
+aliases: ["add a row", "delete rows", "new row", "remove rows", "copy row", "programmatic row actions"]
 icon: Rows3
 ---
 
-Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation addresses view indexes, the positions the user sees. Each one writes one change with `source: "row-operation"`.
+Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRowsById` addresses view indexes, the positions the user sees. `deleteRowsById` takes row ids. Each one writes one change with `source: "row-operation"`.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
-## Enable the operations
+## Enable the operations [#enable-props]
 
 Insert needs `createRow` and duplicate needs `duplicateRow`. Delete needs no prop. This grid enables all three operations:
 
@@ -49,11 +49,11 @@ Without `createRow`, an insert does nothing and a development warning appears. T
 
 `createRow` receives the data index where the new row lands. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id, because a copy with the id of its source collides with it.
 
-Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels the operation. The grid drops a late result if the grid became `readOnly` in the meantime.
+Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels the operation. The grid drops a late result in two cases. The grid became `readOnly` while the promise was pending. Or the anchor row of an insert, or the source row of a copy, is gone.
 
 An operation can land while a cell editor is open. The editor follows its row to the new position. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
 
-## Run from code
+## Run from code [#programmatic-actions]
 
 `useDataGridActions` returns the same operations that the shortcuts and the menu run. Call it below `DataGridProvider`:
 
@@ -83,11 +83,11 @@ function RowTools() {
 - `insertRows(viewRowIndex, count, position)` inserts `count` rows as one change. `createRow` runs once per row. A `count` of 0 or less does nothing.
 - `duplicateRows(viewRowIndexes)` puts each copy directly after its own source row.
 - `deleteRows(viewRowIndexes)` deletes the named rows as one change.
-- `deleteRowsById(rowIds)` deletes the rows with these ids as one change. An id that matches no row is skipped.
+- `deleteRowsById(rowIds)` deletes the rows with these ids as one change. The grid skips an id that matches no row.
 
-Under a sort, a new row lands in its sorted position, and the active cell stays on its row. Insert and duplicate shift the selection around the new rows. Delete clears the selection and the active cell, unless an open edit survives the delete.
+Under a sort, a new row lands in its sorted position, and the active cell stays on its row. Insert and duplicate shift the selection around the new rows. Delete clears the selection and the active cell. An open edit that survives the delete keeps its cell.
 
-## Shortcuts
+## Shortcuts [#default-shortcuts]
 
 | Action | Default | Keymap action |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ Under a sort, a new row lands in its sorted position, and the active cell stays 
 | Duplicate rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 
-Insert works at the active cell. Duplicate and delete work on every row that the selection covers, or on the active row if nothing is selected. With `keepCheckedRows`, they work on the checked rows only while any row is checked. If only hidden rows are checked, they do nothing. A `readOnly` grid ignores all four keys.
+Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `keepCheckedRows` and at least one checked row, they work on the checked rows only. If only hidden rows have checks, they do nothing. A `readOnly` grid ignores all four keys.
 
 The keys come from `DEFAULT_KEYMAP`. Remap or remove them through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows. The keys that move rows are on [Row order](/docs/rows-pages-menus/row-order).
 
@@ -119,6 +119,7 @@ import {
 } from "@/components/ui/dialog";
 
 type Row = { id: string; name: string };
+type Ask = { count: number; answer: (ok: boolean) => void };
 
 const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name" },
@@ -128,10 +129,12 @@ const rows: Row[] = [{ id: "1", name: "Ada" }];
 
 function GridWithConfirm() {
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const [ask, setAsk] = useState<{ count: number; answer: (ok: boolean) => void } | null>(null);
+  const [ask, setAsk] = useState<Ask | null>(null);
 
   const confirmDelete = ({ rowIds }: { rowIds: readonly string[] }) =>
-    new Promise<boolean>((resolve) => setAsk({ count: rowIds.length, answer: resolve }));
+    new Promise<boolean>((resolve) => {
+      setAsk({ count: rowIds.length, answer: resolve });
+    });
 
   const settle = (ok: boolean) => {
     ask?.answer(ok);
@@ -140,14 +143,25 @@ function GridWithConfirm() {
 
   return (
     <>
-      <DataGrid defaultData={rows} columns={columns} onBeforeDeleteRows={confirmDelete} />
-      <Dialog open={ask !== null} onOpenChange={(open) => !open && settle(false)}>
+      <DataGrid
+        defaultData={rows}
+        columns={columns}
+        onBeforeDeleteRows={confirmDelete}
+      />
+      <Dialog
+        open={ask !== null}
+        onOpenChange={(open) => !open && settle(false)}
+      >
         <DialogContent initialFocus={cancelRef}>
           <DialogHeader>
             <DialogTitle>Delete {ask?.count} rows?</DialogTitle>
           </DialogHeader>
           <DialogFooter>
-            <Button ref={cancelRef} variant="outline" onClick={() => settle(false)}>
+            <Button
+              ref={cancelRef}
+              variant="outline"
+              onClick={() => settle(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={() => settle(true)}>
@@ -161,13 +175,13 @@ function GridWithConfirm() {
 }
 ```
 
-While a promise is pending, a second delete does nothing. After the promise resolves, the grid reads its state again. It drops a `true` result if the grid became `readOnly`, or if the row set or the checked rows changed. A callback that throws or rejects cancels the delete and warns in development.
+While a promise is pending, a second delete does nothing. After the promise resolves, the grid reads its state again. If the grid became `readOnly`, it drops a `true` result. It also drops the result after a change of the row set or the checks. A callback that throws or rejects cancels the delete and warns in development.
 
 <Callout type="warn">
-  Settle the promise on every path, including a dismissed dialog. A promise that never settles blocks every later delete.
+  Settle the promise on every path. A dismissed dialog is a path too. A promise that never settles blocks every later delete.
 </Callout>
 
-Clearing cell contents with <kbd>Delete</kbd> is not a row delete. It does not call `onBeforeDeleteRows`.
+Clearing cell contents with <kbd>Delete</kbd> is not a row delete. It does not call `onBeforeDeleteRows`. Undo restores a confirmed delete.
 
 ## Server mode
 
@@ -178,7 +192,7 @@ If the promise from `onSave` rejects, or resolves with a `rejected` entry for a 
 Two data modes change the scope of an operation:
 
 - **Client pagination.** `data` is the current page, so an operation changes the page slice. Merge each change into your full dataset by row id. See [Client pagination](/docs/rows-pages-menus/client-pagination).
-- **Scroll mode.** Unloaded rows are holes. A delete, duplicate, or insert does nothing if its target touches a hole. One hole cancels the whole request. The grid calls no `onDataChange` and warns once in development. To delete rows that you know, pass their ids to `deleteRowsById`.
+- **Scroll mode.** Unloaded rows are holes. If the target of a delete, duplicate, or insert touches a hole, the operation does nothing. One hole cancels the whole request. The grid calls no `onDataChange` and warns once in development. To delete rows that you know, pass their ids to `deleteRowsById`.
 
 ## Related
 

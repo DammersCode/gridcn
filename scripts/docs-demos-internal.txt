@@ -1,1 +1,3 @@
 # Registered examples that no docs page embeds on purpose. One per line, reason after #.
+data-grid-delete-confirm-demo # the Confirm a delete sample on Row operations shows the same dialog
+data-grid-context-menu-slots-demo # the Custom menu items samples on Context menu show the same resolvers

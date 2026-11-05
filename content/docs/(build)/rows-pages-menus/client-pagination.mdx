@@ -2,7 +2,7 @@
 title: Client pagination
 description: Split a local array into pages with a pager footer, and learn what sort, filter, search, edits, and selection do on a page.
 type: feature
-aliases: ["pagination", "paging", "client pagination", "page size"]
+aliases: ["pagination", "paging", "client pagination", "page size", "pager", "rows per page", "page navigation"]
 icon: ListOrdered
 ---
 
@@ -12,9 +12,9 @@ Readers who want a numbered page, a page size, and a "21-40 of 240" label need a
 
 <InstallCommand item="data-grid-pagination" manual manualSlot={<ManualInstall item="data-grid-pagination" />} />
 
-## Paginate a local array
+## Paginate a local array [#client-mode]
 
-Pass the whole array as `data`. The hook returns `pageData`, the rows of the current page, and `pager`, everything that the footer needs:
+Pass the whole array as `data`. The hook returns two values. `pageData` holds the rows of the current page. `pager` holds what the footer needs:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -30,7 +30,10 @@ const columns = defineColumns<Order>()([
 ]);
 
 function OrdersGrid({ rows }: { rows: Order[] }) {
-  const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
+  const { pageData, pager } = useDataGridPagination({
+    data: rows,
+    defaultPageSize: 25,
+  });
 
   return (
     <>
@@ -58,15 +61,15 @@ If the data shrinks, the hook clamps the page into range. A page-size change kee
 | `onPageChange` | `(page: number) => void` | none |
 | `onPageSizeChange` | `(pageSize: number) => void` | none |
 
-## Everything is page-local
+## Everything is page-local [#client-slice-vs-server-mode]
 
 The grid never sees rows from other pages. The footer still shows the count of the whole array.
 
 - **Sort, filter, and search** work on the current page only. A search for a row on another page finds nothing.
 - **Edits** reach `onDataChange` as the page slice. Merge the slice back into your full dataset by row id. Do not pass the slice to a setter that owns the whole dataset, because that drops every other row.
 - **Inserts and deletes** change the page slice too. Apply `change.ops` to your full dataset by row id.
-- **Checked rows** follow their row ids. A page change drops the checks of rows that left the page. With `keepCheckedRows` and `keepHiddenCheckedRows`, the grid remembers them by row id and checks them again when the page returns.
-- **Streaming patches** reach rows on the current page only. `updateCells` lists the other rows in `skipped` with the reason `"unknown-row"`. Apply the feed to your full dataset and let `data` follow.
+- **Selection** follows row ids. A page change drops the checks, the cell range, and the active cell of rows that left the page. To keep the checks, pass `keepCheckedRows` and `totalRowCount={pager.totalRowCount}` to the grid. The grid then remembers each check by row id and restores it on a return to the page.
+- **Streaming patches** reach rows on the current page only. `updateCells` lists each patch for another row in `skipped` with the reason `"unknown-row"`. Apply the feed to your full dataset and let `data` follow.
 - **Totals** from [pinned rows](/docs/rows-pages-menus/pinned-rows) cover the page.
 
 This handler merges edits into the full dataset:
@@ -93,7 +96,13 @@ function EditableOrders({ initial }: { initial: Order[] }) {
     });
   }, []);
 
-  return <DataGrid data={pageData ?? []} columns={columns} onDataChange={onDataChange} />;
+  return (
+    <DataGrid
+      data={pageData ?? []}
+      columns={columns}
+      onDataChange={onDataChange}
+    />
+  );
 }
 ```
 
@@ -142,7 +151,7 @@ function CompactBar({ pager }: { pager: DataGridPaginationControls }) {
 }
 ```
 
-The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The strings come from `labels.pagination`. See [Labels](/docs/components-props/labels).
+The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The default strings are the `labels.pagination` group. Override them through the `labels` prop of `DataGridPaginationBar`. The `labels` prop of the grid does not reach the footer. See [Labels](/docs/components-props/labels).
 
 ## Server mode
 

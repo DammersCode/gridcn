@@ -2,7 +2,7 @@
 title: Row markers
 description: Add a row-number, checkbox, or drag-handle column at the start of the grid, and replace its cells and its header with your own content.
 type: feature
-aliases: ["row numbers", "row checkboxes", "select rows column"]
+aliases: ["row header", "row selector", "checkbox column"]
 icon: ListChecks
 ---
 
@@ -10,7 +10,7 @@ Users need a place to grab a whole row. The marker column sits at the start of t
 
 <ComponentPreview name="data-grid-row-markers-demo" />
 
-## Choose a mode
+## Choose a mode [#row-markers]
 
 Set `rowMarkers` on the grid. The default is `"none"`, which renders no marker column:
 
@@ -50,7 +50,7 @@ function MyGrid() {
 
 ## Selecting rows
 
-A press on a marker cell selects its row. Press and drag to select a range of rows. <kbd>Shift</kbd> extends the range, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds a row. A press on the checkbox toggles that row and keeps the other checks. The select-all checkbox in the header is checked, indeterminate, or unchecked, depending on the rows channel.
+A press on a marker cell selects its row. Press and drag to select a range of rows. <kbd>Shift</kbd> extends the range, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds a row. A press on the checkbox toggles that row and keeps the other checks. The select-all checkbox in the header shows the state of the row channel: checked, indeterminate, or unchecked.
 
 The checkboxes are not tab stops. Use <kbd>Shift</kbd>+<kbd>Space</kbd> to select the active row and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to toggle it. `enableRowSelection={false}` turns off the marker gestures and <kbd>Shift</kbd>+<kbd>Space</kbd>. See [Pointer selection](/docs/selection-shortcuts/pointer-selection) and [Checked rows](/docs/selection-shortcuts/checked-rows).
 
@@ -60,7 +60,7 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 
 ## Custom markers
 
-`DataGridRoot` and `DataGrid` accept two render props. They replace the content of the marker column and keep its chrome and its gestures:
+`DataGridRoot` and `DataGrid` accept two render props. They replace the content of the marker column and keep its chrome and its selection gestures:
 
 {/* props: DataGridRootProps */}
 
@@ -69,9 +69,9 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 | `renderMarker` | `MarkerCellRenderer` | built-in number and checkbox |
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
 
-`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. `isRowChannelSelected` is true if the row is selected as a whole. `isCellSelected` is true if the selection covers at least one cell of the row. A cell click flips only the second flag. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In `"number"` mode, the header has no checkbox, so the renderer fills the blank cell.
+`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row channel holds the row, `isRowChannelSelected` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click flips only the second flag. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
 
-The mode still sets the width. With `"none"`, the grid renders no marker column and calls neither function. A press or drag on a marker cell still selects rows. Define both functions at module scope, because a new function on every render re-renders every marker cell:
+The mode still sets the width. With `"none"`, the grid renders no marker column and calls neither function. A press or drag on a marker cell still selects rows. In `"reorder-number"`, `"reorder-checkbox"`, and `"reorder-both"`, `renderMarker` replaces the drag handle too, so users cannot drag the rows. In `"reorder"`, the whole cell stays the drag handle zone. Define both functions at module scope, because a new function on every render re-renders every marker cell:
 
 ```tsx
 import { Check, Circle } from "lucide-react";
@@ -94,7 +94,14 @@ const renderMarker: MarkerCellRenderer = ({ isRowChannelSelected }) =>
   );
 
 function MyGrid() {
-  return <DataGrid defaultData={rows} columns={columns} rowMarkers="number" renderMarker={renderMarker} />;
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      rowMarkers="number"
+      renderMarker={renderMarker}
+    />
+  );
 }
 ```
 

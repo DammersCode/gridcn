@@ -2,7 +2,7 @@
 title: Row order
 description: Reorder rows by dragging a marker handle, with keyboard shortcuts, or from code, and read the move operations that the grid reports.
 type: feature
-aliases: ["reorder rows", "drag rows", "move rows"]
+aliases: ["reorder rows", "drag rows", "drag and drop rows", "rearrange rows", "manual row order"]
 icon: GripVertical
 ---
 
@@ -10,9 +10,9 @@ Some lists have a meaning in their order, such as a playlist or a priority queue
 
 <ComponentPreview name="data-grid-row-reorder-demo" />
 
-## Enable reordering
+## Enable reordering [#reorder]
 
-Set `rowMarkers` to a mode of the reorder family: `"reorder"`, `"reorder-number"`, `"reorder-checkbox"`, or `"reorder-both"`. The other marker modes have no handle.
+Set `rowMarkers` to a mode of the reorder family: `"reorder"`, `"reorder-number"`, `"reorder-checkbox"`, or `"reorder-both"`. The other marker modes have no handle. This grid uses `"reorder-checkbox"`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -29,7 +29,13 @@ const rows: Row[] = [
 ];
 
 function Playlist() {
-  return <DataGrid defaultData={rows} columns={columns} rowMarkers="reorder-checkbox" />;
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      rowMarkers="reorder-checkbox"
+    />
+  );
 }
 ```
 
@@ -40,7 +46,7 @@ function Playlist() {
 | `rowMarkers` | `RowMarkersMode` | `"none"` |
 | `enableRowReorder` | `boolean` | `true` |
 
-`enableRowReorder` switches reordering off for the whole grid, including the shortcuts and `reorderRows`.
+`enableRowReorder={false}` switches reordering off for the whole grid. The shortcuts and `reorderRows` stop too.
 
 ## Drag a row
 
@@ -48,17 +54,17 @@ The press location decides the gesture. In the reorder family, the drag handle z
 
 The number and the checkbox in the marker cell only select rows. A press on them selects a row, and a drag selects a row range. A selection drag never reorders. <kbd>Shift</kbd> on the handle never starts a reorder either.
 
-A press on the handle of a checked row drags every checked row. They land together at the drop line and keep their order. A press on an unchecked row drags that row alone and leaves the checks as they are. The marker cells of the dragged rows dim until the drag ends. If the pointer stays near the top or bottom edge, the grid scrolls, so you can reach rows outside the rendered window.
+A press on the handle of a checked row drags every checked row. They land together at the drop line and keep their order. A press on an unchecked row drags that row alone and leaves the checks as they are. The marker cells of the dragged rows dim until the drag ends. If the pointer stays near the top or bottom edge, the grid scrolls, so you can reach rows that are not rendered yet.
 
 ## Move rows from the keyboard
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They act on the checked rows. With no checked row, they act on the rows of the selected range, then on the active row. The gaps between rows stay.
 
-If any of the rows is already at the edge, nothing moves. The keys need `enableRowReorder` and a reorder marker mode. They do nothing in a `readOnly` grid or if only hidden rows are checked. Each press is one change. Remap the keys through the `keymap` prop.
+A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode. They do nothing in a `readOnly` grid. With checks on hidden rows only, they do nothing too. Each press is one change and one undo step. While a cell editor is open, the keys do nothing. Remap the keys through the `keymap` prop.
 
 ## Move rows from code
 
-`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` come from `useDataGridActions`. Both address view indexes and return `true` if rows moved:
+`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` come from `useDataGridActions`. If rows moved, both return `true`. Both address view indexes:
 
 ```tsx
 import { useDataGridActions } from "@/components/data-grid/data-grid";
@@ -81,24 +87,24 @@ function MoveTools() {
 
 `rows` is one view index or a list. `to` is the final index of the first row. Moving row 0 to index 3 shifts rows 1 to 3 up. A list moves as one block: the rows keep their order and land next to each other. A repeated index counts once. `to` must leave room for the whole block. `moveRowsBy` shifts every listed row by `delta` and keeps the gaps.
 
-These calls return `false` and change nothing in these cases:
+These calls return `false` and change nothing in these cases. For an active sort or filter and for unloaded rows, the grid also warns in development:
 
 - `enableRowReorder` is off, or the grid is `readOnly`.
 - A client sort or filter is active, because the sort or filter owns the view order.
 - The grid holds unloaded rows in scroll mode.
 - The drop leaves the rows where they are.
 - The list is empty, or an index or `to` is outside the grid.
-- For `moveRowsBy`, any row would leave the grid.
+- For `moveRowsBy`, a row leaves the grid.
 
-After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. A selected range stays selected if its rows end up next to each other. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows.
+After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. If the rows of a selected range end up next to each other, the range stays. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows.
 
-The grid does not recompute search matches after a move. They point at other rows until the search text changes.
+The grid does not recompute search matches after a move. They point at other rows until the next view rebuild, such as a new search text. Presence highlights in the view-index range form go stale the same way. The row-id range form follows its rows. See [Show presence](/docs/rows-live-data/show-presence).
 
 ## Server mode
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move until every row is loaded. Under client pagination, a move happens inside the current page.
+With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, a move happens inside the current page.
 
 ## Related
 

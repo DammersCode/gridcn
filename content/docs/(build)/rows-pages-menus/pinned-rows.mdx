@@ -49,8 +49,8 @@ A pinned row is display-only. It is not part of `data` or the view index. As a r
 
 - It never sorts or filters. It stays in the order that you pass.
 - It never joins the selection. A click on it does nothing, and it never becomes the active cell.
-- It has no tab stop, so arrow keys move only through data rows.
-- It is read-only unless its column sets `readOnly: false`. A pinned cell carries `data-readonly` in that default state.
+- It has no tab stop, and arrow keys skip it.
+- Unless the column sets `readOnly` to `false` or to a function that returns `false` for the row, its cells carry `data-readonly`.
 
 A pinned row goes through the `getRowId` of the grid, so `ctx.rowId` in a pinned cell is that id. If `getRowId` throws or returns an empty or non-string value, the row gets a band id. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where `<index>` is the position of the row in its band.
 
@@ -90,7 +90,10 @@ const rows: Row[] = [
 const TOTALS_SPECS: AggregateSpecs = { price: "sum" };
 
 function TotalsGrid() {
-  const [totals, setTotals] = useState<Record<string, unknown>>({ id: "total", item: "Total" });
+  const [totals, setTotals] = useState<Record<string, unknown>>({
+    id: "total",
+    item: "Total",
+  });
   const onTotalsChange = useCallback((row: Record<string, unknown>) => {
     setTotals((prev) => ({ ...prev, ...row }));
   }, []);
@@ -101,7 +104,10 @@ function TotalsGrid() {
 
   return (
     <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
-      <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
+      <DataGridAggregateReporter
+        specs={TOTALS_SPECS}
+        onChange={onTotalsChange}
+      />
       <DataGridRoot>
         <DataGridHeader />
         <DataGridBody />
@@ -111,7 +117,7 @@ function TotalsGrid() {
 }
 ```
 
-A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. A spec key that matches no column id is ignored, and a development warning appears once.
+A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. The aggregate ignores a spec key that matches no column id and warns once in development.
 
 <Callout type="warn" title="Keep the band arrays stable">
   `useDataGridPinnedRows` returns a stable `plugin` only while `topRows` and `bottomRows` keep their identity. A fresh array on every render rebuilds the plugin on every render. Memoize the arrays, as the sample does.
@@ -134,9 +140,9 @@ const specs: AggregateSpecs<Row> = {
 
 ### Manual computation [#manual-computation]
 
-For anything else, compute the band rows yourself from the data in a `useMemo`. Rows from `grid.data` ignore the active filter. Reduce over `useDataGridViewIndex()` if the band must match the filtered view.
+For anything else, compute the band rows yourself from the data in a `useMemo`. Rows from your data array ignore the active filter. If the band must match the filtered view, reduce over `useDataGridViewIndex()`.
 
-## Aggregate options
+## Options
 
 {/* props: UseDataGridPinnedRowsOptions */}
 
