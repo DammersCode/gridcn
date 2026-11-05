@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 import { capped, proseOnly, readLf, rel, splitFrontmatter, walk } from "./docs-verify-lib.mjs";
 import { isTestFile } from "./_lib.mjs";
 
-const NAME_HEADERS = new Set(["prop", "props", "option", "options", "property", "field", "key", "name", "parameter"]);
+const NAME_HEADERS = new Set(["prop", "props", "option", "options", "property", "field", "key", "name", "parameter", "result", "member", "returns"]);
 
 const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " ")).replace(/(^|\s)\/\/.*$/gm, "$1");
 
@@ -222,7 +222,7 @@ export function propsTables(body) {
       let m = i - 1;
       while (m >= 0 && lines[m].trim() === "" && raw[m].trim() === "") m--;
       const marker = /^\{\/\*\s*props:\s*([^*]+?)\s*\*\/\}$/.exec(raw[m]?.trim() ?? "")?.[1]?.split(/\s*,\s*/);
-      if (rows.length >= 3) tables.push({ line: i + 1, marker, headers, rows });
+      if (rows.length >= 3 || (marker && rows.length >= 1)) tables.push({ line: i + 1, marker, headers, rows });
     }
     i = end - 1;
   }

@@ -54,12 +54,12 @@ export function run({ root = process.cwd(), files } = {}) {
         if (imports) blocks.push({ ...block, lang: "ts", code: imports.join("\n"), where });
         continue;
       }
-      blocks.push({ ...block, file, where });
+      blocks.push({ ...block, file, where, path: rel(root, file), start: block.line + bodyOffset });
     }
   }
 
   const exported = exportedNames(root);
-  const outDir = join(root, ".next", "docs-snippets");
+  const outDir = join(root, ".next", `docs-snippets-${process.pid}`);
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
   const byName = new Map();
@@ -81,7 +81,7 @@ export function run({ root = process.cwd(), files } = {}) {
         noImplicitAny: false,
         noPropertyAccessFromIndexSignature: false,
         noUncheckedIndexedAccess: false,
-        paths: { "@/components/ui/*": ["../../components/ui/*"], "@/components/*": ["../../registry/default/blocks/*"], "@/lib/*": ["../../lib/*"], "@/*": ["../../*"] },
+        paths: { "@/components/gridcn/*": ["../../registry/default/hooks/*", "../../registry/default/lib/*"], "@/components/ui/*": ["../../components/ui/*"], "@/components/*": ["../../registry/default/blocks/*"], "@/lib/*": ["../../lib/*"], "@/*": ["../../*"] },
       },
       include: ["*.ts", "*.tsx"],
       exclude: [],
@@ -89,6 +89,7 @@ export function run({ root = process.cwd(), files } = {}) {
   );
 
   let external = 0;
+  const syntaxErrors = new Map();
   const errorsByBlock = new Map();
   const tsc = () => {
     try {
@@ -114,14 +115,14 @@ export function run({ root = process.cwd(), files } = {}) {
   if (blocks.length > 0) {
     // tsc reports no semantic errors while any file has a syntax error, so syntax failures leave the program first.
     const syntactic = collect(tsc());
+    for (const name of syntactic) syntaxErrors.set(name, errorsByBlock.get(name));
     if (syntactic.size > 0) {
       for (const name of syntactic) rmSync(join(outDir, name));
     }
     // Free names are declared as any so that a fragment still checks the API it does use.
     errorsByBlock.clear();
-    const firstPass = collect(tsc());
+    collect(tsc());
     for (const [name, errors] of errorsByBlock) {
-      if (firstPass.has(name)) continue;
       const free = [...new Set(errors.filter((e) => e.code === "TS2304" || e.code === "TS2552" || e.code === "TS2503" || e.code === "TS2693" || e.code === "TS18004").map((e) => /'([^']+)'/.exec(e.message)?.[1]).filter(Boolean))];
       if (free.length === 0) continue;
       const block = byName.get(name);
@@ -134,7 +135,9 @@ ${block.code}
     }
     errorsByBlock.clear();
     collect(tsc());
+    for (const [name, errors] of syntaxErrors) errorsByBlock.set(name, errors);
   }
+  rmSync(outDir, { recursive: true, force: true });
   let failing = 0;
   for (const [name, errors] of errorsByBlock) {
     const block = byName.get(name);
@@ -146,7 +149,7 @@ ${block.code}
     }
     failing++;
     const first = errors[0];
-    failures.push(`${block.where}+${first.line - 2}: ${first.code} ${first.message}`);
+    failures.push(`${block.path ?? block.where}:${(block.start ?? 0) + first.line - 2}: ${first.code} ${first.message}`);
   }
   return { name: "code", checked: blocks.length, fragments, failing, external, failures, warnings: [] };
 }

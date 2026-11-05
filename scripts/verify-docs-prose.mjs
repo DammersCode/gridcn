@@ -97,12 +97,14 @@ export function lintPage(body) {
     const before = lines.slice(0, block.line - 2).reverse().find((l) => l.trim() !== "");
     if (before && !/^\s*(?:[<#|{>`*-]|\d+\.|import)/.test(before) && !/:\s*$/.test(before)) hits.push({ rule: "intro-colon", line: block.line - 1, soft: false, note: "end the sentence before a code sample with a colon" });
   }
-  lines.forEach((line, i) => {
-    const numbered = /^\s*\d+\.\s/.test(line);
-    const prev = /^\s*\d+\.\s/.test(lines[i - 1] ?? "") || (lines[i - 1]?.trim() === "" && /^\s*\d+\.\s/.test(lines[i - 2] ?? ""));
-    const next = /^\s*\d+\.\s/.test(lines[i + 1] ?? "") || (lines[i + 1]?.trim() === "" && /^\s*\d+\.\s/.test(lines[i + 2] ?? ""));
-    if (numbered && !prev && !next) hits.push({ rule: "one-item-list", line: i + 1, soft: false, note: "write a one-item list as prose" });
-  });
+  const fencedLine = new Set();
+  for (const block of codeBlocks(body)) for (let l = block.line - 1; l <= block.endLine; l++) fencedLine.add(l);
+  const numberedAt = lines.map((line, i) => (/^\s*\d+\.\s/.test(line) && !fencedLine.has(i + 1) ? i : -1)).filter((i) => i >= 0);
+  const headingAt = lines.map((line, i) => (/^#{1,6}\s/.test(line) ? i : -1)).filter((i) => i >= 0);
+  const sectionOf = (i) => headingAt.filter((h) => h < i).length;
+  for (const i of numberedAt) {
+    if (!numberedAt.some((j) => j !== i && sectionOf(j) === sectionOf(i))) hits.push({ rule: "one-item-list", line: i + 1, soft: false, note: "write a one-item list as prose" });
+  }
   return hits;
 }
 

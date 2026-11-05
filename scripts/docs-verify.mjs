@@ -1,7 +1,7 @@
 // Runs every docs validator and prints one line per check plus the first failures.
 // Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
-//   [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--json]
+//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--json]
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -43,7 +43,7 @@ const checks = {
 const results = [];
 for (const name of only) {
   const result = await checks[name]();
-  if (files) result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file)));
+  if (files) result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file)) || (name === "demos" && !f.startsWith("content/docs/")));
   results.push(result);
 }
 
@@ -53,5 +53,11 @@ if (has("--json")) {
   console.log("docs:verify");
   for (const r of results) console.log(`  ${r.name.padEnd(10)} ${r.failures.length ? "FAIL" : "ok  "}  ${String(r.failures.length).padStart(4)} failures  ${String(r.warnings.length).padStart(4)} warnings  (${r.checked} checked)`);
   for (const r of results.filter((x) => x.failures.length)) console.log(`\n${r.name}:\n${capped(r.failures, 5).map((f) => `  ${f}`).join("\n")}`);
+}
+if (has("--warnings")) {
+  for (const r of results.filter((x) => x.warnings.length)) {
+    const shown = r.warnings.filter((w) => !files || files.some((file) => w.includes(file)));
+    if (shown.length) console.log(`\n${r.name} warnings:\n${capped(shown, 12).map((w) => `  ${w}`).join("\n")}`);
+  }
 }
 process.exit(results.some((r) => r.failures.length) ? 1 : 0);

@@ -246,10 +246,10 @@ describe("verify-docs-code", () => {
 
   it("compiles good blocks, reports bad ones, and checks the imports of fragments", () => {
     const result = runCode({ files });
-    expect(result.checked).toBe(4);
+    expect(result.checked).toBe(5);
     expect(result.fragments).toBe(2);
     expect(result.failures.map((f: string) => f.replace(/^.*?: /, ""))).toEqual(
-      expect.arrayContaining([expect.stringContaining("TS2322"), expect.stringContaining("fragment needs a reason"), expect.stringContaining("useDataGridNoSuchHook is not exported")]),
+      expect.arrayContaining([expect.stringContaining("TS2322"), expect.stringContaining("fragment needs a reason"), expect.stringContaining("useDataGridNoSuchHook is not exported"), expect.stringContaining("TS1108")]),
     );
     expect(result.failures.join("\n")).not.toContain("code.mdx:8");
   }, 60_000);

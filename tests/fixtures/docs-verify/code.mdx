@@ -38,3 +38,9 @@ A block that uses a name the registry lacks:
 const grid = useDataGridNoSuchHook();
 void grid;
 ```
+
+A block with a syntax-level error that must still be reported:
+
+```tsx
+return 1;
+```
