@@ -196,16 +196,6 @@ describe("verify-docs-prose", () => {
 
   it("flags a code line over 80 characters but not a long import", () => {
     const long = "x".repeat(90);
-    expect(rules(`Run it:
-
-\\n`)).toContain("long-code-line");
-    expect(rules(`Run it:
-
-\\n`)).not.toContain("long-code-line");
-  });
-
-  it("flags a code line over 80 characters but not a long import", () => {
-    const long = "x".repeat(90);
     const fence = "```";
     expect(rules(`Run it:\n\n${fence}ts\nconst a = "${long}";\n${fence}\n`)).toContain("long-code-line");
     expect(rules(`Run it:\n\n${fence}ts\nimport { a } from "${long}";\n${fence}\n`)).not.toContain("long-code-line");
