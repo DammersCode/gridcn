@@ -95,8 +95,6 @@ type Request = {
   pushed: Map<string, string>;
   /** A push delete shifted the server positions after this request left: its slots mix with the shifted rows. */
   shifted: boolean;
-  /** The row count its answer carries; a counted source starts over when it differs from the count it holds. */
-  total?: number;
   signal: AbortSignal;
   rows: Row[];
   start: number;
@@ -114,6 +112,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   const pusher = prng(0x51ed270b);
   const deleter = prng(0x2b7e1516);
   const streamDeleted = new Set<string>();
+  /** A push delete asked for a reshape that has not run yet: until it does, blocks outside the rendered rows may be unloaded. */
+  let reshapeOwed = false;
   const held: Request[] = [];
   const saves: Save[] = [];
   const trace: string[] = [];
@@ -164,7 +164,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     return new Promise((resolve, reject) => {
       const mapped = rows.map(backend.toRow);
-      open({ signal: request.signal, rows: mapped, start, total: kind === "counted" ? all.length : undefined, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
+      open({ signal: request.signal, rows: mapped, start, land: () => resolve({ rows: mapped, ...extra }), fail: () => reject(new Error("boom")) }, `${start}-${end}`);
     });
   };
 
@@ -272,7 +272,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     if (state().editing) mustKeep.add(state().editing!.rowId);
     const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
     const soleRequest = live().length === 0 && (kind !== "pages" || shownLabel === request.label);
-    const countChanged = request.total !== undefined && request.total !== scroll.totalRowCount;
+    const evictionOwed = reshapeOwed;
     const slotsExact = (kind === "counted" || (kind === "pages" && gone.size === 0 && !variant.repeatRows)) && !variant.indexIds;
     request.land();
     await flush();
@@ -300,8 +300,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         expect(copies.some((copy) => copy.name === pushedName), `${carried.id} lost the push made during request ${request.label}`).toBe(true);
         return;
       }
-      // An answer with a new row count starts the blocks over, and the reshape that a push delete asks for unloads the blocks outside the rendered rows.
-      if (countChanged || (kind === "counted" && streamDeleted.size > 0)) return;
+      // The reshape that a push delete asks for unloads the blocks outside the rendered rows; a copy that exists must still be the answer's.
+      if (evictionOwed && copies.length === 0) return;
       expect(copies.some((copy) => copy.name === carried.name), `${carried.id} not replaced by the answer (slot ${slot} holds ${post[slot]?.id}, request ${request.label}, protected ${[...mustKeep].join("/")}, gone ${[...gone].join("/")}, copies ${copies.map((copy) => copy.name).join("/")})`).toBe(true);
       if (slotsExact && !request.shifted && slot < post.length) expect(post[slot]?.id, `${carried.id} not at slot ${slot}`).toBe(carried.id);
     });
@@ -440,6 +440,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         trace.push(`push delete ${id}`);
         backend.removeEveryCopy(id);
         streamDeleted.add(id);
+        reshapeOwed = true;
         for (const request of held) {
           request.deletedSince.add(id);
           request.shifted = true;
@@ -455,6 +456,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
     if (shifted && live().length === 0 && server().status !== "error") shifted = false;
+    if (reshapeOwed && live().length === 0 && !server().loading) reshapeOwed = false;
     if (dirty && refreshPending && live().length === 0 && server().status !== "error" && !(variant.repeatRows && backend.hasRepeat())) {
       dirty = false;
       refreshPending = false;
