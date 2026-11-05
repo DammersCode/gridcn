@@ -2,7 +2,7 @@
 // Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
 //   [--final]  the definition-of-done run: strict props, a type on every page, Related on every page, the work list, demo warnings as failures
-//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--base <git ref>] [--json]
+//   [--warnings] [--all] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--base <git ref>] [--json]
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -62,12 +62,12 @@ if (has("--json")) {
 } else {
   console.log("docs:verify");
   for (const r of results) console.log(`  ${r.name.padEnd(10)} ${r.failures.length ? "FAIL" : "ok  "}  ${String(r.failures.length).padStart(4)} failures  ${String(r.warnings.length).padStart(4)} warnings  (${r.checked} checked)`);
-  for (const r of results.filter((x) => x.failures.length)) console.log(`\n${r.name}:\n${capped(r.failures, 5).map((f) => `  ${f}`).join("\n")}`);
+  for (const r of results.filter((x) => x.failures.length)) console.log(`\n${r.name}:\n${capped(r.failures, has("--all") ? Infinity : 5).map((f) => `  ${f}`).join("\n")}`);
 }
 if (has("--warnings")) {
   for (const r of results.filter((x) => x.warnings.length)) {
     const shown = r.warnings.filter((w) => !files || files.some((file) => w.includes(file)));
-    if (shown.length) console.log(`\n${r.name} warnings:\n${capped(shown, 12).map((w) => `  ${w}`).join("\n")}`);
+    if (shown.length) console.log(`\n${r.name} warnings:\n${capped(shown, has("--all") ? Infinity : 12).map((w) => `  ${w}`).join("\n")}`);
   }
 }
 process.exit(results.some((r) => r.failures.length) ? 1 : 0);
