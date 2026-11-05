@@ -299,6 +299,19 @@ function keepRows(remap: Partial<DataGridStoreState>, rows: CompactSelectionLike
   return selection && selection.rows !== rows ? { ...remap, selection: { ...selection, rows } } : remap;
 }
 
+/** Rows inserted or updated by `ops`, as the `update` ops `validateRow` runs for. */
+function rowsToValidate(ops: readonly DataOp<unknown>[]): DataOp<unknown>[] {
+  const rows: DataOp<unknown>[] = [];
+  for (const op of ops) {
+    if (op.type === "update") rows.push(op);
+    else if (op.type === "insert") rows.push({ type: "update", rowId: op.rowId, row: op.row, prev: op.row });
+  }
+  return rows;
+}
+
+/** `commitChange` sources whose rows go through `validateRow`: the app's own bulk writes, which no gesture validates. */
+const VALIDATED_SOURCES: ReadonlySet<DataChange<unknown>["source"]> = new Set(["import", "app"]);
+
 type SetState = (partial: Partial<DataGridStoreState>) => void;
 type GetState = () => DataGridStoreState;
 
@@ -1497,7 +1510,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;
       pruneRowValidationKeys(nextData, s.getRowId);
-      const cellErrors = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
+      const pruned = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
+      const cellErrors = VALIDATED_SOURCES.has(change.source) ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
       const view = rebuildRowOpView(s, nextData);
       if (!movesRows) {
         writeThenEmit(ctx, s, nextData, change, () =>

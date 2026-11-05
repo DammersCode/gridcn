@@ -1031,32 +1031,37 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts",
-            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/validation.parity.test.tsx",
-            "tests/parity/lazy-holes.parity.test.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "SS": {
@@ -1075,7 +1080,8 @@
           "status": "supported",
           "evidence": [
             "content/docs/examples/validation/server-errors.mdx",
-            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         }
       }

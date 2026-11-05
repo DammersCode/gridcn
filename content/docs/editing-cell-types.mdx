@@ -335,6 +335,8 @@ column than the marked one.
 `validateRow` does not run on row insert or duplicate (a fresh default row is expected to be
 incomplete), on row deletion, or on a `data` array you replace yourself.
 
+`validateRow` <NewBadge /> runs for the rows that a `commitChange` call inserts or updates when its change has `source: "import"` or `source: "app"`. An import that replaces the data with `delete` and `insert` operations validates each imported row. It does not validate the deleted rows. Changes with another source (`"history"`, `"rollback"`, `"merge"`, `"id-swap"`, `"stream"`) do not run it.
+
 `validateRow` <NewBadge /> may return a promise. The write commits first, and the verdict merges into
 the cell errors when the promise settles. A newer verdict for the same row replaces a pending one.
 The grid drops a verdict for a row that is gone. A rejection adds no error.
