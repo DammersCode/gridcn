@@ -203,7 +203,7 @@ Plan:
 ## 10. Verification checklist
 
 - Every old URL answers 308 with the target in `url-map.json` (script it).
-- Every old anchor of a moved section lands on its new page (spot check the 58 manual ones).
+- Every old anchor of a moved section lands on its new page (spot check the 79 manual ones).
 - `llms.txt` builds; every task link resolves.
 - The audit script passes (`--check`).
 - The candidate check passes (`--candidate` on the final file).
