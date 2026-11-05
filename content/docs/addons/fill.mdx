@@ -1,184 +1,164 @@
 ---
 title: Fill handle
-description: Drag to tile a selection, with series inference for numeric and text runs.
+description: Drag the corner of a selection to copy it or continue a number or text series, or fill down and right from the keyboard.
+type: feature
+aliases: [autofill, drag fill]
 icon: PaintBucket
 ---
 
-The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down,
-left, or right to extend the selection and fill the new cells from the source range. The drag
-snaps to whichever axis you move further on. Once a fill commits, the cells it wrote play a brief
-fade pulse so the changed values stand out. The pulse only plays for cells in the viewport and
-never replays when a cell scrolls back into view.
-
-<ComponentPreview name="data-grid-demo" />
-
-The hero grid above shows the handle in action. The patterns demo below shows the series
-inference on its own:
+Typing the same value into many cells is slow. The fill handle is the small square at the bottom-right corner of a selection. Drag it up, down, left, or right to extend the selection. The grid fills the new cells from the source cells. `useDataGridFill` adds the handle and the keyboard fill commands.
 
 <ComponentPreview name="data-grid-fill-patterns-demo" />
 
 <InstallCommand item="data-grid-fill" manual manualSlot={<ManualInstall item="data-grid-fill" />} />
 
-<Callout type="warn" title="Mouse-only, hidden from assistive tech">
-  The fill handle itself has no keyboard equivalent and is hidden from screen readers. Keyboard
-  users get the same results with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> or
-  <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>, covered below.
-</Callout>
-
-## Wiring it up
-
-The fill handle lives in the separate `data-grid-fill` add-on. `useDataGridFill()` builds one
-plugin: its `Overlay` paints the drag preview and the handle, and its `Mount` runs the pointer
-engine (see [Plugins](/docs/plugins) for the seam). The keyboard fill shortcuts arrive as the
-plugin's `fillDown`/`fillRight` commands.
+The hook returns one plugin. Pass it to the grid through `plugins`:
 
 ```tsx
-"use client";
-
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody } from "@/components/data-grid/data-grid";
+import { DataGrid } from "@/components/data-grid/data-grid";
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const data: Row[] = [{ id: "1", name: "Item 1" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
 function MyGrid() {
   const { plugin } = useDataGridFill();
 
-  return (
-    <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[plugin]}>
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
+  return <DataGrid data={data} columns={columns} plugins={[plugin]} />;
 }
 ```
 
-<Callout title="Composing with core's DataGrid convenience wrapper">
-  `<DataGrid>` does not wire fill in automatically. Pass the plugin through `plugins` (see the
-  hero demo above for the full pattern). This is the same way you compose any other add-on.
-</Callout>
+## Copy and series
 
-## Tiling vs. series inference
+The drag snaps to the axis that you move further on. By default, the fill repeats the source cells over the target. A single cell repeats, and a two-row source repeats every two rows.
 
-By default, dragging tiles the source selection modulo its size into the target. A single cell
-repeats, a 2-row pattern repeats every 2 rows, and so on.
+If the source cells form a series, the fill continues the series instead:
 
-<ComponentPreview name="data-grid-fill-patterns-demo" />
+- **Arithmetic runs.** `1, 2, 3` continues as `4, 5, 6`. `10, 20, 30` continues as `40, 50, 60`. Decimal steps work too: `0.5, 1` continues as `1.5, 2.0`.
+- **Zero-padded numbers.** `001, 002` continues as `003, 004` and keeps the width.
+- **Text with a trailing number.** `Item 1, Item 2` continues as `Item 3, Item 4`.
 
-If the source cells form a detectable series, the fill extrapolates it instead of tiling:
+A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. A number with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own. The text detector continues the trailing number, so `2026-01-30, 2026-01-31` continues as `2026-01-32`. A custom detector below handles real dates.
 
-- **Arithmetic runs**. `1, 2, 3` becomes `4, 5, 6`. `10, 20, 30` becomes `40, 50, 60`. This also
-  works with a single-column decimal step.
-- **Zero-padded numbers**. `001, 002` becomes `003, 004`, with width preserved.
-- **Text plus trailing number**. `Item 1` becomes `Item 2`, `Item 3`, and so on.
+Hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) while you drag to force a plain copy, even over a series.
 
-A number with more than 15 digits is an identifier, not a count. The fill tiles such a value and
-does not extrapolate it.
+After a fill commits, the written cells play a short fade pulse. The pulse plays only for cells in the viewport.
 
-<Callout title="Series detection needs two source cells">
-  A single source cell always tiles, that is, copies, rather than extrapolating. There is no
-  delta to detect from one value.
-</Callout>
+## Keyboard and touch
 
-## Forcing a plain copy
+The handle has no keyboard equivalent and is hidden from screen readers. These keys give the same result:
 
-Hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) while you drag the fill handle. This forces plain
-tiling, even over a detected series. Excel uses the same convention.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> fills down. It copies the top row of the selection into every row below it.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> fills right. It copies the left column into every column to its right.
 
-## Custom series detection
+Both keys use the same copy and series logic as a drag. The source of each key is one row or one column, so the built-in detector always copies. They are core bindings. In a writable grid, outside an edit, <kbd>Ctrl</kbd>+<kbd>R</kbd> fills right and the page does not reload. The `fillDown` and `fillRight` flags of the [global shortcuts](/docs/global-shortcuts) extend them to the whole window. Without this add-on, both keys do nothing. See [Pluggable built-ins](/docs/plugins#pluggable-built-ins).
 
-The built-in detector covers arithmetic runs, zero-padded numbers, and text plus a trailing
-number. Date series (`2026-01-01, 2026-01-02 → 2026-01-03`) are not detected. Pass `detectSeries`
-to `useDataGridFill` to replace the built-in detector; `null` returns fall back to tiling, the
-same as an undetected series. The callback receives the source cells along the fill axis (per
-source column for vertical fills, per source row for horizontal fills) in source order, and
-returns a `SeriesDescriptor` whose `extrapolate(index)` computes the value at any source-relative
-index:
+After a touch selection, the handle is hidden because the selection handle uses the same corner. With the [context menu](/docs/addons/context-menu) add-on, the cell menu shows **Fill down** and **Fill right** instead. They run the same commands.
 
-```tsx
-import { useDataGridFill, type SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fill";
+## Skipped cells
 
-const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
-  if (values.length < 2) return null;
-  const first = Date.parse(values[0]!);
-  const step = Date.parse(values[1]!) - first;
-  if (values.some((v) => Number.isNaN(Date.parse(v)))) return null;
-  for (let i = 2; i < values.length; i += 1) {
-    if (Date.parse(values[i]!) - Date.parse(values[i - 1]!) !== step) return null;
-  }
-  return { extrapolate: (index) => new Date(first + step * index).toISOString().slice(0, 10) };
-};
+A fill writes only to cells that accept a write:
 
-function MyGrid() {
-  const { plugin } = useDataGridFill({ detectSeries: detectDates });
-  // ...
-}
-```
+- A read-only grid never fills. The handle is hidden and both commands do nothing.
+- In a writable grid, a fill skips the read-only cells and fills the others. A column or a row function can mark a cell read-only. It shows no error, like a paste over a read-only cell.
+- A fill commits as one change. When a column validator rejects a value, the grid reports the rejected cells through `onValidationError` with source `"fill"` and writes the rest.
 
-To extend the built-in detector instead of replacing it, check your own series first and return
-the built-in `detectSeries` result for everything else:
+## Server mode
 
-```tsx
-import { detectSeries, useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+<NewBadge />
 
-const detectDatesOrBuiltIn = (values: readonly string[]) => detectDates(values) ?? detectSeries(values);
+A fill works on the rows that the grid holds in memory. It never asks the server for rows. Fill follows the displayed order, so a sorted grid fills in the order that you see.
 
-function MyGrid() {
-  const { plugin } = useDataGridFill({ detectSeries: detectDatesOrBuiltIn });
-  // ...
-}
-```
+A fill is one change. The grid applies it, then calls `onDataChange` and `onSave` with the same change. `change.source` is `"fill"`. `change.ops` holds one `update` operation per written row, and each operation lists the changed `cells`. Your `onSave` sends these updates to the server.
 
-## Keyboard fill
+`onSave` returns nothing or a promise. If the promise resolves with nothing, the server accepted the fill. If it resolves with `{ rejected }`, the server refused part of it. If it rejects, the server refused all of it. A refusal reverts the cells through `onDataChange` with source `"rollback"`. The rows show as saving while the promise is pending. If a rejection carries `current`, the row as the server holds it, the revert puts that row in place instead.
 
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>: fill down. This copies the top row of the current
-  selection into every row below it.
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>: fill right. This copies the left column into
-  every column to its right.
+In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Lazy loading](/docs/lazy-loading).
 
-Both go through the same tiling and series pipeline as a drag. The keys are core bindings: their
-`preventDefault` runs with or without the add-on (mod+R never reloads the page). Without the
-add-on installed, both keys do nothing. The add-on's `fillDown`/`fillRight` commands give them
-their body. See [Pluggable built-ins](/docs/plugins#pluggable-built-ins).
+[Data modes](/docs/data-modes) owns the detail for every mode.
 
-## Touch
+## Options
 
-After a touch selection the fill handle is hidden, because the selection handle sits on the same
-corner. The cell context menu shows **Fill down** and **Fill right** instead. They run the same
-`fillDown` and `fillRight` commands as the keyboard.
+Pass these options to `useDataGridFill`. Every option is optional:
 
-## Turning fill off
+{/* props: UseDataGridFillOptions */}
 
-`useDataGridFill({ disabled: true })` turns the whole feature off (handle hidden,
-`fillDown`/`fillRight` no-op). A read-only grid (`readOnly` on `DataGrid`) also disables fill,
-with or without the option. Within a partially writable grid, a fill over `readOnly` columns
-(per-column `readOnly`, function or boolean) fills the writable columns and silently skips the
-`readOnly` ones, the same skip-no-error discipline as a paste over a non-writable cell.
+| Prop | Type | Default |
+| --- | --- | --- |
+| `disabled` | `boolean` | `false` |
+| `onFill` | `(args: FillArgs) => void` | none |
+| `detectSeries` | `(values: readonly string[]) => SeriesDescriptor \| null` | built-in detector |
 
-<Callout type="warn" title="On a lazy grid, a fill stops at loaded rows">
-  A fill target that covers unloaded rows fills the loaded rows and skips the unloaded cells. The
-  selection still expands over the whole target. A dev warning names the skipped rows. See
-  [Lazy loading](/docs/lazy-loading).
-</Callout>
+`disabled` hides the handle and turns both commands into no-ops.
 
-## `onFill`
+### onFill
 
-Intercept or veto a fill before it applies. This fires on drag release and on the keyboard fill
-actions, and passes straight through the options of `useDataGridFill`:
+`onFill` runs on drag release and on both keyboard commands, before the grid applies the fill. To cancel the fill, call `preventDefault`. The grid writes nothing and the selection does not expand. This handler cancels large fills:
 
 ```tsx
-import { useDataGridFill, type FillArgs } from "@/components/data-grid-fill/data-grid-fill";
+import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+import type { FillArgs } from "@/components/data-grid-fill/data-grid-fill";
 
 function onFill({ source, target, values, preventDefault }: FillArgs) {
-  // values is the pattern being written into the target strip (target.height x target.width),
-  // extrapolated or tiled, before validation runs
-  if (someCondition) preventDefault(); // nothing is applied, selection doesn't expand
+  // values is the text grid for the target, before validation
+  if (target.height > 100) preventDefault();
 }
 
 function MyGrid() {
   const { plugin } = useDataGridFill({ onFill });
-  // ...
+  // render the grid with plugins={[plugin]}
 }
 ```
 
-A fill, like a paste, is exactly one `onDataChange` call with a single operations batch, regardless of
-how many cells it touched.
+### detectSeries
+
+`detectSeries` replaces the built-in detector. It receives the source cell texts along the fill axis, in source order. It returns a `SeriesDescriptor` with an `extrapolate(index)` function, or `null` to copy. `index` counts from the first source cell: `0` is the first source cell, and an up or left fill passes negative indexes. This detector adds date series:
+
+```tsx
+import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+import type { SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fill";
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
+  if (values.length < 2) return null;
+  if (!values.every((v) => ISO_DATE.test(v))) return null;
+  const times = values.map((v) => Date.parse(v));
+  const step = times[1]! - times[0]!;
+  for (let i = 2; i < times.length; i += 1) {
+    if (times[i]! - times[i - 1]! !== step) return null;
+  }
+  const at = (index: number) => times[0]! + step * index;
+  const format = (index: number) =>
+    new Date(at(index)).toISOString().slice(0, 10);
+  return { extrapolate: format };
+};
+
+function MyGrid() {
+  const { plugin } = useDataGridFill({ detectSeries: detectDates });
+  // render the grid with plugins={[plugin]}
+}
+```
+
+To keep the built-in series, call the exported `detectSeries` for every input that your detector rejects:
+
+```tsx
+import { detectSeries } from "@/components/data-grid-fill/data-grid-fill";
+
+const detectBoth = (values: readonly string[]) =>
+  detectDates(values) ?? detectSeries(values);
+```
+
+## Related
+
+- [Data modes](/docs/data-modes)
+- [Plugins](/docs/plugins)
+- [Lazy loading](/docs/lazy-loading)
+- [Events and state](/docs/events-state)
+- [API reference](/docs/api-reference)

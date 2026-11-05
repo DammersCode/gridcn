@@ -1,76 +1,134 @@
 ---
 title: useDebounce
-description: "The use-debounce hook item: useDebounce for a value, useDebouncedInput for a text input that never loses its last keystrokes."
+description: "Delay a value with useDebounce, and drive a text input that never loses its last keystrokes with useDebouncedInput."
+type: reference
 icon: Timer
 ---
 
-Typing fires a change on every key. `useDebounce` delays a value until it stops changing. `useDebouncedInput` does the same for a text input and adds the rules that make it safe: no lost text, no commit in the middle of an IME composition. The item has no dependency on the grid.
+Typing fires a change on every key. Two hooks wait until the typing pauses. One function detects the keys of an IME (input method editor, the tool for typing Chinese, Japanese, or Korean). None of them depends on the grid.
 
-Pass the input a value and a commit callback, and spread the props:
-
-```tsx
-const input = useDebouncedInput(query, setQuery);
-
-<input {...input.inputProps} />
-```
-
-<InstallCommand item="use-debounce" />
-
-The item installs to `components/gridcn/use-debounce.ts`.
+| Symbol | Item | Use it to |
+|---|---|---|
+| [`useDebounce`](#usedebounce) | `use-debounce` | Delay any value until it stops changing. |
+| [`useDebouncedInput`](#usedebouncedinput) | `use-debounce` | Commit the text of an input when the typing pauses. |
+| [`isComposingKey`](#iscomposingkey) | `is-composing-key` | Tell an IME composition key from a plain key. |
 
 ## useDebounce
 
-```tsx
-const [query, setQuery] = useState("");
-const debouncedQuery = useDebounce(query, 300);
-```
+`useDebounce<T>(value: T, delayMs = 300): T`
 
-`debouncedQuery` follows `query` after `query` stays the same for `delayMs`. With `delayMs` of `0`, it is `query` itself.
+<InstallCommand item="use-debounce" />
+
+The item installs to `components/gridcn/use-debounce.ts`. The hook returns the debounced copy of `value`. The copy follows `value` after `value` stays the same for `delayMs`.
+
+| Parameter | Type | Default |
+|---|---|---|
+| `value` | `T` | Required |
+| `delayMs` | `number` | `300` |
+
+With a `delayMs` of `0` or less, the hook returns `value` itself and sets no timer.
+
+Debounce a state value before it feeds a request:
+
+```tsx
+import { useState } from "react";
+import { useDebounce } from "@/components/gridcn/use-debounce";
+
+function SearchBox() {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+  return (
+    <>
+      <input value={query} onChange={(event) => setQuery(event.target.value)} />
+      <p>Searching for {debouncedQuery}</p>
+    </>
+  );
+}
+```
 
 ## useDebouncedInput
 
-Call the hook with the committed value and a commit callback. Spread `inputProps` on the input:
+`useDebouncedInput(value: string, onCommit: (next: string) => void, options?: UseDebouncedInputOptions): UseDebouncedInputResult`
 
-```tsx
-const [name, setName] = useState("");
-const input = useDebouncedInput(name, setName);
+The hook ships in the `use-debounce` item. `value` is the committed text. A commit is one call of `onCommit` with the text of the input. The input shows each keystroke at once. When the typing pauses for `delayMs`, `onCommit` runs.
 
-<input {...input.inputProps} />
-```
-
-The input shows each keystroke at once. `onCommit` runs when the typing pauses for `delayMs` (default 300).
-
+{/* props: UseDebouncedInputOptions */}
 | Option | Type | Default |
 |---|---|---|
 | `delayMs` | `number` | `300` |
 
-A value of `0` commits each keystroke. The hook waits 300 ms by default. The text inputs of the grid wait the provider prop `inputDebounceMs`, which is 200 ms by default.
+A `delayMs` of `0` commits each keystroke. The text inputs of the grid wait `inputDebounceMs` instead, a provider prop with a default of `200`.
 
-| Result | Meaning |
-|---|---|
-| `inputProps` | The props of the input: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd`. |
-| `inputValue` | The text in the input. It is what the user typed while it is pending or until `value` reaches it, otherwise `value`. |
-| `flush()` | Commits a pending value now. |
-| `cancel()` | Drops a pending value and shows `value` again. |
+{/* props: UseDebouncedInputResult */}
+| Result | Type | Meaning |
+|---|---|---|
+| `inputProps` | `DebouncedInputProps` | The props to spread on the input: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, `onCompositionEnd`. |
+| `inputValue` | `string` | The text in the input. It is what the user typed until `value` reaches it, otherwise `value`. |
+| `flush` | `() => void` | Commits a pending value now. |
+| `cancel` | `() => void` | Drops a pending value and shows `value` again. |
+
+Spread `inputProps` on the input:
+
+```tsx
+import { useState } from "react";
+import { useDebouncedInput } from "@/components/gridcn/use-debounce";
+
+function NameInput() {
+  const [name, setName] = useState("");
+  const input = useDebouncedInput(name, setName);
+  return <input {...input.inputProps} />;
+}
+```
 
 ### When the value commits
 
 - Blur commits a pending value.
 - Enter commits a pending value.
 - Unmount commits a pending value, so closing a popover inside the wait never loses the last keystrokes.
-- Escape drops a pending value and shows `value` again. Nothing is committed.
-- During an IME composition nothing commits and Enter does nothing. The commit is scheduled when the composition ends.
-- A change of `value` from outside shows in the input when nothing is pending. While text is pending, the input keeps the text.
-- A commit calls the latest `onCommit`, not the one from the render that scheduled it.
-- After a commit the input keeps the typed text until the parent has applied the commits, or `value` changes to a text that is not a commit of the input. Then it shows `value`. A parent that applies a commit later never flashes the old text, and the echo of an older commit does not replace newer typing. If you type the same text twice, the echo of the first commit can show for a moment. The hook remembers the last 64 commits that the parent has not applied; the echo of an older one counts as a change from outside.
-- A parent that never applies a commit leaves the typed text in the input until Escape or until `value` changes to a text that is not a commit.
-- A handler you place after the spread (`onKeyDown` or `onChange`) replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself, and call `inputProps.onChange` from your `onChange`.
+- Escape drops a pending value and shows `value` again. Escape commits nothing.
+- During an IME composition, the wait does not run, and Enter and Escape do nothing. When the composition ends, the hook schedules the commit.
+- A commit calls the `onCommit` of the most recent render.
+
+### What the input shows
+
+- When nothing is pending, a change of `value` from outside shows in the input. While text is pending, the input keeps the text.
+- After a commit, the input keeps the typed text until the parent applies the commits. When `value` changes to a text that is not a commit of the input, the input shows `value`.
+- When the parent applies a commit late, the input never flashes the old text. The echo of an older commit does not replace newer typing.
+- If the user types the text of an earlier commit again, the echoes in between can show for a moment.
+- The hook remembers the last 64 commits that the parent has not applied. The echo of an older one counts as a change from outside.
+
+<Callout type="warn">
+If the parent never applies a commit, the input shows text that the parent does not hold. The text stays until Escape or until `value` changes to a text that is not a commit.
+</Callout>
+
+<Callout type="warn">
+If you place `onKeyDown` or `onChange` after the spread, your handler replaces the one in `inputProps`. Then call `flush()` for Enter and `cancel()` for Escape yourself. Call `inputProps.onChange` from your `onChange`.
+</Callout>
 
 ## isComposingKey
 
-The item `is-composing-key` installs `isComposingKey(event)`. It is true while a key belongs to an IME composition, including the Safari key that confirms a composition with `isComposing` false and `keyCode` 229. Use it in your own `Enter` and `Escape` handlers.
+`isComposingKey(event: React.KeyboardEvent | Pick<KeyboardEvent, "isComposing" | "keyCode">): boolean`
 
 <InstallCommand item="is-composing-key" />
+
+The function returns `true` while a key belongs to an IME composition. This includes the Safari key that confirms a composition with `isComposing` set to `false` and `keyCode` set to `229`. It accepts a React keyboard event or any object with `isComposing` and `keyCode`.
+
+| Parameter | Type | Meaning |
+|---|---|---|
+| `event` | React keyboard event, or `{ isComposing, keyCode }` | The keydown to test. |
+
+Gate your own `Enter` and `Escape` handlers with it:
+
+```tsx
+import { isComposingKey } from "@/components/gridcn/is-composing-key";
+
+function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  if (isComposingKey(event)) return;
+  if (event.key === "Enter") submit();
+}
+```
+
+`useDebouncedInput` applies the same test inside its `onKeyDown`. The hook carries its own copy, so the `use-debounce` item needs no `is-composing-key` item.
 
 ## Related
 
