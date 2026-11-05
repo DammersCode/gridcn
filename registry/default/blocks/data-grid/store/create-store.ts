@@ -118,10 +118,10 @@ function checkedChange(
   return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
 
-/** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
 /** Longest wait between two "view stale" announcements of one grid. */
 const VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS = 30_000;
 
+/** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
 function filterSpecKey(filters: readonly unknown[]): string {
   return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" ? undefined : value));
 }
