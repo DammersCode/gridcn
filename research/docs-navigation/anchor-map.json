@@ -344,14 +344,14 @@
   "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/lazy/react-query": {
-  "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
-  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
-  "related": "/docs/server-data-examples/scroll-mode-example#related"
+  "the-seam": "/docs/data-modes/fetch-cache#the-seam",
+  "behavior-reference": "/docs/data-modes/fetch-cache#behavior-reference",
+  "related": "/docs/data-modes/fetch-cache#related"
  },
  "/docs/examples/data/lazy/swr": {
-  "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
-  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
-  "related": "/docs/server-data-examples/scroll-mode-example#related"
+  "the-seam": "/docs/data-modes/fetch-cache#the-seam",
+  "behavior-reference": "/docs/data-modes/fetch-cache#behavior-reference",
+  "related": "/docs/data-modes/fetch-cache#related"
  },
  "/docs/examples/data/orm/drizzle": {
   "shareable-state": "/docs/server-data-examples/orm-examples/drizzle-example#shareable-state",
@@ -365,22 +365,22 @@
   "shareable-state": "/docs/server-data-examples/orm-examples/supabase-example#shareable-state"
  },
  "/docs/examples/data/pagination/client": {
-  "client-slice-vs-server-mode": "/docs/server-data-examples/pages-mode-example#client-slice-vs-server-mode",
-  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/server-data-examples/pages-mode-example#related"
+  "client-slice-vs-server-mode": "/docs/rows-pages-menus/client-pagination#client-slice-vs-server-mode",
+  "behavior-reference": "/docs/rows-pages-menus/client-pagination#behavior-reference",
+  "related": "/docs/rows-pages-menus/client-pagination#related"
  },
  "/docs/examples/data/pagination": {},
  "/docs/examples/data/pagination/react-query": {
-  "the-wiring": "/docs/server-data-examples/pages-mode-example#the-wiring",
-  "the-edit-story": "/docs/server-data-examples/pages-mode-example#the-edit-story",
-  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/server-data-examples/pages-mode-example#related"
+  "the-wiring": "/docs/data-modes/fetch-cache#the-wiring",
+  "the-edit-story": "/docs/data-modes/fetch-cache#the-edit-story",
+  "behavior-reference": "/docs/data-modes/fetch-cache#behavior-reference",
+  "related": "/docs/data-modes/fetch-cache#related"
  },
  "/docs/examples/data/pagination/swr": {
-  "the-wiring": "/docs/server-data-examples/pages-mode-example#the-wiring",
-  "the-edit-story": "/docs/server-data-examples/pages-mode-example#the-edit-story",
-  "behavior-reference": "/docs/server-data-examples/pages-mode-example#behavior-reference",
-  "related": "/docs/server-data-examples/pages-mode-example#related"
+  "the-wiring": "/docs/data-modes/fetch-cache#the-wiring",
+  "the-edit-story": "/docs/data-modes/fetch-cache#the-edit-story",
+  "behavior-reference": "/docs/data-modes/fetch-cache#behavior-reference",
+  "related": "/docs/data-modes/fetch-cache#related"
  },
  "/docs/examples/data/server-side": {
   "the-wiring": "/docs/server-data-examples/server-rows-example#the-wiring",

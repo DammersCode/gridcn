@@ -134,6 +134,7 @@ const PRIMARY = {
   "recipes/data-fetching": ["server-index"], "lazy-loading": ["scroll-index"], "lazy-loading-advanced": ["scroll-fetch-libs"],
   "addons/import-export": ["io-index"], "addons/toolbar": ["toolbar"], "addons/undo-redo": ["undo-redo"],
   "editing-cell-types": ["edit-index", "editing-index"], columns: ["layout-index", "columns-index"], "styling-theming": ["look-index"],
+  "examples/data/lazy/react-query": ["scroll-fetch-libs"], "examples/data/lazy/swr": ["scroll-fetch-libs"], "examples/data/pagination/react-query": ["scroll-fetch-libs"], "examples/data/pagination/swr": ["scroll-fetch-libs"], "examples/data/pagination/client": ["pagination-client"],
   "row-operations": ["rows-index"], "sorting-filtering-search": ["sfs-index"], accessibility: ["a11y-index"], performance: ["performance"],
 };
 const firstKnown = (list) => list?.find((x) => bySlug.has(x));

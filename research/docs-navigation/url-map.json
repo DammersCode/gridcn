@@ -404,19 +404,21 @@
   "old": "/docs/examples/data/lazy/react-query",
   "file": "examples/data/lazy/react-query.mdx",
   "slugs": [
+   "scroll-fetch-libs",
    "ex-lazy"
   ],
-  "target": "/docs/server-data-examples/scroll-mode-example",
-  "split": false
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
  },
  {
   "old": "/docs/examples/data/lazy/swr",
   "file": "examples/data/lazy/swr.mdx",
   "slugs": [
+   "scroll-fetch-libs",
    "ex-lazy"
   ],
-  "target": "/docs/server-data-examples/scroll-mode-example",
-  "split": false
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
  },
  {
   "old": "/docs/examples/data/orm/drizzle",
@@ -459,10 +461,11 @@
   "old": "/docs/examples/data/pagination/client",
   "file": "examples/data/pagination/client.mdx",
   "slugs": [
+   "pagination-client",
    "ex-pages"
   ],
-  "target": "/docs/server-data-examples/pages-mode-example",
-  "split": false
+  "target": "/docs/rows-pages-menus/client-pagination",
+  "split": true
  },
  {
   "old": "/docs/examples/data/pagination",
@@ -478,19 +481,21 @@
   "old": "/docs/examples/data/pagination/react-query",
   "file": "examples/data/pagination/react-query.mdx",
   "slugs": [
+   "scroll-fetch-libs",
    "ex-pages"
   ],
-  "target": "/docs/server-data-examples/pages-mode-example",
-  "split": false
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
  },
  {
   "old": "/docs/examples/data/pagination/swr",
   "file": "examples/data/pagination/swr.mdx",
   "slugs": [
+   "scroll-fetch-libs",
    "ex-pages"
   ],
-  "target": "/docs/server-data-examples/pages-mode-example",
-  "split": false
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
  },
  {
   "old": "/docs/examples/data/server-side",

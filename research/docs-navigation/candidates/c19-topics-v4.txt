@@ -32,7 +32,7 @@
 ## Terms and help
 - lookup-index | Terms and help | landing | 250
 - find-task | Task finder | cheatsheet | 900
-- terms | Terms | cheatsheet | 1000 | glossary, definition, view index
+- terms | Terms | cheatsheet | 1000 | glossary, definition, view index, range, active cell
 - install-problems | Fix install problems | task | 800 | grid shows nothing, blank grid, tooltip provider, github registry
 ## Try and automate
 - tools-index | Try and automate | landing | 200
@@ -49,7 +49,7 @@
 - auth-gated | Lock cells by role | task | 300
 ## Clipboard and undo
 - clipboard-index | Clipboard and undo | landing | 250
-- clipboard | Clipboard | feature | 900 | copy paste, paste from excel | 30
+- clipboard | Clipboard | feature | 900 | copy paste, paste from excel, usedatagridclipboard | 30
 - fill | Fill handle | feature | 855 | autofill, drag fill | 20
 - undo-redo | Undo and redo | feature | 900 | | 30
 - undo-programmatic | Undo for code changes | feature | 600
@@ -169,7 +169,7 @@
 - events-model | Event shapes | reference | 600
 - ev-data | Data change events | reference | 900 | ondatachange, controlled data, controlled mode
 - ev-sort-filter | Sort and filter events | reference | 450
-- ev-edit | Edit and validation events | reference | 700 | oneditstart, oneditend, oninvalid
+- ev-edit | Edit and validation events | reference | 700 | onvalidationerror, oneditstart, oneditend, oninvalid
 - ev-cell | Selection and cell events | reference | 1000
 - ev-columns | Column and viewport events | reference | 600
 ## Contracts
@@ -190,12 +190,12 @@
 - selection-model | Selection model | concept | 700
 - custom-cell-model | Cell type model | concept | 700
 - styling-model | Styling model | concept | 500
-- grid-state-model | State and view index | concept | 600 | range, active cell
+- grid-state-model | State and view index | concept | 600
 ## Types and hooks
 - types-index | Types and hooks | landing | 200
 - ref-types | Exported types | reference | 600
 - ref-store-hooks | Store hooks | reference | 600
-- hooks-az | Hooks A to Z | cheatsheet | 500 | usedatagridclipboard, usedatagridserverrows, hooks
+- hooks-az | Hooks A to Z | cheatsheet | 500 | hooks
 - use-debounce | useDebounce | reference | 300
 - use-debounced-input | useDebouncedInput | reference | 400
 - is-composing-key | isComposingKey | reference | 300
@@ -210,7 +210,7 @@
 - options-export | Export options | reference | 600
 - options-import | Import options | reference | 700
 ### Rows, pages, and menus
-- options-rows-pages-menus-index | Rows and pages options | landing | 100
+- options-rows-pages-menus-index | Rows, pages, and menus options | landing | 100
 - options-context-menu | Context menu options | reference | 500
 - options-pagination | Pagination options | reference | 400
 - options-pinned-rows | Pinned rows options | reference | 400
@@ -221,9 +221,9 @@
 ### Server
 - options-server-index | Server options | landing | 100
 - options-presence | Presence options | reference | 600
-- options-server-rows | Server rows options | reference | 500 | blocksize, scroll mode options
+- options-server-rows | Server rows options | reference | 500 | blocksize, usedatagridserverrows, server rows options
 ### Sort, filter, and search
-- options-sort-filter-search-index | Sort and search options | landing | 100
+- options-sort-filter-search-index | Sort, filter, and search options | landing | 100
 - options-find | Find and replace options | reference | 500
 - options-sort-list | Sort list options | reference | 300
 - options-toolbar | Toolbar options | reference | 600
@@ -269,7 +269,7 @@
 - ex-server | Server rows example | example | 500
 - ex-large | Large data example | example | 200
 - ex-lazy | Scroll mode example | example | 310
-- ex-pages | Pages mode example | example | 210
+- ex-pages | Server pagination example | example | 210
 ### ORM examples
 - ex-orm-index | ORM examples | landing | 100
 - ex-orm-drizzle | Drizzle example | example | 250
