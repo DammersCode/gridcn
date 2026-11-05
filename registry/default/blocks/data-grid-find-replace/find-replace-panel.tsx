@@ -123,7 +123,6 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const findRef = useRef<HTMLInputElement | null>(null);
   const applyTokenRef = useRef(0);
   const hookControllerRef = useRef<AbortController | null>(null);
-  const pendingHookFindRef = useRef<string | null>(null);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
@@ -144,8 +143,6 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const jumpOnCommitRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (pendingHookFindRef.current !== null && pendingHookFindRef.current === searchedText) return;
-    pendingHookFindRef.current = null;
     replacedRef.current.clear();
     setStatus(null);
     applyTokenRef.current++;
@@ -290,16 +287,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const controller = new AbortController();
     hookControllerRef.current = controller;
     const hookToken = ++applyTokenRef.current;
-    pendingHookFindRef.current = find;
-    if (find !== searchedText) runSearch(find, searchOptions);
     setStatus({ kind: "validating" });
     const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
     const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
     void Promise.resolve()
       .then(() => onReplace({ plan, signal: controller.signal }))
-      .finally(() => {
-        if (hookToken === applyTokenRef.current) pendingHookFindRef.current = null;
-      })
       .then(
         (result) => {
           if (!current()) return;
