@@ -274,7 +274,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, replayable, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -932,7 +932,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
         if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
-        return change.ops.length > 0 ? (applyChange(prev as TData[], replayable(change, prev, getRowId), getRowId) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
+        return change.ops.length > 0 ? (applyChange(prev as TData[], change, getRowId, streamUpdateRow(change)) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
       });
       if (core.kind === "sequence") followRowOperations(change);
       trackDeletes(core.deleted, change);
@@ -956,7 +956,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServ
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, replayable],
+    [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, streamUpdateRow],
   );
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(

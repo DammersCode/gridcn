@@ -53,11 +53,15 @@ export function invertChange<TData>(change: DataChange<TData>, source: "history"
  * ones produced by inverting a delete batch) are therefore applied in
  * ascending-index order regardless of the order they appear in `ops`, so a
  * multi-row batch round-trips through invertChange correctly.
+ *
+ * `rowOfUpdate` picks the row an `update` operation writes, given the row currently in `data`;
+ * it defaults to the operation's own `row`. It runs for unique row ids only.
  */
 export function applyChange<TData>(
   data: readonly TData[],
   change: DataChange<TData>,
   getRowId: (row: TData, index: number) => string,
+  rowOfUpdate?: (op: Extract<DataOp<TData>, { type: "update" }>, current: TData) => TData,
 ): TData[] {
   const indexById = new Map<string, number>();
   const idByIndex = new Array<string>(data.length);
@@ -82,7 +86,7 @@ export function applyChange<TData>(
       }
       const idx = indexById.get(op.rowId);
       if (idx === undefined) continue;
-      if (op.type === "update") updateById.set(op.rowId, op.row);
+      if (op.type === "update") updateById.set(op.rowId, rowOfUpdate ? rowOfUpdate(op, data[idx]!) : op.row);
       else if (op.type === "delete") deleteIndices.add(idx);
       // a move is a delete + insert of the same row: the insert lands at the row's post-move slot
       else {

@@ -4,7 +4,8 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
-import { pruneIds, trackDeletes, useRefreshGuard } from "./refresh-guard";
+import { applyChange } from "@/registry/default/blocks/data-grid/data-grid";
+import { pruneIds, rowOfStreamUpdate, trackDeletes, useRefreshGuard } from "./refresh-guard";
 
 type Row = { id: string; name: string };
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as const);
@@ -118,5 +119,36 @@ describe("eviction protection", () => {
     t.save(0, 3);
     t.guard().forgetStructural();
     expect(t.guard().unacknowledgedRows()).toBeNull();
+  });
+});
+
+describe("replaying a stream update", () => {
+  type Item = { id: string; name: string; price: number };
+  const cols = [{ id: "name", accessorKey: "name" }, { id: "price", accessorKey: "price" }];
+  const rows: Item[] = Array.from({ length: 1000 }, (_, i) => ({ id: `r${i}`, name: `n${i}`, price: i }));
+
+  it("reads the row ids in one pass, the one applyChange makes anyway", () => {
+    let calls = 0;
+    const idOf = (row: Item) => (calls++, row.id);
+    const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { ...rows[5]!, price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
+    const change = { source: "stream" as const, ops: [op] };
+    const next = applyChange(rows, change, idOf, rowOfStreamUpdate(change, cols));
+    expect(calls).toBe(rows.length);
+    expect(next[5]).toBe(op.row);
+  });
+
+  it("writes only the cells onto a row that is not the one the push was made on", () => {
+    const landed = { id: "r5", name: "B", price: 10 };
+    const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { id: "r5", name: "A", price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
+    const change = { source: "stream" as const, ops: [op] };
+    expect(applyChange([landed], change, (row) => row.id, rowOfStreamUpdate(change, cols))[0]).toEqual({ id: "r5", name: "B", price: 7 });
+  });
+
+  it("keeps the whole row of a user edit", () => {
+    const landed = { id: "r5", name: "B", price: 10 };
+    const op = { type: "update" as const, rowId: "r5", prev: rows[5]!, row: { id: "r5", name: "A", price: 7 }, cells: [{ columnId: "price", value: 7, prev: 5 }] };
+    const change = { source: "edit" as const, ops: [op] };
+    expect(rowOfStreamUpdate(change, cols)).toBeUndefined();
+    expect(applyChange([landed], change, (row) => row.id)[0]).toEqual({ id: "r5", name: "A", price: 7 });
   });
 });

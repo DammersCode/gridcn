@@ -217,10 +217,10 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const acknowledge = useCallback((rowId: string) => holder.unacknowledged.delete(rowId), [holder]);
   const unacknowledgedRows = useCallback((): ReadonlySet<string> | null => (holder.unacknowledged.size > 0 ? holder.unacknowledged : null), [holder]);
   const pruneSaves = useCallback((oldestMark: number | null) => pruneSavesOn(holder, oldestMark), [holder]);
-  const replayable = useCallback(
-    <TData,>(change: DataChange<TData>, rows: readonly (TData | undefined)[], idOf: (row: TData, index: number) => string): DataChange<TData> => {
+  const streamUpdateRow = useCallback(
+    <TData,>(change: DataChange<TData>) => {
       const columns = holder.store?.getState().columns;
-      return columns ? narrowStreamUpdates(change, rows, idOf, columns) : change;
+      return columns ? rowOfStreamUpdate(change, columns) : undefined;
     },
     [holder],
   );
@@ -243,40 +243,26 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
     },
     [holder],
   );
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, replayable, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 /**
- * A push that lands after a block replaced its row carries the whole row it was made on. When the latest row is another object,
- * a stream update keeps only its cells, so the push does not bring back the old values of the other cells.
+ * The row a stream update writes onto the row that `data` holds now. A push made on a row that a block has replaced since carries
+ * the whole row it was made on; writing only its cells keeps the old values of the other cells from coming back.
+ * `applyChange` calls it with the current row, so it needs no pass of its own over the rows.
  */
-export function narrowStreamUpdates<TData>(
-  change: DataChange<TData>,
-  rows: readonly (TData | undefined)[],
-  idOf: (row: TData, index: number) => string,
-  columns: readonly { id: string }[],
-): DataChange<TData> {
-  if (change.source !== "stream" || !change.ops.some((op) => op.type === "update" && op.cells)) return change;
-  const wanted = new Set(change.ops.flatMap((op) => (op.type === "update" && op.cells ? [op.rowId] : [])));
-  const latest = new Map<string, TData>();
-  rows.forEach((row, index) => {
-    if (row === undefined) return;
-    const id = idOf(row, index);
-    if (wanted.has(id) && !latest.has(id)) latest.set(id, row);
-  });
+export function rowOfStreamUpdate<TData>(change: DataChange<TData>, columns: readonly { id: string }[]) {
+  if (change.source !== "stream") return undefined;
   const byId = new Map(columns.map((column) => [column.id, column] as const));
-  const ops = change.ops.map((op) => {
-    if (op.type !== "update" || !op.cells) return op;
-    const current = latest.get(op.rowId);
-    if (current === undefined || current === op.prev) return op;
+  return (op: Extract<DataChange<TData>["ops"][number], { type: "update" }>, current: TData): TData => {
+    if (!op.cells || current === op.prev) return op.row;
     let row = current;
     for (const cell of op.cells) {
       const column = byId.get(cell.columnId);
       if (column) row = setCellValue(row, column as never, cell.value as never);
     }
-    return { ...op, row };
-  });
-  return { ...change, ops };
+    return row;
+  };
 }
 
 export const GUARD_MISSING_MESSAGE =

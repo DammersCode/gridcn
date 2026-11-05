@@ -173,7 +173,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     if (live.current.settledOnce) setPage(1);
   });
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, replayable, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
+  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
   const [landed, setLanded] = useState<Landed<TData> | null>(null);
 
@@ -440,11 +440,11 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       trackDeletes(deleted.current, change);
       if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
       // `next` is the grid's snapshot and can predate a page that landed since; replaying the operations on the latest rows keeps it.
-      setSettled((prev) => ({ ...prev, rows: (change.ops as typeof change.ops | undefined)?.length ? applyChange(prev.rows, replayable(change, prev.rows, live.current.options.getRowId), live.current.options.getRowId) : (next as TData[]) }));
+      setSettled((prev) => ({ ...prev, rows: (change.ops as typeof change.ops | undefined)?.length ? applyChange(prev.rows, change, live.current.options.getRowId, streamUpdateRow(change)) : (next as TData[]) }));
       if (change.source === "stream" && ((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type === "delete")) requestReshape("soon");
       live.current.options.onDataChange?.(next, change);
     },
-    [markEdited, dropPrefetch, requestReshape, replayable],
+    [markEdited, dropPrefetch, requestReshape, streamUpdateRow],
   );
   const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
