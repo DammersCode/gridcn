@@ -1,7 +1,7 @@
 # Docs navigation: migration plan
 
 Plan only. Nothing here is executed. It moves the docs to candidate A, Topics (`candidates/c19-topics-v4.txt`). The
-plan holds for B and C with other names, because the generators read the candidate file. Inputs:
+generators read the candidate file. Candidates B and C need their own content-map rows, because the map lists the slugs of the current candidate. Inputs:
 [docs-navigation-ruleset.md](docs-navigation-ruleset.md), [docs-navigation-comparison.md](docs-navigation-comparison.md),
 `research/docs-navigation/content-map.md`, `url-map.json`, `anchor-map.json`.
 
@@ -47,7 +47,7 @@ content/docs/
 
 - A group is a folder with `index.mdx` (the landing, first in its sidebar group) and a `meta.json` that lists its pages in
   order. A closed group needs `"defaultOpen": false`, which is the default.
-- A group in the Examples area has one landing each, so third-level folders are not used.
+- A group in the Examples area has one landing each. One third-level folder exists: the ORM examples inside "Server and data examples", with its own landing at `/docs/server-data-examples/orm-examples`.
 - Page type goes in frontmatter: `type: landing | feature | concept | task | step | reference | example | cheatsheet`.
   `source.config.ts` uses the plain `pageSchema`. It needs `pageSchema.extend({ type: z.enum([...]).optional() })` and a zod
   import, so that Fumadocs accepts the field. The audit script reads `type:` with a regex and works without the schema.
@@ -62,7 +62,7 @@ content/docs/
 ## 3. Redirects
 
 `next.config.mjs` `redirects()` keeps its two entries (re-pointed to the new URLs) and gains one permanent entry per old
-URL that changes: 95 of 100 pages. `/docs`, `/docs/performance`, `/docs/accessibility`, `/docs/columns`, and `/docs/events-state` keep their URLs (the home is the landing of the Learning path group). Generate the list from
+URL that changes: 93 of 100 pages. `/docs`, `/docs/performance`, `/docs/accessibility`, `/docs/columns`, `/docs/events-state`, `/docs/plugins`, and `/docs/data-modes` keep their URLs: the new landing of a group is served there, so these pages must not redirect away. The generator fails when a redirect hides a new page. Generate the list from
 `url-map.json`:
 
 ```js
@@ -75,7 +75,7 @@ URL that changes: 95 of 100 pages. `/docs`, `/docs/performance`, `/docs/accessib
   `/docs/:path*.md` stays.
 - `app/sitemap.ts` reads the page tree. It needs no change.
 - Keep the redirects for at least one major version. They cost nothing and external links outlive the docs.
-- Fragments survive a redirect, so `/docs/columns#reorder` arrives at `/docs/columns-and-layout#reorder`. Section 6 covers
+- Fragments survive a redirect, so `/docs/editing-cell-types#validation` arrives at `/docs/editing-cells#validation`, and the anchor map sends it on to `/docs/editing-cells/validation`. Section 6 covers
   anchors that left the page.
 
 ## 4. Pages that split
@@ -158,11 +158,11 @@ Stable-anchor rule: a heading keeps its text in a split, so its anchor does not 
 | `app/(home)/page.tsx` | Feature card links (performance, quick-start, styling, streaming, i18n, add-ons) |
 | `registry.json`, `public/r/registry.json`, `public/r/data-grid.json` | The `docs` field points to `/docs/quick-start`. Changing it is a registry change: `pnpm registry:build`, `node scripts/normalize-payload-eol.mjs`, `pnpm registry:verify`, and `pnpm test:e2e-install` |
 | `scripts/verify-parity.mjs` and `research/parity-matrix.json` | The script hard-codes `content/docs/data-modes.mdx`. The matrix holds 78 `content/docs/...` paths. `pnpm lint` fails after the move until both are rewritten from the URL map |
-| `GLOSSARY.md` | Links `/docs/terms` |
+| `GLOSSARY.md` | Names `content/docs/terms.mdx` as the reader-facing subset (line 7). Update the path |
 | `components/manual-install.tsx`, `README.md`, `DEVELOPMENT.md` | Install and docs links |
 | `app/api/search/route.ts` | Check for hard-coded paths |
 | `registry/default/examples/*` | One demo (`data-grid-custom-cell-demo.tsx`) links docs pages in JSDoc, three more name `docs/...` in comments, and `data-grid-presence-demo.tsx` names a page that does not exist. A registry change rebuilds `public/r` and follows the registry rules. Do it in its own commit, never from this plan |
-| `AGENTS.md` | "Component and addon page structure" describes one page per add-on with props tables, and the Docs section names `/docs/data-modes`. In a task-first tree the options move to the Add-on options reference. Amend the rule, add the page types, and fix the link |
+| `AGENTS.md` | "Component and addon page structure" describes one page per add-on with props tables, and line 243 names the generated matrix in `content/docs/data-modes.mdx`. The options move to the Add-on options reference. Amend the rule, add the page types, and fix the path |
 | `CHANGELOG.md` | One line under `Unreleased`: docs moved; old URLs redirect |
 
 Skills stay in sync: after the skeleton PR, a reviewer opens each skill and checks that every URL resolves and every

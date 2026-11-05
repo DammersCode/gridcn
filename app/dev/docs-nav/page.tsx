@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CANDIDATES } from "./_lib";
+import { CANDIDATES, loadCandidate } from "./_lib";
 
 const SCORES: Record<string, { beginner: string; senior: string; pros: string; cons: string }> = {
   a: {
     beginner: "8.81",
     senior: "8.63",
-    pros: "Best scores on both personas in the last rounds; a feature page keeps concept, options and examples together; learning path 9.5 with the beginner.",
+    pros: "Best beginner score of the last two rounds and best senior score of the last round; a feature page keeps concept and examples together; learning path 9.5 with the beginner.",
     cons: "Feature pages run 900 to 1,200 words; several groups sit at 7 pages; server pages stay feature-shaped.",
   },
   b: {
@@ -23,6 +23,8 @@ const SCORES: Record<string, { beginner: string; senior: string; pros: string; c
     cons: "Learn hides support facts; wrong-tab guesses; no room left for new Learn groups.",
   },
 };
+
+const startUrl = (id: string) => loadCandidate(id)?.areas[0].groups[0].pages[0].url ?? "/dev/docs-nav";
 
 const METRIC_KEY: Record<string, string> = { a: "topics", b: "tasks", c: "fourAreas" };
 
@@ -54,7 +56,7 @@ export default function Page() {
             </p>
             <p className="mt-3">Pro: {SCORES[id].pros}</p>
             <p className="mt-2">Con: {SCORES[id].cons}</p>
-            <Link className="mt-4 inline-block underline" href={`/dev/docs-nav/${id}/learn/learning-path/start-here`}>
+            <Link className="mt-4 inline-block underline" href={startUrl(id)}>
               Open prototype
             </Link>
           </div>

@@ -234,7 +234,7 @@
   "one-server-data-source-usedatagridserverrows": "/docs/rows-live-data/change-server-rows#one-server-data-source-usedatagridserverrows",
   "error-state-and-retry": "/docs/rows-live-data/change-server-rows#error-state-and-retry",
   "debounced-text-inputs": "/docs/rows-live-data/change-server-rows#debounced-text-inputs",
-  "related": "/docs/data-modes/features-data-mode#related"
+  "related": "/docs/data-modes#related"
  },
  "/docs/editing-cell-types": {
   "edit-activation": "/docs/editing-cells/edit-activation#edit-activation",
@@ -248,6 +248,7 @@
   "soft-rules-oninvalid": "/docs/editing-cells/validation#soft-rules-oninvalid",
   "transforms-are-committed": "/docs/editing-cells/validation#transforms-are-committed",
   "async-schemas": "/docs/editing-cells/validation#async-schemas",
+  "on-bulk-paths": "/docs/editing-cells/validation#on-bulk-paths",
   "cross-field-rules-validaterow": "/docs/editing-cells/validation#cross-field-rules-validaterow",
   "server-errors": "/docs/save-server/show-server-errors#server-errors",
   "display-override-without-a-new-type": "/docs/editing-cells/display-override#display-override-without-a-new-type",
@@ -353,15 +354,15 @@
   "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/orm/drizzle": {
-  "shareable-state": "/docs/server-data-examples/drizzle-example#shareable-state",
-  "kysely": "/docs/server-data-examples/drizzle-example#kysely"
+  "shareable-state": "/docs/server-data-examples/orm-examples/drizzle-example#shareable-state",
+  "kysely": "/docs/server-data-examples/orm-examples/drizzle-example#kysely"
  },
  "/docs/examples/data/orm": {},
  "/docs/examples/data/orm/prisma": {
-  "shareable-state": "/docs/server-data-examples/prisma-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/orm-examples/prisma-example#shareable-state"
  },
  "/docs/examples/data/orm/supabase": {
-  "shareable-state": "/docs/server-data-examples/supabase-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/orm-examples/supabase-example#shareable-state"
  },
  "/docs/examples/data/pagination/client": {
   "client-slice-vs-server-mode": "/docs/server-data-examples/pages-mode-example#client-slice-vs-server-mode",
@@ -562,7 +563,7 @@
   "identity": "/docs/plugins/plugin-shape#identity",
   "worked-example-highlight-a-column": "/docs/extend-compose/build-highlight-plugin#worked-example-highlight-a-column",
   "ssr": "/docs/plugins/plugin-shape#ssr",
-  "related": "/docs/extend-compose#related"
+  "related": "/docs/plugins#related"
  },
  "/docs/project-status": {
   "version": "/docs/support-upgrades/version-policy-changelog#version",

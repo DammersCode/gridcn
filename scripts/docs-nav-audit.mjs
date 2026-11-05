@@ -46,6 +46,8 @@ function measure(src) {
   const prose = [];
   let longestRun = 0;
   let run = 0;
+  let h2 = 0;
+  let h3 = 0;
   for (const line of body.split("\n")) {
     if (/^\s*```/.test(line)) {
       inFence = !inFence;
@@ -56,6 +58,8 @@ function measure(src) {
       continue;
     }
     if (/<ComponentPreview/.test(line)) previews++;
+    if (/^\s*## /.test(line)) h2++;
+    if (/^\s*### /.test(line)) h3++;
     if (/^#{1,6}\s/.test(line) || line.trim() === "" || /^\s*([-*]|\d+\.)\s/.test(line)) {
       longestRun = Math.max(longestRun, run);
       run = 0;
@@ -66,8 +70,6 @@ function measure(src) {
   longestRun = Math.max(longestRun, run);
   const text = prose.join("\n").replace(/<[^>]+>/g, " ").replace(/[`*_|#>\-[\]()]/g, " ");
   const words = text.split(/\s+/).filter(Boolean).length;
-  const h2 = (body.match(/^## /gm) ?? []).length;
-  const h3 = (body.match(/^### /gm) ?? []).length;
   const tableRows = (body.match(/^\|.*\|\s*$/gm) ?? []).length;
   const screens = words / SCREEN_WORDS + codeLines / SCREEN_CODE_LINES + previews * SCREEN_PREVIEW;
   return { words, h2, h3, codeLines, previews, tableRows, longestRun, screens: +screens.toFixed(1) };
@@ -207,6 +209,7 @@ function checkCandidate(file) {
   const out = [];
   const areas = parseCandidate(file);
   const titles = new Map();
+  const allUrls = new Set();
   const fail = (rule, msg) => out.push(`FAIL ${rule} ${msg}`);
   const warn = (rule, msg) => out.push(`warn ${rule} ${msg}`);
   const checkGroupSize = (label, list, isSub) => {
@@ -236,6 +239,12 @@ function checkCandidate(file) {
       if (g.name.split(/\s+/).length > 4) warn("N1", `group label "${g.name}" has more than 4 words`);
       if (all.length < 2) fail("S15", `group "${g.name}" has fewer than 2 pages`);
       const urlSlugs = new Map();
+      const groupUrl = kebab(g.name).split("-").filter((w) => !STOP.has(w)).slice(0, 4).join("-");
+      for (const x of g.subs) {
+        const subUrl = `${groupUrl}/${kebab(x.name).split("-").filter((w) => !STOP.has(w)).slice(0, 4).join("-")}`;
+        if (allUrls.has(subUrl)) fail("N5", `subgroup "${x.name}" shares the URL ${subUrl}`);
+        allUrls.add(subUrl);
+      }
       for (const p of all) {
         titles.set(p.title, (titles.get(p.title) ?? 0) + 1);
         const b = BUDGETS[p.type];

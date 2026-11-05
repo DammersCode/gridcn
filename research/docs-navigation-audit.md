@@ -8,7 +8,7 @@ The current docs against [docs-navigation-ruleset.md](docs-navigation-ruleset.md
 | Measure | Value | Rule |
 |---|---|---|
 | Pages | 100 (75k words) | |
-| Pages failing a page rule | 37 | P1, P2, N2 |
+| Pages failing a page rule | 38 | P1, P2, N2 |
 | Pages above 8 screens | 16 (213 screens together) | P1 |
 | Pages under 250 words | 46 (mostly example pages) | fine for Example pages |
 | Sidebar areas | 1 | S1 wants 4 to 6 |

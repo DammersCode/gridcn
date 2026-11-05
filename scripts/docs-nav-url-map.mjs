@@ -31,14 +31,27 @@ function candidateLines(file) {
 
 const bySlug = new Map();
 let group = "";
+let sub = "";
 for (const raw of candidateLines(candidateFile)) {
   const line = raw.trim();
-  if (line.startsWith("## ")) group = line.slice(3).replace(/\{.*\}/, "").trim();
-  else if (line.startsWith("- ")) {
+  if (line.startsWith("### ")) sub = line.slice(4).replace(/\{.*\}/, "").trim();
+  else if (line.startsWith("## ")) {
+    group = line.slice(3).replace(/\{.*\}/, "").trim();
+    sub = "";
+  } else if (line.startsWith("- ")) {
     const [slug, title, type] = line.slice(2).split("|").map((x) => x.trim());
-    const url = slug === "index" ? "/docs" : type === "landing" ? `/docs/${kebab(group)}` : `/docs/${kebab(group)}/${kebab(title)}`;
-    bySlug.set(slug, { title, type, group, url });
+    const base = sub ? `/docs/${kebab(group)}/${kebab(sub)}` : `/docs/${kebab(group)}`;
+    const url = slug === "index" ? "/docs" : type === "landing" ? base : `${base}/${kebab(title)}`;
+    bySlug.set(slug, { title, type, group, sub, url });
   }
+}
+const seenUrls = new Map();
+for (const [slug, v] of bySlug) {
+  if (seenUrls.has(v.url)) {
+    console.error(`two pages share the URL ${v.url}: ${seenUrls.get(v.url)} and ${slug}`);
+    process.exitCode = 1;
+  }
+  seenUrls.set(v.url, slug);
 }
 
 const walk = (d) => readdirSync(d).flatMap((n) => (statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [join(d, n)]));
@@ -113,7 +126,8 @@ if (unknown.size) {
 const PRIMARY = {
   "project-status": ["version-policy"], "quick-start": ["first-grid"], installation: ["install"], index: ["index"],
   "addons/sort-list": ["sorting", "sort-list"], "api-reference": ["ref-index"], "events-state": ["events-index"],
-  "selection-keyboard": ["select-index", "selection-index"], "custom-cell-types": ["extend-index"], plugins: ["extend-index"],
+  "data-modes": ["server-index"], plugins: ["plugins-index", "extend-index"],
+  "selection-keyboard": ["select-index", "selection-index"], "custom-cell-types": ["extend-index"],
   "recipes/data-fetching": ["server-index"], "lazy-loading": ["scroll-index"], "lazy-loading-advanced": ["scroll-fetch-libs"],
   "addons/import-export": ["io-index"], "addons/toolbar": ["toolbar"], "addons/undo-redo": ["undo-redo"],
   "editing-cell-types": ["edit-index", "editing-index"], columns: ["layout-index", "columns-index"], "styling-theming": ["look-index"],
@@ -128,10 +142,18 @@ const rows = oldPages.map((old) => {
     .filter((s) => bySlug.has(s))
     .sort((a, b) => (b === preferred ? 1 : 0) - (a === preferred ? 1 : 0));
   const primary = slugs.length ? bySlug.get(slugs[0]) : null;
-  const landing = slugs.length > 1 && slugs[0] !== preferred ? [...bySlug.values()].find((v) => v.group === primary.group && v.type === "landing") : null;
+  const landing = slugs.length > 1 && slugs[0] !== preferred ? [...bySlug.values()].find((v) => v.group === primary.group && !v.sub && v.type === "landing") : null;
   const target = landing ?? primary;
   return { old: oldUrl(old), file: old + ".mdx", slugs, target: target?.url ?? null, split: slugs.length > 1 };
 });
+
+const newUrls = new Set([...bySlug.values()].map((v) => v.url));
+for (const r of rows) {
+  if (r.target && r.target !== r.old && newUrls.has(r.old)) {
+    console.error(`redirect ${r.old} hides a new page at the same URL`);
+    process.exitCode = 1;
+  }
+}
 
 if (asAnchors) {
   const out = {};
@@ -141,8 +163,8 @@ if (asAnchors) {
     const oldPage = r.file.replace(/\.mdx$/, "");
     const entries = {};
     let parentSlug = null;
-    for (const m of readLf(join("content/docs", r.file)).matchAll(/^\s*(#{2,3}) (.+)$/gm)) {
-      const isH3 = m[1] === "###";
+    for (const m of readLf(join("content/docs", r.file)).matchAll(/^\s*(#{2,4}) (.+)$/gm)) {
+      const isH3 = m[1].length > 2;
       const heading = m[2];
       const anchor = /\[#([^\]]+)\]\s*$/.exec(heading)?.[1] ?? siteSlug(heading);
       const title = heading.replace(/\[#[^\]]+\]\s*$/, "").replace(/`/g, "").trim().toLowerCase();

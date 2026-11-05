@@ -213,14 +213,14 @@
   "old": "/docs/data-modes",
   "file": "data-modes.mdx",
   "slugs": [
-   "data-modes",
-   "server-row-ops",
    "server-index",
+   "server-row-ops",
+   "data-modes",
    "server-saves",
    "server-troubleshooting",
    "feature-matrix"
   ],
-  "target": "/docs/data-modes/features-data-mode",
+  "target": "/docs/data-modes",
   "split": true
  },
  {
@@ -415,7 +415,7 @@
   "slugs": [
    "ex-orm-drizzle"
   ],
-  "target": "/docs/server-data-examples/drizzle-example",
+  "target": "/docs/server-data-examples/orm-examples/drizzle-example",
   "split": false
  },
  {
@@ -434,7 +434,7 @@
   "slugs": [
    "ex-orm-prisma"
   ],
-  "target": "/docs/server-data-examples/prisma-example",
+  "target": "/docs/server-data-examples/orm-examples/prisma-example",
   "split": false
  },
  {
@@ -443,7 +443,7 @@
   "slugs": [
    "ex-orm-supabase"
   ],
-  "target": "/docs/server-data-examples/supabase-example",
+  "target": "/docs/server-data-examples/orm-examples/supabase-example",
   "split": false
  },
  {
@@ -772,14 +772,14 @@
   "old": "/docs/plugins",
   "file": "plugins.mdx",
   "slugs": [
-   "extend-index",
+   "plugins-index",
    "plugins-shape",
    "plugins-overlays",
    "plugins-events",
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/extend-compose",
+  "target": "/docs/plugins",
   "split": true
  },
  {

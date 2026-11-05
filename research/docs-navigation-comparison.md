@@ -29,7 +29,7 @@ Open these pages:
 - Comparison: `http://localhost:3471/dev/docs-nav`
 - A, Topics: `http://localhost:3471/dev/docs-nav/a/learn/learning-path/start-here`
 - B, Tasks: `http://localhost:3471/dev/docs-nav/b/learn/learning-path/start-here`
-- C, Four areas: `http://localhost:3471/dev/docs-nav/c/learn/learning-path/start-here`
+- C, Four areas: `http://localhost:3471/dev/docs-nav/c/learn/start-here/start-here`
 
 When you are done, stop the server and remove the `turbopack` line by hand. `next dev` also rewrites `AGENTS.md`. Run
 `git diff AGENTS.md` and restore it with `git checkout -- AGENTS.md` only when the diff holds nothing but that rewrite.
@@ -43,7 +43,7 @@ the pilot. Rows A and B are the final versions of their lines, scored by one beg
 |---|---|---|---|
 | Today (100 pages) | 5.13 | 5.19 (two runs) | 5.16 |
 | A: Topics (C19, last polish not re-scored) | 8.81 | 8.63 (8.75 and 8.5) | 8.72 |
-| B: Tasks (C17) | 8.44 | 8.47 (8.44 and 8.5) | 8.46 |
+| B: Tasks (C17) | 8.44 | 8.47 (8.44 and 8.5) | 8.45 |
 | C: Four areas (C10, one earlier version) | not run | 7.63 | 7.63 |
 
 By dimension:
@@ -61,11 +61,11 @@ By dimension:
 
 No candidate reaches the owner's mean of 9.0. A reaches 8.72, which is 0.28 short. The reviewers' noise is 0.5 on the mean:
 two senior runs on the same version of A differed by 0.25, and the senior scores of near-identical versions of a line
-differed by 0.5. The gap between A and B (0.26) and the gap between A and 9.0 are inside that noise.
+differed by 0.5. The gap between A and B (0.27) and the gap between A and 9.0 are inside that noise.
 
 Score history (mean of the runs on each version): C1 7.13, C2 7.0, C3 6.75 (round 1); C4 7.25, C5 7.38 (round 2);
-C6 7.63, C7 7.88 (round 3); C8 8.0, C9 8.13, C10 7.63 (round 4); C11 8.07, C12 7.88 (round 5); C13 7.88, C14 7.75 (round 6);
-C15 8.33, C16 8.17 (round 7); C17 8.46, C18 8.57 (round 8); C19 8.72 (round 9). The scores rose with every round and
+C6 7.63, C7 7.88 (round 3); C8 8.0, C9 8.13, C10 7.63 (round 4); C11 8.06, C12 7.88 (round 5); C13 7.88, C14 7.75 (round 6);
+C15 8.33, C16 8.17 (round 7); C17 8.45, C18 8.56 (round 8); C19 8.72 (round 9). The scores rose overall (two rounds fell back) and
 flattened near 8.5 to 8.7. Each new run found new points of the same kind: renames and group moves.
 
 ## Why not 9.0
@@ -100,7 +100,7 @@ Left open on purpose:
 
 ## The three candidates
 
-All three share the same decisions: six or four areas as sidebar tabs, a Learning path of 8 steps and a Server path of 5
+A and B share the same decisions (C differs: it has no Evaluate tab): six areas as sidebar tabs, a Learning path of 8 steps and a Server path of 5
 steps, three persona entries on the docs home, one Server area, an Evaluate area (performance chapter, accessibility,
 support and upgrades), a Reference area (plugins, contracts, concepts, events, types and hooks, add-on options,
 cheatsheets), and one Examples area with a landing per group. Today's duplicates (recipes repeating how-to pages, matrices
@@ -112,7 +112,7 @@ repeated on several pages) are removed in all three. The hooks group has three p
 |---|---|
 | Shape | Learn, Build (9 topic groups), Server, Evaluate, Reference, Examples. 203 pages, 36 groups, at most 16 rows visible |
 | How a reader finds a page | By the feature: "Row operations", "Context menu", "Pinned rows" |
-| Pros | Best scores in the last rounds (beginner 8.81, senior 8.63). A feature page keeps concept, options in short, and examples together. The Learning path reached 9.5 with the beginner |
+| Pros | The best beginner score of the last two rounds (8.81) and the best senior score of the last round (8.63). A feature page keeps concept, options in short, and examples together. The Learning path reached 9.5 with the beginner |
 | Cons | Feature pages run 900 to 1,200 words and mix concept and steps. Several groups sit at 7 pages. Server pages stay feature-shaped |
 | Fits when | Readers browse by feature name |
 
@@ -151,12 +151,13 @@ Planned screens use 250 words per screen and ignore code. Today's numbers come f
 
 ## Recommendation
 
-Take A, Topics. It has the best scores on both personas in the last two rounds, and its three weakest dimensions in B
-(consistency, growth, learning path) are its strengths. A and B tie on the senior persona within the noise. Drop C: the
+Take A, Topics. It has the best beginner score in the last two rounds and the best senior score in the last round (in round
+8 B led on the senior mean). Its strengths are the dimensions where B scored lowest (consistency, growth, learning path).
+A and B tie on the senior persona within the noise. Drop C: the
 senior review found that a separate Evaluate tab pays off.
 
-The decision that most changes the result is the page type for add-on pages. A keeps the option tables on the feature page
-and adds six reference pages for the rest. B moves all options out. Choose by the cost of writing the reference pages.
+A decision that changes the writing cost: both A and B move the option tables of the add-ons to six Add-on options reference
+pages. Feature and task pages keep a short summary and link the options page.
 
 ## Open questions
 

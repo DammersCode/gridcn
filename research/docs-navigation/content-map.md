@@ -5,7 +5,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 
 | Slug | Source (current page and sections) | Kind |
 |---|---|---|
-| index | `index` (credits move to a section of the support and security page) | rewrite |
+| index | `index` (the credits section moves to the license page) | rewrite |
 | install | `installation` (prerequisites first, add-on picker last) | rewrite |
 | first-grid | `quick-start` (first grid only) | split |
 | terms | `terms` | move |
