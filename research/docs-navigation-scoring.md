@@ -174,3 +174,17 @@ version.
 | 2026-11-05 | Task battery extended (B7, E9, X5), directness recorded, gates added, two runs per persona on the finalist | Validation report: make the score harder to game | Scores may fall |
 
 The last navigation score on the old rubric: C19, 8.72 (beginner 8.81, senior 8.63).
+
+## Rubric caps found in rounds 15 to 17 (apply when the written docs are rescored)
+
+No anchor was lowered. The caps below hold for any navigation and need these fixes, which belong in the calibration log when applied.
+
+| Cap | Evidence | Proposed fix |
+|---|---|---|
+| D3 10 versus S12 | A 10 needs 7 pages per group; the Learning path has 9 steps and Sort, filter, and search has 8 pages | Count path steps apart from group pages, or raise the 10 anchor to 9 pages |
+| D4, D7 | Prerequisites, Next links, and a visible result per step show only on written pages | Rescore D4 and D7 on the written Learn pages with the step template check (P15) |
+| D2 | About 12 code-heavy pages have no planned code lines | Fill column 6 for every page typed feature or task before the rescore |
+| D1 | The built search index top-3 test has not run | Run it once the site builds the new index |
+| D6 | N3 and N4 are reviewer-only rules | Add a script check for titles, aliases, and landing titles |
+
+Open work item for the docs rewrite: gate A10 fails on the docs shell (no labelled nav landmark, no aria-current, icon-only menu button, area switcher two taps at 375 px). See gate-results.md.

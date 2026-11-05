@@ -145,8 +145,8 @@ and the skills. Regenerate these counts at the freeze point. Three layers:
    map. It also rewrites the about 50 same-page links (`](#anchor)`) of split pages. After it runs, no link inside the repo
    needs a runtime redirect (595 links in `content/docs` alone).
 2. Anchor map. `anchor-map.json` is keyed by old page URL, then by anchor id, because ids such as `usage` repeat on
-   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 226 of 537 anchors are mapped by the
-   content map. The others fall back to the page target, which is correct for pages that moved whole. 79 anchors of split
+   many pages. It uses the site's heading slugger and honors explicit `[#id]` ids. 232 of 538 anchors are mapped by the
+   content map. The others fall back to the page target, which is correct for pages that moved whole. 90 anchors of split
    pages have no target yet (`anchors-needing-review.txt`). Assign each by hand in the split PRs.
 3. Runtime fallback for outside links. A fragment survives a redirect, but the browser does not send the old path to the
    page. The build flattens the map to `{ <new page path>: { <anchor id>: <target url> } }`. A small client component in
@@ -234,7 +234,7 @@ Plan:
 
 | Risk | Mitigation |
 |---|---|
-| 205 pages against 100 double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
+| 225 pages against 100 more than double the maintenance | The rules cap page length; add-on options pages are generated; landings are one line per child |
 | Link rot inside the repo | The codemod plus the existing build checks (`llms-tasks`, `types:check`); add a link checker to the polish PR |
 | Merge conflicts with the 2.0 server wave | Section 1 freeze point; new pages from other sessions get a row in the content map and the generators rerun |
 | Reviewer noise in the scores | Runs on near-identical versions differ by 0.5 on the mean; do not tune the tree to a single run |
@@ -243,7 +243,7 @@ Plan:
 ## 11. Verification checklist
 
 - Every old URL answers 308 with the target in `url-map.json` (script it).
-- Every old anchor of a moved section lands on its new page (spot check the 79 manual ones).
+- Every old anchor of a moved section lands on its new page (spot check the 90 manual ones).
 - `llms.txt` builds; every task link resolves.
 - The audit script passes (`--check`).
 - The candidate check passes (`--candidate` on the final file).

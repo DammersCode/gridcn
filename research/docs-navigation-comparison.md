@@ -110,7 +110,7 @@ repeated on several pages) are removed in all three. The hooks group has three p
 
 | | |
 |---|---|
-| Shape | Learn, Build (9 topic groups), Server, Evaluate, Reference, Examples. 203 pages, 36 groups, at most 16 rows visible |
+| Shape | Learn, Build (9 topic groups), Server, Evaluate, Reference, Examples. 225 pages, 37 groups, at most 20 rows visible |
 | How a reader finds a page | By the feature: "Row operations", "Context menu", "Pinned rows" |
 | Pros | The best beginner score of the last two rounds (8.81) and the best senior score of the last round (8.63). A feature page keeps concept, options in short, and examples together. The Learning path reached 9.5 with the beginner |
 | Cons | Feature pages run 900 to 1,200 words and mix concept and steps. Several groups sit at 7 pages. Server pages stay feature-shaped |
@@ -143,8 +143,8 @@ Planned screens use 250 words per screen and ignore code. Today's numbers come f
 |---|---|---|---|---|
 | Pages | 100 | 225 | 201 | 183 |
 | Sidebar areas | 1 | 6 | 6 | 4 |
-| Groups | 10 | 36 | 36 | 28 |
-| Most rows visible at once | 54 | 16 | 17 | 21 |
+| Groups | 10 | 37 | 36 | 28 |
+| Most rows visible at once | 54 | 20 | 17 | 21 |
 | Longest page (words) | 4,162 | 1,400 | 1,400 | 1,400 |
 | Average page without landings (words; today: all pages) | 746 | 608 | 591 | 610 |
 | Pages above 5 screens | 30 | 1 (planned, prose only) | 1 | 1 |
@@ -161,7 +161,7 @@ pages. Feature and task pages keep a short summary and link the options page.
 
 ## Open questions
 
-- Does the team accept 203 pages? The count doubles (100 today). Each new page needs a Related section and a description.
+- Does the team accept 225 pages? The count doubles (100 today). Each new page needs a Related section and a description.
 - Who writes the new text? The plugin contract, five Server path steps, install problems, and the six option pages.
 - Is a Learn area with four groups acceptable? The ruleset allows 3 to 7 for Learn only.
 - Which word does the glossary pick for keys? The candidates use "keys", "shortcuts", and "keybindings".
