@@ -75,6 +75,7 @@ const add = (old, slug) => {
 };
 
 for (const row of readLf("research/docs-navigation/content-map.md").split("\n")) {
+  if (row.startsWith("## Fact owners")) break;
   if (!row.startsWith("| ") || row.startsWith("| Slug") || row.startsWith("|---")) continue;
   const [, slugCell, sourceCell] = row.split("|").map((x) => x.trim());
   const slugs = slugCell.replace(/`/g, "").split(",").map((x) => x.trim()).filter((x) => x && !x.endsWith("*"));
