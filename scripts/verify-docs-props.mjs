@@ -105,7 +105,7 @@ export function parseTypes(raw) {
     const bases = (m[2] ? splitTop(m[2], ",") : []).map((b) => b.trim().replace(/<.*$/s, "")).filter(Boolean);
     push(m[1], [text.slice(brace + 1, close)], bases, false);
   }
-  for (const m of text.matchAll(/\btype\s+([A-Z]\w*)\s*(?:<[^=]*?>)?\s*=\s*/g)) {
+  for (const m of text.matchAll(/\btype\s+([A-Z]\w*)\s*(?:<[^{]*?>)?\s*=\s*/g)) {
     const start = m.index + m[0].length;
     let depth = 0;
     let stop = text.length;

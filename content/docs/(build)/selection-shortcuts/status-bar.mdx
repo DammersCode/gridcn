@@ -1,85 +1,113 @@
 ---
 title: "Status bar"
-description: "The data-grid-status-bar add-on: count, sum, avg, min, and max of the selected cells under the grid."
+description: "Show count, sum, avg, min, and max of the selected cells under the grid with the data-grid-status-bar add-on."
 icon: Sigma
 type: feature
-aliases: ["selection summary", "sum of selected cells"]
+aliases: ["selection summary", "sum of selected cells", "selection stats", "selection total"]
 ---
 
-Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from
-the grid's own data: `<DataGridStatusBar />` renders the bar, and `useDataGridSelectionStats` is
-the headless hook. It reads committed values only, never the open editor's draft, and writes
-nothing, so `readOnly` grids work unchanged.
+Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from the grid's own data. `<DataGridStatusBar />` renders the bar, and `useDataGridSelectionStats` is the headless hook. Both read committed values only, never the draft of an open editor, and write nothing, so `readOnly` grids work unchanged.
 
 <ComponentPreview name="data-grid-status-bar-demo" />
 
 <InstallCommand item="data-grid-status-bar" manual manualSlot={<ManualInstall item="data-grid-status-bar" />} />
 
-Place the bar inside `DataGridProvider`, next to `DataGridRoot`, like the pagination bar:
+Place the bar inside `DataGridProvider`, next to `DataGridRoot`:
 
 ```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
 import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
 
-<DataGridProvider {...grid} columns={columns}>
-  <DataGridRoot>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-  <DataGridStatusBar />
-</DataGridProvider>;
+type Sale = { id: string; region: string; amount: number };
+
+const columns = defineColumns<Sale>()([
+  { id: "region", header: "Region", accessorKey: "region", type: "text" },
+  { id: "amount", header: "Amount", accessorKey: "amount", type: "number" },
+] as const);
+
+export function SalesGrid({ sales }: { sales: Sale[] }) {
+  return (
+    <DataGridProvider
+      data={sales}
+      columns={columns}
+      getRowId={(sale) => sale.id}
+    >
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridStatusBar />
+    </DataGridProvider>
+  );
+}
 ```
 
-## Which cells count
+## Which cells count [#which-cells-count]
 
-The bar aggregates the union of every selection channel: the primary range, the stacked
-Ctrl+click ranges, whole-row selections, and whole-column selections. A cell that sits in two
-channels counts once. Hidden columns, filtered rows, and the unloaded rows of a scroll-mode grid are never in the
-view, so they never count.
+The bar aggregates the union of every selection channel: the primary range, the stacked <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click ranges, whole-row selections, and whole-column selections. A cell that sits in two channels counts once. Hidden columns and filtered-out rows are outside the view, so they never count. The unloaded rows of a source in scroll mode have no value and count as nothing. With client pagination, the grid holds one page, so the bar aggregates the cells of that page only.
 
-## Which values count
+## Which values count [#which-values-count]
 
-A cell is numeric when its raw value is a finite `number`. Detection reads the value, so a custom numeric type aggregates without configuration. `count` counts the
-non-empty cells, where empty means the column's cell type `isEmpty` returns `true`. `sum`,
-`avg`, `min`, and `max` run over the numeric cells; the sum uses Neumaier-compensated
-summation, so `0.1 + 0.2` shows `0.3`.
+A cell counts as numeric if its raw value is a finite `number`. Detection reads the value, so a custom numeric cell type aggregates without configuration. `count` counts the non-empty cells, where empty means that the `isEmpty` of the column's cell type returns `true`. `sum`, `avg`, `min`, and `max` run over the numeric cells. The sum uses Neumaier compensated summation to limit floating-point error.
 
-## Display and formatting
+## Display and formatting [#display-and-formatting]
 
-The bar renders nothing while fewer than 2 cells are selected. `count` always shows; `sum`,
-`avg`, `min`, and `max` show only while at least one numeric cell is selected.
+The aggregates show once the selection covers two loaded cells. `count` always shows. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
 
-When every numeric cell comes from one column, that column's `toDisplayText` formats `sum`,
-`avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise
-the default `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })` applies. `formatValue`
-overrides both.
+When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise the bar uses `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. `formatValue` overrides both.
 
-## When it computes
+The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show, it renders nothing.
 
-The hook recomputes after the selection settles: at once for a selection of up to 5,000 cells,
-otherwise on a 150 ms trailing timer, so dragging a large range does not walk the whole
-selection on every frame. A walk stops at 200,000 cells (`MAX_STATUS_CELLS`); above the cap,
-every value gets a `≈` prefix and the bar's `title` says how many cells the values cover.
+## When it computes [#when-it-computes]
 
-## Props
+The hook recomputes after the selection settles. A selection whose ranges cover up to 5,000 cells computes at once. A larger selection computes on a 150 ms trailing timer, so dragging a large range does not walk the whole selection on every frame.
+
+A walk stops at 200,000 cells (`MAX_STATUS_CELLS`). Above the cap, every value gets a `≈` prefix, and the `title` of the bar says how many cells the values cover.
+
+## Headless hook
+
+`useDataGridSelectionStats()` returns the numbers for your own UI. Call it inside `DataGridProvider`:
+
+```tsx
+import { useDataGridSelectionStats } from "@/components/data-grid-status-bar/data-grid-status-bar";
+
+export function SelectionSum() {
+  const { sum, approximate } = useDataGridSelectionStats();
+
+  const prefix = approximate ? "≈" : "";
+
+  return <span>{sum === null ? "No numbers" : `${prefix}${sum}`}</span>;
+}
+```
+
+The result holds `cells`, `count`, `numeric`, `sum`, `avg`, `min`, `max`, `numericColumnId`, and `approximate`. The aggregates are `null` without numeric cells. `numericColumnId` is `null` if the numeric cells span several columns.
+
+## Props [#props]
+
+{/* props: DataGridStatusBarProps */}
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `aggregates` | `readonly ("count" \| "sum" \| "avg" \| "min" \| "max")[]` | all five, in this order | Which aggregates to show, and in which order. |
 | `formatValue` | `(value: number, aggregate: StatusBarAggregate) => string` | the single-column rule, else the `Intl` default | Formats the shown aggregate values. |
 | `locale` | `string` | `"en-US"` | Locale for the default number format. |
-| `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | i18n override for this bar's strings. |
+| `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | Overrides the strings of this bar. |
 | `className` | `string` | none | Extra classes on the bar element. |
 | `children` | `ReactNode` | none | Extra items, rendered after the aggregates. |
 
 <Callout type="idea" title="The bar is a polite live region">
-  The bar is `role="status"` with `aria-live="polite"` and `aria-atomic="true"`. Its text
-  changes only when a computation finishes, so a drag does not flood the screen reader. Each
-  value carries its label ("Sum 1,234").
+  The bar is `role="status"` with `aria-live="polite"` and `aria-atomic="true"`. Each value sits next to its label, for example "Sum 1,234".
 </Callout>
 
 ## Related
 
-- [Selection & keyboard](/docs/selection-shortcuts): the selection channels the bar aggregates
-- [Cell types](/docs/editing-cells): `isEmpty` and `toDisplayText`
-- [Pagination](/docs/server-pagination/load-rows-page): page-local data: the bar aggregates the current page slice
+- [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options): the props and labels
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection): the gestures that build a selection
+- [Checked rows](/docs/selection-shortcuts/checked-rows): the hidden checked row count
 - [Pinned rows](/docs/rows-pages-menus/pinned-rows): the other totals surface, for a fixed band

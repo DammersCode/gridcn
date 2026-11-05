@@ -3,10 +3,10 @@ title: Shortcut remapping
 description: Change, add, or remove key bindings, bind your own commands, and show users a shortcuts dialog that always matches the live keymap.
 icon: Keyboard
 type: feature
-aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "custom commands"]
+aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them: `DataGridKeybindingsDialog` lists the effective keymap, including your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `DataGridKeybindingsDialog` lists the effective keymap with your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -40,7 +40,11 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <DataGridProvider data={orders} columns={columns} getRowId={(order) => order.id}>
+    <DataGridProvider
+      data={orders}
+      columns={columns}
+      getRowId={(order) => order.id}
+    >
       <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
       <DataGridRoot>
         <DataGridHeader />
@@ -52,37 +56,42 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them after the keymap entries. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
+The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them to the clipboard group. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
 
 <Callout type="warn" title="The ? shortcut claims a key">
-  While `DataGridKeybindingsShortcut` is mounted and the grid has focus, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
+  With `DataGridKeybindingsShortcut` mounted and the grid focused, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
 </Callout>
 
 ## Binding chips [#binding-chips]
 
-`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses:
-
-```tsx
-import { BindingChips } from "@/components/data-grid-keybindings/data-grid-keybindings";
-
-export function UndoHint() {
-  return <BindingChips binding="mod+shift+ArrowUp" />;
-}
-```
+`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses. Pass the binding as a prop, for example `<BindingChips binding="mod+z" />`.
 
 ## Shortcut labels for your own UI [#shortcut-labels-for-your-own-ui]
 
 `formatShortcut(binding)` returns the display tokens of a binding. `isMacPlatform()` reports the platform check that the labels use. Both come from the `data-grid` entry point:
 
 ```tsx
+"use client";
+
+import { useEffect, useState } from "react";
 import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid";
 
-export const undoTokens = formatShortcut("mod+shift+z", isMacPlatform());
+const KEY = "mod+shift+z";
+
+export function RedoHint() {
+  const [tokens, setTokens] = useState(() => formatShortcut(KEY, false));
+
+  useEffect(() => {
+    setTokens(formatShortcut(KEY, isMacPlatform()));
+  }, []);
+
+  return <span>{tokens.join(" ")}</span>;
+}
 ```
 
 The tokens are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. Modifiers render as glyphs on macOS, iOS, and iPadOS, and as words elsewhere. `ctrl` always renders as `Ctrl`.
 
-The platform check reads `navigator`, which does not exist during server rendering. There the labels render as words. `BindingChips` renders words on the server and switches to glyphs after hydration. For your own labels, compute them after mount.
+`navigator` does not exist during server rendering, so the labels render as words there. `BindingChips` switches to glyphs after hydration. Compute your own labels after mount.
 
 ## Remapping [#remapping]
 
@@ -114,28 +123,22 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 }
 ```
 
-A binding string is modifiers plus a key, joined with `+`. The modifiers are `mod`, `ctrl`, `shift`, and `alt`. `mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. `ctrl` is the physical <kbd>Ctrl</kbd> key on every platform. Use it where <kbd>Cmd</kbd> is reserved by the OS, as `selectColumn` does with <kbd>Ctrl</kbd>+<kbd>Space</kbd>. The modifiers of the event must equal the modifiers of the binding, so `"/"` does not match <kbd>Shift</kbd>+<kbd>/</kbd>.
+A binding string is modifiers plus a key, joined with `+`. The modifiers are `mod`, `ctrl`, `shift`, and `alt`. `mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. `ctrl` is the physical <kbd>Ctrl</kbd> key on every platform. Use it where the OS reserves <kbd>Cmd</kbd>, as `selectColumn` does with <kbd>Ctrl</kbd>+<kbd>Space</kbd>. The modifiers of the event must equal the modifiers of the binding, so the binding `"a"` does not match <kbd>Shift</kbd>+<kbd>A</kbd>.
 
 The key is one of these:
 
 - A letter, written in lower case. Matching ignores case.
 - A digit.
 - A function key, `F1` to `F24`.
-- A named key: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, or `Delete`. Other stable names such as `Insert` or `MediaPlayPause` bind the same way.
+- A named key, in exact case: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, or `Delete`. Other stable key names, such as `Insert` or `MediaPlayPause`, bind the same way.
 - Any single printable character.
 - The space bar, written as a literal space, as in `"shift+ "`.
 
-The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding that can never match warns in the browser console in development. The `KeyBinding` type names one binding string.
+The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier or an unknown key name warns in the browser console in development. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`.
 
-The matcher is source-agnostic. The in-grid handler and the [global shortcuts](/docs/selection-shortcuts/global-shortcuts) layer read the same `keymap`, so a remapped action changes on both.
+When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination that includes a `keymap` binding.
 
-When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination.
-
-The type-to-replace trigger (`typeToReplace`) has no default binding. Any unbound printable key on the active cell starts an edit seeded with the typed character. When `keymap` defines `typeToReplace`, that entry takes the action over exclusively:
-
-- `typeToReplace: ["F3"]` starts a plain edit on <kbd>F3</kbd> only.
-- `typeToReplace: []` disables it.
-- A printable key such as `"a"` starts the edit seeded with that character.
+The type-to-replace trigger (`typeToReplace`) has no default binding. Any unbound printable key on the active cell starts an edit seeded with the typed character. A `keymap` entry for `typeToReplace` takes the action over. `["F3"]` starts a plain edit on <kbd>F3</kbd> only. `["a"]` seeds the edit with `a`. `[]` disables it.
 
 ## Custom commands [#custom-commands]
 
@@ -200,7 +203,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot resolve.
 
-`scope` selects when the command dispatches. `"grid"` dispatches while no edit session is open. `"editing"` dispatches while an edit session is open, including editors without a text input, such as the select list and the date calendar. `"always"` dispatches in both cases. An `"editing"` command never takes over a grid binding: while no edit session is open, the grid keeps its built-in bindings on that key.
+`scope` selects the moment of dispatch. `"grid"` dispatches while no edit session is open. `"editing"` dispatches during an edit session. That covers editors without a text input, such as the select list and the date calendar. `"always"` dispatches in both cases. An `"editing"` command never takes over a grid binding: while no edit session is open, the grid keeps its built-in bindings on that key.
 
 Three more rules apply:
 

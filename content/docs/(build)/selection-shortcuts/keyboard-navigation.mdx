@@ -39,7 +39,7 @@ They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which def
 
 ## Opening the column filter [#opening-the-column-filter]
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the active cell's column. It does nothing unless the root has a `renderHeaderFilter` slot and the column offers a set filter.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the active cell's column. It needs a `renderHeaderFilter` slot on the root and a column that offers a set filter. Otherwise it does nothing.
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (`openColumnMenu`) opens the column menu, which needs a `renderHeaderMenu` slot.
 
@@ -47,7 +47,7 @@ They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which def
 
 The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects the data region around the active cell: the rectangle of adjacent rows and columns that hold values. When the active cell is empty, the region is that cell. Press the keys again to select the whole grid. When the data fills the whole grid, the first press selects everything.
 
-<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells. It never checks rows, so it does not change `useDataGridSelectedRows()` or `selectAllMatching()`. The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells and never checks rows. It unchecks the checked rows, also with `keepCheckedRows`. The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
 
 ## Escape clears the selection
 

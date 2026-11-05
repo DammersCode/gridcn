@@ -52,7 +52,7 @@ const results = [];
 for (const name of only) {
   const result = await checks[name]();
   if (files) {
-    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && new RegExp(` ${pageUrl(file).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[#\\s.]|$)`).test(f))) || isGlobal(f) || (name === "demos" && !f.startsWith("content/docs/")));
+    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && new RegExp(` ${pageUrl(file).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[#\\s.]|$)`).test(f))) || isGlobal(f));
   }
   results.push(result);
 }

@@ -119,6 +119,7 @@ export function run({ root = process.cwd(), files } = {}) {
         if (imports) blocks.push({ ...block, lang: "ts", code: imports.join("\n"), file, path, start });
         continue;
       }
+      if (/^\s*declare\s+(?:function|const|let|var|class)\b/m.test(block.code)) failures.push(`${path}:${start}: a declare statement is a placeholder that throws when pasted; write the real code or mark the block as a fragment`);
       blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first) });
     }
     if (fragmentsHere > 1 && fragmentsHere / total > MAX_FRAGMENT_SHARE) failures.push(`${path}: ${fragmentsHere} of ${total} code blocks are fragments; the limit is ${MAX_FRAGMENT_SHARE * 100}%`);

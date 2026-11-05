@@ -79,7 +79,7 @@ Omit every flag to enable undo and redo.
 | `redo` | The redo bindings. | The Undo and redo add-on |
 | `fillDown` | The fill-down binding. | The [Fill handle](/docs/clipboard-undo/fill-handle) add-on |
 | `fillRight` | The fill-right binding. | The Fill handle add-on |
-| `selectAll` | The select-all binding. | Nothing |
+| `selectAll` | The select-all binding. | `enableRangeSelection`, which defaults to `true` |
 | `insertRowAbove` | The insert-row-above binding. | `createRow` |
 | `insertRowBelow` | The insert-row-below binding. | `createRow` |
 | `duplicateRow` | The duplicate-row binding. | `duplicateRow` |
@@ -88,7 +88,7 @@ Omit every flag to enable undo and redo.
 Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For example, `insertRowBelow` does nothing without `createRow`, and the row actions do nothing in a read-only grid. The listener reads the effective keymap, so a remapped binding applies to the global layer too. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#remapping).
 
 <Callout type="warn">
-Keep <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> in every remapped binding of a flagged action. The default bindings of all nine actions include it. The layer does not check modifiers, so a bare key binding would fire on that key anywhere on the page, outside fields and grids.
+Keep <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> in every remapped binding of a flagged action. The default bindings of all nine actions include it. The layer does not check modifiers. A bare key binding fires on that key anywhere on the page, outside fields and grids.
 </Callout>
 
 ## Multiple grids [#multiple-grids]
@@ -100,7 +100,7 @@ A grid without the component never claims the shortcut. If you add the component
 The last DOM focus decides. When your app switches tabs without a focus change, call the history API of the active grid, for example `grid.history.undo()`.
 
 <Callout type="warn" title="Page-wide mod+z">
-If your app registers its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler, both listeners see the same event. The layer skips an event that is already `defaultPrevented`, and it calls `preventDefault` when it handles one. Check `event.defaultPrevented` in your handler.
+Your app can register its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler. Both listeners then see the same event. The layer skips an event that is already `defaultPrevented`, and it calls `preventDefault` when it handles one. Check `event.defaultPrevented` in your handler.
 </Callout>
 
 ## Out of scope [#out-of-scope]
@@ -114,3 +114,4 @@ If your app registers its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler, 
 - [Undo and redo](/docs/clipboard-undo/undo-redo): the commands this component reaches
 - [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): the effective keymap
 - [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the in-grid keymap table
+- [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts): every chord on one sheet

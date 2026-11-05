@@ -97,7 +97,8 @@ export function checkParity(matrix, { optionNames, root: base }) {
   return problems;
 }
 
-const jsxProse = (text) => text.split(/(`[^`]*`)/).map((part, i) => (i % 2 === 1 ? part : jsxText(part))).join("");
+const sentences = (text) => text.replace(/;\s+(\w)/g, (_, c) => `. ${c.toUpperCase()}`);
+const jsxProse = (text) => text.split(/(`[^`]*`)/).map((part, i) => (i % 2 === 1 ? part : jsxText(sentences(part)))).join("");
 const ORDER = ["supported", "gap", "n/a", "unverified"];
 const jsxText = (text) => text.replace(/[{}<>&]/g, (c) => `{${JSON.stringify(c)}}`);
 const cellNote = (cell) => (cell.status === "gap" ? cell.note : cell.status === "n/a" ? cell.reason : cell.status === "unverified" && cell.note !== UNVERIFIED ? cell.note : undefined);
@@ -111,9 +112,10 @@ export function renderParityPage(matrix) {
   const present = [...new Set(matrix.features.flatMap((r) => Object.values(r.cells).map((c) => c.status)))];
   const lines = [
     "---",
-    "title: Features and data modes",
+    "title: Data mode support",
     "description: Which grid features work with which data source, and where a known gap remains.",
     "icon: Table",
+    "type: reference",
     "---",
     "",
     "{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}",
@@ -129,6 +131,7 @@ export function renderParityPage(matrix) {
     `<ParityLegend statuses={${JSON.stringify(ORDER.filter((status) => present.includes(status)))}} />`,
     "",
     '<div className="max-w-full overflow-x-auto">',
+    "{/* lint-ok: generated matrix */}",
     '<table className="min-w-max overflow-visible">',
     "  <thead>",
     "    <tr>",
@@ -158,9 +161,10 @@ export function renderParityPage(matrix) {
     });
     if (row.note) notes.unshift(`- ${jsxProse(row.note)}`);
     if (notes.length === 0) continue;
-    lines.push(`### ${jsxProse(row.feature)}`, "", ...notes, "");
+    const body = notes.length === 1 ? [notes[0].replace(/^- /, "")] : notes;
+    lines.push(`### ${jsxProse(row.feature)}`, "", ...body, "");
   }
-  lines.push("## Related", "", "- [Server-side data](/docs/recipes/data-fetching/server-side)", "- [Lazy loading](/docs/lazy-loading)", "- [Pagination](/docs/pagination)", "");
+  lines.push("## Related", "", "- [Server rows contract](/docs/contracts/server-rows-contract)", "- [Scroll mode](/docs/scroll-mode)", "- [Server pagination](/docs/server-pagination)", "");
   return lines.join("\n");
 }
 

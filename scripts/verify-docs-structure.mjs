@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { capped, codeBlocks, frontField, readLf, rel, splitFrontmatter, urlOfPage, walk } from "./docs-verify-lib.mjs";
+import { capped, codeBlocks, frontField, proseOnly, readLf, rel, splitFrontmatter, urlOfPage, walk } from "./docs-verify-lib.mjs";
 
 export const PAGE_TYPES = ["landing", "feature", "concept", "task", "step", "reference", "example", "cheatsheet"];
 const MAX_TITLE = 60;
@@ -33,6 +33,8 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     }
   } else if (worklist && requireRelated) failures.push(`work list ${worklist} not found`);
   const pageAliases = new Map();
+  const typeByUrl = new Map();
+  const referenceLinks = [];
   let pages = 0;
   let noRelated = 0;
   for (const file of walk(contentDir, [".mdx"])) {
@@ -62,6 +64,14 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       if (owner) failures.push(`${here}: alias "${alias}" is also owned by ${owner}`, `${owner}: alias "${alias}" is also owned by ${here}`);
       else aliasOwner.set(alias.toLowerCase(), here);
     }
+    const tableLines = proseOnly(body).split("\n");
+    tableLines.forEach((line, i) => {
+      if (!/^\s*\|/.test(line) || /^\s*\|[\s:|-]+\|\s*$/.test(line)) return;
+      let head = i;
+      while (head > 0 && /^\s*\|/.test(tableLines[head - 1])) head--;
+      const count = (text) => text.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).length;
+      if (head !== i && count(line) !== count(tableLines[head])) failures.push(`${here}:${i + 1 + bodyOffset}: table row has ${count(line)} cells, the header has ${count(tableLines[head])}; escape | inside a cell as \\|`);
+    });
     const fenced = new Set();
     for (const block of codeBlocks(body)) for (let l = block.line - 1; l <= block.endLine; l++) fenced.add(l);
     const lines = body.split("\n");
@@ -85,6 +95,8 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       }
     }
     const url = urlOfPage(contentDir, file);
+    typeByUrl.set(url, type);
+    if (type === "feature" || type === "task") referenceLinks.push({ here, url, targets: [...body.matchAll(/\]\((\/docs[^)#\s]*)/g)].map((m) => m[1]) });
     if (serverModePages.has(url) && !h2.some((h) => /^server mode$/i.test(h.title))) failures.push(`${here}: parity features ${serverModePages.get(url).join(", ")} need a "Server mode" H2`);
     if (type === "feature") {
       const firstH2 = h2[0]?.line ?? lines.length;
@@ -92,6 +104,9 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     }
   }
   if (requireRelated) {
+    for (const page of referenceLinks) {
+      if (!page.targets.some((t) => ["reference", "concept", "cheatsheet"].includes(typeByUrl.get(t) ?? ""))) failures.push(`${page.here}: a feature or task page links a reference or concept page (rule P10)`);
+    }
     for (const row of rows) {
       const found = pageAliases.get(row.url);
       if (!found) failures.push(`work list: ${row.slug} has no page at ${row.url}`);
