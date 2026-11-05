@@ -1,6 +1,6 @@
 // Shared helpers for the docs validators (verify-docs-*.mjs and docs-verify.mjs).
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 
 export const FAILURE_CAP = 8;
 
@@ -81,7 +81,7 @@ const slugText = (text) =>
     .replace(/\[#[^\]]+\]\s*$/, "")
     .replace(/<NewBadge\s*\/>/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[`*_]/g, "")
+    .replace(/[`*]/g, "")
     .trim()
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s_-]/gu, "")
@@ -100,10 +100,12 @@ export function anchorsOf(body) {
     if (heading) {
       const explicit = /\[#([^\]]+)\]\s*$/.exec(heading[1]);
       if (explicit) anchors.add(explicit[1]);
-      const base = slugText(heading[1]);
-      const count = seen.get(base) ?? 0;
-      seen.set(base, count + 1);
-      anchors.add(count ? `${base}-${count}` : base);
+      else {
+        const base = slugText(heading[1]);
+        const count = seen.get(base) ?? 0;
+        seen.set(base, count + 1);
+        anchors.add(count ? `${base}-${count}` : base);
+      }
     }
     for (const id of line.matchAll(/\bid=["']([^"']+)["']/g)) anchors.add(id[1]);
   }
@@ -129,4 +131,11 @@ export const lineOf = (text, index) => text.slice(0, index).split("\n").length;
 
 export function isDir(path) {
   return existsSync(path) && statSync(path).isDirectory();
+}
+
+/** Repo-relative forward-slash path of a --files entry; an entry that is not a docs page throws. */
+export function normalizeFile(file, base) {
+  const path = (isAbsolute(file) ? relative(base, file) : file).split(sep).join("/").replaceAll("\\", "/").replace(/^\.\//, "");
+  if (!path.startsWith("content/docs/") || !path.endsWith(".mdx")) throw new Error(`--files entry is not a docs page: ${file}`);
+  return path;
 }

@@ -18,7 +18,7 @@ export function aliasesOf(front) {
   return block ? [...block[1].matchAll(/-\s+(.*)/g)].map((m) => m[1].trim().replace(/^["']|["']$/g, "")) : [];
 }
 
-export function run({ root = process.cwd(), requireType = false, worklist, base = "origin/release/2.0" } = {}) {
+export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist, base = "origin/release/2.0" } = {}) {
   const contentDir = join(root, "content/docs");
   const failures = [];
   const warnings = [];
@@ -69,8 +69,9 @@ export function run({ root = process.cwd(), requireType = false, worklist, base 
       const related = h2.find((h) => /^(related|next|where next)$/i.test(h.title));
       if (!related) {
         noRelated++;
-        warnings.push(`${here}: no Related section`);
+        (requireRelated ? failures : warnings).push(`${here}: no Related section`);
       } else {
+        if (h2.at(-1) !== related) warnings.push(`${here}: Related is not the last section`);
         const end = h2.find((h) => h.line > related.line)?.line ?? lines.length;
         const links = lines.slice(related.line, end).join("\n").match(/\]\(\/docs[^)]*\)|href="\/docs/g)?.length ?? 0;
         if (links < 1 || links > 5) failures.push(`${here}: Related has ${links} docs links, expected 1 to 5`);
@@ -88,6 +89,7 @@ export function run({ root = process.cwd(), requireType = false, worklist, base 
       execFileSync("git", ["diff", "--quiet", base, "--", "content/docs-changes.json"], { cwd: root, stdio: "pipe" });
     } catch (error) {
       if (error.status === 1) failures.push(`content/docs-changes.json differs from ${base}; only the release command may change it`);
+      else (requireRelated ? failures : warnings).push(`cannot compare content/docs-changes.json with ${base}`);
     }
   }
   return { name: "structure", checked: pages, failures, warnings, stats: { noRelated } };

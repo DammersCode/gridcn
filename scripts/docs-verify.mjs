@@ -1,11 +1,12 @@
 // Runs every docs validator and prints one line per check plus the first failures.
 // Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
-//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--json]
+//   [--final]  the definition-of-done run: strict props, a type on every page, Related on every page, the work list, demo warnings as failures
+//   [--warnings] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--json]
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { capped } from "./docs-verify-lib.mjs";
+import { capped, normalizeFile } from "./docs-verify-lib.mjs";
 import { run as runCode } from "./verify-docs-code.mjs";
 import { run as runDemos } from "./verify-docs-demos.mjs";
 import { run as runLinks } from "./verify-docs-links.mjs";
@@ -18,25 +19,29 @@ const args = process.argv.slice(2);
 const has = (name) => args.includes(name);
 const arg = (name) => args[args.indexOf(name) + 1];
 const root = has("--root") ? arg("--root") : process.cwd();
-const files = has("--files") ? arg("--files").split(",").map((f) => f.replaceAll("\\", "/")) : undefined;
+const final = has("--final");
+const DEFAULT_WORKLIST = "research/docs-rewrite-worklist.json";
+
+const files = has("--files") ? arg("--files").split(",").map((f) => normalizeFile(f, root)) : undefined;
 const only = has("--only") ? arg("--only").split(",") : ["links", "code", "props", "symbols", "demos", "prose", "structure", "audit"];
 
 function runAudit() {
   const script = has("--audit") ? arg("--audit") : join(root, "scripts/docs-nav-audit.mjs");
-  if (!existsSync(script)) return { name: "audit", checked: 0, failures: [], warnings: ["scripts/docs-nav-audit.mjs is not in this tree; the page budgets are not checked"] };
+  if (!existsSync(script)) return { name: "audit", checked: 0, failures: final ? ["scripts/docs-nav-audit.mjs is not in this tree"] : [], warnings: ["scripts/docs-nav-audit.mjs is not in this tree; the page budgets are not checked"] };
   const out = spawnSync(process.execPath, [script, "--check", join(root, "content/docs")], { encoding: "utf8", cwd: root });
-  const lines = out.stdout.split("\n").filter((l) => /h2=\d+: [PNSA]\d/.test(l));
+  const lines = out.stdout.split("\n").filter((l) => /h2=\d+: [PNSA]\d/.test(l)).map((l) => `content/docs/${l}`);
   return { name: "audit", checked: 1, failures: out.status === 0 ? [] : lines.length ? lines : ["the audit failed; run it directly"], warnings: [] };
 }
 
+const worklist = has("--worklist") ? arg("--worklist") : final ? DEFAULT_WORKLIST : undefined;
 const checks = {
-  links: () => runLinks({ root, migration: has("--migration") ? arg("--migration") : undefined }),
+  links: () => runLinks({ root, migration: has("--migration") ? arg("--migration") : undefined, baseline: has("--baseline") ? arg("--baseline") : undefined }),
   code: () => runCode({ root, files }),
-  props: () => runProps({ root, strict: has("--strict") }),
+  props: () => runProps({ root, strict: final || has("--strict") }),
   symbols: () => runSymbols({ root }),
-  demos: () => runDemos({ root }),
+  demos: () => runDemos({ root, strictRules: final }),
   prose: () => runProse({ root, files }),
-  structure: () => runStructure({ root, requireType: has("--require-type"), worklist: has("--worklist") ? arg("--worklist") : undefined }),
+  structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist }),
   audit: runAudit,
 };
 
@@ -44,7 +49,9 @@ const pageUrl = (file) => `/docs/${file.replace(/^content\/docs\//, "").replace(
 const results = [];
 for (const name of only) {
   const result = await checks[name]();
-  if (files) result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || (name === "demos" && !f.startsWith("content/docs/")));
+  if (files) {
+    result.failures = result.failures.filter((f) => files.some((file) => f.startsWith(file) || (name === "links" && f.includes(` ${pageUrl(file)}`))) || (name === "demos" && !f.startsWith("content/docs/")));
+  }
   results.push(result);
 }
 

@@ -292,7 +292,7 @@ export function run({ root = process.cwd(), strict = false } = {}) {
         if (best && best.score >= 0.6) {
           candidates = [best.def];
           stats.guessed++;
-          warnings.push(`${where}: matched ${best.def.name} by name overlap; pin it with {/* props: ${best.def.name} */}`);
+          (strict ? failures : warnings).push(`${where}: matched ${best.def.name} by name overlap; pin it with {/* props: ${best.def.name} */}`);
         } else {
           stats.unmatched++;
           (strict ? failures : warnings).push(`${where}: no source type matches this table (best overlap ${Math.round((best?.score ?? 0) * 100)}%)`);
@@ -332,7 +332,11 @@ export function run({ root = process.cwd(), strict = false } = {}) {
         stats.suspect += issues.length;
         warnings.push(...issues.map((i) => `(guessed type) ${i}`));
       }
-      if (table.marker && !open) for (const k of merged.keys()) if (!names.includes(k)) stats.undocumented++;
+      if (table.marker && !open) {
+        const missing = [...merged.keys()].filter((k) => !names.includes(k));
+        stats.undocumented += missing.length;
+        if (missing.length) warnings.push(`${where}: members not in the table: ${missing.join(", ")}`);
+      }
     }
   }
   return { name: "props", checked: stats.rows, stats, failures, warnings };

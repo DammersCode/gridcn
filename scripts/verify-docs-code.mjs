@@ -1,11 +1,16 @@
 // Fails when a ts/tsx code block in content/docs does not type-check against the registry source.
 // A block that is not a full sample carries `fragment="reason"` in its fence info: ```tsx fragment="JSX only".
+// The first sample of a page is checked alone, without placeholder names; later blocks may use `data`, `columns` and similar free names.
 // Usage: node scripts/verify-docs-code.mjs [--root <dir>] [--files a.mdx,b.mdx]
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { capped, codeBlocks, readLf, rel, splitFrontmatter, walk } from "./docs-verify-lib.mjs";
+
+const MAX_FRAGMENT_SHARE = 0.2;
+const CHECKED_LANGS = new Set(["ts", "tsx", "typescript", "jsx", "js", "javascript"]);
 
 const AMBIENT = `type Row = { id: string; [key: string]: any };
 declare const columns: import("@/components/data-grid/data-grid").ColumnDef<any, any>[];
@@ -17,6 +22,7 @@ declare function setRows(...args: any[]): void;
 `;
 
 const API_NAME = /^(use)?(DataGrid|isComposingKey|useDebounce)/;
+const FREE_NAME_CODES = new Set(["TS2304", "TS2552", "TS2503", "TS2693", "TS18004"]);
 
 /** Names the registry blocks export (declarations and `export { a, b }` lists). */
 export function exportedNames(root) {
@@ -35,44 +41,14 @@ export function fragmentReason(meta) {
   return match ? (match[1] ?? match[2] ?? "") : undefined;
 }
 
-export function run({ root = process.cwd(), files } = {}) {
-  const contentDir = join(root, "content/docs");
-  const pageFiles = files ? files.map((f) => join(root, f)) : walk(contentDir, [".mdx"]);
-  const blocks = [];
-  const failures = [];
-  let fragments = 0;
-  for (const file of pageFiles) {
-    const { body, bodyOffset } = splitFrontmatter(readLf(file));
-    for (const block of codeBlocks(body)) {
-      if (block.lang !== "ts" && block.lang !== "tsx") continue;
-      const reason = fragmentReason(block.meta);
-      const where = `${rel(root, file)}:${block.line + bodyOffset}`;
-      if (reason === "") failures.push(`${where}: fragment needs a reason: fragment="why"`);
-      if (reason !== undefined) {
-        fragments++;
-        const imports = block.code.match(/^import\s[\s\S]*?\sfrom\s+["'][^"']+["'];?/gm);
-        if (imports) blocks.push({ ...block, lang: "ts", code: imports.join("\n"), where });
-        continue;
-      }
-      blocks.push({ ...block, file, where, path: rel(root, file), start: block.line + bodyOffset, first: !blocks.some((b) => b.file === file && b.first) });
-    }
-  }
-
-  const exported = exportedNames(root);
-  const outDir = join(root, ".next", `docs-snippets-${process.pid}`);
-  rmSync(outDir, { recursive: true, force: true });
-  mkdirSync(outDir, { recursive: true });
-  const byName = new Map();
-  blocks.forEach((block, index) => {
-    const name = `block-${index}.${block.lang}`;
-    writeFileSync(join(outDir, name), `export {};\n${block.code}\n`);
-    byName.set(name, block);
-  });
-  writeFileSync(join(outDir, "ambient.d.ts"), AMBIENT);
+function writeProject(dir, up, ambient) {
+  mkdirSync(dir, { recursive: true });
+  if (ambient) writeFileSync(join(dir, "ambient.d.ts"), AMBIENT);
+  const to = (path) => `${up}${path}`;
   writeFileSync(
-    join(outDir, "tsconfig.json"),
+    join(dir, "tsconfig.json"),
     JSON.stringify({
-      extends: "../../tsconfig.json",
+      extends: to("tsconfig.json"),
       compilerOptions: {
         incremental: false,
         noEmit: true,
@@ -81,76 +57,121 @@ export function run({ root = process.cwd(), files } = {}) {
         noImplicitAny: false,
         noPropertyAccessFromIndexSignature: false,
         noUncheckedIndexedAccess: false,
-        paths: { "@/components/gridcn/*": ["../../registry/default/hooks/*", "../../registry/default/lib/*"], "@/components/ui/*": ["../../components/ui/*"], "@/components/*": ["../../registry/default/blocks/*"], "@/lib/*": ["../../lib/*"], "@/*": ["../../*"] },
+        paths: { "@/components/gridcn/*": [to("registry/default/hooks/*"), to("registry/default/lib/*")], "@/components/ui/*": [to("components/ui/*")], "@/components/*": [to("registry/default/blocks/*")], "@/lib/*": [to("lib/*")], "@/*": [to("*")] },
       },
       include: ["*.ts", "*.tsx"],
       exclude: [],
     }),
   );
+}
 
-  let external = 0;
-  const syntaxErrors = new Map();
-  const errorsByBlock = new Map();
-  const tsc = () => {
-    try {
-      execFileSync(process.execPath, [join(root, "node_modules", "typescript", "bin", "tsc"), "-p", join(outDir, "tsconfig.json"), "--pretty", "false"], { encoding: "utf8", stdio: "pipe", maxBuffer: 1 << 28 });
-      return "";
-    } catch (error) {
-      return String(error.stdout);
+function tscErrors(root, dir) {
+  let output = "";
+  try {
+    execFileSync(process.execPath, [join(root, "node_modules", "typescript", "bin", "tsc"), "-p", join(dir, "tsconfig.json"), "--pretty", "false"], { encoding: "utf8", stdio: "pipe", maxBuffer: 1 << 28 });
+  } catch (error) {
+    output = String(error.stdout);
+  }
+  const byBlock = new Map();
+  const syntactic = new Set();
+  for (const line of output.split("\n")) {
+    const match = /(block-\d+\.[jt]sx?)\((\d+),\d+\): error (TS\d+): (.*)$/.exec(line);
+    if (!match || match[3] === "TS2347") continue;
+    byBlock.set(match[1], [...(byBlock.get(match[1]) ?? []), { line: Number(match[2]), code: match[3], message: match[4] }]);
+    if (/^TS(1\d{3}|17\d{3}|2657)$/.test(match[3])) syntactic.add(match[1]);
+  }
+  return { byBlock, syntactic };
+}
+
+export function run({ root = process.cwd(), files } = {}) {
+  const contentDir = join(root, "content/docs");
+  const pageFiles = files ? files.map((f) => join(root, f)) : walk(contentDir, [".mdx"]);
+  const blocks = [];
+  const failures = [];
+  let fragments = 0;
+  for (const file of pageFiles) {
+    const { body, bodyOffset } = splitFrontmatter(readLf(file));
+    const path = rel(root, file);
+    let total = 0;
+    let fragmentsHere = 0;
+    for (const block of codeBlocks(body)) {
+      if (!CHECKED_LANGS.has(block.lang)) continue;
+      total++;
+      const reason = fragmentReason(block.meta);
+      const start = block.line + bodyOffset;
+      const lang = block.lang.startsWith("j") ? "tsx" : block.lang === "typescript" ? "ts" : block.lang;
+      if (reason === "") failures.push(`${path}:${start}: fragment needs a reason: fragment="why"`);
+      if (reason !== undefined) {
+        fragments++;
+        fragmentsHere++;
+        const imports = block.code.match(/^import\s[\s\S]*?\sfrom\s+["'][^"']+["'];?/gm);
+        if (imports) blocks.push({ ...block, lang: "ts", code: imports.join("\n"), file, path, start });
+        continue;
+      }
+      blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first) });
     }
-  };
-  const collect = (output) => {
-    const syntactic = new Set();
-    for (const line of output.split("\n")) {
-      const match = /(block-\d+\.tsx?)\((\d+),\d+\): error (TS\d+): (.*)$/.exec(line);
-      if (!match) continue;
-      const list = errorsByBlock.get(match[1]) ?? [];
-      if (match[3] === "TS2347") continue;
-      list.push({ line: Number(match[2]), code: match[3], message: match[4] });
-      errorsByBlock.set(match[1], list);
-      if (/^TS(1\d{3}|17\d{3}|2657)$/.test(match[3])) syntactic.add(match[1]);
-    }
-    return syntactic;
-  };
+    if (total > 0 && fragmentsHere / total > MAX_FRAGMENT_SHARE) failures.push(`${path}: ${fragmentsHere} of ${total} code blocks are fragments; the limit is ${MAX_FRAGMENT_SHARE * 100}%`);
+  }
+
+  const exported = exportedNames(root);
+  const base = join(root, ".next", `docs-snippets-${process.pid}-${randomBytes(4).toString("hex")}`);
+  const mainDir = join(base, "main");
+  const firstDir = join(base, "first");
+  rmSync(base, { recursive: true, force: true });
+  writeProject(mainDir, "../../../", true);
+  writeProject(firstDir, "../../../", false);
+  const byName = new Map();
+  blocks.forEach((block, index) => {
+    const name = `block-${index}.${block.lang}`;
+    byName.set(name, block);
+    writeFileSync(join(mainDir, name), `export {};\n${block.code}\n`);
+    if (block.first) writeFileSync(join(firstDir, name), `export {};\n${block.code}\n`);
+  });
+
+  let errorsByBlock = new Map();
   if (blocks.length > 0) {
     // tsc reports no semantic errors while any file has a syntax error, so syntax failures leave the program first.
-    const syntactic = collect(tsc());
-    for (const name of syntactic) syntaxErrors.set(name, errorsByBlock.get(name));
-    if (syntactic.size > 0) {
-      for (const name of syntactic) rmSync(join(outDir, name));
-    }
-    // Free names are declared as any so that a fragment still checks the API it does use.
-    errorsByBlock.clear();
-    collect(tsc());
-    for (const [name, errors] of errorsByBlock) {
-      const free = [...new Set(errors.filter((e) => e.code === "TS2304" || e.code === "TS2552" || e.code === "TS2503" || e.code === "TS2693" || e.code === "TS18004").map((e) => /'([^']+)'/.exec(e.message)?.[1]).filter(Boolean))];
-      if (free.length === 0) continue;
+    const pass1 = tscErrors(root, mainDir);
+    const syntaxErrors = new Map([...pass1.syntactic].map((name) => [name, pass1.byBlock.get(name)]));
+    for (const name of pass1.syntactic) rmSync(join(mainDir, name));
+    // Free names are declared as any so that a later block still checks the API it does use.
+    const pass2 = tscErrors(root, mainDir);
+    for (const [name, errors] of pass2.byBlock) {
       const block = byName.get(name);
       if (block.first) continue;
+      const free = [...new Set(errors.filter((e) => FREE_NAME_CODES.has(e.code)).map((e) => /'([^']+)'/.exec(e.message)?.[1]).filter(Boolean))];
+      if (free.length === 0) continue;
       const unknownApi = free.filter((n) => API_NAME.test(n) && !exported.has(n));
-      for (const n of unknownApi) failures.push(`${block.where}: ${n} is not exported by the registry source`);
+      for (const n of unknownApi) failures.push(`${block.path}:${block.start}: ${n} is not exported by the registry source`);
       const preface = free.filter((n) => !unknownApi.includes(n)).map((n) => `declare const ${n}: any; type ${n} = any;`).join(" ");
-      writeFileSync(join(outDir, name), `export {}; ${preface}
-${block.code}
-`);
+      writeFileSync(join(mainDir, name), `export {}; ${preface}\n${block.code}\n`);
     }
-    errorsByBlock.clear();
-    collect(tsc());
+    errorsByBlock = tscErrors(root, mainDir).byBlock;
     for (const [name, errors] of syntaxErrors) errorsByBlock.set(name, errors);
+    if ([...byName.values()].some((b) => b.first)) {
+      const firstErrors = tscErrors(root, firstDir);
+      for (const [name, block] of byName) {
+        if (!block.first) continue;
+        errorsByBlock.delete(name);
+        const errors = firstErrors.byBlock.get(name) ?? syntaxErrors.get(name);
+        if (errors) errorsByBlock.set(name, errors);
+      }
+    }
   }
-  rmSync(outDir, { recursive: true, force: true });
+  rmSync(base, { recursive: true, force: true });
+
   let failing = 0;
+  let external = 0;
   for (const [name, errors] of errorsByBlock) {
     const block = byName.get(name);
-    const onlyExternal = errors.every((e) => e.code === "TS2307" && !/'@\//.test(e.message));
-    if (onlyExternal) {
+    if (errors.every((e) => e.code === "TS2307" && !/'@\//.test(e.message))) {
       external++;
-      failures.push(`${block.where}: external package not installed in the repo; mark it fragment="needs <package>" (${errors[0].message})`);
+      failures.push(`${block.path}:${block.start}: external package not installed in the repo; mark it fragment="needs <package>" (${errors[0].message})`);
       continue;
     }
     failing++;
     const first = errors[0];
-    failures.push(`${block.path ?? block.where}:${(block.start ?? 0) + first.line - 2}: ${first.code} ${first.message}`);
+    failures.push(`${block.path}:${block.start + first.line - 2}: ${first.code} ${first.message}`);
   }
   return { name: "code", checked: blocks.length, fragments, failing, external, failures, warnings: [] };
 }

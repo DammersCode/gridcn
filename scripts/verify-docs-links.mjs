@@ -1,9 +1,10 @@
 // Fails on a dead internal docs link or anchor in content/docs and in every other file that links the docs.
-// Usage: node scripts/verify-docs-links.mjs [--migration research/docs-navigation] [--root <dir>]
+// Usage: node scripts/verify-docs-links.mjs [--migration research/docs-navigation] [--baseline <git ref>] [--root <dir>]
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { anchorsOf, capped, pageIndex, readLf, rel, walk, lineOf } from "./docs-verify-lib.mjs";
+import { anchorsOf, capped, pageIndex, readLf, rel, splitFrontmatter, urlOfPage, walk, lineOf } from "./docs-verify-lib.mjs";
 
 const OTHER_FILES = ["README.md", "GLOSSARY.md", "DEVELOPMENT.md", "CHANGELOG.md", "AGENTS.md", "registry.json", "research/parity-matrix.json", "scripts/verify-parity.mjs"];
 const OTHER_DIRS = [
@@ -40,7 +41,7 @@ function targetsOf(file, text) {
   return out;
 }
 
-export function run({ root = process.cwd(), migration, redirectsFile, siteHosts = [] } = {}) {
+export function run({ root = process.cwd(), migration, redirectsFile, siteHosts = ["gridcn.vercel.app"], baseline } = {}) {
   const contentDir = join(root, "content/docs");
   const pages = pageIndex(contentDir);
   const redirects = redirectSources(root, redirectsFile);
@@ -73,7 +74,7 @@ export function run({ root = process.cwd(), migration, redirectsFile, siteHosts 
       const verdict = resolve(target, here);
       if (verdict === "ok") continue;
       if (verdict === "redirect") {
-        if (!allowRedirect) warnings.push(`${rel(root, file)}:${line}: ${target} still goes through a redirect`);
+        if (!allowRedirect) failures.push(`${rel(root, file)}:${line}: ${target} only works through a redirect; link the new page`);
         continue;
       }
       failures.push(`${rel(root, file)}:${line}: ${target} -> ${verdict}`);
@@ -107,7 +108,49 @@ export function run({ root = process.cwd(), migration, redirectsFile, siteHosts 
 
   function finish() {
     if (migration) checkMigration(join(root, migration), pages, redirects, failures);
+    if (baseline) checkBaseline(root, baseline, pages, redirects, migration, failures);
+    checkRedirectDestinations(root, redirectsFile, pages, failures);
     return { name: "links", checked, failures, warnings };
+  }
+}
+
+/** Destination of every redirect in next.config.mjs resolves to a page and heading. */
+function checkRedirectDestinations(root, extraFile, pages, failures) {
+  for (const file of [join(root, "next.config.mjs"), ...(extraFile ? [extraFile] : [])]) {
+    if (!existsSync(file)) continue;
+    for (const m of readFileSync(file, "utf8").matchAll(/destination:\s*["']([^"']+)["']/g)) {
+      const [path, anchor] = m[1].split("#");
+      if (!path.startsWith("/docs") || path.includes(":")) continue;
+      const page = pages.get(normalizePath(path));
+      if (!page || (anchor && !page.anchors.has(anchor))) failures.push(`next.config.mjs: redirect destination ${m[1]} does not resolve`);
+    }
+  }
+}
+
+/** Every URL and anchor of the pages at `ref` still resolves: a page, a redirect, or an entry of the anchor map. */
+function checkBaseline(root, ref, pages, redirects, migration, failures) {
+  const git = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 1 << 28 });
+  let files;
+  try {
+    files = git(["ls-tree", "-r", "--name-only", ref, "content/docs"]).split("\n").filter((f) => f.endsWith(".mdx"));
+  } catch {
+    failures.push(`baseline: cannot read ${ref}`);
+    return;
+  }
+  const anchorMapFile = migration ? join(root, migration, "anchor-map.json") : null;
+  const anchorMap = anchorMapFile && existsSync(anchorMapFile) ? JSON.parse(readFileSync(anchorMapFile, "utf8")) : {};
+  for (const file of files) {
+    const url = urlOfPage(join(root, "content/docs"), join(root, file));
+    const { body } = splitFrontmatter(git(["show", `${ref}:${file}`]).replaceAll("\r\n", "\n"));
+    const current = pages.get(url);
+    if (!current && !redirects.has(url)) {
+      failures.push(`baseline: ${url} is neither a page nor a redirect`);
+      continue;
+    }
+    for (const id of anchorsOf(body)) {
+      if (current?.anchors.has(id) || anchorMap[url]?.[id]) continue;
+      failures.push(`baseline: ${url}#${id} is gone; keep the id with [#${id}] or add it to the anchor map`);
+    }
   }
 }
 
@@ -132,7 +175,7 @@ function checkMigration(dir, pages, redirects, failures) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const arg = (name) => process.argv[process.argv.indexOf(name) + 1];
-  const result = await run({ root: process.argv.includes("--root") ? arg("--root") : process.cwd(), migration: process.argv.includes("--migration") ? arg("--migration") : undefined });
+  const result = await run({ root: process.argv.includes("--root") ? arg("--root") : process.cwd(), migration: process.argv.includes("--migration") ? arg("--migration") : undefined, baseline: process.argv.includes("--baseline") ? arg("--baseline") : undefined });
   for (const w of capped(result.warnings)) console.warn(`warn  ${w}`);
   if (result.failures.length) {
     console.error(`docs links: ${result.failures.length} dead of ${result.checked} checked\n${capped(result.failures).map((f) => `  ${f}`).join("\n")}`);

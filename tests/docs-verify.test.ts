@@ -47,7 +47,7 @@ afterEach(() => {
 describe("docs-verify-lib", () => {
   it("slugs headings like the site, with code, explicit ids, and repeats", () => {
     const anchors = anchorsOf("## `CellType<TData, TValue>`\n\n## Usage\n\n## Usage\n\n## Plain [#custom-id]\n\n```md\n## not a heading\n```\n");
-    expect([...anchors]).toEqual(["celltypetdata-tvalue", "usage", "usage-1", "custom-id", "plain"]);
+    expect([...anchors]).toEqual(["celltypetdata-tvalue", "usage", "usage-1", "custom-id"]);
   });
 
   it("maps a file to its URL and drops route groups and index", () => {
@@ -73,10 +73,10 @@ describe("verify-docs-links", () => {
     expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual([
       "/docs/a#nope -> no anchor #nope on /docs/a",
       "/docs/gone -> no page /docs/gone",
+      "/docs/old only works through a redirect; link the new page",
       "#missing -> anchor #missing missing on this page",
       "/docs/zzz -> no page /docs/zzz",
     ]);
-    expect(result.warnings).toHaveLength(1);
   });
 
   it("checks a migration map: targets exist and old URLs redirect", async () => {
@@ -201,9 +201,18 @@ describe("verify-docs-prose", () => {
     expect(rules(`Run it:\n\n${fence}ts\nimport { a } from "${long}";\n${fence}\n`)).not.toContain("long-code-line");
   });
 
-  it("accepts short active sentences and skips code, tables, and lint-ok paragraphs", () => {
-    expect(rules("Set `rowHeight` to a number:\n\n```ts\nconst should = 1;\n```\n\n| a | b |\n|---|---|\n| should | may |\n")).toEqual([]);
+  it("accepts short active sentences and skips code and lint-ok paragraphs with a reason", () => {
+    expect(rules("Set `rowHeight` to a number:\n\n```ts\nconst should = 1;\n```\n")).toEqual([]);
     expect(rules("{/* lint-ok: quoted API text */}\nIt may fail.\n")).toEqual([]);
+    expect(rules("{/* lint-ok */}\nIt may fail.\n")).toContain("lint-ok-reason");
+  });
+
+  it("lints table cells and one-line component text, and flags a one-item bullet list", () => {
+    expect(rules("| a | b |\n|---|---|\n| It should work | fine |\n")).toContain("banned-modal");
+    expect(rules("<Callout>You may leave.</Callout>\n")).toContain("banned-modal");
+    expect(rules("Intro text here.\n\n- Only one.\n")).toContain("one-item-list");
+    expect(rules("Intro text here.\n\n- One.\n- Two.\n")).not.toContain("one-item-list");
+    expect(rules("## Related\n\n- [Page](/docs/a)\n")).not.toContain("one-item-list");
   });
 
   it("requires a colon before a code sample, an ellipsis comment instead of dots, and prose for a one-item list", () => {

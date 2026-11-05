@@ -6,9 +6,10 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { capped, frontField, lineOf, readLf, rel, splitFrontmatter, walk } from "./docs-verify-lib.mjs";
 
+const NO_DEMO_TYPES = new Set(["reference", "concept", "step", "cheatsheet", "landing"]);
 const readList = (file) => (existsSync(file) ? readLf(file).split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean) : []);
 
-export function run({ root = process.cwd() } = {}) {
+export function run({ root = process.cwd(), strictRules = false } = {}) {
   const registryText = readLf(join(root, "components/registry-examples.tsx"));
   const registered = new Set([...registryText.matchAll(/^\s*"([\w-]+)":\s*dynamic\(/gm)].map((m) => m[1]));
   const internal = new Set(readList(join(root, "scripts/docs-demos-internal.txt")));
@@ -40,9 +41,9 @@ export function run({ root = process.cwd() } = {}) {
   for (const page of perPage) {
     if (page.count > 1 && page.type !== "example" && !/^demos:\s*compare/m.test(readLf(join(root, page.file)))) {
       multi++;
-      warnings.push(`${page.file}: ${page.count} demos; keep one, or add "demos: compare" to the frontmatter when the page compares variants`);
+      (strictRules ? failures : warnings).push(`${page.file}: ${page.count} demos; keep one, or add "demos: compare" to the frontmatter when the page compares variants`);
     }
-    if (page.count > 0 && page.type === "reference") warnings.push(`${page.file}: a reference page embeds a demo`);
+    if (page.count > 0 && NO_DEMO_TYPES.has(page.type)) (strictRules ? failures : warnings).push(`${page.file}: a ${page.type} page embeds a demo`);
   }
   return { name: "demos", checked: [...used.values()].reduce((a, b) => a + b, 0), failures, warnings, stats: { registered: registered.size, multi } };
 }

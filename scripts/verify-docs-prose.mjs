@@ -24,7 +24,8 @@ const SOFT = [
   ["phantom-contrast", /\b(?:not an? (?:array|object|string|function)|instead of|rather than)\b/i, "state the property positively"],
   ["late-condition", /[a-z,]\s+(?:if|when|unless)\s/, "put the condition first"],
 ];
-const SKIP_LINE = /^\s*(?:#{1,6}\s|\||<\/?[A-Za-z]|\{\/\*|import\s|export\s|---|>)/;
+const BLOCK_TAG = /^\s*<\/?(?:Callout|Tabs?|Steps?|Accordions?|ComponentPreview|InstallCommand|ManualInstall|NewBadge|AutoTypeTable|details|summary|div|Cards?|TypeTable)\b/;
+const SKIP_LINE = /^\s*(?:#{1,6}\s|\{\/\*|import\s|export\s|---)/;
 const LIST_ITEM = /^\s*(?:[-*]|\d+\.)\s+(.*)$/;
 
 function paragraphs(body) {
@@ -36,8 +37,15 @@ function paragraphs(body) {
     current = null;
   };
   lines.forEach((line, index) => {
-    if (line.trim() === "" || SKIP_LINE.test(line)) {
+    const bare = line.replace(/<[^>]+>/g, "").trim();
+    if (line.trim() === "" || SKIP_LINE.test(line) || (BLOCK_TAG.test(line) && bare === "") || /^\s*\|[\s:|-]+\|\s*$/.test(line)) {
       close();
+      return;
+    }
+    if (/^\s*\|/.test(line)) {
+      close();
+      const cells = line.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim()).filter(Boolean);
+      for (const cell of cells) out.push({ line: index + 1, text: cell, item: true, cell: true });
       return;
     }
     const item = LIST_ITEM.exec(line);
@@ -71,7 +79,11 @@ export function lintPage(body) {
   const hits = [];
   const lines = body.split("\n");
   for (const p of paragraphs(body)) {
-    if (/lint-ok/.test(lines[p.line - 2] ?? "")) continue;
+    const skip = /lint-ok(?::\s*(\S.*?))?\s*\*\//.exec(lines[p.line - 2] ?? "");
+    if (skip) {
+      if (!skip[1]) hits.push({ rule: "lint-ok-reason", line: p.line - 1, soft: false, note: "lint-ok needs a reason: {/* lint-ok: why */}" });
+      continue;
+    }
     const sentences = sentencesOf(p.text);
     const words = wordCount(clean(p.text));
     if (!p.item && words > MAX_PARAGRAPH_WORDS) hits.push({ rule: "long-paragraph", line: p.line, soft: false, note: `${words} words, limit ${MAX_PARAGRAPH_WORDS}` });
@@ -103,6 +115,13 @@ export function lintPage(body) {
   const numberedAt = lines.map((line, i) => (/^\s*\d+\.\s/.test(line) && !fencedLine.has(i + 1) ? i : -1)).filter((i) => i >= 0);
   const headingAt = lines.map((line, i) => (/^#{1,6}\s/.test(line) ? i : -1)).filter((i) => i >= 0);
   const sectionOf = (i) => headingAt.filter((h) => h < i).length;
+  const bulletAt = lines.map((line, i) => (/^\s*[-*]\s/.test(line) && !fencedLine.has(i + 1) ? i : -1)).filter((i) => i >= 0);
+  const relatedHeading = (i) => /^##\s+(related|next|where next)\b/i.test(lines[headingAt.filter((h) => h < i).at(-1)] ?? "");
+  for (const i of bulletAt) {
+    const near = (j) => j >= 0 && j < lines.length && /^\s*[-*]\s/.test(lines[j]);
+    const neighbour = near(i - 1) || near(i + 1) || (lines[i - 1]?.trim() === "" && near(i - 2)) || (lines[i + 1]?.trim() === "" && near(i + 2)) || /^\s{2,}\S/.test(lines[i + 1] ?? "");
+    if (!neighbour && !relatedHeading(i)) hits.push({ rule: "one-item-list", line: i + 1, soft: false, note: "write a one-item list as prose" });
+  }
   for (const i of numberedAt) {
     if (!numberedAt.some((j) => j !== i && sectionOf(j) === sectionOf(i))) hits.push({ rule: "one-item-list", line: i + 1, soft: false, note: "write a one-item list as prose" });
   }
