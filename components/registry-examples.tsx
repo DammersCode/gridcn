@@ -22,6 +22,7 @@ const EXAMPLES = {
   "data-grid-keybindings-demo": dynamic(() => import("@/registry/default/examples/data-grid-keybindings-demo")),
   "data-grid-global-shortcuts-demo": dynamic(() => import("@/registry/default/examples/data-grid-global-shortcuts-demo")),
   "data-grid-io-demo": dynamic(() => import("@/registry/default/examples/data-grid-io-demo")),
+  "data-grid-io-hooks-demo": dynamic(() => import("@/registry/default/examples/data-grid-io-hooks-demo")),
   "data-grid-export-all-demo": dynamic(() => import("@/registry/default/examples/data-grid-export-all-demo")),
   "data-grid-print-demo": dynamic(() => import("@/registry/default/examples/data-grid-print-demo")),
   "data-grid-url-state-demo": dynamic(() => import("@/registry/default/examples/data-grid-url-state-demo")),

@@ -1947,6 +1947,33 @@
          ]
       },
       {
+         "name": "data-grid-io-hooks-demo",
+         "type": "registry:example",
+         "title": "Data Grid IO Hooks Demo",
+         "description": "Every export, import, and replace hook in one small grid with a side panel: upload instead of download, typed cells, a sample file with title rows, cell and row hooks, and a replace plan you approve before it is written.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-find-replace",
+            "DammersCode/gridcn/data-grid-io",
+            "button",
+            "checkbox",
+            "input",
+            "label",
+            "switch"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-io-hooks-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-io-hooks-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-url-state-demo",
          "type": "registry:example",
          "title": "Data Grid URL State Demo",
