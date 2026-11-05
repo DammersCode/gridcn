@@ -5,9 +5,8 @@ import { InstallCommand } from "@/components/install-command";
 import { SUBLINE } from "./data";
 import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
-import { DataModesLink, PerfStats, ServerHighlights } from "./parts";
+import { DataModesLink, focus, PerfStats, ServerHighlights } from "./parts";
 
-const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
 const CODE = `const columns = defineColumns<Person>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text" },
@@ -119,7 +118,7 @@ function Hero() {
           <div className={`w-full max-w-md text-start ${installFit}`}>
             <InstallCommand item="data-grid" />
           </div>
-                    <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
+          <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
             <AgentIcon className="size-4" aria-hidden="true" />
             Building with an AI agent? Install the gridcn agent skills
           </Link>

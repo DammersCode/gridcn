@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { perfNote, perfStats, serverHighlights } from "./data";
 
-const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
+export const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
 export function PerfStats() {
   return (

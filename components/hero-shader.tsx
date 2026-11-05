@@ -209,6 +209,10 @@ function setupScene(canvas: HTMLCanvasElement): () => void {
   document.addEventListener("visibilitychange", onVisibilityChange);
   const onReducedMotionChange = () => {
     state.reduced = reducedMotionQuery.matches;
+    if (!state.reduced && !rafId) {
+      lastNow = performance.now();
+      rafId = requestAnimationFrame(frame);
+    }
   };
   reducedMotionQuery.addEventListener("change", onReducedMotionChange);
 
@@ -327,18 +331,23 @@ function setupScene(canvas: HTMLCanvasElement): () => void {
   let rafId = 0;
   let lastNow = performance.now();
   const frame = () => {
-    rafId = requestAnimationFrame(frame);
     const now = performance.now();
     const dt = frameDelta(now, lastNow);
     lastNow = now;
-    if (!state.visible) return;
     if (state.reduced) {
+      if (!state.visible) {
+        rafId = requestAnimationFrame(frame);
+        return;
+      }
       if (state.t === 0) {
         state.t = 3;
         draw();
       }
+      rafId = 0;
       return;
     }
+    rafId = requestAnimationFrame(frame);
+    if (!state.visible) return;
     state.t += dt;
     draw(dt);
   };

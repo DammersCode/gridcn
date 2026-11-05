@@ -25,6 +25,7 @@ import {
   Command,
   PanelBottom,
   Rows3,
+  Puzzle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,7 +64,7 @@ export const agentSkills = [
   { icon: Gauge, title: "gridcn-performance", text: "Audits a slow grid against the memoization and virtualization traps, in order." },
   { icon: Shapes, title: "gridcn-custom-cell-type", text: "Builds a cell type that pastes, sorts and edits like the built-ins." },
   { icon: Database, title: "gridcn-data-source", text: "Picks client, streaming, lazy or paged data and wires server sort and filter." },
-  { icon: Blocks, title: "gridcn-addons", text: "Wires several add-ons into one grid, each output in the right place." },
+  { icon: Puzzle, title: "gridcn-addons", text: "Wires several add-ons into one grid, each output in the right place." },
   { icon: RefreshCw, title: "gridcn-upgrade", text: "Pulls upstream fixes into copied source and keeps your local edits." },
 ];
 
