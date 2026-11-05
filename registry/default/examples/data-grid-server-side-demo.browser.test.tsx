@@ -34,10 +34,10 @@ describe("data-grid-server-side-demo", () => {
     await expect.element(page.getByText("Page 1 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
     await page.getByRole("combobox", { name: "Reshape delay" }).click();
     await page.getByRole("option", { name: "Reshape: 1 s" }).click();
-    await page.getByText("Live updates", { exact: true }).click();
+    await page.getByText("Server pushes", { exact: true }).click();
     const stale = () => document.querySelectorAll('[role="row"][data-row-stale]').length;
     await expect.poll(stale, { timeout: 4000 }).toBeGreaterThan(0);
-    await page.getByText("Live updates", { exact: true }).click();
+    await page.getByText("Server pushes", { exact: true }).click();
     await expect.poll(stale, { timeout: 6000 }).toBe(0);
     const scores = [...document.querySelectorAll("[data-grid-row-index]")].map((row) => Number(row.lastElementChild?.textContent));
     expect(scores.length).toBeGreaterThan(2);
@@ -47,9 +47,9 @@ describe("data-grid-server-side-demo", () => {
   it("keeps a stale row marked without a reshape delay", async () => {
     await render(<DataGridServerSideDemo />);
     await expect.element(page.getByText("Page 1 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
-    await page.getByText("Live updates", { exact: true }).click();
+    await page.getByText("Server pushes", { exact: true }).click();
     await expect.poll(() => document.querySelectorAll('[role="row"][data-row-stale]').length, { timeout: 4000 }).toBeGreaterThan(0);
-    await page.getByText("Live updates", { exact: true }).click();
+    await page.getByText("Server pushes", { exact: true }).click();
     await new Promise((resolve) => setTimeout(resolve, 1500));
     expect(document.querySelectorAll('[role="row"][data-row-stale]').length).toBeGreaterThan(0);
   });

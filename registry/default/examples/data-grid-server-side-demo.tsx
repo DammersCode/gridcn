@@ -43,8 +43,8 @@ type Mode = "pages" | "scroll";
  * load. `mode: "pages"` fetches one page per state and goes back to page 1 on a spec change; `mode: "scroll"`
  * sizes the grid from `totalRowCount` and fetches the blocks the rendered rows need. Edits go to the server from
  * `onSave`, then the rows are fetched again so you see the server's truth. Pages mode prefetches the next page, so
- * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by score. The Live
- * updates switch pushes score changes every 500 ms: a row whose score the sort reads keeps its place and turns
+ * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by score. The Server
+ * pushes switch pushes score changes every 500 ms: a row whose score the sort reads keeps its place and turns
  * dim and italic (`data-row-stale`) until the hook reshapes (a refresh) and the server places it. Delete on server
  * pushes a delete. The reshape delay select sets `reshapeDelay`: off waits for a refresh, one second reshapes after the pushes.
  */
@@ -68,8 +68,8 @@ export default function DataGridServerSideDemo(): ReactNode {
           Revalidate every 10 s
         </Button>
         <label className="flex items-center gap-2 text-sm">
-          <Switch checked={live} onCheckedChange={setLive} aria-label="Live updates" />
-          Live updates
+          <Switch checked={live} onCheckedChange={setLive} aria-label="Server pushes" />
+          Server pushes
         </label>
         <Select value={reshapeDelay} onValueChange={(value) => setReshapeDelay(value as "off" | "1000")}>
           <SelectTrigger aria-label="Reshape delay" className="w-40">
