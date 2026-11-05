@@ -262,7 +262,10 @@ export type DataGridIOLabels = {
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
+  /** Shown when `onImport` rejects with an error that has a message. */
   importFailedWithMessage: (message: string) => string;
+  /** Shown when a row hook, `createRow`, or a cell hook failed before `onImport` ran. */
+  importBuildFailed: string;
   /** aria-label for the print toolbar button. */
   printButtonAriaLabel: string;
   /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
@@ -335,6 +338,7 @@ export type DataGridFindReplaceLabels = {
   moreRemain: string;
   validating: string;
   scopeLoadedRows: string;
+  /** Status line text when `onReplace` vetoed the replace or returned an unusable plan. */
   replaceCancelled: string;
 };
 
@@ -607,6 +611,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
     importFailedWithMessage: (message) => `The import failed: ${message}`,
+    importBuildFailed: "The rows could not be prepared for import. Check the file and try again.",
     printButtonAriaLabel: "Print",
     printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
   },

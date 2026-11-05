@@ -221,6 +221,11 @@ async function buildImportedRowsChunked<TData>(
   return { rows, rejected };
 }
 
+function rejectionMessage(result: ValidateResult): string | undefined {
+  if (!("error" in result) || typeof result.error !== "string" || result.error === "") return undefined;
+  return result.error.slice(0, MAX_REJECTED_MESSAGE_LENGTH);
+}
+
 /**
  * Folds each verdict into its row: the validator's output on success, the cell type's `clearValue()`
  * on rejection (the rejected cell is appended to `rejected`). `cells` is grouped by `rowIndex`
@@ -232,11 +237,6 @@ async function buildImportedRowsChunked<TData>(
  * boundary. A column with a custom `setValue` keeps writing through `setCellValue` per cell, since
  * only `setValue` knows how to fold its own value into the row.
  */
-function rejectionMessage(result: ValidateResult): string | undefined {
-  if (!("error" in result) || typeof result.error !== "string" || result.error === "") return undefined;
-  return result.error.slice(0, MAX_REJECTED_MESSAGE_LENGTH);
-}
-
 function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results: readonly ValidateResult[], rejected: ImportRejectedCell[]): TData[] {
   let pendingRow = -1;
   let pendingPatch: Record<string, unknown> | null = null;

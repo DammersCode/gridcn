@@ -48,7 +48,7 @@ export function DataGridExportButton<TData = unknown>(props: DataGridExportButto
     const controller = new AbortController();
     controllerRef.current = controller;
     setDone("");
-    setRunning(all);
+    setRunning(all || loadedOptions.output !== undefined);
     const signal = loadedOptions.signal ? AbortSignal.any([controller.signal, loadedOptions.signal]) : controller.signal;
     exportGrid({ ...loadedOptions, format, signal, ...(all ? { source } : {}) })
       .then((result: ExportResult) => {

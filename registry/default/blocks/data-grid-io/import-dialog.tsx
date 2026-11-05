@@ -54,6 +54,9 @@ export type ImportContext = {
   mapping: readonly ImportColumnMapping[];
 };
 
+/** The file facts `onImport` gets, taken when the user confirms. */
+type ImportSource = Pick<ImportContext, "fileName" | "sheetName" | "mapping">;
+
 /** Maximum characters of an `onImport` error message the dialog shows. */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
@@ -108,10 +111,6 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const headerRowId = useId();
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows, build } =
     useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits, parseFile, csvEncoding });
-  const previewRef = useRef(preview);
-  useEffect(() => {
-    previewRef.current = preview;
-  });
   // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
   const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
   const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabelText(column) }))];
@@ -174,19 +173,16 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Message of the last `onImport` rejection, when it had one. */
   const [mergeMessage, setMergeMessage] = useState<string | null>(null);
   /** Error key of a row hook or build that failed before `onImport`. */
-  const [buildError, setBuildError] = useState<ImportErrorKey | null>(null);
+  const [buildError, setBuildError] = useState<ImportErrorKey | "importBuildFailed" | null>(null);
   const finish = useCallback(
-    (rows: TData[], rejected: readonly ImportRejectedCell[]) => {
+    (rows: TData[], rejected: readonly ImportRejectedCell[], source: ImportSource) => {
       setMergeFailed(false);
       setMergeMessage(null);
       setIsValidating(true);
       const token = ++confirmTokenRef.current;
       const signal = abortControllerRef.current?.signal ?? new AbortController().signal;
       void Promise.resolve()
-        .then(() => {
-          const current = previewRef.current;
-          return onImport(rows, { signal, rejected, fileName: current?.fileName ?? "", sheetName: current?.sheetName, mapping: current?.mapping ?? [] });
-        })
+        .then(() => onImport(rows, { signal, rejected, ...source }))
         .then(() => {
           if (confirmTokenRef.current === token) actions.clearSelection();
         })
@@ -228,13 +224,15 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     const cellParser: ProcessCellFromText<TData> | undefined =
       processCellFromText ?? (clipboardParse ? (text, ctx) => clipboardParse(text, { row: ctx.row, column: ctx.column }) : undefined);
     // state.cellTypes comes back from the generic-erased store (TData = unknown, see core store.tsx's InternalSyncProps comment); re-widened here to this dialog's own TData. allColumns is already TData-typed via useDataGridAllColumns<TData>() above.
+    const source: ImportSource = { fileName: preview.fileName, sheetName: preview.sheetName, mapping: preview.mapping };
     const token = ++confirmTokenRef.current;
     const fail = (reason: unknown) => {
       if (confirmTokenRef.current !== token) return;
       setIsValidating(false);
       if (reason instanceof Error && reason.message === IMPORT_CANCELLED_MESSAGE) return;
       const key = importErrorKey(reason);
-      if (key !== null) setBuildError(key);
+      if (key === null) return;
+      setBuildError(key === "errorTooManyCells" || key === "errorNoRows" ? key : "importBuildFailed");
     };
     let built;
     try {
@@ -251,7 +249,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       return;
     }
     if (built !== null && !(built instanceof Promise)) {
-      finish(built.rows, built.rejected);
+      finish(built.rows, built.rejected, source);
       return;
     }
     // A large import (chunked so the dialog can repaint and Cancel can land), a row or cell hook, or an
@@ -261,7 +259,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     void Promise.resolve(built).then((result) => {
       if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
       setIsValidating(false);
-      if (result !== null) finish(result.rows, result.rejected);
+      if (result !== null) finish(result.rows, result.rejected, source);
     }, fail);
   }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText]);
 

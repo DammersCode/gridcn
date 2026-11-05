@@ -85,6 +85,31 @@ describe("onReplace", () => {
     vi.restoreAllMocks();
   });
 
+  it("drops a late answer after the find text changed", async () => {
+    const onDataChange = vi.fn();
+    let release!: (value: { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean }) => void;
+    const onReplace = vi.fn(() => new Promise<{ patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean }>((resolve) => (release = resolve)));
+    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    await replaceAll();
+    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
+    await userEvent.click(page.getByRole("textbox", { name: "Find" }));
+    await userEvent.keyboard("s");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("cancels a plan whose patches have no row and column ids", async () => {
+    const onDataChange = vi.fn();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<Harness onReplace={(() => ({ patches: [{ value: "x" }] })) as never} onDataChange={onDataChange} />);
+    await replaceAll();
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("Replace cancelled");
+    expect(onDataChange).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
   it("drops a late answer after the panel closed", async () => {
     const onDataChange = vi.fn();
     let release!: (value: false | { patches: never[]; skipped: never[]; remaining: boolean }) => void;

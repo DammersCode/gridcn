@@ -111,9 +111,11 @@ const findReplace = useDataGridFindReplace({
 
 The hook may drop, add, or change patches. The returned plan holds at most `replaceAllLimit`
 patches. A longer plan, a result that is not a plan, or a rejection cancels the replace, and the
-status line says `Replace cancelled`. Each patch still goes through the column's `fromText` and
-`validate`. A newer replace, or closing the panel, aborts `signal` and drops a late answer. The
-hook sees the same rows the panel searches: the loaded rows.
+status line says `Replace cancelled`. A patch holds the new value of one cell, and it goes through
+the column's `validate`. A patch for a hidden column is written too, so check what the hook adds.
+A change of the find text, the replacement, or an option, a newer replace, or closing the panel
+aborts `signal` and drops a late answer. If the rows change while the hook runs, the replace is
+cancelled. The hook sees the same rows the panel searches: the loaded rows.
 
 ## Where Replace works
 

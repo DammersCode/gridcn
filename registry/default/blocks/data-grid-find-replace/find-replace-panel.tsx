@@ -58,6 +58,13 @@ type PanelProps = { panelStore: PanelStore };
 type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | { kind: "cancelled" } | null;
 
 
+function isUsablePlan(plan: unknown, limit: number): plan is ReplacePlan {
+  if (typeof plan !== "object" || plan === null) return false;
+  const { patches } = plan as { patches?: unknown };
+  if (!Array.isArray(patches) || patches.length > limit) return false;
+  return patches.every((patch: unknown) => typeof patch === "object" && patch !== null && typeof (patch as { rowId?: unknown }).rowId === "string" && typeof (patch as { columnId?: unknown }).columnId === "string");
+}
+
 export function FindReplacePanel({ panelStore }: PanelProps): ReactNode {
   const { open, mode, openCount } = useSyncExternalStore(panelStore.subscribe, panelStore.getState, panelStore.getState);
   if (!open) return null;
@@ -117,7 +124,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   useEffect(() => {
     replacedRef.current.clear();
     setStatus(null);
-  }, [searchedText]);
+    applyTokenRef.current++;
+    hookControllerRef.current?.abort();
+  }, [searchedText, searchOptions]);
 
   const closePanel = () => {
     panelStore.close();
@@ -264,16 +273,16 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         (result) => {
           if (!current()) return;
           const latest = api.store.getState();
-          if (latest.readOnly || latest.editing !== null || result === false) {
+          if (latest.readOnly || latest.editing !== null || latest.data !== s.data || result === false) {
             setStatus({ kind: "cancelled" });
             return;
           }
-          if (typeof result !== "object" || result === null || !Array.isArray(result.patches) || result.patches.length > limit) {
+          if (!isUsablePlan(result, limit)) {
             if (isDev()) console.warn("[data-grid-find-replace] onReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
             setStatus({ kind: "cancelled" });
             return;
           }
-          run(result);
+          run({ patches: result.patches, skipped: Array.isArray(result.skipped) ? result.skipped : [], remaining: result.remaining === true });
         },
         (error: unknown) => {
           if (!current()) return;
@@ -411,6 +420,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             onChange={(event) => {
               setReplacement(event.target.value);
               replacedRef.current.clear();
+              applyTokenRef.current++;
+              hookControllerRef.current?.abort();
             }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}

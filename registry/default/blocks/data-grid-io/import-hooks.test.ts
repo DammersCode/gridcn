@@ -141,6 +141,41 @@ describe("useDataGridImportPreview — parseFile, header row index, build", () =
     expect(tooBig.result.current.preview).toBeNull();
   });
 
+  it("rejects a file over maxFileBytes before parseFile sees it", async () => {
+    const parseFile = vi.fn(async (): Promise<ParsedImportFile> => ({ rows: [["a"]] }));
+    const { result } = renderHook(() => useDataGridImportPreview(options({ parseFile, limits: { maxFileBytes: 4 } })));
+    await act(async () => result.current.loadFile(csvFile("more than four bytes"), targets));
+    expect(parseFile).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("errorFileTooLarge");
+  });
+
+  it("keeps only bounded fields of a custom parse result", async () => {
+    const parseFile = async (): Promise<ParsedImportFile> =>
+      ({ rows: [["Name"], ["a"]], delimiter: "|", sheetNames: [...Array.from({ length: 1000 }, (_, i) => `S${i}`), 7], sheetName: "x".repeat(1000) }) as never;
+    const { result } = renderHook(() => useDataGridImportPreview(options({ parseFile })));
+    await act(async () => result.current.loadFile(FILE, targets));
+    expect(result.current.preview?.delimiter).toBeUndefined();
+    expect(result.current.preview?.sheetNames).toHaveLength(256);
+    expect(result.current.preview?.sheetName).toHaveLength(255);
+  });
+
+  it("build() rejects when the signal aborts during an async processImportRows", async () => {
+    const { result } = renderHook(() => useDataGridImportPreview(options({ parseFile: async () => ({ rows: [["Name", "Age"], ["a", "1"]] }) })));
+    await act(async () => result.current.loadFile(FILE, targets));
+    const controller = new AbortController();
+    const pending = result.current.build<Row>({
+      columns,
+      cellTypes,
+      createRow: (index) => ({ id: `r${index}`, name: "", age: null }),
+      signal: controller.signal,
+      processImportRows: async ({ rows }) => {
+        controller.abort();
+        return rows;
+      },
+    });
+    await expect(pending).rejects.toThrow("import-cancelled");
+  });
+
   it("shows a parse error when parseFile returns something that is not rows", async () => {
     const { result } = renderHook(() => useDataGridImportPreview(options({ parseFile: (async () => ({ rows: [[1]] })) as never })));
     await act(async () => result.current.loadFile(FILE, targets));

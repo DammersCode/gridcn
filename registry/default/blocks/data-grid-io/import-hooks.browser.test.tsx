@@ -32,6 +32,7 @@ async function openAndUpload(file: File): Promise<void> {
   await userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, file);
 }
 
+const NL = String.fromCharCode(10);
 const csv = (content: string, name = "people.csv") => new File([content], name, { type: "text/csv" });
 const confirm = () => userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
 
@@ -72,6 +73,18 @@ describe("import hook points in the dialog", () => {
     await confirm();
     await vi.waitFor(() => expect(onImport).toHaveBeenCalled());
     expect(onImport.mock.calls[0]![0]).toEqual([{ id: "imported-0", name: "Ann", age: "3" }]);
+  });
+
+  it("says the rows could not be prepared when a row hook throws, and never calls onImport", async () => {
+    const onImport = vi.fn();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await render(<Harness onImport={onImport} processImportRows={() => { throw new Error("bad hook"); }} />);
+    await openAndUpload(csv("Name,Age" + NL + "Ann,3"));
+    await expect.element(page.getByText("Showing 1 of 1 rows")).toBeInTheDocument();
+    await confirm();
+    await expect.element(page.getByText("The rows could not be prepared for import. Check the file and try again.")).toBeInTheDocument();
+    expect(onImport).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 
   it("applies processImportRows before the build, and a veto writes nothing", async () => {

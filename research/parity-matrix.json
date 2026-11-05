@@ -1550,7 +1550,7 @@
     },
     {
       "id": "import-hooks",
-      "feature": "Import hook points",
+      "feature": "Import cell hook",
       "options": [],
       "cells": {
         "L": {
@@ -1613,7 +1613,7 @@
     },
     {
       "id": "find-replace-hook",
-      "feature": "Replace hook",
+      "feature": "Replace plan cut by a hook",
       "options": [],
       "cells": {
         "L": {
