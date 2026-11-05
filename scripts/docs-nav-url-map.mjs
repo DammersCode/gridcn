@@ -127,7 +127,7 @@ const PRIMARY = {
   "project-status": ["version-policy"], "quick-start": ["first-grid"], installation: ["install"], index: ["index"],
   "addons/sort-list": ["sorting", "sort-list"], "api-reference": ["ref-index"], "events-state": ["events-index"],
   "data-modes": ["server-index"], plugins: ["plugins-index", "extend-index"],
-  "selection-keyboard": ["select-index", "selection-index"], "custom-cell-types": ["extend-index"],
+  "selection-keyboard": ["select-index", "selection-index"], "custom-cell-types": ["celltypes-index", "extend-index"],
   "recipes/data-fetching": ["server-index"], "lazy-loading": ["scroll-index"], "lazy-loading-advanced": ["scroll-fetch-libs"],
   "addons/import-export": ["io-index"], "addons/toolbar": ["toolbar"], "addons/undo-redo": ["undo-redo"],
   "editing-cell-types": ["edit-index", "editing-index"], columns: ["layout-index", "columns-index"], "styling-theming": ["look-index"],

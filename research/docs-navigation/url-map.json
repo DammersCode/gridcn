@@ -210,12 +210,12 @@
   "old": "/docs/custom-cell-types",
   "file": "custom-cell-types.mdx",
   "slugs": [
-   "extend-index",
+   "celltypes-index",
    "custom-cell-model",
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/recipes-custom-code",
+  "target": "/docs/custom-cell-types",
   "split": true
  },
  {
