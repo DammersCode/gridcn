@@ -46,6 +46,6 @@ one million rows | row-limits
 screen reader | a11y-conformance
 install | install
 upgrade to a new version | upgrade
-error message | cheat-messages
+error message | ref-messages
 saved edit was refused | server-conflicts
 which props exist | cheat-props

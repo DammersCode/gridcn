@@ -55,7 +55,7 @@
    "export",
    "import"
   ],
-  "target": "/docs/import-export-views",
+  "target": "/docs/import-export",
   "split": true
  },
  {
@@ -140,7 +140,7 @@
   "slugs": [
    "url-state"
   ],
-  "target": "/docs/import-export-views/url-state",
+  "target": "/docs/saved-views/url-state",
   "split": false
  },
  {
@@ -149,7 +149,7 @@
   "slugs": [
    "agent-skills"
   ],
-  "target": "/docs/try-automate/agent-skills",
+  "target": "/docs/try-automate/use-agent-skills",
   "split": false
  },
  {
@@ -166,11 +166,20 @@
    "ref-engine",
    "cheat-props",
    "ref-store-hooks",
-   "options-history",
+   "options-context-menu",
+   "options-export",
+   "options-fill",
    "options-find",
-   "options-rows",
-   "options-io",
-   "options-keys"
+   "options-import",
+   "options-keybindings",
+   "options-pagination",
+   "options-pinned-rows",
+   "options-presence",
+   "options-sort-list",
+   "options-status-bar",
+   "options-toolbar",
+   "options-undo-redo",
+   "options-url-state"
   ],
   "target": "/docs/components-props",
   "split": true
@@ -333,7 +342,7 @@
   "slugs": [
    "ex-col-filter"
   ],
-  "target": "/docs/column-examples/column-filter-example",
+  "target": "/docs/column-examples/header-filter-example",
   "split": false
  },
  {
@@ -765,7 +774,7 @@
   "slugs": [
    "playground"
   ],
-  "target": "/docs/try-automate/playground",
+  "target": "/docs/try-automate/playground-example",
   "split": false
  },
  {
@@ -882,7 +891,7 @@
   "slugs": [
    "find-task"
   ],
-  "target": "/docs/help/task-finder",
+  "target": "/docs/terms-help/task-finder",
   "split": false
  },
  {
@@ -918,7 +927,7 @@
   "slugs": [
    "remember-view"
   ],
-  "target": "/docs/import-export-views/remember-view",
+  "target": "/docs/saved-views/remember-view",
   "split": false
  },
  {
@@ -994,7 +1003,7 @@
   "slugs": [
    "terms"
   ],
-  "target": "/docs/help/terms",
+  "target": "/docs/terms-help/terms",
   "split": false
  },
  {

@@ -51,21 +51,21 @@
   "related": "/docs/sort-filter-search/find-replace#related"
  },
  "/docs/addons/import-export": {
-  "export": "/docs/import-export-views/export#export",
-  "print": "/docs/import-export-views/export#print",
-  "import": "/docs/import-export-views/import#import",
-  "choose-a-file": "/docs/import-export-views/import#choose-a-file",
-  "header-row": "/docs/import-export-views/import#header-row",
-  "delimiter": "/docs/import-export-views/import#delimiter",
-  "map-columns": "/docs/import-export-views/import#map-columns",
-  "preview": "/docs/import-export-views/import#preview",
-  "confirm": "/docs/import-export-views/import#confirm",
-  "excel-files": "/docs/import-export-views/import#excel-files",
-  "import-limits": "/docs/import-export-views/import#import-limits",
-  "import-options": "/docs/import-export-views/import#import-options",
-  "dropzone": "/docs/import-export-views/import#dropzone",
-  "styling-hooks": "/docs/import-export-views/import#styling-hooks",
-  "lower-level-pieces": "/docs/import-export-views/import#lower-level-pieces"
+  "export": "/docs/import-export/export#export",
+  "print": "/docs/import-export/export#print",
+  "import": "/docs/import-export/import#import",
+  "choose-a-file": "/docs/import-export/import#choose-a-file",
+  "header-row": "/docs/import-export/import#header-row",
+  "delimiter": "/docs/import-export/import#delimiter",
+  "map-columns": "/docs/import-export/import#map-columns",
+  "preview": "/docs/import-export/import#preview",
+  "confirm": "/docs/import-export/import#confirm",
+  "excel-files": "/docs/import-export/import#excel-files",
+  "import-limits": "/docs/import-export/import#import-limits",
+  "import-options": "/docs/import-export/import#import-options",
+  "dropzone": "/docs/import-export/import#dropzone",
+  "styling-hooks": "/docs/import-export/import#styling-hooks",
+  "lower-level-pieces": "/docs/import-export/import#lower-level-pieces"
  },
  "/docs/addons": {},
  "/docs/addons/keybindings": {
@@ -128,20 +128,20 @@
   "related": "/docs/clipboard-history/undo-redo#related"
  },
  "/docs/addons/url-state": {
-  "usage": "/docs/import-export-views/url-state#usage",
-  "prefix": "/docs/import-export-views/url-state#prefix",
-  "behavior": "/docs/import-export-views/url-state#behavior",
-  "column-layout": "/docs/import-export-views/url-state#column-layout",
-  "pagination": "/docs/import-export-views/url-state#pagination"
+  "usage": "/docs/saved-views/url-state#usage",
+  "prefix": "/docs/saved-views/url-state#prefix",
+  "behavior": "/docs/saved-views/url-state#behavior",
+  "column-layout": "/docs/saved-views/url-state#column-layout",
+  "pagination": "/docs/saved-views/url-state#pagination"
  },
  "/docs/agent-skills": {
-  "skills": "/docs/try-automate/agent-skills#skills",
-  "gridcn-performance": "/docs/try-automate/agent-skills#gridcn-performance",
-  "gridcn-custom-cell-type": "/docs/try-automate/agent-skills#gridcn-custom-cell-type",
-  "gridcn-data-source": "/docs/try-automate/agent-skills#gridcn-data-source",
-  "gridcn-addons": "/docs/try-automate/agent-skills#gridcn-addons",
-  "gridcn-upgrade": "/docs/try-automate/agent-skills#gridcn-upgrade",
-  "related": "/docs/try-automate/agent-skills#related"
+  "skills": "/docs/try-automate/use-agent-skills#skills",
+  "gridcn-performance": "/docs/try-automate/use-agent-skills#gridcn-performance",
+  "gridcn-custom-cell-type": "/docs/try-automate/use-agent-skills#gridcn-custom-cell-type",
+  "gridcn-data-source": "/docs/try-automate/use-agent-skills#gridcn-data-source",
+  "gridcn-addons": "/docs/try-automate/use-agent-skills#gridcn-addons",
+  "gridcn-upgrade": "/docs/try-automate/use-agent-skills#gridcn-upgrade",
+  "related": "/docs/try-automate/use-agent-skills#related"
  },
  "/docs/api-reference": {
   "datagrid": "/docs/components-props/data-grid-props#datagrid",
@@ -158,22 +158,22 @@
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types#other-exported-types",
   "operation-engine": "/docs/contracts/operation-engine#operation-engine",
-  "add-on-option-types": "/docs/add-options/undo-fill-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/undo-fill-options#datagridurlstateprops",
-  "usedatagridstateoptions": "/docs/add-options/undo-fill-options#usedatagridstateoptions",
-  "usedatagridhistoryoptions": "/docs/add-options/undo-fill-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/undo-fill-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/undo-fill-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/undo-fill-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/undo-fill-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/undo-fill-options#datagridsortlistprops",
-  "datagridcontextmenuprops": "/docs/add-options/undo-fill-options#datagridcontextmenuprops",
-  "datagridexportbuttonprops": "/docs/add-options/undo-fill-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/undo-fill-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/undo-fill-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/undo-fill-options#datagridpaginationcontrols--datagridpaginationbarprops",
-  "usedatagridfilloptions": "/docs/add-options/undo-fill-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/undo-fill-options#usedatagridpinnedrowsoptions"
+  "add-on-option-types": "/docs/add-options/context-menu-options#add-on-option-types",
+  "datagridurlstateprops": "/docs/add-options/context-menu-options#datagridurlstateprops",
+  "usedatagridstateoptions": "/docs/add-options/context-menu-options#usedatagridstateoptions",
+  "usedatagridhistoryoptions": "/docs/add-options/context-menu-options#usedatagridhistoryoptions",
+  "datagridtoolbarprops": "/docs/add-options/context-menu-options#datagridtoolbarprops",
+  "datagridsearchprops": "/docs/add-options/context-menu-options#datagridsearchprops",
+  "datagridfiltermenuprops": "/docs/add-options/context-menu-options#datagridfiltermenuprops",
+  "datagridcolumnsmenuprops": "/docs/add-options/context-menu-options#datagridcolumnsmenuprops",
+  "datagridsortlistprops": "/docs/add-options/context-menu-options#datagridsortlistprops",
+  "datagridcontextmenuprops": "/docs/add-options/context-menu-options#datagridcontextmenuprops",
+  "datagridexportbuttonprops": "/docs/add-options/context-menu-options#datagridexportbuttonprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/context-menu-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/context-menu-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridfilloptions": "/docs/add-options/context-menu-options#usedatagridfilloptions",
+  "usedatagridpinnedrowsoptions": "/docs/add-options/context-menu-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
   "copy": "/docs/clipboard-history/clipboard#copy",
@@ -250,7 +250,7 @@
   "async-schemas": "/docs/editing-cells/validation#async-schemas",
   "on-bulk-paths": "/docs/editing-cells/validation#on-bulk-paths",
   "cross-field-rules-validaterow": "/docs/editing-cells/validation#cross-field-rules-validaterow",
-  "server-errors": "/docs/save-server/show-server-errors#server-errors",
+  "server-errors": "/docs/save-server/show-errors-cells#server-errors",
   "display-override-without-a-new-type": "/docs/editing-cells/display-override#display-override-without-a-new-type",
   "custom-cell-types": "/docs/editing-cells#custom-cell-types"
  },
@@ -316,12 +316,12 @@
   "related": "/docs/column-examples/column-drag-example#related"
  },
  "/docs/examples/columns/filtering": {
-  "whats-in-the-demo": "/docs/column-examples/column-filter-example#whats-in-the-demo",
-  "faceted-multi-value-filters": "/docs/column-examples/column-filter-example#faceted-multi-value-filters",
-  "header-filter": "/docs/column-examples/column-filter-example#header-filter",
-  "range-filters": "/docs/column-examples/column-filter-example#range-filters",
-  "per-option-counts-diy": "/docs/column-examples/column-filter-example#per-option-counts-diy",
-  "related": "/docs/column-examples/column-filter-example#related"
+  "whats-in-the-demo": "/docs/column-examples/header-filter-example#whats-in-the-demo",
+  "faceted-multi-value-filters": "/docs/column-examples/header-filter-example#faceted-multi-value-filters",
+  "header-filter": "/docs/column-examples/header-filter-example#header-filter",
+  "range-filters": "/docs/column-examples/header-filter-example#range-filters",
+  "per-option-counts-diy": "/docs/column-examples/header-filter-example#per-option-counts-diy",
+  "related": "/docs/column-examples/header-filter-example#related"
  },
  "/docs/examples/columns": {},
  "/docs/examples/columns/pinning": {
@@ -509,20 +509,20 @@
   "prerequisites": "/docs/learning-path/install-gridcn#prerequisites",
   "tooltips": "/docs/learning-path/install-gridcn#tooltips",
   "where-files-land": "/docs/learning-path/install-gridcn#where-files-land",
-  "framework-notes": "/docs/help/fix-install-problems#framework-notes",
-  "nextjs": "/docs/help/fix-install-problems#nextjs",
-  "vite": "/docs/help/fix-install-problems#vite",
-  "non-default-aliases": "/docs/help/fix-install-problems#non-default-aliases",
-  "verify": "/docs/help/fix-install-problems#verify"
+  "framework-notes": "/docs/terms-help/fix-install-problems#framework-notes",
+  "nextjs": "/docs/terms-help/fix-install-problems#nextjs",
+  "vite": "/docs/terms-help/fix-install-problems#vite",
+  "non-default-aliases": "/docs/terms-help/fix-install-problems#non-default-aliases",
+  "verify": "/docs/terms-help/fix-install-problems#verify"
  },
  "/docs/lazy-loading-advanced": {
   "wiring-a-fetchcache-library-react-query": "/docs/scroll-mode/fetch-cache#wiring-a-fetchcache-library-react-query",
-  "when-a-block-fails-permanently": "/docs/scroll-mode/handle-load-errors#when-a-block-fails-permanently"
+  "when-a-block-fails-permanently": "/docs/scroll-mode/recover-load-errors#when-a-block-fails-permanently"
  },
  "/docs/lazy-loading": {
   "usage": "/docs/scroll-mode/load-rows-while-scrolling#usage",
   "editing-loaded-rows": "/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows",
-  "errors": "/docs/scroll-mode/handle-load-errors#errors",
+  "errors": "/docs/scroll-mode/recover-load-errors#errors",
   "memory--retention": "/docs/scroll-mode/tune-row-retention#memory--retention",
   "sorting-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#sorting-a-scroll-grid",
   "filtering-a-scroll-grid": "/docs/scroll-mode/scroll-sort-filter#filtering-a-scroll-grid",
@@ -626,9 +626,9 @@
   "related": "/docs/editing-cells/edit-rows-forms#related"
  },
  "/docs/recipes": {
-  "data-fetching": "/docs/help/task-finder#data-fetching",
-  "ui-patterns": "/docs/help/task-finder#ui-patterns",
-  "editing--access": "/docs/help/task-finder#editing--access"
+  "data-fetching": "/docs/terms-help/task-finder#data-fetching",
+  "ui-patterns": "/docs/terms-help/task-finder#ui-patterns",
+  "editing--access": "/docs/terms-help/task-finder#editing--access"
  },
  "/docs/recipes/ui-patterns/bulk-actions": {
   "one-write-per-button": "/docs/extend-compose/run-bulk-actions#one-write-per-button",
@@ -647,7 +647,7 @@
   "related": "/docs/extend-compose/link-multiple-grids#related"
  },
  "/docs/recipes/ui-patterns/remember-view": {
-  "related": "/docs/import-export-views/remember-view#related"
+  "related": "/docs/saved-views/remember-view#related"
  },
  "/docs/row-operations": {
   "enable-props": "/docs/rows-menus/row-operations#enable-props",

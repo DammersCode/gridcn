@@ -84,8 +84,8 @@ Every page has exactly one type. The type decides the budget and the template. A
   one open group, plus the pages of its open subgroups.
 - S6. Groups are collapsible folders. The group of the current page is open. Every other group is closed. A closed group
   opens on its landing page, so no page hides behind a second click.
-- S7. Every group has a Landing page that is the group's first sidebar entry. The landing page introduces each child in one
-  line. It may carry the group's overview text within the Landing budget.
+- S7. Every group has a Landing page that is the group's first sidebar entry. The landing page lists each child with its
+  description, and the list is generated. It may carry the group's overview text within the Landing budget.
 - S8. Split a page when it breaks P1, P2, or P5, or when two thirds of its inbound deep links go to one H2 cluster. Each
   new page gets the type that fits it.
 - S9. Merge a page into its parent when it breaks the lower bound of P2 or P11.
@@ -103,8 +103,9 @@ Every page has exactly one type. The type decides the budget and the template. A
 - S14. A new feature gets its page in the area where its reader looks. When the group is at its cap, the group splits
   before the page lands.
 - S15. A group has at least 2 pages.
-- S16. A new feature changes at most 3 hand-written places: its page, its options section or example, and one index.
-  Everything else is generated: the feature matrix, the cheatsheets, the sidebar, and the model index (A12).
+- S16. A new feature changes at most 3 hand-written places: its page, its options section, and its example page.
+  Everything else is generated: the group landing lists (from page descriptions), the task finder entries (from the `finder`
+  frontmatter line), the Terms alias table, the feature matrix, the cheatsheets, the sidebar, and the model index (A12).
 
 ## 4. Naming rules (N)
 
@@ -138,7 +139,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   grid (new to the grid), the server path (building on server data), and the Evaluate area (deciding whether to adopt).
   A link to the task finder sits next to them.
 - A4. One task finder page lists "I want to ..." tasks by intent, each one link, at most 40 entries, grouped in at most
-  8 intents.
+  8 intents. A page adds itself to the finder with a `finder` line in its frontmatter, and the page is generated.
 - A5. One feature matrix page lists every feature with core or add-on, client or server support, and links to its guide
   and its reference.
 - A6. Search stays on. Titles and descriptions are written for it (P8, N1).
@@ -154,30 +155,34 @@ Every page has exactly one type. The type decides the budget and the template. A
 - A11. Search finds the reader's word. A Feature or Task page may list `aliases` in frontmatter, such as "frozen" or
   "infinite scroll". Aliases enter the search index. A list of reader queries (`research/docs-navigation/reader-queries.txt`,
   at least 30 lines) names for each query the page that must answer it. The built search index returns that page in the
-  first 3 results. A search with no result links the task finder and the Terms page.
+  first 3 results. The Terms page lists every alias with the page that owns it (generated). A search with no result links the task finder
+  and the Terms page.
 - A12. The site serves `/llms.txt`, built from titles and descriptions in sidebar order, and a Markdown copy of each page at
   the page URL plus `.md`. A test checks that every page appears once and every link returns 200.
 - A13. One reference page, "Messages", lists every error and warning the library prints or throws. It has one H2 per
   message, headed by the exact text or code, with the cause, the fix, and a link to the guide.
-- A14. A Feature page shows a status line built from frontmatter: kind (core or add-on), modes (client, server), stability,
-  and the first version that has it. The keys are `kind`, `modes`, `stability`, and `since`. The key `status` is not used,
-  because `pnpm lint` rejects it in `content/docs`.
+- A14. A page that owns a feature (a Feature or Task page) shows a status line built from frontmatter: kind (core or add-on), modes (client, server), stability,
+  and the first version that has it. The keys are `kind`, `modes`, `stability`, and `since`. The feature matrix shows the same four
+  columns (generated). The key `status` is not used, because `pnpm lint` rejects it in `content/docs`.
+
+- A15. The Evaluate landing holds an ordered adoption checklist that links fit and features, speed, accessibility, and support.
 
 ## 6. Where a new page goes
 
 This table answers S14 before a page is written. A group of 7 pages is at its target (S3): plan the split before the next
-page. A page may still land until the group reaches 12 pages.
+page. A page may still land until the group reaches 12 pages. Build holds 10 groups, which is the cap (S2): the next new group
+splits the Build area first.
 
 | New thing | Hand-written places (S16) | Generated |
 |---|---|---|
-| Add-on | A page in the group of its topic, an options section in the matching Add-on options page, an example page | Feature matrix row, cheatsheet rows, model index, status line |
+| Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, A to Z), an example page | Landing lists, task finder entry, feature matrix row, cheatsheet rows, model index, status line |
 | Server feature | A page in the Server group of its mode, a row in the data modes matrix | Feature matrix row, a step link in the Server path when it changes the route |
 | Event or callback | A section in the matching Events page | Row in the events cheatsheet, anchor (N9) |
 | Cell type | A section in the built-in cell types page, an example page | Cheatsheet rows |
 | Prop | A row in the matching props page | Props cheatsheet, anchor (N9) |
 | Behavior that needs a reason | A Concept page in Reference > Concepts. A topic with its own Reference group (plugins) or Evaluate group (performance, accessibility) keeps its concept pages there | |
 | Server feature that works in both modes | A page in Server > Data modes, a row in the data modes matrix, a "Server mode" section on the feature page (P13) | Feature matrix row |
-| Library message | A row in the Messages page | Index entry |
+| Library message | none: the Messages page is generated from the source | Messages page, index entry |
 | Breaking change | A section in the upgrade page and a line in the version policy and changelog page | |
 
 ## 7. Limits that need an owner decision
@@ -220,6 +225,6 @@ with two lines, and typed deprecation notices in the changelog.
 | N1 (key word first), N3, N4, N7, N8 | Reviewer and the redirect map |
 | N5 | `--candidate` (slug collision) and the URL map generator |
 | N6 | `--check` (unknown type) |
-| A11 (query list) | `--queries` |
+| A11 (query list, vocabulary in the title or aliases) | `--queries` |
 | A10, A12 | Gates |
 | A1 to A9, A14 | Reviewer |

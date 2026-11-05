@@ -209,8 +209,8 @@ function parseCandidate(file) {
       area.groups.push(group);
       sub = null;
     } else if (line.startsWith("- ")) {
-      const [slug, title, type, words] = line.slice(2).split("|").map((x) => x.trim());
-      (sub ?? group).pages.push({ slug, title, type, words: Number(words) || 0 });
+      const [slug, title, type, words, aliases = ""] = line.slice(2).split("|").map((x) => x.trim());
+      (sub ?? group).pages.push({ slug, title, type, words: Number(words) || 0, aliases: aliases.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean) });
     }
   }
   return areas;
@@ -290,15 +290,22 @@ function checkCandidate(file) {
 }
 
 function checkQueries(queriesFile, file) {
-  const slugs = new Set(parseCandidate(file).flatMap((a) => a.groups.flatMap((g) => [...g.pages, ...g.subs.flatMap((s) => s.pages)])).map((p) => p.slug));
+  const pages = new Map(parseCandidate(file).flatMap((a) => a.groups.flatMap((g) => [...g.pages, ...g.subs.flatMap((s) => s.pages)])).map((p) => [p.slug, p]));
   const rows = readLf(queriesFile)
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith("#"))
     .map((l) => l.split("|").map((x) => x.trim()));
-  const bad = rows.filter(([, slug]) => !slugs.has(slug));
-  console.log(`queries ${rows.length}, unknown pages ${bad.length}`);
+  const bad = rows.filter(([, slug]) => !pages.has(slug));
+  const vocabulary = rows.filter(([query, slug]) => {
+    const page = pages.get(slug);
+    if (!page) return false;
+    const haystack = `${page.title} ${page.aliases.join(" ")}`.toLowerCase();
+    return !query.toLowerCase().split(/\s+/).filter((w) => w.length > 3).some((w) => haystack.includes(w)) && !page.aliases.some((x) => query.toLowerCase().includes(x));
+  });
+  console.log(`queries ${rows.length}, unknown pages ${bad.length}, queries with no word in the title or aliases ${vocabulary.length}`);
   for (const [query, slug] of bad) console.log(`FAIL A11 "${query}" names unknown page "${slug}"`);
+  for (const [query, slug] of vocabulary) console.log(`warn A11 "${query}": no word in the title or aliases of "${slug}"`);
   if (rows.length < 30) console.log("FAIL A11 the list needs at least 30 queries");
   process.exitCode = bad.length || rows.length < 30 ? 1 : 0;
 }

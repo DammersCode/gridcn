@@ -120,7 +120,7 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ex-* | `examples/**` (titles made unique, ORM and swr and react-query pages grouped) | move |
 | keeping-fast | `performance` (guidance sections moved off the landing) | split |
 | ref-store-hooks | `api-reference` (store hooks and selectors) | split plus new text |
-| options-history, options-find, options-rows, options-io, options-keys | the option tables of each add-on page and `api-reference` (Add-on option types) | move, one page per add-on family |
+| options-context-menu, options-export, options-fill, options-find, options-import, options-keybindings, options-pagination, options-pinned-rows, options-presence, options-sort-list, options-status-bar, options-toolbar, options-undo-redo, options-url-state | the option tables of each add-on page and `api-reference` (Add-on option types) | move, one page per add-on |
 | undo-programmatic | `addons/undo-redo` (Programmatic changes, Which changes are recorded, Dataset changes) | split |
 | use-debounce | `hooks/use-debounce` (useDebounce) | split |
 | use-debounced-input | `hooks/use-debounce` (useDebouncedInput) | split |
@@ -132,4 +132,4 @@ Used by the candidate files and the migration plan. "new" means new text; "move"
 | ex-orm-supabase | `examples/data/orm/supabase` | move |
 | ref-server-rows | `recipes/data-fetching/server-side` (the server contract, async gates, races) | rewrite as a contract |
 | ref-plugin | none: the contract page is new, `plugins-shape` keeps the model | new text |
-| cheat-messages | none: one H2 per error and warning the library prints or throws, generated from the source | new, generated |
+| ref-messages | none: one H2 per error and warning the library prints or throws, generated from the source | new, generated |
