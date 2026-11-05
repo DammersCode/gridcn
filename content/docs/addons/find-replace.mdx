@@ -114,8 +114,8 @@ patches. A longer plan, a result that is not a plan, or a rejection cancels the 
 status line says `Replace cancelled`. A patch holds the new value of one cell, and it goes through
 the column's `validate`. A patch for a hidden column is written too, so check what the hook adds.
 A change of the find text, the replacement, or an option, a newer replace, or closing the panel
-aborts `signal` and drops a late answer. If the rows change while the hook runs, the replace is
-cancelled. The hook sees the same rows the panel searches: the loaded rows.
+aborts `signal` and drops a late answer. If a row that the returned plan writes is
+changed or removed while the hook runs, the replace is cancelled. The hook sees the same rows the panel searches: the loaded rows.
 
 ## Where Replace works
 

@@ -131,12 +131,21 @@ export type UseDataGridImportPreviewOptions = {
 const MAX_SHEET_NAMES = 256;
 const MAX_SHEET_NAME_CHARS = 255;
 
+/** Up to {@link MAX_SHEET_NAMES} distinct strings from the first entries of `names`; a huge list is not scanned to the end. */
+function uniqueSheetNames(names: readonly unknown[]): string[] {
+  const unique = new Set<string>();
+  const scanLimit = Math.min(names.length, MAX_SHEET_NAMES * 4);
+  for (let index = 0; index < scanLimit && unique.size < MAX_SHEET_NAMES; index++) {
+    const name = names[index];
+    if (typeof name === "string") unique.add(name.slice(0, MAX_SHEET_NAME_CHARS));
+  }
+  return [...unique];
+}
+
 /** Keeps only the fields of a custom parse result that the dialog reads, and bounds the lists and strings in them. */
 function sanitizeParsedFile(parsed: ParsedImportFile): ParsedImportFile {
   const delimiter = parsed.delimiter === "," || parsed.delimiter === ";" || parsed.delimiter === "\t" ? parsed.delimiter : undefined;
-  const sheetNames = Array.isArray(parsed.sheetNames)
-    ? parsed.sheetNames.filter((name): name is string => typeof name === "string").map((name) => name.slice(0, MAX_SHEET_NAME_CHARS)).filter((name, index, all) => all.indexOf(name) === index).slice(0, MAX_SHEET_NAMES)
-    : undefined;
+  const sheetNames = Array.isArray(parsed.sheetNames) ? uniqueSheetNames(parsed.sheetNames) : undefined;
   const sheetName = typeof parsed.sheetName === "string" ? parsed.sheetName.slice(0, MAX_SHEET_NAME_CHARS) : undefined;
   return { rows: parsed.rows, delimiter, sheetNames, sheetName };
 }

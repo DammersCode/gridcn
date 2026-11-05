@@ -137,6 +137,27 @@ describe("onReplace", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("keeps a pending replace when the Find text is committed by the replace itself", async () => {
+    const onDataChange = vi.fn();
+    type Plan = { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean };
+    let release!: (value: Plan) => void;
+    const onReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
+    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("needle");
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 2 cells");
+    await userEvent.click(page.getByRole("textbox", { name: "Replace with" }));
+    await userEvent.keyboard("pin");
+    await userEvent.click(page.getByRole("textbox", { name: "Find" }));
+    await userEvent.keyboard(" ");
+    await userEvent.click(page.getByRole("button", { name: "Replace all" }));
+    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    release({ patches: [{ rowId: "a", columnId: "name", value: "pin one" }], skipped: [], remaining: false });
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
+  });
+
   it("cancels a plan whose patches have no row and column ids", async () => {
     const onDataChange = vi.fn();
     vi.spyOn(console, "warn").mockImplementation(() => {});

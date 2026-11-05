@@ -58,6 +58,27 @@ type PanelProps = { panelStore: PanelStore };
 type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | { kind: "cancelled" } | null;
 
 
+/** True when a row the plan writes is gone or is another object since the plan was built. */
+function patchedRowsChanged(before: { data: readonly unknown[]; getRowId: (row: never, index: number) => string }, after: { data: readonly unknown[]; getRowId: (row: never, index: number) => string }, plan: ReplacePlan): boolean {
+  const ids = new Set(plan.patches.map((patch) => patch.rowId));
+  const rowsBefore = new Map<string, unknown>();
+  before.data.forEach((row, index) => {
+    if (row === undefined) return;
+    const id = before.getRowId(row as never, index);
+    if (ids.has(id)) rowsBefore.set(id, row);
+  });
+  let seen = 0;
+  for (let index = 0; index < after.data.length; index++) {
+    const row = after.data[index];
+    if (row === undefined) continue;
+    const id = after.getRowId(row as never, index);
+    if (!rowsBefore.has(id)) continue;
+    seen++;
+    if (rowsBefore.get(id) !== row) return true;
+  }
+  return seen < rowsBefore.size;
+}
+
 function isUsablePlan(plan: unknown, limit: number): plan is ReplacePlan {
   if (typeof plan !== "object" || plan === null) return false;
   const { patches } = plan as { patches?: unknown };
@@ -102,6 +123,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const findRef = useRef<HTMLInputElement | null>(null);
   const applyTokenRef = useRef(0);
   const hookControllerRef = useRef<AbortController | null>(null);
+  const pendingHookFindRef = useRef<string | null>(null);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
@@ -122,6 +144,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const jumpOnCommitRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (pendingHookFindRef.current !== null && pendingHookFindRef.current === searchedText) return;
+    pendingHookFindRef.current = null;
     replacedRef.current.clear();
     setStatus(null);
     applyTokenRef.current++;
@@ -266,21 +290,30 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const controller = new AbortController();
     hookControllerRef.current = controller;
     const hookToken = ++applyTokenRef.current;
+    pendingHookFindRef.current = find;
+    if (find !== searchedText) runSearch(find, searchOptions);
     setStatus({ kind: "validating" });
     const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
     const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
     void Promise.resolve()
       .then(() => onReplace({ plan, signal: controller.signal }))
+      .finally(() => {
+        if (hookToken === applyTokenRef.current) pendingHookFindRef.current = null;
+      })
       .then(
         (result) => {
           if (!current()) return;
           const latest = api.store.getState();
-          if (latest.readOnly || latest.editing !== null || latest.data !== s.data || result === false) {
+          if (latest.readOnly || latest.editing !== null || result === false) {
             setStatus({ kind: "cancelled" });
             return;
           }
           if (!isUsablePlan(result, limit)) {
             if (isDev()) console.warn("[data-grid-find-replace] onReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          if (latest.data !== s.data && patchedRowsChanged(s, latest, result)) {
             setStatus({ kind: "cancelled" });
             return;
           }

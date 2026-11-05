@@ -75,7 +75,7 @@ export function DataGridExportButton<TData = unknown>(props: DataGridExportButto
 
   const singleFormat = formats.length === 1 && !source;
   const trigger = (
-    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} aria-disabled={(singleFormat && running) || undefined} onClick={singleFormat ? () => !running && runExport(formats[0]!, false) : undefined}>
+    <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.exportButtonAriaLabel} aria-busy={running || undefined} onClick={singleFormat ? () => (running ? cancelExport() : runExport(formats[0]!, false)) : undefined}>
       <Download />
     </Button>
   );
@@ -86,7 +86,14 @@ export function DataGridExportButton<TData = unknown>(props: DataGridExportButto
     </span>
   );
 
-  if (singleFormat) return trigger;
+  if (singleFormat) {
+    return (
+      <>
+        {trigger}
+        {status}
+      </>
+    );
+  }
 
   return (
     <>
