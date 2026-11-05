@@ -1,0 +1,119 @@
+// C3: task-first. How-to pages by intent, concepts apart, reference apart. One task per page.
+@ Start
+## Start here
+- index | Introduction | landing | 300
+- install | Install gridcn | task | 600
+- first-grid | Your first grid | step | 500
+- terms | Terms | reference | 600
+## Find your task
+- find-task-index | Find a task | landing | 400
+- feature-matrix | Feature matrix | cheatsheet | 900
+- task-finder | I want to | cheatsheet | 900
+- learn-index | Learning path | landing | 250
+- learn-columns | Define columns | step | 500
+- learn-edit | Edit cells | step | 500
+- learn-select | Select and paste | step | 500
+- learn-sort | Add sorting and filters | step | 500
+- learn-save | Save changes | step | 600
+- learn-style | Style the grid | step | 500
+- learn-server | Load rows from a server | step | 600
+@ How-to
+## Show data
+- show-index | Show data | landing | 250
+- column-sizing | Resize and autosize columns | task | 800
+- column-order-pin | Reorder and pin columns | task | 700
+- column-headers | Group and customize headers | task | 600
+- column-visibility | Hide and read column state | task | 600
+- pinned-rows | Pin rows | task | 1000
+- row-markers | Show row markers | task | 500
+- status-bar | Add a status bar | task | 550
+## Edit data
+- edit-index | Edit data | landing | 250
+- edit-activation | Start and stop editing | task | 700
+- cell-types | Choose a cell type | task | 1000
+- validation | Validate cells | task | 900
+- display-override | Override a cell display | task | 400
+- custom-cell-example | Build a currency cell | task | 950
+- clipboard | Copy and paste | task | 900
+- fill | Fill cells | task | 855
+- plugins-example | Build a column highlight plugin | task | 600
+- undo-redo | Undo and redo | task | 900
+## Select and navigate
+- select-index | Select and navigate | landing | 250
+- pointer-selection | Select with mouse and touch | task | 800
+- checked-rows | Check rows | task | 600
+- keyboard-nav | Move with the keyboard | task | 900
+- global-shortcuts | Set global shortcuts | task | 850
+- keybindings | Rebind keys | task | 1000
+- context-menu | Add a context menu | task | 900
+## Find rows
+- find-index | Find rows | landing | 250
+- sorting | Sort rows | task | 600
+- filtering | Filter rows | task | 700
+- search | Search the grid | task | 450
+- toolbar | Add a toolbar | task | 800
+- find-replace | Find and replace | task | 1000
+- url-state | Keep the view in the URL | task | 900
+- url-state-options | URL state options | reference | 400
+## Move and share data
+- move-index | Move and share data | landing | 250
+- row-actions | Add, delete, and duplicate rows | task | 900
+- row-reorder | Reorder rows | task | 600
+- row-programmatic | Change rows in code | task | 600
+- export | Export data | task | 900
+- import | Import data | task | 1000
+- print-dropzone | Print and drop files | task | 700
+- presence | Show who else is here | task | 1000
+- presence-broadcast | Broadcast your selection | task | 345
+## Save to a server
+- saving-index | Save to a server | landing | 250
+- server-saves | Save a change | task | 900
+- server-round-trip | Roll back a failed save | task | 900
+- server-errors | Show server errors | task | 500
+- server-undo | Undo with server saves | task | 450
+- server-row-ops | Change rows on a server | task | 800
+## Load from a server
+- load-index | Load from a server | landing | 250
+- scroll-usage | Load rows while scrolling | task | 700
+- scroll-fetch-libs | Fetch with a cache library | task | 650
+- pagination | Load rows by page | task | 900
+- server-sort-filter | Sort and filter on the server | task | 700
+- streaming | Stream updates | task | 1000
+- server-troubleshooting | Fix server data problems | task | 800
+## Style and translate
+- style-index | Style and translate | landing | 250
+- style-tokens | Match your theme | task | 900
+- style-overrides | Override styles | task | 700
+- style-density | Set density and small screens | task | 700
+- loading-state | Show loading state | task | 300
+- i18n | Translate labels | task | 1000
+@ Concepts
+## How the grid works
+- concepts-index | Concepts | landing | 300
+- selection-model | Selection model | feature | 700
+- data-modes | Data modes | feature | 900
+- custom-cell-model | Cell type model | feature | 700
+- plugins-shape | Plugin model | feature | 600
+- events-model | Events and state model | feature | 900
+## Server concepts
+- server-index | Server data | landing | 300
+- scroll-concepts | Scroll mode | feature | 900
+- paged-concepts | Paged mode | feature | 700
+- scroll-errors | Errors and retention | feature | 800
+- scroll-selection | Selection and export on server rows | feature | 750
+- server-selection | Selection over a server result | feature | 450
+## Scale and quality
+- quality-index | Scale and quality | landing | 250
+- performance | Performance | feature | 500
+- virtualization | Virtualization | feature | 900
+- a11y-conformance | Accessibility conformance | feature | 900
+- a11y-keyboard | Keyboard and screen reader coverage | feature | 900
+- row-limits | Row limits | reference | 400
+## Styling concepts
+- styling-index | Styling model | landing | 250
+- style-surface | Class and data attributes | feature | 800
+- plugins-overlays | Plugin overlays and bands | feature | 700
+- scroll-edit | Edit loaded rows | feature | 500
+- scroll-sort-filter | Sort and filter scroll rows | feature | 700
+<< common-recipes.txt
+<< common-reference.txt

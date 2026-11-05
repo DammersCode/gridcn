@@ -1,0 +1,1029 @@
+[
+ {
+  "old": "/docs/accessibility",
+  "file": "accessibility.mdx",
+  "slugs": [
+   "a11y-index",
+   "a11y-conformance",
+   "a11y-keyboard",
+   "a11y-known-gaps"
+  ],
+  "target": "/docs/accessibility",
+  "split": true
+ },
+ {
+  "old": "/docs/addons/broadcasting-presence",
+  "file": "addons/broadcasting-presence.mdx",
+  "slugs": [
+   "presence-broadcast"
+  ],
+  "target": "/docs/rows-live-data/broadcast-your-selection",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/context-menu",
+  "file": "addons/context-menu.mdx",
+  "slugs": [
+   "context-menu"
+  ],
+  "target": "/docs/rows-pages-menus/context-menu",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/fill",
+  "file": "addons/fill.mdx",
+  "slugs": [
+   "fill"
+  ],
+  "target": "/docs/clipboard-undo/fill-handle",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/find-replace",
+  "file": "addons/find-replace.mdx",
+  "slugs": [
+   "find-replace"
+  ],
+  "target": "/docs/sort-filter-search/find-replace",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/import-export",
+  "file": "addons/import-export.mdx",
+  "slugs": [
+   "io-index",
+   "export",
+   "import"
+  ],
+  "target": "/docs/import-export",
+  "split": true
+ },
+ {
+  "old": "/docs/addons",
+  "file": "addons/index.mdx",
+  "slugs": [
+   "feature-matrix"
+  ],
+  "target": "/docs/fit-features/feature-matrix",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/keybindings",
+  "file": "addons/keybindings.mdx",
+  "slugs": [
+   "keybindings",
+   "cheat-shortcuts"
+  ],
+  "target": "/docs/selection-shortcuts/shortcut-remapping",
+  "split": true
+ },
+ {
+  "old": "/docs/addons/pinned-rows",
+  "file": "addons/pinned-rows.mdx",
+  "slugs": [
+   "pinned-rows"
+  ],
+  "target": "/docs/rows-pages-menus/pinned-rows",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/presence",
+  "file": "addons/presence.mdx",
+  "slugs": [
+   "presence"
+  ],
+  "target": "/docs/rows-live-data/show-presence",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/sort-list",
+  "file": "addons/sort-list.mdx",
+  "slugs": [
+   "sorting"
+  ],
+  "target": "/docs/sort-filter-search/sorting",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/status-bar",
+  "file": "addons/status-bar.mdx",
+  "slugs": [
+   "status-bar"
+  ],
+  "target": "/docs/selection-shortcuts/status-bar",
+  "split": false
+ },
+ {
+  "old": "/docs/addons/toolbar",
+  "file": "addons/toolbar.mdx",
+  "slugs": [
+   "toolbar",
+   "header-filter"
+  ],
+  "target": "/docs/sort-filter-search/toolbar",
+  "split": true
+ },
+ {
+  "old": "/docs/addons/undo-redo",
+  "file": "addons/undo-redo.mdx",
+  "slugs": [
+   "undo-redo",
+   "undo-programmatic",
+   "server-undo"
+  ],
+  "target": "/docs/clipboard-undo/undo-redo",
+  "split": true
+ },
+ {
+  "old": "/docs/addons/url-state",
+  "file": "addons/url-state.mdx",
+  "slugs": [
+   "url-state"
+  ],
+  "target": "/docs/sort-filter-search/url-state",
+  "split": false
+ },
+ {
+  "old": "/docs/agent-skills",
+  "file": "agent-skills.mdx",
+  "slugs": [
+   "agent-skills"
+  ],
+  "target": "/docs/try-automate/use-agent-skills",
+  "split": false
+ },
+ {
+  "old": "/docs/api-reference",
+  "file": "api-reference.mdx",
+  "slugs": [
+   "ref-index",
+   "ref-celltype",
+   "ref-datagrid",
+   "ref-provider",
+   "ref-columndef",
+   "ref-labels",
+   "ref-types",
+   "ref-engine",
+   "cheat-props",
+   "ref-store-hooks",
+   "options-context-menu",
+   "options-export",
+   "options-fill",
+   "options-find",
+   "options-import",
+   "options-keybindings",
+   "options-pagination",
+   "options-pinned-rows",
+   "options-presence",
+   "options-sort-list",
+   "options-status-bar",
+   "options-toolbar",
+   "options-undo-redo",
+   "options-url-state"
+  ],
+  "target": "/docs/components-props",
+  "split": true
+ },
+ {
+  "old": "/docs/clipboard",
+  "file": "clipboard.mdx",
+  "slugs": [
+   "clipboard"
+  ],
+  "target": "/docs/clipboard-undo/clipboard",
+  "split": false
+ },
+ {
+  "old": "/docs/columns",
+  "file": "columns.mdx",
+  "slugs": [
+   "columns-index",
+   "column-sizing",
+   "column-order-pin",
+   "column-headers",
+   "column-visibility"
+  ],
+  "target": "/docs/columns",
+  "split": true
+ },
+ {
+  "old": "/docs/custom-cell-types",
+  "file": "custom-cell-types.mdx",
+  "slugs": [
+   "extend-index",
+   "custom-cell-model",
+   "ref-celltype",
+   "custom-cell-example"
+  ],
+  "target": "/docs/recipes-custom-code",
+  "split": true
+ },
+ {
+  "old": "/docs/data-modes",
+  "file": "data-modes.mdx",
+  "slugs": [
+   "server-index",
+   "server-row-ops",
+   "data-modes",
+   "server-saves",
+   "server-troubleshooting",
+   "feature-matrix"
+  ],
+  "target": "/docs/data-modes",
+  "split": true
+ },
+ {
+  "old": "/docs/editing-cell-types",
+  "file": "editing-cell-types.mdx",
+  "slugs": [
+   "editing-index",
+   "edit-activation",
+   "cell-types",
+   "validation",
+   "server-errors",
+   "display-override"
+  ],
+  "target": "/docs/editing-cells",
+  "split": true
+ },
+ {
+  "old": "/docs/events-state",
+  "file": "events-state.mdx",
+  "slugs": [
+   "events-index",
+   "server-saves",
+   "ev-data",
+   "ev-cell",
+   "ev-sort-filter",
+   "ev-columns",
+   "ev-edit",
+   "options-presence",
+   "events-model",
+   "cheat-events"
+  ],
+  "target": "/docs/events-state",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/appearance/i18n-rtl",
+  "file": "examples/appearance/i18n-rtl.mdx",
+  "slugs": [
+   "ex-rtl"
+  ],
+  "target": "/docs/style-examples/right-left-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/appearance",
+  "file": "examples/appearance/index.mdx",
+  "slugs": [
+   "ex-appearance-index"
+  ],
+  "target": "/docs/style-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/appearance/loading-states",
+  "file": "examples/appearance/loading-states.mdx",
+  "slugs": [
+   "ex-loading"
+  ],
+  "target": "/docs/style-examples/loading-state-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/appearance/styling",
+  "file": "examples/appearance/styling.mdx",
+  "slugs": [
+   "ex-styling"
+  ],
+  "target": "/docs/style-examples/styling-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/column-groups",
+  "file": "examples/columns/column-groups.mdx",
+  "slugs": [
+   "ex-col-groups"
+  ],
+  "target": "/docs/column-examples/column-groups-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/column-layout",
+  "file": "examples/columns/column-layout.mdx",
+  "slugs": [
+   "ex-col-layout"
+  ],
+  "target": "/docs/column-examples/column-layout-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/custom-headers",
+  "file": "examples/columns/custom-headers.mdx",
+  "slugs": [
+   "ex-col-headers"
+  ],
+  "target": "/docs/column-examples/column-headers-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/drag-reorder",
+  "file": "examples/columns/drag-reorder.mdx",
+  "slugs": [
+   "ex-col-drag"
+  ],
+  "target": "/docs/column-examples/column-order-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/filtering",
+  "file": "examples/columns/filtering.mdx",
+  "slugs": [
+   "ex-col-filter"
+  ],
+  "target": "/docs/column-examples/header-filter-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns",
+  "file": "examples/columns/index.mdx",
+  "slugs": [
+   "ex-columns-index"
+  ],
+  "target": "/docs/column-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/columns/pinning",
+  "file": "examples/columns/pinning.mdx",
+  "slugs": [
+   "ex-pinning-cols"
+  ],
+  "target": "/docs/column-examples/pinned-columns-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data",
+  "file": "examples/data/index.mdx",
+  "slugs": [
+   "ex-data-index"
+  ],
+  "target": "/docs/server-data-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/large-data",
+  "file": "examples/data/large-data.mdx",
+  "slugs": [
+   "ex-large"
+  ],
+  "target": "/docs/server-data-examples/large-data-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/lazy",
+  "file": "examples/data/lazy/index.mdx",
+  "slugs": [
+   "ex-lazy",
+   "ex-data-index"
+  ],
+  "target": "/docs/server-data-examples",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/lazy/plain",
+  "file": "examples/data/lazy/plain.mdx",
+  "slugs": [
+   "ex-lazy"
+  ],
+  "target": "/docs/server-data-examples/scroll-mode-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/lazy/react-query",
+  "file": "examples/data/lazy/react-query.mdx",
+  "slugs": [
+   "scroll-fetch-libs",
+   "ex-lazy"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/lazy/swr",
+  "file": "examples/data/lazy/swr.mdx",
+  "slugs": [
+   "scroll-fetch-libs",
+   "ex-lazy"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/orm/drizzle",
+  "file": "examples/data/orm/drizzle.mdx",
+  "slugs": [
+   "ex-orm-drizzle"
+  ],
+  "target": "/docs/server-data-examples/orm-examples/drizzle-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/orm",
+  "file": "examples/data/orm/index.mdx",
+  "slugs": [
+   "ex-orm-index",
+   "ex-data-index"
+  ],
+  "target": "/docs/server-data-examples",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/orm/prisma",
+  "file": "examples/data/orm/prisma.mdx",
+  "slugs": [
+   "ex-orm-prisma"
+  ],
+  "target": "/docs/server-data-examples/orm-examples/prisma-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/orm/supabase",
+  "file": "examples/data/orm/supabase.mdx",
+  "slugs": [
+   "ex-orm-supabase"
+  ],
+  "target": "/docs/server-data-examples/orm-examples/supabase-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/data/pagination/client",
+  "file": "examples/data/pagination/client.mdx",
+  "slugs": [
+   "pagination-client",
+   "ex-pages"
+  ],
+  "target": "/docs/rows-pages-menus/client-pagination",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/pagination",
+  "file": "examples/data/pagination/index.mdx",
+  "slugs": [
+   "ex-pages",
+   "ex-data-index"
+  ],
+  "target": "/docs/server-data-examples",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/pagination/react-query",
+  "file": "examples/data/pagination/react-query.mdx",
+  "slugs": [
+   "scroll-fetch-libs",
+   "ex-pages"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/pagination/swr",
+  "file": "examples/data/pagination/swr.mdx",
+  "slugs": [
+   "scroll-fetch-libs",
+   "ex-pages"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
+ },
+ {
+  "old": "/docs/examples/data/server-side",
+  "file": "examples/data/server-side.mdx",
+  "slugs": [
+   "ex-server"
+  ],
+  "target": "/docs/server-data-examples/server-rows-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/foundations/cell-types",
+  "file": "examples/foundations/cell-types.mdx",
+  "slugs": [
+   "ex-celltypes"
+  ],
+  "target": "/docs/basic-examples/cell-types-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/foundations/custom-cells",
+  "file": "examples/foundations/custom-cells.mdx",
+  "slugs": [
+   "ex-custom"
+  ],
+  "target": "/docs/basic-examples/custom-cell-type-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/foundations/editable-grid",
+  "file": "examples/foundations/editable-grid.mdx",
+  "slugs": [
+   "ex-editable"
+  ],
+  "target": "/docs/basic-examples/editable-grid-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/foundations",
+  "file": "examples/foundations/index.mdx",
+  "slugs": [
+   "examples-index"
+  ],
+  "target": "/docs/basic-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/foundations/minimal-grid",
+  "file": "examples/foundations/minimal-grid.mdx",
+  "slugs": [
+   "ex-minimal"
+  ],
+  "target": "/docs/basic-examples/minimal-grid-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/actions",
+  "file": "examples/rows/actions.mdx",
+  "slugs": [
+   "ex-row-actions"
+  ],
+  "target": "/docs/row-examples/row-actions-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/drag-reorder",
+  "file": "examples/rows/drag-reorder.mdx",
+  "slugs": [
+   "ex-row-drag"
+  ],
+  "target": "/docs/row-examples/row-order-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows",
+  "file": "examples/rows/index.mdx",
+  "slugs": [
+   "ex-rows-index"
+  ],
+  "target": "/docs/row-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/pinning",
+  "file": "examples/rows/pinning.mdx",
+  "slugs": [
+   "ex-pinning-rows"
+  ],
+  "target": "/docs/row-examples/pinned-rows-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/row-markers",
+  "file": "examples/rows/row-markers.mdx",
+  "slugs": [
+   "ex-row-markers"
+  ],
+  "target": "/docs/row-examples/row-markers-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/row-operations",
+  "file": "examples/rows/row-operations.mdx",
+  "slugs": [
+   "ex-row-ops"
+  ],
+  "target": "/docs/row-examples/row-operations-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/rows/streaming",
+  "file": "examples/rows/streaming.mdx",
+  "slugs": [
+   "ex-row-stream"
+  ],
+  "target": "/docs/row-examples/streaming-rows-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation/async-gates",
+  "file": "examples/validation/async-gates.mdx",
+  "slugs": [
+   "ex-async-gates"
+  ],
+  "target": "/docs/validation-examples/async-gates-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation/async-validation",
+  "file": "examples/validation/async-validation.mdx",
+  "slugs": [
+   "ex-async-validation"
+  ],
+  "target": "/docs/validation-examples/async-validation-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation/cross-field",
+  "file": "examples/validation/cross-field.mdx",
+  "slugs": [
+   "ex-cross-field"
+  ],
+  "target": "/docs/validation-examples/cross-field-validation-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation",
+  "file": "examples/validation/index.mdx",
+  "slugs": [
+   "ex-validation-index"
+  ],
+  "target": "/docs/validation-examples",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation/server-errors",
+  "file": "examples/validation/server-errors.mdx",
+  "slugs": [
+   "ex-server-errors"
+  ],
+  "target": "/docs/validation-examples/server-errors-example",
+  "split": false
+ },
+ {
+  "old": "/docs/examples/validation/validation",
+  "file": "examples/validation/validation.mdx",
+  "slugs": [
+   "ex-validation"
+  ],
+  "target": "/docs/validation-examples/validation-example",
+  "split": false
+ },
+ {
+  "old": "/docs/global-shortcuts",
+  "file": "global-shortcuts.mdx",
+  "slugs": [
+   "global-shortcuts",
+   "cheat-shortcuts"
+  ],
+  "target": "/docs/selection-shortcuts/global-shortcuts",
+  "split": true
+ },
+ {
+  "old": "/docs/hooks/use-debounce",
+  "file": "hooks/use-debounce.mdx",
+  "slugs": [
+   "use-debounce",
+   "use-debounced-input",
+   "is-composing-key"
+  ],
+  "target": "/docs/types-hooks/use-debounce",
+  "split": true
+ },
+ {
+  "old": "/docs/i18n",
+  "file": "i18n.mdx",
+  "slugs": [
+   "i18n"
+  ],
+  "target": "/docs/theme-style-language/labels-i18n",
+  "split": false
+ },
+ {
+  "old": "/docs",
+  "file": "index.mdx",
+  "slugs": [
+   "index"
+  ],
+  "target": "/docs",
+  "split": false
+ },
+ {
+  "old": "/docs/installation",
+  "file": "installation.mdx",
+  "slugs": [
+   "install",
+   "install-problems",
+   "upgrade"
+  ],
+  "target": "/docs/learning-path/install-gridcn",
+  "split": true
+ },
+ {
+  "old": "/docs/lazy-loading-advanced",
+  "file": "lazy-loading-advanced.mdx",
+  "slugs": [
+   "scroll-fetch-libs",
+   "scroll-errors"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": true
+ },
+ {
+  "old": "/docs/lazy-loading",
+  "file": "lazy-loading.mdx",
+  "slugs": [
+   "scroll-index",
+   "scroll-usage",
+   "scroll-errors",
+   "scroll-retention",
+   "server-sort-filter",
+   "scroll-no-total",
+   "server-selection",
+   "server-troubleshooting",
+   "options-server-rows"
+  ],
+  "target": "/docs/scroll-mode",
+  "split": true
+ },
+ {
+  "old": "/docs/license",
+  "file": "license.mdx",
+  "slugs": [
+   "license"
+  ],
+  "target": "/docs/support-upgrades/license-credits",
+  "split": false
+ },
+ {
+  "old": "/docs/pagination",
+  "file": "pagination.mdx",
+  "slugs": [
+   "pagination",
+   "pagination-url",
+   "pagination-client",
+   "options-server-rows"
+  ],
+  "target": "/docs/server-pagination/load-rows-page",
+  "split": true
+ },
+ {
+  "old": "/docs/performance",
+  "file": "performance.mdx",
+  "slugs": [
+   "performance",
+   "row-limits",
+   "keeping-fast"
+  ],
+  "target": "/docs/performance",
+  "split": true
+ },
+ {
+  "old": "/docs/playground",
+  "file": "playground.mdx",
+  "slugs": [
+   "playground"
+  ],
+  "target": "/docs/try-automate/playground-example",
+  "split": false
+ },
+ {
+  "old": "/docs/plugins",
+  "file": "plugins.mdx",
+  "slugs": [
+   "plugins-index",
+   "plugins-shape",
+   "plugins-overlays",
+   "plugins-events",
+   "plugins-commands",
+   "plugins-example"
+  ],
+  "target": "/docs/plugins",
+  "split": true
+ },
+ {
+  "old": "/docs/project-status",
+  "file": "project-status.mdx",
+  "slugs": [
+   "version-policy",
+   "row-limits",
+   "support-matrix",
+   "upgrade",
+   "security-policy"
+  ],
+  "target": "/docs/support-upgrades/version-policy-changelog",
+  "split": true
+ },
+ {
+  "old": "/docs/quick-start",
+  "file": "quick-start.mdx",
+  "slugs": [
+   "first-grid",
+   "learn-columns",
+   "learn-edit",
+   "learn-state",
+   "learn-select",
+   "learn-sort",
+   "learn-style",
+   "install"
+  ],
+  "target": "/docs/learning-path/render-your-first-grid",
+  "split": true
+ },
+ {
+  "old": "/docs/recipes/data-fetching",
+  "file": "recipes/data-fetching/index.mdx",
+  "slugs": [
+   "server-index",
+   "ref-server-rows",
+   "find-task"
+  ],
+  "target": "/docs/data-modes",
+  "split": true
+ },
+ {
+  "old": "/docs/recipes/data-fetching/server-round-trip",
+  "file": "recipes/data-fetching/server-round-trip.mdx",
+  "slugs": [
+   "server-round-trip",
+   "server-conflicts"
+  ],
+  "target": "/docs/save-server/save-revert",
+  "split": true
+ },
+ {
+  "old": "/docs/recipes/data-fetching/server-side",
+  "file": "recipes/data-fetching/server-side.mdx",
+  "slugs": [
+   "ref-server-rows"
+  ],
+  "target": "/docs/contracts/server-rows-contract",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/data-fetching/tanstack-query",
+  "file": "recipes/data-fetching/tanstack-query.mdx",
+  "slugs": [
+   "scroll-fetch-libs"
+  ],
+  "target": "/docs/data-modes/fetch-cache",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/editing/auth-gated-cells",
+  "file": "recipes/editing/auth-gated-cells.mdx",
+  "slugs": [
+   "auth-gated"
+  ],
+  "target": "/docs/editing-cells/lock-cells-role",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/editing/custom-cell-type",
+  "file": "recipes/editing/custom-cell-type.mdx",
+  "slugs": [
+   "custom-cell-example"
+  ],
+  "target": "/docs/recipes-custom-code/write-cell-type",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/editing/edit-row-with-form",
+  "file": "recipes/editing/edit-row-with-form.mdx",
+  "slugs": [
+   "edit-row-form"
+  ],
+  "target": "/docs/editing-cells/edit-rows-forms",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes",
+  "file": "recipes/index.mdx",
+  "slugs": [
+   "find-task"
+  ],
+  "target": "/docs/terms-help/task-finder",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/ui-patterns/bulk-actions",
+  "file": "recipes/ui-patterns/bulk-actions.mdx",
+  "slugs": [
+   "bulk-actions"
+  ],
+  "target": "/docs/recipes-custom-code/run-bulk-actions",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/ui-patterns/detail-panel",
+  "file": "recipes/ui-patterns/detail-panel.mdx",
+  "slugs": [
+   "detail-panel"
+  ],
+  "target": "/docs/recipes-custom-code/open-detail-panel",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/ui-patterns/multiple-grids",
+  "file": "recipes/ui-patterns/multiple-grids.mdx",
+  "slugs": [
+   "multiple-grids"
+  ],
+  "target": "/docs/recipes-custom-code/link-multiple-grids",
+  "split": false
+ },
+ {
+  "old": "/docs/recipes/ui-patterns/remember-view",
+  "file": "recipes/ui-patterns/remember-view.mdx",
+  "slugs": [
+   "remember-view"
+  ],
+  "target": "/docs/recipes-custom-code/remember-filters-layout",
+  "split": false
+ },
+ {
+  "old": "/docs/row-operations",
+  "file": "row-operations.mdx",
+  "slugs": [
+   "rows-index",
+   "row-operations",
+   "row-reorder",
+   "row-markers",
+   "server-row-ops"
+  ],
+  "target": "/docs/rows-pages-menus",
+  "split": true
+ },
+ {
+  "old": "/docs/selection-keyboard",
+  "file": "selection-keyboard.mdx",
+  "slugs": [
+   "selection-index",
+   "selection-model",
+   "pointer-selection",
+   "checked-rows",
+   "keyboard-nav",
+   "server-selection",
+   "cheat-shortcuts"
+  ],
+  "target": "/docs/selection-shortcuts",
+  "split": true
+ },
+ {
+  "old": "/docs/sorting-filtering-search",
+  "file": "sorting-filtering-search.mdx",
+  "slugs": [
+   "sfs-index",
+   "sorting",
+   "filtering",
+   "quick-search",
+   "server-sort-filter"
+  ],
+  "target": "/docs/sort-filter-search",
+  "split": true
+ },
+ {
+  "old": "/docs/streaming-updates",
+  "file": "streaming-updates.mdx",
+  "slugs": [
+   "streaming"
+  ],
+  "target": "/docs/rows-live-data/stream-updates",
+  "split": false
+ },
+ {
+  "old": "/docs/styling-theming",
+  "file": "styling-theming.mdx",
+  "slugs": [
+   "look-index",
+   "style-tokens",
+   "ref-style-surface",
+   "styling-model",
+   "style-overrides",
+   "style-density",
+   "loading-state",
+   "i18n"
+  ],
+  "target": "/docs/theme-style-language",
+  "split": true
+ },
+ {
+  "old": "/docs/terms",
+  "file": "terms.mdx",
+  "slugs": [
+   "terms",
+   "grid-state-model"
+  ],
+  "target": "/docs/terms-help/terms",
+  "split": true
+ },
+ {
+  "old": "/docs/virtualization",
+  "file": "virtualization.mdx",
+  "slugs": [
+   "virtualization",
+   "row-limits"
+  ],
+  "target": "/docs/performance/virtualization",
+  "split": true
+ }
+]

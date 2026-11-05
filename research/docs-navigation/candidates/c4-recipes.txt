@@ -1,0 +1,49 @@
+@ Recipes
+## UI patterns
+- recipes-index | Recipes | landing | 300
+- detail-panel | Open a detail panel | task | 500
+- bulk-actions | Run bulk actions | task | 335
+- remember-view | Remember the view | task | 300
+- multiple-grids | Sync multiple grids | task | 120
+## Editing recipes
+- edit-recipes-index | Editing recipes | landing | 150
+- edit-row-form | Edit a row with a form | task | 530
+- auth-gated | Gate cells by role | task | 175
+## Examples: basics
+- examples-index | Examples | landing | 250
+### Foundations
+- ex-minimal | Render a minimal grid example | task | 130
+- ex-editable | Render an editable grid example | task | 160
+- ex-celltypes | Show every cell type example | task | 150
+- ex-custom | Render a custom cell example | task | 200
+### Columns
+- ex-pinning-cols | Pin columns example | task | 215
+- ex-col-drag | Drag columns example | task | 170
+- ex-col-filter | Filter columns example | task | 360
+- ex-col-headers | Customize headers example | task | 150
+- ex-col-layout | Save a column layout example | task | 225
+- ex-col-groups | Group columns example | task | 185
+### Rows
+- ex-pinning-rows | Pin rows example | task | 210
+- ex-row-ops | Add and delete rows example | task | 280
+- ex-row-drag | Drag rows example | task | 570
+- ex-row-markers | Show row markers example | task | 180
+- ex-row-actions | Add row actions example | task | 290
+- ex-row-stream | Stream rows example | task | 165
+## Examples: data and forms
+- examples-data-index | Data and form examples | landing | 200
+### Validation
+- ex-validation | Validate cells example | task | 530
+- ex-async-validation | Validate asynchronously example | task | 415
+- ex-server-errors | Map server errors to cells example | task | 300
+- ex-cross-field | Validate across fields example | task | 240
+### Data
+- ex-server | Fetch from a server example | task | 600
+- ex-large | Render large data example | task | 200
+- ex-lazy | Load rows lazily example | task | 310
+- ex-pages | Load rows by page example | task | 210
+- ex-orm | Connect an ORM example | task | 600
+### Appearance
+- ex-styling | Style with CSS variables example | task | 225
+- ex-loading | Show loading state example | task | 260
+- ex-rtl | Render right to left example | task | 360

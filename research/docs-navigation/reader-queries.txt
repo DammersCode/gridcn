@@ -1,0 +1,78 @@
+# query | slug of the page that must answer it (candidate c19)
+frozen columns | column-order-pin
+sticky columns | column-order-pin
+pin columns left | column-order-pin
+freeze rows | pinned-rows
+infinite scroll | scroll-usage
+lazy loading rows | scroll-usage
+load more rows | scroll-usage
+server side pagination | pagination
+client side pagination | pagination-client
+paging | pagination-client
+server side sorting | server-sort-filter
+sort mode server | server-sort-filter
+export to excel | export
+export csv | export
+import excel file | import
+paste from excel | clipboard
+copy cells | clipboard
+undo redo | undo-redo
+drag to fill cells | fill
+autofill | fill
+dark mode | style-tokens
+change colors | style-tokens
+border radius | style-tokens
+row height | style-density
+compact density | style-density
+translate labels | i18n
+right to left | i18n
+keyboard navigation | keyboard-nav
+keyboard shortcuts | cheat-shortcuts
+validate cell | validation
+dropdown cell | cell-types
+date picker cell | cell-types
+select rows with checkbox | checked-rows
+context menu right click | context-menu
+find and replace | find-replace
+search in the grid | quick-search
+filter by column | header-filter
+save the view in the url | url-state
+resize columns | column-sizing
+hide columns | column-visibility
+group columns under a header | column-headers
+who is online | presence
+realtime updates websocket | streaming
+virtual scrolling | virtualization
+how fast is it | benchmark-results
+one million rows | row-limits
+screen reader | a11y-conformance
+install | install
+upgrade to a new version | upgrade
+error message | ref-messages
+saved edit was refused | server-conflicts
+which props exist | cheat-props
+make a column editable | edit-activation
+what does view index mean | terms
+editable grid example | ex-editable
+quick start | first-grid
+optimistic update | server-round-trip
+rollback | server-round-trip
+conflict | server-conflicts
+master detail | detail-panel
+write a plugin | plugins-example
+custom cell type | custom-cell-example
+remap shortcuts | keybindings
+sum of selected cells | status-bar
+getRowId | ref-datagrid
+onDataChange | ev-data
+validateRow | validation
+blockSize | options-server-rows
+add a row | row-operations
+read only column | edit-activation
+date editor | cell-types
+grid shows nothing | install-problems
+controlled data | ev-data
+next.js app router | install
+cell renderer | display-override
+reorder rows | row-reorder
+tooltip provider | install-problems

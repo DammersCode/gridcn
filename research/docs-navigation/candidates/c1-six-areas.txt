@@ -1,0 +1,129 @@
+// C1: six areas split by reader intent. Add-ons are their own area, matching the install units.
+@ Learn
+## Start here
+- index | Introduction | landing | 300
+- install | Install gridcn | task | 600
+- first-grid | Your first grid | step | 500
+- terms | Terms | reference | 600
+## The path
+- learn-index | Learning path | landing | 250
+- learn-columns | Define columns | step | 500
+- learn-edit | Edit cells | step | 500
+- learn-select | Select and paste | step | 500
+- learn-sort | Add sorting and filters | step | 500
+- learn-save | Save changes | step | 600
+- learn-style | Style the grid | step | 500
+- learn-server | Load rows from a server | step | 600
+@ Guide
+## Editing cells
+- editing-index | Editing cells | landing | 250
+- edit-activation | Start and stop editing | feature | 700
+- cell-types | Built-in cell types | feature | 1100
+- validation | Validate cells | feature | 900
+- display-override | Override a cell display | feature | 400
+- clipboard | Copy and paste | feature | 900
+## Selection and keyboard
+- selection-index | Selection and keyboard | landing | 250
+- selection-model | Selection model | feature | 700
+- pointer-selection | Mouse and touch selection | feature | 800
+- checked-rows | Checked rows | feature | 600
+- keyboard-nav | Keyboard navigation | feature | 900
+- global-shortcuts | Global shortcuts | feature | 850
+## Sort, filter, and search
+- sfs-index | Sort, filter, and search | landing | 250
+- sorting | Sorting | feature | 600
+- filtering | Filtering | feature | 700
+- search | Search | feature | 450
+- initial-view | Initial sort, filter, and search | feature | 350
+## Rows
+- rows-index | Rows | landing | 250
+- row-actions | Row actions | feature | 900
+- row-reorder | Reorder rows | feature | 600
+- row-markers | Row markers | feature | 500
+- row-programmatic | Row actions in code | feature | 600
+- pinned-rows | Pinned rows | feature | 1100
+## Columns and layout
+- columns-index | Columns and layout | landing | 250
+- column-sizing | Resize and autosize | feature | 800
+- column-order-pin | Reorder and pin | feature | 700
+- column-headers | Headers and groups | feature | 600
+- column-visibility | Visibility and state | feature | 600
+## Look and language
+- look-index | Look and language | landing | 250
+- style-tokens | Colors and tokens | feature | 900
+- style-surface | Class and data attributes | feature | 800
+- style-overrides | Override recipes | feature | 700
+- style-density | Density and small screens | feature | 700
+- loading-state | Loading state | feature | 300
+- i18n | Labels and i18n | feature | 1000
+## Performance and accessibility
+- quality-index | Performance and accessibility | landing | 250
+- performance | Performance | feature | 500
+- virtualization | Virtualization | feature | 900
+- a11y-conformance | Accessibility conformance | feature | 900
+- a11y-keyboard | Keyboard and screen reader coverage | feature | 900
+## Extending
+- extending-index | Extending gridcn | landing | 250
+- custom-cell-model | Custom cell types | feature | 700
+- custom-cell-example | Build a currency cell | task | 950
+- plugins-shape | Plugins | feature | 600
+- plugins-overlays | Plugin overlays and bands | feature | 700
+- plugins-commands | Plugin commands and keys | feature | 700
+- plugins-example | Build a column highlight plugin | task | 600
+@ Server
+## Choose a mode
+- server-index | Server data | landing | 300
+- data-modes | Data modes matrix | reference | 900
+- server-troubleshooting | Server troubleshooting | task | 800
+## Scroll mode
+- scroll-index | Scroll mode | landing | 300
+- scroll-usage | Scroll mode usage | feature | 700
+- scroll-edit | Edit loaded rows | feature | 500
+- scroll-errors | Errors and retention | feature | 800
+- scroll-sort-filter | Sort and filter scroll rows | feature | 700
+- scroll-no-total | A source with no total | feature | 350
+- scroll-selection | Select, copy, and export | feature | 450
+- scroll-fetch-libs | Fetch with a cache library | task | 650
+## Paged mode
+- paged-index | Paged mode | landing | 250
+- pagination | Pagination | feature | 900
+- server-sort-filter | Server sort and filter | task | 700
+- pagination-url | Pagination in the URL | task | 350
+## Saving edits
+- saving-index | Saving edits | landing | 250
+- server-saves | Save a change | feature | 900
+- server-round-trip | Optimistic edits and rollback | task | 900
+- server-errors | Show server errors | feature | 500
+- server-undo | Undo with server saves | feature | 450
+## Rows and selection
+- server-rows-index | Server rows | landing | 250
+- server-row-ops | Row actions on server data | feature | 800
+- server-selection | Selection over a server result | feature | 450
+- streaming | Streaming updates | feature | 1000
+@ Add-ons
+## Search and filter
+- addons-index | Add-ons | landing | 300
+- toolbar | Toolbar | feature | 800
+- header-filter | Header filter | feature | 450
+- sort-list | Sort list | feature | 400
+- find-replace | Find and replace | feature | 1100
+## History and sync
+- history-index | History and sync | landing | 200
+- undo-redo | Undo and redo | feature | 900
+- undo-programmatic | Record and roll back | feature | 600
+- url-state | URL state | feature | 1250
+- presence | Multiplayer presence | feature | 1100
+- presence-broadcast | Broadcast your selection | feature | 345
+## Import and export
+- io-index | Import and export | landing | 200
+- export | Export | feature | 900
+- import | Import | feature | 1000
+- print-dropzone | Print and dropzone | feature | 700
+## Interaction
+- interaction-index | Interaction add-ons | landing | 200
+- fill | Fill handle | feature | 855
+- context-menu | Context menu | feature | 1000
+- keybindings | Keybindings | feature | 1200
+- status-bar | Status bar | feature | 550
+<< common-recipes.txt
+<< common-reference.txt

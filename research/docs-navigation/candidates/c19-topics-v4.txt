@@ -1,0 +1,283 @@
+// C19: topic-first, final. Column 5 (optional) lists the aliases a reader may type; the Terms page lists them.
+// C19 (round 16): option subgroups have generated landings, one both-mode cache page, planned growth named.
+// C19 (round 15): flat Contracts group, Plugins group back, concepts together, steps named plan, titles distinct.
+// C19 (round 14): one Contracts group with subgroups, code budgets on heavy pages.
+// C19 (round 13): custom code path, one sort-and-filter server page, options grouped by Build topic, cell type group.
+// C19 (round 12): column 5 = aliases (one owner each), column 6 = planned code lines.
+// C19 (round 11): The last polish after the round-9 scoring (plugin commands moved, group renamed, keeping-fast retitled) is not re-scored. Paths per goal (Learning path, Server path), three persona entries on the home page,
+// at most 9 groups per area, at most 20 rows visible, consolidated option pages, landing titles equal group labels.
+@ Learn
+## Learning path
+- index | Start here | landing | 300
+- install | Install gridcn | step | 420 | next.js app router, vite, tailwind, shadcn | 20
+- first-grid | Render your first grid | step | 500 | quick start, hello world | 40
+- learn-columns | Define columns | step | 500
+- learn-edit | Edit cells | step | 500
+- learn-state | Keep edits in state | step | 600 | | 30
+- learn-select | Select and paste | step | 500
+- learn-sort | Sort and filter rows | step | 500
+- learn-style | Style the grid | step | 500
+## Server path
+- server-path | Server path | landing | 300
+- sp-choose | Compare data modes | step | 300
+- sp-load | Load server rows | step | 350
+- sp-save | Plan server saves | step | 350
+- sp-failures | Handle failures | step | 300
+- sp-live | Go live with streaming | step | 300
+## Custom code path
+- extension-path | Custom code path | landing | 300
+- ep-choose | Pick a code route | step | 300
+- ep-cell | Plan a cell type | step | 350
+- ep-plugin | Plan a plugin | step | 350
+## Terms and help
+- lookup-index | Terms and help | landing | 250
+- find-task | Task finder | cheatsheet | 900
+- terms | Terms | cheatsheet | 1000 | glossary, definition, view index, range, active cell
+- install-problems | Fix install problems | task | 800 | grid shows nothing, blank grid, tooltip provider, github registry
+## Try and automate
+- tools-index | Try and automate | landing | 200
+- playground | Playground example | example | 300
+- agent-skills | Use agent skills | task | 800
+@ Build
+## Editing cells
+- editing-index | Editing cells | landing | 250
+- edit-activation | Editable columns | feature | 700 | cell editor, custom editor, edit activation, make a column editable, read only column
+- cell-types | Built-in cell types | feature | 1100 | number format, dropdown, date picker, select cell, number cell | 40
+- validation | Validation | feature | 900 | validate cell, invalid value, validaterow, validate row | 40
+- display-override | Display override | feature | 400 | cell renderer, rendercell, custom display
+- edit-row-form | Edit rows in forms | task | 530
+- auth-gated | Lock cells by role | task | 300
+## Clipboard and undo
+- clipboard-index | Clipboard and undo | landing | 250
+- clipboard | Clipboard | feature | 900 | copy paste, paste from excel, usedatagridclipboard | 30
+- fill | Fill handle | feature | 855 | autofill, drag fill | 20
+- undo-redo | Undo and redo | feature | 900 | | 30
+- undo-programmatic | Undo for code changes | feature | 600
+## Selection and shortcuts
+- selection-index | Selection and shortcuts | landing | 250
+- pointer-selection | Pointer selection | feature | 800
+- checked-rows | Checked rows | feature | 600 | checkbox selection, select rows
+- keyboard-nav | Keyboard navigation | feature | 900 | arrow keys, tab key
+- global-shortcuts | Global shortcuts | feature | 850 | hotkeys, shortcuts outside the grid
+- keybindings | Shortcut remapping | feature | 1200 | keybindings, rebind keys, remap shortcuts
+- status-bar | Status bar | feature | 550 | selection summary, sum of selected cells
+## Sort, filter, and search
+- sfs-index | Sort, filter, and search | landing | 250
+- sorting | Sorting | feature | 1200 | sort list | 30
+- filtering | Filtering | feature | 700
+- header-filter | Header filter | feature | 450 | column filter, filter by column
+- toolbar | Toolbar | feature | 800 | | 40
+- quick-search | Quick search | feature | 450 | search box
+- find-replace | Find and replace | feature | 1100 | | 20
+- url-state | URL state | feature | 1000 | query string, bookmark view, share view, persist sort and filter | 40
+## Rows, pages, and menus
+- rows-index | Rows, pages, and menus | landing | 250
+- row-operations | Row operations | feature | 1100 | add a row, delete rows, programmatic row actions | 40
+- row-reorder | Row order | feature | 600 | reorder rows, drag rows
+- row-markers | Row markers | feature | 500
+- pinned-rows | Pinned rows | feature | 1100 | freeze rows, sticky rows | 30
+- pagination-client | Client pagination | feature | 700 | pagination, paging, client pagination, page size | 40
+- context-menu | Context menu | feature | 1000 | | 30
+## Columns
+- columns-index | Columns | landing | 250
+- column-sizing | Column sizing | feature | 800 | resize columns, column width, autosize
+- column-order-pin | Column order and pinning | feature | 700 | frozen columns, freeze columns, sticky columns, pin left
+- column-headers | Column headers and groups | feature | 600
+- column-visibility | Column visibility | feature | 600 | hide columns, show columns
+## Theme, style, and language
+- look-index | Theme, style, and language | landing | 250
+- style-tokens | Colors and radius | feature | 900 | dark mode, theme, border radius
+- style-overrides | Style overrides | feature | 700
+- style-density | Density and small screens | feature | 700 | row height, compact
+- loading-state | Loading state | feature | 350 | loading spinner
+- i18n | Labels and i18n | feature | 1000 | translation, rtl, right to left, language | 40
+## Import and export
+- io-index | Import and export | landing | 250
+- export | Export | feature | 900 | csv export, excel export, xlsx download, csv injection, formula injection
+- import | Import | feature | 1000 | csv import, excel import, csv upload
+## Recipes and custom code
+- extend-index | Recipes and custom code | landing | 250
+- custom-cell-example | Write a cell type | task | 800 | custom cell type | 60
+- plugins-example | Write a plugin | task | 600 | write a plugin, highlight plugin
+- detail-panel | Open a detail panel | task | 500 | master detail, expand row
+- bulk-actions | Run bulk actions | task | 335 | multi row action
+- multiple-grids | Link multiple grids | task | 300 | sync grids, linked grids
+- remember-view | Remember filters and layout | task | 300 | remember column layout, restore view
+@ Server
+## Data modes
+- server-index | Data modes | landing | 350
+- data-modes | Data mode support | reference | 900
+- scroll-fetch-libs | Fetch with a cache | task | 800 | react query, swr, tanstack query | 50
+- server-sort-filter | Query server rows | task | 800 | server side sorting, server sort, server filter, server search, searchtext, sortmode
+- server-troubleshooting | Troubleshoot server data | task | 800
+## Server pagination
+- pages-index | Server pagination | landing | 250
+- pagination | Load rows by page | task | 800 | server pagination, server side pagination | 50
+- pagination-url | Keep pages in URL | task | 350
+## Scroll mode
+- scroll-index | Scroll mode | landing | 300
+- scroll-usage | Load rows while scrolling | task | 700 | infinite scroll, load more, lazy loading rows | 40
+- scroll-no-total | Load without row count | task | 350
+- scroll-errors | Recover from load errors | task | 500
+- scroll-retention | Tune row retention | task | 350
+## Save to a server
+- saving-index | Save to a server | landing | 250
+- server-saves | Save edits | task | 800 | onsave, save status, onsaverejected | 40
+- server-round-trip | Save and revert | task | 800 | optimistic update, rollback, roll back | 50
+- server-conflicts | Handle refused saves | task | 500 | conflict, refused save
+- server-errors | Show errors on cells | task | 500
+- server-undo | Undo with server data | task | 700
+## Rows and live data
+- server-rows-index | Rows and live data | landing | 250
+- server-row-ops | Change server rows | task | 800
+- server-selection | Select server rows | task | 800
+- streaming | Stream updates | task | 800 | realtime, websocket, live updates | 40
+- presence | Show presence | task | 800 | who is online, cursors, multiplayer | 40
+- presence-broadcast | Broadcast your selection | task | 345
+@ Evaluate
+## Fit and features
+- evaluate-index | Fit and features | landing | 300
+- feature-matrix | Feature matrix | cheatsheet | 900 | row grouping, tree data, aggregation
+## Performance
+- performance | Performance | landing | 350
+- benchmark-results | Benchmark results | reference | 900 | how fast, performance numbers, speed
+- run-benchmark | Run the benchmark | task | 600
+- keeping-fast | Performance guidance | concept | 600
+- virtualization | Virtualization | concept | 900 | virtual scroll
+- row-limits | Row limits | reference | 400 | one million rows, max rows, row ceiling
+## Accessibility
+- a11y-index | Accessibility | landing | 250
+- a11y-conformance | Screen reader support | concept | 900
+- a11y-keyboard | Keyboard test coverage | reference | 900
+- a11y-known-gaps | Accessibility gaps | reference | 400
+## Support and upgrades
+- compat-index | Support and upgrades | landing | 200
+- version-policy | Version policy and changelog | reference | 500
+- support-matrix | Browser and framework support | reference | 400
+- upgrade | Upgrade gridcn | task | 450 | breaking changes, migration, update version
+- security-policy | Security policy | reference | 300
+- license | License and credits | reference | 250
+@ Reference
+## Components and props
+- ref-index | Components and props | landing | 250
+- ref-datagrid | DataGrid props | reference | 1200 | getrowid, row id, props
+- ref-provider | DataGridProvider | reference | 500
+- ref-columndef | ColumnDef | reference | 900
+- ref-labels | Labels | reference | 700
+## Events and state
+- events-index | Events and state | landing | 200
+- events-model | Event shapes | reference | 600
+- ev-data | Data change events | reference | 900 | ondatachange, controlled data, controlled mode
+- ev-sort-filter | Sort and filter events | reference | 450
+- ev-edit | Edit and validation events | reference | 700 | onvalidationerror, oneditstart, oneditend, oninvalid
+- ev-cell | Selection and cell events | reference | 1000
+- ev-columns | Column and viewport events | reference | 600
+## Contracts
+- contracts-index | Contracts | landing | 200
+- ref-celltype | CellType contract | reference | 1400 | | 30
+- ref-server-rows | Server rows contract | reference | 1100
+- ref-style-surface | Style contract | reference | 700
+- ref-engine | Operation engine contract | reference | 500
+## Plugins
+- plugins-index | Plugins | landing | 250
+- ref-plugin | Plugin contract | reference | 900
+- plugins-commands | Plugin commands and shortcuts | reference | 700
+- plugins-shape | Plugin shape | concept | 600
+- plugins-overlays | Plugin overlays | concept | 700
+- plugins-events | Plugin events | concept | 500
+## Concepts
+- concepts-index | Concepts | landing | 250
+- selection-model | Selection model | concept | 700
+- custom-cell-model | Cell type model | concept | 700
+- styling-model | Styling model | concept | 500
+- grid-state-model | State and view index | concept | 600
+## Types and hooks
+- types-index | Types and hooks | landing | 200
+- ref-types | Exported types | reference | 600
+- ref-store-hooks | Store hooks | reference | 600
+- use-debounce | useDebounce | reference | 300
+- use-debounced-input | useDebouncedInput | reference | 400
+- is-composing-key | isComposingKey | reference | 300
+## Add-on options
+- options-index | Add-on options | landing | 300
+### Clipboard and undo
+- options-clipboard-undo-index | Clipboard and undo options | landing | 100
+- options-fill | Fill handle options | reference | 400
+- options-undo-redo | Undo and redo options | reference | 500
+### Import and export
+- options-import-export-index | Import and export options | landing | 100
+- options-export | Export options | reference | 600
+- options-import | Import options | reference | 700
+### Rows, pages, and menus
+- options-rows-pages-menus-index | Rows, pages, and menus options | landing | 100
+- options-context-menu | Context menu options | reference | 500
+- options-pagination | Client pagination options | reference | 400 | page size options
+- options-pinned-rows | Pinned rows options | reference | 400
+### Selection and shortcuts
+- options-selection-shortcuts-index | Selection and shortcuts options | landing | 100
+- options-keybindings | Shortcut remapping options | reference | 500
+- options-status-bar | Status bar options | reference | 400
+### Server
+- options-server-index | Server options | landing | 100
+- options-presence | Presence options | reference | 600
+- options-server-rows | Server rows options | reference | 500 | blocksize, usedatagridserverrows, server rows options
+### Sort, filter, and search
+- options-sort-filter-search-index | Sort, filter, and search options | landing | 100
+- options-find | Find and replace options | reference | 500
+- options-sort-list | Sort list options | reference | 300
+- options-toolbar | Toolbar options | reference | 600
+- options-url-state | URL state options | reference | 400
+## Cheatsheets and messages
+- cheat-index | Cheatsheets and messages | landing | 150
+- cheat-shortcuts | Keyboard shortcuts | cheatsheet | 800
+- cheat-props | Props A to Z | cheatsheet | 1100
+- cheat-events | Events A to Z | cheatsheet | 900
+- hooks-az | Hooks A to Z | cheatsheet | 500 | hooks
+- options-az | Options A to Z | cheatsheet | 600 | add-on options, option names
+- ref-messages | Messages | reference | 1500 | error message, warning, console warning
+@ Examples
+## Basic examples
+- examples-index | Basic examples | landing | 250
+- ex-minimal | Minimal grid example | example | 130
+- ex-editable | Editable grid example | example | 160
+- ex-celltypes | Cell types example | example | 150
+- ex-custom | Custom cell type example | example | 200
+## Column examples
+- ex-columns-index | Column examples | landing | 150
+- ex-pinning-cols | Pinned columns example | example | 215
+- ex-col-drag | Column order example | example | 170
+- ex-col-filter | Header filter example | example | 360
+- ex-col-headers | Column headers example | example | 150
+- ex-col-layout | Column layout example | example | 225
+- ex-col-groups | Column groups example | example | 185
+## Row examples
+- ex-rows-index | Row examples | landing | 150
+- ex-pinning-rows | Pinned rows example | example | 210
+- ex-row-ops | Row operations example | example | 280
+- ex-row-drag | Row order example | example | 500
+- ex-row-markers | Row markers example | example | 180
+- ex-row-actions | Row actions example | example | 290
+- ex-row-stream | Streaming rows example | example | 165
+## Validation examples
+- ex-validation-index | Validation examples | landing | 150
+- ex-validation | Validation example | example | 500
+- ex-async-validation | Async validation example | example | 415
+- ex-server-errors | Server errors example | example | 300
+- ex-cross-field | Cross-field validation example | example | 240
+- ex-async-gates | Async gates example | example | 300
+## Server and data examples
+- ex-data-index | Server and data examples | landing | 150
+- ex-server | Server rows example | example | 500
+- ex-large | Large data example | example | 200
+- ex-lazy | Scroll mode example | example | 310
+- ex-pages | Server pagination example | example | 210
+### ORM examples
+- ex-orm-index | ORM examples | landing | 100
+- ex-orm-drizzle | Drizzle example | example | 250
+- ex-orm-prisma | Prisma example | example | 200
+- ex-orm-supabase | Supabase example | example | 200
+## Style examples
+- ex-appearance-index | Style examples | landing | 150
+- ex-styling | Styling example | example | 225
+- ex-loading | Loading state example | example | 260
+- ex-rtl | Right-to-left example | example | 360

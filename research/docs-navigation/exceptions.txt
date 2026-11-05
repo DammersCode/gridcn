@@ -1,0 +1,5 @@
+# rule page reason
+
+N4 options-*-index generated landing titles read '<subgroup label> options' so they differ from the Build landing of the same label
+N1 options-rows-pages-menus-index landing title is the Build group label plus 'options'
+N1 options-sort-filter-search-index landing title is the Build group label plus 'options'
