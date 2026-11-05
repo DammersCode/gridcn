@@ -1,5 +1,5 @@
 {
   "title": "Hooks",
   "icon": "Timer",
-  "pages": ["use-debounce"]
+  "pages": ["use-debounce", "use-debounced-input", "is-composing-key"]
 }

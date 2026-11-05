@@ -1,0 +1,38 @@
+---
+title: isComposingKey
+description: "isComposingKey tells whether a keydown belongs to an IME composition."
+icon: Timer
+---
+
+An IME (input method editor) composes text from several keys, for example Japanese or Chinese text. The keys that confirm or cancel a composition look like plain `Enter` and `Escape` keys. `isComposingKey(event)` tells them apart, so your key handler leaves the composition alone. The function has no dependency on the grid.
+
+<InstallCommand item="is-composing-key" />
+
+The item installs `isComposingKey` to `components/gridcn/is-composing-key.ts`.
+
+## Usage
+
+Pass the keydown event and return early when the result is `true`:
+
+```tsx
+function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  if (isComposingKey(event)) return;
+  if (event.key === "Enter") submit();
+}
+```
+
+`isComposingKey` returns `true` in two cases:
+
+- The event has `isComposing` set to `true`.
+- The event has `keyCode` `229`. Safari confirms a composition with this key and reports `isComposing` as `false`.
+
+The function takes a React keyboard event or a native one. It reads only `isComposing` and `keyCode`.
+
+<Callout type="warn" title="Enter and Escape handlers">
+  If a handler acts on `Enter` or `Escape`, test `isComposingKey(event)` first. Without the test, the key that confirms a composition also submits or cancels the field, and the user loses the composed text.
+</Callout>
+
+## Related
+
+- [useDebouncedInput](/docs/hooks/use-debounced-input): a text input that holds every commit until the composition ends.
+- [useDebounce](/docs/hooks/use-debounce): delays a value until it stops changing.
