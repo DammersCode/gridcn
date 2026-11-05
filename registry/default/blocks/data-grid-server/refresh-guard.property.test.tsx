@@ -1,5 +1,5 @@
 /*
- * Model test of the refresh guard: a seeded interleaving of landings, failures, saves, edits, pushes, local row operations, server moves,
+ * Model test of the refresh guard: a seeded interleaving of landings, failures, saves, edits, pushes, push deletes, local row operations, server moves,
  * filter changes and unmounts, checked against the rule after every step and against the backend after a final drain.
  * Remaining exemptions, each for one reason:
  * - Duplicate ids are not checked while rows that moved on the server (or shifted locally, in sequential sources) mix with older rows,
@@ -55,6 +55,7 @@ function createBackend() {
   const rows: ServerRow[] = Array.from({ length: BASE_ROWS }, (_, i) => ({ id: `r${i}`, ver: 0 }));
   let nextNew = 0;
   let filter = "";
+  const backend_ids = () => visible().map((row) => row.id);
   const visible = () => (filter === "even" ? rows.filter((row) => Number(row.id.slice(1)) % 2 === 0 || row.id.startsWith("n")) : rows.slice());
   return {
     visible,
@@ -73,6 +74,10 @@ function createBackend() {
       const row = rows[index % rows.length];
       if (row) rows.splice((index * 7 + 3) % rows.length, 0, { ...row });
     },
+    hasRepeat: () => {
+      const ids = backend_ids();
+      return new Set(ids).size !== ids.length;
+    },
     toRow: (row: ServerRow): Row => ({ id: row.id, name: nameOf(row) }),
   };
 }
@@ -85,6 +90,8 @@ type Request = {
   deletedSince: Set<string>;
   /** Pushes made while the request was open: the answer must not take them back. */
   pushed: Map<string, string>;
+  /** A push delete shifted the server positions after this request left: its slots mix with the shifted rows. */
+  shifted: boolean;
   signal: AbortSignal;
   rows: Row[];
   start: number;
@@ -100,6 +107,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   const backend = createBackend();
   // Pushes draw from their own stream, so adding them leaves the interleavings of the other steps as they were.
   const pusher = prng(0x51ed270b);
+  const deleter = prng(0x2b7e1516);
+  const streamDeleted = new Set<string>();
   const held: Request[] = [];
   const saves: Save[] = [];
   const trace: string[] = [];
@@ -127,9 +136,9 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     return ids;
   };
   let stepStartCalls = 0;
-  const open = (request: Omit<Request, "saving0" | "savedSince" | "deleted0" | "deletedSince" | "pushed" | "label">, label: string) => {
+  const open = (request: Omit<Request, "saving0" | "savedSince" | "deleted0" | "deletedSince" | "pushed" | "shifted" | "label">, label: string) => {
     if (++fetchCalls - stepStartCalls > STEP_REQUEST_CAP) throw new Error("request loop");
-    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set(), deleted0: new Set(pendingDeletes), deletedSince: new Set(), pushed: new Map() });
+    held.push({ ...request, label, saving0: savingIds(), savedSince: new Set(), deleted0: new Set(pendingDeletes), deletedSince: new Set(), pushed: new Map(), shifted: false });
   };
 
   const fetchScroll = (request: ServerRowsRequest<number>): Promise<ServerRowsAnswer<Row, number>> => {
@@ -246,6 +255,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       expect(new Set(ids).size, `duplicate ids ${ids.filter((id, i) => ids.indexOf(id) !== i).join(",")}`).toBe(ids.length);
     }
     for (const row of rows) if (row) known.set(row.id, row.name);
+    for (const id of streamDeleted) expect(copiesOf(rows, id).length, `push-deleted ${id} reappeared`).toBe(0);
   }
 
   /** Lands one request and asserts the rule on the rows it carries. */
@@ -266,6 +276,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {
       const slot = kind === "pages" ? i : request.start + i;
+      if (request.shifted && !gone.has(carried.id)) return;
       const copies = copiesOf(post, carried.id);
       if (gone.has(carried.id)) {
         expect(copies.length, `deleted ${carried.id} came back`).toBe(0);
@@ -394,7 +405,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       const changed = filter !== filterNow;
       filterNow = filter;
       act(() => (kind === "pages" ? pages.gridProps.onSearchTextChange?.(filter) : scroll.gridProps.onSearchTextChange?.(filter)));
-      if (changed) {
+      // A repeated id on the server keeps rows mixed: the view is not consistent until it leaves the result.
+      if (changed && !(variant.repeatRows && backend.hasRepeat())) {
         dirty = false;
         refreshPending = false;
       }
@@ -415,12 +427,28 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         act(() => void (applied = state().actions.updateCells([{ rowId: id, columnId: "name", value: name }]).applied));
         if (applied > 0) for (const request of held) request.pushed.set(id, name);
       }
+    } else if (r < 0.985 && !variant.indexIds) {
+      const id = loadedIds.length > 0 ? deleter.pick(loadedIds) : null;
+      if (id) {
+        trace.push(`push delete ${id}`);
+        backend.removeById(id);
+        streamDeleted.add(id);
+        for (const request of held) {
+          request.deletedSince.add(id);
+          request.shifted = true;
+        }
+        act(() => state().actions.deleteRowsById([id], { source: "stream" }));
+        shifted = true;
+        dirty = true;
+        refreshPending = false;
+        await flush();
+      }
     } else {
       trace.push("noop");
     }
     if (process.env["PROP_DEBUG"]) trace[trace.length - 1] += ` => [${data().slice(0, 64).map((row) => (row ? row.id.replace(/^r/, "") + (row.name.includes("edit") ? "*" : "") : "_")).join(" ")}]`;
     if (shifted && live().length === 0 && server().status !== "error") shifted = false;
-    if (dirty && refreshPending && live().length === 0 && server().status !== "error") {
+    if (dirty && refreshPending && live().length === 0 && server().status !== "error" && !(variant.repeatRows && backend.hasRepeat())) {
       dirty = false;
       refreshPending = false;
     }
