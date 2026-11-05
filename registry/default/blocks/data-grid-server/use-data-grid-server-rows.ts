@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { applyChange, serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
@@ -439,7 +439,8 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
       markEdited();
       trackDeletes(deleted.current, change);
       if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
-      setSettled((prev) => ({ ...prev, rows: next as TData[] }));
+      // `next` is the grid's snapshot and can predate a page that landed since; replaying the operations on the latest rows keeps it.
+      setSettled((prev) => ({ ...prev, rows: (change.ops as typeof change.ops | undefined)?.length ? applyChange(prev.rows, change, live.current.options.getRowId) : (next as TData[]) }));
       if (change.source === "stream" && ((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type === "delete")) requestReshape("soon");
       live.current.options.onDataChange?.(next, change);
     },

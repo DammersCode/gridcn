@@ -24,8 +24,9 @@ function server({ total = 100 } = {}) {
         else answer();
       }),
   );
-  const settleHeld = () => act(async () => void held.splice(0).forEach((answer) => answer()));
-  return { fetchRows, state, settleHeld };
+  const releaseHeld = () => held.splice(0).forEach((answer) => answer());
+  const settleHeld = () => act(async () => void releaseHeld());
+  return { fetchRows, state, settleHeld, releaseHeld };
 }
 
 const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
@@ -51,6 +52,7 @@ type Server = {
   gridProps: { onSortChange: (sorts: SortSpec[]) => void; onRenderedRowsChange?: (range: RowRange) => void };
   reshape: () => void;
   refresh: () => void;
+  pager?: { onPageChange: (page: number) => void };
   retry: () => void;
   error: unknown;
 };
@@ -79,9 +81,12 @@ function mountGrid(use: () => Server, strict = false) {
     server: () => server,
     view,
     push: (rowId: string, value = "Aaron", options?: Parameters<ReturnType<typeof actions>["updateCells"]>[1]) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], options)),
+    pushNow: async (rowId: string, value: string) => void actions().updateCells([{ rowId, columnId: "name", value }]),
     deleteByServer: (...ids: string[]) => act(() => void actions().deleteRowsById(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
     error: () => server.error,
+    ids: () => (store.getState().data as readonly (Row | undefined)[]).map((row) => row?.id),
+    goToPage: (page: number) => act(() => server.pager!.onPageChange(page)),
     stale: () => [...store.getState().staleRowIds].sort(),
     name: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId)?.name,
     report: (range: RowRange) => act(() => server.gridProps.onRenderedRowsChange?.(range as never)),
@@ -372,6 +377,44 @@ describe.each([
       return rest;
     });
     expect(reshapeCall).toEqual(refreshCall);
+  });
+});
+
+describe("a push between a landing and its render, pages mode", () => {
+  const flushMicrotasks = async () => {
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+  };
+
+  it("shows the landed page, not the page the push was made on", async () => {
+    const s = server();
+    const grid = await pages(s);
+    s.state.hold = true;
+    grid.goToPage(2);
+    await advance(20);
+    s.state.hold = false;
+    await act(async () => {
+      s.releaseHeld();
+      await flushMicrotasks();
+      await grid.pushNow("r2", "Pushed");
+    });
+    expect(grid.ids()).toEqual(Array.from({ length: 10 }, (_, i) => `r${10 + i}`));
+    expect(grid.name("r2")).toBeUndefined();
+  });
+
+  it("keeps a push on a refresh of the same page", async () => {
+    const s = server();
+    const grid = await pages(s);
+    s.state.hold = true;
+    act(() => grid.server().refresh());
+    await advance(20);
+    s.state.hold = false;
+    await act(async () => {
+      s.releaseHeld();
+      await flushMicrotasks();
+      await grid.pushNow("r2", "Pushed");
+    });
+    expect(grid.ids()).toHaveLength(10);
+    expect(grid.name("r2")).toBe("Pushed");
   });
 });
 
