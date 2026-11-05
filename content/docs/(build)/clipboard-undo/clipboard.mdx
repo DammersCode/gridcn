@@ -3,15 +3,15 @@ title: Clipboard
 description: Copy, cut, and paste cell ranges as TSV and HTML, protect copied formulas, and change the copy and paste steps with your own functions.
 icon: Clipboard
 type: feature
-aliases: ["copy paste", "paste from excel", "usedatagridclipboard", "tsv"]
+aliases: ["copy paste", "paste from excel", "spreadsheet paste", "usedatagridclipboard", "tsv"]
 demos: none
 ---
 
-Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste may land.
+Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
 
 ## Copy [#copy]
 
-Copy takes the primary range. If no range exists, it takes the selected rows or the selected columns whole. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> writes two formats to the clipboard:
+Copy takes the range that the user selected last. Earlier Ctrl/Cmd+click ranges stay out of the copy. If no range exists, it takes the selected rows or the selected columns whole. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> writes two formats to the clipboard:
 
 - **`text/plain`**: tab-separated values (TSV), one row per line. A cell that contains a tab, a line break, or a quote gets wrapped in quotes, and the grid doubles each inner quote.
 - **`text/html`**: a `<table>`. Each cell carries its exact text in a `data-gridcn-raw` attribute.
@@ -27,7 +27,7 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
 
 ## Formula sanitizing [#formula-sanitizing]
 
-Spreadsheet apps read a pasted cell as a formula when it starts with `=`, `+`, `-`, `@`, TAB, or CR. To paste such cells as text, set `sanitizeClipboardFormulas`:
+If a pasted cell starts with `=`, `+`, `-`, `@`, TAB, or CR, a spreadsheet app runs it as a formula. To paste such cells as text, set `sanitizeClipboardFormulas` (default `false`):
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -50,12 +50,6 @@ If the prop is on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a sin
 
 The context menu writes through the async Clipboard API. If the browser lacks or denies that API, the copy writes plain text only. A paste back from that copy keeps the quote.
 
-{/* props: DataGridSyncProps */}
-
-| Prop | Type | Default |
-| --- | --- | --- |
-| `sanitizeClipboardFormulas` | `boolean` | `false` |
-
 `DataGridProvider` takes the same prop. A custom copy UI built on `useDataGridClipboard` follows the prop, and its `sanitizeFormulas` option overrides it.
 
 ## Paste [#paste]
@@ -72,7 +66,7 @@ A column with an async `validate` holds the paste until the schema answers. [Val
 
 ## Overrides [#overrides]
 
-Three props replace a step of the pipeline. Each runs for every cell or paste, so handle the cases you do not change. This sample writes prices with a `$` sign and reads them back:
+Three props replace one step of copy or paste. Each runs for every cell or paste, so handle the cases you do not change. This sample writes prices with a `$` sign and reads them back:
 
 ```tsx
 import {
@@ -125,7 +119,25 @@ async function processPaste({ cells }: { cells: string[][] }) {
 }
 ```
 
-The grid holds the paste until the promise settles, then writes one change. The paste cap applies to the settled grid. A pending promise blocks a second paste. A rejection cancels the paste. The grid drops a late result if the grid went `readOnly`, a cell editor opened, the row under the paste is gone, or a sort or filter changed. If the row moved, the paste follows it. The [Async gates example](/docs/validation-examples/async-gates-example) shows the gate.
+The grid holds the paste until the promise settles, then writes one change. The paste cap applies to the settled grid. A pending promise blocks a second paste. A rejection cancels the paste. The grid drops a late result in four cases:
+
+- The grid went `readOnly`.
+- A cell editor opened.
+- The row or the column under the paste is gone.
+- A sort or a filter changed.
+
+If the row moved, the paste follows it. The [Async gates example](/docs/validation-examples/async-gates-example) shows the gate.
+
+### Props
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `sanitizeClipboardFormulas` | `boolean` | `false` |
+| `processCellForClipboard` | `(value, ctx) => string` | none |
+| `processCellFromClipboard` | `(text, ctx) => unknown` | none |
+| `processPaste` | `({ cells, target }) => string[][] \| false \| Promise<string[][] \| false>` | none |
 
 ## Copy and paste from code [#copy-and-paste-from-code]
 
@@ -150,7 +162,7 @@ The [context menu add-on](/docs/rows-pages-menus/context-menu#paste-permission) 
 
 Copy and paste work on the rows that `data` holds, in the order the grid displays them. In server pagination, `data` holds the current page, and a paste stops at the page's last row. With `sortMode="server"`, the displayed order is the order your server returned.
 
-A paste is one change with the source `"paste"`. The grid calls `onDataChange` and `onSave` with it, and `onSave` sends it to the server.
+A paste is one change with the source `"paste"`. The grid calls `onDataChange` and `onSave` with it, and `onSave` sends it to the server. If `onSave` resolves with `{ rejected }` or rejects, the grid reverts the refused cells through `onDataChange` with the source `"rollback"`.
 
 In scroll mode, a paste writes the loaded rows and skips rows that are not loaded. It adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode.
 

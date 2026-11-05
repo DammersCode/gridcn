@@ -2,7 +2,7 @@
 title: Undo for code changes
 description: Make changes that your code applies undoable with record or a change source, pick which sources the history keeps, and reset it for a new dataset.
 type: feature
-aliases: ["programmatic undo", "recordsources", "datasetkey"]
+aliases: ["programmatic undo", "undo api"]
 icon: Undo2
 demos: none
 ---
@@ -67,12 +67,12 @@ Every change carries a `source`. By default the history records these sources:
 | `paste` | A paste |
 | `fill` | A fill |
 | `delete` | Clearing the cells of a selection |
-| `row-operation` | Inserting, duplicating, deleting, or moving rows |
+| `row-operation` | An insert, duplicate, delete, or move of rows |
 | `import` | A change that your code tags as an import |
 | `replace` | A find and replace |
 | `app` | `record` |
 
-The history never records `history` (an undo or a redo) or `rollback`, whatever the list says. It skips `stream` by default, so a live feed of `updateCells` batches cannot fill the stack. `updateCells` tags its batch `"stream"` unless you pass a `source`. To make a batch undoable, pass `source: "edit"`. Render the component under the grid's provider, for example in a toolbar:
+The history never records `history` (an undo or a redo) or `rollback`, whatever the list says. It skips `stream` by default, so a live feed of `updateCells` batches cannot fill the stack. If you pass no `source`, `updateCells` tags its batch `"stream"`. To make a batch undoable, pass `source: "edit"`. Render the component under the grid's provider, for example in a toolbar:
 
 ```tsx
 import { useDataGridApi } from "@/components/data-grid/data-grid";
@@ -90,9 +90,9 @@ function ClearNameButton({ rowId }: { rowId: string }) {
 }
 ```
 
-To change the list, pass `recordSources` to `useDataGridHistory` or `useDataGridState`. This list records edits, pastes, and stream batches:
+To change the list, pass `recordSources` to `useDataGridHistory`. This list records edits, pastes, and stream batches:
 
-```tsx
+```tsx fragment="one option"
 const history = useDataGridHistory<Row>({
   recordSources: ["edit", "paste", "stream"],
 });
@@ -100,16 +100,44 @@ const history = useDataGridHistory<Row>({
 
 ## Dataset changes [#dataset-changes]
 
-Entries refer to rows of the old dataset. After you swap the data, an undo could insert rows that no longer belong. Pass the identity of the dataset as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render never clears them.
+After you swap the data, the entries still describe the old rows, and an undo can insert them back. Pass the identity of the dataset as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render clears nothing. This component swaps datasets:
 
 ```tsx
-const [datasetId, setDatasetId] = useState("2025");
-const [data, setData] = useState<readonly Row[]>(rowsFor("2025"));
-const history = useDataGridHistory<Row>({ datasetKey: datasetId });
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
 
-function openDataset(id: string) {
-  setData(rowsFor(id));
-  setDatasetId(id);
+type Row = { id: string; name: string };
+
+const datasets: Record<string, Row[]> = {
+  "2025": [{ id: "a", name: "Ada" }],
+  "2026": [{ id: "b", name: "Grace" }],
+};
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function MyGrid() {
+  const [datasetId, setDatasetId] = useState("2025");
+  const [data, setData] = useState<readonly Row[]>(datasets["2025"]!);
+  const history = useDataGridHistory<Row>({ datasetKey: datasetId });
+
+  const openDataset = (id: string) => {
+    setData(datasets[id]!);
+    setDatasetId(id);
+  };
+
+  return (
+    <>
+      <button onClick={() => openDataset("2026")}>Open 2026</button>
+      <DataGrid
+        data={data}
+        columns={columns}
+        onDataChange={setData}
+        plugins={[history.plugin]}
+      />
+    </>
+  );
 }
 ```
 
@@ -118,6 +146,7 @@ A dataset id and a version counter both work. The key only has to differ between
 ## Related
 
 - [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options)
 - [Undo with server data](/docs/save-server/undo-server-data)
 - [Stream updates](/docs/rows-live-data/stream-updates)
 - [Data change events](/docs/events-state/data-change-events)

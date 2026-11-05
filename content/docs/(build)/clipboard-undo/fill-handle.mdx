@@ -12,13 +12,13 @@ Typing the same value into many cells is slow. The fill handle is the small squa
 
 <InstallCommand item="data-grid-fill" manual manualSlot={<ManualInstall item="data-grid-fill" />} />
 
+## Wiring it up [#wiring-it-up]
+
 The hook returns one plugin. Pass it to the grid through `plugins`:
 
 ```tsx
-import { DataGrid } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
-
-import { defineColumns } from "@/components/data-grid/data-grid";
 
 type Row = { id: string; name: string };
 
@@ -34,9 +34,9 @@ function MyGrid() {
 }
 ```
 
-## Copy and series
+## Copy and series [#tiling-vs-series-inference]
 
-The drag snaps to the axis that you move further on. By default, the fill repeats the source cells over the target. A single cell repeats, and a two-row source repeats every two rows.
+The drag snaps to the axis that you move further on. Press <kbd>Escape</kbd> during a drag to cancel it. By default, the fill repeats the source cells over the target. A single cell repeats, and a two-row source repeats every two rows.
 
 If the source cells form a series, the fill continues the series instead:
 
@@ -46,11 +46,13 @@ If the source cells form a series, the fill continues the series instead:
 
 A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. A number with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own. The text detector continues the trailing number, so `2026-01-30, 2026-01-31` continues as `2026-01-32`. A custom detector below handles real dates.
 
-Hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) while you drag to force a plain copy, even over a series.
-
 After a fill commits, the written cells play a short fade pulse. The pulse plays only for cells in the viewport.
 
-## Keyboard and touch
+### Forcing a plain copy [#forcing-a-plain-copy]
+
+To force a plain copy, even over a series, hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) at the release of the drag.
+
+## Keyboard fill [#keyboard-fill]
 
 The handle has no keyboard equivalent and is hidden from screen readers. These keys give the same result:
 
@@ -58,6 +60,8 @@ The handle has no keyboard equivalent and is hidden from screen readers. These k
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> fills right. It copies the left column into every column to its right.
 
 Both keys use the same copy and series logic as a drag. The source of each key is one row or one column, so the built-in detector always copies. They are core bindings. In a writable grid, outside an edit, <kbd>Ctrl</kbd>+<kbd>R</kbd> fills right and the page does not reload. The `fillDown` and `fillRight` flags of the [global shortcuts](/docs/selection-shortcuts/global-shortcuts) extend them to the whole window. Without this add-on, both keys do nothing. See [Pluggable built-ins](/docs/plugins/plugin-commands-shortcuts#pluggable-built-ins).
+
+### Touch [#touch]
 
 After a touch selection, the handle is hidden because the selection handle uses the same corner. With the [context menu](/docs/rows-pages-menus/context-menu) add-on, the cell menu shows **Fill down** and **Fill right** instead. They run the same commands.
 
@@ -79,7 +83,7 @@ A fill is one change. The grid applies it, then calls `onDataChange` and `onSave
 
 `onSave` returns nothing or a promise. If the promise resolves with nothing, the server accepted the fill. If it resolves with `{ rejected }`, the server refused part of it. If it rejects, the server refused all of it. A refusal reverts the cells through `onDataChange` with source `"rollback"`. The rows show as saving while the promise is pending. If a rejection carries `current`, the row as the server holds it, the revert puts that row in place instead.
 
-In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Lazy loading](/docs/scroll-mode).
+In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Scroll mode](/docs/scroll-mode).
 
 [Data modes](/docs/data-modes) owns the detail for every mode.
 
@@ -95,6 +99,8 @@ Pass these options to `useDataGridFill`. Every option is optional:
 | `onFill` | `(args: FillArgs) => void` | none |
 | `detectSeries` | `(values: readonly string[]) => SeriesDescriptor \| null` | built-in detector |
 
+### disabled [#turning-fill-off]
+
 `disabled` hides the handle and turns both commands into no-ops.
 
 ### onFill
@@ -105,8 +111,7 @@ Pass these options to `useDataGridFill`. Every option is optional:
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
 import type { FillArgs } from "@/components/data-grid-fill/data-grid-fill";
 
-function onFill({ source, target, values, preventDefault }: FillArgs) {
-  // values is the text grid for the target, before validation
+function onFill({ target, preventDefault }: FillArgs) {
   if (target.height > 100) preventDefault();
 }
 
@@ -116,7 +121,9 @@ function MyGrid() {
 }
 ```
 
-### detectSeries
+`FillArgs` also carries `source`, the rectangle of the source cells, and `values`, the text grid for the target before validation. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only.
+
+### detectSeries [#custom-series-detection]
 
 `detectSeries` replaces the built-in detector. It receives the source cell texts along the fill axis, in source order. It returns a `SeriesDescriptor` with an `extrapolate(index)` function, or `null` to copy. `index` counts from the first source cell: `0` is the first source cell, and an up or left fill passes negative indexes. This detector adds date series:
 
@@ -127,17 +134,17 @@ import type { SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fil
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
-  if (values.length < 2) return null;
-  if (!values.every((v) => ISO_DATE.test(v))) return null;
+  if (values.length < 2 || !values.every((v) => ISO_DATE.test(v))) return null;
   const times = values.map((v) => Date.parse(v));
+  if (times.some(Number.isNaN)) return null;
   const step = times[1]! - times[0]!;
   for (let i = 2; i < times.length; i += 1) {
     if (times[i]! - times[i - 1]! !== step) return null;
   }
-  const at = (index: number) => times[0]! + step * index;
-  const format = (index: number) =>
-    new Date(at(index)).toISOString().slice(0, 10);
-  return { extrapolate: format };
+  return {
+    extrapolate: (index) =>
+      new Date(times[0]! + step * index).toISOString().slice(0, 10),
+  };
 };
 
 function MyGrid() {
@@ -146,9 +153,11 @@ function MyGrid() {
 }
 ```
 
+Result: the source cells `2026-01-30, 2026-01-31` continue as `2026-02-01, 2026-02-02`.
+
 To keep the built-in series, call the exported `detectSeries` for every input that your detector rejects:
 
-```tsx
+```tsx fragment="continues the detectDates sample above"
 import { detectSeries } from "@/components/data-grid-fill/data-grid-fill";
 
 const detectBoth = (values: readonly string[]) =>
@@ -157,8 +166,8 @@ const detectBoth = (values: readonly string[]) =>
 
 ## Related
 
+- [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options)
+- [Clipboard](/docs/clipboard-undo/clipboard)
 - [Data modes](/docs/data-modes)
-- [Plugins](/docs/plugins)
-- [Lazy loading](/docs/scroll-mode)
-- [Events and state](/docs/events-state)
-- [API reference](/docs/components-props)
+- [Scroll mode](/docs/scroll-mode)
+- [Data change events](/docs/events-state/data-change-events)

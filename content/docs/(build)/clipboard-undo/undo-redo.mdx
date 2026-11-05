@@ -2,7 +2,7 @@
 title: Undo and redo
 description: Undo and redo edits, pastes, fills, and row operations with Ctrl+Z and Ctrl+Y, or with your own toolbar buttons.
 type: feature
-aliases: ["history", "ctrl z", "usedatagridhistory", "usedatagridstate"]
+aliases: ["ctrl z", "revert edit"]
 icon: Undo2
 ---
 
@@ -18,11 +18,11 @@ Each entry on the stack is one change: the operations (`ops`) of one `onDataChan
 
 Undo applies the inverse of the most recent entry as one change with `source: "history"`. Redo applies the entry again. A new change clears the redo stack.
 
-If a row id no longer exists, for example after a refresh removed the row, the grid skips that operation and raises no error. If no operation of an entry applies, the grid writes nothing.
+If a row id is missing from the data, the grid skips that operation and raises no error. A refresh that removed the row causes this. If no operation of an entry applies, the grid writes nothing.
 
 ## Quick start: useDataGridState [#quick-start-usedatagridstate]
 
-`useDataGridState` owns the `data` array and passes it to the grid on every render as the controlled `data` prop. Undo and redo rely on that echo. The hook is not `defaultData`, which seeds the grid once and ignores later values. If you want history, use the hook. Spread its result onto `DataGrid`:
+`useDataGridState` owns the `data` array and passes it to the grid on every render as the controlled `data` prop. Undo and redo need this: each undo writes through the grid, and the hook stores the result. To use history, use this hook. `defaultData` seeds the grid once and keeps no history. Spread the result onto `DataGrid`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -51,9 +51,9 @@ function MyGrid() {
 
 Result: edit a cell, then press Undo. The cell returns to its earlier value and Redo turns on.
 
-`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, list them before the spread entry: `plugins={[fillPlugin, ...grid.plugins]}`.
+`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, pass `plugins` after the spread and keep `grid.plugins` in it: `<DataGrid {...grid} columns={columns} plugins={[fillPlugin, ...grid.plugins]} />`.
 
-## Keyboard [#keyboard]
+### Keyboard [#keyboard]
 
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> undoes.
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redo.
@@ -98,7 +98,32 @@ function MyGrid() {
 
 The result has the members of `grid.history` above, plus `plugin`.
 
-### Options
+## Capped stack [#capped-stack]
+
+`capacity` limits the entries on the undo stack. The default is 100. When the stack is full, the oldest entries drop first. `capacity` counts entries, not operations: a paste of 10,000 cells is one entry.
+
+## Read-only grids [#read-only-grids]
+
+A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `redo` do nothing and keep their entries. `canUndo` stays `true` for entries that exist from before. Bind your buttons to `readOnly` as well:
+
+```tsx fragment="JSX inside the quick start component"
+<button disabled={readOnly || !grid.history.canUndo}
+  onClick={grid.history.undo}>
+  Undo
+</button>
+```
+
+## Server mode
+
+Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page. An undo skips the operations for rows on other pages.
+
+`onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` refuses all or part of a change, the grid reverts the refused rows and removes the entry from the stack.
+
+If your `onDataChange` writes to your backend and you pass no `onSave`, the stack does not learn whether the server accepted the write. After a failed save, call `rollback(change)`.
+
+In scroll mode, undo skips rows that are not loaded. In development, it warns once. [Undo with server data](/docs/save-server/undo-server-data) covers the combination.
+
+## Options
 
 {/* props: UseDataGridHistoryOptions */}
 
@@ -109,29 +134,6 @@ The result has the members of `grid.history` above, plus `plugin`.
 | `recordSources` | `readonly DataChange<TData>["source"][]` | all except `"stream"` |
 
 `useDataGridState` takes `getRowId`, `capacity`, and `datasetKey`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
-
-## Capped stack [#capped-stack]
-
-`capacity` limits the entries on the undo stack. The default is 100. When the stack is full, the oldest entries drop first. `capacity` counts entries, not operations: a paste of 10,000 cells is one entry.
-
-## Read-only grids [#read-only-grids]
-
-A `readOnly` grid refuses writes, so it records nothing. `undo` and `redo` do nothing and keep their entries. `canUndo` stays `true` for entries that exist from before. Bind your buttons to `readOnly` as well:
-
-```tsx
-<button disabled={readOnly || !grid.history.canUndo}
-  onClick={grid.history.undo}>
-  Undo
-</button>
-```
-
-## Server mode
-
-Undo works in every data mode. Entries address rows by row id, so they follow server sort, server filter, and pages.
-
-`onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` returns a promise and the server refuses a change, the grid reverts that change and removes its entry from the stack.
-
-In scroll mode, undo skips rows that are not loaded. In development, it warns once. [Undo with server data](/docs/save-server/undo-server-data) covers the combination.
 
 ## Related
 
