@@ -64,13 +64,16 @@ export {
   COMPARISON_FILTER_OPERATORS,
   SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
+  filterOperatorInput,
   operatorsForColumnType,
   resolveColumnValidate,
+  resolveCustomFilterOperators,
   resolveFilterOperators,
   resolveFilterValueInput,
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
 export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { toSafeText } from "./cell-types/safe-text";

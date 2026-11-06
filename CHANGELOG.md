@@ -18,6 +18,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   - **Server data hooks:** the `search` field of the `fetchFilterValues` context becomes `query`.
   - **Server data hooks:** scroll mode starts a block after `loadDelay` milliseconds (default 100), so a request no longer leaves in the same call as the scroll; pass `loadDelay: 0` for the old timing.
   - **Server data hooks:** scroll mode keeps at most `maxLoadedRows` rows loaded (default 10,000); pass `maxLoadedRows: Infinity` to keep every row.
+  - **Filtering:** a `fetchFilterValues` entry is `{ value, label?, count? }`; the former `label` is `value`, and `label` is optional display text.
   - **Pagination:** `useDataGridPagination` returns `{ pageData, pager }` instead of `{ pageData, controls }`.
   - **Pagination:** `total` becomes `totalRowCount` (`null` for an unknown size) in the server options, in `pager`, and in `useDataGridUrlPagination`.
   - **Pagination:** `defaultPageSize` sets the first size in client mode, and `pageSize` with `onPageSizeChange` controls it.
@@ -49,6 +50,12 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - `deleteRowsById(ids, { source: "stream" })` deletes rows that the server removed. It skips `onBeforeDeleteRows`, `onSave`, and the undo history, unchecks the rows, and keeps the cursor.
 - `useDataGridServerRows` keeps a push made while a request is open: the cells that the push wrote stay on the row that the answer delivers.
 - The live region reads `labels.grid.viewStale` once when the view turns stale, at most once every 30 seconds, in every data mode.
+- **Breaking:** `FilterValue` is `{ value, label?, count? }`. `value` is what a set filter stores (a code or id) and what `filterState`, the URL, and the server spec carry; `label` is the text the list shows and defaults to `value`. Migration: rename the `label` of every `fetchFilterValues` entry to `value`, and add `label` where the list should show other text.
+- **Breaking:** `FilterOperator` is a built-in operator or any string, and `FilterSpec.operator` accepts a custom id. A `switch` over `FilterOperator` that relied on a closed union needs a default branch; use `BuiltInFilterOperator` for the closed set. `parseFilterState` takes `operatorInput` to accept a custom id, and `isFilterOperator` narrows to `BuiltInFilterOperator`.
+- Custom filter operators. List `{ id, label, input?, match? }` in a column's `filterOperators` (or a cell type's `filter.operators`): the operator select shows `label`, `input` (`single`, `range`, `list`, `none`) picks the value widget, and `match(text, filter)` evaluates it on the client. With `filterMode="server"` the spec carries the id and `match` is never called. The URL param round-trips a custom id through `useDataGridUrlState`.
+- `ColumnDef.filterCompare(text, bound)` orders a column's cells for `gt`, `gte`, `lt`, `lte`, and `isBetween` instead of the numeric-then-text default.
+- **Breaking:** a grid with zero rows because a filter or the search hides them shows `labels.grid.noResults` ("No results") instead of `labels.grid.emptyState` ("No rows"), in client and server filter mode. An empty source with no filter keeps "No rows". Set `labels.grid.noResults` to restore the old text. The announcement of a count of 0 reads `labels.grid.noResults`.
+- With `announceResults`, the end of a load (`loading` true to false on `DataGridRoot`) is announced when the server-evaluated filters, sort, search, or `totalRowCount` changed since the last load ended, or when the load before it failed: the `totalRowCount` or the loaded rows, "No results" for none. A block fill or page change with the same spec and count stays quiet, and a failed load stays with the `role="alert"` error bar. The live region keeps its 500 ms trailing pause, so a run of refreshes is read once.
 
   ```tsx
   // before

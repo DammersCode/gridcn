@@ -75,3 +75,27 @@ describe("emptyValueFor", () => {
     expect(emptyValueFor(undefined)).toBe("");
   });
 });
+
+describe("custom operators", () => {
+  const custom = new Map([
+    ["inRegion", { id: "inRegion", label: "in region" }],
+    ["atLeast", { id: "atLeast", label: "at least", input: "range" as const }],
+    ["tagged", { id: "tagged", label: "tagged", input: "list" as const }],
+    ["flagged", { id: "flagged", label: "flagged", input: "none" as const }],
+  ]);
+
+  it("labels a custom operator with its own text and an unknown one with its id", () => {
+    expect(operatorLabel("inRegion", DEFAULT_LABELS.filterOperators, custom)).toBe("in region");
+    expect(operatorLabel("gt", DEFAULT_LABELS.filterOperators, custom)).toBe(DEFAULT_LABELS.filterOperators.gt);
+    expect(operatorLabel("mystery", DEFAULT_LABELS.filterOperators)).toBe("mystery");
+    expect(operatorLabel("constructor", DEFAULT_LABELS.filterOperators)).toBe("constructor");
+  });
+
+  it("reads the value shape from the operator's input", () => {
+    expect(operatorHasValue("flagged", custom)).toBe(false);
+    expect(operatorHasValue("inRegion", custom)).toBe(true);
+    expect(emptyValueFor("atLeast", custom)).toEqual(["", ""]);
+    expect(emptyValueFor("tagged", custom)).toEqual([]);
+    expect(emptyValueFor("inRegion", custom)).toBe("");
+  });
+});

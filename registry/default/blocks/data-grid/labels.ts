@@ -185,8 +185,10 @@ export type DataGridMarkerLabels = {
 
 /** Core grid strings not owned by a specific add-on. */
 export type DataGridGridLabels = {
-  /** Shown when the view has zero rows (post filter/search); the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
+  /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
+  /** Shown instead of `emptyState` when a filter or the search leaves zero rows. */
+  noResults: string;
   /** The built-in error state of `DataGridRoot` (`error`). */
   errorState: string;
   /** The Retry button of the built-in error state. */
@@ -201,7 +203,7 @@ export type DataGridGridLabels = {
   rowsChecked: (count: number) => string;
   /** Live-region text after "select all matching" when the size of the result is unknown. */
   allMatchingChecked: string;
-  /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
+  /** Polite live-region announcement after a filter or sort commit or the end of a load (`announceResults`); `count` is the view's row count, and a count of 0 reads `noResults`. */
   resultsCount: (count: number) => string;
   /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
   resultsCountLoaded: (count: number) => string;
@@ -566,6 +568,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
   },
   grid: {
     emptyState: "No rows",
+    noResults: "No results",
     errorState: "Could not load rows.",
     errorRetry: "Retry",
     loading: "Loading…",

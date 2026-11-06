@@ -465,7 +465,7 @@ export type FilterValueInputProps = {
  * row's widget: a built-in one by name, or a component that renders for every operator with a value.
  */
 export type CellTypeFilter = {
-  operators?: readonly FilterOperator[];
+  operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
@@ -561,7 +561,13 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
    * for a consumer-registered numeric cell type (`type: "currency"`).
    */
-  filterOperators?: readonly FilterOperator[];
+  filterOperators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
+  /**
+   * Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the
+   * numeric-then-text default (a version string, a rank, a locale). A NaN result or a throw
+   * falls back to the default order for that pair.
+   */
+  filterCompare?: (text: string, bound: string) => number;
   /**
    * Sort comparator over the whole data row (not the cell value), consulted before the column's
    * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,
@@ -605,7 +611,7 @@ export type HeaderClickBehavior = "select" | "sort" | "none";
 
 export type SortSpec = { columnId: string; direction: "asc" | "desc" };
 
-export type FilterOperator =
+export type BuiltInFilterOperator =
   | "contains"
   | "notContains"
   | "equals"
@@ -621,6 +627,31 @@ export type FilterOperator =
   | "isBetween"
   | "isAnyOf"
   | "isNoneOf";
+
+/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filterOperators`. */
+export type FilterOperator = BuiltInFilterOperator | (string & {});
+
+/** The value shape a filter operator takes: no value, one text, an inclusive `[min, max]` pair, or a list of texts. */
+export type FilterOperatorInput = "none" | "single" | "range" | "list";
+
+/**
+ * An operator a column registers next to the built-ins, usually to name a server vocabulary
+ * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filterOperators` or `CellTypeFilter.operators`;
+ * `filterMode="server"` sends `{ columnId, operator: id, value }` in the spec and never calls `match`.
+ */
+export type CustomFilterOperator = {
+  /** Stored in `FilterSpec.operator` and in the URL. Must not equal a built-in operator. */
+  id: string;
+  /** Text of the operator select. */
+  label: string;
+  /** Value shape of the filter row; default `"single"`. */
+  input?: FilterOperatorInput;
+  /**
+   * Local evaluator over the cell text. A throw fails the row. Without it a client-side filter does not
+   * narrow rows and warns once in development.
+   */
+  match?: (text: string, filter: FilterSpec) => boolean;
+};
 
 /** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
@@ -646,8 +677,8 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
  */
 export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
 
-/** One value a server offers for a set filter: `label` is the cell text a filter entry stores; `count` is the matching row count. */
-export type FilterValue = { label: string; count?: number };
+/** One value a server offers for a set filter: `value` is what a filter entry stores (a code or id); `label` is the text the list shows, `value` when absent; `count` is the matching row count. */
+export type FilterValue = { value: string; label?: string; count?: number };
 
 /**
  * The request `fetchFilterValues` receives. `query` is the raw text of the popover search box (untrusted).
@@ -656,7 +687,7 @@ export type FilterValue = { label: string; count?: number };
  */
 export type FetchFilterValuesContext = { columnId: string; query: string; filters: readonly FilterNode[]; signal: AbortSignal };
 
-/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 labels. */
+/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 values. */
 export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;
 
 /** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */

@@ -1,5 +1,5 @@
-import type { FilterGroup, FilterNode, FilterOperator, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, groupChildren, isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { FilterGroup, FilterNode, FilterOperatorInput, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { MAX_FILTER_GROUP_DEPTH, filterOperatorInput, groupChildren, isFilterGroup } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { isFilterOperator } from "./filter-operators";
 import { safeDecode } from "./sort-param";
 
@@ -30,16 +30,21 @@ const DEFAULT_MAX_ANYOF_CHOICES = 1000;
 export type ParseFilterStateOptions = {
   /** Most entries an `isAnyOf` or `isNoneOf` list of this column may hold, usually its number of `choices`. Returns `undefined` for the 1000 default. */
   maxChoices?: (columnId: string) => number | undefined;
+  /** The value shape of a custom operator registered on the column, or `undefined` when the column does not register it; a segment with an unregistered operator is dropped. */
+  operatorInput?: (columnId: string, operator: string) => FilterOperatorInput | undefined;
 };
+
+/** Options for {@link serializeFilterState}. */
+export type SerializeFilterStateOptions = Pick<ParseFilterStateOptions, "operatorInput">;
 
 /** `encodeURIComponent` plus escaping the one character it doesn't (`~`), so a literal tilde in a bound never collides with {@link RANGE_SEPARATOR}. */
 function encodeRangePart(part: string): string {
   return encodeURIComponent(part).replace(/~/g, "%7E");
 }
 
-function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"]): string {
+function encodeFilterValue(input: FilterOperatorInput, value: FilterSpec["value"]): string {
   if (value === undefined) return "";
-  if (Array.isArray(value) && operator === "isBetween") return `${encodeRangePart(value[0])}${RANGE_SEPARATOR}${encodeRangePart(value[1])}`;
+  if (Array.isArray(value) && input === "range") return `${encodeRangePart(value[0])}${RANGE_SEPARATOR}${encodeRangePart(value[1])}`;
   if (Array.isArray(value)) return value.map((entry) => (entry === "" ? EMPTY_ENTRY_TOKEN : encodeURIComponent(entry))).join(ANYOF_SEPARATOR);
   return encodeURIComponent(value);
 }
@@ -68,23 +73,24 @@ function encodeFilterValue(operator: FilterOperator, value: FilterSpec["value"])
  * @example serializeFilterState([{ join: "or", filters: [{ columnId: "a", operator: "equals", value: "1" }] }])
  * // => "[or,a:equals:1,]"
  */
-export function serializeFilterState(filters: readonly FilterNode[]): string {
+export function serializeFilterState(filters: readonly FilterNode[], options: SerializeFilterStateOptions = {}): string {
   const segments: string[] = [];
-  writeNodes(filters, 0, segments);
+  writeNodes(filters, 0, segments, options);
   return segments.join(",");
 }
 
-function writeNodes(nodes: readonly FilterNode[], depth: number, segments: string[]): void {
+function writeNodes(nodes: readonly FilterNode[], depth: number, segments: string[], options: SerializeFilterStateOptions): void {
   for (const node of nodes) {
     if (!isFilterGroup(node)) {
-      segments.push(`${encodeURIComponent(node.columnId)}:${node.operator}:${encodeFilterValue(node.operator, node.value)}`);
+      const input = isFilterOperator(node.operator) ? filterOperatorInput(node.operator) : (options.operatorInput?.(node.columnId, node.operator) ?? "single");
+      segments.push(`${encodeURIComponent(node.columnId)}:${encodeURIComponent(node.operator)}:${encodeFilterValue(input, node.value)}`);
       continue;
     }
     const children = groupChildren(node);
     if (depth >= MAX_FILTER_GROUP_DEPTH || children.length === 0) continue;
     const start = segments.length;
     segments.push(`[${node.join === "or" ? "or" : "and"}`);
-    writeNodes(children, depth + 1, segments);
+    writeNodes(children, depth + 1, segments, options);
     if (segments.length === start + 1) segments.pop();
     else segments.push(GROUP_CLOSE);
   }
@@ -94,8 +100,8 @@ function writeNodes(nodes: readonly FilterNode[], depth: number, segments: strin
 const DECODE_FAILED = Symbol("decode-failed");
 
 /** Decodes a segment's value part per `operator`: `isBetween` splits on {@link RANGE_SEPARATOR} into a tuple, `isAnyOf` and `isNoneOf` split on {@link ANYOF_SEPARATOR} into a choice list (empty value = empty list), everything else stays a plain string. Malformed input (wrong tuple arity, bad percent-encoding) returns {@link DECODE_FAILED}. */
-function decodeFilterValue(operator: string, raw: string, maxChoices: number): FilterSpec["value"] | typeof DECODE_FAILED {
-  if (operator === "isAnyOf" || operator === "isNoneOf") {
+function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: string, maxChoices: number): FilterSpec["value"] | typeof DECODE_FAILED {
+  if (input === "list") {
     if (raw === "") return [];
     const parts: string[] = [];
     for (const rawPart of raw.split(ANYOF_SEPARATOR)) {
@@ -110,7 +116,7 @@ function decodeFilterValue(operator: string, raw: string, maxChoices: number): F
     }
     return parts;
   }
-  if (operator !== "isBetween") {
+  if (input !== "range") {
     const decoded = safeDecode(raw);
     return decoded === null ? DECODE_FAILED : decoded;
   }
@@ -172,14 +178,17 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     const parts = segment.split(":");
     if (parts.length !== 3) continue;
     const [columnId, operator, rawValue] = parts;
-    if (!columnId || operator === undefined || rawValue === undefined || !isFilterOperator(operator)) continue;
+    if (!columnId || operator === undefined || rawValue === undefined) continue;
     const decodedId = safeDecode(columnId);
-    if (decodedId === null || decodedId === "") continue;
-    const value = decodeFilterValue(operator, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
+    const decodedOperator = safeDecode(operator);
+    if (decodedId === null || decodedId === "" || decodedOperator === null) continue;
+    const input = isFilterOperator(decodedOperator) ? filterOperatorInput(decodedOperator) : options.operatorInput?.(decodedId, decodedOperator);
+    if (input === undefined) continue;
+    const value = decodeFilterValue(decodedOperator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
     if (value === DECODE_FAILED) continue;
     const frame = stack[stack.length - 1]!;
     if (frame.dropped) continue;
-    frame.filters.push({ columnId: decodedId, operator, value });
+    frame.filters.push({ columnId: decodedId, operator: decodedOperator, value });
     leaves++;
   }
   while (stack.length > 1) closeTop();

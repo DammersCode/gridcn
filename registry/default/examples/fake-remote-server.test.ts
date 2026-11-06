@@ -106,8 +106,8 @@ describe("createRemoteServer ranges and values", () => {
     const narrowed = await server.fetchValues({ columnId: "role", search: "", filters: [{ columnId: "role", operator: "isAnyOf", value: ["Admin"] }] });
 
     expect(everyone.values.reduce((sum, value) => sum + value.count, 0)).toBe(server.total);
-    expect(searched.values.map((value) => value.label)).toEqual(["Admin"]);
-    expect(narrowed.values.map((value) => value.label)).toEqual(["Admin"]);
+    expect(searched.values.map((value) => value.value)).toEqual(["Admin"]);
+    expect(narrowed.values.map((value) => value.value)).toEqual(["Admin"]);
   });
 
   it("rejects a column outside the allowed set", async () => {

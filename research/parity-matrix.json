@@ -121,7 +121,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/sort-filter/index.test.ts"
+            "registry/default/blocks/data-grid/sort-filter/index.test.ts",
+            "registry/default/blocks/data-grid/sort-filter/custom-operators.test.ts"
           ]
         },
         "PC": {
@@ -145,7 +146,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/sorting-filtering-search.mdx"
+            "content/docs/sorting-filtering-search.mdx",
+            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx"
           ]
         },
         "SS": {
@@ -157,7 +159,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx"
+            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx",
+            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx"
           ]
         },
         "API": {
@@ -214,7 +217,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx"
+            "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/server-filter-values.test.tsx"
           ]
         },
         "API": {
@@ -1363,7 +1367,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/accessibility.mdx"
+            "content/docs/accessibility.mdx",
+            "registry/default/blocks/data-grid/load-announcement.test.tsx"
           ]
         },
         "PC": {
@@ -1399,7 +1404,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/announce.parity.test.tsx"
+            "tests/parity/announce.parity.test.tsx",
+            "registry/default/blocks/data-grid/load-announcement.test.tsx"
           ]
         },
         "API": {
@@ -1515,7 +1521,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/load-announcement.test.tsx"
           ]
         },
         "API": {

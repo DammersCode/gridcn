@@ -153,7 +153,7 @@ export function createRemoteServer() {
   }
 
   /** The distinct values of a column with their row counts, filtered by a case-insensitive `search` and capped at `limit`. */
-  async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { label: string; count: number }[] }> {
+  async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { value: string; count: number }[] }> {
     if (!FILTERABLE_COLUMNS.has(query.columnId)) throw new Error("invalid column");
     const list = await select({ filters: query.filters, signal: query.signal });
     const counts = new Map<string, number>();
@@ -162,7 +162,7 @@ export function createRemoteServer() {
       const label = cell(row, query.columnId);
       if (needle === "" || label.toLowerCase().includes(needle)) counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const values = [...counts].map(([label, count]) => ({ label, count })).sort((a, b) => a.label.localeCompare(b.label));
+    const values = [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value));
     return { values: values.slice(0, query.limit ?? 200) };
   }
 

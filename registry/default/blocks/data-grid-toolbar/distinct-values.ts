@@ -1,5 +1,5 @@
-import type { CellType, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, isFilterGroup, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { AnyColumnDef, CellType, CustomFilterOperator, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
+import { displayText, filterOperatorInput, isFilterGroup, resolveCustomFilterOperators, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
@@ -10,8 +10,13 @@ export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHole
 
 export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server" };
 
-export const isOwnSetFilter = (node: FilterNode, columnId: string) =>
-  !isFilterGroup(node) && node.columnId === columnId && (node.operator === "isAnyOf" || node.operator === "isNoneOf");
+/** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a registered custom operator with `input: "list"`. */
+export const isOwnSetFilter = (node: FilterNode, columnId: string, custom?: ReadonlyMap<string, CustomFilterOperator>) =>
+  !isFilterGroup(node) && node.columnId === columnId && filterOperatorInput(node.operator, custom) === "list";
+
+/** The custom operators of `column` as the set-row check reads them. */
+export const customOperatorsOf = (column: AnyColumnDef | undefined, cellTypes: Record<string, CellType>) =>
+  column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : undefined;
 
 function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown): string {
   if (!cellType) return toSafeText(raw);
@@ -26,14 +31,15 @@ function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown
  * Counts the distinct values of `columnId`, grouped by the lowercased text the filter matcher sees.
  * Rows count when they pass every other top-level node; the column's own top-level set rows never
  * hide its own values, and a set row of the column inside a group counts as any other filter. Lazy holes are skipped and reported as `hasHoles`. Past {@link DISTINCT_VALUES_CAP} keys,
- * new keys stop counting and `capped` is set.
+ * new keys stop counting and `capped` is set. A custom list row also stays out of the count unless `excludeCustomLists` is `false` (the header filter, which does not write that row).
  */
-export function distinctColumnValues(state: DistinctValuesInput, columnId: string): DistinctValues {
+export function distinctColumnValues(state: DistinctValuesInput, columnId: string, excludeCustomLists = true): DistinctValues {
   const column = state.columns.find((c) => c.id === columnId);
   if (!column) return { values: [], capped: false, hasHoles: false };
   const { data } = state;
   const accessor = rowAccessorFor(state.columns, data, state.cellTypes);
-  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId)));
+  const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
+  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, custom)));
 
   const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;
