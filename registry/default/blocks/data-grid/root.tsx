@@ -668,7 +668,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     <>
                       <span>{gridLabels.errorState}</span>
                       {onRetry && (
-                        <Button type="button" variant="outline" size="xs" onClick={onRetry}>
+                        <Button type="button" variant="secondary" size="xs" className="border border-border" onClick={onRetry}>
                           {gridLabels.errorRetry}
                         </Button>
                       )}
