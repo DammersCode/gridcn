@@ -12,6 +12,7 @@ Each term links to the page that explains it in full.
 | Accessor (`accessorKey`) | The part of a column that reads its value from a row. `accessorKey` names a field of the row. `accessorFn` computes the value. See [Columns](/docs/columns). |
 | Cell type | The built-in or custom kind of value that a column holds, for example `text` or `number`. It sets how the cell renders, edits, copies, sorts, and filters. See [Editing & cell types](/docs/editing-cell-types). |
 | Add-on | An optional registry item you install, for example `data-grid-fill`. It ships hooks and components, and many add-ons also ship a plugin. See [Add-ons](/docs/addons). |
+| Saved view <NewBadge /> | A named copy of the sort, filters, search, and column layout, kept by the [saved views](/docs/addons/views) add-on. It holds no rows and no selection. |
 | Plugin | An object in the `plugins` prop that adds one feature to the grid at run time, for example undo and redo. An add-on can install one. See [Plugins](/docs/plugins). |
 | Operation (`ops`) | One record of a change to one row, addressed by row id: `insert`, `update`, `delete`, or `move`. `onDataChange` reports a batch of operations in `change.ops`. See [Events & state](/docs/events-state#1-ondatachange--the-flagship-shape). |
 | Commit | The moment a value is checked by `validate` and written to the data. Pressing <kbd>Enter</kbd> in an editor commits it. See [Editing & cell types](/docs/editing-cell-types). |

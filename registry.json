@@ -1542,7 +1542,85 @@
          "categories": [
             "data"
          ]
-      },      {
+      },
+      {
+         "name": "data-grid-views",
+         "type": "registry:block",
+         "title": "Data Grid Views",
+         "description": "Saved views add-on for the gridcn data grid: <DataGridViews /> saves, applies, updates, renames, deletes, and defaults named views of sort, filters, search, and column layout, and imports or exports one as bounded JSON checked against the live columns. useDataGridViews is the headless hook; a storage adapter (localStorage with an in-memory fallback by default, any async store) keeps the views. Zero core changes — purely additive.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "popover",
+            "button",
+            "badge",
+            "input",
+            "textarea"
+         ],
+         "dependencies": [
+            "lucide-react@^1.46.0"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-views/data-grid-views.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/data-grid-views.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/use-data-grid-views.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/use-data-grid-views.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/view-state.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/view-state.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/view-storage.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/view-storage.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/views-menu.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-views/views-menu.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-views-demo",
+         "type": "registry:example",
+         "title": "Data Grid Views Demo",
+         "description": "Saved views: pick, save, update, rename, delete, default, and import or export a view of sort, filters, search, and column layout.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "DammersCode/gridcn/data-grid-sort-list",
+            "DammersCode/gridcn/data-grid-views",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-views-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-views-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-status-bar",
          "type": "registry:block",
          "title": "Data Grid Status Bar",
