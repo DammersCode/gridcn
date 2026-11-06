@@ -522,13 +522,9 @@ export function computeDuplicateBatch(
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
     const insertAt = sourceIndex + 1;
-<<<<<<< HEAD
+    const finalIndex = insertAt + i;
     const copy = copies.get(sourceIndex);
     if (copy === undefined) continue;
-=======
-    const finalIndex = insertAt + i;
-    const copy = duplicateRow(sourceRow, finalIndex);
->>>>>>> refs/heads/claude/pensive-grothendieck-5b6ed2
     nextData.splice(insertAt, 0, copy);
     opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, finalIndex), row: copy, index: finalIndex });
   }

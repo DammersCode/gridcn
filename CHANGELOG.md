@@ -9,7 +9,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-<<<<<<< HEAD
 - Clicks and key presses re-lay out the rows canvas less: every body cell carries an integer `z-index`, and unpinned selection, active-cell, fill and presence overlays are absolutely positioned. A `z-*` class set through `cellClassName` or `getCellClassName` no longer changes a body cell's stacking, and a custom cell renderer's non-portalled `z-index` content stays inside its own cell. Rows no longer re-render on every click or key under `StrictMode`, and the grid root no longer re-renders when the active cell moves inside the rendered column window.
 - **Breaking changes in this release, by area:**
   - **Server data hooks:** `useDataGridLazyRows`, `useDataGridInfiniteRows`, `data-grid-lazy`, and `DataGridLazyGuard` are replaced by `useDataGridServerRows({ mode: "scroll" })` from `data-grid-server`; the guard has no replacement.
@@ -148,12 +147,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - A cell with an open editor and an error message carries the message as its `title`, so hovering it shows the message. A cell that is not being edited keeps the tooltip.
 - The inline error line of an editing cell is visible. The cell clipped it, so a rejected value showed only the red ring. The line now escapes the cell, widens to its text (up to 16rem), flips above the cell at the bottom edge of the grid, and anchors to the cell's end side at the side edges. An editing cell no longer clips its content, so a custom `Editor` wider than its cell spills over the neighbors.
 - Docs: the Validation example compares blocking and soft rules per column and fixes the rounding example ("42.9" commits as 43).
-=======
 - Presence: `setPresenceHighlights` validates every peer entry. It keeps only known fields, drops entries with a missing, non-string, or oversized `id`, and keeps at most 1000 entries. A non-string `label` is removed and a label over 64 characters is truncated. A non-string `color` paints as `var(--color-primary)`. Before, an object `label` crashed the overlay
 - The fill drag and the column resize drag end without a commit when the window loses focus. The fill drag also ends on `lostpointercapture`
 - Duplicating several rows reports each copy's insert `index` as its final position. Redo and `applyChange` now keep the copies in the order the grid showed. Before, the indexes counted the rows before the whole batch, so redo placed later copies one row early
 - The clipboard failure tooltips of the context menu name the Cmd key on macOS. `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function that receives the modifier name
->>>>>>> refs/heads/claude/pensive-grothendieck-5b6ed2
 
 ## 1.3.0 - 2026-10-28
 
