@@ -1,9 +1,41 @@
 ---
 title: Plugins
-description: Plugins.
+description: Find the reference for the plugin object, its commands and keymap, its events, and its overlays.
 type: landing
 ---
 
-{/* docs-stub */}
+A plugin is a plain object that reaches into the grid. Fill, find and replace, history, pinned rows, presence, and server rows each install one. Read these pages to write your own.
 
-This page is being written.
+<Cards>
+  <Card
+    title="Plugin contract"
+    href="/docs/plugins/plugin-contract"
+    description="The members of DataGridPlugin, their context types, and the rules for names, order, and conflicts."
+  />
+  <Card
+    title="Plugin commands and shortcuts"
+    href="/docs/plugins/plugin-commands-shortcuts"
+    description="How plugin commands and keymaps merge with yours, and which key bindings a plugin keeps."
+  />
+  <Card
+    title="Plugin shape"
+    href="/docs/plugins/plugin-shape"
+    description="Which members a plugin holds, how the grid orders and compares plugins, and what the grid handle reaches."
+  />
+  <Card
+    title="Plugin overlays"
+    href="/docs/plugins/plugin-overlays"
+    description="How a plugin paints into the overlay layer and the row bands, and which coordinates it uses."
+  />
+  <Card
+    title="Plugin events"
+    href="/docs/plugins/plugin-events"
+    description="When a plugin observer runs, what it receives, and how it writes data back."
+  />
+</Cards>
+
+## Related
+
+- [Contracts](/docs/contracts)
+- [Events and state](/docs/events-state)
+- [Concepts](/docs/concepts)

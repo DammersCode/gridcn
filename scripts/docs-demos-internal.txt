@@ -2,4 +2,4 @@
 data-grid-delete-confirm-demo # the Confirm a delete sample on Row operations shows the same dialog
 data-grid-context-menu-slots-demo # the Custom menu items samples on Context menu show the same resolvers
 data-grid-announcements-demo # announcements need a screen reader to observe; sr-announcements.browser.test.tsx covers the live region
-data-grid-events-demo # embedded on the events landing page (wave 3)
+data-grid-events-demo # the validator bars a demo on a landing page; the events pages show the callback payloads in samples
