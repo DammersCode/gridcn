@@ -662,7 +662,7 @@
   "default-shortcuts": "/docs/rows-pages-menus/row-operations#default-shortcuts",
   "reorder": "/docs/rows-pages-menus/row-order#reorder",
   "context-menu": "/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items",
-  "programmatic-actions": "/docs/rows-pages-menus#programmatic-actions",
+  "programmatic-actions": "/docs/rows-pages-menus/row-operations#programmatic-actions",
   "scroll-mode": "/docs/rows-live-data/change-server-rows#scroll-mode",
   "row-markers": "/docs/rows-pages-menus/row-markers#row-markers",
   "custom-markers": "/docs/rows-pages-menus/row-markers#custom-markers"
