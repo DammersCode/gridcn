@@ -1,9 +1,47 @@
 ---
 title: Select and paste
-description: Select and paste.
+description: Select ranges of cells with the pointer and the keyboard, then copy them out or paste spreadsheet data in.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [keep edits in state](/docs/learning-path/keep-edits-state). This step needs no code. The grid you have already supports it.
 
-This page is being written.
+## Select cells [#select-cells]
+
+A range is a rectangle of selected cells. Try these gestures on the grid:
+
+- Press a cell and drag. The grid paints a range from that cell to the pointer.
+- <kbd>Shift</kbd>+click extends the range from the anchor cell, the cell where the selection started.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click adds a second range.
+- <kbd>Shift</kbd>+an arrow key extends the range from the active cell, the cell that has focus.
+- A click on a column header selects the whole column.
+
+## Copy and cut [#copy-and-cut]
+
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> copies the last range you selected. The clipboard gets tab-separated text and an HTML table, so a spreadsheet app reads the cells. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> copies the same way and then clears the cells. On a grid with `readOnly`, cut only copies.
+
+While a cell editor is open, the editor handles copy, cut, and paste.
+
+## Paste [#paste]
+
+Select one cell, then press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd>. The pasted block lands with its top-left corner on the top-left cell of the selection and stops at the last row and column.
+
+- One pasted row repeats down a taller selection.
+- A read-only cell keeps its value.
+- A paste calls `onDataChange` once, with the source `"paste"`.
+
+1. Select the Name cells of Grace Hopper and Margaret Hamilton.
+2. Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>.
+3. Select the Name cell of Ada Lovelace.
+4. Press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd>.
+
+Result: the first two rows show the copied names. The grid writes both in one change.
+
+Next: [Sort and filter rows](/docs/learning-path/sort-filter-rows).
+
+## Related
+
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection)
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation)
+- [Clipboard](/docs/clipboard-undo/clipboard)
+- [Selection model](/docs/concepts/selection-model)

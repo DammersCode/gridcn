@@ -1,9 +1,84 @@
 ---
 title: Style the grid
-description: Style the grid.
+description: Change row height, style rows and columns by value, and let your shadcn theme tokens restyle the grid.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [sort and filter rows](/docs/learning-path/sort-filter-rows).
 
-This page is being written.
+The grid paints with shadcn tokens. Its root uses `bg-background`, `border-border`, and `rounded-md`. So a change to your theme tokens recolors the grid in light and dark mode. This step uses props for the rest.
+
+## Set density and classes [#set-density-and-classes]
+
+Replace `people-grid.tsx` with this file. It keeps the toolbar, the header sort, and the undo of the earlier steps. It also sets a taller row, dims inactive rows, and adds a shadow:
+
+```tsx title="people-grid.tsx"
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  type GetRowClassName,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridColumnsMenu,
+  DataGridFilterMenu,
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import { columns, type Person } from "./columns";
+
+const people: Person[] = [
+  { id: "1", name: "Ada Lovelace", age: 28, active: true },
+  { id: "2", name: "Grace Hopper", age: 34, active: true },
+  { id: "3", name: "Margaret Hamilton", age: 31, active: false },
+];
+
+const dimInactive: GetRowClassName<Person> = (person) =>
+  person.active ? undefined : "text-muted-foreground";
+
+export function PeopleGrid() {
+  const grid = useDataGridState(people);
+
+  return (
+    <DataGridProvider
+      {...grid}
+      columns={columns}
+      headerClickBehavior="sort"
+    >
+      <DataGridToolbar>
+        <DataGridSearch />
+        <DataGridFilterMenu />
+        <DataGridColumnsMenu />
+      </DataGridToolbar>
+      <DataGridRoot
+        className="h-96 shadow-sm"
+        density="comfortable"
+        getRowClassName={dimInactive}
+      >
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+Result: rows are 44 px high, Margaret Hamilton shows in the muted text color, and the grid has a shadow.
+
+- `density` picks a row height preset, and `comfortable` gives rows 44 px. See [Density and small screens](/docs/theme-style-language/density-small-screens) for the other values and `rowHeight`.
+- `className` merges after the built-in classes of the root, so your utility wins a conflict.
+- `getRowClassName` takes a row and its [view index](/docs/concepts/state-view-index), the position of the row in the sorted and filtered list. Define it outside the component, as above, so its identity stays stable.
+- `cellClassName: "font-medium"` on a column styles every cell of that column. `headerClassName` styles its header cell.
+
+Where next: [Column sizing](/docs/columns/column-sizing) and [Editable columns](/docs/editing-cells/editable-columns).
+
+## Related
+
+- [Style overrides](/docs/theme-style-language/style-overrides)
+- [Density and small screens](/docs/theme-style-language/density-small-screens)
+- [Colors and radius](/docs/theme-style-language/colors-radius)
+- [Styling model](/docs/concepts/styling-model)

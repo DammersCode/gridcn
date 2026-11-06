@@ -1,9 +1,83 @@
 ---
 title: Keep edits in state
-description: Keep edits in state.
+description: Hold the rows in your own React state with data and onDataChange, then add undo and redo with useDataGridState.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [edit cells](/docs/learning-path/edit-cells) and install the undo add-on:
 
-This page is being written.
+<InstallCommand item="data-grid-history" />
+
+`defaultData` seeds the grid once, and the grid then owns the rows. When your code needs the rows, for example to save them, pass `data` instead. This step moves the rows into React state, then adds undo and redo.
+
+## Pass data and onDataChange [#going-controlled]
+
+`data` puts the rows in your code. The grid does not change its display until your next render passes a different `data`. So every edit, paste, fill, and delete reaches your array only through `onDataChange`. Replace `people-grid.tsx` with this file:
+
+```tsx title="people-grid.tsx"
+"use client";
+
+import { useState } from "react";
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { columns, type Person } from "./columns";
+
+const initialPeople: readonly Person[] = [
+  { id: "1", name: "Ada Lovelace", age: 28, active: true },
+  { id: "2", name: "Grace Hopper", age: 34, active: true },
+  { id: "3", name: "Margaret Hamilton", age: 31, active: false },
+];
+
+export function PeopleGrid() {
+  const [people, setPeople] = useState(initialPeople);
+
+  return (
+    <DataGrid
+      data={people}
+      columns={columns}
+      onDataChange={(next) => setPeople(next)}
+      className="h-96"
+    />
+  );
+}
+```
+
+`onDataChange(next, change)` fires once per user gesture. One edit, one paste, one fill, and one delete of a range each fire it once. `next` is the whole array. `change` holds the operations (`ops`) of the gesture and its `source`, such as `"edit"` or `"paste"`.
+
+If you pass both `data` and `defaultData`, `data` wins.
+
+## Add undo and redo [#undo--redo]
+
+`useDataGridState` owns the rows array and the undo history. It passes the rows to the grid as `data` on every render. It replaces your own state, so do not pass `data` beside it. Replace `people-grid.tsx` with this file:
+
+```tsx title="people-grid.tsx"
+"use client";
+
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import { columns, type Person } from "./columns";
+
+const initialPeople: Person[] = [
+  { id: "1", name: "Ada Lovelace", age: 28, active: true },
+  { id: "2", name: "Grace Hopper", age: 34, active: true },
+  { id: "3", name: "Margaret Hamilton", age: 31, active: false },
+];
+
+export function PeopleGrid() {
+  const grid = useDataGridState(initialPeople);
+
+  return <DataGrid {...grid} columns={columns} className="h-96" />;
+}
+```
+
+Result: edit a cell, then press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd>. The cell returns to its earlier value. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd> or <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redoes the edit.
+
+`grid.history` holds `canUndo`, `canRedo`, `undo`, and `redo` for your own buttons. To send changes to a server, see [Save edits](/docs/save-server/save-edits).
+
+Next: [Select and paste](/docs/learning-path/select-paste).
+
+## Related
+
+- [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [Data change events](/docs/events-state/data-change-events)
+- [Save edits](/docs/save-server/save-edits)
+- [DataGrid props](/docs/components-props/data-grid-props)

@@ -1,9 +1,82 @@
 ---
 title: Sort and filter rows
-description: Sort and filter rows.
+description: Add a toolbar with quick search, a filter menu, and a columns menu, and sort rows with a click on a header.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [select and paste](/docs/learning-path/select-paste) and install the toolbar add-on:
 
-This page is being written.
+<InstallCommand item="data-grid-toolbar" />
+
+A toolbar sits between the provider and the scrolling box. `<DataGrid>` has no slot for it, so this step uses the parts that `<DataGrid>` renders. `DataGridProvider` holds the state and the props. `DataGridRoot` is the scrolling box. `DataGridHeader` and `DataGridBody` draw the rows.
+
+## Compose the grid [#compose-the-grid]
+
+Replace `people-grid.tsx` with this file. It keeps the undo and redo of the last step:
+
+```tsx title="people-grid.tsx"
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridColumnsMenu,
+  DataGridFilterMenu,
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import { columns, type Person } from "./columns";
+
+const people: Person[] = [
+  { id: "1", name: "Ada Lovelace", age: 28, active: true },
+  { id: "2", name: "Grace Hopper", age: 34, active: true },
+  { id: "3", name: "Margaret Hamilton", age: 31, active: false },
+];
+
+export function PeopleGrid() {
+  const grid = useDataGridState(people);
+
+  return (
+    <DataGridProvider
+      {...grid}
+      columns={columns}
+      headerClickBehavior="sort"
+    >
+      <DataGridToolbar>
+        <DataGridSearch />
+        <DataGridFilterMenu />
+        <DataGridColumnsMenu />
+      </DataGridToolbar>
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Try it [#try-it]
+
+- Click a header. The column sorts ascending. A second click sorts descending, and a third click removes the sort. <kbd>Shift</kbd>+click adds a second sort column.
+- Type in the search box. The grid highlights the matches and shows how many it found. <kbd>Enter</kbd> moves the active cell to a match, and each further <kbd>Enter</kbd> moves to the next. Search never hides rows.
+- Open the filter menu and add a filter. Rows that do not match the filter disappear.
+- Open the columns menu and untick a column to hide it.
+
+With focus in the grid or its toolbar, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>F</kbd> focuses the search box and leaves the browser find bar closed.
+
+`headerClickBehavior` defaults to `"select"`, which selects the column on a header click. Set `sortable: false` on a column to keep a header click from sorting it.
+
+Next: [Style the grid](/docs/learning-path/style-grid).
+
+## Related
+
+- [Sorting](/docs/sort-filter-search/sorting)
+- [Filtering](/docs/sort-filter-search/filtering)
+- [Quick search](/docs/sort-filter-search/quick-search)
+- [Toolbar](/docs/sort-filter-search/toolbar)

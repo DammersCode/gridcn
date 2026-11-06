@@ -1,9 +1,74 @@
 ---
 title: Edit cells
-description: Edit cells.
+description: Lock cells and reject bad values before they enter the data, building on the columns of the first grid.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [define the columns](/docs/learning-path/define-columns).
 
-This page is being written.
+This step locks the Name cells of inactive people and rejects an Age under 18. The keys that start, commit, and cancel an edit are in [Render your first grid](/docs/learning-path/render-your-first-grid#try-it).
+
+## Lock and validate [#lock-and-validate]
+
+A column with `accessorKey` is editable until you lock it. `readOnly` takes `true` or a function of the row. `validate` takes a function that returns an error message, or `null` to accept the value.
+
+Replace `columns.ts` with this file:
+
+```tsx title="columns.ts"
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+export type Person = { id: string; name: string; age: number; active: boolean };
+
+export const columns = defineColumns<Person>()([
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    type: "text",
+    width: 200,
+    pin: "left",
+    readOnly: (person) => !person.active,
+  },
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    width: 90,
+    options: { min: 0, max: 120 },
+    validate: (value) =>
+      typeof value === "number" && value < 18 ? "Must be 18 or older" : null,
+  },
+  {
+    id: "active",
+    header: "Active",
+    accessorKey: "active",
+    type: "checkbox",
+    width: 90,
+  },
+  {
+    id: "group",
+    header: "Group",
+    accessorFn: (person) => (person.age >= 18 ? "Adult" : "Minor"),
+    flex: 1,
+  },
+]);
+```
+
+Result: untick Active on a row, and its Name cell rejects typing, pastes, and <kbd>Delete</kbd>. Type `12` in an Age cell and press <kbd>Enter</kbd>. The editor stays open and shows the message. The value never enters the data. Press <kbd>Escape</kbd> to cancel.
+
+## Other ways to lock and validate
+
+- `readOnly` on `<DataGrid>` locks editing and delete in every column.
+- `onInvalid: "warn"` on a column commits a rejected edit and flags the cell. Paste and fill still drop a rejected value. The default, `"block"`, refuses the commit.
+- `validate` also takes a Standard Schema, such as a Zod schema, in place of the function.
+- The cell type picks the editor: a text input, a number input, a date picker, or a list of choices.
+
+Next: [Keep edits in state](/docs/learning-path/keep-edits-state).
+
+## Related
+
+- [Editable columns](/docs/editing-cells/editable-columns)
+- [Validation](/docs/editing-cells/validation)
+- [Built-in cell types](/docs/editing-cells/built-cell-types)
+- [Edit and validation events](/docs/events-state/edit-validation-events)

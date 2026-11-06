@@ -1,9 +1,72 @@
 ---
 title: Define columns
-description: Define columns.
+description: Set column width, pinning, and cell type options, and add a computed column, building on the first grid.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [render your first grid](/docs/learning-path/render-your-first-grid).
 
-This page is being written.
+This step adds settings to the columns of that grid. Name stays in place at the start side, Age gets limits, and a computed Group column fills the leftover width.
+
+## Edit the columns [#edit-the-columns]
+
+Replace `columns.ts` with this file:
+
+```tsx title="columns.ts"
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+export type Person = { id: string; name: string; age: number; active: boolean };
+
+export const columns = defineColumns<Person>()([
+  {
+    id: "name",
+    header: "Name",
+    accessorKey: "name",
+    type: "text",
+    width: 200,
+    pin: "left",
+  },
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    width: 90,
+    options: { min: 0, max: 120 },
+  },
+  {
+    id: "active",
+    header: "Active",
+    accessorKey: "active",
+    type: "checkbox",
+    width: 90,
+  },
+  {
+    id: "group",
+    header: "Group",
+    accessorFn: (person) => (person.age >= 18 ? "Adult" : "Minor"),
+    flex: 1,
+  },
+]);
+```
+
+Result: the grid shows a fourth column. Group reads Adult or Minor from the age of each row, and a change to Age updates it.
+
+## What each setting does
+
+- `width` sets the width in pixels. The default is 150.
+- `flex` shares leftover width between columns. A flex column grows from its `width` and never gets narrower.
+- `pin: "left"` sets the initial pin side. A pinned column stays in place while the others scroll.
+- `options` carries the settings of the cell type. When a user types or pastes a number outside `min` and `max`, the cell snaps it to the nearest bound.
+- `accessorFn` computes the value. A column with `accessorFn` and no `accessorKey` or `setValue` locks itself. To make it writable, add `setValue`.
+
+The `id` of a column stays stable and never comes from the header text.
+
+Next: [Edit cells](/docs/learning-path/edit-cells).
+
+## Related
+
+- [Column definition](/docs/components-props/column-def)
+- [Column sizing](/docs/columns/column-sizing)
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Built-in cell types](/docs/editing-cells/built-cell-types)
