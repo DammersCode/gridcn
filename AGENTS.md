@@ -88,6 +88,14 @@ Design every public hook, function, and component from the caller's side.
 - A hook that mounts a grid plugin returns `{ plugin }`; spreadable state hooks return `plugins`. Both work inline in `plugins={[...]}`.
 - A common task takes few lines in the docs example. If an example needs boilerplate every time, the library absorbs it.
 
+### API principles
+
+- Simplify the common case, never take capability away. A simplification is a sensible default plus an override. A capability that must go needs a strong reason in the commit and a fallback.
+- Every automatic behavior has an opt-out, a manual equivalent (such as `refresh()`), and a policy hook where policies differ (batching, timing, merging).
+- Keep escape hatches: callbacks with a ctx object, controlled mode, the ability to take over.
+- State in the commit body, or in `research/api-caveat-fixes.md`, what a developer could do before and that they still can.
+- Fix the trap in the library before you document it. A warning callout stays only for a limit the library cannot absorb.
+
 ## Registry exports (registry/default/blocks/**)
 
 A block's barrel file is the consumer's import surface: what the barrel exports is what a
