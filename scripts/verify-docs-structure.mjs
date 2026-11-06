@@ -137,7 +137,35 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       else (requireRelated ? failures : warnings).push(`cannot compare content/docs-changes.json with ${base}`);
     }
   }
+  failures.push(...sectionSwitcherFailures(root));
   return { name: "structure", checked: pages, failures, warnings, stats: { noRelated } };
+}
+
+export const SECTION_FOLDERS = ["(learn)", "(build)", "(server)", "(evaluate)", "(reference)", "(examples)"];
+
+/** The section switcher needs six `root: true` folders with title and icon, and the docs layout must pass `tabs`. */
+export function sectionSwitcherFailures(root) {
+  const layoutFile = join(root, "app/docs/layout.tsx");
+  if (!existsSync(layoutFile)) return [];
+  const failures = [];
+  for (const folder of SECTION_FOLDERS) {
+    const metaFile = join(root, "content/docs", folder, "meta.json");
+    if (!existsSync(metaFile)) {
+      failures.push(`content/docs/${folder}/meta.json is missing (section switcher)`);
+      continue;
+    }
+    let meta;
+    try {
+      meta = JSON.parse(readLf(metaFile));
+    } catch {
+      continue;
+    }
+    if (meta.root !== true) failures.push(`content/docs/${folder}/meta.json needs "root": true (section switcher)`);
+    if (!meta.title) failures.push(`content/docs/${folder}/meta.json needs a "title" (section switcher)`);
+    if (!meta.icon) failures.push(`content/docs/${folder}/meta.json needs an "icon" (section switcher)`);
+  }
+  if (!/<DocsLayout[^>]*\btabs=\{/.test(readLf(layoutFile))) failures.push("app/docs/layout.tsx must pass `tabs` to DocsLayout (section switcher)");
+  return failures;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

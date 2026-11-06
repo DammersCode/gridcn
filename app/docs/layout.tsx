@@ -5,11 +5,14 @@ import { GitHubStarsLive } from '@/components/github-stars-live';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DocsSidebarFolder, DocsSidebarItem } from '@/components/docs-sidebar';
 import { gitConfig } from '@/lib/shared';
+import { getDocsTabs } from '@/lib/docs-tabs';
 
 export default function Layout({ children }: LayoutProps<'/docs'>) {
+  const tree = source.getPageTree();
   return (
     <DocsLayout
-      tree={source.getPageTree()}
+      tree={tree}
+      tabs={getDocsTabs(tree)}
       {...baseOptions()}
       githubUrl={undefined}
       themeSwitch={{ enabled: false }}
