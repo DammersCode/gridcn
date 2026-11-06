@@ -1,9 +1,129 @@
 ---
 title: Style contract
-description: Style contract.
+description: Look up the theme tokens, CSS variables, and data attributes that the grid exposes for styling.
 type: reference
+aliases: ["css variables", "theme tokens", "data attributes", "dom attributes"]
 ---
 
-{/* docs-stub */}
+The grid paints with your shadcn theme tokens and exposes state as data attributes. Tokens, CSS variables, and data attributes are the contract. The class names that the grid renders can change between versions.
 
-This page is being written.
+## Theme tokens [#theme-tokens]
+
+Every color of the grid resolves to a shadcn token. Change the token in your theme and the grid follows, in light and dark mode.
+
+| Token | Surfaces |
+|---|---|
+| `background` | The grid fill, the cell fill, and the marker cells |
+| `border` | The grid frame, the bottom border of cells and headers, and the column lines |
+| `muted` | Header cells, the row hover tint, the pinned-row band tint, and the loading skeleton |
+| `muted-foreground` | The empty state text, the row numbers, the sort indicator, and the column menu trigger |
+| `accent` and `accent-foreground` | The hover tint and the hover text of the column menu trigger |
+| `input` | The border of a checkbox cell |
+| `primary-foreground` | The check mark of a checked checkbox cell. `primary` fills and borders that cell |
+| `primary` | The selection, the active cell ring, the resize handle, the drop indicator, the fill preview, the loading bar, and the cell flash |
+| `destructive` | Invalid cells and the validation message |
+
+## CSS variables [#css-variables]
+
+Set a variable on the grid or on any ancestor.
+
+| Variable | Effect | Default |
+|---|---|---|
+| `--grid-pin-shadow` | Color of the shadows at pinned bands | `oklch(0 0 0 / 10%)` |
+| `--grid-scroll-shadow` | Color of the edge shadows. `transparent` hides them | `--grid-pin-shadow` |
+| `--grid-shadow-size` | Width of the side shadows and height of the top and bottom shadows | `8px` |
+| `--grid-column-border` | Color of the lines between columns. `transparent` hides them | `--color-border` |
+| `--search-highlight` | Color of the quick search tint | A mix of `--color-primary` |
+| `--grid-flash-duration` | Duration of the cell flash after a write. `0s` turns it off | `1.2s` |
+| `--grid-flash-intensity` | Share of the flash color at the start of the flash | `24%` |
+| `--grid-flash-color` | Color of the cell flash | `var(--color-primary)` |
+| `--grid-loading-sweep-duration` | Duration of the loading bar sweep | `1.2s` |
+| `--presence-label-foreground` | Text color of a presence name chip | Black or white, from the user color |
+
+The CLI install adds `--grid-pin-shadow` and `--search-highlight` to your CSS for light and dark mode. `--color-search-highlight` also works. If both exist, `--search-highlight` wins.
+
+The grid writes `--grid-row-height` itself, from the `rowHeight` prop or the `density` preset: 28 pixels for `compact`, 36 for `default`, 44 for `comfortable`. `rowHeight` wins over `density`. The `headerHeight` prop sets the height of a header row. The default is 36. Pass heights as props, because the grid needs the numbers to compute the rendered rows. The variables `--grid-scroll-left`, `--grid-dir`, `--grid-viewport-width`, `--grid-content-width`, `--grid-pin-shadow-left-x`, `--grid-pin-shadow-right-x`, `--grid-flash-base`, `--grid-search-color`, and `--grid-search-fallback` are internal and read-only.
+
+## Built-in classes [#the-built-in-class-surface]
+
+These are the classes that the grid renders and the place where you override them. Class names can change between versions. The state attributes below do not. Built-in classes come first in the merge, so a conflicting utility of yours wins.
+
+| Surface | Built-in classes | Override |
+|---|---|---|
+| Grid root, `[role="grid"]` | `relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` or `DataGrid` |
+| Header cell | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none`, plus the column line | `headerClassName` on the column |
+| Data cell | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none`, plus the column line | `getCellClassName`, then `cellClassName` on the column |
+| Row | `group/row data-hovered:bg-muted/50` | `getRowClassName`. Pinned and marker cells stay opaque and do not show a row background |
+| Marker cell | `group flex items-center border-b border-border bg-background`, plus the column line | `renderMarker` replaces the content |
+| Marker header | `flex items-center justify-center border-b border-border bg-muted`, plus the column line | None |
+| Selection overlay | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`, or a plugin `Overlay` |
+| Active cell ring | `pointer-events-none ring-2 ring-inset ring-primary` | `--primary` |
+| Column line | A 1px border at the end side of a column. A right-pinned column has it at the start side instead | `--grid-column-border` |
+| Empty state | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop or `labels.emptyState` |
+| Loading skeleton | One `h-4 flex-1 rounded bg-muted` bar per column. The bars pulse. Under reduced motion they stay still | The `loading` flag |
+| Loading bar | A 2px track `bg-primary/20` with a `bg-primary` sweep. Under reduced motion the sweep is a full-width static bar | `--primary`, `--grid-loading-sweep-duration` |
+| Validation message | `rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive` | `--destructive` |
+| Resize handle | An 8px column with a 3px `bg-primary` line. The line shows on hover and during a drag | `--primary` |
+| Drop indicator | A 2px `--color-primary` line at the drag boundary | `--primary` |
+| Fill preview | `pointer-events-none border border-dashed border-primary bg-primary/5` | `--primary` |
+| Sort indicator | `text-muted-foreground` with a `size-3.5` icon. The rank of a multi-sort is `text-[10px] tabular-nums` | `DataGridSortIndicator` in a custom header |
+| Presence overlay | A border and a 12% fill mixed from `--presence-color`. The name chip is `rounded-sm px-1.5 py-0.5 text-xs font-medium shadow-sm` | The user color, `--presence-label-foreground` |
+| Pinned-row band cell | A 30% `muted` tint over `background`, and `font-medium` | `--muted` |
+
+## State attributes [#data-attribute-contract]
+
+Use these in CSS or with the Tailwind `data-[attr]:` variant.
+
+| Attribute | Element | Meaning |
+|---|---|---|
+| `data-active` | Cell | The active cell |
+| `data-editing` | Cell | The cell is in edit mode |
+| `data-pinned` | Cell, header, overlay | `"left"` or `"right"`, the pin side |
+| `data-readonly` | Cell | The cell is not editable: the grid or its column is `readOnly`, or the column has no `accessorKey` and no `setValue`. Pinned-row cells carry it, and a column can set `readOnly: false` to remove it |
+| `data-type` | Cell | The cell type key. `text` is the key of a column with no type |
+| `data-search-match` | Cell | The cell matches the quick search |
+| `data-flash` | Cell | The cell flash plays |
+| `data-invalid` | Cell | The cell carries a validation error. It also has `aria-invalid` |
+| `data-skeleton` | Cell | The cell stands for an unloaded row |
+| `data-grid-pinned-row` | Cell | The cell belongs to a pinned row band |
+| `data-column-id` | Cell, header | The column id |
+| `data-filtered` | Header | The column has an active filter |
+| `data-resizing` | Header | The user drags the resize handle |
+| `data-dragging` | Header, marker cell | The element is the source of a reorder drag |
+| `aria-sort` | Header | `ascending`, `descending`, or `none` |
+| `data-row-selected` | Marker cell | The row is in the row channel |
+| `data-hovered` | Row | The row under the pointer. The mark stays on its row during a scroll. When the scroll stops, it moves |
+| `data-save-status` | Row | `saving` while a save is pending, `failed` after a refusal |
+| `data-grid-row-index` | Row | The view index of the row |
+
+Range, row, and column selection draw as overlay elements, not cell attributes. A selection change does not re-render a cell. These rules style a cell by its state:
+
+```css
+[data-readonly] {
+  color: var(--muted-foreground);
+}
+[data-save-status="failed"] {
+  background-color: color-mix(in oklch, var(--destructive) 10%, transparent);
+}
+```
+
+## Structural attributes [#structural-attributes]
+
+Each structural element carries one attribute for targeting:
+
+- Layers: `data-grid-header-layer`, `data-grid-rows-canvas`, `data-grid-selection-overlay`, `data-grid-active-cell-overlay`
+- Header: `data-grid-resize-handle`, `data-grid-header-menu-trigger`, `data-grid-column-reorder-handle`, `data-grid-header-filter-slot`, `data-grid-header-filter-trigger`, `data-grid-header-filter-popup`, `data-grid-header-menu-popup`, `data-grid-header-dropdown`, `data-grid-sort-indicator` (`"asc"` or `"desc"`), `data-grid-drop-indicator`
+- Touch: `data-grid-selection-handle` (`"start"` or `"end"`)
+- Row markers: `data-grid-marker-header`, `data-grid-marker-cell`, `data-grid-marker-number`, `data-grid-marker-checkbox`, `data-grid-reorder-handle`
+- Edge shadows: `data-grid-pin-shadow` (`"left"`, `"right"`, `"top"`, or `"bottom"`) and `data-scrolled-left`, `data-scrolled-right`, `data-scrolled-top`, `data-scrolled-bottom` on the viewport
+- Loading and empty: `data-grid-loading-skeleton`, `data-grid-loading-bar`, `data-grid-loading-state`, `data-grid-empty-state`
+- Editors: `data-grid-cell-editor` on the portaled content of a cell editor
+- Add-ons: `data-grid-fill-preview`, `data-grid-fill-handle`, `data-grid-presence-overlay`, `data-grid-presence-label`, `data-grid-pinned-row-band`, `data-grid-pinned-row-index`, `data-grid-context-menu`, `data-grid-pagination`
+- Toolbar: `data-grid-toolbar`, `data-grid-columns-menu`, `data-grid-search`, `data-grid-search-count`, `data-grid-filter-menu`, `data-grid-filter-count`, `data-grid-filter-row`, `data-grid-sort-list`, `data-grid-sort-row`, `data-grid-sort-count`
+
+## Related
+
+- [Styling model](/docs/concepts/styling-model)
+- [Colors and radius](/docs/theme-style-language/colors-radius)
+- [Style overrides](/docs/theme-style-language/style-overrides)
+- [Density and small screens](/docs/theme-style-language/density-small-screens)

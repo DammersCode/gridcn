@@ -1,9 +1,84 @@
 ---
 title: Sort and filter events
-description: Sort and filter events.
+description: Read or control the sort, the filters, and the quick search text with three controlled props.
 type: reference
+aliases: ["controlled sort", "controlled filter"]
 ---
 
-{/* docs-stub */}
+Sort, filters, and quick search text each have a controlled prop. The callback reports the next value. The value prop makes your state the source of truth.
 
-This page is being written.
+{/* props: DataGridSyncProps */}
+| Prop | Purpose | Default |
+|---|---|---|
+| `sortState` | The sort, controlled by your code | none |
+| `defaultSortState` | The sort, seeded once | none |
+| `sortMode` | `"client"` sorts `data`. `"server"` only tracks the sort | `"client"` |
+| `onSortChange` | Fires with the next sort | none |
+| `filterState` | The filter tree, controlled by your code | none |
+| `defaultFilterState` | The filters, seeded once | none |
+| `filterMode` | `"client"` filters `data`. `"server"` only tracks the filters | `"client"` |
+| `onFilterChange` | Fires with the next filter tree | none |
+| `searchText` | The quick search text, controlled by your code | none |
+| `defaultSearchText` | The quick search text, seeded once | none |
+| `onSearchTextChange` | Fires with the next text | none |
+
+Your code answers first for each of them. The grid fires the callback and waits. When you pass the new value, the view changes. A controlled grid that ignores the callback stays as it is.
+
+## onSortChange [#onsortchange]
+
+The callback receives `SortSpec[]`, with the primary sort first. A `SortSpec` holds `columnId` and `direction`, which is `"asc"` or `"desc"`. It fires for a header click, `toggleSort`, and `setSorts`, with or without a `sortState` prop. This sample controls the sort:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type SortSpec,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function Grid({ rows }: { rows: Row[] }) {
+  const [sorts, setSorts] = useState<SortSpec[]>([]);
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      sortState={sorts}
+      onSortChange={setSorts}
+    />
+  );
+}
+```
+
+With `sortMode="server"`, the grid tracks the spec and never reorders `data`. When the callback fires, fetch the rows in the new order, for example with `useDataGridServerRows`. See [Compare data modes](/docs/server-path/compare-data-modes).
+
+## onFilterChange [#onfilterchange]
+
+The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `"and"`. A group holds `join` (`"and"` or `"or"`) and its own `filters`. A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.
+
+A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a string for most operators. Numbers and dates are text, such as `"30"` and `"2025-01-31"`. These operators differ:
+
+- `isBetween` takes an inclusive `[min, max]` pair. An empty string leaves that bound open.
+- `isAnyOf` and `isNoneOf` take a `string[]`. An empty `isNoneOf` list matches every row.
+- `empty` and `notEmpty` take no value.
+
+The callback fires for the filter menu, header filters, and `setFilters`, with or without a `filterState` prop. With `filterMode="server"`, the grid tracks the filters and never filters `data`. Fetch the matching rows, for example with `useDataGridServerRows`.
+
+## onSearchTextChange [#onsearchtextchange]
+
+The callback receives the new text. If the text equals the current text, it does not fire. Quick search highlights matches and moves between them. It never filters the rows.
+
+The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, and find and replace. The `debounceMs` prop of `DataGridSearch` wins for that search box.
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes)
+- [Sorting](/docs/sort-filter-search/sorting)
+- [Filtering](/docs/sort-filter-search/filtering)
+- [Quick search](/docs/sort-filter-search/quick-search)
+- [Compare data modes](/docs/server-path/compare-data-modes)

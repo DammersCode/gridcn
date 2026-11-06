@@ -1,9 +1,98 @@
 ---
 title: Column and viewport events
-description: Column and viewport events.
+description: Save and restore the column layout, read live widths during a resize, and learn which rows the grid has rendered.
 type: reference
+aliases: ["save column layout", "column state", "scroll event"]
 ---
 
-{/* docs-stub */}
+Three callbacks report the shape of the grid. `onColumnLayoutChange` reports the column widths, order, pins, and hidden columns. `onColumnResizing` reports live widths. `onRenderedRowsChange` reports the rendered rows.
 
-This page is being written.
+{/* props: DataGridSyncProps */}
+| Prop | Purpose | Default |
+|---|---|---|
+| `columnLayout` | The layout that your code controls. Each part has its own control | none |
+| `defaultColumnLayout` | The layout, seeded once at mount | none |
+| `onColumnLayoutChange` | Fires with the full layout after a committed change | none |
+| `onColumnResizing` | Fires on each live width write during a resize drag | none |
+| `onRenderedRowsChange` | Fires with the range of rendered view rows | none |
+
+## onColumnLayoutChange [#oncolumnlayoutchange]
+
+The callback receives a `ColumnLayout`:
+
+{/* props: ColumnLayout, ColumnLayoutParts */}
+| Field | Meaning |
+|---|---|
+| `widths` | Width in pixels by column id, for the columns with a width set by the user |
+| `order` | The complete column id order, not only the moved column |
+| `pins` | `"left"` or `"right"` by column id |
+| `hidden` | The ids of the hidden columns |
+
+It fires once per committed change. These changes commit:
+
+- the release of a resize drag, and an autosize from a double-click, the header menu, `autosizeColumns`, or `autosizeOnMount`,
+- a width reset,
+- a reorder drop,
+- a pin or an unpin,
+- a show or a hide,
+- a `setColumnLayout` call.
+
+It never fires per drag frame. If the layout does not change, it does not fire.
+
+### Save and restore [#save-and-restore]
+
+`defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It drops unknown column ids and clamps widths. It drops pins on columns with `pinnable: false`. It appends columns that the saved `order` lacks. It moves the columns of a group next to each other again:
+
+```tsx
+import {
+  DataGrid,
+  defineColumns,
+  type ColumnLayout,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+type Props = { rows: Row[]; saved?: Partial<ColumnLayout> };
+
+function Grid({ rows, saved }: Props) {
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      defaultColumnLayout={saved}
+      onColumnLayoutChange={(layout) => {
+        localStorage.setItem("layout", JSON.stringify(layout));
+      }}
+    />
+  );
+}
+```
+
+### Control the layout [#control-the-layout]
+
+Pass `columnLayout` to control the layout. The grid applies the gesture before your code answers. A gesture writes to the grid and fires the callback at once. A value that equals the fired layout changes nothing. Any other value applies without firing the callback.
+
+Each given part replaces that part. An omitted part keeps the current value. With `columnLayout={{ widths }}`, you control the widths and a reorder by the user survives.
+
+The `setColumnLayout(parts)` action replaces the parts you give and commits once, like a gesture.
+
+## onColumnResizing [#oncolumnresizing]
+
+The callback receives `{ columnId, width }`. It fires on every live width write during a resize drag, so it fires many times per drag. The `width` is already clamped to the limits of the column. Use it for a live readout. The release of the drag does not fire it. The release fires `onColumnLayoutChange` once.
+
+## onRenderedRowsChange [#onrenderedrowschange]
+
+The callback receives `{ start, end }`. It is the range of view rows that the grid has rendered. `start` is inclusive and `end` is exclusive. It fires once after the first measured render. After that, a move of the range fires it. A scroll tick inside the overscan buffer does not fire it.
+
+The range maps to rows of `data` only while no client-side sort or filter is active. A grid with `sortMode="server"` and `filterMode="server"` keeps that mapping. `useDataGridServerRows` in scroll mode uses this callback to load the rows that scroll into view.
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes)
+- [Column sizing](/docs/columns/column-sizing)
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)

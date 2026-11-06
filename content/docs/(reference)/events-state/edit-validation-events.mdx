@@ -1,10 +1,99 @@
 ---
 title: Edit and validation events
-description: Edit and validation events.
+description: Stop an edit before it opens, learn how an edit ended, and read the cells that a bulk write refused.
 type: reference
-aliases: ["onvalidationerror", "oneditstart", "oneditend", "oninvalid"]
+aliases: ["onvalidationerror", "oneditstart", "oneditend", "oninvalid", "validation error", "veto edit"]
 ---
 
-{/* docs-stub */}
+Three callbacks cover the edit lifecycle. `onEditStart` runs before an editor opens. `onEditEnd` reports how a session ended. `onValidationError` reports the cells that a paste, a fill, or a batch update refused.
 
-This page is being written.
+{/* props: DataGridSyncProps */}
+| Prop | Fires when | Default |
+|---|---|---|
+| `onEditStart` | An editor is about to open | none |
+| `onEditEnd` | A session ends, or validation refuses a commit attempt | none |
+| `onValidationError` | A bulk write settles with at least one refused cell | none |
+
+## onEditStart [#oneditstart]
+
+The callback fires right before an editor opens. Enter, F2, type-to-replace, and a double-click open an editor. The payload is a `ViewCellRef`: `rowId`, `columnId`, `viewRowIndex`, and `viewColumnIndex`. Return `false` to stop the edit. The grid then makes no state change. This sample stops the edit of a locked row:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; locked: boolean };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function Grid({ rows }: { rows: Row[] }) {
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      onEditStart={({ rowId }) => {
+        const row = rows.find((candidate) => candidate.id === rowId);
+        return row?.locked === true ? false : undefined;
+      }}
+    />
+  );
+}
+```
+
+The callback also fires for the `startEditing` action. It does not fire on a `readOnly` grid. It does not fire for a cell that its column makes read-only for that row, because a `readOnly` column can depend on the row. It does not fire for a cell whose type declares `activate`, such as a checkbox, because that cell toggles in place.
+
+Return a promise to decide later. The editor opens after the promise settles. Three cases open no editor: the promise resolves to `false`, the user moved to another cell, or the grid became `readOnly`. A pending promise blocks a second edit start. A rejection cancels the edit start.
+
+## onEditEnd [#oneditend]
+
+The payload is a `ViewCellRef` plus `result`. The committed value is not in the payload. `onDataChange` carries it.
+
+| `result` | Meaning |
+|---|---|
+| `commit` | The session closed and the grid wrote the value, or the value equaled the old value |
+| `cancel` | The grid discarded the draft |
+| `rejected` | Validation refused a commit and the session stays open |
+
+Each session ends with exactly one `commit` or `cancel`. `rejected` fires once per refused attempt, so a session can report it many times before it ends.
+
+Four causes end a session with `cancel`:
+
+- The user presses Escape.
+- A second `startEditing` replaces the open session.
+- A filter, a hidden column, or a data change removes the edited cell from the view.
+- The grid becomes `readOnly`.
+
+A sort that only moves the edited row fires nothing.
+
+If the edited cell leaves the view, the grid also clears the active cell. Other rows can stay in the view.
+
+A commit that moves the active cell fires `onActiveCellChange` and `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async Standard Schema, the editor stays open and `pending` is true until the schema settles.
+
+## onValidationError [#onvalidationerror]
+
+The callback fires after a paste, a fill, or an `updateCells` call settles. If validation refused no cell, it does not fire. The grid applies the accepted cells first, so their `onDataChange` fires before this event.
+
+The payload is `{ source, rejected }`. `source` is `"paste"`, `"fill"`, `"stream"`, or `"replace"`. `updateCells` and `updateRows` report `"stream"`. A find and replace batch reports `"replace"`. Each entry of `rejected` has these fields:
+
+{/* props: GridBulkValidationError */}
+| Field | Meaning |
+|---|---|
+| `rowId` | The row id of the refused cell |
+| `columnId` | The column id of the refused cell |
+| `viewRowIndex` | The view index of the row, or `-1` for a row outside the view |
+| `value` | The value that failed |
+| `message` | The message of the validator |
+
+A single cell edit does not use this event. `onEditEnd` with `result: "rejected"` covers that case.
+
+### Soft columns [#soft-columns]
+
+A column with `onInvalid: "warn"` commits a refused value from an edit, closes the editor, and flags the cell. Bulk writes still drop the refused cells of such a column and report them here.
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes)
+- [Validation](/docs/editing-cells/validation)
+- [Editable columns](/docs/editing-cells/editable-columns)
+- [Show errors on cells](/docs/save-server/show-errors-cells)

@@ -1,9 +1,84 @@
 ---
 title: Event shapes
-description: Event shapes.
+description: Find the callback for a grid event, and learn how controlled props, seeds, reports, and gates behave.
 type: reference
+aliases: ["event list", "which callback", "controlled props"]
 ---
 
-{/* docs-stub */}
+Every callback on these pages except `onFill` is a prop of `DataGrid` or `DataGridProvider`. `onFill` is an option of `useDataGridFill`. Other add-ons document their own callbacks on their option pages. A callback belongs to a controlled prop, reports an event, or is a gate. The tables below name the callback for each need and link its payload.
 
-This page is being written.
+## Find the callback [#find-the-callback]
+
+| Need | Callback | Page |
+|---|---|---|
+| Read a data edit, paste, fill, or row change | `onDataChange` | [Data change events](/docs/events-state/data-change-events#ondatachange) |
+| Save a change on a server | `onSave` | [Data change events](/docs/events-state/data-change-events#onsave) |
+| Read a save that the server refused | `onSaveRejected` | [Data change events](/docs/events-state/data-change-events#onsaverejected) |
+| Cancel a paste | `processPaste` | [DataGridProvider](/docs/components-props/data-grid-provider) |
+| Cancel a row delete | `onBeforeDeleteRows` | [Data change events](/docs/events-state/data-change-events#onbeforedeleterows) |
+| Read or control the sort | `onSortChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onsortchange) |
+| Read or control the filters | `onFilterChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onfilterchange) |
+| Read or control the quick search text | `onSearchTextChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onsearchtextchange) |
+| Veto an edit before it opens | `onEditStart` | [Edit and validation events](/docs/events-state/edit-validation-events#oneditstart) |
+| Know how an edit ended | `onEditEnd` | [Edit and validation events](/docs/events-state/edit-validation-events#oneditend) |
+| Read the cells a bulk write refused | `onValidationError` | [Edit and validation events](/docs/events-state/edit-validation-events#onvalidationerror) |
+| Read or control the selection | `onSelectionChange` | [Selection and cell events](/docs/events-state/selection-cell-events#onselectionchange) |
+| Follow the active cell | `onActiveCellChange` | [Selection and cell events](/docs/events-state/selection-cell-events#onactivecellchange) |
+| React to a click, double-click, or right-click on a cell | `onCellClick`, `onCellDoubleClick`, `onCellContextMenu` | [Selection and cell events](/docs/events-state/selection-cell-events#oncellclick) |
+| Cancel a fill | `onFill` | [Selection and cell events](/docs/events-state/selection-cell-events#onfill) |
+| Save or restore the column layout | `onColumnLayoutChange` | [Column and viewport events](/docs/events-state/column-viewport-events#oncolumnlayoutchange) |
+| Show a live width during a resize | `onColumnResizing` | [Column and viewport events](/docs/events-state/column-viewport-events#oncolumnresizing) |
+| Load rows for the rendered range | `onRenderedRowsChange` | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
+
+The grid has no copy event and no scroll-position callback. A paste reports through `onDataChange` with `source: "paste"`. `onRenderedRowsChange` reports the rendered rows. A new function identity for `onCellClick`, `onCellDoubleClick`, or `onCellContextMenu` re-renders no cell.
+
+The complete list of props is the `DataGridSyncProps` type. The [DataGridProvider](/docs/components-props/data-grid-provider) page lists every prop.
+
+## Three shapes [#the-three-shapes-an-event-follows]
+
+### Controlled and uncontrolled props [#controlled-pairs]
+
+A controlled prop and its callback follow the React rule for `value` and `defaultValue`. Pass the value prop to control the state. Pass the `default` prop to seed it once. The grid ignores later changes to a `default` prop.
+
+| State | Value prop | Callback | Seed prop |
+|---|---|---|---|
+| Rows | `data` | `onDataChange` | `defaultData` |
+| Sort | `sortState` | `onSortChange` | `defaultSortState` |
+| Filters | `filterState` | `onFilterChange` | `defaultFilterState` |
+| Quick search | `searchText` | `onSearchTextChange` | `defaultSearchText` |
+| Selection | `selection` | `onSelectionChange` | `defaultSelection` |
+| Column layout | `columnLayout` | `onColumnLayoutChange` | `defaultColumnLayout` |
+
+Omit the value prop and the grid owns the state. The callback still fires.
+
+Two update rules apply:
+
+- You answer first: `sortState`, `filterState`, and `searchText`. The grid reports the change and waits. When you pass the new value, the view changes.
+- `data`: the grid applies the change at once and reports it. The next render replaces the rows with the `data` you pass, so pass `next` back.
+- The grid answers first: `selection` and `columnLayout`. The grid applies the gesture and fires the callback at once. A value you pass back that equals the fired value changes nothing. Any other value applies without firing the callback.
+
+For `columnLayout`, you control each part (`widths`, `order`, `pins`, `hidden`) on its own. An omitted part stays with the grid.
+
+### Callbacks that report [#notifications]
+
+These callbacks say what happened and change nothing. `onCellClick`, `onCellDoubleClick`, `onCellContextMenu`, `onActiveCellChange`, `onColumnResizing`, `onRenderedRowsChange`, `onEditEnd`, `onValidationError`, and `onSaveRejected` only report.
+
+### Gates [#gates]
+
+A gate runs before the grid acts and can stop the action:
+
+- `onEditStart` returns `false` to stop an edit.
+- `onBeforeDeleteRows` returns `false` to stop a row delete.
+- `onFill` calls `preventDefault()` to stop a fill.
+- `processPaste` returns `false` to stop a paste.
+
+`onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
+
+`onEditStart`, `onBeforeDeleteRows`, and `processPaste` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action.
+
+## Related
+
+- [Data change events](/docs/events-state/data-change-events)
+- [Selection and cell events](/docs/events-state/selection-cell-events)
+- [DataGridProvider](/docs/components-props/data-grid-provider)
+- [Events A to Z](/docs/cheatsheets-messages/events-z)

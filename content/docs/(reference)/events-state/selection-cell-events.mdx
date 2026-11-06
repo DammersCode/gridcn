@@ -1,9 +1,136 @@
 ---
 title: Selection and cell events
-description: Selection and cell events.
+description: Read or control the selection, follow the active cell, and react to a click, a double-click, or a right-click on a cell.
 type: reference
+aliases: ["cell click", "selection callback", "cursor event"]
 ---
 
-{/* docs-stub */}
+`onSelectionChange` pairs with the `selection` prop. `onActiveCellChange` follows the active cell. Three more callbacks report a mouse event on a cell. `onFill` belongs to the fill add-on.
 
-This page is being written.
+{/* props: DataGridSyncProps */}
+| Prop | Fires when | Default |
+|---|---|---|
+| `selection` | The selection, controlled by your code | none |
+| `defaultSelection` | The selection, seeded once | none |
+| `onSelectionChange` | A committed selection change alters the selection | none |
+| `onActiveCellChange` | The active cell becomes a different cell, or clears | none |
+| `onCellClick` | A click lands on a cell | none |
+| `onCellDoubleClick` | A double-click lands on a cell | none |
+| `onCellContextMenu` | A right-click lands on a cell | none |
+
+## onSelectionChange [#onselectionchange]
+
+The callback receives the selection as a `SelectionState` and a `details` object of type `SelectionChangeDetails`. Every reference is a `CellRef`, a row id plus a column id. A sort, a filter, or a reorder does not change a `CellRef`.
+
+{/* props: SelectionState */}
+| Field | Meaning |
+|---|---|
+| `anchor` | The anchor of the primary range, or `null` |
+| `range` | The primary range as `{ start, end }`, in either diagonal order, or `null` |
+| `rangeStack` | Earlier Ctrl or Cmd click ranges, oldest first |
+| `rowIds` | The row ids of the row channel, in view order |
+| `columnIds` | The column ids of the column channel, in view order |
+
+The callback fires for a click, a range extend step, a row, column, or all selection, and a clear. If the selection equals the last known value, it does not fire. A sort that moves no selected row fires nothing. A value you pass in through `selection` does not fire it.
+
+In scroll mode, `rowIds` holds the placeholder id `__lazy-unloaded-<index>` for an unloaded row.
+
+Dragging out a range fires the callback once per cell the pointer crosses. To read only the settled value, debounce your handler.
+
+The active cell is not part of `SelectionState`. Use `onActiveCellChange` for it.
+
+### Control the selection [#controlling-the-selection]
+
+Pass `selection` to control the state. A gesture writes to the grid and fires the callback at once. A new value replaces the selection without firing the callback. It must differ from the current selection and from the last fired value.
+
+A value with an `anchor` moves the active cell to it. `defaultSelection` seeds the selection once. If you pass both, `selection` wins and development mode warns once. This sample controls the selection:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  EMPTY_SELECTION_STATE,
+  type SelectionState,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function Grid({ rows }: { rows: Row[] }) {
+  const [selection, setSelection] = useState<SelectionState>(
+    EMPTY_SELECTION_STATE,
+  );
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      selection={selection}
+      onSelectionChange={(next) => setSelection(next)}
+    />
+  );
+}
+```
+
+The grid resolves each reference against its current view. It drops a range with an unresolved corner and every unresolved id in `rowIds` and `columnIds`. An anchor outside its range resets to `range.start`. Development mode warns once per grid.
+
+### Read the values [#reading-the-selected-values]
+
+The second argument holds two functions. They are lazy, so a handler that ignores them pays nothing on each drag step.
+
+- `getValues()` returns the raw cell values of the primary range as `unknown[][]`, one array per view row. It returns `[]` without a range. It reads `range` only and skips `rangeStack`. In scroll mode, it returns `undefined` for an unloaded cell.
+- `getRowIds()` returns the ids of every selected row in view order. It covers the checked rows and every row under `range` and `rangeStack`. It skips unloaded rows. Pass the ids to `deleteRowsById`.
+
+Outside the callback, `useDataGridGetSelectionValues()` returns a stable function that behaves like `getValues`.
+
+### Clear the selection [#clearing-the-selection]
+
+An empty selection has `range: null` and both channels empty. From non-empty to empty, the callback fires once.
+
+## onActiveCellChange [#onactivecellchange]
+
+The payload is a `ViewCellRef` or `null`. The callback fires when:
+
+- the active cell becomes a different cell,
+- a sort, a filter, a data change, or a column hide, reorder, or pin moves the active cell to another view position,
+- another record comes under the active cell, such as a lazy row that loads,
+- the grid clears the active cell.
+
+Re-selecting the same cell does not fire it. A rebuild that keeps the record and column in place does not fire it. A value-only write to the cell does not fire it.
+
+When the row or column of the active cell leaves the view, the grid moves the active cell to the nearest cell in the view. The selection collapses onto that cell. If the active cell is the edited cell, the edit cancels and the active cell becomes `null`. When the view becomes empty, the active cell is `null` and the current range clears.
+
+When a text field outside the grid holds focus, an active cell move does not take focus. Call `focus()` on the grid handle to move focus into the grid.
+
+## Mouse events on a cell [#mouse-events-on-a-cell]
+
+`onCellClick`, `onCellDoubleClick`, and `onCellContextMenu` receive a `CellClickCtx` and the native `MouseEvent`. The context holds `value`, `row`, `column`, `rowId`, `columnId`, `viewRowIndex`, and `viewColumnIndex`.
+
+These callbacks only report. They do not stop what the gesture does. Their types are `OnCellClick`, `OnCellDoubleClick`, and `OnCellContextMenu`. They skip pinned rows and loading placeholders. A double-click or right-click inside an open editor fires neither callback.
+
+### onCellClick [#oncellclick]
+
+The callback fires once per click, modifier clicks included, beside the selection change. A double-click fires it twice, then `onCellDoubleClick`.
+
+### onCellDoubleClick [#oncelldoubleclick]
+
+The callback fires on a double-click, also on a `readOnly` grid. On an editable cell the edit still starts, and only `onEditStart` can stop it.
+
+### onCellContextMenu [#oncellcontextmenu]
+
+The callback fires on a right-click. The context menu add-on is not affected.
+
+## onFill [#onfill]
+
+`onFill` is an option of `useDataGridFill`, not a prop of the grid. It fires on a fill-handle release and on the fill down and fill right shortcuts, before the grid applies the fill. The argument holds `source` (the selected range), `target` (the strip to fill), `values` (the text of the fill), and `preventDefault()`. Call `preventDefault()` to write nothing and keep the selection as it is.
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes)
+- [Selection model](/docs/concepts/selection-model)
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection)
+- [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options)
+- [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection)

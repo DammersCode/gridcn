@@ -1,10 +1,135 @@
 ---
 title: Data change events
-description: Data change events.
+description: Read every edit, paste, fill, and row change as row-id operations, and send each change to a server with onSave.
 type: reference
 aliases: ["ondatachange", "controlled data", "controlled mode"]
 ---
 
-{/* docs-stub */}
+`onDataChange` reports each change to the rows as a list of operations. `onSave` sends the same change to a server. `onBeforeDeleteRows` can stop a delete.
 
-This page is being written.
+{/* props: DataGridSyncProps */}
+| Prop | Purpose | Default |
+|---|---|---|
+| `data` | The rows, controlled by your code | none |
+| `defaultData` | The rows, seeded once and then owned by the grid | none |
+| `onDataChange` | Fires once per change with the next array and the operations | none |
+| `onSave` | Sends a change to a server. Can return a promise | none |
+| `onSaveRejected` | Fires after the grid reverted a refused change | none |
+| `onBeforeDeleteRows` | Runs before a row delete and can cancel it | none |
+
+## onDataChange [#ondatachange]
+
+The callback fires once per change, after the grid stores the next array. One user gesture is one change. Examples are a cell edit, a paste, a fill, a range delete, a row move, and a row insert, delete, or duplicate. The payload holds the next array and a `DataChange`:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function Grid({ initial }: { initial: Row[] }) {
+  const [rows, setRows] = useState(initial);
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      onDataChange={(next, change) => {
+        setRows([...next]);
+        console.log(change.source, change.ops.length);
+      }}
+    />
+  );
+}
+```
+
+With `data`, you own the array and pass `next` back. With `defaultData`, the grid has already applied the change and the callback only reports. Pass one of the two. If you pass both, `data` wins and development mode warns once. The grid ignores later changes to `defaultData`.
+
+### DataChange [#datachange]
+
+{/* props: DataChange */}
+| Field | Meaning |
+|---|---|
+| `ops` | The operations of the change |
+| `source` | What caused the change |
+| `label` | A name for the history entry, such as `"Add row"` |
+| `reverts` | On a `"rollback"` change, the change it undoes |
+
+Each operation addresses a row by `rowId`, because row ids survive sorts and filters and view indexes do not.
+
+| Operation | Fields |
+|---|---|
+| `update` | `rowId`, `row`, `prev`, and `cells` |
+| `insert` | `rowId`, `row`, `index` |
+| `delete` | `rowId`, `row`, `index` |
+| `move` | `rowId`, `row`, `from`, `to` |
+
+An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, or a fill. A whole-row update has no `cells`. The `index` of a `delete` and the `from` of a `move` are positions before the whole change. The `index` of an `insert` and the `to` of a `move` are positions in the result. An insert `index` past the end puts the row last. Apply the operations of one change together, for example with `applyChange`. The [operation engine contract](/docs/contracts/operation-engine-contract) has the rules.
+
+### Sources [#sources]
+
+| `source` | Cause |
+|---|---|
+| `edit` | A committed cell edit |
+| `paste` | A paste |
+| `fill` | A fill |
+| `delete` | The delete of the cell contents in a range |
+| `row-operation` | A row insert, delete, duplicate, or move |
+| `import` | A change you apply with `commitChange` and tag as an import |
+| `history` | An undo or a redo |
+| `rollback` | The revert of a refused save |
+| `stream` | A batch from `updateCells` or `updateRows` |
+| `replace` | A batch from find and replace |
+| `app` | A change you apply with the history `record` function |
+
+### Order and effects [#order-and-effects]
+
+- Inside the handler, a write action such as `updateCells` starts from `next`. With `data`, call `setData(next)` first.
+- A write that another callback makes during a grid write emits its own `onDataChange` after the outer one.
+- A row delete clears the selection and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
+
+## onSave [#onsave]
+
+`onSave` runs once per change, after `onDataChange` and before the plugin observers. It never receives a `"rollback"` change or a `"stream"` change. Return a promise to acknowledge the change. This sample saves each change and throws on a failed request. Pass it as `onSave={save}`:
+
+```tsx
+import type { DataChange } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+async function save(change: DataChange<Row>) {
+  const response = await fetch("/api/rows", {
+    method: "POST",
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error("Save failed");
+}
+```
+
+- A promise that resolves with nothing accepts the change.
+- A promise that resolves with `{ rejected }` refuses the listed rows or cells. Each entry holds `rowId` and can hold `columnId`, `message`, and `current`. `current` is the row as the server holds it. The revert puts it in place of the refused row. While a newer write to the row is pending, the grid ignores `current`. A refused delete restores the row. A refused insert removes it.
+- A promise that rejects refuses the whole change. A throw inside `onSave` refuses the whole change too.
+- On a `readOnly` grid, the grid keeps the refused value and development mode warns once.
+
+`useDataGridRowSaveStatus(rowId)` reads the `RowSaveStatus` of one row. The row carries `data-save-status="saving"` while the promise is pending. The grid reverts each refused entry through `onDataChange` with `source: "rollback"`. A refused row shows `data-save-status="failed"`.
+
+### onSaveRejected [#onsaverejected]
+
+The callback fires once per refused change, after the revert. It receives a `SaveRejectedContext`: `{ change, rejected, error }`. When the promise resolved with `{ rejected }`, `error` is `null`. The grid logs a throw inside the callback and isolates it.
+
+## onBeforeDeleteRows [#onbeforedeleterows]
+
+The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `{ rowIds, hiddenCount }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
+
+A pending promise blocks a second delete. A throw or a rejection cancels the delete. If the grid became `readOnly`, or the rows or the checked rows changed while the promise was pending, the grid drops a confirmed delete.
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes)
+- [Operation engine contract](/docs/contracts/operation-engine-contract)
+- [Save edits](/docs/save-server/save-edits)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Undo and redo](/docs/clipboard-undo/undo-redo)

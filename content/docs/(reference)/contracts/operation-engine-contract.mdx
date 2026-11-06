@@ -1,9 +1,77 @@
 ---
 title: Operation engine contract
-description: Operation engine contract.
+description: Apply and invert a DataChange against your own copy of the rows with applyChange and invertChange.
 type: reference
+aliases: ["apply change", "invert change", "patch rows"]
 ---
 
-{/* docs-stub */}
+Every write to the rows is a `DataChange`: a list of operations addressed by row id. The grid applies each change through one engine.
 
-This page is being written.
+## Operation engine [#operation-engine]
+
+The `data-grid` entry exports two functions of the engine:
+
+| Function | Returns |
+|---|---|
+| `applyChange(data, change, getRowId)` | A new row array with the change applied |
+| `invertChange(change, source?)` | The change that undoes `change` |
+
+## applyChange [#applychange]
+
+`applyChange` never edits `data`. It returns a new array and keeps the object of every row that no operation touched. It runs in `O(n + k log(n + k))` for `n` rows and `k` operations. This sample applies and undoes a change on your own copy of the rows:
+
+```ts
+import {
+  applyChange,
+  invertChange,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const getRowId = (row: Row) => row.id;
+
+export function applyToCache(cache: Row[], change: DataChange<Row>) {
+  return applyChange(cache, change, getRowId);
+}
+
+export function undoOnCache(cache: Row[], change: DataChange<Row>) {
+  return applyChange(cache, invertChange(change), getRowId);
+}
+```
+
+These rules apply:
+
+- An `update` or a `delete` finds its row by `rowId`. The stored `index` does not matter. If the row id is not in `data`, the engine skips the operation without an error.
+- An `update` puts its `row` in place of the stored row. It merges no cells.
+- With duplicate row ids, an operation uses the first row with that id.
+- A `move` applies as a delete plus an insert at `to`.
+- The `index` of a `delete` and the `from` of a `move` are positions before the whole change. They are not running positions.
+- The `index` of an `insert` and the `to` of a `move` are positions in the result. An insert `index` past the end puts the row last.
+- `insert` operations apply in ascending `index` order, whatever their order in `ops`.
+
+## invertChange [#invertchange]
+
+`invertChange` inverts each operation and reverses the order of the operations, so a change unwinds in the right order:
+
+| Operation | Inverse |
+|---|---|
+| `update` | An `update` with `row` and `prev` swapped. The `value` and `prev` of each cell swap too |
+| `insert` | A `delete` of the same row |
+| `delete` | An `insert` of the same row |
+| `move` | A `move` with `from` and `to` swapped |
+
+The result keeps `label`. Its `source` is `"history"` by default. Pass `"rollback"` to tag the revert of a failed save, so that an `onDataChange` handler can tell it from an undo.
+
+## commitChange [#commitchange]
+
+`actions.commitChange(change)` applies a whole change to the grid through `applyChange`. It writes once and fires `onDataChange` once, so the change lands on the undo stack as one entry. It does nothing on a `readOnly` grid. If no operation applies, it writes and fires nothing. It clears the errors of the cells it writes, and the active cell and the checked rows follow their records. It does not validate the values again. A change with `source: "history"` or `"rollback"` is never recorded in the undo stack.
+
+The history add-on inverts with `invertChange` and applies with `commitChange`. Its `rollback` reverts a cell only while the cell still holds the change's value.
+
+## Related
+
+- [Data change events](/docs/events-state/data-change-events)
+- [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [Undo for code changes](/docs/clipboard-undo/undo-code-changes)
+- [Exported types](/docs/types-hooks/exported-types)
