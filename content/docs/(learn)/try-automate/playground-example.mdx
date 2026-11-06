@@ -1,24 +1,44 @@
 ---
 title: "Playground example"
-description: Every add-on composed in one grid, with independent toggles for the features that don't fit a single embed.
+description: Try one grid with the toolbar, context menu, fill handle, and undo, and switch row markers, validation, read-only, RTL, streaming, and the data mode live.
 icon: SlidersHorizontal
 type: example
 ---
 
-Flip switches and selects to see how row markers, pinned totals, validation, read-only, loading,
-RTL, presence, streaming, density, and header click behavior each affect the grid, plus one
-exclusive mode select for virtualized vs. paginated vs. lazy row supply.
+This grid composes the main add-ons and puts one control on each feature that does not fit a single embed. Change a control and the grid reacts at once.
 
 <ComponentPreview name="data-grid-playground-demo" />
 
-- **Row markers, density, header click**: see [Row operations](/docs/rows-pages-menus/row-markers#row-markers), [Styling &
-  theming](/docs/theme-style-language/density-small-screens#density-and-row-height), and [Selection &
-  keyboard](/docs/selection-shortcuts/pointer-selection#header-click-behavior).
-- **Pinned totals**: see [Pinned rows](/docs/rows-pages-menus/pinned-rows).
-- **Validation**: see [Editing & cell types](/docs/editing-cells/validation#validation).
-- **Read-only, loading**: see [Styling & theming](/docs/theme-style-language/loading-state#loading-state).
-- **RTL**: see [i18n](/docs/theme-style-language/labels-i18n#rtl-layout).
-- **Presence**: see [Multiplayer presence](/docs/rows-live-data/show-presence).
-- **Streaming**: see [Streaming updates](/docs/rows-live-data/stream-updates).
-- **Virtualized / paginated / lazy**: see [Pagination](/docs/server-pagination/load-rows-page) and [Lazy
-  loading](/docs/scroll-mode).
+## What the grid mounts
+
+Every data mode mounts the toolbar, the context menu, the header dropdown, the header filter, the fill handle, the presence plugin, and the shortcuts dialog. The toolbar holds search, a filter menu, a sort list, a columns menu, import, and export. Undo and redo mount in the `virtualized` mode only.
+
+The **Mode** select picks the data mode. Only one is active at a time, and a switch remounts the grid:
+
+- `virtualized` holds 60 local rows.
+- `paginated` pages 120 local rows, 20 per page, with [client pagination](/docs/rows-pages-menus/client-pagination).
+- `lazy` runs [scroll mode](/docs/scroll-mode/load-rows-while-scrolling) over 5,000 rows. A fake server answers each block after 300 ms. It applies the sort and ignores filters and search.
+
+In `lazy` mode the import button, pinned totals, and streaming are off, because the grid holds only the loaded blocks.
+
+## Controls
+
+| Control | What it changes | Page |
+| --- | --- | --- |
+| Row markers | The marker column: numbers, checkboxes, drag handles, or a mix. | [Row markers](/docs/rows-pages-menus/row-markers#row-markers) |
+| Custom marker, Row reorder | Your own marker cells, and drag reordering. Both need a row marker mode. | [Row order](/docs/rows-pages-menus/row-order#reorder) |
+| Header click | What a click on a header does: select, sort, or nothing. | [Pointer selection](/docs/selection-shortcuts/pointer-selection#header-click-behavior) |
+| Density | The row height. | [Density](/docs/theme-style-language/density-small-screens#density-and-row-height) |
+| Validation | A rule on the Age column: the value must be 18 or older. | [Validation](/docs/editing-cells/validation#validation) |
+| Custom headers | Name and Score headers with a sort direction icon. | [Column headers](/docs/columns/column-headers-groups#custom-headers) |
+| Read-only | Locks the whole grid. | [Lock cells](/docs/editing-cells/editable-columns#read-only) |
+| Loading | The loading display. | [Loading state](/docs/theme-style-language/loading-state#loading-state) |
+| RTL | Right-to-left layout. | [Labels and i18n](/docs/theme-style-language/labels-i18n#rtl-layout) |
+| Pinned totals | A totals row at the bottom of the grid. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| Presence | Two simulated peers that move across cells. | [Show presence](/docs/rows-live-data/show-presence) |
+| Streaming | Random Score updates four times a second. A second switch sorts the rows as they change. | [Stream updates](/docs/rows-live-data/stream-updates) |
+
+## Related
+
+- [Render your first grid](/docs/learning-path/render-your-first-grid)
+- [Compare data modes](/docs/server-path/compare-data-modes)

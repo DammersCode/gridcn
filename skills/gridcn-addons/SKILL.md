@@ -39,7 +39,7 @@ npx shadcn add @gridcn/<item>
 The `@gridcn` registry serves the current deploy of the public repository `DammersCode/gridcn`;
 the same items install from its GitHub registry path (`DammersCode/gridcn/<item>`), the source
 of record for the files. The core `data-grid` item must already be installed; every add-on
-depends only on it. Done when the CLI reports the new files under `components/data-grid-<name>/`
+depends on it, and some also install another gridcn item (see the table). Done when the CLI reports the new files under `components/data-grid-<name>/`
 and installs the npm dep from the table (check `package.json`), and in a Git project you have
 reviewed every file `git status` lists as new or modified before the first run: the install
 copies remote source into your code and rewrites existing files.
@@ -161,9 +161,7 @@ export a file, scroll a scroll-mode grid past the first block, or change pages).
 
 ## Docs
 
-Each add-on's full reference (props, edge cases, worked examples) is at
-`https://gridcn.vercel.app/docs/addons/<page>.md` (or `/docs/<page>.md` for lazy-loading, pagination,
-plugins, global-shortcuts) — read the relevant one before writing non-trivial wiring:
+Each add-on's full reference (props, edge cases, worked examples) is at the pages below. Append `.md` to a path for raw markdown on `https://gridcn.vercel.app`. Read the relevant one before writing non-trivial wiring:
 
 - Fill: `/docs/clipboard-undo/fill-handle.md` · Pinned rows: `/docs/rows-pages-menus/pinned-rows.md`
 - Presence: `/docs/rows-live-data/show-presence.md`, `/docs/rows-live-data/broadcast-your-selection.md`

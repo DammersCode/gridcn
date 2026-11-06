@@ -1,10 +1,101 @@
 ---
 title: Fix install problems
-description: Fix install problems.
+description: Fix a failed shadcn install, imports that do not resolve, a missing tooltip provider, and a grid that renders nothing or without styles.
 type: task
 aliases: ["grid shows nothing", "blank grid", "tooltip provider", "github registry"]
 ---
 
-{/* docs-stub */}
+Find your symptom below. The sections cover a failed install, a broken import, and a grid that does not render. The shadcn CLI copies gridcn source into your project. Most problems come from the CLI setup or your path mapping. To install gridcn, see [Install gridcn](/docs/learning-path/install-gridcn).
 
-This page is being written.
+## Install from the GitHub registry [#alternative-github-registry-no-setup]
+
+If the `@gridcn` namespace does not resolve, install from the GitHub registry path. It needs no namespace:
+
+<InstallCommand command="shadcn add DammersCode/gridcn/data-grid" />
+
+The CLI resolves the ref with `git ls-remote` and reads the files from `raw.githubusercontent.com`. Without `git`, it uses the GitHub API.
+
+To pin a tag, branch, or commit, append `#<ref>` to the item name. The CLI fetches the registry dependencies of an item without the ref. So install each gridcn dependency of the add-on with the same ref first, the core before the others, then the add-on. See [Pinned installs](/docs/support-upgrades/version-policy-changelog#pinned-installs).
+
+## Fix imports that do not resolve [#non-default-aliases]
+
+The CLI rewrites the imports of gridcn files with the `aliases` of your `components.json`. If your project does not map those aliases, the imports stay unresolved. To fix them:
+
+1. If `components.json` is missing, run `npx shadcn init`.
+2. Set `aliases.components`, `aliases.ui`, and `aliases.utils` in `components.json`.
+3. Map the same prefix in the path settings of your project, as the next sections show.
+4. Edit the remaining wrong import lines by hand. The installed files belong to you.
+
+If an alias entry is missing, the CLI can leave an import wrong. Step 4 fixes it.
+
+### Next.js [#nextjs]
+
+Set `"@/*": ["./*"]` in `compilerOptions.paths` of `tsconfig.json`. If your code lives in `src`, use `["./src/*"]`.
+
+### Vite [#vite]
+
+Add the alias to `vite.config.ts`:
+
+```ts title="vite.config.ts" fragment="needs @tailwindcss/vite"
+import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
+  },
+});
+```
+
+Add the same alias to `compilerOptions.paths` in `tsconfig.app.json`.
+
+## Find the installed files [#where-files-land]
+
+Files land under `aliases.components` of `components.json`, in `@/components` by default. The core lands in `components/data-grid/*`. Import from its barrel file, not from single files:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+```
+
+Each add-on has its own folder with the same pattern, for example `components/data-grid-history/data-grid-history.ts`. The hook and utility items, such as `use-debounce`, land in `components/gridcn/`. The core also writes `components/data-grid/LICENSE.md`.
+
+## Add a tooltip provider [#tooltips]
+
+The CLI prints a hint to wrap your app in `TooltipProvider`. The grid works without it. The core shows the message of an invalid cell in a tooltip, and the context menu shows one on a disabled item.
+
+Without a provider a tooltip opens after 600 ms. The `TooltipProvider` of shadcn/ui sets the delay to 0. To open tooltips at once, wrap your app in one provider:
+
+```tsx title="app/layout.tsx"
+import type { ReactNode } from "react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Verify the install [#verify]
+
+Render the grid from [Render your first grid](/docs/learning-path/render-your-first-grid). Click a cell, type a value, and press <kbd>Enter</kbd>. The grid must render with styles. If it renders wrong, check these causes:
+
+- The grid shows "No rows" although your rows exist. `defaultData` seeds the grid once and ignores later changes, so rows that arrive after the first render never show. Pass them in `data` with `onDataChange` instead.
+- The page throws "a row has no string or number `id` field". Add an `id` to each row, or pass `getRowId`.
+- The grid has no styles. Make sure your global CSS imports Tailwind and that the base tokens of shadcn/ui exist. The grid reads tokens such as `--background` and `--border`. The CLI adds `--grid-pin-shadow` and `--search-highlight` for light and dark mode.
+- The grid fails or loses its styles on an older stack. gridcn needs React 19 and Tailwind v4. See [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
+- The grid draws 200 rows and warns in the console. Give it a fixed height, for example `className="h-96"`.
+
+## Related
+
+- [Install gridcn](/docs/learning-path/install-gridcn)
+- [Render your first grid](/docs/learning-path/render-your-first-grid)
+- [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
