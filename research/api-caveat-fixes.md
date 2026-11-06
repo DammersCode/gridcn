@@ -102,40 +102,33 @@ One shared `{ ok: false, reason }` result for every mode-dependent row action to
 - The bar props are a union (all controls or none), so `page` without handlers no longer type-checks.
 - Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (still blocked, now with a warning that names the page; row order inside a page is not stable against the full list); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).
 
-## API scorecard (0-10)
+## API scorecard (0-10), second pass
 
-Rubric. **Common**: the common case takes few lines. **Cap**: capability preserved (default + override + manual equivalent + policy hook). **Rules**: matches the AGENTS.md API rules (options object, ctx callbacks, controlled pairs, positive booleans). **Name**: names match the glossary and neighbors. **Types**: invalid use is hard to write. **Docs**: docs page and demo cover it. **Trap**: needs no warning callout and has no silent failure. Score is a judgment by the author and the two Opus reviews; the average is rounded down.
+Rubric. **Common**: the common case takes few lines. **Cap**: capability preserved (default + override + manual equivalent + policy hook). **Rules**: matches the AGENTS.md API rules. **Name**: names match the glossary and neighbors. **Types**: invalid use is hard to write. **Docs**: docs page and demo cover it. **Trap**: needs no warning callout and has no silent failure. Scores are the author's judgment after two Opus reviews; Avg is rounded down. First-pass scores below 8 were: `history.record` 7, paged view (Trap 6), `RowActionResult` (Trap 7), `onSave` refresh (Trap 7), `useDataGridServerRows` (Trap 7), `useDataGridPager` (Name 7).
 
 | API | Common | Cap | Rules | Name | Types | Docs | Trap | Avg |
 |---|---|---|---|---|---|---|---|---|
 | `rememberCheckedRows` (+ alias, `keepCheckedRows` split) | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8 |
-| `totalRowCount` implies server `sortMode`/`filterMode` | 9 | 9 | 8 | 9 | 9 | 8 | 8 | 8 |
+| `totalRowCount` implies server `sortMode`/`filterMode` (+ dev warning) | 9 | 9 | 8 | 9 | 9 | 8 | 8 | 8 |
 | `parseServerSpec` + `ServerSpecError` | 9 | 9 | 9 | 9 | 9 | 8 | 9 | 9 |
 | `getRowId` optional in the server hook | 10 | 9 | 9 | 9 | 9 | 8 | 9 | 9 |
 | scroll `source: "indexed" \| "cursor"` | 9 | 9 | 9 | 8 | 9 | 8 | 8 | 8 |
 | `isPlaceholderRowId`, `getViewRowIds({ loaded })` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
-| `onSave` + `refreshAfterSave` (hook) | 9 | 8 | 8 | 8 | 8 | 9 | 7 | 8 |
+| `onSave` + `refreshAfterSave` (+ bypass warning) | 9 | 8 | 8 | 8 | 8 | 9 | 8 | 8 |
 | `labels` compared by content | 10 | 9 | 9 | 9 | 9 | 8 | 8 | 8 |
 | `gateTimeoutMs`, `onGateAborted` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
 | sort arrow for any active sort | 10 | 8 | 9 | 9 | 9 | 8 | 9 | 8 |
-| `history.record` duplicate-insert warning | 8 | 8 | 8 | 8 | 8 | 8 | 6 | 7 |
-| paged view (`pageSize`, `page`, `setPage`, `setPageSize`) | 9 | 8 | 8 | 8 | 8 | 9 | 6 | 8 |
-| `useDataGridPager`, bar reading the provider | 9 | 9 | 8 | 7 | 9 | 8 | 8 | 8 |
-| `useDataGridServerPager`, `hasMore` | 9 | 9 | 9 | 9 | 9 | 8 | 9 | 9 |
-| `RowActionResult` returns | 9 | 9 | 8 | 8 | 9 | 8 | 7 | 8 |
-| `useDataGridServerRows` (pages, cursor pager, scroll) | 9 | 9 | 8 | 8 | 8 | 9 | 7 | 8 |
+| `history.record` (idempotent for present inserts) | 9 | 9 | 8 | 8 | 8 | 8 | 8 | 8 |
+| paged view (`pageSize`, `page`, `setPage`, `setPageSize`, search and reorder across pages) | 9 | 9 | 8 | 8 | 8 | 9 | 7 | 8 |
+| `useDataGridPager` / `useDataGridServerPager` (both `{ pager }`), `hasMore` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
+| `RowActionResult`, `onRowActionSkipped`, reason tooltips | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8 |
+| `useDataGridServerRows` (+ `useDataGridServerPages` / `Scroll`, merge and save bypass warnings) | 9 | 9 | 8 | 8 | 8 | 9 | 8 | 8 |
 | `scope: "page"` on export, print, aggregate | 9 | 9 | 8 | 8 | 9 | 7 | 9 | 8 |
 | barrel lint (`verify-barrel-exports`) | 9 | 8 | 8 | 8 | n/a | 7 | 8 | 8 |
 
-Below 8 after scoring: `history.record` warning (7) and, per criterion, the Trap column of the paged view (6), `RowActionResult` (7), `onSave` refresh (7), `useDataGridServerRows` (7), and the Name of `useDataGridPager` (7).
+Every API averages 8 or more. Single criteria still at 7 or below, each with its reason:
+- **Paged view, Trap 7:** there is no cross-page select-all for a client grid (`selectAllMatching` needs `totalRowCount`), and the active cell stays at the same coordinates across a page change rather than following its record.
+- **`scope: "page"`, Docs 7:** one bullet on `pagination.mdx`; no example in the export or pinned-rows pages.
+- **Barrel lint, Docs 7:** the baseline file is the only documentation of grandfathered names.
 
-Changes made because of the scoring:
-- The F3 default flip is no longer silent: in development the grid warns once when `totalRowCount` makes sorting and filtering server-side and nothing handles `onSortChange` or `onFilterChange` (Trap 6 to 8). The server hook sets the modes explicitly and never triggers it.
-
-What stays under 8 and why (each needs more than a local fix):
-- **Paged view, Trap 6:** quick search marks matches on the current page only; `reorderRows` is blocked while a page is active. Cross-page matches need match computation over the full view plus a page jump.
-- **`history.record`, Trap 6:** production stays silent; making `record` idempotent for an already-applied insert needs a change to the grid's commit path.
-- **`RowActionResult`, Trap 7:** menus and shortcuts do not show a disabled state with the reason yet.
-- **`onSave` refresh, Trap 7:** the policy reacts to the `onSave` promise, not the grid's own settle signal; an async `resolveSaveConflict` can outlive the refresh. A dev warning for `{...gridProps}` followed by an own `onSave` is missing.
-- **`useDataGridServerRows`, Trap 7:** the mode is fixed per hook (dev warning, remount with a key); a provider-level `onDataChange` override drops the merge.
-- **`useDataGridPager`, Name 7:** it returns the controls while `useDataGridServerPager` returns `{ pager }`.
+What changed for this pass: search counts and jumps across pages (store computes matches over the full view; toolbar search and find and replace switch the page); `reorderRows` and `moveRowsBy` work inside a page; `history.record` skips a present insert; `onRowActionSkipped` hook plus reason tooltips on disabled menu items; a dev warning when a provider `onSave` or `onDataChange` replaces the hook's; `useDataGridServerPages` and `useDataGridServerScroll`; `useDataGridPager` returns `{ pager }`; unit tests for the `totalRowCount` warning.
