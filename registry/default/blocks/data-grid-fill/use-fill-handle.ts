@@ -330,17 +330,20 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
           cancelFillDrag();
         };
+        const onLostCapture = (event: PointerEvent) => {
+          if (event.target === captureElementRef.current) onCancel(event);
+        };
         const onBlur = () => cancelFillDrag();
         document.addEventListener("pointermove", onMove);
         document.addEventListener("pointerup", onUp);
         document.addEventListener("pointercancel", onCancel);
-        document.addEventListener("lostpointercapture", onCancel);
+        document.addEventListener("lostpointercapture", onLostCapture);
         window.addEventListener("blur", onBlur);
         documentListenersRef.current = () => {
           document.removeEventListener("pointermove", onMove);
           document.removeEventListener("pointerup", onUp);
           document.removeEventListener("pointercancel", onCancel);
-          document.removeEventListener("lostpointercapture", onCancel);
+          document.removeEventListener("lostpointercapture", onLostCapture);
           window.removeEventListener("blur", onBlur);
         };
       }
@@ -359,10 +362,12 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       event.preventDefault();
       event.stopPropagation();
       lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY, altKey: event.altKey };
-      safeSetPointerCapture(event.currentTarget, event.pointerId);
-      beginDrag(s.selection.current.range, event.pointerId, event.currentTarget);
+      // the handle unmounts when auto-scroll moves the source out of the window; the scroll element's capture outlives it
+      const captureElement = scrollRef.current ?? event.currentTarget;
+      safeSetPointerCapture(captureElement, event.pointerId);
+      beginDrag(s.selection.current.range, event.pointerId, captureElement);
     },
-    [beginDrag, disabled, storeApi],
+    [beginDrag, disabled, scrollRef, storeApi],
   );
 
   const fillDown = useCallback(() => {

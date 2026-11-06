@@ -439,7 +439,7 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
   return out;
 }
 
-/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one row-id-based insert operation per row (snapshot indices `dataRowIndex + i`, ascending). */
+/** Builds a multi-row insert batch: `rows` spliced into `s.data` at `dataRowIndex`, plus one row-id-based insert operation per row (`index` is the row's final slot, `dataRowIndex + i`, ascending). */
 export function computeInsertRowsBatch(
   s: DataGridStoreState,
   dataRowIndex: number,

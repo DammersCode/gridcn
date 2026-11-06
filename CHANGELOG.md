@@ -177,6 +177,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The fill drag and the column resize drag end without a commit when the window loses focus. The fill drag also ends on `lostpointercapture`
 - Duplicating several rows reports each copy's insert `index` as its final position. Redo and `applyChange` now keep the copies in the order the grid showed. Before, the indexes counted the rows before the whole batch, so redo placed later copies one row early.
 - The clipboard failure tooltips of the context menu name the Cmd key on macOS. `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function that receives the modifier name.
+- Presence: `setPresenceHighlights` validates every peer entry. It ignores a payload that is not an array, keeps only known fields, drops entries with a missing, non-string, or oversized `id`, and keeps at most 1000 entries. A non-string `label` is removed and a label over 64 characters is truncated. A non-string `color` paints as `var(--color-primary)`. Before, an object `label` crashed the overlay
+- The fill drag and the column resize drag end when the window loses focus; the fill drag ends without writing, and the resize keeps the width shown at that moment. The fill drag captures the scroll element, so it also survives auto-scroll past its source and ends on `lostpointercapture`
+- Duplicating several rows reports each copy's insert `index` as its final position, and `duplicateRow` and `getRowId` receive that index. Redo and `applyChange` now keep the copies in the order the grid showed. Before, the indexes counted the rows before the whole batch, so redo placed later copies one row early
+- **Breaking:** The clipboard failure tooltips of the context menu name the Cmd key on macOS. `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function that receives the modifier name
 
 ## 1.3.0 - 2026-10-28
 

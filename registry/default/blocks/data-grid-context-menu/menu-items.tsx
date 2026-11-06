@@ -27,7 +27,7 @@ import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-m
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  isMacPlatform,
+  formatShortcut,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridApi,
@@ -153,7 +153,7 @@ export function useDefaultCellMenuItems(args: {
       () => onClipboardFailed?.(),
     );
   };
-  const modifier = isMacPlatform() ? "⌘" : "Ctrl";
+  const modifier = formatShortcut("mod")[0]!;
   const hint = (label: string | ((modifier: string) => string)) => (typeof label === "function" ? label(modifier) : label);
   const clipboardTooltip = clipboardFailed ? hint(labels.contextMenu.clipboardFailed) : undefined;
 

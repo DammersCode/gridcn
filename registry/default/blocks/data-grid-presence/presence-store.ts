@@ -126,8 +126,10 @@ function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= max;
 }
 
-function isBoundedIdList(value: unknown, max: number): value is string[] {
-  return Array.isArray(value) && value.length <= MAX_PRESENCE_IDS && value.every((id) => isBoundedString(id, max));
+function boundedIdList(value: unknown, max: number): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const ids = value.length > MAX_PRESENCE_IDS ? value.slice(0, MAX_PRESENCE_IDS) : value;
+  return ids.every((id) => isBoundedString(id, max)) ? ids : null;
 }
 
 function safeKey(entry: unknown): string {
@@ -153,9 +155,11 @@ function sanitizeEntry(entry: unknown): PresenceHighlightEntry | string {
     return { ...base, rowId: e.rowId, columnId: e.columnId };
   }
   if (isRowIdRangePresenceHighlight(e as PresenceHighlightEntry)) {
-    if (!isBoundedIdList(e.rowIds, MAX_PRESENCE_ID_LENGTH) || !isBoundedIdList(e.columnIds, MAX_PRESENCE_ID_LENGTH)) return "rowId-native range entries need string arrays rowIds and columnIds";
-    if (e.rowIds.length === 0 || e.columnIds.length === 0) return "empty rowIds/columnIds paint nothing";
-    return { ...base, rowIds: e.rowIds, columnIds: e.columnIds };
+    const rowIds = boundedIdList(e.rowIds, MAX_PRESENCE_ID_LENGTH);
+    const columnIds = boundedIdList(e.columnIds, MAX_PRESENCE_ID_LENGTH);
+    if (!rowIds || !columnIds) return "rowId-native range entries need string arrays rowIds and columnIds";
+    if (rowIds.length === 0 || columnIds.length === 0) return "empty rowIds/columnIds paint nothing";
+    return { ...base, rowIds, columnIds };
   }
   if (!isValidRange(e.range)) return "missing or malformed range (need finite x, y, width, height)";
   const { x, y, width, height } = e.range;
@@ -174,23 +178,29 @@ function sanitizeEntry(entry: unknown): PresenceHighlightEntry | string {
  */
 export function createPresenceStore(): PresenceStoreApi {
   const warned = new Set<string>();
-  const warnOnce = (key: string, message: string): void => {
-    if (warned.has(key)) return;
-    warned.add(key);
+  const warnOnce = (key: () => string, message: string): void => {
+    if (!isDev()) return;
+    const k = key();
+    if (warned.has(k)) return;
+    warned.add(k);
     warnDev(message);
   };
   return createStore<PresenceStoreState>((set) => ({
     highlights: EMPTY_HIGHLIGHTS,
     setPresenceHighlights(highlights) {
       const cleaned: PresenceHighlightEntry[] = [];
-      for (const entry of highlights) {
-        if (cleaned.length >= MAX_PRESENCE_ENTRIES) {
-          warnOnce("entries", `setPresenceHighlights: kept the first ${MAX_PRESENCE_ENTRIES} entries and dropped the rest`);
-          break;
-        }
+      if (!Array.isArray(highlights)) {
+        warnOnce(() => "not-array", "setPresenceHighlights: ignored a payload that is not an array");
+        set({ highlights: EMPTY_HIGHLIGHTS });
+        return;
+      }
+      for (const entry of highlights.slice(0, MAX_PRESENCE_ENTRIES)) {
         const result = sanitizeEntry(entry);
-        if (typeof result === "string") warnOnce(`${result}:${safeKey(entry)}`, `setPresenceHighlights: dropped an entry — ${result}`);
+        if (typeof result === "string") warnOnce(() => `${result}:${safeKey(entry)}`, `setPresenceHighlights: dropped an entry — ${result}`);
         else cleaned.push(result);
+      }
+      if (highlights.length > MAX_PRESENCE_ENTRIES) {
+        warnOnce(() => "entries", `setPresenceHighlights: kept the first ${MAX_PRESENCE_ENTRIES} entries and dropped the rest`);
       }
       set({ highlights: cleaned });
     },

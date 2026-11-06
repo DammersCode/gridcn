@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
  *
  * The guide's `declare module "@/components/data-grid/types" { interface GridCellTypes {
  * currency: ... } }` augmentation is not repeated here purely to keep this file self-contained —
- * `cell-types.ts`'s built-in registry checks its five built-ins against a literal
+ * `cell-types.ts`'s built-in registry checks its seven built-ins against a literal
  * `BuiltinCellTypeKey` union, decoupled from `GridCellTypes`, so a real augmentation compiles fine
  * alongside it (see builtin-augmentation.type-test.ts). This file types the column locally
  * instead, the same shape `defineColumns` gives you with a real augmentation in your own app.

@@ -1120,6 +1120,15 @@ describe("presence store — untrusted peer entries", () => {
     expect(kept[0]?.color).toBe("var(--color-primary)");
   });
 
+  it("truncates an oversized id list, ignores a non-array payload, and drops an oversized rowId", () => {
+    const [range1] = load([{ id: "r", color: "red", rowIds: Array.from({ length: 20_000 }, (_, i) => String(i)), columnIds: ["name"] }]) as unknown as { rowIds: string[] }[];
+    expect(range1?.rowIds).toHaveLength(10_000);
+    expect(load([{ id: "c", color: "red", rowId: "x".repeat(1000), columnId: "name" }])).toHaveLength(0);
+    const store = createPresenceStore();
+    store.getState().setPresenceHighlights({ id: "a" } as unknown as PresenceHighlightEntry[]);
+    expect(store.getState().highlights).toHaveLength(0);
+  });
+
   it("copies only known fields and bounds the entry count", () => {
     const [entry] = load([{ id: "a", color: "red", range, extra: { evil: 1 } }]);
     expect(entry).not.toHaveProperty("extra");

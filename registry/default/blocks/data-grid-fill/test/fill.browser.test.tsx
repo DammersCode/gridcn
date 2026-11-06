@@ -313,7 +313,9 @@ describe("data-grid-fill add-on", () => {
     await new Promise((r) => requestAnimationFrame(r));
     expect(document.querySelector(gridAttrSelector("fillPreview"))).not.toBeNull();
 
-    document.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: 1 }));
+    let scroller: HTMLElement | null = handle.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+    scroller!.dispatchEvent(new PointerEvent("lostpointercapture", { bubbles: true, pointerId: 1 }));
     await new Promise((r) => requestAnimationFrame(r));
     expect(document.querySelector(gridAttrSelector("fillPreview"))).toBeNull();
     expect(onDataChange).not.toHaveBeenCalled();
