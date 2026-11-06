@@ -1306,7 +1306,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
       const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
-      if (settled && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
+      if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
         writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
         emitStreamRejections(patches, batch.rejected, options?.source);
         return { applied, skipped: batch.skipped, pending: false };
