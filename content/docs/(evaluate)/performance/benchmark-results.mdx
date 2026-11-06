@@ -1,10 +1,50 @@
 ---
 title: Benchmark results
-description: Benchmark results.
+description: See what the scroll suites measure and the thresholds each one enforces, so you know what a pass means and how to compare machines.
 type: reference
 aliases: ["how fast", "performance numbers", "speed"]
 ---
 
-{/* docs-stub */}
+The repository pins scroll speed with tests in real Chromium. The scroll tests mount a grid with 100,000 rows and drive the scroll by script. This page lists the thresholds the tests enforce. A threshold is a limit. If a run crosses it, the test fails. A threshold is not a measurement.
 
-This page is being written.
+Your hardware, your cells, and the load on your machine change the frame times. [Run the benchmark](/docs/performance/run-benchmark) to get numbers for your setup.
+
+## Test setup [#test-setup]
+
+The frame-rate suites mount `DataGrid` 600 px high and 1200 px wide with nine columns of text, number, checkbox, and currency cells. The drag suites use 360 px by 1200 px with five columns of text and number cells. The keyboard tests use 1,000 rows. The tests load the real stylesheet, because layout and scroll must be real for frame timing to mean anything.
+
+## Thresholds [#thresholds]
+
+| Suite | What it does | Pass when |
+|---|---|---|
+| Full swap against idle | Scrolls 8 px per frame, then 800 px per frame, which is more than one viewport. Takes the best of three samples. | The ratio of the two frame rates is at least 0.06. The full-swap rate is at least 15 fps, or 8 percent of the idle rate, whichever is lower. |
+| Long tasks in a fast scroll | Scrolls 240 px per frame for 240 frames, like a fast flick of the wheel, and counts main-thread tasks over 50 ms. | Total long-task time is under 200 ms. On CI the limit is 20,000 ms. |
+| Jump sequence | Jumps to 0, 75, 50, 90, 10, and 100 percent of the scroll height, 250 ms apart. | The longest frame is under 1,000 ms. At most 20 frames pass 50 ms. Long-task time is under 2,000 ms. |
+| Blank rows after a drag |  Drags the scrollbar with random deltas of 200 to 1,500 px. | No row is missing once the scroll settles. |
+| One-row step | Scrolls exactly one row height. | Only the entering row renders again, at most two renders per column. |
+| Mounted rows | Scrolls a fast burst, then waits. | The mounted row count returns to its idle size after the scroll settles. |
+
+The thresholds sit below a healthy run. They catch a collapse, not a small slowdown.
+
+## Logged output [#logged-output]
+
+The suites also print what they measure. With `--reporter=verbose`, the jump sequence prints a `jump-sequence` line under its test name. The line holds this object on one line:
+
+```json
+{
+  "longestFrameMs": 16.799999999999272,
+  "framesOver33": 0,
+  "framesOver50": 0,
+  "longTaskMs": [],
+  "maxRowsRendered": 21
+}
+```
+
+That line is one run on one development machine. Your run differs. The full-swap suite logs `perf ratio` with both frame rates. The fast-scroll suite logs `perf long-tasks` with the count and total time. If the ratio falls below 0.15, or any long task occurs, the suite prints a warning. The test still passes.
+
+## Related
+
+- [Run the benchmark](/docs/performance/run-benchmark): run the suites yourself
+- [Performance guidance](/docs/performance/performance-guidance): keep scrolling smooth
+- [Virtualization](/docs/performance/virtualization): what the grid mounts
+- [Row limits](/docs/performance/row-limits): the browser height limits

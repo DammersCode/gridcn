@@ -90,7 +90,7 @@ const coreTraits = [
     icon: Radio,
     title: "Streaming updates",
     description:
-      "updateCells / updateRows push live rows into the view — incremental sort stays single-digit ms at 100k rows.",
+      "updateCells / updateRows push live rows into the view — incremental sort re-sorts only the changed rows.",
     href: "/docs/rows-live-data/stream-updates",
   },
   {
@@ -104,22 +104,22 @@ const coreTraits = [
 
 const perfStats = [
   {
-    value: "~33 MB",
-    title: "working set @ 100k rows",
+    value: "100k rows",
+    title: "scrolled in the test suite",
     description:
-      "Mount footprint of a production build — comparators measure 170–300 MB in the same harness.",
+      "Real-Chromium tests scroll 100,000 rows and fail on a frame-rate or long-task collapse.",
   },
   {
-    value: "0 renders",
-    title: "React re-renders on scroll",
+    value: "1 row",
+    title: "renders on a one-row scroll step",
     description:
-      "Row and column virtualization moves one CSS transform per tick; the store never invalidates during a scroll.",
+      "Only the entering row renders again. Rows that stay in view keep their DOM nodes.",
   },
   {
-    value: "0.3–7.6 ms",
-    title: "incremental sort @ 100k",
+    value: "0 blank rows",
+    title: "after a scrollbar drag settles",
     description:
-      "Re-sorts the visible index in place for k = 1 → 256 changed rows instead of rebuilding the whole view.",
+      "Random-delta drag tests find no missing row once the scroll stops.",
   },
 ];
 
