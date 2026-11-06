@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `history.record` warns in development when an inserted row is already in `data` (the change was applied twice).
 - Scroll mode of `useDataGridServerRows` takes `source: "indexed" | "cursor"` to fix the fetch order instead of leaving it to the shape of the first answer. An indexed source that answers without `totalRowCount` warns in development.
 - **Breaking:** the barrels of `data-grid-toolbar`, `data-grid-io`, and `data-grid-keybindings` no longer export helpers that nothing teaches: `operatorsForColumnType`, `operatorLabel`, `operatorHasValue`, `buildExportHeaders`, `quoteCsvField`, `downloadBlob`, `IMPORT_CANCELLED_MESSAGE`, `IMPORT_PREVIEW_ROW_COUNT`, and the keybinding category helpers. `pnpm lint` now fails when a barrel adds a value the docs never mention.
 - `isPlaceholderRowId(id)` (from `data-grid`) tells the placeholder id of an unloaded row from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only, so no caller matches an id prefix.

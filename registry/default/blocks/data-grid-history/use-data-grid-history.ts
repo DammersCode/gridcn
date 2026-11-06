@@ -207,6 +207,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     (change: DataChange<TData>, label?: string) => {
       const api = apiRef.current;
       if (!api) return;
+      if (isDev()) warnDuplicateInsert(api.store.getState(), change);
       // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
       api.actions.commitChange({ ...change, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
@@ -288,4 +289,12 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     rollback,
     record,
   };
+}
+
+function warnDuplicateInsert<TData>(state: { data: readonly unknown[]; getRowId: (row: unknown, index: number) => string }, change: DataChange<TData>) {
+  const inserted = change.ops.filter((op) => op.type === "insert");
+  if (inserted.length === 0) return;
+  const present = new Set(state.data.map((row, index) => (row === undefined ? "" : state.getRowId(row, index))));
+  const twice = inserted.find((op) => present.has(op.rowId));
+  if (twice) console.warn(`[data-grid-history] record() inserts row "${twice.rowId}", which data already holds. record() writes the change itself: do not apply it to your own array first.`);
 }

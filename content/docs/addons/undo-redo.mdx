@@ -115,11 +115,7 @@ history.record(
 ```
 
 <Callout type="warn" title="Do not write the array yourself first">
-  `record` applies the change through the grid's `commitChange`. If you also apply it to your
-  own array, the grid's write and your state land out of order and the echo re-feeds a stale
-  array. Call `record` alone, and let the grid's `onDataChange` echo update your state. `label`
-  is write-only. It survives undo/redo with the entry, and there is no API to read stack entries
-  back.
+`record` writes the change itself. Call it alone and let `onDataChange` update your state; a row you inserted first warns in development. `label` is write-only: it survives undo and redo with the entry, and no API reads stack entries back.
 </Callout>
 
 ## Which changes are recorded
