@@ -214,6 +214,8 @@ Three more rules apply:
 To list a new name in the `keymap` type, merge it into the `GridActions` interface:
 
 ```ts fragment="module augmentation"
+export {};
+
 declare module "@/components/data-grid/types" {
   interface GridActions {
     saveRow: true;

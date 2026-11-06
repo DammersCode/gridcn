@@ -51,7 +51,7 @@ During a drag, `onColumnResizing({ columnId, width })` fires on every pointer mo
 
 ## Autosize [#autosize]
 
-A double-click on the edge handle fits one column. In the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface), "Autosize column" does the same, and "Autosize all columns" fits every visible column that can be resized.
+A double-click on the edge handle fits one column. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has the same "Autosize column" item. Its "Autosize all columns" item fits every visible column that can be resized.
 
 Autosize measures the display text of `sampleRows` rows. The rows are spread evenly across the sorted and filtered view. The pass adds the rows on screen and the last row. It also measures the header text, with room for the sort arrow, the menu button, and the filter button where the column shows them. The cell padding comes on top, and the result stays inside `minWidth` and `maxWidth`.
 
