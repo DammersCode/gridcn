@@ -107,3 +107,6 @@ function firstCopies<TData>(rows: TData[], idOf: (row: TData, index: number) => 
   if (repeated) warn("duplicate", "fetchRows returned a duplicate row id; only the first row of each id is used, so make the sort total (add the row id as a last sort key)");
   return kept;
 }
+
+/** Options after the hook filled in the default `getRowId`. */
+export type WithRowId<TOptions, TData> = TOptions & { getRowId: (row: TData, index: number) => string };

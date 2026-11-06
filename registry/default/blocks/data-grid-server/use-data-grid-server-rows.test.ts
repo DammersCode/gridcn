@@ -499,3 +499,13 @@ describe("useDataGridServerRows", () => {
     });
   });
 });
+
+describe("useDataGridServerRows default getRowId", () => {
+  it("reads the id field when getRowId is omitted", async () => {
+    const fetchRows = server();
+    const { result } = renderHook(() => useDataGridServerRows<Row>({ fetchRows }));
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    expect(result.current.gridProps.getRowId({ id: "r1" }, 0)).toBe("r1");
+    expect(result.current.gridProps.data).toHaveLength(10);
+  });
+});

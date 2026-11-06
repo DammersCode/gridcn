@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChangeWith, defaultGetRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
-import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest } from "./read-answer";
+import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { isolate, useControlled, useReshape, useRevalidation, useServerSpec } from "./server-state";
@@ -19,7 +19,8 @@ export type { UseDataGridServerRowsScrollOptions, UseDataGridServerRowsScrollPro
 export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /** `"pages"` fetches one page per state and drives `pager`. Fixed for the life of the hook. Default `"pages"`. */
   mode?: "pages";
-  getRowId: (row: TData, index: number) => string;
+  /** Identifies a row. Default: the row's `id` field (a string or number), the same default as `DataGridProvider`; a row without one throws. */
+  getRowId?: (row: TData, index: number) => string;
   fetchRows: (request: ServerRowsPageRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
   /** Rows per page while `pageSize` is not controlled. Default: the first of `pageSizeOptions`. */
   defaultPageSize?: number;
@@ -179,10 +180,11 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   // The mode never changes for a mounted hook, so each render calls the same hooks in the same order.
   // eslint-disable-next-line react-hooks/rules-of-hooks
   // oxlint-disable-next-line react-hooks/rules-of-hooks
-  return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
+  const resolved = options.getRowId ? options : { ...options, getRowId: defaultGetRowId };
+  return resolved.mode === "scroll" ? useScrollBlocks(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>) : usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>);
 }
 
-function usePagesRows<TData, TCursor>(options: UseDataGridServerRowsOptions<TData, TCursor>): UseDataGridServerRowsResult<TData> {
+function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);

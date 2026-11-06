@@ -61,3 +61,8 @@ export function cursorPages() {
   });
   server.pager.hasNextPage satisfies boolean;
 }
+
+export function defaultRowId() {
+  useDataGridServerRows<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  useDataGridServerRows<Row>({ mode: "scroll", fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+}

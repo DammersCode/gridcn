@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest } from "./read-answer";
+import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
 import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
@@ -18,7 +18,8 @@ const DEFAULT_BLOCK_SIZE = 50;
 export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   /** `"scroll"` fetches fixed-size blocks as the rendered rows move. Fixed for the life of the hook. */
   mode: "scroll";
-  getRowId: (row: TData, index: number) => string;
+  /** Identifies a row. Default: the row's `id` field (a string or number), the same default as `DataGridProvider`. */
+  getRowId?: (row: TData, index: number) => string;
   /**
    * Resolves rows `[start, end)` of the result. The first answer picks the fetch order:
    * - `totalRowCount` and no `nextCursor`: random access. The grid sizes its rows from the count, and a changed count starts the blocks over.
@@ -263,7 +264,7 @@ function positiveInteger(value: number | undefined, fallback: number, min: numbe
 }
 
 /** Scroll mode of `useDataGridServerRows`: random access over a counted result, or a sequential chain of blocks. */
-export function useScrollBlocks<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData> {
+export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>): UseDataGridServerRowsScrollResult<TData> {
   const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, noop);
   const coreRef = useRef<Core<TData> | null>(null);
   const getCore = useCallback((): Core<TData> => {
