@@ -1,9 +1,61 @@
 ---
 title: Accessibility gaps
-description: Accessibility gaps.
+description: Look up what the grid does not cover for assistive technology, the effect of each gap, and the workaround.
 type: reference
+aliases: ["known issues", "limitations", "wcag audit"]
 ---
 
-{/* docs-stub */}
+This page lists known gaps in accessibility and in the tests. Use the workaround column. Do not read the absence of a gap here as a conformance claim.
 
-This page is being written.
+## Known gaps [#known-gaps]
+
+| Gap | Effect | Workaround |
+|---|---|---|
+| The fill handle is pointer-only | It has no keyboard equivalent and is hidden from assistive technology. | Press Mod+D to fill down or Mod+R to fill right. Mod is Cmd on Apple platforms and Ctrl elsewhere. |
+| Pinned rows are outside navigation | A pinned row is never the active cell. It has no `tabindex` and no `aria-selected`. | Do not put a task that needs the keyboard in a pinned row. |
+| Column reorder and resize are pointer-only | The keyboard cannot move a column or set its width. | Offer your own controls that call `setColumnOrder` and `setColumnWidth`. With the context menu add-on, the header menu (Shift+Alt+ArrowDown) offers Autosize. |
+| The grid has no accessible name | The grid root has no `aria-label`, and no prop sets one. | Wrap the grid in a labeled `<section>`. The section gets the name. The grid itself stays unnamed. |
+| The grid has no page landmark | Region navigation cannot place the grid in a labeled region, and the axe-core `region` rule reports it. | Place the grid inside `<main>` or a labeled `<section>`. |
+| Cell ranges differ from row state | The checked-row announcement counts rows that a cell range covers. The row `aria-selected` follows checked rows only. | If row state matters, check rows with the marker. |
+| Color contrast has no test | The axe-core suite turns off the `color-contrast` rule. | Check your theme colors with a contrast tool. |
+| No screen reader test | The repository records no manual pass with a screen reader. | Test your grid with the screen readers that your users run. |
+| Announcement timing has no test | Tests assert the announcement text and the `aria-live` structure. They do not assert what a screen reader says or when. | Listen to your flows with a screen reader. |
+
+## Place the grid in a landmark [#landmark]
+
+A registry component cannot own the page shell, so the page supplies the landmark. One axe-core fixture of the test suite wraps the grid in a `<main>` for this reason. The other turns the `region` rule off. The next sample names a region and puts the grid inside it:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+const getRowId = (task: Task) => task.id;
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <section aria-label="Tasks">
+      <DataGrid
+        data={tasks}
+        columns={columns}
+        getRowId={getRowId}
+      />
+    </section>
+  );
+}
+```
+
+## Color contrast [#color-contrast]
+
+Headless Chromium font metrics make the `color-contrast` rule unreliable, so the suite turns it off. The rule matters. Your theme sets the colors, so check them in your own pages.
+
+## Related
+
+- [Screen reader support](/docs/accessibility/screen-reader-support): what the grid exposes
+- [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage): what the tests check
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows#a11y): pinned rows and navigation
+- [Fill handle](/docs/clipboard-undo/fill-handle#keyboard-fill): fill from the keyboard

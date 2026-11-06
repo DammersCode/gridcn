@@ -1,9 +1,92 @@
 ---
 title: Performance guidance
-description: Performance guidance.
+description: Keep a 100,000-row grid smooth. See what the grid does for you, which props to keep stable, and how to check scroll speed.
 type: concept
+aliases: ["slow scrolling", "laggy", "stutter", "dropped frames"]
 ---
 
-{/* docs-stub */}
+Why does a grid with 100,000 rows scroll smoothly, and what slows it down? The grid draws only the rows in view and skips work for rows that did not change. Your code keeps the second part working. A new `columns` array, `data` array, or class function on every render makes every row in view render again.
 
-This page is being written.
+## What the grid does for you [#keeping-it-fast]
+
+- It mounts only the rows and columns in view. [Virtualization](/docs/performance/virtualization) explains the model.
+- A scroll step of one row keeps the DOM node of every row that stays in view. The row keeps its place in the layout, so the browser does not lay it out again.
+- Row hover is a `data-hovered` attribute on the row under the pointer. A `:hover` rule makes Chrome restyle the rows that move under a resting pointer on every scroll tick. The attribute moves only between scroll bursts.
+- The grid reads the row under the pointer again after a scroll settles and after the view changes.
+- If a horizontal scroll changes the rendered columns, marker cells do not render again.
+- A selection move renders again only the cells whose own state changes.
+- An editor mounts only in the cell that you edit.
+
+## Keep references stable [#keep-references-stable]
+
+A row skips rendering while its props keep the same identity. If the component that renders the grid renders often, define these values at module level or memoize them:
+
+- `columns`
+- `data` in a controlled grid
+- `getRowId`
+- `getRowClassName`
+- `getCellClassName`
+- Render props such as `renderMarker`, `renderMarkerHeader`, and `renderHeaderCell` (on `DataGridHeader`)
+- The `topRows` and `bottomRows` arrays of [pinned rows](/docs/rows-pages-menus/pinned-rows)
+
+If an identity changes between renders, a development build logs a warning:
+
+| Value | The warning appears when |
+|---|---|
+| `columns` | A new array holds the same columns as the old array. |
+| `data` | A new array has the same length and no new row. Controlled grids only. |
+| `getRowClassName` | The function identity differs from the last render. |
+| `getCellClassName` | The function identity differs from the last render. |
+| A plugin `Overlay` or `Mount` | The component identity differs. The overlay remounts and loses its state. |
+
+A new `getRowId` function logs no identity warning. It still makes the grid write a new store state on every render. Every reader of `useDataGridRowIdToViewRow`, such as the presence add-on, rebuilds its row-id map.
+
+The warning for a class function reads `getRowClassName identity changed since the last render`. The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
+
+The next sample defines the row id function and the class function once, outside the component:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string; done: boolean };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+const getRowId = (task: Task) => task.id;
+
+const getRowClassName = (task: Task) =>
+  task.done ? "opacity-60" : undefined;
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      getRowId={getRowId}
+      getRowClassName={getRowClassName}
+    />
+  );
+}
+```
+
+If the function reads component state, wrap it in `useCallback` with a stable dependency list.
+
+Custom cells render for each row that scrolls into view. Keep `renderCell` cheap.
+
+## Tests that guard scroll speed [#verified-by-a-regression-suite]
+
+Real-Chromium suites guard the scroll path. They check that no row is missing after random scrollbar drags settle and after a sequence of large jumps. They compare a scroll of 800 px per frame, which replaces every rendered row, with a scroll of 8 px per frame. They cap long tasks during a fling, run a sequence of jumps, and count renders of marker cells and rows. [Run the benchmark](/docs/performance/run-benchmark) is the page for running them.
+
+## Load less data [#load-less-data]
+
+Virtualization limits what the grid draws, not what your page holds. If the page cannot load every row, fetch rows as the user scrolls with [scroll mode](/docs/scroll-mode/load-rows-while-scrolling). One browser limit caps the row count of a single grid. [Row limits](/docs/performance/row-limits) lists it.
+
+## Related
+
+- [Virtualization](/docs/performance/virtualization): what the grid mounts and why
+- [Row limits](/docs/performance/row-limits): the browser limits on row count
+- [Run the benchmark](/docs/performance/run-benchmark): measure scroll speed yourself
+- [Large data example](/docs/server-data-examples/large-data-example): 100,000 rows to scroll
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): fetch rows on demand

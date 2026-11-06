@@ -1,10 +1,54 @@
 ---
 title: Virtualization
-description: Virtualization.
+description: Learn which rows and columns the grid mounts, how overscan keeps scrolling free of blank areas, and why the grid needs a bounded height.
 type: concept
 aliases: ["virtual scroll"]
 ---
 
-{/* docs-stub */}
+A grid cannot mount 100,000 rows and stay fast. Virtualization draws only the rows and columns in view, plus overscan: a few extra rows and columns past the edge. A large grid then scrolls like a small one.
 
-This page is being written.
+Virtualization is always on. No prop turns it off, and no row count switches it on.
+
+## What the grid draws [#whats-virtualized]
+
+- **Rows.** The grid mounts the data rows that intersect the viewport, plus overscan. Row height is uniform (`rowHeight` or `density`), so finding the rows to mount is arithmetic. The grid measures no row. Row overscan is one row.
+- **Columns.** The grid mounts the unpinned columns that intersect the horizontal viewport, plus overscan. `columnOverscan` sets the extra columns on each side. The default is 1. A diagonal scroll recomputes rows and columns in the same tick.
+- **Pinned parts.** Pinned columns and both pinned-row bands render at every scroll position. The area for the other rows and columns shrinks by the space that the pinned parts take. See [Column order and pinning](/docs/columns/column-order-pinning) and [Pinned rows](/docs/rows-pages-menus/pinned-rows).
+- **The active row.** If the active row is not among the rendered rows, the grid mounts it too. DOM focus survives a scroll.
+
+A change of column width, order, or pinning recomputes the rendered columns. Keyboard navigation, `useDataGridScrollToCell` (by row id and column id), and `useDataGridScrollToCellAt` (by view index) scroll a cell that is not rendered into view. You need no extra overscan.
+
+## How scrolling stays smooth [#how-it-works]
+
+The scroll area holds a spacer sized to every row and column. The scrollbar length and thumb position match the full data. A sticky viewport shows the rows. The rows sit in a canvas inside it.
+
+On every scroll tick, the grid moves the canvas with one `translate`. It does not wait for the next React commit. A scroll step does not rewrite the rows that stay: they keep their DOM node and their place in the layout. The grid origin is the row line that anchors the canvas. It trails the first rendered row and moves only after the rendered rows drift far from it.
+
+### Overscan [#overscan]
+
+The base overscan covers the gap between one scroll tick and the next update of the rendered rows. During a fling or a scrollbar drag, the grid tracks the recent scroll speed. It grows the overscan on the leading edge only, up to 1,600 px of rows or columns.
+
+A jump is a scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. A jump from the top to the middle of 100,000 rows mounts one screen of rows, not a screen plus a large buffer.
+
+## Give the grid a bounded height [#bounded-height]
+
+Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. The grid then caps rendering at 200 rows. A development build logs a warning once per page load, for the first grid that hits the cap. The warning names an unbounded height as the likely cause.
+
+To fix this, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height.
+
+A grid taller than a browser allows has no full scroll range. [Row limits](/docs/performance/row-limits) lists the limits.
+
+## Fetch rows on demand [#beyond-rendering-fetching-data-on-demand]
+
+Virtualization decides what renders. It fetches nothing. If the page cannot load every row, use [scroll mode](/docs/scroll-mode/load-rows-while-scrolling). It fetches blocks of rows as they come into view and shows skeleton rows until they arrive.
+
+`onRenderedRowsChange` receives `{ start, end }`, the row range of the rendered rows with `end` excluded. The grid calls it after the row range changes, and once on mount. A scroll that stays inside the overscan does not call it again. The row range counts view indices, the positions in the sorted and filtered list. While no client sort or filter is active, view indices equal data indices.
+
+The `overscan` option of scroll mode sets the extra rows that the hook fetches. It does not change the rows that the grid mounts.
+
+## Related
+
+- [Performance guidance](/docs/performance/performance-guidance): keep references stable
+- [Row limits](/docs/performance/row-limits): the browser height limits
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): fetch rows on demand
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): bands that stay fixed

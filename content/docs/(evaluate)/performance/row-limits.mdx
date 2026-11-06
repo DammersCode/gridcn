@@ -1,10 +1,59 @@
 ---
 title: Row limits
-description: Row limits.
+description: Look up how many rows one grid scrolls, from the 100,000-row test size to the browser height limits in Firefox and Chromium.
 type: reference
 aliases: ["one million rows", "max rows", "row ceiling"]
 ---
 
-{/* docs-stub */}
+The browser limits how tall an element can be. The scroll height of a grid is the header and pinned-row bands plus the row count times the row height. The test suite scrolls 100,000 rows. Past that count, the height limits below decide.
 
-This page is being written.
+| Limit | Value | What happens past it |
+|---|---|---|
+| Portable scroll height | 17.8 million px | Below it, Firefox and Chromium both scroll the whole grid. |
+| Firefox | About 17.9 million px | The element gets a height of 0. The grid has no scroll range. |
+| Chromium | About 33.5 million px | The height stops growing. The rows past the limit are out of reach. |
+| Rendered rows without a bounded height | 200 | The grid caps the rows that it mounts. |
+| Server row count | 10,000,000 | `useDataGridServerRows` clamps a larger `totalRowCount`, and a sequential source stops loading. |
+
+## Scroll height limit [#row-limit]
+
+To stay under both limits, keep the row count times the row height below 17.8 million px. The count that matters is the number of rows of the view: the sorted and filtered list, rendered or not. A scroll-mode source that reports `totalRowCount` shows that many rows, so the same limit applies to that count.
+
+The table gives the row count at which each limit starts, for the three densities:
+
+| Density | Row height | Firefox: no scroll range above | Chromium: rows out of reach past |
+|---|---|---|---|
+| `compact` | 28 px | About 639,000 rows | About 1,198,000 rows |
+| `default` | 36 px | About 497,000 rows | About 932,000 rows |
+| `comfortable` | 44 px | About 406,000 rows | About 762,000 rows |
+
+The table rounds the counts down. A smaller row height allows more rows. A larger row height allows fewer. The table covers Firefox and Chromium. Test the other engines that you ship to.
+
+The next sample checks a row count against the portable limit:
+
+```ts
+const PORTABLE_HEIGHT_PX = 17_800_000;
+
+export function fitsPortableHeight(rows: number, rowHeight = 36): boolean {
+  return rows * rowHeight <= PORTABLE_HEIGHT_PX;
+}
+```
+
+## Development warning [#warning]
+
+If the row count times the row height passes 17.8 million px, a development build logs one warning per grid. The warning names row counts rounded down to two significant digits. Its Firefox count comes from the portable limit of 17.8 million px. At 36 px it names about 490,000 rows for Firefox and about 930,000 for Chromium. The table above uses the Firefox limit of 17.9 million px. Production builds log nothing.
+
+## Rendered rows [#rendered-rows]
+
+Virtualization mounts only the rows in view. If the grid has no bounded height, the grid mounts at most 200 rows and logs a warning. See [Give the grid a bounded height](/docs/performance/virtualization#bounded-height).
+
+## Go past the limit [#go-past-the-limit]
+
+To show more rows than one grid scrolls, show fewer rows at once. Page the rows with [server pagination](/docs/server-pagination/load-rows-page) or narrow the view with a filter. Keep the rest of the data on the server.
+
+## Related
+
+- [Virtualization](/docs/performance/virtualization): what the grid mounts
+- [Performance guidance](/docs/performance/performance-guidance): keep scrolling smooth
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): fetch rows on demand
+- [Load rows by page](/docs/server-pagination/load-rows-page): page the rows

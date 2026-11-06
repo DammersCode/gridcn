@@ -1,9 +1,84 @@
 ---
 title: Keyboard test coverage
-description: Keyboard test coverage.
+description: Look up which keyboard behaviors a browser test checks, how Tab leaves the grid, and which touch targets reach 24 px.
 type: reference
+aliases: ["tab order", "test matrix"]
 ---
 
-{/* docs-stub */}
+Browser tests drive the grid with a real keyboard in Chromium. The table lists what each test file checks. Paths start at `registry/default/blocks/`. [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) owns the shortcut list. Mod is Cmd on Apple platforms and Ctrl elsewhere.
 
-This page is being written.
+## Test status matrix [#test-status-matrix]
+
+| Area | What the tests check | Test file |
+|---|---|---|
+| Roles, counts, indices | axe-core finds zero violations with column groups. It also finds zero on a fixture with a toolbar, checkbox markers, a pinned-top row, and a sorted column. Group headers carry row indexes and spans. | `data-grid/test/a11y.browser.test.tsx`, `data-grid/test/column-groups.browser.test.tsx` |
+| Tab entry and exit | A Tab press reaches the grid. A second Tab leaves it. Shift+Tab from the first cell leaves backward. Marker checkboxes, select all, and the header menu trigger are not tab stops. | `data-grid/test/data-grid.browser.test.tsx` |
+| Tab in an edit | Tab commits a text edit and moves focus to the next control after the grid. Tab in a select edit moves focus there too. | `data-grid/test/data-grid.browser.test.tsx` |
+| Arrow keys and scroll | Arrow keys move the active cell and scroll at the viewport edge. Mod+Enter scrolls the active cell into view without moving it. | `data-grid/test/data-grid.browser.test.tsx` |
+| Editing keys | A printable key opens the editor with that character. Enter edits with the caret at the end. Escape cancels. Delete clears a range. Enter and Escape during IME composition leave editors open. | `data-grid/test/data-grid.browser.test.tsx` |
+| Editor focus | axe-core finds zero violations with an editor open. Enter brings a clipped active cell into view. | `data-grid/test/a11y.browser.test.tsx`, `data-grid/test/parked-editor-focus.browser.test.tsx` |
+| Selection state | Every member of a range has `aria-selected`. With checkbox markers, rows read `aria-selected` as true or false. | `data-grid/test/a11y.browser.test.tsx`, `data-grid/test/row-aria-selected.browser.test.tsx` |
+| Select all | The first Mod+A selects the data region. The second selects the whole grid. A move resets the steps. | `data-grid/test/select-all.browser.test.tsx` |
+| Checked rows | Ctrl+Shift+Space toggles the active row. Mod+Shift+E checks every row, then unchecks them. After Shift+Space, Shift+Arrow, Shift+Home, Shift+End, Shift+PageDown, and Shift+PageUp move the edge of the checked rows. Escape clears the checks. | `data-grid/test/row-markers.browser.test.tsx`, `data-grid/test/checked-rows.browser.test.tsx` |
+| Row moves | Shift+Alt+PageDown and Shift+Alt+PageUp move the active row one slot and announce it. They move every checked row, stop at the edge, and do nothing without reorder markers or in a read-only grid. | `data-grid/test/row-reorder.browser.test.tsx` |
+| Shortcuts outside the grid | With [`DataGridGlobalShortcuts`](/docs/selection-shortcuts/global-shortcuts) mounted, Ctrl+Z on a toolbar button undoes the last edit. Inside the toolbar input, it leaves the grid alone. Without the opt-in, Ctrl+Z outside the grid does nothing. | `data-grid/test/global-shortcuts.browser.test.tsx` |
+| Shortcut dialog | `?` opens the dialog and Escape closes it. It lists keymap overrides. | `data-grid-keybindings/keybindings.browser.test.tsx` |
+| Search and find | Enter in the search walks the matches without opening an editor. Escape clears the search. Mod+F focuses the search. Ctrl+H opens find and replace, and Escape returns focus to the grid. | `data-grid-toolbar/toolbar.browser.test.tsx`, `data-grid-find-replace/find-replace.browser.test.tsx` |
+| Filter and sort lists | ArrowUp on a drag handle moves the row earlier, keeps focus on its handle, and announces the position. Backspace and Delete remove the row. Focus then moves to the next handle or the add button. | `data-grid-toolbar/toolbar.browser.test.tsx`, `data-grid-sort-list/sort-list.browser.test.tsx` |
+| Live regions | A keyboard check announces the checked total. A run of checks collapses into the last count. The region announces a row move. A filter announces the row count with `announceResults` and stays quiet without it. | `data-grid/test/sr-announcements.browser.test.tsx` |
+| Pinned rows | Keyboard navigation scrolls around the pinned-bottom band. | `data-grid-pinned-rows/test/pinned-rows.browser.test.tsx` |
+
+axe-core is a static checker. It does not confirm that a screen reader says the right thing at the right time. See [Accessibility gaps](/docs/accessibility/accessibility-gaps).
+
+## Tab and the keymap [#keyboard-coverage]
+
+Tab and Shift+Tab move focus out of the grid to the next or previous focusable element. To move between cells with Tab, bind it to the movement actions:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+const getRowId = (task: Task) => task.id;
+
+const keymap = {
+  moveRight: ["ArrowRight", "Tab"],
+  moveLeft: ["ArrowLeft", "shift+Tab"],
+};
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      getRowId={getRowId}
+      keymap={keymap}
+    />
+  );
+}
+```
+
+With this binding, Tab moves to the next cell. A test covers this. Outside an edit, Tab and Shift+Tab then keep focus in the grid, also at the last and the first cell. In an edit, Tab still commits and moves focus out of the grid. To meet WCAG 2.1.2 (No Keyboard Trap), give users another key that moves focus out, and tell them about it.
+
+## Touch targets [#touch-targets]
+
+Under a coarse pointer (`@media (pointer: coarse)`), these controls have a hit area of at least 24 by 24 CSS px (WCAG 2.2, SC 2.5.8):
+
+- The selection handles.
+- The column resize area.
+- The column drag handle. Column reorder must be on.
+- The checkbox of a checkbox cell. A touch press within 4 px of the box counts as a hit.
+- The header menu button and the header filter button. Both stay visible.
+
+A touch selection hides the fill handle. With the fill add-on and the context menu add-on, the context menu then offers Fill down and Fill right. The context menu also offers the clipboard and row items. A hardware keyboard extends a range with Shift+Arrow.
+
+## Related
+
+- [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the shortcut list
+- [Screen reader support](/docs/accessibility/screen-reader-support): roles and live regions
+- [Accessibility gaps](/docs/accessibility/accessibility-gaps): what the tests leave out
+- [Fill handle](/docs/clipboard-undo/fill-handle#keyboard-fill): fill from the keyboard
