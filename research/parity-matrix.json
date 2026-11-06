@@ -231,7 +231,7 @@
         "defaultSearchText",
         "onSearchTextChange"
       ],
-      "note": "Search highlights and navigates loaded rows. It has no server mode by design.",
+      "note": "The grid's search highlights and navigates loaded rows and never narrows them. `useDataGridServerRows` sends the text as `spec.searchText`, so your server can narrow the result.",
       "cells": {
         "L": {
           "status": "supported",
@@ -751,7 +751,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/import.mdx"
           ]
         },
         "PC": {
@@ -765,7 +765,7 @@
         "Z": {
           "status": "gap",
           "track": "IMP",
-          "note": "Rows that `onImport` appends to `data` conflict with the row total that the server reports. Send the rows to the server and load the rows again."
+          "note": "Rows that `onImport` appends to `data` conflict with the row count that the server reports. Send the rows to the server and load the rows again."
         },
         "C": {
           "status": "n/a",
@@ -782,7 +782,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/import.mdx"
           ]
         }
       }
@@ -795,7 +795,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export.mdx"
           ]
         },
         "PC": {
@@ -844,7 +844,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export.mdx"
           ]
         },
         "PC": {
@@ -934,7 +934,7 @@
         "API": {
           "status": "gap",
           "track": "K",
-          "note": "The local undo stack never learns whether the server accepted the write."
+          "note": "A refused undo or redo keeps its stack entry."
         }
       }
     },
@@ -969,7 +969,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/lazy-row-op-guard.test.tsx",
+            "content/docs/(server)/rows-live-data/change-server-rows.mdx",
             "content/docs/(build)/rows-pages-menus/index.mdx"
           ]
         },
@@ -994,7 +994,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/rows-pages-menus/index.mdx"
+            "content/docs/(server)/rows-live-data/change-server-rows.mdx"
           ]
         }
       }
@@ -1072,7 +1072,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/events-state/index.mdx"
+            "content/docs/(reference)/events-state/data-change-events.mdx"
           ]
         },
         "PC": {
@@ -1097,7 +1097,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/save-server/save-revert.mdx"
+            "tests/parity/write-through.parity.test.tsx"
           ]
         },
         "SS": {
@@ -1239,7 +1239,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(evaluate)/accessibility/index.mdx"
+            "content/docs/(evaluate)/accessibility/screen-reader-support.mdx"
           ]
         },
         "PC": {
@@ -1488,8 +1488,10 @@
           ]
         },
         "C": {
-          "status": "n/a",
-          "reason": "No controlled state."
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/data-modes/query-server-rows.mdx"
+          ]
         },
         "SS": {
           "status": "n/a",
@@ -1645,7 +1647,7 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/server-pagination/load-rows-page.mdx"
+            "content/docs/(reference)/add-options/server/server-rows-options.mdx#without-a-total"
           ]
         },
         "Z": {
@@ -1680,7 +1682,8 @@
             "tests/parity/server-rows.parity.test.tsx"
           ]
         }
-      }
+      },
+      "note": "Pages mode pages without a total through `hasMore`. It sends no cursor. Cursor paging is sequential scroll mode."
     },
     {
       "id": "server-rows",

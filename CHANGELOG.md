@@ -2,13 +2,14 @@
 
 All notable changes to gridcn are documented here. Since gridcn ships through the shadcn registry
 rather than npm, there is no package semver — this file, plus each item's stable file layout, is
-the upgrade story. Re-run `npx shadcn add @gridcn/<item>` to pick up changes; the CLI diffs and
-prompts before overwriting files you've edited.
+the upgrade story. Re-run `npx shadcn add @gridcn/<item>` to pick up changes; the CLI skips identical files and
+asks before overwriting a file that differs.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
 
+- `gridcn-upgrade` agent skill: installs each gridcn dependency of an add-on at the pinned ref first (always the core, sometimes `data-grid-pagination`, `use-debounce`, or `dropzone`), then the add-on, and keeps the dependency files when an install asks to overwrite them. It reads the dry-run labels `create`, `overwrite`, and `skip`, and finds local edits with `git log`.
 - **Breaking changes in this release, by area:**
   - **Server data hooks:** `useDataGridLazyRows`, `useDataGridInfiniteRows`, `data-grid-lazy`, and `DataGridLazyGuard` are replaced by `useDataGridServerRows({ mode: "scroll" })` from `data-grid-server`; the guard has no replacement.
   - **Server data hooks:** `fetchRows` takes one request object (`spec`, `start`, `end`, `cursor`, `page`, `pageSize`, `signal`) and resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }`.
@@ -657,7 +658,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
   empty) beside the snapshot `setPresenceHighlights`.
 - **Presence rect budget is configurable:** `useDataGridPresence` accepts `maxRects` (default
   `MAX_RESOLVED_RECTS`, now exported from the barrel) and `onExcessRects(entry, kept, total)`,
-  fired once per entry when a range's fragments exceed the budget (the development warning still
+  fired each time the highlights resolve with a range whose fragments exceed the budget (the development warning still
   fires in dev).
 - **Re-applying URL state:** `useDataGridUrlState` now returns `{ applyFromUrl }` (the
   `UseDataGridUrlStateResult` type is exported). The mount apply still runs once; call

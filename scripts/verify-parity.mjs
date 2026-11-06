@@ -154,17 +154,19 @@ export function renderParityPage(matrix) {
     "",
   ];
   for (const row of matrix.features) {
-    const notes = matrix.modes.flatMap((m) => {
+    const grouped = new Map();
+    for (const m of matrix.modes) {
       const cell = row.cells[m.id];
       const text = cell.status === "gap" ? `Gap: ${cell.note}` : cell.status === "n/a" ? `n/a: ${cell.reason}` : cell.status === "unverified" && cell.note !== UNVERIFIED ? `Not verified: ${cell.note}` : null;
-      return text ? [`- **${m.id}**: ${jsxProse(text)}`] : [];
-    });
+      if (text) grouped.set(text, [...(grouped.get(text) ?? []), m.id]);
+    }
+    const notes = [...grouped].map(([text, ids]) => `- **${ids.join(", ")}**: ${jsxProse(text)}`);
     if (row.note) notes.unshift(`- ${jsxProse(row.note)}`);
     if (notes.length === 0) continue;
     const body = notes.length === 1 ? [notes[0].replace(/^- /, "")] : notes;
     lines.push(`### ${jsxProse(row.feature)}`, "", ...body, "");
   }
-  lines.push("## Related", "", "- [Server rows contract](/docs/contracts/server-rows-contract)", "- [Scroll mode](/docs/scroll-mode)", "- [Server pagination](/docs/server-pagination)", "");
+  lines.push("## Related", "", "- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer", "- [Scroll mode](/docs/scroll-mode): load rows as the user scrolls", "- [Server pagination](/docs/server-pagination): load rows by page", "");
   return lines.join("\n");
 }
 

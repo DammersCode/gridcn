@@ -148,6 +148,12 @@ describe("renderParityPage", () => {
     const page = renderParityPage(matrix({ cells: { L: supported, PS: { status: "gap", track: "A", note: "ignores `total`" } } }));
     expect(page).toContain('note={"ignores total"}');
   });
+
+  it("merges modes with the same note into one bullet", () => {
+    const gap = { status: "gap", track: "A", note: "client sort only" };
+    const page = renderParityPage(matrix({ cells: { L: gap, PS: gap } }));
+    expect(page.split("**L, PS**: Gap: client sort only")).toHaveLength(2);
+  });
 });
 
 describe("extractOptionNames", () => {

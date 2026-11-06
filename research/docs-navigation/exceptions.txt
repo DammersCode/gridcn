@@ -3,3 +3,9 @@
 N4 options-*-index generated landing titles read '<subgroup label> options' so they differ from the Build landing of the same label
 N1 options-rows-pages-menus-index landing title is the Build group label plus 'options'
 N1 options-sort-filter-search-index landing title is the Build group label plus 'options'
+
+P1 (server)/data-modes/fetch-cache.mdx four cache samples (array, scroll blocks, pages, SWR) carry the facts of the five old cache pages
+P3 (evaluate)/support-upgrades/browser-framework-support.mdx the floors table is the summary table and sits under ## Framework floors, whose anchor #framework-floors is mapped from the old docs
+P3 (reference)/add-options/clipboard-undo/fill-handle-options.mdx the opening sample is the quick answer; each options type has its own H2 with a generated table below it
+P3 (reference)/add-options/clipboard-undo/undo-redo-options.mdx the opening sample is the quick answer; each options type has its own H2 with a generated table below it
+P3 (reference)/add-options/import-export/import-options.mdx the opening sample is the quick answer; each options type has its own H2 with a generated table below it

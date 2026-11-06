@@ -37,7 +37,14 @@
   "keyboard-fill": "/docs/clipboard-undo/fill-handle#keyboard-fill",
   "touch": "/docs/clipboard-undo/fill-handle#touch",
   "turning-fill-off": "/docs/clipboard-undo/fill-handle#turning-fill-off",
-  "onfill": "/docs/clipboard-undo/fill-handle#onfill"
+  "onfill": "/docs/clipboard-undo/fill-handle#onfill",
+  "options": "/docs/clipboard-undo/fill-handle#options",
+  "detectseries": "/docs/clipboard-undo/fill-handle#custom-series-detection",
+  "copy-and-series": "/docs/clipboard-undo/fill-handle#tiling-vs-series-inference",
+  "keyboard-and-touch": "/docs/clipboard-undo/fill-handle#keyboard-fill",
+  "skipped-cells": "/docs/clipboard-undo/fill-handle#skipped-cells",
+  "server-mode": "/docs/clipboard-undo/fill-handle#server-mode",
+  "related": "/docs/clipboard-undo/fill-handle#related"
  },
  "/docs/addons/find-replace": {
   "find": "/docs/sort-filter-search/find-replace#find",
@@ -158,22 +165,22 @@
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types",
   "operation-engine": "/docs/contracts/operation-engine-contract#operation-engine",
-  "add-on-option-types": "/docs/add-options/rows-pages-menus/context-menu-options#add-on-option-types",
-  "datagridurlstateprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridurlstateprops",
+  "add-on-option-types": "/docs/add-options",
+  "datagridurlstateprops": "/docs/add-options/sort-filter-search/url-state-options#datagridurlstate",
   "usedatagridstateoptions": "/docs/add-options/clipboard-undo/undo-redo-options#usedatagridstateoptions",
   "usedatagridhistoryoptions": "/docs/add-options/clipboard-undo/undo-redo-options#usedatagridhistoryoptions",
-  "datagridtoolbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridtoolbarprops",
-  "datagridsearchprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsearchprops",
-  "datagridfiltermenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridfiltermenuprops",
-  "datagridcolumnsmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcolumnsmenuprops",
-  "datagridsortlistprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridsortlistprops",
+  "datagridtoolbarprops": "/docs/add-options/sort-filter-search/toolbar-options#datagridtoolbar",
+  "datagridsearchprops": "/docs/add-options/sort-filter-search/toolbar-options#datagridsearch",
+  "datagridfiltermenuprops": "/docs/add-options/sort-filter-search/toolbar-options#datagridfiltermenu",
+  "datagridcolumnsmenuprops": "/docs/add-options/sort-filter-search/toolbar-options#datagridcolumnsmenu",
+  "datagridsortlistprops": "/docs/add-options/sort-filter-search/sort-list-options#datagridsortlist",
   "datagridcontextmenuprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridcontextmenuprops",
   "datagridexportbuttonprops": "/docs/add-options/import-export/export-options#datagridexportbuttonprops",
-  "usedatagridserverrowsscrolloptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrolloptions",
-  "usedatagridserverrowsscrollresult": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridserverrowsscrollresult",
-  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus/context-menu-options#datagridpaginationcontrols--datagridpaginationbarprops",
+  "usedatagridserverrowsscrolloptions": "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions",
+  "usedatagridserverrowsscrollresult": "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrollresult",
+  "datagridpaginationcontrols--datagridpaginationbarprops": "/docs/add-options/rows-pages-menus/client-pagination-options#datagridpaginationbarprops",
   "usedatagridfilloptions": "/docs/add-options/clipboard-undo/fill-handle-options#usedatagridfilloptions",
-  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus/context-menu-options#usedatagridpinnedrowsoptions"
+  "usedatagridpinnedrowsoptions": "/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridpinnedrowsoptions"
  },
  "/docs/clipboard": {
   "copy": "/docs/clipboard-undo/clipboard#copy",
@@ -252,10 +259,10 @@
   "cross-field-rules-validaterow": "/docs/editing-cells/validation#cross-field-rules-validaterow",
   "server-errors": "/docs/save-server/show-errors-cells#server-errors",
   "display-override-without-a-new-type": "/docs/editing-cells/display-override#display-override-without-a-new-type",
-  "custom-cell-types": "/docs/editing-cells#custom-cell-types"
+  "custom-cell-types": "/docs/recipes-custom-code/write-cell-type#write-a-cell-type"
  },
  "/docs/events-state": {
-  "find-the-callback-you-need": "/docs/events-state#find-the-callback-you-need",
+  "find-the-callback-you-need": "/docs/events-state/event-shapes#find-the-callback",
   "the-three-shapes-an-event-follows": "/docs/events-state/event-shapes#the-three-shapes-an-event-follows",
   "1-ondatachange--the-flagship-shape": "/docs/events-state/data-change-events#ondatachange",
   "saving-a-change": "/docs/events-state/data-change-events#onsave",
@@ -268,14 +275,14 @@
   "4-onfilterchange": "/docs/events-state/sort-filter-events#onfilterchange",
   "5-onfill": "/docs/events-state/selection-cell-events#onfill",
   "6-oncellclick": "/docs/events-state/selection-cell-events#oncellclick",
-  "typed-callbacks-in-split-composition": "/docs/events-state#typed-callbacks-in-split-composition",
+  "typed-callbacks-in-split-composition": "/docs/components-props/data-grid-props",
   "7-onrenderedrowschange": "/docs/events-state/column-viewport-events#onrenderedrowschange",
   "8-columnlayout--defaultcolumnlayout--oncolumnlayoutchange--oncolumnresizing": "/docs/events-state/column-viewport-events#oncolumnlayoutchange",
-  "9-presence-read-back--the-two-sided-contrast": "/docs/events-state#9-presence-read-back--the-two-sided-contrast",
+  "9-presence-read-back--the-two-sided-contrast": "/docs/rows-live-data/show-presence",
   "10-edit-lifecycle-and-cell-events": "/docs/events-state/edit-validation-events#oneditstart",
-  "zero-re-render-guarantee": "/docs/events-state#zero-re-render-guarantee",
-  "not-every-event-is-documented-here": "/docs/events-state#not-every-event-is-documented-here",
-  "unsupported-features": "/docs/events-state#unsupported-features"
+  "zero-re-render-guarantee": "/docs/events-state/event-shapes#find-the-callback",
+  "not-every-event-is-documented-here": "/docs/events-state/event-shapes#find-the-callback",
+  "unsupported-features": "/docs/events-state/event-shapes#find-the-callback"
  },
  "/docs/examples/appearance/i18n-rtl": {
   "the-labels-prop": "/docs/style-examples/right-left-example#the-labels-prop",
@@ -539,9 +546,9 @@
   "client-mode": "/docs/rows-pages-menus/client-pagination#client-mode",
   "server-mode": "/docs/add-options/server/server-rows-options#server-mode",
   "without-a-total": "/docs/add-options/server/server-rows-options#without-a-total",
-  "datagridpaginationbar-": "/docs/server-pagination/load-rows-page#datagridpaginationbar-",
-  "composition": "/docs/server-pagination/load-rows-page#composition",
-  "composing-with-data-grid-url-state": "/docs/server-pagination/load-rows-page#composing-with-data-grid-url-state"
+  "datagridpaginationbar-": "/docs/add-options/rows-pages-menus/client-pagination-options#datagridpaginationbarprops",
+  "composition": "/docs/add-options/rows-pages-menus/client-pagination-options#parts",
+  "composing-with-data-grid-url-state": "/docs/server-pagination/keep-pages-url#sync-the-page-with-the-url"
  },
  "/docs/performance": {
   "limits": "/docs/performance/row-limits",

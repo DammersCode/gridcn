@@ -1,2 +1,40 @@
 # Public names that no docs page mentions on purpose. One per line (Name or Type.member), reason after #.
-DataSourceState # the type of the status, loading, error, retry and refresh fields of useDataGridServerRows, described field by field on the scroll-mode pages
+DataGridPinnedRow # takes the plugin internal band render context; no page teaches calling it
+DataGridPinnedRowProps # props of DataGridPinnedRow
+DataGridPinnedRowBand # internal band renderer of the pinned rows plugin
+DataGridPinnedRowBandProps # props of DataGridPinnedRowBand
+KeysMatching # type helper behind defineColumns accessor keys; the reader never writes it
+AccessorLike # type helper behind defineColumns; the reader never writes it
+InferredValue # type helper behind defineColumns value inference; the reader never writes it
+RectSegment # overlay clipping helper type of the plugin overlay context; no page teaches calling it
+PinTrackData # pin zone data inside OverlayPluginCtx; read through the ctx helpers only
+DataGridStore # alias of the internal store state; the documented read view is DataGridReadState
+DataGridStoreStateOf # internal store state with typed rows; read through DataGridReadState
+SelectLineActionOptions # alias of the options of the line selection actions, described with those actions
+DataGridCell # internal cell component; the grid and the pinned rows add-on render it
+DataGridCellProps # props of the internal cell component; the grid and the pinned rows add-on set them
+DataGridCellState # internal per-cell render state of the grid
+DataGridRowCellState # internal per-row render state of the grid
+DropzoneProps # props of Dropzone; Import options lists them in a table
+DropzoneAccept # Record of MIME type to extensions; Import options shows the shape of accept
+DropzoneRejectionReason # union of accept, maxSize, minSize, maxFiles; Import options lists the four values
+FilterFilesOptions # options of filterFiles; Import options names the same four limits as the Dropzone props
+FilterFilesResult # result of filterFiles; Import options describes its two fields
+DropzoneEmptyStateProps # title and description; Import options names both
+DropzoneContentProps # children only; Import options names it
+DataGridCellProps.gridReadOnly # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.gridColOffset # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.pinnedRow # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.isSelected # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.isEditing # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.editSession # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.editingError # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.editingRejectionCount # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.isSearchMatch # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.isSkeleton # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.isFlashing # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridCellProps.cellError # prop of the internal cell component; the grid and the pinned rows add-on set it
+DataGridOverlaysProps.rowCount # props of the core overlay layer; no plugin renders it
+DataGridPinnedRowProps.bandIndex # internal band render context
+DataGridPinnedRowProps.gridRowStart # internal band render context
+DataGridPinnedRowProps.ariaRowIndex # internal band render context

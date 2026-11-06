@@ -56,7 +56,7 @@ To pin a tag, branch, or commit, use the GitHub registry path:
 npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
 ```
 
-The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs the core from the default branch. To pin the whole install, install the core with the same ref first. An `@gridcn` add-on install fetches the core through `git ls-remote` and `raw.githubusercontent.com`, so it needs `git` and access to GitHub.
+The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs its dependencies from the default branch. To pin the whole install, install each dependency with the same ref first, starting with the core. If the CLI then asks to overwrite a dependency file, answer no. A GitHub path install resolves the ref with `git ls-remote`, or through the GitHub API when that fails, and reads files from `raw.githubusercontent.com`. A full commit SHA skips the lookup.
 
 The [installation docs](https://gridcn.vercel.app/docs/learning-path/install-gridcn) cover prerequisites, framework notes, and known problems.
 
@@ -127,7 +127,7 @@ Five skills teach Claude Code, Cursor, Codex, and other coding agents the proced
 
 ## Updating
 
-Re-run the install command, for example `npx shadcn add @gridcn/data-grid` (or the GitHub path for pinned refs). The CLI shows a diff and asks before it overwrites files that you edited.
+Re-run the install command, for example `npx shadcn add @gridcn/data-grid` (or the GitHub path for pinned refs). The CLI skips identical files and asks before it overwrites a file that differs. The default answer is no.
 
 ## Contributing
 

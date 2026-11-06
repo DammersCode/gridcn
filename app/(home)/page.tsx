@@ -247,7 +247,7 @@ export default function HomePage() {
         </p>
         <p className="text-sm text-muted-foreground">
           Works in Next.js, Vite, and any React 19 app with Tailwind v4 —{" "}
-          <Link href="/docs/support-upgrades/version-policy-changelog#framework-floors" className="underline underline-offset-4 hover:text-foreground">
+          <Link href="/docs/support-upgrades/browser-framework-support#framework-floors" className="underline underline-offset-4 hover:text-foreground">
             see compatibility
           </Link>
           .

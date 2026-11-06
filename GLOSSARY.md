@@ -60,6 +60,9 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | add-on | An optional registry item you install, such as `data-grid-fill`. It ships hooks and components. | addon, extension |
+| core | The `data-grid` item. Add-ons build on it. | |
+| hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | |
+| pinned release | A release installed with `#<ref>` on the GitHub registry path. | fixed release |
 | plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one; not every add-on does. | |
 | row marker | The narrow column at the left edge that shows a row number, a checkbox, or a drag handle. | gutter |
 | drag handle | The control you drag to reorder a row or a sort entry. | grip |
