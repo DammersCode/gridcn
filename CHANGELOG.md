@@ -22,7 +22,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   - **Filtering:** a `fetchFilterValues` entry is `{ value, label?, count? }`; the former `label` is `value`, and `label` is optional display text.
   - **Filtering:** `FilterOperator` is a built-in operator or any string; a `switch` over it needs a default branch, and `BuiltInFilterOperator` is the closed set. `parseFilterState` takes `operatorInput` to accept a custom id.
   - **Filtering:** a grid that a filter or the search empties shows `labels.grid.noResults` ("No results") instead of `labels.grid.emptyState`; set `labels.grid.noResults` to restore the old text.
-  - **Row operations:** `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row of a scroll-mode grid; delete known rows with `deleteRowsById`.
+  - **Row operations:** `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row of a scroll-mode grid; delete known rows with `deleteRowsById`, and leave the placeholder ids of unloaded rows out of the list, because one of them cancels the request.
   - **Server data hooks:** `ServerSpec`, `serverSpecKey`, and `RowRange` (was `Range` in `data-grid-lazy`) import from `data-grid`.
   - **Pagination:** `useDataGridPagination` returns `{ pageData, pager }` instead of `{ pageData, controls }`.
   - **Pagination:** `total` becomes `totalRowCount` (`null` for an unknown size) in the server options, in `pager`, and in `useDataGridUrlPagination`.
