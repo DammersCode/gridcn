@@ -1,65 +1,99 @@
 ---
 title: "Async gates example"
-description: Await a server in processPaste, validateRow, createRow, and the other event-time gates.
+description: Ask a server before the grid acts on a paste, an edit start, a row insert, or a row check, and see the grid wait for the answer.
 icon: Hourglass
 type: example
 ---
 
-Some checks need a server before the grid acts. A paste may need normalizing. A new row may need
-an id. Each of these gates accepts a function that returns a value or a promise. The grid holds
-the gesture until the promise settles, then writes once.
+Some checks need a server before the grid acts. A paste can need normalizing. A new row can need an id from the server. Each of these props accepts a function that returns a value or a promise. The grid holds the gesture until the promise settles, then writes once.
+
+In this grid, `processPaste` upper-cases pasted SKUs on the server, `createRow` waits for a server id, and `validateRow` flags a taken SKU. Paste lower-case text, add a row, or type AB-100 in the SKU column. The status line shows the pending call.
 
 <ComponentPreview name="data-grid-async-gates-demo" />
 
 <InstallCommand item="data-grid-async-gates-demo" />
 
-## The gates
+## Return a promise [#the-gates]
 
-| Gate | A promise holds | A pending promise | A rejection |
+This provider uses the three gates of the demo:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+
+type Sku = { id: string; sku: string };
+
+const columns = defineColumns<Sku>()([
+  { id: "sku", header: "SKU", accessorKey: "sku" },
+]);
+
+const rows: Sku[] = [{ id: "r1", sku: "CD-100" }];
+
+export function SkuGrid({ api }: { api: SkuApi }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      processPaste={async ({ cells }) => api.normalize(cells)}
+      createRow={async () => ({ id: await api.newId(), sku: "" })}
+      validateRow={async (row) =>
+        (await api.isTaken(row.sku)) ? { sku: "SKU is already taken" } : null
+      }
+    >
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+
+type SkuApi = {
+  normalize: (cells: string[][]) => Promise<string[][]>;
+  newId: () => Promise<string>;
+  isTaken: (sku: string) => Promise<boolean>;
+};
+```
+
+## What a pending promise does [#what-the-grid-checks-when-a-promise-settles]
+
+| Gate | A promise holds | While pending | If it rejects |
 |---|---|---|---|
-| `processPaste` | the whole paste | blocks a second paste | cancels the paste |
-| `processCellFromClipboard` | the whole paste, until every cell settles | blocks a second paste | cancels the paste |
-| `onEditStart` | the editor | blocks a second edit start | cancels the edit start |
-| `createRow` | the insert, until every row settles | blocks a second insert | cancels the insert |
-| `duplicateRow` | the duplicate, until every copy settles | blocks a second duplicate | cancels the duplicate |
-| `validateRow` | nothing. The write commits first | is replaced by a newer verdict for the same row | adds no error |
-| `mapColumn` and the import `createRow` | the import dialog | n/a | see [Import & export](/docs/import-export) |
+| `processPaste` | the whole paste | the grid ignores a second paste | the paste does not happen |
+| `processCellFromClipboard` | the paste, until every cell settles | the grid ignores a second paste | the paste does not happen |
+| `onEditStart` | the start of the edit | a second edit start does nothing | the edit does not start |
+| `createRow` | the insert, until every row settles | a second insert does nothing | the insert does not happen |
+| `duplicateRow` | the duplicate, until every copy settles | a second duplicate does nothing | the duplicate does not happen |
+| `validateRow` | nothing: the write commits first | a newer verdict for the row replaces it | the row gets no verdict |
 
-A synchronous result writes in the same call.
+`mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onEditStart` returns `false` to cancel.
 
-## What the grid checks when a promise settles
+The grid reads its state again when the promise settles. It discards the result without an error in these cases:
 
-The grid reads its state again after the promise settles. It drops the result when:
+- Paste: the grid is `readOnly`, a cell is in edit, the sort or filter changed, or a target row left the data.
+- Insert: the grid is `readOnly`, or the row beside the insert left the data. A duplicate skips each source row that left.
+- Edit start: the grid is `readOnly`, the cell is gone, or the user moved to another cell.
+- Row verdict: the row left the data.
 
-- the grid is `readOnly` now,
-- the row the gesture aimed at is gone,
-- a sort or filter changed during a paste.
-
-The grid drops these results without an error, also when a refetch removed the row. A gate gets no `AbortSignal`. Show a busy state
-while a gate is pending, because the grid blocks a second gesture of the same kind until the
-promise settles.
-
-A row that moved keeps its gesture: the grid follows the row id, not the old view position.
-`onEditStart` also drops the result when the user moved to another cell.
+A row that moved keeps its gesture, because the grid follows the row id. A gate gets no `AbortSignal`. Show a busy state while a gate is pending, as the demo does.
 
 ## Client and server modes
 
-- Controlled `data`: one gesture writes one `onDataChange`, when the promise settles.
-- Pagination and lazy sources: a result for a row that left the loaded rows is dropped.
-- `sortMode="server"`: the grid never reorders rows when a promise settles. The server owns the
-  order.
+A held gesture emits one change when the promise settles. A refetch that removes a row cancels the gesture on it, because the grid drops the result for a row that left. With `sortMode="server"`, the grid never reorders rows when a promise settles. The server owns the order. For a server grid, see the [async gates](/docs/contracts/server-rows-contract#async-gates) of the server contract.
 
-For a server grid, see [Server-side data](/docs/contracts/server-rows-contract#writes-and-async-gates).
-
-<Callout type="warn" title="Return a promise only from an event-time gate">
-  `processCellForClipboard`, command `when`, and the context-menu resolvers stay synchronous. The
-  browser needs their answer while the event runs. Cell render and `accessorFn` functions stay
-  synchronous too.
+<Callout type="warn" title="Copy stays synchronous">
+  `processCellForClipboard` returns a string, not a promise. Cell `renderCell` and `accessorFn` return values, not promises.
 </Callout>
 
 ## Related
 
-- [Async validation](/docs/validation-examples/async-validation-example): schemas that return a promise.
-- [Cross-field](/docs/validation-examples/cross-field-validation-example): `validateRow`.
-- [Clipboard](/docs/clipboard-undo/clipboard#overrides): `processPaste` and `processCellFromClipboard`.
-- [Row operations](/docs/rows-pages-menus): `createRow` and `duplicateRow`.
+- [Async validation example](/docs/validation-examples/async-validation-example): a schema that returns a promise
+- [Cross-field validation example](/docs/validation-examples/cross-field-validation-example): `validateRow`
+- [Clipboard](/docs/clipboard-undo/clipboard#overrides): `processPaste` and `processCellFromClipboard`
+- [Row operations](/docs/rows-pages-menus/row-operations): `createRow` and `duplicateRow`

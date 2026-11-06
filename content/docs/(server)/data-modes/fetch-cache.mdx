@@ -131,7 +131,7 @@ export function OrdersGrid() {
 
 `server.refresh()` calls `fetchRows` again. In random access, the result has a row count. There the hook also refreshes by itself after a row operation and after the last pending insert or delete save settles. Those refreshes go through `fetchQuery` too, so they get the cached blocks while those are fresh. Call `queryClient.invalidateQueries({ queryKey: ["orders"] })` in `onSave` before its promise settles, and before a manual `refresh()`. The refreshes then reach the server.
 
-With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `preload` keeps each block, loaded or failed, until a `useSWR` call with the same key reads it. It has no `staleTime` and no invalidation, so `refresh()` and `retry()` get the same answer again, and every fetched block stays in memory. For scroll mode, prefer a cache with `staleTime` and invalidation.
+With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `preload` keeps each block, loaded or failed, until a `useSWR` call with the same key reads it. It has no `staleTime`. A global `mutate(key)` clears the entry of a block. Until you call it, `refresh()` and `retry()` get the same answer again. Every fetched block stays in memory. For scroll mode, prefer a cache with `staleTime` and invalidation.
 
 ## Cache pages [#the-wiring]
 

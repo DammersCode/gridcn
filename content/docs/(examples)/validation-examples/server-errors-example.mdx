@@ -1,60 +1,67 @@
 ---
 title: "Server errors example"
-description: Painting post-commit rejections with setCellErrors / clearCellErrors when the value committed and the server disagrees.
+description: Mark a cell with the message of a server rejection after the value committed, and see the error clear when the user edits the cell.
 icon: ServerCrash
 type: example
 ---
 
-`validate` only runs **before** commit. A server can still reject an already-committed value:
-a 422 that names the field, for example. `actions.setCellErrors` paints that rejection on the
-exact cell. The demo wires a fake `saveOrders` call into `onDataChange` that rejects any
-Quantity above 100 after ~600 ms.
+A `validate` rule runs before a value commits. A server can still refuse a value after it committed, for example with a 422 that names the field. `actions.setCellErrors` marks that cell. In this grid, a fake `saveOrders` call rejects a Quantity above 100 after about 600 ms. Set Quantity to 150 and press <kbd>Enter</kbd>. The cell gets an error ring. Hover the cell to read the message.
 
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
 <InstallCommand item="data-grid-cell-errors-demo" />
 
-## Wiring
+## How the demo is wired [#wiring]
+
+`onDataChange` sends `change.ops` to the server. When the call fails, the handler maps each failure to a `{ rowId, columnId, message }` entry and calls `setCellErrors`. The rejection arrives long after the grid mounted, so the handler reaches the actions through a `ref`:
 
 ```tsx
-const [data, setData] = useState<readonly Order[]>(initialOrders);
+import { useRef } from "react";
+import {
+  DataGrid,
+  type DataChange,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { saveOrders, parseFieldErrors } from "./api";
 
-function handleDataChange(next: readonly Order[], change: DataChange<Order>) {
-  setData(next);
-  saveOrders(change.ops).catch((error) => {
-    actions.setCellErrors(parseFieldErrors(error)); // [{ rowId, columnId, message }]
-  });
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  const gridRef = useRef<DataGridApi<Order>>(null);
+
+  function handleDataChange(_: readonly Order[], change: DataChange<Order>) {
+    saveOrders(change.ops).catch((error) => {
+      gridRef.current?.actions.setCellErrors(parseFieldErrors(error));
+    });
+  }
+
+  return (
+    <DataGrid
+      ref={gridRef}
+      defaultData={orders}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={handleDataChange}
+    />
+  );
 }
 ```
 
-The marked cell gets the same ring, tint, and `aria-invalid` treatment as a pre-commit
-rejection. Hovering it shows the message. Opening the cell for editing shows it the same
-way a live rejection does.
+`saveOrders` and `parseFieldErrors` are your own functions. `saveOrders` rejects when the server refuses a value, and `parseFieldErrors` turns that error into the entries to mark.
 
-## The API
+## What to expect [#the-api]
 
-```tsx
-type CellErrorEntry = { rowId: string; columnId: string; message: string };
+- `setCellErrors` merges its entries per cell. Calling it with an empty list does nothing.
+- A marked cell gets `aria-invalid` and the same ring and tint as a `validate` rejection. Opening the cell for editing shows the message.
+- When any write path (an edit, a paste, a fill, or `updateCells`) commits a new value to a marked cell, its error clears. The server can mark the cell again if the new value is still wrong.
+- `clearCellErrors()` clears every error. `clearCellErrors(targets)` clears the cells named by `{ rowId, columnId }` targets.
+- `useDataGridCellErrors()` returns the map of all messages. The demo bar reads its size and offers a Clear all button.
 
-actions.setCellErrors(errors: readonly CellErrorEntry[]): void;   // merges in, per cell
-actions.clearCellErrors(targets?: readonly { rowId: string; columnId: string }[]): void; // omit to clear all
-```
-
-- **Auto-clear**: the moment the user commits a new value to that cell, through any write path
-  (edit, paste, fill, `updateCells`), the error clears on its own. The server can set it again
-  if the new value is still wrong.
-- `useDataGridCellErrors()` reads the full map for a summary view. The demo's bar shows the
-  count plus a Clear-all button.
-
-<Callout type="warn" title="Not a data change">
-  `setCellErrors`/`clearCellErrors` never touch `data`: they fire no `onDataChange`, and
-  [`data-grid-history`](/docs/clipboard-undo/undo-redo) never records them. A server error is metadata about a
-  cell, not an edit the user made. Undo must not walk past it.
+<Callout type="warn" title="Cell errors are not edits">
+  `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`. The history add-on never records them. A server error is a mark on a cell, not an edit of the user.
 </Callout>
 
-## Behavior reference
+## Related
 
-- [Server errors](/docs/save-server/show-errors-cells#server-errors): the full contract, including
-  `cellErrorKey`
-- [Validation](/docs/validation-examples/validation-example): the pre-commit side of the same display
-  treatment
+- [Show errors on cells](/docs/save-server/show-errors-cells#server-errors): the task, with the full list of what clears an error
+- [Validation example](/docs/validation-examples/validation-example): the rules that run before the commit
+- [Cross-field validation example](/docs/validation-examples/cross-field-validation-example): a row rule that reuses the same marks

@@ -1,9 +1,134 @@
 ---
-title: Server pagination example
-description: Server pagination example.
+title: "Server pagination example"
+description: Fetch one page of rows per request with TanStack Query or SWR, and see the page and page size act as the cache key.
+icon: Files
 type: example
 ---
 
-{/* docs-stub */}
+In server mode, `useDataGridPagination` only does the page math. You own `page`, `pageSize`, and `totalRowCount`, and you fetch each page. A fetch library fits in the one place where you fetch. Both grids below load 25 rows per page from a fake server with about 300 ms of latency. Both write an edit to that server.
 
-This page is being written.
+## TanStack Query [#tanstack-query]
+
+`useQuery` fetches the page. The page and the page size form the query key, so each page has its own cache entry. `placeholderData: keepPreviousData` keeps the old page on screen while the next page loads.
+
+<ComponentPreview name="data-grid-pagination-react-query-demo" />
+
+<InstallCommand item="data-grid-pagination-react-query-demo" />
+
+This grid saves an edit, and then invalidates the pages so the grid shows what the server holds:
+
+```tsx
+import { useState } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  DataGrid,
+  defineColumns,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+  useDataGridPagination,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+const NO_ROWS: Order[] = [];
+
+export function OrdersGrid() {
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  const query = useQuery({
+    queryKey: ["orders", page, pageSize],
+    queryFn: async () => {
+      const response = await fetch(`/api/orders?page=${page}&size=${pageSize}`);
+      return (await response.json()) as { rows: Order[]; total: number };
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const { pager } = useDataGridPagination({
+    page,
+    pageSize,
+    totalRowCount: query.data?.total ?? 0,
+    onPageChange: setPage,
+    onPageSizeChange: (next) => {
+      setPageSize(next);
+      setPage(1);
+    },
+  });
+
+  function onDataChange(_next: readonly Order[], change: DataChange<Order>) {
+    void fetch("/api/orders", {
+      method: "POST",
+      body: JSON.stringify(change.ops),
+    }).then(() => queryClient.invalidateQueries({ queryKey: ["orders"] }));
+  }
+
+  return (
+    <>
+      <DataGrid
+        data={query.data?.rows ?? NO_ROWS}
+        columns={columns}
+        getRowId={(row) => row.id}
+        onDataChange={onDataChange}
+        className="h-96"
+      />
+      <DataGridPaginationBar {...pager} />
+    </>
+  );
+}
+```
+
+## SWR [#swr]
+
+`useSWR` fetches the page with the key `["orders", page, pageSize]`. The demo keeps the last fetched page in state and swaps it when new data lands. The grid then shows the old page while the next page loads. After an edit, the scoped `mutate` that `useSWR` returns revalidates the current page.
+
+<ComponentPreview name="data-grid-pagination-swr-demo" />
+
+<InstallCommand item="data-grid-pagination-swr-demo" />
+
+The fetcher of SWR receives the key itself, so the key is a tuple. This hook fetches a page. It exposes the rows and the count of the last page that landed, and a revalidate function:
+
+```tsx
+import { useEffect, useState } from "react";
+import useSWR from "swr";
+
+type Order = { id: string; customer: string };
+type OrdersPage = { rows: Order[]; total: number };
+
+export function useOrdersPage(page: number, pageSize: number) {
+  const [last, setLast] = useState<OrdersPage>({ rows: [], total: 0 });
+  const { data, mutate } = useSWR(
+    ["orders", page, pageSize] as [string, number, number],
+    async ([, p, size]): Promise<OrdersPage> => {
+      const response = await fetch(`/api/orders?page=${p}&size=${size}`);
+      return response.json();
+    },
+  );
+
+  useEffect(() => {
+    if (data) setLast(data);
+  }, [data]);
+
+  return { rows: last.rows, total: last.total, revalidate: () => mutate() };
+}
+```
+
+Pass `rows` and `total` to the grid and the pager as in the TanStack Query sample, and call `revalidate` after the save.
+
+## Related
+
+- [Load rows by page](/docs/server-pagination/load-rows-page): `useDataGridServerRows` in pages mode
+- [Client pagination](/docs/rows-pages-menus/client-pagination): the same hook on a local array
+- [Fetch with a cache](/docs/data-modes/fetch-cache#the-wiring): pages with TanStack Query and SWR
+- [Keep pages in URL](/docs/server-pagination/keep-pages-url): the page in the address bar

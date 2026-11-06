@@ -1,45 +1,64 @@
 ---
 title: "Large data example"
-description: 100k rows fully loaded. Virtualization keeps only the virtualized rows mounted.
+description: Scroll 100,000 rows that are fully loaded in the browser, with an optional FPS meter, and see how little the grid mounts.
 icon: Gauge
 type: example
 ---
 
-The opposite of lazy loading: the whole dataset is in memory from the start, and
-virtualization does the work. Only the rows around the viewport ever mount, no matter the
-row count.
-
-## 100k rows
+This grid holds all 100,000 rows in memory. It needs no server, no scroll mode, and no pagination. The grid mounts only the rows near the viewport, so the number of rows does not set the number of DOM rows.
 
 <ComponentPreview name="data-grid-large-data-demo" />
 
 <InstallCommand item="data-grid-large-data-demo" />
 
-100k generated rows. The DOM holds only the rows around the viewport at all times.
-Scrolling is a flat line regardless of size.
+## Watch the frame rate [#with-an-fps-meter]
 
-## With an FPS meter
+This demo loads the same 100,000 rows and adds an FPS readout in the top-left corner. Scroll fast and watch the number.
 
 <ComponentPreview name="data-grid-performance-demo" />
 
 <InstallCommand item="data-grid-performance-demo" />
 
-The same 100k rows with a top-left FPS overlay. The scroll-performance claim is checkable
-live.
+## Load the rows [#how-it-works]
 
-## How it works
+Pass the whole array as `defaultData` and give the grid a bounded height. Sort, filter, and edits then run on the array in memory:
 
-The grid renders rows through a virtualized viewport: it measures row height, computes
-which rows intersect the scroll window, and mounts only those plus overscan. Sorting,
-filtering, and editing all run against the in-memory array. The DOM is a window onto it.
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 
-<Callout type="info" title="When to lazy-load instead">
-If the dataset is bigger than a browser can hold, stop loading it all:
-[lazy loading](/docs/server-data-examples) fetches only the scrolled-into windows, and
-[server pagination](/docs/server-data-examples) only the current page.
+type Person = { id: string; name: string; score: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number" },
+]);
+
+const people: Person[] = Array.from({ length: 100_000 }, (_, i) => ({
+  id: `row-${i}`,
+  name: `Person ${i}`,
+  score: i % 100,
+}));
+
+export function BigGrid() {
+  return (
+    <DataGrid
+      defaultData={people}
+      columns={columns}
+      getRowId={(row) => row.id}
+      className="h-96"
+    />
+  );
+}
+```
+
+Without a bounded height, the grid mounts at most 200 rows and warns once in development.
+
+<Callout type="info" title="When the rows do not fit in the browser">
+  If the result is too large to load, fetch it in blocks with [scroll mode](/docs/scroll-mode/load-rows-while-scrolling) or by page with [server pagination](/docs/server-pagination/load-rows-page).
 </Callout>
 
-## Behavior reference
+## Related
 
-- [Virtualization](/docs/performance/virtualization): the mechanics
-- [Performance](/docs/performance): the profiling guide
+- [Virtualization](/docs/performance/virtualization): which rows and columns the grid mounts
+- [Row limits](/docs/performance/row-limits): the scroll height limits of the browsers
+- [Scroll mode example](/docs/server-data-examples/scroll-mode-example): the same size with the rows on a server

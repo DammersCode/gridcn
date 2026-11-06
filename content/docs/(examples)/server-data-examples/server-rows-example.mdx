@@ -1,94 +1,140 @@
 ---
 title: "Server rows example"
-description: The full remote contract in one hook. Sort, filter, search, and pagination sent to the server, with a stale-request guard, an error state, and retry.
+description: Send sort, filter, search, and page to your server with one fetchRows function, and see stale-request aborts, error states, and retry.
 icon: Server
 type: example
 ---
 
-<NewBadge />
+`useDataGridServerRows` owns the sort, filter, search text, page, and page size of a server grid. You write the one `fetchRows` function that calls your API. The hook fetches a page for each state and aborts a request that a newer state replaces. It goes back to page 1 when the spec or the page size changes. It keeps the last good rows on screen while the next page loads, and after an error. The grid sorts and filters nothing itself.
 
-`useDataGridServerRows` owns the sort, filter, search, page, and page size of a server grid. You write the one `fetchRows` function that calls your API. The hook fetches a page for each state, aborts a request that a newer state replaces, goes back to page 1 when the spec or the page size changes, and keeps the last good rows on screen while the next page loads or after an error. Nothing is filtered or sorted client-side.
+In the demo, the Pages and Scroll buttons switch the mode of the hook. Sort a header, filter, search, and page. Each change sends one request to a fake server with about 300 ms of latency.
 
 <ComponentPreview name="data-grid-server-side-demo" />
 
 <InstallCommand item="data-grid-server-side-demo" />
 
-## The wiring
+## The wiring [#the-wiring]
+
+This grid loads orders by page and saves edits through `onSave`:
 
 ```tsx
-const server = useDataGridServerRows<Order>({
-  getRowId: (row) => row.id,
-  fetchRows: async ({ spec, page, pageSize, signal }) => {
-    const answer = await api.orders({ ...spec, page, pageSize, signal });
-    return { rows: answer.rows, totalRowCount: answer.total };
-  },
-});
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import type { DataChange } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
 
-<DataGrid {...server.gridProps} columns={columns} headerClickBehavior="sort" onSave={(change) => api.save(change.ops)} />
-<DataGridPaginationBar {...server.pager} />
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+async function saveOrders(change: DataChange<Order>) {
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+}
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, page, pageSize, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...spec, page, pageSize }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid
+        {...server.gridProps}
+        columns={columns}
+        headerClickBehavior="sort"
+        onSave={saveOrders}
+        className="h-96"
+      />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
 ```
 
-- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `start` is `(page - 1) * pageSize`, `end` is `start + pageSize`, and `cursor` is `undefined` in pages mode.
-- `fetchRows` resolves `{ rows, totalRowCount }`. A server that sends no count resolves `{ rows, hasMore }`, and the footer shows "Page N" with Next and no Last. An omitted `totalRowCount` keeps the last known count; `null` declares it unknown.
-- The hook checks every answer. `rows` must be an array, else the request fails. A `totalRowCount` that is not a non-negative integer reads as unknown, and one above 10,000,000 clamps to it. At most `pageSize` rows are kept. Each case warns once in development.
-- `server.gridProps` carries `data`, `getRowId`, `sortMode="server"`, `filterMode="server"`, the controlled sort, filter, and search pairs, `totalRowCount`, `keepCheckedRows`, `loading`, `error`, and `onRetry`. Pass `headerClickBehavior="sort"` to sort on a header click. Put your own `onDataChange` and `getRowId` in the hook options: a spread override drops the hook's merge.
-- A composed layout (toolbar, custom root) spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` (`loading`, `error`, `onRetry`) onto `DataGridRoot`. The demo does this.
+- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` in pages mode. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
+- `fetchRows` resolves `{ rows, totalRowCount }`. A server without a count resolves `{ rows, hasMore }`. [Server rows options](/docs/add-options/server/server-rows-options#serverrowsanswer) lists how the hook checks an answer.
+- `server.gridProps` carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `keepCheckedRows`, `loading`, `error`, `onRetry`, and `plugins`. A header click sorts only with `headerClickBehavior="sort"`.
+- Treat the request as untrusted input. Check that the filter tree has at most 2 levels of groups, 16 groups, and 64 rows. Allow only known column ids, and allow only `"and"` or `"or"` as a `join`. Cap the request body size. The [ORM examples](/docs/server-data-examples/orm-examples) show the check.
+- Put your own `onDataChange` in the hook options. A spread override drops the merge of the hook. A `plugins` prop of your own goes after the guard: `plugins={[...server.gridProps.plugins, mine]}`.
+- A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
-## Errors and retry
+## Errors and retry [#errors-and-retry]
 
-A failed request sets `server.error` and keeps the last good rows visible. `DataGridRoot` shows the error state: a centered message with a Retry button over zero rows, and a slim alert bar under the header with rows present. Replace it with `errorState`, a node or a function receiving `{ error, retry }`. The text is `labels.grid.errorState`; the error itself is never rendered.
+A failed request sets `server.error` and keeps the last good rows visible. `DataGridRoot` shows an error state. With no rows loaded, it is a message with a Retry button. With rows present, it is a bar under the header. The text is `labels.grid.errorState`. Pass `errorState` to replace it: a node, or a function that receives `{ error, retry }`. The grid never renders the error object.
 
-`server.retry()` repeats the request that failed and does nothing without an error. `server.refresh()` fetches the current page again and keeps the rows on screen until the answer lands, for example after a save. A block that lands (refresh, retry, or window load) replaces every row it carries. A row keeps its local value when it has a pending cell edit, or a save that was in flight at any moment since the request was sent. A row with a pending delete is gone: the answer's copy is dropped and its slot stays empty. A protected row that the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes when no pending insert or delete is left, so the server decides. A pages refresh appends such a row at the end of the page, so the page can exceed `pageSize` by pending inserts. A sequential refresh that ends before a pending insert may drop it until its save settles. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. A `refresh()` that runs inside an async `onSave` <NewBadge /> keeps the local row, so server-computed fields such as `updatedAt` do not appear; call `refresh()` after the `onSave` promise settles. That guard mounts through `gridProps.plugins`, so a `plugins` prop of your own must start with `...server.gridProps.plugins`. The error clears when any new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"` (`"error"` wins over `"loading"`), and `server.loading` is true while a request is in flight. `retry`, `refresh`, and every callback in `gridProps` keep their identity across renders.
+`server.retry()` repeats the failed request and does nothing without an error. `server.refresh()` fetches the current page again and keeps the rows on screen until the answer lands. The error clears when a new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"`, and `"error"` wins over `"loading"`.
 
-`onError(error)` fires when a request fails. `onLoaded({ start, end })` fires when rows land. A throw in either is logged and does not drop the answer.
+`onError(error)` fires when a request fails. `onLoaded({ start, end })` fires when rows land. A throw in either goes to the console and does not drop the answer. [Change server rows](/docs/rows-live-data/change-server-rows) describes what a refresh does with a row that has a pending edit or save.
 
-## Control the spec and the page
+## Control the spec and the page [#control-the-spec-and-the-page]
 
-<NewBadge />
+Pass `spec` with `onSpecChange`, `page` with `onPageChange`, or `pageSize` with `onPageSizeChange` to own that state. Each pair works like a controlled input. `defaultSpec`, `defaultPage`, and `defaultPageSize` seed the state when you do not control it. A spec change asks `onPageChange` for page 1, except before the first answer lands, so a restored spec keeps a deep-linked page.
 
-Pass `spec` with `onSpecChange`, `page` with `onPageChange`, and `pageSize` with `onPageSizeChange` to own the state yourself. Each pair works like a controlled input. `defaultSpec`, `defaultPage`, and `defaultPageSize` seed the state when you do not control it. A spec change asks `onPageChange` for page 1, except before the first answer lands, so a restored spec keeps a deep-linked page.
+To keep the page and the page size in the URL, spread `useDataGridUrlPagination()` into the options. See [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-The `useDataGridUrlPagination()` result spreads straight in. With `<DataGridUrlState />` inside the provider, the URL restores the spec and the page and the hook sends one request:
+## Wait for typing to pause [#wait-for-typing-to-pause]
 
-```tsx
-const url = useDataGridUrlPagination();
-const server = useDataGridServerRows<Order>({ getRowId: (row) => row.id, fetchRows, ...url });
-```
-
-## Wait for typing to pause
-
-<NewBadge />
-
-The hook sends one request for each state and aborts a replaced one. To also wait for typing to pause, wait inside `fetchRows`. The wait ends early when the signal aborts:
+The hook sends one request for each state and aborts a replaced one. To also wait for typing to pause, wait inside `fetchRows`. The wait ends when the signal aborts:
 
 ```tsx
+import type { UseDataGridServerRowsOptions } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
 const delay = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
-    signal.addEventListener("abort", () => (clearTimeout(timer), reject(signal.reason)), { once: true });
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
   });
 
-fetchRows: async ({ spec, page, pageSize, signal }) => {
+const fetchRows: UseDataGridServerRowsOptions<Order>["fetchRows"] = async ({
+  spec,
+  page,
+  pageSize,
+  signal,
+}) => {
   await delay(300, signal);
-  return api.orders({ ...spec, page, pageSize, signal });
-},
+  const response = await fetch("/api/orders/query", {
+    method: "POST",
+    body: JSON.stringify({ ...spec, page, pageSize }),
+    signal,
+  });
+  const answer = await response.json();
+  return { rows: answer.rows, totalRowCount: answer.total };
+};
 ```
-
-## Notes
-
-- `filters` is the filter tree: rows and groups, with no separate join. The top level combines with "and", and a group carries its own `join`.
-- The request is untrusted. Before you build a query, check that the tree is at most 2 groups deep, holds at most 16 groups and 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`. Cap the request body size too. The [ORM recipes](/docs/server-data-examples) show the check.
-- Keep a query cache in front of the API by calling it inside `fetchRows`, for example `queryClient.fetchQuery({ queryKey: ["rows", spec, page, pageSize], queryFn: () => api.orders(...) })`.
-- To make the state shareable, wrap the grid in [DataGridUrlState](/docs/sort-filter-search/url-state): the view state moves to the URL.
-- Checks that survive pages and "select all matching" need `totalRowCount` and `keepCheckedRows`, which `gridProps` already carries. See [Selection over a server result](/docs/rows-live-data/select-server-rows#selection-over-a-server-result).
-
-## Behavior reference
-
-- [Server-side data](/docs/contracts/server-rows-contract): the contract for every source
-- [Pagination](/docs/server-pagination/load-rows-page): the server-mode footer
-- [Sorting, filtering, search](/docs/sort-filter-search): the store state
 
 ## Related
 
-- [Server pagination](/docs/server-data-examples): pages only, no sort, filter, or search
-- [ORM & data sources](/docs/server-data-examples): this contract in Drizzle, Prisma, Supabase code
+- [Server rows contract](/docs/contracts/server-rows-contract): the contract for every source
+- [Server rows options](/docs/add-options/server/server-rows-options): the options, the request, and the answer
+- [Query server rows](/docs/data-modes/query-server-rows): the sort, filter, and search on the server
+- [Select server rows](/docs/rows-live-data/select-server-rows#selection-over-a-server-result): checks across pages
+- [ORM examples](/docs/server-data-examples/orm-examples): this contract in Drizzle, Prisma, and Supabase code

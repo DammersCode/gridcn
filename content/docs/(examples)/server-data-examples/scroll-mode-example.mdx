@@ -1,57 +1,150 @@
 ---
 title: "Scroll mode example"
-description: useDataGridServerRows in scroll mode with a plain simulated-latency fetcher, as the baseline pattern.
+description: Load rows from a simulated server in blocks while the user scrolls, with a plain fetcher or a TanStack Query or SWR cache.
 icon: Loader
 type: example
 ---
 
-The baseline: `useDataGridServerRows({ mode: "scroll" })` owns the sparse row array and the block bookkeeping.
-You own `fetchRows({ start, end, signal, spec })`. The demo has 100,000 rows. Only the blocks that
-actually scroll into view are ever fetched, and skeleton rows hold the space until each
-block lands. The two failure buttons show the transient/permanent error split. The third
-page covers what a real fetcher replaces.
+In scroll mode, `useDataGridServerRows` owns the sparse row array and the block bookkeeping. You write `fetchRows`. The first grid has 100,000 rows. The hook fetches the blocks of the rendered rows plus overscan, and skeleton rows hold the space until each block lands.
 
 <ComponentPreview name="data-grid-lazy-demo" />
 
 <InstallCommand item="data-grid-lazy-demo" />
 
-## The seam
+The buttons try the failure paths. A failed fetch fails once. A permanent failure fails every attempt until you press Fix backend. Evict loaded rows removes every loaded row, and a row loads again when it scrolls into view.
+
+## Write the fetcher [#the-seam]
+
+`fetchRows` resolves the rows `[start, end)` and the row count of the whole result:
 
 ```tsx
-const server = useDataGridServerRows<Row>({
-  mode: "scroll",
-  getRowId: (row) => row.id,
-  fetchRows: async ({ start, end, signal }) => ({
-    rows: await api.fetchRows({ start, end, signal }),
-    totalRowCount: 100_000,
-  }),
-  onError: (error) => {
-    /* transient: auto-retries on next scroll; permanent: the error bar offers Retry */
-  },
-});
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Person = { id: string; name: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function PeopleGrid() {
+  const server = useDataGridServerRows<Person>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => {
+      const query = `offset=${start}&limit=${end - start}`;
+      const response = await fetch(`/api/people?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+}
 ```
 
-- `fetchRows` resolves the `[start, end)` slice as `rows`, positionally aligned to `start`, with the row count as
-  `totalRowCount`. The hook writes the rows into the sparse array. The core renders real rows over the skeletons.
-- `signal` aborts the in-flight request when a spec change, a count change, or an unmount replaces it. A rejection after abort
-  is ignored, so an abort is not an error. Reject with an `AbortError` and move on.
-- Failed blocks stay unloaded and the next scroll into them retries automatically
-  ("refetch on next visibility"). `onError` still fires, and the error bar of `gridProps` offers Retry for a
-  permanent failure (an expired token, for example). Call `server.retry()` to repeat the failed blocks.
+- `signal` aborts the request when a spec change, a changed row count, or an unmount replaces it. An aborted request is no error.
+- A failed block stays unloaded, and `onError` fires. The block loads again the next time it scrolls into view. The error bar offers Retry, and `server.retry()` repeats the failed blocks.
 
-## Bring your own fetcher
+## Cache the blocks with TanStack Query [#tanstack-query]
 
-The two library pages wire the same seam to a cache so fetched blocks survive the rest of
-the session: [TanStack Query](/docs/data-modes/fetch-cache) and
-[SWR](/docs/data-modes/fetch-cache).
+Call `queryClient.fetchQuery` inside `fetchRows` and use the block as the query key. With `staleTime: Infinity`, a cached block never goes stale. Nothing observes a block, so TanStack Query drops it after `gcTime`, which is 5 minutes by default. Set `gcTime: Infinity` to keep each block for the session. The demo has 10,000 rows and no sort, so its key holds only the range.
 
-## Behavior reference
+<ComponentPreview name="data-grid-lazy-react-query-demo" />
 
-- [Lazy loading](/docs/scroll-mode): `blockSize`, `overscan`, and the server sort and filter
-- [Memory & retention](/docs/scroll-mode/tune-row-retention#memory--retention): `refresh`, `evict`, and
-  `getLoadedRanges`
+<InstallCommand item="data-grid-lazy-react-query-demo" />
+
+Call this hook under a `QueryClientProvider`. Put `serverSpecKey(spec)` in the key if the user can sort or filter:
+
+```tsx
+import { useQueryClient } from "@tanstack/react-query";
+import { serverSpecKey } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Person = { id: string; name: string };
+
+async function loadPeople(range: {
+  start: number;
+  end: number;
+  signal: AbortSignal;
+}): Promise<Person[]> {
+  const { start, end, signal } = range;
+  const query = `offset=${start}&limit=${end - start}`;
+  const response = await fetch(`/api/people?${query}`, { signal });
+  return (await response.json()).rows;
+}
+
+export function useCachedPeople() {
+  const queryClient = useQueryClient();
+  return useDataGridServerRows<Person>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, start, end, signal }) => ({
+      rows: await queryClient.fetchQuery({
+        queryKey: ["people", serverSpecKey(spec), start, end],
+        staleTime: Infinity,
+        gcTime: Infinity,
+        queryFn: () => loadPeople({ start, end, signal }),
+      }),
+      totalRowCount: 10_000,
+    }),
+  });
+}
+```
+
+## Cache the blocks with SWR [#swr]
+
+SWR has no `fetchQuery`. Its `preload(key, fetcher)` runs the fetcher and keeps the result in the global cache. A `useSWR` call with the same key reads it there.
+
+<ComponentPreview name="data-grid-lazy-swr-demo" />
+
+<InstallCommand item="data-grid-lazy-swr-demo" />
+
+The fetcher of SWR receives the key, so the key is a tuple:
+
+```tsx
+import { preload } from "swr";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Person = { id: string; name: string };
+
+async function loadPeople(range: {
+  start: number;
+  end: number;
+  signal: AbortSignal;
+}): Promise<Person[]> {
+  const { start, end, signal } = range;
+  const query = `offset=${start}&limit=${end - start}`;
+  const response = await fetch(`/api/people?${query}`, { signal });
+  return (await response.json()).rows;
+}
+
+export function useSwrPeople() {
+  return useDataGridServerRows<Person>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => ({
+      rows: await preload(
+        ["people", start, end] as [string, number, number],
+        (key) => loadPeople({ start: key[1], end: key[2], signal }),
+      ),
+      totalRowCount: 10_000,
+    }),
+  });
+}
+```
+
+`preload` has no `staleTime`. A block that failed stays cached, so `retry()` gets the same rejection until `mutate(key)` clears the entry. See [Fetch with a cache](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query) for the limits of each cache.
 
 ## Related
 
-- [Large data](/docs/server-data-examples/large-data-example): the opposite pattern: everything loaded,
-  virtualization does the work
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): `blockSize`, `overscan`, and the server sort and filter
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): `refresh`, `evict`, and `getLoadedRanges`
+- [Fetch with a cache](/docs/data-modes/fetch-cache): TanStack Query and SWR in every data mode
+- [Large data example](/docs/server-data-examples/large-data-example): the same size with every row loaded

@@ -1,41 +1,52 @@
 ---
 title: "Cross-field validation example"
-description: Row-level rules with validateRow. Judged on the row after a whole write gesture commits.
+description: Flag a cell with a row rule that compares two columns, judged once after a whole edit, paste, or fill commits.
 icon: Link2
 type: example
 ---
 
-A rule that spans two columns: **End must stay at or after Start**. A per-column `validate`
-cannot express that reliably. It runs mid-gesture, against whatever the row looked like at
-that moment. `validateRow` runs **once per touched row, after the whole write gesture
-commits**, so a pasted block of Start+End pairs is judged as one state.
+A `validate` rule sees one cell. A rule that spans two columns needs the whole row. In this grid, End must stay at or after Start. Make an End earlier than its Start by editing one cell or by pasting both. The End cell gets the row message, and the value still commits. Make the row consistent again and the flag clears.
 
 <ComponentPreview name="data-grid-cross-field-demo" />
 
 <InstallCommand item="data-grid-cross-field-demo" />
 
-## The contract
+## The rule [#the-contract]
+
+`validateRow` runs once for each touched row after a write gesture commits. The row it receives holds every cell of the gesture, so the rule judges a pasted block of Start and End pairs as one state:
 
 ```tsx
-<DataGrid
-  {...grid}
-  validateRow={(row) => (row.end < row.start ? { end: "End must be at or after Start" } : null)}
-/>
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; task: string; start: number; end: number };
+
+const columns = defineColumns<Task>()([
+  { id: "task", header: "Task", accessorKey: "task" },
+  { id: "start", header: "Start", accessorKey: "start", type: "number" },
+  { id: "end", header: "End", accessorKey: "end", type: "number" },
+]);
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      defaultData={tasks}
+      columns={columns}
+      getRowId={(row) => row.id}
+      validateRow={(row) =>
+        row.end < row.start ? { end: "End must be at or after Start" } : null
+      }
+    />
+  );
+}
 ```
 
-- Return `columnId -> message` to mark cells, or `null` when the row is fine.
-- The row the callback receives already has **all** of the gesture's cells applied.
-- Messages land in the same per-cell error display as [server errors](/docs/validation-examples/server-errors-example)
-  (ring, tint, hover tooltip, `aria-invalid`). And **the values still commit**: the same
-  stance as server errors, no rollback.
-- A later write that makes the row consistent clears the verdict, even when it writes a
-  different column than the marked one.
-- It does **not** run on row insert/duplicate (a fresh row is expected to be incomplete), on
-  row deletion, or on a `data` array you replace yourself. It may return a promise; see [Async gates](/docs/validation-examples/async-gates-example).
+- Return an object of `columnId` to message to flag cells. Return `null` when the row is fine.
+- A flag uses the display of a server error: ring, tint, tooltip, and `aria-invalid`.
+- The value still commits. A later write that makes the row consistent clears the flag, also when it writes a different column than the flagged one.
+- `validateRow` does not run on row insert, duplicate, or delete. It does not run after you replace the `data` array.
+- `validateRow` can return a promise. See [Async gates example](/docs/validation-examples/async-gates-example).
 
-## Behavior reference
+## Related
 
-- [Cross-field rules: validateRow](/docs/editing-cells/validation#cross-field-rules-validaterow): the
-  full contract
-- [Server errors](/docs/validation-examples/server-errors-example): the display treatment
-  `validateRow` reuses
+- [Cross-field rules](/docs/editing-cells/validation#cross-field-rules-validaterow): the full contract
+- [Server errors example](/docs/validation-examples/server-errors-example): the display that `validateRow` reuses

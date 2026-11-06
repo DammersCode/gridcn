@@ -1,123 +1,76 @@
 ---
 title: "Validation example"
-description: Cell validation with a plain function or a Standard Schema. One live column per major library (Zod, Joi, Valibot).
+description: Try a function rule, a soft rule, a transforming rule, and a Standard Schema column for Zod, Joi, and Valibot in one live grid.
 icon: ShieldCheck
 type: example
 ---
 
-Nine rejection paths in one grid: a sync function, three hand-rolled Standard Schemas, a soft
-`onInvalid: "warn"` rule, and one column per major Standard Schema library. Type a value that
-breaks a rule and press Enter: the editor stays open with the library's own error message under
-the cell.
+Each column of this grid rejects a bad value in its own way. A list above the grid names the rule of each column. Type a value that breaks a rule and press <kbd>Enter</kbd>. The editor stays open and shows the message under the cell.
 
 <ComponentPreview name="data-grid-validation-demo" />
 
 <InstallCommand item="data-grid-validation-demo" />
 
-## Function form
+## What the demo shows [#what-the-demo-shows]
 
-The simplest rule is a function that returns an error message, or `null` to accept. The
-function is your code, so side effects work. The demo's Age rule fires a toast from inside it:
+- **Age** uses a function rule. It rejects a number below 18 and fires a toast from inside the function. The toast has a fixed id, so a paste with many bad cells shows one toast.
+- **Email** uses a sync Standard Schema. It rejects a value without an `@`.
+- **SKU** uses an async Standard Schema with about 800 ms of latency. SKU-001 and SKU-002 already exist. See [Async validation example](/docs/validation-examples/async-validation-example).
+- **Price** uses a transforming schema. The text `42.9` commits as `43`, because the schema output is what the cell stores.
+- **Notes** uses `onInvalid: "warn"`. A note over 12 characters commits, and the cell stays flagged until a valid commit.
+- **Zod Score**, **Joi Code**, and **Valibot Tag** each use a library schema. A rejection shows the message of the library.
+
+To try the bulk path, copy a column of mixed ages from a spreadsheet and paste it onto Age. The valid cells commit and the invalid cells drop.
+
+## Write the rules [#function-form]
+
+`validate` takes a function that returns a message or `null`, or a Standard Schema. The grid detects a schema by its `"~standard"` key, so a library needs no adapter. This grid uses a function rule, a soft rule, and a Zod schema:
 
 ```tsx
-{
-  id: "age",
-  header: "Age",
-  accessorKey: "age",
-  type: "number",
-  validate: (value) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
+import { z } from "zod";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; age: number; note: string; score: number };
+
+const columns = defineColumns<Person>()([
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    validate: (value) =>
+      typeof value === "number" && value < 18 ? "Must be 18 or older" : null,
+  },
+  {
+    id: "note",
+    header: "Note",
+    accessorKey: "note",
+    validate: (value) =>
+      typeof value === "string" && value.length > 12 ? "Too long" : null,
+    onInvalid: "warn",
+  },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    validate: z.number().int().min(0).max(100),
+  },
+]);
+
+export function People({ people }: { people: Person[] }) {
+  return (
+    <DataGrid defaultData={people} columns={columns} getRowId={(p) => p.id} />
+  );
 }
 ```
 
-A rejection is **blocking by default**: the editor stays open and the value never commits.
-`onInvalid: "warn"` flips that. The value commits and the cell gets flagged instead (see the
-Notes column in the demo).
-
-## Standard Schema form
-
-Any [Standard Schema](https://standardschema.dev) works for the column's value type. gridcn
-detects the schema structurally (`"~standard" in validate`), so no adapter code is needed:
-
-<CodeBlockTabs defaultValue="zod">
-  <CodeBlockTabsList>
-    <CodeBlockTabsTrigger value="zod">Zod</CodeBlockTabsTrigger>
-    <CodeBlockTabsTrigger value="joi">Joi</CodeBlockTabsTrigger>
-    <CodeBlockTabsTrigger value="valibot">Valibot</CodeBlockTabsTrigger>
-  </CodeBlockTabsList>
-  <CodeBlockTab value="zod">
-    ```tsx
-    import { z } from "zod";
-
-    {
-      id: "score",
-      header: "Zod Score",
-      accessorKey: "score",
-      type: "number",
-      validate: z.number().int().min(0).max(100),
-    }
-    ```
-  </CodeBlockTab>
-  <CodeBlockTab value="joi">
-    ```tsx
-    import Joi from "joi";
-
-    {
-      id: "code",
-      header: "Joi Code",
-      accessorKey: "code",
-      type: "text",
-      validate: Joi.string().pattern(/^[A-Z0-9-]+$/).empty(""),
-    }
-    ```
-  </CodeBlockTab>
-  <CodeBlockTab value="valibot">
-    ```tsx
-    import * as v from "valibot";
-
-    {
-      id: "tag",
-      header: "Valibot Tag",
-      accessorKey: "tag",
-      type: "text",
-      validate: v.pipe(v.string(), v.minLength(3)),
-    }
-    ```
-  </CodeBlockTab>
-</CodeBlockTabs>
-
-<Callout type="info" title="Which library?">
-  The three demo columns follow npm download popularity (2026-09): **Zod** (~212M/week) ≫
-  **Joi** (~19M/week) > **Valibot** (~13M/week). All three implement Standard Schema natively,
-  as do **Yup** and **ArkType**. They work identically, no adapter needed. The schemas
-  validate the **cell value** (not a row object), so match the column's value type: a `number`
-  column takes `z.number()` / `Joi.number()` / `v.number()`.
-</Callout>
-
-## What the demo shows
-
-- **Age**: sync function, with a toast fired from inside `validate`
-- **Email / SKU / Price**: hand-rolled Standard Schemas: sync, async (pending state, ~800 ms),
-  and a coercing one ("42.9" commits as 42. Schemas can transform, and the OUTPUT is what
-  commits)
-- **Notes**: `onInvalid: "warn"`: the value commits and the cell stays flagged until a valid
-  re-commit
-- **Zod Score / Joi Code / Valibot Tag**: the three library columns. Break each one, and the
-  message shown is the library's own
-- **Bulk path**: copy a column of mixed valid/invalid ages from a spreadsheet and paste it
-  onto Age: valid cells commit, invalid ones drop, and the stable toast id collapses the
-  per-cell rejections into one
-
-## Behavior reference
-
-- [Validation](/docs/editing-cells/validation#validation): the `validate` contract
-- [Soft rules: onInvalid](/docs/editing-cells/validation#soft-rules-oninvalid): `"warn"` semantics
-- [Transforms are committed](/docs/editing-cells/validation#transforms-are-committed): schema output
-  wins
-- [Async schemas](/docs/editing-cells/validation#async-schemas): pending state and bulk behavior
-- [Cross-field rules: validateRow](/docs/editing-cells/validation#cross-field-rules-validaterow): row-level
+Joi and Valibot schemas go in the same `validate` key. Joi rejects an empty string unless the schema adds `.empty("")`, as the Joi Code column does. A schema checks the cell value, not the row. Match the schema to the type of the column: a `number` column takes `z.number()`.
 
 ## Related
 
-- [Async validation](/docs/validation-examples/async-validation-example): the pending/supersede/bulk story
-- [Server errors](/docs/validation-examples/server-errors-example): rejections after commit
-- [Cross-field](/docs/validation-examples/cross-field-validation-example): `validateRow` in action
+- [Validation](/docs/editing-cells/validation#validation): the `validate` contract and the soft rules
+- [Transforms](/docs/editing-cells/validation#transforms-are-committed): why the schema output commits
+- [Async validation example](/docs/validation-examples/async-validation-example): the pending state and the bulk paths
+- [Cross-field validation example](/docs/validation-examples/cross-field-validation-example): `validateRow`
+- [Server errors example](/docs/validation-examples/server-errors-example): a rejection after the commit

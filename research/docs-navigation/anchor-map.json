@@ -287,7 +287,7 @@
  "/docs/examples/appearance/i18n-rtl": {
   "the-labels-prop": "/docs/style-examples/right-left-example#the-labels-prop",
   "rtl": "/docs/style-examples/right-left-example#rtl",
-  "which-i18n-library": "/docs/style-examples/right-left-example#which-i18n-library",
+  "which-i18n-library": "/docs/theme-style-language/labels-i18n#wiring-a-real-i18n-library",
   "related": "/docs/style-examples/right-left-example#related"
  },
  "/docs/examples/appearance": {},
@@ -297,8 +297,8 @@
  },
  "/docs/examples/appearance/styling": {
   "patterns": "/docs/style-examples/styling-example#patterns",
-  "every-surface-one-dataset": "/docs/style-examples/styling-example#every-surface-one-dataset",
-  "the-contract": "/docs/style-examples/styling-example#the-contract",
+  "every-surface-one-dataset": "/docs/theme-style-language/style-overrides#programmatic-per-rowper-cell-styling",
+  "the-contract": "/docs/contracts/style-contract#data-attribute-contract",
   "related": "/docs/style-examples/styling-example#related"
  },
  "/docs/examples/columns/column-groups": {
@@ -338,16 +338,16 @@
  },
  "/docs/examples/data": {},
  "/docs/examples/data/large-data": {
-  "100k-rows": "/docs/server-data-examples/large-data-example#100k-rows",
+  "100k-rows": "/docs/server-data-examples/large-data-example",
   "with-an-fps-meter": "/docs/server-data-examples/large-data-example#with-an-fps-meter",
   "how-it-works": "/docs/server-data-examples/large-data-example#how-it-works",
-  "behavior-reference": "/docs/server-data-examples/large-data-example#behavior-reference"
+  "behavior-reference": "/docs/server-data-examples/large-data-example#related"
  },
  "/docs/examples/data/lazy": {},
  "/docs/examples/data/lazy/plain": {
   "the-seam": "/docs/server-data-examples/scroll-mode-example#the-seam",
-  "bring-your-own-fetcher": "/docs/server-data-examples/scroll-mode-example#bring-your-own-fetcher",
-  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#behavior-reference",
+  "bring-your-own-fetcher": "/docs/server-data-examples/scroll-mode-example#tanstack-query",
+  "behavior-reference": "/docs/server-data-examples/scroll-mode-example#related",
   "related": "/docs/server-data-examples/scroll-mode-example#related"
  },
  "/docs/examples/data/lazy/react-query": {
@@ -362,14 +362,14 @@
  },
  "/docs/examples/data/orm/drizzle": {
   "shareable-state": "/docs/server-data-examples/orm-examples/drizzle-example#shareable-state",
-  "kysely": "/docs/server-data-examples/orm-examples/drizzle-example#kysely"
+  "kysely": "/docs/server-data-examples/orm-examples/drizzle-example#the-route"
  },
  "/docs/examples/data/orm": {},
  "/docs/examples/data/orm/prisma": {
-  "shareable-state": "/docs/server-data-examples/orm-examples/prisma-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/orm-examples/drizzle-example#shareable-state"
  },
  "/docs/examples/data/orm/supabase": {
-  "shareable-state": "/docs/server-data-examples/orm-examples/supabase-example#shareable-state"
+  "shareable-state": "/docs/server-data-examples/orm-examples/drizzle-example#shareable-state"
  },
  "/docs/examples/data/pagination/client": {
   "client-slice-vs-server-mode": "/docs/rows-pages-menus/client-pagination#client-slice-vs-server-mode",
@@ -394,8 +394,8 @@
   "errors-and-retry": "/docs/server-data-examples/server-rows-example#errors-and-retry",
   "control-the-spec-and-the-page": "/docs/server-data-examples/server-rows-example#control-the-spec-and-the-page",
   "wait-for-typing-to-pause": "/docs/server-data-examples/server-rows-example#wait-for-typing-to-pause",
-  "notes": "/docs/server-data-examples/server-rows-example#notes",
-  "behavior-reference": "/docs/server-data-examples/server-rows-example#behavior-reference",
+  "notes": "/docs/server-data-examples/server-rows-example#the-wiring",
+  "behavior-reference": "/docs/server-data-examples/server-rows-example#related",
   "related": "/docs/server-data-examples/server-rows-example#related"
  },
  "/docs/examples/foundations/cell-types": {
@@ -457,23 +457,23 @@
  "/docs/examples/validation/async-validation": {
   "single-cell-edit": "/docs/validation-examples/async-validation-example#single-cell-edit",
   "bulk-paths": "/docs/validation-examples/async-validation-example#bulk-paths",
-  "behavior-reference": "/docs/validation-examples/async-validation-example#behavior-reference"
+  "behavior-reference": "/docs/validation-examples/async-validation-example#related"
  },
  "/docs/examples/validation/cross-field": {
   "the-contract": "/docs/validation-examples/cross-field-validation-example#the-contract",
-  "behavior-reference": "/docs/validation-examples/cross-field-validation-example#behavior-reference"
+  "behavior-reference": "/docs/validation-examples/cross-field-validation-example#related"
  },
  "/docs/examples/validation": {},
  "/docs/examples/validation/server-errors": {
   "wiring": "/docs/validation-examples/server-errors-example#wiring",
   "the-api": "/docs/validation-examples/server-errors-example#the-api",
-  "behavior-reference": "/docs/validation-examples/server-errors-example#behavior-reference"
+  "behavior-reference": "/docs/validation-examples/server-errors-example#related"
  },
  "/docs/examples/validation/validation": {
   "function-form": "/docs/validation-examples/validation-example#function-form",
-  "standard-schema-form": "/docs/validation-examples/validation-example#standard-schema-form",
+  "standard-schema-form": "/docs/validation-examples/validation-example#function-form",
   "what-the-demo-shows": "/docs/validation-examples/validation-example#what-the-demo-shows",
-  "behavior-reference": "/docs/validation-examples/validation-example#behavior-reference",
+  "behavior-reference": "/docs/validation-examples/validation-example#related",
   "related": "/docs/validation-examples/validation-example#related"
  },
  "/docs/global-shortcuts": {
@@ -589,8 +589,8 @@
   "define-columns": "/docs/learning-path/render-your-first-grid#define-columns",
   "render-the-grid": "/docs/learning-path/render-your-first-grid#render-the-grid",
   "add-search-sorting-and-selection": "/docs/learning-path/sort-filter-rows",
-  "going-controlled": "/docs/learning-path/define-columns#going-controlled",
-  "undo--redo": "/docs/learning-path/define-columns#undo--redo",
+  "going-controlled": "/docs/learning-path/keep-edits-state#going-controlled",
+  "undo--redo": "/docs/learning-path/keep-edits-state#undo--redo",
   "datagrid-is-shorthand": "/docs/learning-path/render-your-first-grid#datagrid-is-shorthand",
   "whats-next": "/docs/learning-path/render-your-first-grid"
  },
