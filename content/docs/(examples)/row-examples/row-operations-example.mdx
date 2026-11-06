@@ -1,49 +1,104 @@
 ---
 title: "Row operations example"
-description: Insert, duplicate, and delete rows from the toolbar or the context menu, with the onDataChange operation payload visible.
+description: Insert, duplicate, and delete rows from a toolbar and the context menu, and read the change that each operation reports.
 icon: ListPlus
 type: example
 ---
 
-Row operations from two surfaces at once: the toolbar acts on the **current row selection**
-(falling back to the active cell's row), and the right-click context menu acts on the clicked
-row. The side panel prints the last `onDataChange` payload. Every row operation emits one change with
-`source: "row-operation"` and row-id-based `insert`/`delete` operations, which is what undo/redo and export
-consume.
+Two surfaces run the same row operations. A toolbar acts on the rows that the row selection holds. If that selection is empty, it acts on the row of the active cell. In the context menu, Insert works at the clicked row. Duplicate and Delete act on the rows that the selection covers. If the selection is empty, they act on the clicked row. A side panel prints the last change.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
 <InstallCommand item="data-grid-row-ops-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- Toolbar: **Insert above / Insert below / Duplicate / Delete** on the selected rows
-  (`insertRows(anchor, 1, position)`, `duplicateRows(indices)`, `deleteRows(indices)`)
-- Right-click a row for the context menu's Insert/Duplicate/Delete items (needs
-  `createRow`/`duplicateRow` on the provider, or those items are hidden)
-- The **Read-only** toggle flips the provider's `readOnly`: every mutating surface disables
-- Side panel: the last change's `source` and one line per operation (`type → rowId`)
+- The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `duplicateRows(rows)`, and `deleteRows(rows)`.
+- A right-click on a row opens the context menu with Insert, Duplicate, and Delete items.
+- The `createRow` and `duplicateRow` props enable Insert and Duplicate. Without them, the menu hides those items.
+- The Read-only switch sets `readOnly`. The toolbar buttons and the menu items that change data turn off.
+- The side panel shows the `source` and one line per operation.
 
-## The operation-shape contract
+## Wire the operations
+
+The grid in this sample has a Delete button and the context menu. The button targets the selected rows, or the active row:
 
 ```tsx
-onDataChange={(next, change) => {
-  // change.source === "row-operation" for insert/duplicate/delete
-  // change.ops: id-keyed { type: "insert" | "delete", rowId, row, index }
-}}
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+  useDataGridActiveCell,
+  useDataGridSelection,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridContextMenu,
+} from "@/components/data-grid-context-menu/data-grid-context-menu";
+import { Button } from "@/components/ui/button";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+function DeleteButton() {
+  const actions = useDataGridActions();
+  const selection = useDataGridSelection();
+  const activeCell = useDataGridActiveCell();
+  const targets =
+    selection.rows.length > 0
+      ? selection.rows.toArray()
+      : activeCell
+        ? [activeCell.row]
+        : [];
+
+  return (
+    <Button
+      disabled={targets.length === 0}
+      onClick={() => actions.deleteRows(targets)}
+    >
+      Delete
+    </Button>
+  );
+}
+
+function RowOpsGrid() {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      createRow={() => ({ id: crypto.randomUUID(), name: "New row" })}
+      duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
+      onDataChange={(_, change) => console.log(change.source, change.ops)}
+    >
+      <DeleteButton />
+      <DataGridContextMenu>
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridContextMenu>
+    </DataGridProvider>
+  );
+}
 ```
 
-Operations are keyed by **row id, not index**, so the same change stays valid across sorts and
-filters. That's what makes undo/redo restore the exact previous state in one step.
+## The change [#the-operation-shape-contract]
 
-## Behavior reference
+Every insert, duplicate, and delete reports one change with `source: "row-operation"`. An insert and a duplicate write `insert` operations. A delete writes `delete` operations. Each operation names its row by `rowId` and carries the `row` and its data `index`.
 
-- [Enable props](/docs/rows-pages-menus/row-operations#enable-props): `createRow` / `duplicateRow` and what's hidden without them
-- [Default shortcuts](/docs/rows-pages-menus/row-operations#default-shortcuts): `Ctrl/Cmd+Shift+F` inserts below, `Ctrl/Cmd+Shift+X` duplicates
-- [Context menu](/docs/rows-pages-menus/row-operations#context-menu): which items act on the whole selection
-- [Programmatic actions](/docs/rows-pages-menus#programmatic-actions): the full action signatures
+Because the operations name rows by id, history can undo a row operation after a sort or filter. History records `"row-operation"` changes by default.
 
 ## Related
 
-- [Action buttons](/docs/row-examples/row-actions-example): per-row Edit/Delete buttons in a pinned column
-- [Streaming](/docs/row-examples/streaming-rows-example): high-frequency `updateCells` batches
+- [Row operations](/docs/rows-pages-menus/row-operations): the factory props, shortcuts, and code actions
+- [Context menu](/docs/rows-pages-menus/context-menu): which rows the menu items act on
+- [Row actions example](/docs/row-examples/row-actions-example): per-row buttons in a pinned column
+- [Streaming rows example](/docs/row-examples/streaming-rows-example): batches of cell updates

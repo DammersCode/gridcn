@@ -1,67 +1,123 @@
 ---
 title: "Row order example"
-description: Reorder one or many rows with the drag handle, the keyboard, or reorderRows - one change, selection follows the rows, one undo step.
+description: Reorder one row or many rows by the drag handle, the keyboard, or code, and undo the move in one step.
 icon: GripVertical
 type: example
 ---
 
-Row reorder from three paths: drag a row by its drag handle zone (any `reorder`-family marker mode:
-`reorder`, `reorder-number`, `reorder-checkbox`, `reorder-both`. In the content modes the
-number and checkbox glyphs stay row-select surfaces, only the drag handle zone reorders, and a press
-on the drag handle never changes the selection), press <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd>
-or <kbd>PageUp</kbd>, or call `reorderRows(rows, to)` or `moveRowsBy(rows, delta)` programmatically.
-Each emits **one change with one row-id-based `move` operation per moved row**, so
-undo/redo restores the previous order in a single step. Selection and the active cell remap by
-row id, so the rows that were selected stay selected at their new positions, and the dragged row
-keeps the selected state it had.
-
-A drag from a checked row moves every checked row. The rows land together at the drop line.
+Three paths reorder rows. Drag the handle in the marker column. Press <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> or <kbd>PageUp</kbd>. Or call `reorderRows` or `moveRowsBy`. Each path reports one change with one `move` operation per moved row. If the pressed row has a check, the drag moves every checked row. The rows land together at the drop line.
 
 <ComponentPreview name="data-grid-row-reorder-demo" />
 
 <InstallCommand item="data-grid-row-reorder-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `rowMarkers="reorder-checkbox"`: a drag handle and a checkbox in the marker column
-- `enableRowReorder` on the provider (on by default): the grid-wide switch for the drag gesture
-- A thin line marks the drop target while dragging. The row moves on release
-- **Move down** toolbar button: `moveRowsBy(rows, 1)` for the checked rows, or the active row when none is checked -
-  the programmatic path
-- **Undo** button (the `data-grid-history` add-on): one click restores the pre-move order
-- The panel prints the last change: the number of `move` operations, the first operation's `rowId` and from/to indices, and the change `source`
-  (`"row-operation"`)
+- `rowMarkers="reorder-checkbox"` puts a drag handle and a checkbox in the marker column.
+- A thin line marks the drop target while you drag. The row moves on release.
+- The Move down button calls `moveRowsBy(rows, 1)` for the checked rows. With no checked row, it moves the active row.
+- The Undo button comes from the history add-on. One click restores the order before the move.
+- The panel under the grid prints the number of `move` operations, the first moved row, and the `source`.
 
-## Marker drag vs programmatic
+## Wire the paths
 
-| | Marker drag | `reorderRows(rows, to)` | `moveRowsBy(rows, delta)` |
-|---|---|---|---|
-| Input | drag handle, mouse/touch | view indices (`to` is the **final** landing position of the first row, arrayMove semantics) | view indices and an offset |
-| Rows land | together, at the drop line | together, from `to` | each row moves by `delta`, gaps stay |
-| Guard checks | same as programmatic | see the no-op guards below | same as `reorderRows` |
-| Emitted operations | one `move` per moved row | one `move` per moved row | one `move` per moved row |
+The checked rows and the active cell follow their rows after a move. This sample adds a Move down button and an Undo button:
 
-`to` is the final position, not an offset: moving row 0 to index 3 shifts rows 1-3 up. The
-paths are equivalent - use the drag for the interactive UX, the keys for the keyboard, and the
-actions for buttons or an external "sort by drag" API.
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+  useDataGridActiveCell,
+  useDataGridSelection,
+} from "@/components/data-grid/data-grid";
+import {
+  useDataGridState,
+} from "@/components/data-grid-history/data-grid-history";
+import { Button } from "@/components/ui/button";
 
-## No-op guards
+type Row = { id: string; title: string };
 
-`reorderRows` returns `false` (and dev-warns where the cause is a misconfiguration) when:
+const columns = defineColumns<Row>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+]);
 
-- `enableRowReorder` is off, or the grid is `readOnly`
-- a sort or filter is active (the view order belongs to the sort/filter, not the data)
-- a lazy grid has unloaded holes (a reorder shifts the lazy add-on's index bookkeeping)
-- the drop leaves the rows where they already are
-- the list is empty, or holds an index outside the grid
+const rows: Row[] = [
+  { id: "1", title: "Intro" },
+  { id: "2", title: "Verse" },
+  { id: "3", title: "Chorus" },
+];
 
-See [Row operations - Reorder](/docs/rows-pages-menus/row-order#reorder) for the full reference, including
-the stale-position warning for position-based data (search match counts, presence highlights in
-view-index form).
+function MoveDownButton() {
+  const actions = useDataGridActions();
+  const activeCell = useDataGridActiveCell();
+  const checked = useDataGridSelection().rows.toArray();
+  const targets =
+    checked.length > 0 ? checked : activeCell ? [activeCell.row] : [];
+
+  return (
+    <Button
+      disabled={targets.length === 0}
+      onClick={() => actions.moveRowsBy(targets, 1)}
+    >
+      Move down
+    </Button>
+  );
+}
+
+function Playlist() {
+  const grid = useDataGridState(rows, { getRowId: (row) => row.id });
+
+  return (
+    <DataGridProvider
+      {...grid}
+      columns={columns}
+      rowMarkers="reorder-checkbox"
+      onDataChange={(next, change) => {
+        grid.onDataChange(next, change);
+        console.log(change.source, change.ops);
+      }}
+    >
+      <MoveDownButton />
+      <Button disabled={!grid.history.canUndo} onClick={grid.history.undo}>
+        Undo
+      </Button>
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Drag and code compared [#marker-drag-vs-programmatic]
+
+| | Handle drag | `reorderRows(rows, to)` | `moveRowsBy(rows, delta)` |
+| --- | --- | --- | --- |
+| Input | The pressed row. A pressed row with a check drags every checked row | View indexes and the final index of the first row | View indexes and an offset |
+| Rows land | Together at the drop line | Together, from `to` on | Each row moves by `delta`, and the gaps stay |
+
+`to` is a final position, not an offset. Moving row 0 to index 3 shifts rows 1 to 3 up. The keyboard keys call `moveRowsBy`.
+
+## When a move does nothing [#no-op-guards]
+
+`reorderRows` and `moveRowsBy` return `false` and change nothing in these cases:
+
+- `enableRowReorder` is off, or the grid is `readOnly`.
+- A client sort or filter is active.
+- The grid holds unloaded rows in scroll mode.
+- The move leaves the rows where they are.
+- The list is empty, an index is outside the grid, or `to` leaves no room for the rows.
+- For `moveRowsBy`, `delta` is 0.
+- For `moveRowsBy`, a row leaves the grid.
 
 ## Related
 
-- [Row operations](/docs/row-examples/row-operations-example) - insert/duplicate/delete
-- [Action buttons](/docs/row-examples/row-actions-example) - per-row buttons
-- [Undo & redo](/docs/clipboard-undo/undo-redo) - the history add-on behind the Undo button
-- [Lazy loading](/docs/server-data-examples) - why a lazy grid blocks reorder
+- [Row order](/docs/rows-pages-menus/row-order): the handle zone, the keys, and the server contract
+- [Row markers](/docs/rows-pages-menus/row-markers): the reorder marker modes
+- [Undo and redo](/docs/clipboard-undo/undo-redo): the history add-on behind the Undo button
+- [Row operations example](/docs/row-examples/row-operations-example): insert, duplicate, and delete

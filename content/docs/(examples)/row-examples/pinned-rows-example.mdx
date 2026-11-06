@@ -1,34 +1,103 @@
 ---
 title: "Pinned rows example"
-description: Pin columns left and right together with pinned top and bottom row bands.
+description: Pin columns to the left and right and rows to a top and a bottom band in one grid, with an averages row and a totals row.
 icon: Pin
 type: example
 ---
 
-All four pin zones in one grid: Name is pinned left, Score is pinned right, an averages row is
-pinned to the top band, and a totals row is pinned to the bottom band via the
-`data-grid-pinned-rows` add-on.
+One grid uses all four pin zones. Name sits in the left band and Score sits in the right band. An averages row fills the top band and a totals row fills the bottom band. The [pinned rows](/docs/rows-pages-menus/pinned-rows) add-on owns the bands.
 
 <ComponentPreview name="data-grid-pinning-all-sides-demo" />
 
 <InstallCommand item="data-grid-pinning-all-sides-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `pin: "left"` on Name and `pin: "right"` on Score: pinned column bands
-- `useDataGridPinnedRows({ topRows, bottomRows })`: an averages row on top, a totals row on the bottom
-- `useDataGridAggregate` via `DataGridAggregateReporter`: both bands recompute from the grid's data
-- 200 rows and enough columns to overflow the viewport in both directions
+- `pin: "left"` on Name and `pin: "right"` on Score pin the column bands.
+- `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
+- `DataGridAggregateReporter` computes both rows from the rows that pass the filter (its `scope` defaults to `"view"`).
+- The grid has nine columns and 200 rows. Scroll it in both directions.
 
-## Behavior reference
+## Wire the zones
 
-- The pinned Name and Score columns stay in place while you scroll the grid horizontally.
-- The pinned Average and Total rows stay in place while you scroll the grid vertically.
-- Where a pinned column meets a pinned row, that cell stays fixed on both axes at once.
-- Each pinned band casts a soft edge shadow once real content has scrolled under it: see
-  [scroll shadows](/docs/theme-style-language/density-small-screens#scroll-shadows).
+Render one reporter per computed row inside the provider. Each reporter sends its row to a state in the parent component. The parent passes both states to the hook. Memoize the band arrays:
+
+```tsx
+import { useCallback, useMemo, useState } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridAggregateReporter,
+  useDataGridPinnedRows,
+  type AggregateSpecs,
+} from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+
+type Row = { id: string; name: string; age: number; score: number };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", pin: "left" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    pin: "right",
+  },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada", age: 36, score: 90 }];
+
+const AVERAGE_SPECS: AggregateSpecs = { age: "avg", score: "avg" };
+const TOTAL_SPECS: AggregateSpecs = { age: "sum", score: "sum" };
+
+function PinnedGrid() {
+  const [average, setAverage] = useState<Record<string, unknown>>({
+    id: "average",
+    name: "Average",
+  });
+  const [total, setTotal] = useState<Record<string, unknown>>({
+    id: "total",
+    name: "Total",
+  });
+  const onAverage = useCallback((row: Record<string, unknown>) => {
+    setAverage((prev) => ({ ...prev, ...row }));
+  }, []);
+  const onTotal = useCallback((row: Record<string, unknown>) => {
+    setTotal((prev) => ({ ...prev, ...row }));
+  }, []);
+
+  const topRows = useMemo(() => [average], [average]);
+  const bottomRows = useMemo(() => [total], [total]);
+  const { plugin } = useDataGridPinnedRows({ topRows, bottomRows });
+  const plugins = useMemo(() => [plugin], [plugin]);
+
+  return (
+    <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
+      <DataGridAggregateReporter specs={AVERAGE_SPECS} onChange={onAverage} />
+      <DataGridAggregateReporter specs={TOTAL_SPECS} onChange={onTotal} />
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Behavior [#behavior-reference]
+
+- The pinned columns stay at their edges during a horizontal scroll.
+- The pinned bands stay under the header and at the bottom edge during a vertical scroll. The data rows scroll beneath them.
+- A cell in a pinned column and a pinned band stays fixed on both axes.
+- A band casts a soft shadow after data rows scroll beneath it. See [scroll shadows](/docs/theme-style-language/density-small-screens#scroll-shadows).
 
 ## Related
 
-- [Column pinning](/docs/column-examples/pinned-columns-example): pinning columns on their own
-- [Pinned rows](/docs/rows-pages-menus/pinned-rows): the `data-grid-pinned-rows` add-on reference
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): the add-on, its options, and the aggregate reducers
+- [Pinned columns example](/docs/column-examples/pinned-columns-example): pin columns on their own

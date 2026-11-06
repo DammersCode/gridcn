@@ -1,29 +1,99 @@
 ---
 title: "Streaming rows example"
-description: A live ticker feed pushing updateCells batches four times a second (deferred vs immediate re-sort).
+description: Push batches of cell updates into a live ticker four times a second and choose between an immediate and a deferred re-sort.
 icon: Radio
 type: example
 ---
 
-A live ticker: `updateCells` streams new values in place, four batches per second. The
-**Auto-sort** switch picks how the display reacts. `reorder: "immediate"` re-sorts every tick,
-`reorder: "defer"` lets the values land and shows a Re-sort bar when the display order goes
-stale.
+A live ticker receives new values with `updateCells`, four batches a second. The Auto-sort switch sets the `reorder` option of each batch. With `"immediate"`, the grid re-sorts on every batch. With `"defer"`, the rows keep their positions. If a batch changes a value that the sort reads, a Re-sort bar appears.
 
 <ComponentPreview name="data-grid-streaming-demo" />
 
 <InstallCommand item="data-grid-streaming-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- A ticker feed pushing `change`/`volume` patches for every row every 250 ms
-- **Auto-sort** on: the grid re-sorts by the sorted column on every batch (watch the rows
-  shuffle as prices cross each other)
-- **Auto-sort** off: rows hold their position. When a deferred batch changed the sort order, a
-  Re-sort bar appears, and `reconcileView()` applies it in one step
+- A feed patches the `change` and `volume` columns of every row every 250 ms.
+- Click the Change % header to sort. Both modes act only on a column that the sort or filter reads.
+- With Auto-sort on, the rows shuffle as the Change % values cross.
+- With Auto-sort off, the rows hold their positions. When a batch changes a Change % value, the Re-sort bar appears. Its button calls `reconcileView()`.
 
-## Behavior reference
+## Wire the feed [#wire-the-feed]
 
-- [Streaming updates guide](/docs/rows-live-data/stream-updates): `updateCells`/`updateRows`, the two
-  reorder modes, and why deferred batches exist
-- [Performance](/docs/performance): what makes a 100k-row grid stream smoothly
+Render both components inside the provider. The feed patches by row id and column id. The bar reads `useDataGridViewStale`:
+
+```tsx
+import { useEffect } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+  useDataGridViewStale,
+  type CellPatch,
+} from "@/components/data-grid/data-grid";
+
+type Ticker = { id: string; change: number };
+
+const columns = defineColumns<Ticker>()([
+  { id: "id", header: "Symbol", accessorKey: "id" },
+  { id: "change", header: "Change %", accessorKey: "change", type: "number" },
+]);
+
+const rows: Ticker[] = [
+  { id: "AAPL", change: 0 },
+  { id: "MSFT", change: 0 },
+];
+
+function TickerFeed({ autoSort }: { autoSort: boolean }) {
+  const actions = useDataGridActions();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const patches: CellPatch[] = rows.map((row) => ({
+        rowId: row.id,
+        columnId: "change",
+        value: Number((Math.random() * 4 - 2).toFixed(2)),
+      }));
+      actions.updateCells(patches, {
+        reorder: autoSort ? "immediate" : "defer",
+      });
+    }, 250);
+    return () => clearInterval(timer);
+  }, [actions, autoSort]);
+
+  return null;
+}
+
+function ReSortBar() {
+  const actions = useDataGridActions();
+  const viewStale = useDataGridViewStale();
+  if (!viewStale) return null;
+  return <button onClick={() => actions.reconcileView()}>Re-sort</button>;
+}
+
+function TickerGrid({ autoSort }: { autoSort: boolean }) {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      headerClickBehavior="sort"
+    >
+      <TickerFeed autoSort={autoSort} />
+      <ReSortBar />
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Related
+
+- [Stream updates](/docs/rows-live-data/stream-updates): `updateCells`, `updateRows`, and the three `reorder` values
+- [Performance](/docs/performance): what keeps a 100k-row grid smooth while it streams

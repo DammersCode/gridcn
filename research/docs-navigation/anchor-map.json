@@ -303,37 +303,37 @@
  },
  "/docs/examples/columns/column-groups": {
   "whats-in-the-demo": "/docs/column-examples/column-groups-example#whats-in-the-demo",
-  "behavior-reference": "/docs/column-examples/column-groups-example#behavior-reference",
+  "behavior-reference": "/docs/columns/column-headers-groups#column-groups",
   "related": "/docs/column-examples/column-groups-example#related"
  },
  "/docs/examples/columns/column-layout": {
   "whats-in-the-demo": "/docs/column-examples/column-layout-example#whats-in-the-demo",
   "the-snapshot-shape": "/docs/column-examples/column-layout-example#the-snapshot-shape",
-  "behavior-reference": "/docs/column-examples/column-layout-example#behavior-reference",
+  "behavior-reference": "/docs/columns/column-visibility#persisting-a-users-layout",
   "related": "/docs/column-examples/column-layout-example#related"
  },
  "/docs/examples/columns/custom-headers": {
   "whats-in-the-demo": "/docs/column-examples/column-headers-example#whats-in-the-demo",
-  "behavior-reference": "/docs/column-examples/column-headers-example#behavior-reference",
+  "behavior-reference": "/docs/columns/column-headers-groups#custom-headers",
   "related": "/docs/column-examples/column-headers-example#related"
  },
  "/docs/examples/columns/drag-reorder": {
   "whats-in-the-demo": "/docs/column-examples/column-order-example#whats-in-the-demo",
-  "behavior-reference": "/docs/column-examples/column-order-example#behavior-reference",
+  "behavior-reference": "/docs/columns/column-order-pinning#reorder",
   "related": "/docs/column-examples/column-order-example#related"
  },
  "/docs/examples/columns/filtering": {
   "whats-in-the-demo": "/docs/column-examples/header-filter-example#whats-in-the-demo",
-  "faceted-multi-value-filters": "/docs/column-examples/header-filter-example#faceted-multi-value-filters",
+  "faceted-multi-value-filters": "/docs/sort-filter-search/filtering",
   "header-filter": "/docs/column-examples/header-filter-example#header-filter",
-  "range-filters": "/docs/column-examples/header-filter-example#range-filters",
-  "per-option-counts-diy": "/docs/column-examples/header-filter-example#per-option-counts-diy",
+  "range-filters": "/docs/sort-filter-search/filtering",
+  "per-option-counts-diy": "/docs/column-examples/header-filter-example",
   "related": "/docs/column-examples/header-filter-example#related"
  },
  "/docs/examples/columns": {},
  "/docs/examples/columns/pinning": {
   "whats-in-the-demo": "/docs/column-examples/pinned-columns-example#whats-in-the-demo",
-  "behavior-reference": "/docs/column-examples/pinned-columns-example#behavior-reference",
+  "behavior-reference": "/docs/columns/column-order-pinning#pin-startend",
   "related": "/docs/column-examples/pinned-columns-example#related"
  },
  "/docs/examples/data": {},
@@ -418,7 +418,7 @@
  "/docs/examples/rows/actions": {
   "the-two-patterns": "/docs/row-examples/row-actions-example#the-two-patterns",
   "how-its-wired": "/docs/row-examples/row-actions-example#how-its-wired",
-  "behavior-reference": "/docs/row-examples/row-actions-example#behavior-reference"
+  "behavior-reference": "/docs/rows-pages-menus/row-operations#programmatic-actions"
  },
  "/docs/examples/rows/drag-reorder": {
   "whats-in-the-demo": "/docs/row-examples/row-order-example#whats-in-the-demo",
@@ -435,18 +435,18 @@
  "/docs/examples/rows/row-markers": {
   "whats-in-the-demo": "/docs/row-examples/row-markers-example#whats-in-the-demo",
   "custom-markers": "/docs/row-examples/row-markers-example#custom-markers",
-  "behavior-reference": "/docs/row-examples/row-markers-example#behavior-reference",
+  "behavior-reference": "/docs/rows-pages-menus/row-markers",
   "related": "/docs/row-examples/row-markers-example#related"
  },
  "/docs/examples/rows/row-operations": {
   "whats-in-the-demo": "/docs/row-examples/row-operations-example#whats-in-the-demo",
   "the-operation-shape-contract": "/docs/row-examples/row-operations-example#the-operation-shape-contract",
-  "behavior-reference": "/docs/row-examples/row-operations-example#behavior-reference",
+  "behavior-reference": "/docs/rows-pages-menus/row-operations",
   "related": "/docs/row-examples/row-operations-example#related"
  },
  "/docs/examples/rows/streaming": {
   "whats-in-the-demo": "/docs/row-examples/streaming-rows-example#whats-in-the-demo",
-  "behavior-reference": "/docs/row-examples/streaming-rows-example#behavior-reference"
+  "behavior-reference": "/docs/rows-live-data/stream-updates"
  },
  "/docs/examples/validation/async-gates": {
   "the-gates": "/docs/validation-examples/async-gates-example#the-gates",
@@ -517,7 +517,7 @@
   "prerequisites": "/docs/learning-path/install-gridcn#prerequisites",
   "tooltips": "/docs/terms-help/fix-install-problems#tooltips",
   "where-files-land": "/docs/terms-help/fix-install-problems#where-files-land",
-  "framework-notes": "/docs/terms-help/fix-install-problems#framework-notes",
+  "framework-notes": "/docs/terms-help/fix-install-problems#non-default-aliases",
   "nextjs": "/docs/terms-help/fix-install-problems#nextjs",
   "vite": "/docs/terms-help/fix-install-problems#vite",
   "non-default-aliases": "/docs/terms-help/fix-install-problems#non-default-aliases",
@@ -585,14 +585,14 @@
   "next-steps": "/docs/support-upgrades/version-policy-changelog"
  },
  "/docs/quick-start": {
-  "install": "/docs/learning-path/render-your-first-grid#install",
+  "install": "/docs/learning-path/install-gridcn",
   "define-columns": "/docs/learning-path/render-your-first-grid#define-columns",
   "render-the-grid": "/docs/learning-path/render-your-first-grid#render-the-grid",
-  "add-search-sorting-and-selection": "/docs/learning-path/render-your-first-grid#add-search-sorting-and-selection",
+  "add-search-sorting-and-selection": "/docs/learning-path/sort-filter-rows",
   "going-controlled": "/docs/learning-path/define-columns#going-controlled",
   "undo--redo": "/docs/learning-path/define-columns#undo--redo",
   "datagrid-is-shorthand": "/docs/learning-path/render-your-first-grid#datagrid-is-shorthand",
-  "whats-next": "/docs/learning-path/render-your-first-grid#whats-next"
+  "whats-next": "/docs/learning-path/render-your-first-grid"
  },
  "/docs/recipes/data-fetching": {
   "pick-the-strategy-for-your-data": "/docs/data-modes#pick-the-strategy-for-your-data",

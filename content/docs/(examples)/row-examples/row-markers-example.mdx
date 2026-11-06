@@ -1,39 +1,97 @@
 ---
 title: "Row markers example"
-description: The built-in marker modes (none, number, checkbox, both) and fully custom renderers.
+description: Replace the content of the row marker column with your own icons and select-all button while the marker keeps selecting rows.
 icon: ListOrdered
 type: example
 ---
 
-The marker column is pinned left and sits outside the data index space. The built-in modes:
-`none`, `number`, `checkbox` (drives the rows selection channel + a select-all header
-checkbox), and `both` (row number, replaced by the checkbox on hover/selection). Or replace
-the rendering entirely with your own marker/header components.
-
-<ComponentPreview name="data-grid-row-markers-demo" />
-
-<InstallCommand item="data-grid-row-markers-demo" />
-
-## What's in the demo
-
-- `rowMarkers` select: switches `none` / `number` / `checkbox` / `both` and the `reorder` family live
-- `both` mode: hover a row: the number is replaced by the checkbox while hovered or selected
-
-## Custom markers
-
-The same grid with `renderMarker` / `renderMarkerHeader`: a lucide icon marker reflecting the
-row's selection state, and a select-all header button, while the marker cell's own
-press/drag gestures still select rows.
+The marker column sits at the start of the grid, outside your `columns`. This grid replaces its content with `renderMarker` and `renderMarkerHeader`. A press or drag on a marker cell still selects rows. To pick a built-in mode, see [Row markers](/docs/rows-pages-menus/row-markers#row-markers).
 
 <ComponentPreview name="data-grid-custom-markers-demo" />
 
 <InstallCommand item="data-grid-custom-markers-demo" />
 
-## Behavior reference
+## What the demo shows [#whats-in-the-demo]
 
-- [Row markers](/docs/rows-pages-menus/row-markers#row-markers): the modes and the selection-channel wiring
-- [Custom markers](/docs/rows-pages-menus/row-markers#custom-markers): the `renderMarker`/`renderMarkerHeader` contract
+- `rowMarkers="checkbox"` sets the width of the marker column. The custom nodes replace the checkboxes.
+- A marker shows a check for a row in the row selection and a minus for a row with selected cells. Any other row shows a circle.
+- The header button selects all rows. Its icon follows `allSelected`.
+- The header button carries its own accessible name, because the built-in `labels.markers.selectAll` name belongs to the built-in checkbox.
+
+## Custom markers [#custom-markers]
+
+`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. Without `keepCheckedRows`, it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
+
+```tsx
+import { Check, Circle, Minus } from "lucide-react";
+import {
+  DataGrid,
+  defineColumns,
+  useDataGridActions,
+  type MarkerCellRenderer,
+  type MarkerHeaderRenderCtx,
+  type MarkerHeaderRenderer,
+} from "@/components/data-grid/data-grid";
+import { Button } from "@/components/ui/button";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+const renderMarker: MarkerCellRenderer = ({
+  isRowChannelSelected,
+  isCellSelected,
+}) =>
+  isRowChannelSelected ? (
+    <Check className="size-3.5" aria-hidden="true" />
+  ) : isCellSelected ? (
+    <Minus className="size-3.5" aria-hidden="true" />
+  ) : (
+    <Circle className="size-3.5" aria-hidden="true" />
+  );
+
+type AllSelected = MarkerHeaderRenderCtx["allSelected"];
+
+function SelectAllButton({ allSelected }: { allSelected: AllSelected }) {
+  const { setAllRowsSelected } = useDataGridActions();
+  const checked = allSelected === "checked";
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={checked ? "Unselect all rows" : "Select all rows"}
+      onClick={() => setAllRowsSelected(!checked)}
+    >
+      {checked ? "On" : "Off"}
+    </Button>
+  );
+}
+
+const renderMarkerHeader: MarkerHeaderRenderer = ({ allSelected }) => (
+  <SelectAllButton allSelected={allSelected} />
+);
+
+function MarkerGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      rowMarkers="checkbox"
+      renderMarker={renderMarker}
+      renderMarkerHeader={renderMarkerHeader}
+    />
+  );
+}
+```
 
 ## Related
 
-- [Selection & keyboard](/docs/selection-shortcuts): what the checkbox channel drives
+- [Row markers](/docs/rows-pages-menus/row-markers): the modes, widths, and selection gestures
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection): the marker press and drag
+- [Labels](/docs/components-props/labels): the names of the built-in marker controls
