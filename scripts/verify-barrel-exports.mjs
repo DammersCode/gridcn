@@ -36,7 +36,7 @@ for (const dir of readdirSync(blocks, { withFileTypes: true })) {
   if (!dir.isDirectory() || !dir.name.startsWith("data-grid-") || dir.name === "data-grid-sdk") continue;
   const barrel = join(blocks, dir.name, `${dir.name}.ts`);
   if (!existsSync(barrel)) continue;
-  const missing = barrelValueNames(readFileSync(barrel, "utf8")).filter((name) => !new RegExp(`\b${name}\b`).test(docs));
+  const missing = barrelValueNames(readFileSync(barrel, "utf8")).filter((name) => !new RegExp(String.raw`\b${name}\b`).test(docs));
   if (missing.length > 0) undocumented[dir.name] = missing.sort();
 }
 

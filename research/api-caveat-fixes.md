@@ -85,3 +85,11 @@ Capabilities to keep: controlled page, page size options, the pager math (`pagin
 **F18.** `DataGridPaginationControls.hasNextPage` becomes `hasMore` (pager spread onto `DataGridPaginationBar`, `useDataGridServerRows` passes `hasMore`); document the `totalRowCount` `undefined` / `null` table once in `GLOSSARY.md`.
 
 **F14.** A `RowActionResult = { ok: true } | { ok: false; reason }` returned by `deleteRows`, `insertRow`, `duplicateRows`, `reorderRows`, `moveRows`; reasons: `"readOnly" | "unloaded-rows" | "view-active" | "gate-pending" | "no-factory"`. Menu items and shortcuts show disabled for the same reasons. Land the reasons first (return values only), then the gating.
+
+## Opus review of the whole diff: findings taken
+- A cell click without `keepCheckedRows` now releases remembered ids and "all matching" (`releaseRemembered`); test added.
+- `verify-barrel-exports` had a backspace in its regex (nothing matched); fixed, baseline regenerated (now almost empty).
+- `parseServerSpec`: limits that are `undefined`, `NaN` or negative fall back to the default; error text no longer echoes a long operator; own-property check for `filters`.
+- `gateTimeoutMs` ignores non-finite values, clamps to the timer maximum, and takes a per-gate map (`number | Partial<Record<GateName, number>>`); Escape reports `"cancelled"`.
+- `IMPORT_CANCELLED_MESSAGE` stays exported (callers tell a cancel from a failure by it); the changelog no longer lists it as removed.
+- Not taken: a one-time dev warning when the F3 default applies and no `onSortChange` is handled; cycle guard in `sameLabels` (labels are plain data); row index cache in the dev-only `record` check.

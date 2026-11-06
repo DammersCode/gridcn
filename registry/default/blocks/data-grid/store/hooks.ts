@@ -658,7 +658,7 @@ export function useDataGridSelectionConfig(): {
 
 /**
  * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
- * "all matching except these ids" after `actions.selectAllMatching()`. Needs `keepCheckedRows` and `totalRowCount`
+ * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `rememberCheckedRows`
  * to cover rows outside `data`. The value changes only when the selection or the data does.
  */
 export function useDataGridSelectedRows(): DataGridSelectedRows {

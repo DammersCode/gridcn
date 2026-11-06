@@ -68,3 +68,17 @@ describe("parseServerSpec", () => {
     expect(() => parse({ filters: [{ join: "xor", filters: [] }] })).toThrow(/join/);
   });
 });
+
+describe("parseServerSpec limits", () => {
+  it("ignores a limit that is undefined, NaN, or negative", () => {
+    const row = { columnId: "name", operator: "equals", value: "a" };
+    const many = { filters: Array.from({ length: 65 }, () => row) };
+    expect(() => parse(many, { limits: { maxFilters: undefined } })).toThrow(/more than 64/);
+    expect(() => parse(many, { limits: { maxFilters: Number.NaN } })).toThrow(/more than 64/);
+    expect(() => parse(many, { limits: { maxFilters: -1 } })).toThrow(/more than 64/);
+  });
+
+  it("does not echo a long operator", () => {
+    expect(() => parse({ filters: [{ columnId: "name", operator: "x".repeat(5000), value: "a" }] })).toThrow(/^(?:.{0,200})$/s);
+  });
+});

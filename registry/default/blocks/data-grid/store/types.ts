@@ -204,13 +204,13 @@ export type DataGridSyncProps<TData = unknown> = {
   inputDebounceMs?: number;
   /**
    * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
-   * has not settled after this many ms: its `signal` aborts, the action is cancelled, and the next action may start. Default: off
+   * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
-  gateTimeoutMs?: number;
+  gateTimeoutMs?: number | Partial<Record<GateName, number>>;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
-   * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), or `"reset"`.
+   * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
    */
   onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
   /**

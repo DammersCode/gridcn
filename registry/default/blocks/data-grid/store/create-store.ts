@@ -68,6 +68,7 @@ import {
   MAX_HIDDEN_CHECKED_ROWS,
   NO_HIDDEN_CHECKED_ROWS,
   NO_REMEMBERED_ROWS,
+  releaseRemembered,
   windowModeActive,
   carryCheckedRows,
   hiddenCheckedRowsActive,
@@ -269,7 +270,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
   const gates = createGateTracker({
-    timeoutMs: () => store.getState().gateTimeoutMs,
+    timeoutMs: (name) => {
+      const wanted = store.getState().gateTimeoutMs;
+      return typeof wanted === "object" ? wanted[name] : wanted;
+    },
     aborted: (gate, reason) => {
       const onGateAborted = store.getState().onGateAborted;
       if (onGateAborted) {
@@ -829,7 +833,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _cancelSelection() {
         const s = get();
-        if (editStartRun) gates.abortRun(editStartRun);
+        if (editStartRun) gates.abortRun(editStartRun, "cancelled");
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
@@ -861,7 +865,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (opts?.retain) {
             set({ activeCell: next, lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           } else {
-            set({ activeCell: next, selection: selectCellOf(s, next), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
+            set({ activeCell: next, selection: selectCellOf(s, next), ...releaseRemembered(s), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           }
         }
       },
@@ -1321,10 +1325,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       selectCell(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
-        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord) });
+        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
       },
       selectCellAt(coord) {
-        set({ activeCell: coord, selection: selectCellOf(get(), coord) });
+        set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
       },
       extendTo(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
@@ -1333,11 +1337,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       extendToAt(coord) {
         set((s) => {
           // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
-          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord };
+          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
           const selection = s.selection.current ? extendTo(s.selection, coord) : selectCellOf(s, coord);
           // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
           const activeCell = s.selection.current ? s.activeCell : coord;
-          return { selection, activeCell };
+          return { selection, activeCell, ...(s.selection.current ? {} : releaseRemembered(s)) };
         });
       },
       extendSelection(direction, opts) {
@@ -1359,7 +1363,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       pushRangeAt(coord) {
         set((s) => {
           // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
-          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord };
+          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
           // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
           return { selection: pushRange(s.selection, coord), activeCell: coord };
         });
@@ -1722,7 +1726,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       cancelEditing() {
         const s = get();
-        if (editStartRun) gates.abortRun(editStartRun);
+        if (editStartRun) gates.abortRun(editStartRun, "cancelled");
         if (!s.editing) {
           set({ editingError: null });
           return;

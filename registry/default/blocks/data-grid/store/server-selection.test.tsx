@@ -359,3 +359,13 @@ describe("selectAllMatching announcement", () => {
     expect(unknown.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", partial: true });
   });
 });
+
+describe("remembered checks and a cell click", () => {
+  it("without keepCheckedRows a cell click releases the remembered ids and all-matching", () => {
+    const m = mount({ keepCheckedRows: false });
+    act(() => m.state().actions.selectAllMatching());
+    expect(m.state().allMatching).toBe(true);
+    act(() => m.state().actions.selectCell({ rowId: m.state().data[0] ? m.state().getRowId(m.state().data[0], 0) : "", columnId: m.state().visibleColumns[0]!.id }));
+    expect(m.state().allMatching).toBe(false);
+  });
+});

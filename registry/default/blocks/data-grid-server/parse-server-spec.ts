@@ -62,7 +62,11 @@ const isRecord = (value: unknown): value is Raw => typeof value === "object" && 
  * const spec = parseServerSpec(body.spec, { columns: ["name", "status", "age"] });
  */
 export function parseServerSpec(input: unknown, options: ParseServerSpecOptions): ServerSpec {
-  const limits = { ...DEFAULT_LIMITS, ...options.limits };
+  const limits = { ...DEFAULT_LIMITS };
+  for (const key of Object.keys(DEFAULT_LIMITS) as (keyof ServerSpecLimits)[]) {
+    const wanted = options.limits?.[key];
+    if (wanted !== undefined && Number.isFinite(wanted) && wanted >= 0) limits[key] = wanted;
+  }
   const rules = columnRules(options.columns);
   if (!isRecord(input)) throw new ServerSpecError("spec", "must be an object");
   return {
@@ -114,7 +118,7 @@ function parseNodes(value: unknown, path: string, depth: number, rules: Readonly
   return value.map((node: unknown, index) => {
     const nodePath = `${path}[${index}]`;
     if (!isRecord(node)) throw new ServerSpecError(nodePath, "must be an object");
-    if ("filters" in node) return parseGroup(node, nodePath, depth + 1, rules, limits, budget);
+    if (Object.hasOwn(node, "filters")) return parseGroup(node, nodePath, depth + 1, rules, limits, budget);
     return parseRow(node, nodePath, rules, limits, budget);
   });
 }
@@ -137,7 +141,7 @@ function parseRow(node: Raw, path: string, rules: ReadonlyMap<string, ServerSpec
   const operator = node.operator;
   const custom = column.customOperators && Object.hasOwn(column.customOperators, operator) ? column.customOperators[operator] : undefined;
   const allowed = column.operators ? column.operators.includes(operator) || custom !== undefined : isBuiltInOperator(operator) || custom !== undefined;
-  if (!allowed) throw new ServerSpecError(`${path}.operator`, `"${operator}" is not allowed on "${columnId}"`);
+  if (!allowed) throw new ServerSpecError(`${path}.operator`, `"${operator.slice(0, 40)}" is not allowed on "${columnId.slice(0, 40)}"`);
   const input = custom ?? filterOperatorInput(operator);
   const value = parseValue(node.value, input, `${path}.value`, limits);
   return value === undefined ? { columnId, operator } : { columnId, operator, value };

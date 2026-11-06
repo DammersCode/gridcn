@@ -34,7 +34,7 @@ import { buildRollback } from "../interaction/rollback";
 import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
-import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
+import { NO_REMEMBERED_ROWS, releaseRemembered, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, patchesLeaveViewAlone, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
@@ -1087,7 +1087,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // The user clicked away while validation was pending: commit the value but leave the cursor where it is.
       const stale =
         s.activeCell !== null && (s.activeCell.row !== editing.coord.row || s.activeCell.col !== editing.coord.col);
-      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellOf(s, nextActiveCell) };
+      const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellOf(s, nextActiveCell), ...releaseRemembered(s) };
       if ("error" in result) {
         set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
         s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" });

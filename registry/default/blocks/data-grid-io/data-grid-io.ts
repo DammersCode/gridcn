@@ -9,7 +9,7 @@ export { DataGridPrintButton, type DataGridPrintButtonProps } from "./print-butt
 
 export { parseImportFile, DEFAULT_IMPORT_LIMITS, IMPORT_CSV_ENCODINGS, type ParsedImportFile, type ParseImportFileOptions, type ImportLimits, type CsvDelimiter } from "./parse-import-file";
 export { matchImportColumns, applyImportOptions, type ImportDefaults } from "./match-import-column";
-export { buildImportedRows, type ImportColumnMapping, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
+export { buildImportedRows, IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 export {
   useDataGridImportPreview,
   type ImportFileState,

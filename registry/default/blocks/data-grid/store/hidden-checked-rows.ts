@@ -177,3 +177,8 @@ export function withoutHiddenCheckedRows(hidden: ReadonlySet<string>, rowIds: It
   }
   return next ?? hidden;
 }
+
+/** The patch a cell selection owes: without `keepCheckedRows` it clears the checks, so the remembered ids and "all matching" go with them. */
+export function releaseRemembered(s: Pick<DataGridStoreState, "keepCheckedRows" | "hiddenCheckedRowIds" | "allMatching">): Partial<DataGridStoreState> {
+  return !s.keepCheckedRows && (s.hiddenCheckedRowIds.size > 0 || s.allMatching) ? NO_REMEMBERED_ROWS : {};
+}

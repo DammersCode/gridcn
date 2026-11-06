@@ -55,11 +55,11 @@ export type GateTracker = {
 };
 
 /** Why a gate run stopped before its result applied: it ran longer than `gateTimeoutMs`, the rows or mode it asked about changed, a newer run replaced it, or the grid reset or unmounted. */
-export type GateAbortReason = "timeout" | "changed" | "superseded" | "reset";
+export type GateAbortReason = "timeout" | "changed" | "superseded" | "cancelled" | "reset";
 
 export type GateTrackerHost = {
   /** Read on every hold; `undefined` or a non-positive number turns the timeout off. */
-  timeoutMs?: () => number | undefined;
+  timeoutMs?: (name: GateName) => number | undefined;
   /** Called once per run that is aborted while pending. */
   aborted?: (name: GateName, reason: GateAbortReason) => void;
   publish: (pending: ReadonlySet<GateName>) => void;
@@ -129,8 +129,8 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
         watchStore();
       }
       if (count === 0) publish();
-      const timeoutMs = host.timeoutMs?.();
-      if (typeof timeoutMs === "number" && timeoutMs > 0 && run.name !== "import") timers.set(run, setTimeout(() => tracker.abortRun(run, "timeout"), timeoutMs));
+      const timeoutMs = host.timeoutMs?.(run.name);
+      if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0 && run.name !== "import") timers.set(run, setTimeout(() => tracker.abortRun(run, "timeout"), Math.min(timeoutMs, 2_147_483_647)));
     },
     settle: release,
     abortRun(run, reason = "superseded") {
