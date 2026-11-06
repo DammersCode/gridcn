@@ -1515,6 +1515,16 @@
           "target": "components/data-grid-pagination/use-data-grid-pagination.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-pagination/use-data-grid-server-pager.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-pagination/use-data-grid-server-pager.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-pagination/use-data-grid-pager.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-pagination/use-data-grid-pager.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-pagination/pagination-footer.tsx",
           "type": "registry:component",
           "target": "components/data-grid-pagination/pagination-footer.tsx"
@@ -2749,7 +2759,8 @@
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination"
+        "DammersCode/gridcn/data-grid-pagination",
+        "DammersCode/gridcn/data-grid-toolbar"
       ],
       "files": [
         {

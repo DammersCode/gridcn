@@ -33,7 +33,7 @@ describe("cursor pages", () => {
   it("sends no cursor for page 1 and the stored cursor for the next page", async () => {
     const { hook, requests, settle, goTo } = setup();
     await settle();
-    expect(hook.result.current.pager.hasNextPage).toBe(true);
+    expect(hook.result.current.pager.hasMore).toBe(true);
     expect(hook.result.current.pager.totalRowCount).toBeNull();
     await goTo(2);
     expect(requests).toEqual([
@@ -47,11 +47,11 @@ describe("cursor pages", () => {
     await settle();
     await goTo(2);
     await goTo(3);
-    expect(hook.result.current.pager.hasNextPage).toBe(false);
+    expect(hook.result.current.pager.hasMore).toBe(false);
     expect(hook.result.current.gridProps.data).toHaveLength(5);
     await goTo(2);
     expect(requests.at(-1)).toEqual({ page: 2, cursor: "after:9" });
-    expect(hook.result.current.pager.hasNextPage).toBe(true);
+    expect(hook.result.current.pager.hasMore).toBe(true);
   });
 
   it("keeps the chain on refresh", async () => {

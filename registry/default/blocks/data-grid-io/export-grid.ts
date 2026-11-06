@@ -1,5 +1,5 @@
 import { sanitizeFormulaCell } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, fullViewOf, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 import {
   DEFAULT_SOURCE_MAX_BYTES,
@@ -132,7 +132,7 @@ export type BuildExportRowsOptions = {
 };
 
 /**
- * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks `viewIndex`
+ * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks the whole sorted and filtered view (every page)
  * (current sort/filter order), `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
@@ -142,7 +142,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "all
       ? state.data.map((_, i) => i)
       : scope === "selection"
         ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows }).map((viewRow) => state.viewIndex[viewRow]!)
-        : state.viewIndex;
+        : fullViewOf(state.viewIndex);
   // lazy grids keep `data` sparse: skip holes before any accessor runs
   return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);
 }

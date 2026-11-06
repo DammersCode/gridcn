@@ -1,24 +1,27 @@
 ---
 title: Client mode
-description: useDataGridPagination slicing a full dataset, for a table that already fits in the browser.
+description: defaultPageSize paging the view of a dataset that already fits in the browser.
 icon: Table
 ---
 
-Client mode: the demo holds all 240 rows and the hook slices the current page out of them.
-No round trip, and no row count to manage. You need `defaultPageSize` and, optionally, a controlled page.
+Client mode: the demo holds all 240 rows, and `defaultPageSize` on the provider shows one page of the view at a time.
+No round trip, and no row count to manage. Sort, filter, and search cover all 240 rows.
 
 <ComponentPreview name="data-grid-pagination-demo" />
 
 <InstallCommand item="data-grid-pagination-demo" />
 
-## Client slice vs server mode
+## Client paging vs server mode
 
 ```tsx
-// client mode — the hook slices `data` for you
-const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
+// client mode: the grid pages its own view
+<DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} defaultPageSize={25}>
+  {/* grid parts */}
+  <DataGridPaginationBar />
+</DataGridProvider>
 
-// server mode — you own page/pageSize/totalRowCount and fetch the page yourself
-const { pager } = useDataGridPagination({
+// server mode: you own page/pageSize/totalRowCount and fetch the page yourself
+const { pager } = useDataGridServerPager({
   page,
   pageSize,
   totalRowCount: serverTotal,
@@ -30,20 +33,9 @@ const { pager } = useDataGridPagination({
 });
 ```
 
-Both return the same `pager` shape, so `<DataGridPaginationBar {...pager} />`
-doesn't need to know which mode it's in. The footer sits outside the provider in both cases,
-so it reads no store.
+Both feed the same footer. Client mode reads the pager from the provider; server mode spreads `{...pager}` onto the bar.
 
 Use client mode when the dataset already fits in memory (a few hundred to a few thousand
 rows). Switch to server mode when a page is a real API call. See
 [TanStack Query](/docs/examples/data/pagination/react-query) and
 [SWR](/docs/examples/data/pagination/swr).
-
-## Behavior reference
-
-- [Pagination](/docs/pagination): the add-on reference, including the composable footer
-  parts
-
-## Related
-
-- [Server side](/docs/examples/data/server-side): the full remote contract, not just pages

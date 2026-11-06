@@ -255,3 +255,27 @@ describe("gateTimeoutMs and onGateAborted", () => {
     expect(onGateAborted).toHaveBeenCalledWith({ gate: "onBeforeDeleteRows", reason: "changed" });
   });
 });
+
+describe("row action results", () => {
+  it("deleteRows says why it did nothing", async () => {
+    const readOnly = mount(undefined, { readOnly: true });
+    expect(readOnly.state().actions.deleteRows([0])).toEqual({ ok: false, reason: "readOnly" });
+    expect(readOnly.state().actions.deleteRows([99])).toEqual({ ok: false, reason: "readOnly" });
+    const declined = mount(() => false);
+    expect(declined.state().actions.deleteRows([0])).toEqual({ ok: false, reason: "gate-declined" });
+    const open = mount(undefined);
+    expect(open.state().actions.deleteRows([0])).toEqual({ ok: true });
+    const d = deferred();
+    const pending = mount(() => d.promise);
+    expect(pending.state().actions.deleteRows([0])).toEqual({ ok: true });
+    expect(pending.state().actions.deleteRows([1])).toEqual({ ok: false, reason: "gate-pending" });
+    await flush();
+  });
+
+  it("insertRow and duplicateRows say when the factory prop is missing", () => {
+    const m = mount(undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(m.state().actions.insertRow(0, "below")).toEqual({ ok: false, reason: "no-factory" });
+    expect(m.state().actions.duplicateRows([0])).toEqual({ ok: false, reason: "no-factory" });
+  });
+});

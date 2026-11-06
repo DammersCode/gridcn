@@ -59,7 +59,7 @@ export function cursorPages() {
       return { rows: [] as Row[], nextCursor: page < 3 ? `page:${page}` : null };
     },
   });
-  server.pager.hasNextPage satisfies boolean;
+  server.pager.hasMore satisfies boolean;
 }
 
 export function defaultRowId() {

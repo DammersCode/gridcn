@@ -10,6 +10,9 @@ import {
   pruneCellErrors,
   remapRowChannel,
   selectCellOf,
+  fullViewOf,
+  viewWindowOf,
+  windowView,
   sameElements,
   viewSorts,
   viewFilters,
@@ -49,7 +52,7 @@ import {
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -234,11 +237,12 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
  * moved, so a tick that changes no position re-renders nothing downstream of `viewIndex`.
  */
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
+  const prevFull = fullViewOf(s.viewIndex);
   const incremental = pending
-    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, pending, s.cellTypes)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes)
     : null;
-  if (incremental) return sameElements(incremental, s.viewIndex) ? s.viewIndex : incremental;
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes);
+  if (incremental) return windowView(sameElements(incremental, prevFull) ? prevFull : incremental, viewWindowOf(s), s.viewIndex);
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
 }
 
 /**
@@ -270,7 +274,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `setColumnHidden`. The caller owns `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes);
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
   const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,
@@ -802,20 +806,22 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (scroll mode): load the range first, or delete known ids with deleteRowsById`);
     return true;
   };
-  const requestDelete = (dataRowIndexes: number[]) => {
+  const OK: RowActionResult = { ok: true };
+  const skipped = (reason: RowActionSkipReason): RowActionResult => ({ ok: false, reason });
+  const requestDelete = (dataRowIndexes: number[]): RowActionResult => {
     const s = get();
-    if (s.readOnly) return;
-    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return;
+    if (s.readOnly) return skipped("readOnly");
+    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skipped("unloaded-rows");
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
-      return;
+      return OK;
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
-    if (rowIds.length === 0) return;
+    if (rowIds.length === 0) return skipped("nothing-to-do");
     if (deleteRun && !deleteRun.aborted) {
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
-      return;
+      return skipped("gate-pending");
     }
     const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
     const run = ctx.gates.begin("onBeforeDeleteRows");
@@ -824,11 +830,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       verdict = confirm({ rowIds, hiddenCount, signal: run.signal });
     } catch (error) {
       warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
-      return;
+      return skipped("gate-threw");
     }
     if (typeof verdict === "boolean") {
-      if (verdict) deleteDataRows(dataRowIndexes);
-      return;
+      if (!verdict) return skipped("gate-declined");
+      deleteDataRows(dataRowIndexes);
+      return OK;
     }
     deleteRun = run;
     const asked = { rowIdentityVersion: s.rowIdentityVersion, checked: s.selection.rows, hidden: s.hiddenCheckedRowIds };
@@ -850,6 +857,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (finish()) warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
       },
     );
+    return OK;
   };
 
   const insertDataIndex = (s: DataGridStoreState, viewRowIndex: number, position: "above" | "below"): number =>
@@ -868,7 +876,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = batch.nextData;
     const view = rebuildRowOpView(s, batch.nextData);
     const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-    if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
       pruneRowValidationKeys(batch.nextData, s.getRowId);
       writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
@@ -902,7 +910,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = batch.nextData;
     const view = rebuildRowOpView(s, batch.nextData);
     const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-    if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
       pruneRowValidationKeys(batch.nextData, s.getRowId);
       writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
@@ -1005,7 +1013,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const canMoveRows = (s: DataGridStoreState): boolean => {
     if (!s.enableRowReorder || s.readOnly) return false;
-    if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by the sort/filter)");
       return false;
     }
@@ -1347,7 +1355,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (ctx.reshape) ctx.reshape("urgent");
         else stale = clearStaleRows(ctx);
       }
-      if (viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+      if (s.pageSize === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
         resetDeferredRows(ctx);
         set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
         return;
@@ -1365,25 +1373,25 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     insertRow(viewRowIndex, position) {
       // single implementation path: the 1-row case of the batch action (same one undo step).
-      get().actions.insertRows(viewRowIndex, 1, position);
+      return get().actions.insertRows(viewRowIndex, 1, position);
     },
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly) return skipped("readOnly");
       if (!s.createRow) {
         warnDev("row insertion is a no-op because no `createRow` prop was provided");
-        return;
+        return skipped("no-factory");
       }
       if (count <= 0 || !Number.isInteger(count)) {
         if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
-        return;
+        return skipped("nothing-to-do");
       }
       if (createRun && !createRun.aborted) {
         warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
-        return;
+        return skipped("gate-pending");
       }
       const anchor = s.viewIndex[viewRowIndex];
-      if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return;
+      if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skipped("unloaded-rows");
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
       const run = ctx.gates.begin("createRow");
@@ -1391,13 +1399,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       for (let i = 0; i < count; i++) rows.push(s.createRow(dataRowIndex + i, gateCtx));
       if (rows.some((row) => isThenable(row))) {
         holdInsertedRows(s, run, viewRowIndex, position, rows);
-        return;
+        return OK;
       }
       commitInsertedRows(s, viewRowIndex, count, position, dataRowIndex, rows);
+      return OK;
     },
     deleteRows(viewRowIndexes) {
       const s = get();
-      requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
+      return requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
     deleteRowsById(rowIds, options) {
       const s = get();
@@ -1418,31 +1427,32 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           ops.push({ type: "delete", rowId, row, index });
         }
         get().actions.commitChange({ source: "stream", ops });
-        return;
+        return OK;
       }
-      requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
+      return requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly) return skipped("readOnly");
       if (!s.duplicateRow) {
         warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
-        return;
+        return skipped("no-factory");
       }
       if (duplicateRun && !duplicateRun.aborted) {
         warnGateOnce("duplicateRow pending", "a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle");
-        return;
+        return skipped("gate-pending");
       }
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-      if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return;
+      if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skipped("unloaded-rows");
       const run = ctx.gates.begin("duplicateRow");
       const copies = startDuplicateCopies(s, dataRowIndexes, { signal: run.signal });
-      if (!copies) return;
+      if (!copies) return skipped("nothing-to-do");
       if (Array.from(copies.values()).some((copy) => isThenable(copy))) {
         holdDuplicateCopies(s, run, copies);
-        return;
+        return OK;
       }
       finishDuplicate(s, viewRowIndexes, copies);
+      return OK;
     },
     reorderRows(rows, to) {
       const s = get();

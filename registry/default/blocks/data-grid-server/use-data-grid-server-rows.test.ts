@@ -133,7 +133,7 @@ describe("useDataGridServerRows", () => {
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(result.current.gridProps.totalRowCount).toBeNull();
-    expect(result.current.pager).toMatchObject({ totalRowCount: null, hasNextPage: true });
+    expect(result.current.pager).toMatchObject({ totalRowCount: null, hasMore: true });
   });
 
   it("warns once and keeps only pageSize rows when the answer is longer", async () => {
@@ -185,7 +185,7 @@ describe("useDataGridServerRows", () => {
     const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 10) }));
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
-    expect(result.current.pager.hasNextPage).toBe(true);
+    expect(result.current.pager.hasMore).toBe(true);
   });
 
   it("the page clamps when the total shrinks below it", async () => {

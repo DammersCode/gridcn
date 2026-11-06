@@ -203,6 +203,18 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   inputDebounceMs?: number;
   /**
+   * Shows `pageSize` rows of the sorted and filtered view at a time. The grid keeps the whole `data`, so sort, filter, aggregates, and
+   * streamed patches work across every page; only the rows on screen are one page. Set it to turn paging on (`defaultPageSize` seeds it,
+   * `pageSize` controls it with `onPageSizeChange`). A filter change goes back to page 1. Leave it unset to show every row.
+   */
+  pageSize?: number;
+  defaultPageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  /** The current page, 1-based. Controls it with `onPageChange`; `defaultPage` seeds it. A page past the last one shows the last. Default 1. */
+  page?: number;
+  defaultPage?: number;
+  onPageChange?: (page: number) => void;
+  /**
    * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
@@ -711,6 +723,12 @@ export type DataGridStoreState = Omit<
   | "defaultSortState"
   | "defaultFilterState"
   | "defaultSearchText"
+  | "pageSize"
+  | "page"
+  | "defaultPageSize"
+  | "defaultPage"
+  | "onPageChange"
+  | "onPageSizeChange"
   | "selection"
   | "columnLayout"
   | "readOnly"
@@ -847,6 +865,14 @@ export type DataGridStoreState = Omit<
   sortControlled: boolean;
   filterControlled: boolean;
   searchControlled: boolean;
+  /** Rows per page; `null` shows every row. */
+  pageSize: number | null;
+  /** The requested page; the view shows `min(page, last page)`. */
+  page: number;
+  pageControlled: boolean;
+  pageSizeControlled: boolean;
+  onPageChange: ((page: number) => void) | undefined;
+  onPageSizeChange: ((pageSize: number) => void) | undefined;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
   /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
@@ -977,6 +1003,10 @@ export type DataGridActions = {
    * No-op with a development warning without `totalRowCount` and `rememberCheckedRows`. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): void;
+  /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
+  setPage(page: number): void;
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen. Calls `onPageSizeChange`. */
+  setPageSize(pageSize: number): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
   clearSaveStatus(): void;
@@ -1141,28 +1171,28 @@ export type DataGridActions = {
    * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
    * and one undo step.
    */
-  insertRow(viewRowIndex: number, position: "above" | "below"): void;
+  insertRow(viewRowIndex: number, position: "above" | "below"): RowActionResult;
   /**
    * Inserts `count` rows built by the `createRow` prop (called with `dataRowIndex + i`)
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
    */
-  insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
+  insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
-  deleteRows(viewRowIndexes: number[]): void;
+  deleteRows(viewRowIndexes: number[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
    * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, unchecks the rows, and leaves the cursor and the other checked rows where they are.
    */
-  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): void;
+  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): RowActionResult;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
    * no-op when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
-  duplicateRows(viewRowIndexes: number[]): void;
+  duplicateRows(viewRowIndexes: number[]): RowActionResult;
   /**
    * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
@@ -1284,6 +1314,12 @@ export type DataGridStore = DataGridStoreState;
  * can skip recomputing them and reuse the previous references (a controlled parent re-rendering
  * for unrelated reasons — e.g. its own local state — shouldn't pay full buildViewIndex cost).
  */
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, the gate said no, or no row matched. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
+
+/** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
+export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
+
 export type SyncInputs = {
   data: readonly unknown[];
   columns: readonly AnyColumnDef[];
@@ -1295,6 +1331,8 @@ export type SyncInputs = {
   columnOrder: string[] | null;
   hiddenColumns: readonly string[];
   columnGroupModel: ColumnGroupModel | null;
+  /** `"<page>|<pageSize>"`: a page change rebuilds the paged view. */
+  pageKey: string;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1307,7 +1345,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.searchText === b.searchText &&
     a.columnOrder === b.columnOrder &&
     a.hiddenColumns === b.hiddenColumns &&
-    a.columnGroupModel === b.columnGroupModel
+    a.columnGroupModel === b.columnGroupModel &&
+    a.pageKey === b.pageKey
   );
 }
 

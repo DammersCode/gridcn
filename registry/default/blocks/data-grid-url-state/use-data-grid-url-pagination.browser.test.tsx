@@ -5,7 +5,7 @@ import { render } from "vitest-browser-react";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
 import { useDataGridUrlPagination } from "./use-data-grid-url-pagination";
 import {
-  useDataGridPagination,
+  useDataGridServerPager,
   DataGridPaginationBar,
 } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 // real stylesheet so Select/Button layout is real, matching other block browser tests
@@ -16,7 +16,7 @@ const TOTAL_ROWS = 101;
 function UrlPaginatedGrid() {
   const url = useDataGridUrlPagination();
   // the url hook owns page/pageSize; only `total` is the consumer's to supply.
-  const { pager } = useDataGridPagination({ totalRowCount: TOTAL_ROWS, ...url });
+  const { pager } = useDataGridServerPager({ totalRowCount: TOTAL_ROWS, ...url });
   return <DataGridPaginationBar {...pager} />;
 }
 
@@ -36,11 +36,11 @@ function TotalFlipper() {
     return () => clearTimeout(timer);
   }, []);
   const url = useDataGridUrlPagination({ totalRowCount: total });
-  const { pager } = useDataGridPagination({ totalRowCount: total, ...url });
+  const { pager } = useDataGridServerPager({ totalRowCount: total, ...url });
   return <DataGridPaginationBar {...pager} />;
 }
 
-describe("useDataGridUrlPagination + useDataGridPagination: composition", () => {
+describe("useDataGridUrlPagination + useDataGridServerPager: composition", () => {
   it("deep-links to the page given by the URL", async () => {
     await renderGrid({ searchParams: "?page=3" });
     await expect.element(page.getByText("51–75 of 101")).toBeInTheDocument();

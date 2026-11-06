@@ -10,7 +10,7 @@ import {
   useDataGridSelectedRows,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridStatusBar } from "@/registry/default/blocks/data-grid-status-bar/data-grid-status-bar";
-import { DataGridPaginationBar, useDataGridPagination } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { DataGridPaginationBar, useDataGridServerPager } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 
 type Row = { id: string; name: string; email: string };
 
@@ -44,7 +44,7 @@ function SelectionPanel(): ReactNode {
 export default function DataGridServerSelectionDemo(): ReactNode {
   const [page, setPage] = useState(1);
   const rows = useMemo(() => Array.from({ length: PAGE_SIZE }, (_, i) => rowAt((page - 1) * PAGE_SIZE + i)).filter((row) => Number(row.id.slice(4)) < TOTAL), [page]);
-  const { pager } = useDataGridPagination({ page, pageSize: PAGE_SIZE, totalRowCount: TOTAL, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
+  const { pager } = useDataGridServerPager({ page, pageSize: PAGE_SIZE, totalRowCount: TOTAL, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
 
   return (
     <div className="flex w-full flex-col gap-2">

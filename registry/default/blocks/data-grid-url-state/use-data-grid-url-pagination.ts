@@ -18,7 +18,7 @@ export type UseDataGridUrlPaginationOptions = {
   totalRowCount?: number | null;
 };
 
-/** Controlled pair spread straight into `useDataGridPagination`'s server mode. */
+/** The controlled pair: spread it onto `DataGridProvider` (a grid that pages its view) or into `useDataGridServerPager`. */
 export type UseDataGridUrlPaginationResult = {
   page: number;
   pageSize: number;
@@ -30,8 +30,8 @@ export type UseDataGridUrlPaginationResult = {
 
 /**
  * Syncs `page`/`pageSize` with the URL via nuqs, no dependency on `data-grid-pagination` or the
- * grid's store — pagination has no store slot, so this hook just owns two URL-backed numbers and
- * hands back the controlled pair `useDataGridPagination` already accepts in server mode.
+ * grid's store — it owns two URL-backed numbers and hands back the controlled pair that
+ * `DataGridProvider` and `useDataGridServerPager` both accept.
  *
  * Pass `totalRowCount` so an out-of-range deep-linked `page` clamps to the last page once `totalRowCount` is
  * positive (on mount, or when a late fetch resolves), and the clamped value replaces the raw
@@ -45,7 +45,7 @@ export type UseDataGridUrlPaginationResult = {
  *
  * @example
  * const url = useDataGridUrlPagination();
- * const pager = useDataGridPagination({ totalRowCount: rows.length, pageSizeOptions: url.pageSizeOptions, ...url });
+ * <DataGridProvider data={rows} {...url}><DataGridPaginationBar pageSizeOptions={url.pageSizeOptions} /></DataGridProvider>
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
   const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions, totalRowCount = null } = options;

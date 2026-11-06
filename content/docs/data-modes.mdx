@@ -11,7 +11,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 ## Data modes
 
 - **L**: Local array. `data` holds every row in memory.
-- **PC**: Client pagination. `useDataGridPagination` slices `data` into pages.
+- **PC**: Client pagination. `defaultPageSize` pages the view of the whole `data`.
 - **PS**: Server pagination. The server returns one page per request.
 - **Z**: Scroll rows. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
 - **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
@@ -449,7 +449,7 @@ A grid feature can behave differently on a local array, on server pages and on s
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">One server data source (`useDataGridServerRows`)</th>
       <td className="text-center"><ParityCell status="n/a" note={"A local array needs no fetch."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Client pagination slices data."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"A client grid with defaultPageSize holds every row, so no fetch runs."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -600,7 +600,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 ### One server data source (`useDataGridServerRows`)
 
 - **L**: n/a: A local array needs no fetch.
-- **PC**: n/a: Client pagination slices `data`.
+- **PC**: n/a: A client grid with `defaultPageSize` holds every row, so no fetch runs.
 
 ### Error state and retry
 

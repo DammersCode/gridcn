@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
@@ -68,7 +68,7 @@ function warnUnknownSpecKey(columnId: string): void {
 
 function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const scoped = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  const scoped = scope === "all" ? state.data : fullViewOf(state.viewIndex).map((i) => state.data[i]);
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
   const rows = scoped.filter((row) => row !== undefined);
   if (rows.length !== scoped.length) warnSparseData(scope, scoped.length - rows.length);

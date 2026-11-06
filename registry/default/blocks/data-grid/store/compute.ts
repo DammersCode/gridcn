@@ -742,12 +742,49 @@ export function computeViewIndex(
   filterState: readonly FilterNode[],
   prevViewIndex?: readonly number[],
   cellTypes?: Record<string, CellType>,
+  window: ViewWindow = null,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   // Quick-search never narrows viewIndex — it only highlights/navigates.
   const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState });
-  if (prevViewIndex && sameElements(next, prevViewIndex)) return prevViewIndex as number[];
-  return next;
+  const prevFull = prevViewIndex ? fullViewOf(prevViewIndex) : undefined;
+  const full = prevFull && sameElements(next, prevFull) ? (prevFull as number[]) : next;
+  return windowView(full, window, prevViewIndex);
+}
+
+/** The page of the view the grid shows: `pageSize` rows of the sorted and filtered list. `null` shows every row. */
+export type ViewWindow = { page: number; pageSize: number } | null;
+
+const FULL_VIEW = new WeakMap<readonly number[], number[]>();
+
+/** The whole sorted and filtered list behind a paged `viewIndex`; a view without a window is its own full list. */
+export function fullViewOf(viewIndex: readonly number[]): number[] {
+  return FULL_VIEW.get(viewIndex) ?? (viewIndex as number[]);
+}
+
+/** The last page that holds rows (at least 1) for `total` rows. */
+export function lastPageOf(total: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+}
+
+/** The page the window shows: `page` clamped into `[1, lastPage]`. */
+export function effectivePage(page: number, total: number, pageSize: number): number {
+  return Math.min(Math.max(1, Math.floor(page) || 1), lastPageOf(total, pageSize));
+}
+
+export function viewWindowOf(s: Pick<DataGridStoreState, "page" | "pageSize">): ViewWindow {
+  return s.pageSize === null ? null : { page: s.page, pageSize: s.pageSize };
+}
+
+/** Slices `full` to the window and remembers the full list; keeps `prev` when it already shows the same rows of the same list. */
+export function windowView(full: number[], window: ViewWindow, prev?: readonly number[]): number[] {
+  if (window === null) return full;
+  const size = Math.max(1, Math.floor(window.pageSize));
+  const start = (effectivePage(window.page, full.length, size) - 1) * size;
+  const slice = full.slice(start, start + size);
+  if (prev && FULL_VIEW.get(prev) === full && sameElements(slice, prev)) return prev as number[];
+  FULL_VIEW.set(slice, full);
+  return slice;
 }
 
 /**

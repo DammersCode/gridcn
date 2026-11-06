@@ -4,8 +4,8 @@ description: Client slicing and server mode, with server mode shown through TanS
 icon: Files
 ---
 
-`useDataGridPagination` has two modes. Client mode slices a dataset you already hold in
-memory. Server mode only does the page math. You own `page`, `pageSize`, `totalRowCount`, and
+Pagination has two modes. Client mode pages the view of a dataset you already hold in
+memory (`defaultPageSize` on the provider). Server mode (`useDataGridServerPager`) only does the page math. You own `page`, `pageSize`, `totalRowCount`, and
 fetching the page yourself. The same server mode pairs with any fetch layer: the three pages
 below.
 

@@ -8,7 +8,7 @@
     {
       "id": "PC",
       "label": "Client pagination",
-      "description": "`useDataGridPagination` slices `data` into pages.",
+      "description": "`defaultPageSize` pages the view of the whole `data`.",
       "evidencePattern": "paginat"
     },
     {
@@ -2185,7 +2185,7 @@
       "id": "unknown-total",
       "feature": "Unknown total and cursor paging",
       "options": [
-        "hasNextPage"
+        "hasMore"
       ],
       "cells": {
         "L": {
@@ -2248,7 +2248,7 @@
         },
         "PC": {
           "status": "n/a",
-          "reason": "Client pagination slices `data`."
+          "reason": "A client grid with `defaultPageSize` holds every row, so no fetch runs."
         },
         "PS": {
           "status": "supported",

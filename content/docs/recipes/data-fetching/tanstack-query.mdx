@@ -63,7 +63,7 @@ instead of a new `data` array. See [Streaming updates](/docs/streaming-updates).
 
 <NewBadge />
 
-A keyset API sends a cursor and no row count. `useInfiniteQuery` keeps the chain: `getNextPageParam` returns the `next` cursor, and `undefined` ends the source. Feed the flattened pages to the grid for infinite scroll, or show `data.pages[page - 1]` with `hasNextPage` for a pager:
+A keyset API sends a cursor and no row count. `useInfiniteQuery` keeps the chain: `getNextPageParam` returns the `next` cursor, and `undefined` ends the source. Feed the flattened pages to the grid for infinite scroll, or show `data.pages[page - 1]` with `hasMore` for a pager:
 
 <ComponentPreview name="data-grid-cursor-react-query-demo" />
 

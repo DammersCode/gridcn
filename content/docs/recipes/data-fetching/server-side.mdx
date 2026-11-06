@@ -132,8 +132,8 @@ A feed can write into the grid with `updateCells` and `deleteRowsById({ source: 
 Pass the filtered row count to the provider as `totalRowCount`. It sizes the "select all" count and
 marks `data` as a window of a larger result. A server that sends no count has two connections:
 
-- Pages: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. The footer shows
-  "Page N" and enables Next while `hasNextPage` is true. See [Pagination](/docs/pagination#without-a-total).
+- Pages: `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })`. The footer shows
+  "Page N" and enables Next while `hasMore` is true. See [Pagination](/docs/pagination#without-a-total).
 - Scroll: `useDataGridServerRows({ mode: "scroll" })` loads a cursor chain and grows the list in steps. Answer
   `{ rows, nextCursor }`, or `{ rows, hasMore }` without a cursor. See
   [A source with no total](/docs/lazy-loading#a-source-with-no-total). `gridProps` carries `totalRowCount: null` until the source ends.

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyChangeWith, defaultGetRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridPagination, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
@@ -499,12 +499,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     },
     [setPageSize, setPage],
   );
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     pageSizeOptions,
     totalRowCount: cursorSource ? null : shown.totalRowCount,
-    hasNextPage: shown.hasMore && !awaitingChain,
+    hasMore: shown.hasMore && !awaitingChain,
     onPageChange: setPage,
     onPageSizeChange,
   });

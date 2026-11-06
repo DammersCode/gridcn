@@ -85,6 +85,8 @@ export {
   type GateContext,
   type GateName,
   type SaveAck,
+  type RowActionResult,
+  type RowActionSkipReason,
   type SaveConflictContext,
   type SaveRejectedContext,
   type SaveResolution,

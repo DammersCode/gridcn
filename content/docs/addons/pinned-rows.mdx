@@ -123,12 +123,8 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
     bridges the two: it renders as a plain child under the provider and reports the result through
     `onChange` into parent state, which is what feeds `topRows`/`bottomRows`.
 
-    <Callout type="warn" title="Under client-mode pagination, a totals band is page-local">
-      The grid's `data` is the current page's slice. So `useDataGridAggregate` sums only that page's
-      rows, and `scope: "all"` does not help. The slice is the grid's whole `data`. For
-      dataset-wide totals, use `DataGridServerAggregateReporter` (see the Server totals tab). See
-      [Pagination](/docs/pagination).
-    </Callout>
+    Under client paging (`defaultPageSize`), `useDataGridAggregate` sums every row the filter leaves, not one page. For totals over rows your server holds, use `DataGridServerAggregateReporter` (see the Server totals tab). See
+    [Pagination](/docs/pagination).
 
     <Callout type="warn" title="Not supported on a scroll-mode grid">
       On a `useDataGridServerRows({ mode: "scroll" })` grid, unloaded rows are `undefined` holes. The aggregate skips them (a

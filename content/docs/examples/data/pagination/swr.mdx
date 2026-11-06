@@ -23,7 +23,7 @@ const { data, isLoading, mutate } = useSWR(
   (key) => api.fetchPage({ page: key[1], pageSize: key[2] }),
 );
 
-const { pager } = useDataGridPagination({
+const { pager } = useDataGridServerPager({
   page,
   pageSize,
   totalRowCount: data?.total ?? initialTotal,

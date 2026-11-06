@@ -187,17 +187,16 @@ something `<DataGridUrlState>` mounts for you:
 "use client";
 
 import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
-import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
-function OrdersGrid({ rows, totalRowCount }: { rows: Order[]; totalRowCount: number }) {
+function OrdersGrid({ rows }: { rows: Order[] }) {
   const url = useDataGridUrlPagination();
-  const { pager } = useDataGridPagination({ totalRowCount, ...url });
 
   return (
-    <>
-      <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager} />
-    </>
+    <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} {...url}>
+      {/* grid parts */}
+      <DataGridPaginationBar />
+    </DataGridProvider>
   );
 }
 ```
@@ -208,7 +207,7 @@ writes use `history: "replace"`, same as this add-on's other params. Options: `p
 `page`/`pageSize` the same way as `sort`/`filter`/`q`), `defaultPageSize` (default 25),
 `pageSizeOptions` (an out-of-range URL `pageSize` falls back to the default instead of being
 trusted; omitted, the pager's default list 10/25/50/100 is the gate), and `totalRowCount` <NewBadge /> (the row count;
-see below). The result carries the resolved `pageSizeOptions`. Pass them to `useDataGridPagination`
+see below). The result carries the resolved `pageSizeOptions`. Pass them to `useDataGridPager` or `useDataGridServerPager`
 so the bar's page-size select and the URL's allow-list stay the same list.
 
 When you pass `totalRowCount`, an out-of-range deep-linked `page` clamps to the last page once it is
@@ -220,11 +219,11 @@ const url = useDataGridUrlPagination({ totalRowCount: rows.length });
 ```
 
 See [Pagination](/docs/pagination#composing-with-data-grid-url-state) for the full composition,
-including why server mode (not client mode) is the fit.
+for a client grid and a server grid.
 
 Changing `pageSize` resets the URL's `page` to 1. A page number is only valid for the size it was
 chosen at, so the reset is the contract of this URL composition. Note that client mode of
-`useDataGridPagination` keeps the first visible row on a page-size change instead. The two
+the grid's own `setPageSize` keeps the first visible row on a page-size change instead. The two
 surfaces differ deliberately.
 
 ## With saved views

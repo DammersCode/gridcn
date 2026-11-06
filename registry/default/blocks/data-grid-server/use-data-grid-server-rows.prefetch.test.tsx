@@ -281,7 +281,7 @@ describe("prefetchNextPage", () => {
   it("ignores the count and hasMore of an entry that was not adopted", async () => {
     const s = server({ answer: (page) => (page === 1 ? Array.from({ length: PAGE }, (_, i) => person(i)) : [person(10)]) });
     const view = await mount(s);
-    expect(view.result.current.pager.hasNextPage).toBe(true);
+    expect(view.result.current.pager.hasMore).toBe(true);
     expect(view.result.current.totalRowCount).toBe(100);
   });
 

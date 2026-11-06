@@ -138,8 +138,7 @@ With `source`, `DataGridExportButton` adds "Export all rows" items. The plain it
 rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". The button
 announces the row count when the export ends, and says so when a limit made the file incomplete.
 
-For client pages (`useDataGridPagination` with `data`), pass `source: () => allRows`. The grid
-holds one page, so its sort and filter cover that page only. The source returns the rows in the
+For server pages, pass `source: () => allRows`. A client grid with `defaultPageSize` holds every row, so its plain export items cover all pages already. The source returns the rows in the
 order you choose.
 
 | Option | Default | Meaning |

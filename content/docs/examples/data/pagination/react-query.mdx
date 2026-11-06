@@ -4,7 +4,7 @@ description: Server-mode pagination with useQuery, where the page is the cache k
 icon: Zap
 ---
 
-`useDataGridPagination` in server mode plus `useQuery`: the current `[page, pageSize]` is
+`useDataGridServerPager` in server mode plus `useQuery`: the current `[page, pageSize]` is
 the query key, `keepPreviousData` keeps the old page on screen while the next one loads,
 and a page you already visited comes back instantly from the cache.
 
@@ -24,7 +24,7 @@ const query = useQuery({
   placeholderData: keepPreviousData,
 });
 
-const { pager } = useDataGridPagination({
+const { pager } = useDataGridServerPager({
   page,
   pageSize,
   totalRowCount: query.data?.total ?? initialTotal,

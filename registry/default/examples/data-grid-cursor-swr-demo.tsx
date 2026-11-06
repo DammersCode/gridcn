@@ -4,7 +4,7 @@ import { useId, useMemo, useState, type ReactNode } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Button } from "@/components/ui/button";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { type DemoRow } from "./demo-data";
 import { createRemoteServer } from "./fake-remote-server";
 
@@ -66,11 +66,11 @@ function Pages(): ReactNode {
   const { data, setSize, isValidating, hasNextPage } = useCursorRows(PAGE_SIZE);
   const [page, setPage] = useState(1);
   const loaded = data?.length ?? 0;
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize: PAGE_SIZE,
     totalRowCount: null,
-    hasNextPage: page < loaded || hasNextPage,
+    hasMore: page < loaded || hasNextPage,
     pageSizeOptions: [PAGE_SIZE],
     onPageChange: (next) => {
       if (next <= loaded) setPage(next);

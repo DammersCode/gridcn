@@ -46,7 +46,7 @@ Rules that make this work, and break silently if skipped:
 
 import { useEffect, useState } from "react";
 import { DataGrid, type SortSpec } from "@/components/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
 function OrdersGrid() {
   const [page, setPage] = useState(1);
@@ -65,7 +65,7 @@ function OrdersGrid() {
     return () => { stale = true; };
   }, [page, pageSize, sorts]);
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: total,
@@ -127,5 +127,5 @@ empty group           -> matches every row (emit no predicate)
 ## No row count (cursor or "has more" APIs)
 
 - Scroll: `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source; any other value (including `0`) means more. Without a cursor, resolve `{ rows, hasMore }`; `hasMore: false` ends the source. The hook keeps the first `end - start` rows of a longer answer. Blocks load in order, one at a time. A spec change restarts at block 0 by itself; `refresh()` refetches from the first block and keeps rows with a pending save. `evict` does nothing.
-- Pagination: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
+- Pagination: `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
 - Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

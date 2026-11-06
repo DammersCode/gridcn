@@ -72,7 +72,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage`, `storageKey`, `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
-| Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
+| Pagination | `defaultPageSize` on the provider + `DataGridPaginationBar` (client); `useDataGridServerPager` + `DataGridPaginationBar {...pager}` (server) | the bar reads the pager from the provider when you spread nothing; spread `pager` and it works outside the provider too |
 
 `keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
 the `DataGrid` wrapper), never of `DataGridRoot`.
