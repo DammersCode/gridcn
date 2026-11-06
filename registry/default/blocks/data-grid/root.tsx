@@ -28,7 +28,6 @@ import {
   useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridSelectionConfig,
-  useDataGridSelector,
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
@@ -244,7 +243,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // Only an explicit prop skips the measurement entirely, so an `ltr` page (the overwhelmingly
   // common case) settles on the same value it started with and never re-renders for this.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (directionProp !== undefined) return;
     setDomDirection(readResolvedDirection(scrollRef.current));
   }, [directionProp]);
@@ -362,8 +361,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
   // store actions can size columns with canvas `measureText` without their own DOM query;
-  // cleared on unmount. Declared before the autosizeOnMount effect below so a same-mount run
-  // already finds the getter registered.
+  // cleared on unmount.
   useEffect(() => {
     internalActions._registerMeasureFonts(() => {
       const root = scrollRef.current;
@@ -371,10 +369,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
       const cell = root.querySelector<HTMLElement>('[role="gridcell"][data-column-id]');
       const header = root.querySelector<HTMLElement>('[role="columnheader"]');
-      const cellStyle = cell ? getComputedStyle(cell) : null;
+      // Body cells inherit the root's font; with no row mounted yet the root stands in.
+      const cellStyle = getComputedStyle(cell ?? root);
       return {
-        cellFont: cellStyle?.font ?? "",
-        cellPadding: cellStyle ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
+        cellFont: cellStyle.font,
+        cellPadding: cell ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
         headerFont: header ? getComputedStyle(header).font : "",
         window: canvas
           ? {
@@ -388,31 +387,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     });
     return () => internalActions._registerMeasureFonts(null);
   }, [internalActions, renderHeaderMenu, renderHeaderFilter]);
-
-  // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
-  // first page). Runs once per mount. A saved layout wins: columns with a saved width
-  // (`columnWidths`, e.g. from `defaultColumnLayout`) keep it and are left out of the pass. The
-  // one-shot store subscription avoids re-rendering this tree per view change.
-  const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
-  const autoSizedOnMount = useRef(false);
-  useEffect(() => {
-    if (!autosizeOnMount || autoSizedOnMount.current) return;
-    const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
-    let unsubscribe: () => void = () => {};
-    const run = () => {
-      if (autoSizedOnMount.current) return;
-      const s = storeApi.getState();
-      if (s.viewIndex.length === 0) return;
-      autoSizedOnMount.current = true;
-      unsubscribe();
-      const saved = new Set(Object.keys(s.columnWidths));
-      const columnIds = (base?.columnIds ?? s.visibleColumns.map((column) => column.id)).filter((id) => !saved.has(id));
-      actions.autosizeColumns({ ...base, columnIds });
-    };
-    unsubscribe = storeApi.subscribe(run);
-    run();
-    return unsubscribe;
-  }, [autosizeOnMount, actions, storeApi]);
 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.

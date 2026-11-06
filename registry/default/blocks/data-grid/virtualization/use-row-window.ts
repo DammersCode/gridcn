@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { isDev } from "../is-dev";
 import { getElementStore, INITIAL_SNAPSHOT, type ScrollSnapshot } from "./use-scroll-snapshot";
 import { createVelocityEstimator, updateVelocityEstimate, VELOCITY_OVERSCAN_CAP_PX, type VelocityEstimator } from "./velocity-estimator";
@@ -12,8 +12,8 @@ export type RowWindow = {
   windowTop: number;
   /**
    * False only for the one render before the scroll element is attached and its mount effect has
-   * measured it (`computeWindow`'s `!element` fallback) — that render's `{start,end}` is a fixed
-   * guess (`[0, min(rowCount,30))`), not a real layout observation, and is always immediately
+   * measured it (`computeWindow`'s `!element` fallback) — that render's `{start,end}` is a guess
+   * (empty on a client mount, a 30-row preview on the server and during hydration), and is always immediately
    * superseded by a real one in the same effect flush. Consumers gating `onRenderedRowsChange` on this
    * (see body.tsx) skip notifying for it, so a fresh mount fires the callback once (the real window),
    * not twice (guess, then correction) — same data either way, just the transient guess suppressed.
@@ -38,17 +38,28 @@ export type UseRowWindowOptions = {
 /** Hard cap on rendered rows — an unbounded-height grid degrades to this instead of freezing the tab. */
 const MAX_RENDERED_ROWS = 200;
 
+/** Rows the server renders (and the client hydrates) before the scroll element's height is known. */
+const SERVER_PREVIEW_ROWS = 30;
+
 let warnedUnboundedHeight = false;
+
+const subscribeNever = () => () => {};
+
+/** True while the server renders and while the client hydrates that HTML; false for a client-only mount. */
+function useServerPass(): boolean {
+  return useSyncExternalStore(subscribeNever, () => false, () => true);
+}
 
 function computeWindow(
   element: HTMLElement | null,
   snapshot: ScrollSnapshot,
   opts: Required<UseRowWindowOptions>,
   velocityPx: number,
+  previewRows = 0,
 ): RowWindow {
   const { rowCount, rowHeight, dataRowTop, bottomInset, overscan } = opts;
   if (!element) {
-    return { start: 0, end: Math.min(rowCount, 30), windowTop: 0, measured: false, element: null };
+    return { start: 0, end: Math.min(rowCount, previewRows), windowTop: 0, measured: false, element: null };
   }
   const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
   const clientHeight = Math.max(0, rawClientHeight - bottomInset);
@@ -134,9 +145,10 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
 
   // Inline opts object (not the per-render `resolvedOpts`): every value the memo callback reads
   // must be a declared dep for the React Compiler to preserve the manual memoization.
+  const previewRows = useServerPass() ? SERVER_PREVIEW_ROWS : 0;
   const rowWindow = useMemo(
-    () => computeWindow(element, element ? (tick.snapshot ?? INITIAL_SNAPSHOT) : INITIAL_SNAPSHOT, { rowCount, rowHeight, dataRowTop, bottomInset, overscan }, tick.estimate),
-    [element, tick, rowCount, rowHeight, dataRowTop, bottomInset, overscan],
+    () => computeWindow(element, element ? (tick.snapshot ?? INITIAL_SNAPSHOT) : INITIAL_SNAPSHOT, { rowCount, rowHeight, dataRowTop, bottomInset, overscan }, tick.estimate, previewRows),
+    [element, tick, rowCount, rowHeight, dataRowTop, bottomInset, overscan, previewRows],
   );
 
   // The listener's skip-compare cache: the last committed window, synced post-commit (pre-paint)

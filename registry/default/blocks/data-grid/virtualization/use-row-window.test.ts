@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createRef } from "react";
+import { createElement, createRef, type RefObject } from "react";
+import { renderToString } from "react-dom/server";
 import { useRowWindow } from "./use-row-window";
 import { getElementStore } from "./use-scroll-snapshot";
 import { VELOCITY_OVERSCAN_CAP_PX } from "./velocity-estimator";
@@ -19,20 +20,31 @@ function makeScrollElement(scrollTop: number, clientHeight: number): HTMLDivElem
 }
 
 describe("useRowWindow", () => {
-  it("returns the SSR-safe initial window before the element is available", () => {
+  const serverWindow = (rowCount: number) => {
+    const ref: RefObject<HTMLElement | null> = createRef<HTMLElement | null>();
+    let seen: ReturnType<typeof useRowWindow> | null = null;
+    const Probe = () => {
+      seen = useRowWindow(ref, { rowCount, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT });
+      return null;
+    };
+    renderToString(createElement(Probe));
+    return seen;
+  };
+
+  it("server-renders a preview window before the element is available", () => {
+    expect(serverWindow(10000)).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
+  });
+
+  it("caps the server preview window to rowCount when fewer rows than the default preview", () => {
+    expect(serverWindow(5)).toEqual({ start: 0, end: 5, windowTop: 0, measured: false, element: null });
+  });
+
+  it("renders no rows on a client mount before the element is available", () => {
     const ref = createRef<HTMLElement | null>();
     const { result } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
-  });
-
-  it("caps the initial window to rowCount when fewer rows than the default preview", () => {
-    const ref = createRef<HTMLElement | null>();
-    const { result } = renderHook(() =>
-      useRowWindow(ref, { rowCount: 5, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
-    );
-    expect(result.current).toEqual({ start: 0, end: 5, windowTop: 0, measured: false, element: null });
+    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: false, element: null });
   });
 
   it("computes start/end from scrollTop with header offset and default overscan", () => {
@@ -110,7 +122,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
+    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(0, 1440);
     rerender();
@@ -125,7 +137,7 @@ describe("useRowWindow", () => {
     const { result, rerender } = renderHook(() =>
       useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }),
     );
-    expect(result.current).toEqual({ start: 0, end: 30, windowTop: 0, measured: false, element: null });
+    expect(result.current).toEqual({ start: 0, end: 0, windowTop: 0, measured: false, element: null });
 
     ref.current = makeScrollElement(HEADER_HEIGHT + 5000 * ROW_HEIGHT, 360);
     rerender();

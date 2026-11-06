@@ -313,7 +313,11 @@ export function useElementDimensions(scrollRef: RefObject<HTMLElement | null>): 
 
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el !== element) setElement(el);
+    if (el === element) return;
+    setElement(el);
+    if (!el) return;
+    const { clientWidth, clientHeight } = getElementStore(el).getSnapshot();
+    setDimensions({ clientWidth, clientHeight });
   });
 
   useEffect(() => {
