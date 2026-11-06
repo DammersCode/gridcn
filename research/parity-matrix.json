@@ -87,7 +87,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx"
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
           ]
         },
         "SS": {
@@ -145,7 +145,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx"
+            "content/docs/(build)/sort-filter-search/filtering.mdx"
           ]
         },
         "SS": {
@@ -254,19 +254,19 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx"
+            "content/docs/(build)/sort-filter-search/quick-search.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx"
+            "content/docs/(build)/sort-filter-search/quick-search.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx"
+            "content/docs/(build)/sort-filter-search/quick-search.mdx"
           ]
         },
         "FS": {
@@ -323,7 +323,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/selection-shortcuts/index.mdx"
+            "content/docs/(build)/selection-shortcuts/checked-rows.mdx"
           ]
         },
         "SS": {
