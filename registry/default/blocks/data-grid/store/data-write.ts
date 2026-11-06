@@ -10,6 +10,7 @@ import {
   pruneCellErrors,
   remapRowChannel,
   selectCellOf,
+  pageStartOf,
   fullViewOf,
   viewWindowOf,
   windowView,
@@ -807,21 +808,31 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
   const OK: RowActionResult = { ok: true };
-  const skipped = (reason: RowActionSkipReason): RowActionResult => ({ ok: false, reason });
+  const skippedBy = (action: "insertRows" | "duplicateRows" | "deleteRows", reason: RowActionSkipReason): RowActionResult => {
+    const handler = get().onRowActionSkipped;
+    if (handler) {
+      try {
+        handler({ action, reason });
+      } catch (error) {
+        warnDev(`onRowActionSkipped threw: ${String(error)}`);
+      }
+    }
+    return { ok: false, reason };
+  };
   const requestDelete = (dataRowIndexes: number[]): RowActionResult => {
     const s = get();
-    if (s.readOnly) return skipped("readOnly");
-    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skipped("unloaded-rows");
+    if (s.readOnly) return skippedBy("deleteRows", "readOnly");
+    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skippedBy("deleteRows", "unloaded-rows");
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
       return OK;
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
-    if (rowIds.length === 0) return skipped("nothing-to-do");
+    if (rowIds.length === 0) return skippedBy("deleteRows", "nothing-to-do");
     if (deleteRun && !deleteRun.aborted) {
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
-      return skipped("gate-pending");
+      return skippedBy("deleteRows", "gate-pending");
     }
     const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
     const run = ctx.gates.begin("onBeforeDeleteRows");
@@ -830,10 +841,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       verdict = confirm({ rowIds, hiddenCount, signal: run.signal });
     } catch (error) {
       warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
-      return skipped("gate-threw");
+      return skippedBy("deleteRows", "gate-threw");
     }
     if (typeof verdict === "boolean") {
-      if (!verdict) return skipped("gate-declined");
+      if (!verdict) return skippedBy("deleteRows", "gate-declined");
       deleteDataRows(dataRowIndexes);
       return OK;
     }
@@ -1013,8 +1024,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const canMoveRows = (s: DataGridStoreState): boolean => {
     if (!s.enableRowReorder || s.readOnly) return false;
-    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
-      warnDev("reorderRows is a no-op while a sort, filter, or page is active (the view order is owned by them)");
+    if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+      warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
       return false;
     }
     return true;
@@ -1047,14 +1058,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = nextData;
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
-    const follow = (row: number) => newIndexOf[row] ?? row;
+    const pageStart = pageStartOf(s.viewIndex);
+    const follow = (row: number) => (newIndexOf[row + pageStart] ?? row + pageStart) - pageStart;
     const announcement = announceRowMove(s, plan);
     const movedCount = plan.sources.length;
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
         data: nextData,
         rowIdentityVersion: s.rowIdentityVersion + 1,
-        selection: remapSelectionRows(s.selection, newIndexOf),
+        selection: s.pageSize === null ? remapSelectionRows(s.selection, newIndexOf) : emptySelection(),
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
@@ -1377,21 +1389,21 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
-      if (s.readOnly) return skipped("readOnly");
+      if (s.readOnly) return skippedBy("insertRows", "readOnly");
       if (!s.createRow) {
         warnDev("row insertion is a no-op because no `createRow` prop was provided");
-        return skipped("no-factory");
+        return skippedBy("insertRows", "no-factory");
       }
       if (count <= 0 || !Number.isInteger(count)) {
         if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
-        return skipped("nothing-to-do");
+        return skippedBy("insertRows", "nothing-to-do");
       }
       if (createRun && !createRun.aborted) {
         warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
-        return skipped("gate-pending");
+        return skippedBy("insertRows", "gate-pending");
       }
       const anchor = s.viewIndex[viewRowIndex];
-      if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skipped("unloaded-rows");
+      if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skippedBy("insertRows", "unloaded-rows");
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
       const run = ctx.gates.begin("createRow");
@@ -1433,20 +1445,20 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     duplicateRows(viewRowIndexes) {
       const s = get();
-      if (s.readOnly) return skipped("readOnly");
+      if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
       if (!s.duplicateRow) {
         warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
-        return skipped("no-factory");
+        return skippedBy("duplicateRows", "no-factory");
       }
       if (duplicateRun && !duplicateRun.aborted) {
         warnGateOnce("duplicateRow pending", "a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle");
-        return skipped("gate-pending");
+        return skippedBy("duplicateRows", "gate-pending");
       }
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
-      if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skipped("unloaded-rows");
+      if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skippedBy("duplicateRows", "unloaded-rows");
       const run = ctx.gates.begin("duplicateRow");
       const copies = startDuplicateCopies(s, dataRowIndexes, { signal: run.signal });
-      if (!copies) return skipped("nothing-to-do");
+      if (!copies) return skippedBy("duplicateRows", "nothing-to-do");
       if (Array.from(copies.values()).some((copy) => isThenable(copy))) {
         holdDuplicateCopies(s, run, copies);
         return OK;
@@ -1457,12 +1469,15 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     reorderRows(rows, to) {
       const s = get();
       if (!canMoveRows(s)) return false;
-      return applyRowMoves(s, planBlockMove(s.data.length, typeof rows === "number" ? [rows] : rows, to));
+      const start = pageStartOf(s.viewIndex);
+      const page = (typeof rows === "number" ? [rows] : rows).map((row) => row + start);
+      return applyRowMoves(s, planBlockMove(s.data.length, page, to + start));
     },
     moveRowsBy(rows, delta) {
       const s = get();
       if (!canMoveRows(s)) return false;
-      return applyRowMoves(s, planShiftMove(s.data.length, rows, delta));
+      const start = pageStartOf(s.viewIndex);
+      return applyRowMoves(s, planShiftMove(s.data.length, rows.map((row) => row + start), delta));
     },
     replaceRowId(oldId, row) {
       get().actions.replaceRowIds([{ oldId, row }]);

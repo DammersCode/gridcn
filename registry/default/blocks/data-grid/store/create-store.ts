@@ -950,6 +950,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             onPageChange: props.onPageChange,
             onPageSizeChange: props.onPageSizeChange,
             gateTimeoutMs: props.gateTimeoutMs,
+            onRowActionSkipped: props.onRowActionSkipped,
             onGateAborted: props.onGateAborted,
             onSave: props.onSave,
             onSaveRejected: props.onSaveRejected,

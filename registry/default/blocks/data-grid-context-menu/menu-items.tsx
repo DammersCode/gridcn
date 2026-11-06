@@ -188,14 +188,14 @@ export function useDefaultCellMenuItems(args: {
   }
   if (canInsertRow) {
     specs.push(
-      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
-      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], disabled: readOnly, onClick: () => actions.insertRow(row, "below") },
+      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
+      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "below") },
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
   return specs;
 }
 

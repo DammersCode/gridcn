@@ -13,11 +13,11 @@ export type UseDataGridPagerOptions = {
 };
 
 /**
- * The pager of a grid that pages its view (`pageSize` on `DataGridProvider`). Call it under the provider and spread the result onto
+ * The pager of a grid that pages its view, as `{ pager }` like `useDataGridServerPager` (`pageSize` on `DataGridProvider`). Call it under the provider and spread the result onto
  * `DataGridPaginationBar`, or build your own controls from it. The total counts every row the sort and filter leave, not one page.
  * A grid without `pageSize` reads as one page that holds every row.
  */
-export function useDataGridPager(options: UseDataGridPagerOptions = {}): DataGridPaginationControls {
+export function useDataGridPager(options: UseDataGridPagerOptions = {}): { pager: DataGridPaginationControls } {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const { actions } = useDataGridApi();
   const requestedPage = useDataGridSelector<unknown, number>((s) => s.page);
@@ -30,7 +30,7 @@ export function useDataGridPager(options: UseDataGridPagerOptions = {}): DataGri
     if (configuredSize !== null && total > 0 && page !== requestedPage) actions.setPage(page);
   }, [actions, configuredSize, page, requestedPage]);
 
-  return useMemo<DataGridPaginationControls>(() => {
+  const pager = useMemo<DataGridPaginationControls>(() => {
     const lastPage = pageCount(total, pageSize);
     return {
       page,
@@ -43,4 +43,5 @@ export function useDataGridPager(options: UseDataGridPagerOptions = {}): DataGri
       onPageSizeChange: (next) => actions.setPageSize(next),
     };
   }, [actions, page, pageSize, pageSizeOptions, total]);
+  return { pager };
 }

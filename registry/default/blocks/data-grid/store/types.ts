@@ -220,6 +220,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * (a gate waits for its promise).
    */
   gateTimeoutMs?: number | Partial<Record<GateName, number>>;
+  /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `deleteRowsById`) does nothing, with its name and the reason; the action also returns it. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
+  onRowActionSkipped?: (ctx: { action: "insertRows" | "duplicateRows" | "deleteRows"; reason: RowActionSkipReason }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
    * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.

@@ -107,3 +107,25 @@ describe("useSaveRefresh", () => {
     await expect(m.save()).resolves.toBe(ack);
   });
 });
+
+describe("useSaveRefresh, bypass warning", () => {
+  it("warns once when a save starts but the hook's onSave never ran", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let listener: (() => void) | null = null;
+    renderHook(() => useSaveRefresh({ onSave: async () => {} }, vi.fn(), (next) => (listener = next)));
+    listener!();
+    listener!();
+    await flush();
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("did not run"))).toHaveLength(1);
+  });
+
+  it("stays quiet when the wrapper ran", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let listener: (() => void) | null = null;
+    const hook = renderHook(() => useSaveRefresh({ onSave: async () => {} }, vi.fn(), (next) => (listener = next)));
+    await hook.result.current!(change);
+    listener!();
+    await flush();
+    expect(warn).not.toHaveBeenCalled();
+  });
+});

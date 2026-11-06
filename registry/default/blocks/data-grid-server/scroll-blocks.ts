@@ -287,7 +287,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -979,7 +979,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const refreshAfterSave = useCallback(() => {
     if (canRevalidate()) refresh();
   }, [canRevalidate, refresh]);
-  const onSave = useSaveRefresh(options, refreshAfterSave);
+  const onSave = useSaveRefresh(options, refreshAfterSave, setSaveCheckListener);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({

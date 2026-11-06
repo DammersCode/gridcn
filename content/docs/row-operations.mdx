@@ -228,7 +228,7 @@ function MyToolbar() {
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
 | `"nothing-to-do"` | No target row matched, or `count` was 0. |
 
-`reorderRows` and `moveRowsBy` return `true` or `false`.
+`onRowActionSkipped({ action, reason })` on the provider fires for every skip, whether a shortcut, a menu item, or a call started it <NewBadge />. A disabled menu item shows the reason as its tooltip. `reorderRows` and `moveRowsBy` return `true` or `false`.
 
 Selection behavior: insert and duplicate keep the selection, offsetting it around the inserted
 rows. Delete clears the entire selection and the active cell. All three fire `onDataChange` with

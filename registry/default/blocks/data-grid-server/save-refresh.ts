@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DataChange, SaveAck } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** What `refreshAfterSave` sees when it decides: the saves that settled since the last refresh. */
 export type SaveRefreshReport = {
@@ -40,7 +41,7 @@ export const SAVE_REFRESH_MAX_WAIT_MS = 10_000;
  * Wraps the caller's `onSave` so the hook refreshes after saves settle by the caller's policy. Returns `undefined` without an
  * `onSave`, so spreading `gridProps` never overrides a provider `onSave` of your own.
  */
-export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void): ((change: DataChange<TData>) => void | Promise<SaveAck<TData>>) | undefined {
+export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void, setSaveCheckListener?: (listener: (() => void) | null) => void): ((change: DataChange<TData>) => void | Promise<SaveAck<TData>>) | undefined {
   const live = useRef({ options, refresh });
   useLayoutEffect(() => {
     live.current = { options, refresh };
@@ -97,10 +98,25 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   );
 
   const hasSave = options.onSave !== undefined;
+  const calls = useRef({ ran: 0, seen: 0, warned: false });
+  useEffect(() => {
+    if (!hasSave || !setSaveCheckListener || !isDev()) return;
+    setSaveCheckListener(() => {
+      const counts = calls.current;
+      counts.seen += 1;
+      setTimeout(() => {
+        if (counts.ran >= counts.seen || counts.warned) return;
+        counts.warned = true;
+        console.warn("[data-grid-server] a save started, but the onSave you gave the hook did not run: an onSave prop on DataGridProvider after {...gridProps} replaced it, so refreshAfterSave is off. Pass onSave to the hook, or call refresh() yourself");
+      }, 0);
+    });
+    return () => setSaveCheckListener(null);
+  }, [hasSave, setSaveCheckListener]);
   const onSave = useCallback(
     (change: DataChange<TData>): void | Promise<SaveAck<TData>> => {
       const run = live.current.options.onSave;
       if (!run) return undefined;
+      calls.current.ran += 1;
       let result: void | Promise<SaveAck<TData>>;
       try {
         result = run(change);

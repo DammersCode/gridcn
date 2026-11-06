@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DataChange, DataGridPlugin, DataGridReadState, DataGridStoreWrapper } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowIdAtViewRow, setCellValue, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, rowIdAtViewRow, setCellValue, setServerReshapeHandler, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
  * The rule: a block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending
@@ -33,6 +33,12 @@ type Holder = {
   onStructuralSettled: (() => void) | null;
   /** Called when a row's save starts. */
   onSaveStarted: (() => void) | null;
+  /** Second save-start listener, for the check that the hook's `onSave` ran. */
+  onSaveStartedCheck: (() => void) | null;
+  /** Changes the hook's `onDataChange` merged, and changes the plugin observed; a gap means a provider `onDataChange` replaced the merge. */
+  merged: number;
+  seen: number;
+  mergeWarned: boolean;
   /** Called when the last saving row leaves `"saving"`. */
   onSavesSettled: (() => void) | null;
   /** Called when the grid asks for a reshape: `reconcileView()`, an immediate push, or a deferred push that marked a row. */
@@ -50,6 +56,10 @@ function setListenerOn(holder: Holder, listener: (() => void) | null) {
 
 function setSaveListenerOn(holder: Holder, listener: (() => void) | null) {
   holder.onSaveStarted = listener;
+}
+
+function setSaveCheckOn(holder: Holder, listener: (() => void) | null) {
+  holder.onSaveStartedCheck = listener;
 }
 
 function setSettledListenerOn(holder: Holder, listener: (() => void) | null) {
@@ -102,6 +112,7 @@ function pushedSinceOn(holder: Holder, generation: number): ReadonlyMap<string, 
 
 function markEditedOn(holder: Holder) {
   holder.edited = true;
+  holder.merged += 1;
 }
 
 function trackSaves(holder: Holder, state: DataGridReadState, prev: DataGridReadState) {
@@ -120,7 +131,10 @@ function trackSaves(holder: Holder, state: DataGridReadState, prev: DataGridRead
     started = true;
     if (holder.recording) holder.savedAt.set(id, ++holder.generation);
   }
-  if (started) holder.onSaveStarted?.();
+  if (started) {
+    holder.onSaveStarted?.();
+    holder.onSaveStartedCheck?.();
+  }
   if (holder.onSavesSettled && hasSaving(prev.saveStatus) && !hasSaving(state.saveStatus)) holder.onSavesSettled();
 }
 
@@ -169,6 +183,11 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     name: "server-rows-refresh-guard",
     Mount: RefreshGuardMount,
     onDataChange: (_next, change) => {
+      holder.seen += 1;
+      if (isDev() && holder.merged < holder.seen && !holder.mergeWarned) {
+        holder.mergeWarned = true;
+        console.warn("[data-grid-server] a change reached the grid, but the hook's onDataChange merge did not run: an onDataChange prop on DataGridProvider after {...gridProps} replaced it, so edits vanish on the next render. Pass your handler to the hook's onDataChange option instead");
+      }
       trackStructural(holder, change);
       trackUnacknowledgedRows(holder, change);
       trackPushedCells(holder, change);
@@ -183,7 +202,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSavesSettled: null, onReshape: null, pushed: new Map(), trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSaveStartedCheck: null, merged: 0, seen: 0, mergeWarned: false, onSavesSettled: null, onReshape: null, pushed: new Map(), trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -202,6 +221,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
   const savedSince = useCallback((mark: number) => savedSinceOn(holder, mark), [holder]);
   const setSettleListener = useCallback((listener: (() => void) | null) => setListenerOn(holder, listener), [holder]);
   const setSaveStartListener = useCallback((listener: (() => void) | null) => setSaveListenerOn(holder, listener), [holder]);
+  const setSaveCheckListener = useCallback((listener: (() => void) | null) => setSaveCheckOn(holder, listener), [holder]);
   const setSavesSettledListener = useCallback((listener: (() => void) | null) => setSettledListenerOn(holder, listener), [holder]);
   const setReshapeListener = useCallback((listener: ((trigger: "urgent" | "stale") => void) | null) => setReshapeOn(holder, listener), [holder]);
   const forgetStructural = useCallback(() => {
@@ -243,7 +263,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
     },
     [holder],
   );
-  return { plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  return { setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 /**

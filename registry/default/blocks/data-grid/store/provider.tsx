@@ -116,6 +116,7 @@ const CONFIG_KEYS = [
   "onPageSizeChange",
   "onPageChange",
   "gateTimeoutMs",
+  "onRowActionSkipped",
   "onGateAborted",
   "onSave",
   "onSaveRejected",

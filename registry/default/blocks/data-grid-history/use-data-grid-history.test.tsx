@@ -278,7 +278,16 @@ describe("useDataGridHistory", () => {
     expect(h.history().canRedo).toBe(false);
   });
 
-it("record() warns in development when an inserted row is already in data", () => {    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});    const h = setupHarness();    const existing = initialRows[0]!;    act(() => h.history().record({ source: "app", ops: [{ type: "insert", rowId: "a", row: existing, index: 0 }] }));    expect(warn.mock.calls.filter((c) => String(c[0]).includes("already holds"))).toHaveLength(1);  });
+  it("record() skips an insert of a row that data already holds, with a development warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = setupHarness();
+    const existing = initialRows[0]!;
+    act(() => h.history().record({ source: "app", ops: [{ type: "insert", rowId: "a", row: existing, index: 0 }] }));
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("already holds"))).toHaveLength(1);
+    expect(h.data()).toHaveLength(initialRows.length);
+    expect(h.history().canUndo).toBe(false);
+  });
+
   it("record() applies a programmatic change and registers it as one undo step", () => {
     const h = setupHarness();
     const prev = initialRows[0]!;

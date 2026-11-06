@@ -98,3 +98,48 @@ describe("paging the view, controlled size", () => {
     expect(m.shown()).toHaveLength(3);
   });
 });
+
+describe("paging the view: search and reorder", () => {
+  it("quick search counts matches on every page and highlights the shown page", () => {
+    const m = mount();
+    act(() => m.state().actions.setSearch("9"));
+    expect(m.state().searchMatches.map((x) => x.row)).toEqual([9]);
+    expect(m.state().searchMatchSet.size).toBe(0);
+    act(() => m.state().actions.setPage(4));
+    expect(m.state().searchMatchSet.size).toBe(1);
+  });
+
+  it("reorderRows moves a row of the shown page by page rows", () => {
+    const m = mount({ enableRowReorder: true });
+    act(() => m.state().actions.setPage(2));
+    expect(m.shown()).toEqual(["r3", "r4", "r5"]);
+    act(() => void m.state().actions.reorderRows(0, 2));
+    expect(m.shown()).toEqual(["r4", "r5", "r3"]);
+  });
+
+  it("reorderRows stays blocked while a sort is active", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ enableRowReorder: true });
+    act(() => m.state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
+    expect(m.state().actions.reorderRows(0, 1)).toBe(false);
+  });
+});
+
+describe("totalRowCount default modes", () => {
+  const flush = () => act(async () => {});
+
+  it("warns once when totalRowCount makes sorting server-side and nothing handles it", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount({ defaultPageSize: undefined, totalRowCount: 100 });
+    await flush();
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("server-side by default"))).toHaveLength(1);
+  });
+
+  it("stays quiet with an explicit mode or a handler", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount({ defaultPageSize: undefined, totalRowCount: 100, sortMode: "client" });
+    mount({ defaultPageSize: undefined, totalRowCount: 100, onSortChange: () => {} });
+    await flush();
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("server-side by default"))).toHaveLength(0);
+  });
+});

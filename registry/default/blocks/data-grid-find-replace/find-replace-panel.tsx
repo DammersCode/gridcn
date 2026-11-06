@@ -34,6 +34,9 @@ import {
   useDataGridSelector,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
+  effectivePage,
+  fullViewOf,
+  pageStartOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_REPLACE_INPUT_LENGTH, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
 
@@ -192,8 +195,16 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       const match = list[wrapped]!;
       const col = api.store.getState().visibleColumns.findIndex((c) => c.id === match.columnId);
       if (col === -1) return;
-      api.actions.setActiveCellAt({ col, row: match.row });
-      scrollToCell({ col, row: match.row });
+      const state = api.store.getState();
+      let row = match.row;
+      if (state.pageSize !== null) {
+        const page = Math.floor(match.row / state.pageSize) + 1;
+        if (effectivePage(state.page, fullViewOf(state.viewIndex).length, state.pageSize) !== page) api.actions.setPage(page);
+        if (api.store.getState().page !== page) return;
+        row = match.row - pageStartOf(api.store.getState().viewIndex);
+      }
+      api.actions.setActiveCellAt({ col, row });
+      scrollToCell({ col, row });
     },
     [api, scrollToCell],
   );
@@ -228,10 +239,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const s = api.store.getState();
     const active = s.activeCell;
     const activeColumnId = active ? s.visibleColumns[active.col]?.id : undefined;
-    const onActive = active && s.searchMatches.find((m) => m.row === active.row && m.columnId === activeColumnId);
+    const start = pageStartOf(s.viewIndex);
+    const onActive = active && s.searchMatches.find((m) => m.row === active.row + start && m.columnId === activeColumnId);
     const match = onActive || s.searchMatches[cursor];
     if (!match) return null;
-    const dataIndex = s.viewIndex[match.row];
+    const dataIndex = fullViewOf(s.viewIndex)[match.row];
     const row = dataIndex === undefined ? undefined : s.data[dataIndex];
     if (dataIndex === undefined || row === undefined) return null;
     return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };

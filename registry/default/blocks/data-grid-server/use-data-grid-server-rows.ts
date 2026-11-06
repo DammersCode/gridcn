@@ -191,6 +191,16 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   return resolved.mode === "scroll" ? useScrollBlocks(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>) : usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>);
 }
 
+/** `useDataGridServerRows` fixed to pages mode, so the mode cannot change under a mounted hook. */
+export function useDataGridServerPages<TData, TCursor = never>(options: Omit<UseDataGridServerRowsOptions<TData, TCursor>, "mode">): UseDataGridServerRowsResult<TData> {
+  return useDataGridServerRows<TData, TCursor>({ ...options, mode: "pages" });
+}
+
+/** `useDataGridServerRows` fixed to scroll mode, so the mode cannot change under a mounted hook. */
+export function useDataGridServerScroll<TData, TCursor = never>(options: Omit<UseDataGridServerRowsScrollOptions<TData, TCursor>, "mode">): UseDataGridServerRowsScrollResult<TData> {
+  return useDataGridServerRows<TData, TCursor>({ ...options, mode: "scroll" });
+}
+
 function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
@@ -208,7 +218,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
+  const { setSaveCheckListener, plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
@@ -509,7 +519,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     onPageSizeChange,
   });
 
-  const onSave = useSaveRefresh(options, refresh);
+  const onSave = useSaveRefresh(options, refresh, setSaveCheckListener);
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({

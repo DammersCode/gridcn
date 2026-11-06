@@ -1,4 +1,4 @@
-import { useDataGridServerRows, type DataSourceState } from "./use-data-grid-server-rows";
+import { useDataGridServerPages, useDataGridServerRows, useDataGridServerScroll, type DataSourceState } from "./use-data-grid-server-rows";
 
 type Row = { id: string };
 const getRowId = (row: Row) => row.id;
@@ -65,4 +65,11 @@ export function cursorPages() {
 export function defaultRowId() {
   useDataGridServerRows<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
   useDataGridServerRows<Row>({ mode: "scroll", fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+}
+
+export function fixedModes() {
+  const pages = useDataGridServerPages<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  pages.pager.page satisfies number;
+  const scroll = useDataGridServerScroll<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  scroll.unloadedCount satisfies number;
 }
