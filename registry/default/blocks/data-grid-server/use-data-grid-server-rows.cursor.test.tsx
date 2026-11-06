@@ -128,7 +128,7 @@ describe("cursor pages, races", () => {
   });
 
   it("keeps later cursors when a refetch returns the same next cursor", async () => {
-    const { hook, requests, settle, goTo } = setup();
+    const { requests, settle, goTo } = setup();
     await settle();
     await goTo(2);
     await goTo(3);
