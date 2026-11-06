@@ -1,9 +1,55 @@
 ---
 title: Data modes
-description: Data modes.
+description: Pick how the grid gets its rows, where sort, filter, and search run, and find the pages that wire each data mode to your API.
 type: landing
 ---
 
-{/* docs-stub */}
+A data mode is one way the grid gets its rows. The mode also decides who applies the sort, the filter, and the search text. This area covers the pages that apply to every server mode.
 
-This page is being written.
+<Cards>
+  <Card
+    title="Data mode support"
+    description="Look up which grid features work in each data mode, and where a known gap remains."
+    href="/docs/data-modes/data-mode-support"
+  />
+  <Card
+    title="Query server rows"
+    description="Send the sort, filter, and search text of the grid to your server, and show the rows that come back."
+    href="/docs/data-modes/query-server-rows"
+  />
+  <Card
+    title="Fetch with a cache"
+    description="Put a fetch cache between the grid and your API, for a plain array, pages, or scroll blocks."
+    href="/docs/data-modes/fetch-cache"
+  />
+  <Card
+    title="Troubleshoot server data"
+    description="Find the cause of missing rows, a wrong page count, lost edits, or a lost selection, and fix it."
+    href="/docs/data-modes/troubleshoot-server-data"
+  />
+</Cards>
+
+## Pick the strategy for your data [#pick-the-strategy-for-your-data]
+
+| Your data | Data mode | Start here |
+| --- | --- | --- |
+| The browser holds every row. | Local array | [Compare data modes](/docs/server-path/compare-data-modes) |
+| Your API returns one page for each request. | Pages mode | [Server pagination](/docs/server-pagination) |
+| Your API reads rows by offset and returns the row count. | Scroll mode, random access | [Scroll mode](/docs/scroll-mode) |
+| Your API returns a next cursor and no row count. | Scroll mode, sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
+
+Live values add to any of these modes. See [Rows and live data](/docs/rows-live-data). One grid cannot use scroll mode and pagination together.
+
+## Pick where the spec runs [#pick-where-the-spec-runs]
+
+The spec is what the user chose: `sorts`, `filters`, and `searchText`.
+
+| | Local array | Server mode |
+| --- | --- | --- |
+| Who applies the spec | The grid, over `data` | Your server |
+| Mode props | The defaults | `sortMode="server"` and `filterMode="server"` |
+| Rows the grid holds | All of `data` | A page or the loaded blocks |
+
+`useDataGridServerRows` sets both mode props for you. When `data` holds only part of the result, run the spec on the server. A client sort or filter cannot see the rows the grid never fetched, and it warns once in development.
+
+[Query server rows](/docs/data-modes/query-server-rows) shows how the server reads the spec. [Data mode support](/docs/data-modes/data-mode-support) lists each feature per mode.

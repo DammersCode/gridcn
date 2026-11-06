@@ -1,9 +1,37 @@
 ---
 title: Save to a server
-description: Save to a server.
+description: Send grid edits to your API from onSave, handle refused saves, show server errors on cells, and undo saved changes.
 type: landing
 ---
 
-{/* docs-stub */}
+The grid applies an edit at once. `onSave` sends the same change to your server, and the grid reverts a change that the server refuses.
 
-This page is being written.
+<Cards>
+  <Card
+    title="Save edits"
+    description="Send each edit, paste, fill, and row change of the grid to your API from onSave, and read the saving status of a row."
+    href="/docs/save-server/save-edits"
+  />
+  <Card
+    title="Save and revert"
+    description="Send each grid edit to your API from onSave, then roll the grid back on failure or refetch the rows after the server confirms."
+    href="/docs/save-server/save-revert"
+  />
+  <Card
+    title="Handle refused saves"
+    description="Answer from onSave with the rows the server refused, so the grid reverts only those rows and keeps the rest."
+    href="/docs/save-server/handle-refused-saves"
+  />
+  <Card
+    title="Show errors on cells"
+    description="Paint a server rejection on the exact cell it names with setCellErrors, keep the value, and clear the error when the user fixes it."
+    href="/docs/save-server/show-errors-cells"
+  />
+  <Card
+    title="Undo with server data"
+    description="Save undo and redo to your server, drop the undo entry of a refused save, and run the history add-on over scroll-mode rows."
+    href="/docs/save-server/undo-server-data"
+  />
+</Cards>
+
+For the first save of a new grid, follow [Plan server saves](/docs/server-path/plan-server-saves).

@@ -1,9 +1,22 @@
 ---
 title: Server pagination
-description: Server pagination.
+description: Load one page of rows per request from your server, show a pager, and keep the page in the URL.
 type: landing
 ---
 
-{/* docs-stub */}
+In pages mode, your server returns one page of rows for each request. The grid shows that page and a pager for the footer.
 
-This page is being written.
+<Cards>
+  <Card
+    title="Load rows by page"
+    description="Fetch one page of rows per request from your server, show a pager, and keep the page, the sort, the filter, and the row count in step."
+    href="/docs/server-pagination/load-rows-page"
+  />
+  <Card
+    title="Keep pages in URL"
+    description="Store the page and the page size of a server-paged grid in the URL, so a reload or a shared link opens the same page."
+    href="/docs/server-pagination/keep-pages-url"
+  />
+</Cards>
+
+If the whole array lives in the browser, use client pagination instead. See [Client pagination](/docs/rows-pages-menus/client-pagination). To pick between pages and scroll mode, see [Compare data modes](/docs/server-path/compare-data-modes).

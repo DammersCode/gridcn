@@ -1,9 +1,37 @@
 ---
 title: Rows and live data
-description: Rows and live data.
+description: Change, select, and stream rows of a server grid, and show or send the selections of other users.
 type: landing
 ---
 
-{/* docs-stub */}
+A server grid holds one page or the loaded blocks, and other users or feeds change the data while it is open. These pages cover row operations, selection across pages, and live values.
 
-This page is being written.
+<Cards>
+  <Card
+    title="Change server rows"
+    description="Insert, duplicate, delete, and move rows in a grid that loads rows from a server, and send each change to your API from onSave."
+    href="/docs/rows-live-data/change-server-rows"
+  />
+  <Card
+    title="Select server rows"
+    description="Keep checked rows across pages, select every matching row of a server result, and send the selection to your API as ids or as a spec."
+    href="/docs/rows-live-data/select-server-rows"
+  />
+  <Card
+    title="Stream updates"
+    description="Push live values into cells by row id with updateCells, without a full data replacement, and control how a sorted view reacts."
+    href="/docs/rows-live-data/stream-updates"
+  />
+  <Card
+    title="Show presence"
+    description="Paint the selections of remote users into the grid with the data-grid-presence add-on, without a re-render of any row or cell."
+    href="/docs/rows-live-data/show-presence"
+  />
+  <Card
+    title="Broadcast your selection"
+    description="Send your own selection to peers over a websocket as row ids, so every peer paints it correctly under its own sort and filter."
+    href="/docs/rows-live-data/broadcast-your-selection"
+  />
+</Cards>
+
+For a guided first stream, follow [Go live with streaming](/docs/server-path/go-live-streaming).
