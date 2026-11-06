@@ -127,7 +127,7 @@ describe("config home: keymap", () => {
 });
 
 describe("config home: untyped caller", () => {
-  it("warns once when sync props sit next to store", () => {
+  it("warns once per grid when sync props sit next to store", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let external: StoreApi<DataGridStoreState> | null = null;
     renderHook(() => {
@@ -147,9 +147,9 @@ describe("config home: untyped caller", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]![0])).toContain("ignores the sync props");
 
-    // the warning fires once per session, not per grid
+    // each grid warns once
     render(<DataGridProvider {...shellProps} />);
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
 });

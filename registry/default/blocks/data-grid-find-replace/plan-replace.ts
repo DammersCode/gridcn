@@ -8,6 +8,11 @@ export const MAX_REPLACED_CELL_LENGTH = 100_000;
 const DEFAULT_REPLACE_ALL_LIMIT = 10_000;
 const MAX_REPLACE_ALL_LIMIT = 100_000;
 
+/** The most cells one plan may target after `replaceAllLimit` is applied: default 10,000, clamped to 1..100,000. */
+export function resolveReplaceLimit(replaceAllLimit: number | undefined): number {
+  return Math.min(Math.max(Math.floor(replaceAllLimit ?? DEFAULT_REPLACE_ALL_LIMIT) || 1, 1), MAX_REPLACE_ALL_LIMIT);
+}
+
 /** What `planReplace` reads from the grid. */
 export type ReplaceState = Pick<DataGridReadState, "data" | "viewIndex" | "visibleColumns" | "cellTypes" | "getRowId" | "selection">;
 
@@ -130,7 +135,7 @@ export function planReplace(
 
   const { matchCase = false, wholeCell = false, scope = "view", only, skip } = options;
   const to = replacement.slice(0, MAX_REPLACE_INPUT_LENGTH);
-  const limit = Math.min(Math.max(Math.floor(options.replaceAllLimit ?? DEFAULT_REPLACE_ALL_LIMIT) || 1, 1), MAX_REPLACE_ALL_LIMIT);
+  const limit = resolveReplaceLimit(options.replaceAllLimit);
   const columns = state.visibleColumns.map((column) => planColumn(column, state.cellTypes));
 
   const visit = (colIndex: number, rowId: string, row: unknown): boolean => {

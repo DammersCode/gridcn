@@ -10,7 +10,7 @@ import {
   defineColumns,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { type DemoRow } from "./demo-data";
 import { createRemoteServer } from "./fake-remote-server";
 
@@ -22,7 +22,7 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * Server-mode pagination through TanStack Query: `useDataGridPagination` only owns the page
+ * Server-mode pagination through TanStack Query: `useDataGridServerPager` only owns the page
  * math; `useQuery` fetches the current `[page, pageSize]` from the fake server (~300 ms), and
  * `keepPreviousData` keeps the old page on screen while the next one loads. Edits write through
  * to the fake server, then `invalidateQueries` drops the cached pages so the grid refetches and
@@ -40,7 +40,7 @@ function PaginatedReactQueryGrid(): ReactNode {
     placeholderData: keepPreviousData,
   });
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: query.data?.total ?? server.total,

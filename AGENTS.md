@@ -1,6 +1,6 @@
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
@@ -93,6 +93,14 @@ Design every public hook, function, and component from the caller's side.
 - Boolean options are positive and default `false` (`disabled`, `readOnly`); feature gates are `enableX` and default `true`.
 - A hook that mounts a grid plugin returns `{ plugin }`; spreadable state hooks return `plugins`. Both work inline in `plugins={[...]}`.
 - A common task takes few lines in the docs example. If an example needs boilerplate every time, the library absorbs it.
+
+### API principles
+
+- Simplify the common case, never take capability away. A simplification is a sensible default plus an override. A capability that must go needs a strong reason in the commit and a fallback.
+- Every automatic behavior has an opt-out, a manual equivalent (such as `refresh()`), and a policy hook where policies differ (batching, timing, merging).
+- Keep escape hatches: callbacks with a ctx object, controlled mode, the ability to take over.
+- State in the commit body, or in `research/api-caveat-fixes.md`, what a developer could do before and that they still can.
+- Fix the trap in the library before you document it. A warning callout stays only for a limit the library cannot absorb.
 
 ## Registry exports (registry/default/blocks/**)
 

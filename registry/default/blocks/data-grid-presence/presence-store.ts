@@ -115,6 +115,53 @@ export type PresenceStoreState = {
 
 export type PresenceStoreApi = StoreApi<PresenceStoreState>;
 
+/** Upper bounds on peer-supplied data; entries past a bound are dropped or truncated. */
+export const MAX_PRESENCE_ENTRIES = 1000;
+const MAX_PRESENCE_ID_LENGTH = 256;
+const MAX_PRESENCE_COLOR_LENGTH = 128;
+const MAX_PRESENCE_LABEL_LENGTH = 64;
+const MAX_PRESENCE_IDS = 10_000;
+
+function isBoundedString(value: unknown, max: number): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= max;
+}
+
+function isBoundedIdList(value: unknown, max: number): value is string[] {
+  return Array.isArray(value) && value.length <= MAX_PRESENCE_IDS && value.every((id) => isBoundedString(id, max));
+}
+
+function safeKey(entry: unknown): string {
+  try {
+    return String(JSON.stringify(entry)).slice(0, MAX_PRESENCE_ID_LENGTH);
+  } catch {
+    return typeof entry;
+  }
+}
+
+/** Returns a fresh, validated copy of a peer entry (only known fields), or the reason it was dropped. A malformed `color` falls back to the primary color; a non-string `label` is removed and a long one truncated. */
+function sanitizeEntry(entry: unknown): PresenceHighlightEntry | string {
+  if (!entry || typeof entry !== "object") return "not an object";
+  const e = entry as Partial<Record<"id" | "color" | "label" | "rowId" | "columnId" | "rowIds" | "columnIds" | "range", unknown>>;
+  if (!isBoundedString(e.id, MAX_PRESENCE_ID_LENGTH)) return "missing or oversized id";
+  const base = {
+    id: e.id,
+    color: isBoundedString(e.color, MAX_PRESENCE_COLOR_LENGTH) ? e.color : "var(--color-primary)",
+    ...(typeof e.label === "string" && e.label.length > 0 ? { label: e.label.slice(0, MAX_PRESENCE_LABEL_LENGTH) } : {}),
+  };
+  if (isRowIdPresenceHighlight(e as PresenceHighlightEntry)) {
+    if (!isBoundedString(e.rowId, MAX_PRESENCE_ID_LENGTH) || !isBoundedString(e.columnId, MAX_PRESENCE_ID_LENGTH)) return "rowId-native entries need a non-empty columnId";
+    return { ...base, rowId: e.rowId, columnId: e.columnId };
+  }
+  if (isRowIdRangePresenceHighlight(e as PresenceHighlightEntry)) {
+    if (!isBoundedIdList(e.rowIds, MAX_PRESENCE_ID_LENGTH) || !isBoundedIdList(e.columnIds, MAX_PRESENCE_ID_LENGTH)) return "rowId-native range entries need string arrays rowIds and columnIds";
+    if (e.rowIds.length === 0 || e.columnIds.length === 0) return "empty rowIds/columnIds paint nothing";
+    return { ...base, rowIds: e.rowIds, columnIds: e.columnIds };
+  }
+  if (!isValidRange(e.range)) return "missing or malformed range (need finite x, y, width, height)";
+  const { x, y, width, height } = e.range;
+  return { ...base, range: { x, y, width, height } };
+}
+
 /**
  * One store instance per `useDataGridPresence()` call, mirroring core's one-store-per-grid pattern
  * (store.tsx's `createDataGridStore`). `setPresenceHighlights` REPLACES the whole list (snapshot
@@ -137,35 +184,13 @@ export function createPresenceStore(): PresenceStoreApi {
     setPresenceHighlights(highlights) {
       const cleaned: PresenceHighlightEntry[] = [];
       for (const entry of highlights) {
-        if (!entry || typeof entry !== "object") {
-          warnOnce(`entry:${String(entry)}`, "setPresenceHighlights: dropped a non-object entry (the payload should contain PresenceHighlightEntry objects)");
-          continue;
+        if (cleaned.length >= MAX_PRESENCE_ENTRIES) {
+          warnOnce("entries", `setPresenceHighlights: kept the first ${MAX_PRESENCE_ENTRIES} entries and dropped the rest`);
+          break;
         }
-        if (isRowIdPresenceHighlight(entry)) {
-          if (typeof entry.columnId !== "string" || entry.columnId.length === 0) {
-            warnOnce(`columnId:${JSON.stringify(entry)}`, `setPresenceHighlights: dropped rowId-native entry "${entry.id}" — rowId-native entries need a non-empty columnId`);
-            continue;
-          }
-          cleaned.push(entry);
-          continue;
-        }
-        if (isRowIdRangePresenceHighlight(entry)) {
-          if (!Array.isArray(entry.columnIds) || !entry.columnIds.every((id) => typeof id === "string")) {
-            warnOnce(`rowRange:${JSON.stringify(entry)}`, `setPresenceHighlights: dropped rowId-native range entry "${entry.id}" — rowId-native range entries need a string array columnIds`);
-            continue;
-          }
-          if (entry.rowIds.length === 0 || entry.columnIds.length === 0) {
-            warnOnce(`emptyRowRange:${entry.id}`, `setPresenceHighlights: dropped rowId-native range entry "${entry.id}" — empty rowIds/columnIds paint nothing`);
-            continue;
-          }
-          cleaned.push(entry);
-          continue;
-        }
-        if (!isValidRange(entry.range)) {
-          warnOnce(`range:${JSON.stringify(entry)}`, `setPresenceHighlights: dropped entry "${entry.id}" — missing or malformed range (need finite x, y, width, height)`);
-          continue;
-        }
-        cleaned.push(entry);
+        const result = sanitizeEntry(entry);
+        if (typeof result === "string") warnOnce(`${result}:${safeKey(entry)}`, `setPresenceHighlights: dropped an entry — ${result}`);
+        else cleaned.push(result);
       }
       set({ highlights: cleaned });
     },

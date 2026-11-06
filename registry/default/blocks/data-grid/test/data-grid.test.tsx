@@ -424,8 +424,8 @@ describe("aria-sort under the default headerClickBehavior", () => {
     );
     expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
     expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
-    // the visual arrow stays gated on the click behavior — the default "select" renders no indicator
-    expect(document.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
+    // the arrow shows for an active sort only, whatever the click behavior says
+    expect(document.querySelectorAll(gridAttrSelector("sortIndicator"))).toHaveLength(1);
   });
 
   it("omits aria-sort entirely when the column is sortable: false", () => {
@@ -1665,6 +1665,7 @@ describe("DataGridApi (imperative handle)", () => {
     act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     // name-asc: Alice(0) view 0, Bob(1) view 1, Charlie(2) view 2 — data order is Charlie first
     expect(ref.current!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(ref.current!.getViewRowIds({ loaded: true })).toEqual(["0", "1", "2"]);
     expect(ref.current!.getRow(0)?.id).toBe("0");
     expect(ref.current!.getRow(2)?.id).toBe("2");
     expect(ref.current!.getRow(99)).toBeUndefined();

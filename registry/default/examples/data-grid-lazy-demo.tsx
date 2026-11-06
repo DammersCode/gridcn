@@ -14,6 +14,8 @@ import { useDataGridServerRows, type ServerRowsRequest } from "@/registry/defaul
 const TOTAL_COUNT = 100_000;
 /** A few hundred ms per fetch (spec: "simulated-latency in-memory API") — slow enough that skeleton rows are visibly on-screen during a fast scroll, fast enough the demo stays pleasant. */
 const SIMULATED_LATENCY_MS = 400;
+/** A low cap, so a few scrolls show the least recently viewed blocks unloading. */
+const MAX_LOADED_ROWS = 2_000;
 
 type LazyRow = { id: string; name: string; email: string; score: number };
 
@@ -81,17 +83,26 @@ function createSimulatedApi() {
  * "simulate a permanent failure" fails every attempt until "fix backend" is clicked, showing why
  * a permanent failure needs the Retry button of the error bar rather than relying on the automatic refetch.
  *
+ * The counters show the request hygiene of the hook: a fast scroll starts few requests, a block that leaves the
+ * rendered rows aborts, and the loaded rows stay under `maxLoadedRows`.
+ *
  * "Evict loaded rows" calls `server.evict` over the whole range, so every loaded row becomes a
  * skeleton again and refetches on scroll — the memory-retention path from the same docs page.
  */
 export default function DataGridLazyDemo(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
   const [permanentlyBroken, setPermanentlyBroken] = useState(false);
+  const [requests, setRequests] = useState({ started: 0, aborted: 0 });
 
   const server = useDataGridServerRows<LazyRow>({
     mode: "scroll",
-    fetchRows: api.fetchRows,
+    fetchRows: (request) => {
+      setRequests((prev) => ({ ...prev, started: prev.started + 1 }));
+      request.signal.addEventListener("abort", () => setRequests((prev) => ({ ...prev, aborted: prev.aborted + 1 })), { once: true });
+      return api.fetchRows(request);
+    },
     getRowId: (row) => row.id,
+    maxLoadedRows: MAX_LOADED_ROWS,
   });
 
   return (
@@ -100,6 +111,8 @@ export default function DataGridLazyDemo(): ReactNode {
         <span>
           {(TOTAL_COUNT - server.unloadedCount).toLocaleString("en-US")} / {TOTAL_COUNT.toLocaleString("en-US")} rows loaded
           <span className={server.loading ? undefined : "invisible"}> · fetching…</span>
+          <span> · cap {MAX_LOADED_ROWS.toLocaleString("en-US")}</span>
+          <span> · requests started {requests.started}, aborted {requests.aborted}</span>
         </span>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="xs" onClick={() => api.failNextRange()}>

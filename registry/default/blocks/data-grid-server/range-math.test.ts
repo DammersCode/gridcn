@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges } from "./range-math";
+import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges } from "./range-math";
 
 describe("rangeSize", () => {
   it("returns end - start for a normal range", () => {
@@ -159,5 +159,17 @@ describe("mergeRanges", () => {
 
   it("drops empty ranges", () => {
     expect(mergeRanges([{ start: 5, end: 5 }, { start: 0, end: 10 }])).toEqual([{ start: 0, end: 10 }]);
+  });
+});
+
+describe("chunkAligned", () => {
+  it("cuts at the multiples of the size, not from the start of the range", () => {
+    expect(chunkAligned({ start: 100, end: 150 }, 50)).toEqual([{ start: 100, end: 150 }]);
+    expect(chunkAligned({ start: 121, end: 171 }, 50)).toEqual([{ start: 121, end: 150 }, { start: 150, end: 171 }]);
+  });
+
+  it("keeps a range inside one block whole and returns nothing for an empty range", () => {
+    expect(chunkAligned({ start: 3, end: 8 }, 10)).toEqual([{ start: 3, end: 8 }]);
+    expect(chunkAligned({ start: 5, end: 5 }, 10)).toEqual([]);
   });
 });

@@ -10,6 +10,7 @@ const PAGE_FILE = "content/docs/(server)/data-modes/data-mode-support.mdx";
 const BLOCKS = "registry/default/blocks";
 const OPTION_SOURCES = [
   { file: `${BLOCKS}/data-grid/store/types.ts`, type: "DataGridSyncProps" },
+  { file: `${BLOCKS}/data-grid-server/use-data-grid-server-rows.ts`, type: "UseDataGridServerRowsOptions" },
   { file: `${BLOCKS}/data-grid-server/scroll-blocks.ts`, type: "UseDataGridServerRowsScrollOptions" },
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationClientOptions" },
   { file: `${BLOCKS}/data-grid-pagination/use-data-grid-pagination.ts`, type: "UseDataGridPaginationServerOptions" },

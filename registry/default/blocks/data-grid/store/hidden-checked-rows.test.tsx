@@ -83,8 +83,8 @@ describe("keepHiddenCheckedRows", () => {
     expect(m.hiddenIds()).toEqual([]);
   });
 
-  it("needs keepCheckedRows", () => {
-    const m = mount({ keepCheckedRows: false });
+  it("rememberCheckedRows false turns the memory off, and the deprecated alias still turns it on", () => {
+    const m = mount({ rememberCheckedRows: false });
     m.check(0, 1);
     m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
@@ -205,7 +205,7 @@ describe("keepHiddenCheckedRows", () => {
     m.clearFilter();
     m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("keepHiddenCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
   });
 
   it("lazy data with unloaded rows ignores the option and warns once", () => {
@@ -217,7 +217,7 @@ describe("keepHiddenCheckedRows", () => {
     m.clearFilter();
     m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("keepHiddenCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
   });
 
   it("a delete of the visible checks never reaches a hidden row", () => {
@@ -375,7 +375,7 @@ describe("hidden checked rows: sortMode and cap", () => {
     expect(m.hiddenIds()).toEqual(["a", "b"]);
     m.rerender({ sortMode: "server" });
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("keepHiddenCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
   });
 
   it("over the cap, new hidden ids are dropped and earlier ones stay", () => {

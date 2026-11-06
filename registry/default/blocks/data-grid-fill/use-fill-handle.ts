@@ -330,13 +330,18 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           if (!dragRef.current || dragRef.current.pointerId !== event.pointerId) return;
           cancelFillDrag();
         };
+        const onBlur = () => cancelFillDrag();
         document.addEventListener("pointermove", onMove);
         document.addEventListener("pointerup", onUp);
         document.addEventListener("pointercancel", onCancel);
+        document.addEventListener("lostpointercapture", onCancel);
+        window.addEventListener("blur", onBlur);
         documentListenersRef.current = () => {
           document.removeEventListener("pointermove", onMove);
           document.removeEventListener("pointerup", onUp);
           document.removeEventListener("pointercancel", onCancel);
+          document.removeEventListener("lostpointercapture", onCancel);
+          window.removeEventListener("blur", onBlur);
         };
       }
     },

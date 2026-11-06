@@ -3,9 +3,20 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import type { DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { FindReplacePanel, type PanelStore } from "./find-replace-panel";
+import type { PanelOptions } from "./find-replace-panel";
 import type { ReplaceOptions } from "./plan-replace";
 
-export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit">;
+export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit"> & {
+  /** Shows "Searches loaded rows only" in the panel. Default: on while the grid has a `totalRowCount` or a server `sortMode` or `filterMode`; set `true` for client pages, which hold one page of the rows. */
+  showScope?: boolean;
+  /**
+   * Runs after the plan is built and before it is written. Return the plan to write (it may add, drop, or
+   * change patches), or `false` to cancel. The returned plan may hold at most `replaceAllLimit` patches;
+   * more cancels the replace. Each patch still goes through the column's `fromText` and `validate`.
+   * `signal` aborts when a newer replace starts or the panel closes; a late answer is dropped.
+   */
+  onReplace?: PanelOptions["onReplace"];
+};
 
 export type UseDataGridFindReplaceResult = {
   /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` and `openFind` commands, and their `ctrl+h` and `mod+f` bindings. */
@@ -18,7 +29,7 @@ export type UseDataGridFindReplaceResult = {
 function createPanelStore(): PanelStore {
   const listeners = new Set<() => void>();
   let state = { open: false, mode: "replace" as "find" | "replace", openCount: 0 };
-  let options: ReplaceOptions = {};
+  let options: PanelOptions = {};
   return {
     getOptions: () => options,
     setOptions(next) {

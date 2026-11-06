@@ -82,6 +82,18 @@ export function chunkRange(range: RowRange, max: number): RowRange[] {
   return chunks;
 }
 
+/** Splits `range` at the multiples of `size`, so each chunk lies inside one block of the grid of blocks. */
+export function chunkAligned(range: RowRange, size: number): RowRange[] {
+  const step = Math.max(1, Math.floor(size));
+  const chunks: RowRange[] = [];
+  for (let start = range.start; start < range.end; ) {
+    const end = Math.min(range.end, (Math.floor(start / step) + 1) * step);
+    chunks.push({ start, end });
+    start = end;
+  }
+  return chunks;
+}
+
 /** Merges a list of ranges (any order/overlap) into the minimal set of disjoint, non-touching ranges. */
 export function mergeRanges(ranges: readonly RowRange[]): RowRange[] {
   const sorted = ranges

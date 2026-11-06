@@ -21,7 +21,7 @@ function keyset(size: number) {
 const never = () => new Promise<never>(() => {});
 const view = (end: number): RowRange => ({ start: 0, end });
 type Extra = Partial<UseDataGridServerRowsScrollOptions<Row, number>>;
-const optionsOf = (fetchRows: Fetch, extra: Extra = {}): UseDataGridServerRowsScrollOptions<Row, number> => ({ mode: "scroll", getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
+const optionsOf = (fetchRows: Fetch, extra: Extra = {}): UseDataGridServerRowsScrollOptions<Row, number> => ({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
 
 function mount(fetchRows: Fetch, extra: Extra = {}) {
   return renderHook(() => useDataGridServerRows<Row, number>(optionsOf(fetchRows, extra)));
@@ -171,7 +171,7 @@ describe("scroll mode, sequential: the chain", () => {
     const cycle = ["a", "b", "a", "c"];
     let call = 0;
     const fetchRows = vi.fn(async ({ start, end }: ServerRowsRequest<Cursor>): Promise<ServerRowsAnswer<Row, Cursor>> => ({ rows: rowsOf(start, end - start), nextCursor: { after: cycle[call++]! } }));
-    const { result } = renderHook(() => useDataGridServerRows<Row, Cursor>({ mode: "scroll", getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 }));
+    const { result } = renderHook(() => useDataGridServerRows<Row, Cursor>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     for (const end of [10, 20, 30, 40]) {
       report(result, view(end));
@@ -484,5 +484,24 @@ describe("scroll mode, sequential: refresh in place", () => {
     expect(result.current.refresh).toBe(before.refresh);
     expect(result.current.retry).toBe(before.retry);
     expect(result.current.gridProps).toBe(before.gridProps);
+  });
+});
+
+describe("scroll mode, declared source", () => {
+  it('source "cursor" is sequential even when the first answer carries a count', async () => {
+    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: rowsOf(start, end - start), totalRowCount: 500, hasMore: true }));
+    const { result } = mount(fetchRows, { source: "cursor" });
+    await settled(result);
+    expect(result.current.gridProps.data).toHaveLength(20);
+    expect(result.current.unloadedCount).toBe(10);
+  });
+
+  it('source "indexed" warns about an answer without a count, and the rows end at the block', async () => {
+    const warn = spyWarn();
+    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: rowsOf(start, end - start), hasMore: true }));
+    const { result } = mount(fetchRows, { source: "indexed" });
+    await settled(result);
+    expect(warningsAbout(warn, "totalRowCount")).toHaveLength(1);
+    expect(result.current.gridProps.data).toHaveLength(10);
   });
 });

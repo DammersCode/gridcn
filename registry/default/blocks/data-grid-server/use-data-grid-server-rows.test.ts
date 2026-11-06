@@ -133,7 +133,7 @@ describe("useDataGridServerRows", () => {
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     expect(result.current.gridProps.totalRowCount).toBeNull();
-    expect(result.current.pager).toMatchObject({ totalRowCount: null, hasNextPage: true });
+    expect(result.current.pager).toMatchObject({ totalRowCount: null, hasMore: true });
   });
 
   it("warns once and keeps only pageSize rows when the answer is longer", async () => {
@@ -185,7 +185,7 @@ describe("useDataGridServerRows", () => {
     const fetchRows = vi.fn<Fetch>(async () => ({ rows: rowsOf(0, 10) }));
     const { result } = make(fetchRows);
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
-    expect(result.current.pager.hasNextPage).toBe(true);
+    expect(result.current.pager.hasMore).toBe(true);
   });
 
   it("the page clamps when the total shrinks below it", async () => {
@@ -497,5 +497,15 @@ describe("useDataGridServerRows", () => {
       }
       expect(warn.mock.calls.filter(([message]) => String(message).includes("mode"))).toHaveLength(1);
     });
+  });
+});
+
+describe("useDataGridServerRows default getRowId", () => {
+  it("reads the id field when getRowId is omitted", async () => {
+    const fetchRows = server();
+    const { result } = renderHook(() => useDataGridServerRows<Row>({ fetchRows }));
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    expect(result.current.gridProps.getRowId({ id: "r1" }, 0)).toBe("r1");
+    expect(result.current.gridProps.data).toHaveLength(10);
   });
 });

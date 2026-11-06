@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cellTypes, type AnyColumnDef, type FilterNode, type FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { DISTINCT_VALUES_CAP, distinctColumnValues, type DistinctValuesInput } from "./distinct-values";
+import { DISTINCT_VALUES_CAP, distinctColumnValues, isOwnSetFilter, type DistinctValuesInput } from "./distinct-values";
 
 type Row = { city?: unknown; age?: unknown; status?: unknown; day?: unknown };
 
@@ -128,5 +128,33 @@ describe("distinctColumnValues under filterMode server", () => {
       filterMode: "server",
     } as unknown as Parameters<typeof distinctColumnValues>[0];
     expect(distinctColumnValues(state, "city").values.map((v) => v.text)).toEqual(["A", "B"]);
+  });
+});
+
+describe("isOwnSetFilter", () => {
+  it("counts a custom operator holding a list as the column's own set row", () => {
+    const custom = new Map([
+      ["tagged", { id: "tagged", label: "tagged", input: "list" as const }],
+      ["span", { id: "span", label: "spans", input: "range" as const }],
+    ]);
+    expect(isOwnSetFilter({ columnId: "c", operator: "tagged", value: ["a"] }, "c", custom)).toBe(true);
+    expect(isOwnSetFilter({ columnId: "c", operator: "span", value: ["1", "2"] }, "c", custom)).toBe(false);
+    expect(isOwnSetFilter({ columnId: "c", operator: "isBetween", value: ["1", "2"] }, "c")).toBe(false);
+    expect(isOwnSetFilter({ columnId: "c", operator: "isAnyOf", value: ["a"] }, "c")).toBe(true);
+  });
+});
+
+describe("distinctColumnValues with a custom list row", () => {
+  const tagged = { id: "tagged", label: "tagged", input: "list" as const, match: (text: string, filter: FilterSpec) => Array.isArray(filter.value) && filter.value.includes(text) };
+  const cols = [{ id: "city", accessorKey: "city", header: "City", filterOperators: [tagged] }] as AnyColumnDef[];
+  const data: Row[] = [{ city: "a" }, { city: "b" }];
+  const state = { ...input(data, [{ columnId: "city", operator: "tagged", value: ["a"] }]), columns: cols };
+
+  it("keeps the row out of the value list by default", () => {
+    expect(distinctColumnValues(state, "city").values.map((v) => v.key)).toEqual(["a", "b"]);
+  });
+
+  it("applies the row when the caller does not write it", () => {
+    expect(distinctColumnValues(state, "city", false).values.map((v) => v.key)).toEqual(["a"]);
   });
 });

@@ -11,7 +11,7 @@
  *     can't know. This file's `declare module` below is exactly that augmentation, proving
  *     `cell-types.ts` still compiles with it present.
  *
- * (b) Built-in drift (a missing or mistyped entry for one of the five REAL built-ins) still fails.
+ * (b) Built-in drift (a missing or mistyped entry for one of the seven REAL built-ins) still fails.
  *     `cellTypes` itself can't be mutated to prove this without breaking the shipped registry, so
  *     a structurally identical mock registry is checked the same way, with `@ts-expect-error`
  *     proving the mistake is still caught.

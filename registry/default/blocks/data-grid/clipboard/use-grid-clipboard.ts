@@ -11,6 +11,8 @@ import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { createWarnOnce, isThenable } from "../store/async-gate";
+import { GateRun } from "../store/gate-signal";
+import { gateTrackerOf } from "../store/internal-actions";
 import { exportText } from "../cell-types/display-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
@@ -333,22 +335,34 @@ function applyParsedPaste(
   const target = resolvePasteTarget(s);
   if (!target) return false;
   const latch = pasteLatchOf(actions);
-  if (latch.gate) {
+  if (latch.gate && !latch.run?.aborted) {
     latch.warnOnce("pending", `a paste was requested while the promise of ${latch.gate} is still pending, so it is ignored; the promise must settle`);
     return false;
   }
 
   const tiled = tileToHeight(cells, targetHeight(s));
-  const gated = s.processPaste ? s.processPaste({ cells: tiled, target }) : tiled;
+  const run = new GateRun("processPaste", (now) => now.readOnly || now.editing !== null);
+  const gated = s.processPaste ? s.processPaste({ cells: tiled, target, signal: run.signal }) : tiled;
   if (!isThenable<string[][] | false>(gated)) return runPaste(s, actions, gated, target, latch, guard, storeApi);
 
+  const gates = storeApi ? gateTrackerOf(storeApi) : undefined;
   latch.gate = "processPaste";
+  latch.run = run;
+  gates?.hold(run);
+  const finish = (): boolean => {
+    gates?.settle(run);
+    if (latch.run === run) {
+      latch.gate = null;
+      latch.run = null;
+    }
+    return !run.aborted;
+  };
   const token = guard?.begin();
   const anchor = pasteAnchor(s, target);
   const snapshot = snapshotBulkBatch(s, anchor ? [anchor.rowId] : []);
   void gated.then(
     (final) => {
-      latch.gate = null;
+      if (!finish()) return;
       const current = storeApi?.getState() ?? s;
       try {
         const now = final === false ? null : stillPastable(current, anchor, target, guard, token, snapshot);
@@ -359,21 +373,21 @@ function applyParsedPaste(
       }
     },
     (error: unknown) => {
-      latch.gate = null;
+      if (!finish()) return;
       latch.warnOnce("rejected", `processPaste rejected, so the paste is cancelled: ${String(error)}`);
     },
   );
   return true;
 }
 
-type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; warnOnce: (key: string, message: string) => void };
+type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; run: GateRun | null; warnOnce: (key: string, message: string) => void };
 const pasteLatches = new WeakMap<object, PasteLatch>();
 
 /** One latch per grid: the pending gate blocks a second paste, whatever surface it comes from. */
 function pasteLatchOf(actions: DataGridActions): PasteLatch {
   let latch = pasteLatches.get(actions);
   if (!latch) {
-    latch = { gate: null, warnOnce: createWarnOnce() };
+    latch = { gate: null, run: null, warnOnce: createWarnOnce() };
     pasteLatches.set(actions, latch);
   }
   return latch;
@@ -572,6 +586,13 @@ export function useGridClipboard(options: UseGridClipboardOptions): void {
     },
     [storeApi, actions, guard],
   );
+
+  useEffect(() => {
+    const latch = pasteLatchOf(actions);
+    return () => {
+      if (latch.run) internalActions._gates().abortRun(latch.run);
+    };
+  }, [actions, internalActions]);
 
   useEffect(() => {
     const root = rootRef.current;

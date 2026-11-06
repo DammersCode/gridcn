@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
-import { pageWindow } from "./pagination-math";
+import { useDataGridPager } from "./use-data-grid-pager";
+import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
 import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
@@ -30,7 +31,11 @@ function usePaginationBarContext(part: string): PaginationBarContextValue {
 }
 
 /** Props for {@link DataGridPaginationBar}. */
-export type DataGridPaginationBarProps = DataGridPaginationControls & {
+type BarControls = Omit<DataGridPaginationControls, "pageSizeOptions">;
+
+export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControls]?: never }) & {
+  /** Page sizes the select offers. Default: the controls' own list (10, 25, 50, 100 inside a provider). */
+  pageSizeOptions?: readonly number[];
   className?: string;
   /**
    * i18n override for this footer's strings, deep-merge semantics like core's `labels` prop
@@ -58,8 +63,17 @@ export type DataGridPaginationBarProps = DataGridPaginationControls & {
  * which mode it's rendering for.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const { page, pageCount, pageSize, pageSizeOptions, totalRowCount, hasNextPage, onPageChange, onPageSizeChange, className, labels: labelsOverride, windowSize, children } = props;
-  const controls: DataGridPaginationControls = { page, pageCount, pageSize, pageSizeOptions, totalRowCount, hasNextPage, onPageChange, onPageSizeChange };
+  return props.page === undefined ? <ProviderPaginationBar {...props} /> : <PaginationBarView {...props} controls={{ ...(props as BarControls), pageSizeOptions: props.pageSizeOptions ?? DEFAULT_PAGE_SIZES }} />;
+}
+
+/** The bar of a grid that pages its view: the controls come from the enclosing `DataGridProvider`. */
+function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
+  const controls = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
+  return <PaginationBarView {...props} controls={controls} />;
+}
+
+function PaginationBarView(props: DataGridPaginationBarProps & { controls: DataGridPaginationControls }): ReactNode {
+  const { controls, className, labels: labelsOverride, windowSize, children } = props;
   const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
 
   return (
@@ -100,6 +114,7 @@ export function DataGridPaginationRange(): ReactNode {
 export function DataGridPaginationPageSize(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationPageSize");
   const { pageSize, pageSizeOptions, onPageSizeChange } = controls;
+  if (pageSizeOptions.length === 0) return null;
 
   return (
     <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
@@ -177,10 +192,10 @@ export function DataGridPaginationPages(props: DataGridPaginationPagesProps): Re
 /** Page + 1; disabled when no next page exists. */
 export function DataGridPaginationNext(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationNext");
-  const { page, hasNextPage, onPageChange } = controls;
+  const { page, hasMore, onPageChange } = controls;
 
   return (
-    <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.nextPage} disabled={!hasNextPage} onClick={() => onPageChange(page + 1)}>
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={labels.nextPage} disabled={!hasMore} onClick={() => onPageChange(page + 1)}>
       <ChevronRight className="rtl:rotate-180" />
     </Button>
   );

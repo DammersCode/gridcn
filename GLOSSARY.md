@@ -28,14 +28,24 @@ mirror the change there.
 | block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
+| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | visible window |
+| keep range | The wanted range grown by one more block on each side. Scroll mode aborts and evicts only blocks outside it. | |
+| eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | purge |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateInterval`). | polling, auto-refresh |
+| prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | preload |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
+| paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | sliced data, page slice |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
+| gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names; the root carries `data-gate-pending`. | gate busy, gate loading |
 | seed | The initial value a `default*` prop gives once, at mount. | |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
+| stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | dirty row, outdated row |
+| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelay` and `reshape()` control it. | re-sort request |
 
 ## Keyboard actions
 
@@ -59,6 +69,7 @@ mirror the change there.
 
 | Use | Meaning | Do not use |
 |---|---|---|
+| saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. It holds no rows and no selection. Not the view index. | |
 | add-on | An optional registry item you install, such as `data-grid-fill`. It ships hooks and components. | addon, extension |
 | core | The `data-grid` item. Add-ons build on it. | |
 | hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | |
@@ -69,6 +80,8 @@ mirror the change there.
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
+| server aggregate | A value for a band that a server computes for the whole result of the current spec. | |
+| lookup | A cell type whose options a server searches as the user types. It stores a value and a label. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
 | start side, end side | The two ends of the inline axis. The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
@@ -82,10 +95,12 @@ mirror the change there.
 | range | A rectangle of selected cells. | |
 | quick search | The toolbar search that highlights matches and never filters rows. | |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
+| export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | value filter |
 | filter node | One entry of `filterState`: a filter row or a filter group. | filter item, filter entry |
 | filter group | A box of filter nodes that match together. Its join is `and` (every child must match) or `or` (any child). A group holds one more group at most. The top level of `filterState` always combines with `and`. | filter bracket, nested filter, join operator |
-| set values | The list of values that a header filter or an `isAnyOf` input offers. They come from the loaded rows, or from `fetchFilterValues` when the grid has it. | value list, facet list, distinct list |
+| custom operator | A filter operator a column registers in `filterOperators` with an `id`, a `label`, an `input` shape, and an optional `match`. A server vocabulary uses it to name its own filters. | custom filter type, plugin operator |
+| set values | The list of values that a header filter or an `isAnyOf` input offers. They come from the loaded rows, or from `fetchFilterValues` when the grid has it. Each has a `value` (what the filter stores) and a `label` (what the list shows). | value list, facet list, distinct list |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | column filter popup |
 | tap | A touch press that lifts within 10 px and under 500 ms. A tap selects; two taps on one cell edit. | click (for touch) |
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | press and hold, tap and hold |
@@ -101,5 +116,7 @@ mirror the change there.
 | override | A prop or callback that replaces default behavior. | escape hatch |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
+| save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |
+| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | rekey, rename id |
 | save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

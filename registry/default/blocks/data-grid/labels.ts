@@ -119,10 +119,10 @@ export type DataGridContextMenuLabels = {
   cut: string;
   copy: string;
   paste: string;
-  /** Tooltip shown on a blocked paste item (no clipboard-read permission granted). */
-  pasteBlocked: string;
+  /** Tooltip shown on a blocked paste item (no clipboard-read permission granted). A function receives the platform modifier name ("Ctrl" or "⌘"). */
+  pasteBlocked: string | ((modifier: string) => string);
   /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
-  clipboardFailed: string;
+  clipboardFailed: string | ((modifier: string) => string);
   clearContents: string;
   fillDown: string;
   fillRight: string;
@@ -185,8 +185,10 @@ export type DataGridMarkerLabels = {
 
 /** Core grid strings not owned by a specific add-on. */
 export type DataGridGridLabels = {
-  /** Shown when the view has zero rows (post filter/search); the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
+  /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
+  /** Shown instead of `emptyState` when a filter or the search leaves zero rows. */
+  noResults: string;
   /** The built-in error state of `DataGridRoot` (`error`). */
   errorState: string;
   /** The Retry button of the built-in error state. */
@@ -201,10 +203,18 @@ export type DataGridGridLabels = {
   rowsChecked: (count: number) => string;
   /** Live-region text after "select all matching" when the size of the result is unknown. */
   allMatchingChecked: string;
-  /** Polite live-region announcement after a filter or sort commit (`announceResults`); `count` is the view's row count. */
+  /** Polite live-region announcement after a filter or sort commit or the end of a load (`announceResults`); `count` is the view's row count, and a count of 0 reads `noResults`. */
   resultsCount: (count: number) => string;
   /** Result announcement when the source is lazy: `count` is the loaded rows in the view, so the text says so. */
   resultsCountLoaded: (count: number) => string;
+  /** Polite live-region announcement when the view turns stale: a push changed a value that the sort or filter reads (at most once per 30 seconds). */
+  viewStale: string;
+  /** Live-region text after a save refused rows; `count` is the number of refused rows. */
+  saveRejected: (count: number) => string;
+  /** Live-region text when an undo or redo step needs rows that a lazy source has not loaded yet. */
+  historyRowsNotLoaded: string;
+  /** Live-region text when an undo or redo step is skipped because its rows no longer exist. */
+  historyRowsGone: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -212,6 +222,12 @@ export type DataGridIOLabels = {
   exportButtonAriaLabel: string;
   exportXlsx: string;
   exportCsv: string;
+  exportAllXlsx: string;
+  exportAllCsv: string;
+  exportCancel: string;
+  exportCancelled: string;
+  exportFailed: string;
+  exportDone: (rowCount: number, truncated: boolean) => string;
   importButton: string;
   importDialogTitle: string;
   importDialogDescription: string;
@@ -256,6 +272,10 @@ export type DataGridIOLabels = {
   importRejectedCells: (count: number) => string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
+  /** Shown when `onImport` rejects with an error that has a message. */
+  importFailedWithMessage: (message: string) => string;
+  /** Shown when a row hook, `createRow`, or a cell hook failed before `onImport` ran. */
+  importBuildFailed: string;
   /** aria-label for the print toolbar button. */
   printButtonAriaLabel: string;
   /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
@@ -289,7 +309,7 @@ export type DataGridStatusBarLabels = {
   max: string;
   /** `title` while the walk stopped at the cell cap; `count` is the cap. */
   approximate: (count: number) => string;
-  /** Item beside the selection stats; `count` is the number of hidden checked rows (`keepHiddenCheckedRows`). */
+  /** Item beside the selection stats; `count` is the number of hidden checked rows (`rememberCheckedRows`). */
   hiddenChecked: (count: number) => string;
   /** Stand-alone text when fewer than two cells are selected, so the bar has no stats to attach `hiddenChecked` to. */
   hiddenCheckedOnly: (count: number) => string;
@@ -327,6 +347,9 @@ export type DataGridFindReplaceLabels = {
   replaced: (replaced: number, skipped: number) => string;
   moreRemain: string;
   validating: string;
+  scopeLoadedRows: string;
+  /** Status line text when `onReplace` vetoed the replace or returned an unusable plan. */
+  replaceCancelled: string;
 };
 
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
@@ -429,8 +452,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     cut: "Cut",
     copy: "Copy",
     paste: "Paste",
-    pasteBlocked: "requires clipboard permission — use Ctrl+V",
-    clipboardFailed: "clipboard access failed — use Ctrl+C or Ctrl+X",
+    pasteBlocked: (modifier) => `requires clipboard permission — use ${modifier}+V`,
+    clipboardFailed: (modifier) => `clipboard access failed — use ${modifier}+C or ${modifier}+X`,
     clearContents: "Clear contents",
     fillDown: "Fill down",
     fillRight: "Fill right",
@@ -545,6 +568,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
   },
   grid: {
     emptyState: "No rows",
+    noResults: "No results",
     errorState: "Could not load rows.",
     errorRetry: "Retry",
     loading: "Loading…",
@@ -554,11 +578,21 @@ export const DEFAULT_LABELS: DataGridLabels = {
     allMatchingChecked: "All matching rows checked",
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
+    viewStale: "Some rows changed and may no longer match the sort or filter.",
+    saveRejected: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} not saved`,
+    historyRowsNotLoaded: "Undo or redo needs rows that are not loaded yet",
+    historyRowsGone: "Undo or redo skipped: the rows no longer exist",
   },
   io: {
     exportButtonAriaLabel: "Export",
     exportXlsx: "Export as Excel (.xlsx)",
     exportCsv: "Export as CSV",
+    exportAllXlsx: "Export all rows as Excel (.xlsx)",
+    exportAllCsv: "Export all rows as CSV",
+    exportCancel: "Cancel export",
+    exportCancelled: "Export cancelled",
+    exportFailed: "Export failed",
+    exportDone: (rowCount, truncated) => `${rowCount.toLocaleString("en-US")} ${rowCount === 1 ? "row" : "rows"} exported${truncated ? ", file is incomplete: a limit stopped the export" : ""}`,
     importButton: "Import",
     importDialogTitle: "Import file",
     importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
@@ -591,6 +625,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     errorTooManyCells: "This file has too many rows or columns to import.",
     importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
     importMergeFailed: "The import could not be completed. Try again.",
+    importFailedWithMessage: (message) => `The import failed: ${message}`,
+    importBuildFailed: "The rows could not be prepared for import. Check the file and try again.",
     printButtonAriaLabel: "Print",
     printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
   },
@@ -640,6 +676,8 @@ export const DEFAULT_LABELS: DataGridLabels = {
     replaced: (replaced, skipped) => (skipped > 0 ? `${replaced} replaced, ${skipped} skipped` : `${replaced} replaced`),
     moreRemain: "More matches remain. Run Replace all again.",
     validating: "Validating…",
+    scopeLoadedRows: "Searches loaded rows only",
+    replaceCancelled: "Replace cancelled",
   },
 };
 

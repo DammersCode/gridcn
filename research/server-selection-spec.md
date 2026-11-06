@@ -27,13 +27,19 @@ result of that size (`null`: size unknown). It switches on two things.
 
 ```ts
 type SelectedRows =
-  | { mode: "ids"; ids: readonly string[]; excludedIds: readonly []; count: number }
-  | { mode: "allMatching"; ids: readonly []; excludedIds: readonly string[]; count: number | undefined };
+  | { mode: "ids"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly []; count: number; spec: ServerSpec }
+  | { mode: "allMatching"; ids: readonly string[]; groups: readonly SelectedGroup[]; excludedIds: readonly string[]; count: number | null; spec: ServerSpec };
 ```
 
-- `ids`: the checked loaded rows plus the remembered ones. Unloaded rows have no id and are left out.
-- `excludedIds`: remembered exclusions plus the unchecked loaded rows of the view.
-- `count` in `allMatching`: `totalRowCount - excludedIds.length`, `undefined` when the size is unknown.
+2.0 widens the type for server grouping (`research/server-grouping-spec.md`): `ids` in both modes
+(`[]` in `allMatching`), `groups: []`, and `spec` in both modes. `readSelectedRows` adds `groups: []`
+and ids-mode `spec`; `ids`, `excludedIds`, `count`, and every writer keep their behavior.
+
+- `ids`: in `ids` mode, the checked loaded rows plus the remembered ones (unloaded rows have no id);
+  in `allMatching` mode, explicit checks that override a group entry (empty until group checks ship).
+- `excludedIds`: remembered exclusions plus the unchecked loaded rows of the view (inferred from
+  gaps in the row channel, `store/selected-rows.ts:41-58`).
+- `count` in `allMatching`: `totalRowCount - excludedIds.length`, `null` when the size is unknown.
 
 ## Rules
 
@@ -53,7 +59,8 @@ type SelectedRows =
 - `selectAllMatching()` without `totalRowCount` or `keepCheckedRows` is a no-op with a development
   warning.
 - The status bar and live region count loaded checked rows; `useDataGridHiddenCheckedCount()` is `0`
-  while `allMatching` is on.
+  while `allMatching` is on. Under server grouping they read `count` instead
+  (`research/server-grouping-spec.md` decision 10).
 
 ## Modes
 
@@ -62,7 +69,7 @@ type SelectedRows =
 | Local array, client pagination | no `totalRowCount`: unchanged. With it (data is the whole result), the same rules apply |
 | Server pagination | pass `totalRowCount={total}`; checks survive a page change; `allMatching` available |
 | Lazy, known total | pass `totalRowCount={total}`; checks survive an eviction |
-| Lazy, unknown total (infinite) | pass `totalRowCount={null}`; `count` is `undefined` in `allMatching` |
+| Lazy, unknown total (infinite) | pass `totalRowCount={null}`; `count` is `null` in `allMatching` |
 | `sortMode` or `filterMode` `"server"` | remembered checks stay on (they used to be ignored) |
 | Controlled `selection` | still carries the visible rows only |
 
@@ -79,3 +86,23 @@ Unit (store): remembered checks across a data swap, a window with holes, `sortMo
 `selectAllMatching` rows and exclusions across a swap, uncheck then swap, overflow, clears;
 `useDataGridSelectedRows` shapes; row operations gated; no-op without the prop.
 Browser: a paginated grid keeps a check across pages; the demo's "select all matching" button.
+
+## Grouped selection (input for server grouping step 8, first slice: 2.0 only if #71 merges)
+
+Under `groupMode="server"` the stored rule replaces the inference. Writer map while all matching is on:
+
+- Relative writes move loaded leaf ids into or out of `excludedIds`: every `checkRowRange` step
+  (Shift+click, Shift+Arrow/Home/End/PageUp/PageDown, marker drag; they adopt the current channel as
+  base, `create-store.ts:276,1294,1366,1372`) and toggles (Ctrl/Cmd press, checkbox click,
+  Ctrl+Shift+Space `toggleRow`; plain Space is `edit`, `default-keymap.ts:57`).
+- `setAllRowsSelected(true)` (header checkbox, `toggleAllRows` Mod+Shift+E) removes the loaded view ids
+  from `excludedIds` and keeps remembered ones (`create-store.ts:1381-1385`); `false` clears.
+  `selectAllMatching()` clears exclusions.
+- Writes that replace or clear the channel end all matching and apply as ids mode: plain press, tap,
+  Shift+Space (`selectRow` without `additive`), `selectAll` Ctrl/Cmd+A
+  (`select-all-progression.ts:71-77`), a plain column select (header click, Ctrl+Space; Ctrl+ and
+  Shift+header keep the row channel, `selection/line-ops.ts:22-27`), Escape, `setSelection`, and a
+  controlled `selection` that changes the channel (an equal echo changes nothing:
+  `create-store.ts:1425,1007-1013`).
+- Tests: one `selected-rows.test.ts` case per writer; `server-selection.test.tsx:195` rewritten to use
+  a gesture; `select-all.browser.test.tsx` and `checked-rows.browser.test.tsx` stay green.

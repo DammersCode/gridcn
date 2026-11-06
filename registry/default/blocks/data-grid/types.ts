@@ -213,13 +213,17 @@ export type DataChange<TData> = {
    * `"replace"` tags a find-and-replace batch (an `updateCells` call the `data-grid-find-replace` add-on makes); `useDataGridHistory` records it.
    * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
    * change whose save failed, and a refusal returned from `onSave` reverts through it as well. Neither is recorded.
-   * `onSave` never receives a `"rollback"` or a `"stream"` change.
+   * `"merge"` tags the change `resolveSaveConflict` commits on top of the server's row; `onSave` receives it, history does not record it.
+   * `"id-swap"` tags `replaceRowId`, which swaps a row's id for the server's.
+   * `onSave` never receives a `"rollback"`, a `"stream"` or an `"id-swap"` change.
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
-  /** On a `source: "rollback"` change: the change this one reverts. */
+  /** On a `source: "rollback"` or `"merge"` change: the change this one reverts. */
   reverts?: DataChange<TData>;
+  /** Ids of rows whose content this change took from the server's `SaveRejection.current` or a conflict resolution; older undo entries for them are stale. */
+  serverRowIds?: readonly string[];
 };
 
 export type CellRenderProps<TData, TValue, TOptions = unknown> = {
@@ -288,7 +292,7 @@ export type CellClickCtx<TData, TValue> = {
 
 /**
  * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
- * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
+ * existing DOM click handler (no new subscription). Fires alongside
  * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
  * notification, never a veto point (contrast the `data-grid-fill` add-on's `onFill` veto).
  */
@@ -461,7 +465,7 @@ export type FilterValueInputProps = {
  * row's widget: a built-in one by name, or a component that renders for every operator with a value.
  */
 export type CellTypeFilter = {
-  operators?: readonly FilterOperator[];
+  operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
@@ -482,7 +486,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;
-  /** Plain-text header for clipboard/export when `header` is a ReactNode. */
+  /** Plain-text header when `header` is a ReactNode: names the column in export, import matching, autosize, menus, and assistive technology. */
   headerText?: string;
   accessorKey?: AccessorKeyOf<TData>;
   /**
@@ -557,7 +561,13 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
    * for a consumer-registered numeric cell type (`type: "currency"`).
    */
-  filterOperators?: readonly FilterOperator[];
+  filterOperators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
+  /**
+   * Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the
+   * numeric-then-text default (a version string, a rank, a locale). A NaN result or a throw
+   * falls back to the default order for that pair.
+   */
+  filterCompare?: (text: string, bound: string) => number;
   /**
    * Sort comparator over the whole data row (not the cell value), consulted before the column's
    * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,
@@ -567,11 +577,11 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortCompare?: (a: TData, b: TData) => number;
   /** Initial visibility; toggle at runtime through `setColumnHidden` or the columns menu. */
   hidden?: boolean;
-  /** Disables the resize handle for this column; default true. */
+  /** `false` disables the resize handle for this column; default true. */
   resizable?: boolean;
-  /** Disables drag-to-reorder for this column; default true. */
+  /** `false` disables drag-to-reorder for this column; default true. */
   reorderable?: boolean;
-  /** Disables pin/unpin for this column; default true. */
+  /** `false` disables pin/unpin for this column; default true. */
   pinnable?: boolean;
   /**
    * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
@@ -601,7 +611,7 @@ export type HeaderClickBehavior = "select" | "sort" | "none";
 
 export type SortSpec = { columnId: string; direction: "asc" | "desc" };
 
-export type FilterOperator =
+export type BuiltInFilterOperator =
   | "contains"
   | "notContains"
   | "equals"
@@ -617,6 +627,31 @@ export type FilterOperator =
   | "isBetween"
   | "isAnyOf"
   | "isNoneOf";
+
+/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filterOperators`. */
+export type FilterOperator = BuiltInFilterOperator | (string & {});
+
+/** The value shape a filter operator takes: no value, one text, an inclusive `[min, max]` pair, or a list of texts. */
+export type FilterOperatorInput = "none" | "single" | "range" | "list";
+
+/**
+ * An operator a column registers next to the built-ins, usually to name a server vocabulary
+ * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filterOperators` or `CellTypeFilter.operators`;
+ * `filterMode="server"` sends `{ columnId, operator: id, value }` in the spec and never calls `match`.
+ */
+export type CustomFilterOperator = {
+  /** Stored in `FilterSpec.operator` and in the URL. Must not equal a built-in operator. */
+  id: string;
+  /** Text of the operator select. */
+  label: string;
+  /** Value shape of the filter row; default `"single"`. */
+  input?: FilterOperatorInput;
+  /**
+   * Local evaluator over the cell text. A throw fails the row. Without it a client-side filter does not
+   * narrow rows and warns once in development.
+   */
+  match?: (text: string, filter: FilterSpec) => boolean;
+};
 
 /** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
 export type FilterJoinOperator = "and" | "or";
@@ -642,8 +677,8 @@ export type FilterSpec = { filterId?: string; columnId: string; operator: Filter
  */
 export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
 
-/** One value a server offers for a set filter: `label` is the cell text a filter entry stores; `count` is the matching row count. */
-export type FilterValue = { label: string; count?: number };
+/** One value a server offers for a set filter: `value` is what a filter entry stores (a code or id); `label` is the text the list shows, `value` when absent; `count` is the matching row count. */
+export type FilterValue = { value: string; label?: string; count?: number };
 
 /**
  * The request `fetchFilterValues` receives. `query` is the raw text of the popover search box (untrusted).
@@ -652,7 +687,7 @@ export type FilterValue = { label: string; count?: number };
  */
 export type FetchFilterValuesContext = { columnId: string; query: string; filters: readonly FilterNode[]; signal: AbortSignal };
 
-/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 labels. */
+/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 values. */
 export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;
 
 /** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */
@@ -769,8 +804,11 @@ export type DataGridApi<TData> = {
   setSelection(next: SelectionState | null): void;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
-  /** The row id of every view row, in view order; an unloaded row (a lazy hole) gets its placeholder id, like `useDataGridRowIds`. */
-  getViewRowIds(): readonly string[];
+  /**
+   * The row id of every view row, in view order. An unloaded row (a hole of a lazy source) gets its placeholder id, like
+   * `useDataGridRowIds`; `{ loaded: true }` leaves the placeholders out.
+   */
+  getViewRowIds(options?: { loaded?: boolean }): readonly string[];
 };
 
 /**
@@ -922,7 +960,7 @@ export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
  * ```
  * This gives custom types the same `options`/value inference as built-ins
  * through `defineColumns` and `TypedColumnDef`. The installed `cell-types.ts`'s
- * `cellTypes` object checks its five built-ins against a literal
+ * `cellTypes` object checks its seven built-ins against a literal
  * `BuiltinCellTypeKey` union, decoupled from this interface, so augmenting it
  * with a new key never breaks that file's compile.
  */

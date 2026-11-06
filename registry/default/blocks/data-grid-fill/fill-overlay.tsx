@@ -14,14 +14,15 @@ function FillPreviewOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: 
       aria-hidden="true"
       className="pointer-events-none border border-dashed border-primary bg-primary/5"
       style={{
-        // positioned: cells are position:relative, so a static overlay would paint below them
-        position: "relative",
+        // positioned: cells are position:relative, so a static overlay would paint below them;
+        // out-of-flow when unpinned, so moving it does not re-lay out the canvas grid
+        position: "absolute",
+        inset: 0,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
         gridRowStart: rect.y - windowStart + 1,
         gridRowEnd: rect.y + rect.height - windowStart + 1,
-        ...pinStyle,
-        ...(pinStyle ? { zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
+        ...(pinStyle ? { inset: undefined, ...pinStyle, zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
       }}
     />
   );

@@ -55,7 +55,38 @@ export type ParseImportFileOptions = ImportLimits & {
   csvDelimiter?: CsvDelimiter;
   /** For xlsx/xls: import this sheet by name instead of the first; rejects when the workbook has no sheet by that name. Ignored for CSV. */
   sheetName?: string;
+  /** Decodes a CSV file with this label instead of UTF-8. Only the labels in {@link IMPORT_CSV_ENCODINGS} are accepted; any other label throws a `RangeError`. Ignored for xlsx/xls. */
+  csvEncoding?: string;
 };
+
+/** The `TextDecoder` labels `csvEncoding` accepts. */
+export const IMPORT_CSV_ENCODINGS: readonly string[] = [
+  "utf-8",
+  "utf-16le",
+  "utf-16be",
+  "iso-8859-1",
+  "iso-8859-2",
+  "iso-8859-15",
+  "windows-1250",
+  "windows-1251",
+  "windows-1252",
+  "windows-1253",
+  "windows-1254",
+  "windows-1257",
+  "shift_jis",
+  "euc-jp",
+  "euc-kr",
+  "gb18030",
+  "big5",
+];
+
+/** Reads a CSV file as text; a `csvEncoding` label from the allow-list decodes the bytes, otherwise the file reads as UTF-8. */
+async function readCsvText(file: File, csvEncoding: string | undefined): Promise<string> {
+  if (csvEncoding === undefined) return file.text();
+  const label = csvEncoding.trim().toLowerCase();
+  if (!IMPORT_CSV_ENCODINGS.includes(label)) throw new RangeError(`[data-grid-io] unsupported csvEncoding: ${csvEncoding}`);
+  return new TextDecoder(label).decode(await file.arrayBuffer());
+}
 
 type GridLimits = Required<Pick<ImportLimits, "maxRows" | "maxColumns" | "maxCells">>;
 type ExcelLimits = GridLimits & Required<Pick<ImportLimits, "maxDecompressedBytes">>;
@@ -607,7 +638,7 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
     return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
   }
   if (isCsvFile(file)) {
-    const text = await file.text();
+    const text = await readCsvText(file, options.csvEncoding);
     if (signal?.aborted) throw abortError();
     const parsed = parseCsvText(text, options.csvDelimiter, limits);
     let columns = 0;
@@ -616,4 +647,29 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
     return parsed;
   }
   throw new Error("unsupported-file-type");
+}
+
+/** Thrown for a parse result or row hook output that is not an array of string rows. */
+export const INVALID_IMPORT_ROWS_MESSAGE = "invalid-import-rows";
+
+/**
+ * Checks rows that came from a consumer hook (`parseFile`, `processImportRows`): an array of arrays of
+ * strings inside the `maxRows`, `maxColumns`, and `maxCells` bounds. `extraRows` counts rows the caller
+ * holds beside `rows` (a header row). Throws {@link INVALID_IMPORT_ROWS_MESSAGE} or the too-many-cells error.
+ */
+export function assertImportRows(rows: unknown, limits: ImportLimits, extraRows = 0): asserts rows is string[][] {
+  if (!Array.isArray(rows)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);
+  const bounds: GridLimits = {
+    maxRows: limits.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
+    maxColumns: limits.maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
+    maxCells: limits.maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
+  };
+  let columns = 0;
+  for (const row of rows as unknown[]) {
+    if (!Array.isArray(row)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);
+    if (row.length > columns) columns = row.length;
+    if (columns > bounds.maxColumns) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+    for (const cell of row as unknown[]) if (typeof cell !== "string") throw new Error(INVALID_IMPORT_ROWS_MESSAGE);
+  }
+  assertWithinLimits(rows.length + extraRows, columns, bounds);
 }

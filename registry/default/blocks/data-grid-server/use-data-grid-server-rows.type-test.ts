@@ -50,3 +50,19 @@ export function requestState() {
   pages satisfies DataSourceState;
   scroll satisfies DataSourceState;
 }
+
+export function cursorPages() {
+  const server = useDataGridServerRows<Row, string>({
+    getRowId,
+    fetchRows: async ({ cursor, page }) => {
+      cursor satisfies string | undefined;
+      return { rows: [] as Row[], nextCursor: page < 3 ? `page:${page}` : null };
+    },
+  });
+  server.pager.hasMore satisfies boolean;
+}
+
+export function defaultRowId() {
+  useDataGridServerRows<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  useDataGridServerRows<Row>({ mode: "scroll", fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+}

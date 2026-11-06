@@ -31,7 +31,7 @@ import {
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { useDataGridPresence, type PresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import {
   DataGridToolbar,
   DataGridSearch,
@@ -365,10 +365,9 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
   );
 }
 
-/** The paginated subtree: `DataGridPaginationBar` is standalone and reads no store, so it composes freely with every other toggle. */
+/** The paginated subtree: `defaultPageSize` pages the view, so sort, filter, search, and totals cover every row. */
 function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const [rows, setRows] = useState(() => generateDemoRows(120));
-  const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 20 });
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
@@ -378,17 +377,13 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
 
-  const onDataChange = useCallback((next: readonly DemoRow[]) => {
-    setRows((prev) => {
-      const edited = new Map(next.map((row) => [row.id, row]));
-      return prev.map((row) => edited.get(row.id) ?? row);
-    });
-  }, []);
+  const onDataChange = useCallback((next: readonly DemoRow[]) => setRows(next as DemoRow[]), []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <DataGridProvider
-        data={pageData!}
+        data={rows}
+        defaultPageSize={20}
         columns={controls.columns}
         getRowId={(row) => row.id}
         onDataChange={onDataChange}
@@ -417,8 +412,8 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
             <DataGridBody />
           </DataGridRoot>
         </DataGridContextMenu>
+        <DataGridPaginationBar />
       </DataGridProvider>
-      <DataGridPaginationBar {...pager} />
     </div>
   );
 }

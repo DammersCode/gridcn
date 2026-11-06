@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { toSafeText } from "./safe-text";
+import { compareLocaleText } from "../sort-filter/builtin-compare";
 import { CellSpan } from "./cell-span";
 import { CELL_INPUT_CLASS, useCellEditor } from "../interaction/use-cell-editor";
 
@@ -21,6 +22,6 @@ export const textCellType: CellType<unknown, string, GridCellTypes["text"]["opti
   fromText: (text) => text,
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",
-  compare: (a, b) => a.localeCompare(b),
+  compare: compareLocaleText,
   align: "left",
 };

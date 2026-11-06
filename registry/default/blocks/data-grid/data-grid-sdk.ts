@@ -6,8 +6,13 @@
  * install time (scripts/fix-registry-imports.mjs).
  */
 
+import { useCallback } from "react";
 import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
-import { gridStoreWrapper } from "./store/api";
+import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
+import { nextAnnouncement } from "./store/announcements";
+import type { LiveAnnouncementKind } from "./store/types";
+
+export { setServerReshapeHandler };
 import type { DataGridStoreWrapper } from "./types";
 
 export type { DataGridReadState, DataGridStoreWrapper } from "./types";
@@ -59,13 +64,16 @@ export {
   COMPARISON_FILTER_OPERATORS,
   SET_FILTER_OPERATORS,
   TEXT_FILTER_OPERATORS,
+  filterOperatorInput,
   operatorsForColumnType,
   resolveColumnValidate,
+  resolveCustomFilterOperators,
   resolveFilterOperators,
   resolveFilterValueInput,
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
 export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { toSafeText } from "./cell-types/safe-text";
@@ -79,7 +87,7 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
-export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved } from "./store/compute";
+export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";
@@ -93,6 +101,7 @@ export {
   useDataGridSelectionPointer,
   useDataGridInstanceId,
   useDataGridInputDebounce,
+  useDataGridMarkGatePending,
   useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
@@ -109,10 +118,21 @@ export {
 export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
 }
+
+/** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */
+export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: number, partial?: boolean) => void {
+  const store = useDataGridStoreApiRaw();
+  return useCallback(
+    (kind, count, partial) => store.setState((s) => ({ liveAnnouncement: nextAnnouncement(s.liveAnnouncement, kind, count, partial) })),
+    [store],
+  );
+}
 export { setCellValue } from "./columns/column-helpers";
+export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback } from "./interaction/rollback";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 export { EMPTY_SERVER_SPEC } from "./server-spec";
+export { defaultGetRowId } from "./store/types";

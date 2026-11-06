@@ -197,7 +197,7 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["announceResults"]>(true);
-assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
+assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 
 // Disjoint: a sync prop that also exists on the root would be ambiguous about which home reads it.
 assertEqual<never, Extract<keyof DataGridSyncProps<Row>, keyof DataGridRootProps<Row>>>(true);
@@ -579,11 +579,11 @@ void useDirectGridSelector;
 export {};
 
 // --- Async gates: each widened prop accepts the sync and the promise form ----------------------
-assertEqual<((row: Row, rowId: string) => Record<string, string> | null | Promise<Record<string, string> | null>) | undefined, DataGridSyncProps<Row>["validateRow"]>(true);
-assertEqual<((ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false | Promise<string[][] | false>) | undefined, DataGridSyncProps<Row>["processPaste"]>(true);
-assertEqual<((cell: ViewCellRef) => boolean | void | Promise<boolean | void>) | undefined, DataGridSyncProps<Row>["onEditStart"]>(true);
-assertEqual<((index: number) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["createRow"]>(true);
-assertEqual<((row: Row, index: number) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["duplicateRow"]>(true);
+assertEqual<((row: Row, rowId: string, ctx: { signal: AbortSignal }) => Record<string, string> | null | Promise<Record<string, string> | null>) | undefined, DataGridSyncProps<Row>["validateRow"]>(true);
+assertEqual<((ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>) | undefined, DataGridSyncProps<Row>["processPaste"]>(true);
+assertEqual<((cell: ViewCellRef, ctx: { signal: AbortSignal }) => boolean | void | Promise<boolean | void>) | undefined, DataGridSyncProps<Row>["onEditStart"]>(true);
+assertEqual<((index: number, ctx: { signal: AbortSignal }) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["createRow"]>(true);
+assertEqual<((row: Row, index: number, ctx: { signal: AbortSignal }) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["duplicateRow"]>(true);
 const asyncGateProps: DataGridSyncProps<Row> = {
   columns: [],
   processPaste: async ({ cells }) => cells,

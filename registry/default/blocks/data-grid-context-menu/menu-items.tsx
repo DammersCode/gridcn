@@ -27,6 +27,7 @@ import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-m
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  isMacPlatform,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridApi,
@@ -152,7 +153,9 @@ export function useDefaultCellMenuItems(args: {
       () => onClipboardFailed?.(),
     );
   };
-  const clipboardTooltip = clipboardFailed ? labels.contextMenu.clipboardFailed : undefined;
+  const modifier = isMacPlatform() ? "⌘" : "Ctrl";
+  const hint = (label: string | ((modifier: string) => string)) => (typeof label === "function" ? label(modifier) : label);
+  const clipboardTooltip = clipboardFailed ? hint(labels.contextMenu.clipboardFailed) : undefined;
 
   const specs: GridMenuItemSpec[] = [
     { id: "cut", label: labels.contextMenu.cut, icon: <Scissors className="size-4 text-muted-foreground" />, shortcut: "mod+x", disabled: readOnly || clipboardFailed, tooltip: readOnly ? undefined : clipboardTooltip, onClick: reportFailure(clipboard.cut) },
@@ -163,7 +166,7 @@ export function useDefaultCellMenuItems(args: {
       icon: <Clipboard className="size-4 text-muted-foreground" />,
       shortcut: "mod+v",
       disabled: pasteBlocked || readOnly,
-      tooltip: pasteBlocked && !readOnly ? labels.contextMenu.pasteBlocked : undefined,
+      tooltip: pasteBlocked && !readOnly ? hint(labels.contextMenu.pasteBlocked) : undefined,
       onClick: onPaste,
     },
     { id: "sep-clipboard", separator: true },

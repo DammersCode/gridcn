@@ -5,7 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { apiHandleOf } from "./api";
-import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnExternalStoreSyncPropsOnce } from "./commit";
+import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnExternalStoreSyncPropsOnce, type GuardrailWarnings } from "./commit";
 import { holeRowId, rowIdAtViewRow } from "./compute";
 import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
@@ -91,9 +91,9 @@ export function useDataGridStoreProps<TData>(props: DataGridSyncProps<TData>): {
 }
 
 /** The recompute-phase slice: the inputs of derived state (`_syncProps` rebuilds the view index and search matches over them). */
-const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "sortMode", "filterMode", "filterState", "searchText", "selection", "columnLayout", "columnGroups"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "sortMode", "filterMode", "filterState", "searchText", "selection", "columnLayout", "columnGroups", "totalRowCount", "pageSize", "page"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** Seed-only props: applied once at store creation, ignored on later renders — in neither sync phase. */
-const SEED_KEYS = ["defaultData", "defaultColumnLayout", "defaultSelection", "defaultSortState", "defaultFilterState", "defaultSearchText"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const SEED_KEYS = ["defaultData", "defaultColumnLayout", "defaultSelection", "defaultSortState", "defaultFilterState", "defaultSearchText", "defaultPageSize", "defaultPage"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** The config-phase slice: everything that feeds no derived state — `readOnly`, `keymap`, the `enable*` flags, and every callback. */
 const CONFIG_KEYS = [
   "readOnly",
@@ -107,13 +107,19 @@ const CONFIG_KEYS = [
   "rowMarkers",
   "enableRowSelection",
   "keepCheckedRows",
+  "rememberCheckedRows",
   "keepHiddenCheckedRows",
   "totalRowCount",
   "announceResults",
   "onBeforeDeleteRows",
   "inputDebounceMs",
+  "onPageSizeChange",
+  "onPageChange",
+  "gateTimeoutMs",
+  "onGateAborted",
   "onSave",
   "onSaveRejected",
+  "resolveSaveConflict",
   "fetchFilterValues",
   "enableColumnSelection",
   "enableRangeSelection",
@@ -152,9 +158,18 @@ void _syncSliceExhaustive;
 /** True when any of `keys` differs by reference between `last` and `next`. */
 function sliceChanged(last: InternalSyncProps, next: InternalSyncProps, keys: readonly (keyof InternalSyncProps)[]): boolean {
   for (const key of keys) {
-    if (last[key] !== next[key]) return true;
+    if (key === "labels" ? !sameLabels(last.labels, next.labels) : last[key] !== next[key]) return true;
   }
   return false;
+}
+
+/** Structural equality for a labels object: nested plain objects by content, strings by value, functions by identity. */
+export function sameLabels(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => Object.hasOwn(b, key) && sameLabels((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
 }
 
 /**
@@ -182,6 +197,7 @@ function useGridStoreCore<TData>(
   const prevData = useRef<readonly unknown[] | undefined>(undefined);
   const warnedColumnTypes = useRef<Set<string>>(new Set());
   const warnedDuplicateColumnIds = useRef<Set<string>>(new Set());
+  const guardrailWarnings = useRef<GuardrailWarnings>(new Set());
   const lastConfig = useRef<InternalSyncProps | null>(null);
   const lastRecompute = useRef<InternalSyncProps | null>(null);
 
@@ -240,7 +256,7 @@ function useGridStoreCore<TData>(
     const last = lastRecompute.current;
     if (last !== null && !sliceChanged(last, internalInit, RECOMPUTE_KEYS)) return;
     lastRecompute.current = internalInit;
-    checkDevGuardrails(internalInit, prevColumns.current, prevData.current);
+    checkDevGuardrails(internalInit, prevColumns.current, prevData.current, guardrailWarnings.current);
     checkDuplicateColumnIds(internalInit.columns, warnedDuplicateColumnIds.current);
     prevColumns.current = internalInit.columns;
     prevData.current = internalInit.data;
@@ -259,9 +275,10 @@ function useGridStoreCore<TData>(
  */
 export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): ReactNode {
   const { store: externalStore, children, ref, ...syncProps } = props;
+  const [shellWarnings] = useState<GuardrailWarnings>(() => new Set());
   // The prop union makes a sync prop next to `store` a compile error; this catches a cast/untyped caller.
   if (externalStore && Object.values(syncProps).some((v) => v !== undefined)) {
-    warnExternalStoreSyncPropsOnce();
+    warnExternalStoreSyncPropsOnce(shellWarnings);
   }
   // The rest's external-store branch types the sync keys as never; the core reads none of them when `externalStore` is set.
   const { store } = useGridStoreCore<TData>(syncProps as DataGridSyncProps<TData>, externalStore);

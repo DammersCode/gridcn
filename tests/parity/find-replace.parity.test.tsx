@@ -30,7 +30,7 @@ describe.each(ALL_MODES)("replace in mode %s", (mode) => {
   it("a readOnly grid ignores the replacement", async () => {
     const grid = await mountMode(mode, { props: { readOnly: true } });
     const plan = planReplace(grid.state(), "Name", "Item");
-    grid.act(() => void grid.state().actions.updateCells(plan.patches));
+    grid.act(() => void grid.state().actions.updateCells(plan.patches, { source: "replace" }));
     expect(grid.changes).toHaveLength(0);
   });
 });

@@ -120,4 +120,19 @@ describe("useColumnResize document listener lifecycle", () => {
     targetAddSpy.mockRestore();
     targetRemoveSpy.mockRestore();
   });
+
+  it("window blur ends the drag without committing the width", () => {
+    const target = document.createElement("div");
+    const { hook } = renderResizeHook();
+    act(() => {
+      hook.result.current.onPointerDown(pointerDown(target, 1));
+    });
+    expect(hook.result.current.isResizing).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    expect(hook.result.current.isResizing).toBe(false);
+    hook.unmount();
+  });
 });

@@ -152,8 +152,17 @@ export function createRemoteServer() {
     return { rows: list.slice(query.start, query.end), total: list.length };
   }
 
+  /** A keyset page: the rows after the opaque `after` cursor, and the cursor of the next page (`null` at the end). No count. */
+  async function fetchAfter(query: Omit<RemoteQuery, "page" | "pageSize"> & { after?: string; limit: number }): Promise<{ rows: DemoRow[]; next: string | null }> {
+    const list = await select(query);
+    const last = query.after === undefined ? -1 : query.after.startsWith("after:") ? Number(query.after.slice("after:".length)) : Number.NaN;
+    if (!Number.isSafeInteger(last) || last < -1) throw new Error("invalid cursor");
+    const rows = list.slice(last + 1, last + 1 + query.limit);
+    return { rows, next: last + 1 + rows.length < list.length ? `after:${last + rows.length}` : null };
+  }
+
   /** The distinct values of a column with their row counts, filtered by a case-insensitive `search` and capped at `limit`. */
-  async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { label: string; count: number }[] }> {
+  async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { value: string; count: number }[] }> {
     if (!FILTERABLE_COLUMNS.has(query.columnId)) throw new Error("invalid column");
     const list = await select({ filters: query.filters, signal: query.signal });
     const counts = new Map<string, number>();
@@ -162,7 +171,7 @@ export function createRemoteServer() {
       const label = cell(row, query.columnId);
       if (needle === "" || label.toLowerCase().includes(needle)) counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const values = [...counts].map(([label, count]) => ({ label, count })).sort((a, b) => a.label.localeCompare(b.label));
+    const values = [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value));
     return { values: values.slice(0, query.limit ?? 200) };
   }
 
@@ -173,5 +182,24 @@ export function createRemoteServer() {
     order = next.map((row) => row.id);
   }
 
-  return { total: rows.size, fetchPage, fetchRange, fetchValues, applyOps };
+  /** Changes the score of each known row on the server and returns the matching pushes. */
+  function bumpScores(ids: readonly string[]): { rowId: string; changes: { score: number } }[] {
+    const pushes: { rowId: string; changes: { score: number } }[] = [];
+    for (const id of ids) {
+      const row = rows.get(id);
+      if (!row) continue;
+      const score = Math.max(0, Math.min(100, row.score + Math.round((Math.random() - 0.5) * 40)));
+      rows.set(id, { ...row, score });
+      pushes.push({ rowId: id, changes: { score } });
+    }
+    return pushes;
+  }
+
+  /** Deletes rows on the server, as another client would. */
+  function remove(ids: readonly string[]): void {
+    for (const id of ids) rows.delete(id);
+    order = order.filter((id) => rows.has(id));
+  }
+
+  return { total: rows.size, fetchPage, fetchRange, fetchAfter, fetchValues, applyOps, bumpScores, remove };
 }

@@ -61,7 +61,7 @@ describe("onBeforeDeleteRows", () => {
     act(() => [0, 1, 3].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRows(m.state().selection.rows.toArray()));
-    expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 2 });
+    expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 2, signal: expect.any(AbortSignal) });
     expect(m.dataIds()).toEqual(["a", "b", "c", "e"]);
   });
 
@@ -196,7 +196,7 @@ describe("onBeforeDeleteRows", () => {
     act(() => [0, 1].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRowsById(["a"]));
-    expect(gate).toHaveBeenCalledWith({ rowIds: ["a"], hiddenCount: 1 });
+    expect(gate).toHaveBeenCalledWith({ rowIds: ["a"], hiddenCount: 1, signal: expect.any(AbortSignal) });
   });
 
   it("warns once per instance for repeated throws", () => {
@@ -216,5 +216,66 @@ describe("onBeforeDeleteRows", () => {
     act(() => m.state().actions.deleteRows([1]));
     act(() => m.state().actions.deleteRows([2]));
     expect(warn.mock.calls.filter((c) => String(c[0]).includes("pending"))).toHaveLength(1);
+  });
+});
+
+describe("gateTimeoutMs and onGateAborted", () => {
+  it("a gate that never settles is aborted after the timeout, reported, and the next delete runs", async () => {
+    vi.useFakeTimers();
+    try {
+      const onGateAborted = vi.fn();
+      let signal: AbortSignal | undefined;
+      const gate = vi.fn<Gate>(((ctx: { signal: AbortSignal }) => {
+        signal = ctx.signal;
+        return new Promise<boolean>(() => {});
+      }) as unknown as Gate);
+      const m = mount(gate, { gateTimeoutMs: 500, onGateAborted });
+      act(() => m.state().actions.deleteRows([0]));
+      expect(m.state().gatesPending.has("onBeforeDeleteRows")).toBe(true);
+      await act(async () => void (await vi.advanceTimersByTimeAsync(500)));
+      expect(signal?.aborted).toBe(true);
+      expect(m.state().gatesPending.has("onBeforeDeleteRows")).toBe(false);
+      expect(onGateAborted).toHaveBeenCalledWith({ gate: "onBeforeDeleteRows", reason: "timeout" });
+      act(() => m.state().actions.deleteRows([1]));
+      expect(gate).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("without gateTimeoutMs a pending gate waits, and a change reports reason changed", async () => {
+    const onGateAborted = vi.fn();
+    const d = deferred();
+    const m = mount(() => d.promise, { onGateAborted });
+    act(() => m.state().actions.deleteRows([0]));
+    await flush();
+    expect(m.state().gatesPending.has("onBeforeDeleteRows")).toBe(true);
+    m.rerender({ readOnly: true, onGateAborted });
+    await flush();
+    expect(onGateAborted).toHaveBeenCalledWith({ gate: "onBeforeDeleteRows", reason: "changed" });
+  });
+});
+
+describe("row action results", () => {
+  it("deleteRows says why it did nothing", async () => {
+    const readOnly = mount(undefined, { readOnly: true });
+    expect(readOnly.state().actions.deleteRows([0])).toEqual({ ok: false, reason: "readOnly" });
+    expect(readOnly.state().actions.deleteRows([99])).toEqual({ ok: false, reason: "readOnly" });
+    const declined = mount(() => false);
+    expect(declined.state().actions.deleteRows([0])).toEqual({ ok: false, reason: "gate-declined" });
+    const open = mount(undefined);
+    expect(open.state().actions.deleteRows([0])).toEqual({ ok: true });
+    const d = deferred();
+    const pending = mount(() => d.promise);
+    expect(pending.state().actions.deleteRows([0])).toEqual({ ok: true });
+    expect(pending.state().actions.deleteRows([1])).toEqual({ ok: false, reason: "gate-pending" });
+    await flush();
+  });
+
+  it("insertRow and duplicateRows say when the factory prop is missing", () => {
+    const m = mount(undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(m.state().actions.insertRow(0, "below")).toEqual({ ok: false, reason: "no-factory" });
+    expect(m.state().actions.duplicateRows([0])).toEqual({ ok: false, reason: "no-factory" });
   });
 });

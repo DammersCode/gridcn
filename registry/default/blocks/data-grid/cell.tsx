@@ -20,7 +20,7 @@ import { getCellValue } from "./columns/column-helpers";
 import { useDataGridCellTypes, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
-import { cellLayer } from "./layers";
+import { cellLayer, GRID_LAYER } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
@@ -112,6 +112,22 @@ function isEditorEvent(target: EventTarget | null): boolean {
   return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;
 }
 
+// The grid scroller clips the inline error line: flip it above the cell at the bottom edge and
+// anchor it to the cell's end side at the side edges.
+function placeInlineAlert(alert: HTMLElement | null): void {
+  const scroller = alert?.closest('[role="grid"]');
+  if (!alert || !scroller) return;
+  alert.removeAttribute("data-above");
+  alert.removeAttribute("data-end");
+  const view = scroller.getBoundingClientRect();
+  const left = view.left + scroller.clientLeft;
+  const top = view.top + scroller.clientTop;
+  const box = alert.getBoundingClientRect();
+  alert.toggleAttribute("data-above", box.bottom > top + scroller.clientHeight);
+  const rtl = getComputedStyle(scroller).direction === "rtl";
+  alert.toggleAttribute("data-end", rtl ? box.left < left : box.right > left + scroller.clientWidth);
+}
+
 /** Renders via the column's cell type (`Cell`/`Editor`), or `column.renderCell` for a display-only override. */
 function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   const {
@@ -165,6 +181,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   };
   // pinned outranks active-unpinned: pinning is a spatial guarantee, active is a focus state.
   style.zIndex = cellLayer(Boolean(pinned), isActive);
+  if (errorMessage && style.zIndex === GRID_LAYER.cell) style.zIndex = GRID_LAYER.cell + 1;
   // One-shot pulse on a freshly written cell; the animation overrides `background-color` only while
   // running, so the cell's own bg/hover classes take over again the moment the key lifts.
   if (isFlashing) style.animation = FLASH_ANIMATION;
@@ -344,6 +361,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       aria-busy={isSkeleton || undefined}
       aria-invalid={Boolean(errorMessage) || undefined}
       aria-description={errorMessage || undefined}
+      title={isEditing ? errorMessage || undefined : undefined}
       tabIndex={isPinnedRow || isSkeleton ? undefined : isActive ? 0 : -1}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
@@ -357,7 +375,9 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       data-flash={isFlashing || undefined}
       data-invalid={Boolean(errorMessage) || undefined}
       className={cn(
-        "relative flex items-center overflow-hidden border-b border-border px-2 outline-none",
+        "relative flex items-center border-b border-border px-2 outline-none",
+        // the editing cell does not clip, so the inline error line can leave it
+        !isEditing && "overflow-hidden",
         COLUMN_BORDER,
         // Pinned cells sit opaque above the scrolled canvas, so they carry their own hover tint
         // (pre-composited with color-mix). Every other cell stays transparent and shows the row's tint:
@@ -378,8 +398,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // One visual language for "this value is wrong", whether a live sync/async
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
-        // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
-        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-dashed forced-colors:aria-invalid:outline-[CanvasText]",
+        // uses (input.tsx/button.tsx/select.tsx), inset; the z-index bump below lifts it above overlays.
+        errorMessage && "aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-dashed forced-colors:aria-invalid:outline-[CanvasText]",
         errorMessage &&
           (opaque
             ? "aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_10%,var(--color-background))] dark:aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_15%,var(--color-background))]"
@@ -409,11 +429,12 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         </span>
       )}
       {errorMessage && isEditing && (
-        // Visible without a hover (editing needs the message evident immediately, not just on
-        // the error tooltip) — positioned below the cell so it never clips the editor input.
+        // Visible without a hover (editing needs the message evident immediately, not just on hover) — positioned below the cell so it never clips the editor input.
         <span
+          key={errorMessage}
+          ref={placeInlineAlert}
           role="alert"
-          className="absolute inset-x-0 top-full z-10 mt-0.5 truncate rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive"
+          className="absolute start-0 top-full z-10 mt-0.5 w-max min-w-full max-w-64 rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive data-[above]:top-auto data-[above]:bottom-full data-[above]:mt-0 data-[above]:mb-0.5 data-[end]:start-auto data-[end]:end-0"
         >
           {errorMessage}
         </span>
@@ -421,8 +442,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     </div>
   );
 
-  // While editing the message is already visible without a hover (the inline role="alert" below),
-  // and wrapping mid-edit would remount the editor when a live rejection lands.
+  // An editing cell cannot be wrapped in the tooltip (the wrap would remount the cell and its editor), so it
+  // carries the message in the native `title` instead.
   if (errorMessage && !isEditing) {
     return (
       <Tooltip>

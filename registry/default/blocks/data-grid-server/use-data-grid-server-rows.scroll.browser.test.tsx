@@ -59,7 +59,7 @@ function deferredServer(count = 10_000) {
 }
 
 function ServerGrid(props: { fetchRows: Fetch; count?: number; onServer?: (server: UseDataGridServerRowsScrollResult<Row>) => void; onReady?: (api: StoreApi<DataGridStoreState>) => void; defaultFilters?: FilterNode[]; rowClassName?: (row: Row) => string }) {
-  const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
+  const server = useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, maxConcurrentFetches: 16, getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
   useEffect(() => {
     props.onServer?.(server);
   });
@@ -108,7 +108,7 @@ describe("scroll mode: first block, skeletons, and fill-in", () => {
 
     await server.resolveAll();
     await expect.element(page.getByText(/Person 5\d\d/).first()).toBeInTheDocument();
-    expect(skeletonCells()).toBe(0);
+    await vi.waitFor(() => expect(skeletonCells()).toBe(0));
   });
 
   it("evicted rows render as skeletons until the refetch resolves", async () => {
@@ -132,7 +132,7 @@ describe("scroll mode: first block, skeletons, and fill-in", () => {
     expect(document.querySelectorAll('[role="row"][aria-busy="true"]').length).toBeGreaterThan(0);
     await server.resolveAll();
     await expect.element(page.getByText(/Person 5\d\d/).first()).toBeInTheDocument();
-    expect(skeletonCells()).toBe(0);
+    await vi.waitFor(() => expect(skeletonCells()).toBe(0));
   });
 
   it("refresh keeps the rows on screen while it refetches and swaps them when the answers land", async () => {
@@ -363,6 +363,43 @@ describe("scroll mode: 100k rows", () => {
     expect(worstWindow).toBeLessThanOrEqual(5);
     expect(commitFrames.length).toBeGreaterThan(0);
     expect(elapsed).toBeLessThan(8000);
+    expect(fetchRows.mock.calls.length).toBeLessThanOrEqual(8);
+  });
+
+  it("keeps the loaded rows under maxLoadedRows across repeated thumb drags", async () => {
+    const total = 100_000;
+    const cap = 2000;
+    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: makeRows(start, Math.min(end, total)), totalRowCount: total }));
+    let latest!: UseDataGridServerRowsScrollResult<Row>;
+    function Grid() {
+      const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 50, overscan: 30, loadDelay: 0, maxLoadedRows: cap });
+      latest = server;
+      return (
+        <div style={{ height: 360, width: 400 }}>
+          <DataGridProvider {...server.providerProps} columns={columns}>
+            <DataGridRoot className="h-90 w-100" {...server.rootProps}>
+              <DataGridHeader />
+              <DataGridBody />
+            </DataGridRoot>
+          </DataGridProvider>
+        </div>
+      );
+    }
+    await render(<Grid />);
+    await expect.element(page.getByText("Person 0")).toBeInTheDocument();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    const loadedRows = () => latest.getLoadedRanges().reduce((sum, range) => sum + range.end - range.start, 0);
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < 90; i++) {
+        grid.scrollTop = ((pass * 37 + i * 1117) % (total - 20)) * ROW_HEIGHT;
+        grid.dispatchEvent(new Event("scroll"));
+        await nextFrame();
+      }
+      await vi.waitFor(() => expect(document.querySelectorAll('[role="gridcell"][data-skeleton]').length).toBe(0), { timeout: 5000 });
+      await nextFrame();
+      expect(loadedRows()).toBeLessThanOrEqual(cap);
+    }
+    expect(fetchRows.mock.calls.length).toBeGreaterThan(cap / 50);
   });
 });
 

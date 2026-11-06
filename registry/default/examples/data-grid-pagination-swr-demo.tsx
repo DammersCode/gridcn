@@ -10,7 +10,7 @@ import {
   defineColumns,
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { type DemoRow } from "./demo-data";
 import { createRemoteServer } from "./fake-remote-server";
 
@@ -45,7 +45,7 @@ function PaginatedSwrGrid(): ReactNode {
     if (data) setRows(data.rows);
   }, [data]);
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: data?.total ?? server.total,

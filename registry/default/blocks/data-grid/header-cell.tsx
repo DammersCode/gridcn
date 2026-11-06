@@ -167,7 +167,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       {typeof column.header === "string" ? <span className="truncate">{column.header}</span> : column.header}
       {/* A custom (ReactNode) header owns its display, so the built-in arrow is only appended for string headers;
           embed DataGridSortIndicator inside a custom header when you still want it. */}
-      {headerClickBehavior === "sort" && column.sortable !== false && typeof column.header === "string" && (
+      {(headerClickBehavior === "sort" || sortState.some((sort) => sort.columnId === column.id)) && column.sortable !== false && typeof column.header === "string" && (
         <DataGridSortIndicator columnId={column.id} sortState={sortState} />
       )}
       {showHeaderFilter && renderHeaderFilter && (

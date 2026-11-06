@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, createHistory, buildRollback } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, createHistory, buildRollback, useDataGridAnnounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
@@ -17,21 +17,46 @@ export type UseDataGridHistoryOptions<TData> = {
    * Which `DataChange.source` values go on the undo stack. Defaults to every source except
    * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to change the set, for example
-   * `["edit", "paste", "fill", "delete", "row-operation", "import", "stream", "app"]` to record
+   * `["edit", "paste", "fill", "delete", "row-operation", "import", "replace", "stream", "app"]` to record
    * streams too. `source: "history"` and `"rollback"` (undo, redo, and rollback applied through the grid) are never recorded,
    * whatever the list says — that is what keeps an undo from pushing a second entry.
    */
   recordSources?: readonly DataChange<TData>["source"][];
+  /**
+   * Called when `undo` or `redo` finds a row its change needs missing from `data`, and applies nothing.
+   * `"rows-not-loaded"`: `data` has holes (lazy rows); the entry stays, so the same call works after the rows load.
+   * `"rows-gone"`: `data` is dense and lacks the rows; the entry is dropped. The live region announces both.
+   * A throw is logged and does not stop the grid.
+   */
+  onSkip?: (ctx: HistorySkip) => void;
 };
 
-// Fires at most once per app, dev-only: undo ran over a sparse (lazy) data array.
-let warnedSparseData = false;
+/** What {@link UseDataGridHistoryOptions.onSkip} receives. */
+export type HistorySkip = {
+  direction: "undo" | "redo";
+  reason: "rows-not-loaded" | "rows-gone";
+  /** Ids of the rows the change needs and `data` lacks. */
+  rowIds: readonly string[];
+};
 
-// `Array.prototype.some` skips holes (the callback never runs for missing indices), so hole
-// detection must test indices, not values.
-function hasSparseHoles(data: readonly unknown[]): boolean {
-  for (let i = 0; i < data.length; i++) if (!(i in data)) return true;
-  return false;
+/**
+ * The ids `change` needs that `data` lacks (an insert needs none), and whether `data` has holes.
+ * `Array.prototype.some` skips holes, so the scan tests indices.
+ */
+function findMissingRows<TData>(
+  change: DataChange<TData>,
+  data: readonly unknown[],
+  getRowId: (row: never, index: number) => string,
+): { missing: string[]; hasHoles: boolean } {
+  const needed = new Set<string>();
+  for (const op of change.ops) if (op.type !== "insert") needed.add(op.rowId);
+  let hasHoles = false;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (!(i in data) || row === undefined) hasHoles = true;
+    else if (needed.size > 0) needed.delete(getRowId(row as never, i));
+  }
+  return { missing: [...needed], hasHoles };
 }
 
 /** Sources `useDataGridHistory` records when `recordSources` is omitted — everything a user did on purpose (`"history"` is skipped before the filter runs). */
@@ -89,6 +114,9 @@ export type UseDataGridHistoryResult<TData> = {
  */
 export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData> = {}): UseDataGridHistoryResult<TData> {
   const { capacity, datasetKey, recordSources } = opts;
+  const onSkipRef = useRef(opts.onSkip);
+  onSkipRef.current = opts.onSkip;
+  const warnedSparseData = useRef(false);
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
   // after every mutating call so callers see them update even when nothing else re-renders
@@ -114,35 +142,45 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   // The grid's imperative handle, stashed by the plugin's Mount (and refreshed by every
   // command/observer ctx): the imperative `undo`/`redo`/`record` triggers below run through it.
   const apiRef = useRef<DataGridApi<TData> | null>(null);
+  const announceRef = useRef<ReturnType<typeof useDataGridAnnounce> | null>(null);
 
-  const undo = useCallback(() => {
-    const api = apiRef.current;
-    if (!api) return;
-    // a read-only grid never applied the change it would revert (writes are gated), so popping the
-    // entry would only lose it
-    if (api.store.getState().readOnly) return;
-    const change = history.undo();
-    if (!change) return;
-    // Sparse (lazy) data needs a hole-tolerant getRowId and skips evicted rows silently — flag once, not per undo.
-    if (!warnedSparseData && isDev() && hasSparseHoles(api.store.getState().data)) {
-      warnedSparseData = true;
-      console.warn(
-        "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes and their operations are skipped. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
-      );
-    }
-    api.actions.commitChange(change);
-    forceUpdate((n) => n + 1);
-  }, [history]);
+  const applyHistoryChange = useCallback(
+    (direction: HistorySkip["direction"]) => {
+      const api = apiRef.current;
+      if (!api) return;
+      const state = api.store.getState();
+      // a read-only grid never applied the change it would revert (writes are gated), so popping the
+      // entry would only lose it
+      if (state.readOnly) return;
+      const change = direction === "undo" ? history.undo() : history.redo();
+      if (!change) return;
+      const { missing, hasHoles } = findMissingRows(change, state.data, state.getRowId);
+      if (!warnedSparseData.current && hasHoles && isDev()) {
+        warnedSparseData.current = true;
+        console.warn(
+          "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes, so an undo that needs them is blocked and keeps its entry. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
+        );
+      }
+      if (missing.length === 0) {
+        api.actions.commitChange(change);
+        forceUpdate((n) => n + 1);
+        return;
+      }
+      if (hasHoles) history.restore(change);
+      else history.discard(change);
+      forceUpdate((n) => n + 1);
+      announceRef.current?.("historyBlocked", missing.length, hasHoles);
+      try {
+        onSkipRef.current?.({ direction, reason: hasHoles ? "rows-not-loaded" : "rows-gone", rowIds: missing });
+      } catch (error) {
+        console.error("[data-grid-history] onSkip threw:", error);
+      }
+    },
+    [history],
+  );
 
-  const redo = useCallback(() => {
-    const api = apiRef.current;
-    if (!api) return;
-    if (api.store.getState().readOnly) return;
-    const change = history.redo();
-    if (!change) return;
-    api.actions.commitChange(change);
-    forceUpdate((n) => n + 1);
-  }, [history]);
+  const undo = useCallback(() => applyHistoryChange("undo"), [applyHistoryChange]);
+  const redo = useCallback(() => applyHistoryChange("redo"), [applyHistoryChange]);
 
   const clear = useCallback(() => {
     history.clear();
@@ -169,6 +207,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     (change: DataChange<TData>, label?: string) => {
       const api = apiRef.current;
       if (!api) return;
+      if (isDev()) warnDuplicateInsert(api.store.getState(), change);
       // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
       api.actions.commitChange({ ...change, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
@@ -181,8 +220,10 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const mountRef = useRef<ComponentType | null>(null);
   if (mountRef.current === null) {
     const ref = apiRef;
+    const announce = announceRef;
     mountRef.current = function HistoryApiStash(): ReactNode {
       ref.current = useDataGridApi<TData>();
+      announce.current = useDataGridAnnounce();
       return null;
     };
   }
@@ -190,9 +231,26 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const plugin = useMemo<DataGridPlugin<TData>>(
     () => ({
       name: "history",
-      onDataChange: (_next, change) => {
-        if (change.source === "rollback") {
-          if (change.reverts && history.discard(change.reverts)) forceUpdate((n) => n + 1);
+      onDataChange: (next, change, ctx) => {
+        if (change.source === "rollback" || change.source === "merge") {
+          const { reverts, serverRowIds } = change;
+          const revertedEntry =
+            reverts !== undefined && (change.source === "rollback" ? history.restore(reverts) || history.discard(reverts) : history.discard(reverts));
+          const prunedEntries = serverRowIds !== undefined && history.dropRows(serverRowIds);
+          if (revertedEntry || prunedEntries) forceUpdate((n) => n + 1);
+          return;
+        }
+        if (change.source === "id-swap") {
+          const swapped = new Map<unknown, number>();
+          for (const op of change.ops) if (op.type === "update") swapped.set(op.row, -1);
+          next.forEach((row, index) => {
+            if (swapped.get(row) === -1) swapped.set(row, index);
+          });
+          const getRowId = ctx.api.store.getState().getRowId;
+          const swaps = change.ops.flatMap((op) =>
+            op.type === "update" ? [{ oldId: op.rowId, newId: getRowId(op.row, Math.max(0, swapped.get(op.row) ?? 0)), oldRow: op.prev, newRow: op.row }] : [],
+          );
+          if (history.replaceRowIds(swaps)) forceUpdate((n) => n + 1);
           return;
         }
         if (change.source === "history") return;
@@ -231,4 +289,12 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     rollback,
     record,
   };
+}
+
+function warnDuplicateInsert<TData>(state: { data: readonly unknown[]; getRowId: (row: unknown, index: number) => string }, change: DataChange<TData>) {
+  const inserted = change.ops.filter((op) => op.type === "insert");
+  if (inserted.length === 0) return;
+  const present = new Set(state.data.map((row, index) => (row === undefined ? "" : state.getRowId(row, index))));
+  const twice = inserted.find((op) => present.has(op.rowId));
+  if (twice) console.warn(`[data-grid-history] record() inserts row "${twice.rowId}", which data already holds. record() writes the change itself: do not apply it to your own array first.`);
 }

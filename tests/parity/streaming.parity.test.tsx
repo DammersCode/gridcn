@@ -20,7 +20,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
     expect(grid.cell("r1", "n")).toBe(111);
   });
 
-  it("skips an unknown row and a no-op value, and a readOnly grid ignores the batch", async () => {
+  it("skips an unknown row and a no-op value", async () => {
     const grid = await mountMode(mode);
     let verdict: { applied: number; skipped: { reason: string }[] } | undefined;
     grid.act(() => {
@@ -32,9 +32,15 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
     expect(verdict?.applied).toBe(0);
     expect(verdict?.skipped.map((s) => s.reason)).toEqual(["unknown-row", "no-op"]);
     expect(grid.changes).toHaveLength(0);
+  });
+
+  it("writes a push into a readOnly grid and refuses an edit batch", async () => {
     const readOnly = await mountMode(mode, { props: { readOnly: true } });
-    readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }]));
+    readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }], { source: "edit" }));
     expect(readOnly.changes).toHaveLength(0);
+    readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }]));
+    expect(readOnly.cell("r1", "n")).toBe(5);
+    expect(readOnly.changes.at(-1)?.source).toBe("stream");
   });
 
   it("does not send a stream change to onSave", async () => {

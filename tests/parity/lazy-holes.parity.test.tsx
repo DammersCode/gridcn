@@ -46,6 +46,6 @@ describe("unloaded rows in mode Z (lazy rows)", () => {
     grid.act(() => grid.state().actions.commitCellEdit(5));
     await grid.settle();
     expect(validateRow).toHaveBeenCalledTimes(1);
-    expect(validateRow).toHaveBeenCalledWith(expect.objectContaining({ id: "r1" }), "r1");
+    expect(validateRow).toHaveBeenCalledWith(expect.objectContaining({ id: "r1" }), "r1", expect.anything());
   });
 });

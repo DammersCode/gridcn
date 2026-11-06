@@ -12,7 +12,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-keybindings/data-grid-keybindings.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridKeybindingsDialog, type DataGridKeybindingsDialogProps } from \"./keybindings-dialog\";\r\nexport { DataGridKeybindingsShortcut, type DataGridKeybindingsShortcutProps } from \"./keybindings-shortcut\";\r\nexport { BindingChips } from \"./binding-label\";\r\nexport { KEYBINDING_CATEGORIES, ACTION_CATEGORY, categoryForAction, categoryLabel, type KeybindingCategory } from \"./action-groups\";\r\nexport { labelForAction } from \"./action-labels\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridKeybindingsDialog, type DataGridKeybindingsDialogProps } from \"./keybindings-dialog\";\r\nexport { DataGridKeybindingsShortcut, type DataGridKeybindingsShortcutProps } from \"./keybindings-shortcut\";\r\nexport { BindingChips } from \"./binding-label\";\r\n",
       "type": "registry:component",
       "target": "components/data-grid-keybindings/data-grid-keybindings.ts"
     },

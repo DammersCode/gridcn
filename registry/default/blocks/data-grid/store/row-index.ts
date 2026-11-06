@@ -1,4 +1,4 @@
-import type { CellPatch, DataGridStoreState, UpdateCellsOptions } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridStoreState, UpdateCellsOptions } from "./types";
 import { forEachFilterSpec } from "../sort-filter/filter-tree";
 import type { CellRef, FilterNode, SortSpec, ViewCoord } from "../types";
 
@@ -142,4 +142,33 @@ export function touchesViewInputs(
     if (viewColumns.has(patch.columnId)) return true;
   }
   return false;
+}
+
+/**
+ * True when no patch can change the position or filter verdict of any row: every sort and filter
+ * column reads one plain `accessorKey` field with no `sortCompare`, and no patch writes that column
+ * or that field through a plain write (a `setValue` may write any field). A derived (`accessorFn`) or row-comparing column may read any field, so it never qualifies.
+ */
+export function patchesLeaveViewAlone(
+  columns: readonly AnyColumnDef[],
+  patches: readonly CellPatch[],
+  sortState: readonly SortSpec[],
+  filterState: readonly FilterNode[],
+): boolean {
+  const viewColumnIds = new Set<string>();
+  for (const sort of sortState) viewColumnIds.add(sort.columnId);
+  forEachFilterSpec(filterState, (filter) => viewColumnIds.add(filter.columnId));
+  const viewFields = new Set<unknown>();
+  for (const column of columns) {
+    if (!viewColumnIds.has(column.id)) continue;
+    if (column.accessorFn || column.sortCompare || column.accessorKey === undefined) return false;
+    viewFields.add(column.accessorKey);
+  }
+  if (viewFields.size < viewColumnIds.size) return false;
+  for (const patch of patches) {
+    if (viewColumnIds.has(patch.columnId)) return false;
+    const patched = columns.find((column) => column.id === patch.columnId);
+    if (!patched || patched.setValue || patched.accessorKey === undefined || viewFields.has(patched.accessorKey)) return false;
+  }
+  return true;
 }

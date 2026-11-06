@@ -129,24 +129,125 @@ export function updateViewIndex(
   if (touchedRows.length > INCREMENTAL_PATCH_LIMIT) return { viewIndex: null, bail: "too-many-rows" };
   // buildViewIndex narrows by `search` before sorting; this path only knows sort + filter membership.
   if (opts.search?.trim() && opts.searchColumnIds) return { viewIndex: null, bail: "search-active" };
-  const touched = new Set(touchedRows);
+  const rows = Array.from(new Set(touchedRows));
   const survives = makeFilterPredicate(accessor, opts.filters);
   // With no sort columns the comparator degenerates to the data-index tiebreak alone, which is
   // exactly the order the rebuild leaves an unsorted filtered view in.
   const compare = makeViewComparator(accessor, opts.sorts);
+  const positions = locateRows(prevViewIndex, rows);
 
-  // `indexOf` and `splice` are native memmoves over the index array, so 2k of them stay far cheaper
-  // than any JS-level pass over all n. Measured at 100k rows / one sort column: this path costs
-  // 0.47 / 0.91 / 1.57 ms at k = 5 / 20 / 50, against a uniform 3.7-4.1 ms for a single
-  // filter-and-merge pass — the JS-loop alternative loses at every k, so there is only one path.
-  const next = prevViewIndex.slice();
-  for (const row of touched) {
+  if (everyRowStaysPut(prevViewIndex, rows, positions, survives, compare)) return { viewIndex: prevViewIndex as number[], bail: null };
+  if (rows.length === 1 && positions[0] !== -1 && survives(rows[0]!)) {
+    return { viewIndex: moveRow(prevViewIndex, positions[0]!, compare), bail: null };
+  }
+  if (rows.length <= SPLICE_ROW_LIMIT) return { viewIndex: spliceRows(prevViewIndex, rows, survives, compare), bail: null };
+  return { viewIndex: mergeRows(prevViewIndex, rows, survives, compare), bail: null };
+}
+
+/** At or below this many touched rows, `indexOf` plus `splice` beat the one-pass merge. */
+const SPLICE_ROW_LIMIT = 4;
+
+/** The index of each of `rows` in `view`, or -1 when absent: `indexOf` for a few rows, one scan otherwise. */
+function locateRows(view: readonly number[], rows: readonly number[]): number[] {
+  if (rows.length <= SPLICE_ROW_LIMIT) return rows.map((row) => view.indexOf(row));
+  const slotOf = new Map<number, number>();
+  rows.forEach((row, slot) => slotOf.set(row, slot));
+  const mark = markRows(rows);
+  const positions = new Array<number>(rows.length).fill(-1);
+  for (let i = 0; i < view.length; i++) {
+    const row = view[i]!;
+    if (row < mark.length && mark[row] === 1) positions[slotOf.get(row)!] = i;
+  }
+  return positions;
+}
+
+function markRows(rows: readonly number[]): Uint8Array {
+  let max = 0;
+  for (const row of rows) if (row > max) max = row;
+  const mark = new Uint8Array(max + 1);
+  for (const row of rows) mark[row] = 1;
+  return mark;
+}
+
+/**
+ * Whether the view is still sorted and filtered without moving anything: every touched row keeps its
+ * filter verdict and sorts strictly between its neighbours under the current values. Adjacent pairs in
+ * order make the whole view in order, so the caller can keep the previous array.
+ */
+function everyRowStaysPut(
+  view: readonly number[],
+  rows: readonly number[],
+  positions: readonly number[],
+  survives: (row: number) => boolean,
+  compare: (a: number, b: number) => number,
+): boolean {
+  for (let slot = 0; slot < rows.length; slot++) {
+    const row = rows[slot]!;
+    const position = positions[slot]!;
+    if (position === -1 || !survives(row)) return false;
+    if (position > 0 && compare(view[position - 1]!, row) >= 0) return false;
+    if (position < view.length - 1 && compare(row, view[position + 1]!) >= 0) return false;
+  }
+  return true;
+}
+
+/** Moves the row at `position` to its sorted place: one copy of the view plus a `copyWithin` over the rows it passes. */
+function moveRow(view: readonly number[], position: number, compare: (a: number, b: number) => number): number[] {
+  const next = view.slice();
+  const row = next[position]!;
+  let low = 0;
+  let high = next.length - 1;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (compare(next[mid < position ? mid : mid + 1]!, row) < 0) low = mid + 1;
+    else high = mid;
+  }
+  if (low > position) next.copyWithin(position, position + 1, low + 1);
+  else if (low < position) next.copyWithin(low + 1, low, position);
+  next[low] = row;
+  return next;
+}
+
+/** Pulls each touched row out and binary-searches the surviving ones back in, one `splice` pair per row. */
+function spliceRows(
+  view: readonly number[],
+  rows: readonly number[],
+  survives: (row: number) => boolean,
+  compare: (a: number, b: number) => number,
+): number[] {
+  const next = view.slice();
+  for (const row of rows) {
     const position = next.indexOf(row);
     if (position !== -1) next.splice(position, 1);
   }
-  for (const row of touched) {
+  for (const row of rows) {
     if (!survives(row)) continue;
     next.splice(lowerBound(next, row, compare), 0, row);
   }
-  return { viewIndex: next, bail: null };
+  return next;
+}
+
+/** One pass that drops the touched rows, then stitches the surviving ones back in at their sorted places. */
+function mergeRows(
+  view: readonly number[],
+  rows: readonly number[],
+  survives: (row: number) => boolean,
+  compare: (a: number, b: number) => number,
+): number[] {
+  const mark = markRows(rows);
+  const rest: number[] = [];
+  for (let i = 0; i < view.length; i++) {
+    const row = view[i]!;
+    if (row >= mark.length || mark[row] !== 1) rest.push(row);
+  }
+  const inserts = rows.filter(survives).sort(compare);
+  const parts: number[][] = [];
+  let from = 0;
+  for (const row of inserts) {
+    const at = lowerBound(rest, row, compare);
+    parts.push(rest.slice(from, at), [row]);
+    from = at;
+  }
+  parts.push(rest.slice(from));
+  return ([] as number[]).concat(...parts);
 }

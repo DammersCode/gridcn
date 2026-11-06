@@ -78,11 +78,18 @@ export {
   useDataGridSelectedRows,
   useDataGridRowSaveStatus,
   useDataGridPendingSaveCount,
+  useDataGridGatePending,
   type DataGridSyncProps,
   type DataGridSelectedRows,
   type RowSaveStatus,
+  type GateContext,
+  type GateName,
   type SaveAck,
+  type RowActionResult,
+  type RowActionSkipReason,
+  type SaveConflictContext,
   type SaveRejectedContext,
+  type SaveResolution,
   type SaveRejection,
   type SelectionChangeDetails,
   type SelectLineActionOptions,
@@ -113,6 +120,7 @@ export {
 } from "./keyboard/global-shortcuts";
 export { isMacPlatform, formatShortcut } from "./keyboard";
 export { serverSpecKey, type RowRange, type ServerSpec } from "./server-spec";
+export { isPlaceholderRowId } from "./store/compute";
 
 export {
   cellTypes,
@@ -178,7 +186,10 @@ export type {
   ColumnDef,
   SortSpec,
   SearchOptions,
+  BuiltInFilterOperator,
+  CustomFilterOperator,
   FilterOperator,
+  FilterOperatorInput,
   FilterSpec,
   FilterGroup,
   FilterNode,

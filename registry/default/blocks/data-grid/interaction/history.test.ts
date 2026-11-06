@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { applyChange, createHistory, invertChange } from "./history";
+import { computeDuplicateBatch, startDuplicateCopies } from "../store/commit";
+import type { DataGridStoreState } from "../store/types";
 import type { DataChange, DataOp } from "../types";
 
 type Row = { id: string; name: string; age: number };
@@ -487,5 +489,25 @@ describe("applyChange scale guard (100k rows)", () => {
     console.log(`applyChange 100k rows / 500-op batch: warmup=${warmupMs.toFixed(2)}ms mean=${ms.toFixed(2)}ms`);
     // ~5x the measured ~15ms local mean (×CI_FACTOR on CI); catches an accidental O(n^2).
     expect(ms).toBeLessThan(80 * CI_FACTOR);
+  });
+});
+
+describe("computeDuplicateBatch with applyChange", () => {
+  it("duplicating several rows redoes to the same order the store produced", () => {
+    type R = { id: string };
+    const data: R[] = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    let n = 0;
+    const state = {
+      data,
+      getRowId: (r: R) => r.id,
+      duplicateRow: (r: R) => ({ id: `${r.id}${++n}` }),
+    } as unknown as DataGridStoreState;
+    const copies = startDuplicateCopies(state, [0, 2], { signal: new AbortController().signal })!;
+    const batch = computeDuplicateBatch(state, [0, 2], copies)!;
+    const expected = batch.nextData.map((r) => (r as R).id);
+    expect(expected).toEqual(["a", "a2", "b", "c", "c1"]);
+    expect(batch.ops.map((op) => (op as { index: number }).index)).toEqual([1, 4]);
+    const redone = applyChange(data, { ops: batch.ops, source: "history" } as DataChange<R>, (r) => r.id);
+    expect(redone.map((r) => r.id)).toEqual(expected);
   });
 });

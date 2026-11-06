@@ -1,6 +1,8 @@
 import type { FilterNode, FilterSpec, SortSpec } from "../types";
 import { groupChildren, isFilterGroup } from "./filter-tree";
-import { createFilterMatcher } from "./matches-filter";
+import { isDev } from "../is-dev";
+import { createFilterMatcher, isBuiltInOperator } from "./matches-filter";
+import { KEYED_SORT_MIN_ROWS, sortByKeys, type SortKeyReader } from "./keyed-sort";
 
 /**
  * Read-only accessor the view-index builder uses to reach cell data without
@@ -23,19 +25,33 @@ export type CellAccessor = {
   isEmpty?(rowIndex: number, columnId: string): boolean;
   /** The column's raw (un-stringified) cell value; only needed by a column's `filterMatch`. */
   getValue?(rowIndex: number, columnId: string): unknown;
+  /**
+   * Opts a column into the keyed sort when its comparator is exactly a built-in one (see
+   * {@link SortKeyReader}); the result must order rows exactly as `compare` and `isEmpty` do. A column
+   * without it sorts through `compare`.
+   */
+  sortKeys?(columnId: string): SortKeyReader | undefined;
   /** The column's `filterMatch` predicate, if the column declares one. */
   filterMatch?(columnId: string): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
+  /** The column's `filterCompare`, ordering text against a filter bound. */
+  filterCompare?(columnId: string): ((text: string, bound: string) => number) | undefined;
+  /** The `match` of the custom operator `operator` registered on the column, if any. */
+  customFilterMatch?(columnId: string, operator: string): ((text: string, filter: FilterSpec) => boolean) | undefined;
 };
+
+const MAX_WARNED_OPERATORS = 100;
+const warnedUnwiredOperators = new Set<string>();
 
 /**
  * One filter's per-row test: the column's `filterMatch` (raw value) when the accessor provides
- * both the predicate and raw values, else the built-in text matcher. Both the rebuild and the
+ * both the predicate and raw values and the operator is built in, else the text matcher with the
+ * column's `filterCompare` and the custom operator's `match`. Both the rebuild and the
  * incremental path build through this so a custom predicate can never desync between them.
  */
 export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row: number) => boolean {
   const custom = accessor.filterMatch?.(filter.columnId);
   const getValue = accessor.getValue;
-  if (custom && getValue) {
+  if (custom && getValue && isBuiltInOperator(filter.operator)) {
     // a thrown predicate fails the row rather than the view build
     return (row: number) => {
       try {
@@ -45,7 +61,18 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
       }
     };
   }
-  const test = createFilterMatcher(filter);
+  const compare = accessor.filterCompare?.(filter.columnId);
+  const customMatch = accessor.customFilterMatch?.(filter.columnId, filter.operator);
+  if (!customMatch && !isBuiltInOperator(filter.operator) && isDev()) {
+    const key = `${filter.columnId}:${filter.operator}`;
+    if (!warnedUnwiredOperators.has(key) && warnedUnwiredOperators.size < MAX_WARNED_OPERATORS) {
+      warnedUnwiredOperators.add(key);
+      console.warn(
+        `[data-grid] the filter operator "${filter.operator}" on column "${filter.columnId}" has no \`match\`, so the grid does not narrow rows with it. Give it a \`match\` in the column's \`filterOperators\`, or use filterMode="server".`,
+      );
+    }
+  }
+  const test = createFilterMatcher(filter, { compare, custom: customMatch });
   return (row: number) => test(accessor.getText(row, filter.columnId));
 }
 
@@ -119,6 +146,11 @@ export function buildViewIndex(
   }
 
   if (opts.sorts.length === 0) return indices;
+
+  if (indices.length >= KEYED_SORT_MIN_ROWS) {
+    const keyed = sortByKeys(indices, accessor, opts.sorts);
+    if (keyed) return keyed;
+  }
 
   // One collator amortized across every default-compare column and every pairwise
   // comparison in this call, instead of a fresh Intl.Collator per `localeCompare`.

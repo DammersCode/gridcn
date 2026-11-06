@@ -57,7 +57,7 @@ const open = async (columnId: string) => {
 };
 
 const serverValues: FetchFilterValues = async ({ query }) => ({
-  values: ["Berlin", "Bonn", "Paris", "Rome"].filter((c) => c.toLowerCase().includes(query.toLowerCase())).map((label, i) => ({ label, count: i + 1 })),
+  values: ["Berlin", "Bonn", "Paris", "Rome"].filter((c) => c.toLowerCase().includes(query.toLowerCase())).map((value, i) => ({ value, count: i + 1 })),
 });
 
 describe("DataGridHeaderFilter with fetchFilterValues", () => {
@@ -69,7 +69,7 @@ describe("DataGridHeaderFilter with fetchFilterValues", () => {
   });
 
   it("shows the loading line first, then the selected count", async () => {
-    await renderGrid(() => new Promise((resolve) => setTimeout(() => resolve({ values: [{ label: "Paris" }] }), 150)));
+    await renderGrid(() => new Promise((resolve) => setTimeout(() => resolve({ values: [{ value: "Paris" }] }), 150)));
     await open("city");
     expect(status()).toBe("Loading values…");
     await vi.waitFor(() => expect(status()).toBe("0 of 1 selected"));
@@ -82,7 +82,7 @@ describe("DataGridHeaderFilter with fetchFilterValues", () => {
   });
 
   it("sends one debounced request per search, passes the text raw, and does not filter the answer locally", async () => {
-    const fetchFilterValues = vi.fn<FetchFilterValues>(async () => ({ values: [{ label: "Fuzzy hit" }] }));
+    const fetchFilterValues = vi.fn<FetchFilterValues>(async () => ({ values: [{ value: "Fuzzy hit" }] }));
     await renderGrid(fetchFilterValues);
     await open("city");
     await vi.waitFor(() => expect(fetchFilterValues).toHaveBeenCalledTimes(1));

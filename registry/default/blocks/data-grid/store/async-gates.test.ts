@@ -325,8 +325,8 @@ describe("duplicateRow async", () => {
     const duplicateRow = vi.fn(duplicate);
     const m = mount({ duplicateRow });
     m.state().actions.duplicateRows([0, 2]);
-    expect(duplicateRow.mock.calls.map(([row, index]) => [(row as Row).id, index])).toEqual([["c", 3], ["a", 1]]);
-    expect(m.ids()).toEqual(["a", "a-copy1", "b", "c", "c-copy3"]);
+    expect(duplicateRow.mock.calls.map(([row, index]) => [(row as Row).id, index])).toEqual([["c", 4], ["a", 1]]);
+    expect(m.ids()).toEqual(["a", "a-copy1", "b", "c", "c-copy4"]);
   });
 
   it("holds until every copy settles, then writes once", async () => {

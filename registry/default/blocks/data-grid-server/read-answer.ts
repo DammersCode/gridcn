@@ -11,14 +11,14 @@ export type ServerRowsRequest<TCursor = never> = {
   start: number;
   /** One past the last requested row; `end - start` is the limit. */
   end: number;
-  /** Sequential scroll only: the `nextCursor` of the block before; `undefined` for the first block and for every other source. */
+  /** Cursor sources: the `nextCursor` of the block or page before; `undefined` for the first one and for every other source. */
   cursor: TCursor | undefined;
-  /** Aborted when a newer request replaces this one, on a spec change, and on unmount. */
+  /** Aborted when a newer request replaces this one, when a scroll-mode block leaves the rendered rows by more than `overscan` plus one block, on a spec change, and on unmount. */
   signal: AbortSignal;
 };
 
 /** Pages mode adds the page address; `start` is `(page - 1) * pageSize`. */
-export type ServerRowsPageRequest = ServerRowsRequest & {
+export type ServerRowsPageRequest<TCursor = never> = ServerRowsRequest<TCursor> & {
   /** 1-based page. */
   page: number;
   pageSize: number;
@@ -107,3 +107,6 @@ function firstCopies<TData>(rows: TData[], idOf: (row: TData, index: number) => 
   if (repeated) warn("duplicate", "fetchRows returned a duplicate row id; only the first row of each id is used, so make the sort total (add the row id as a last sort key)");
   return kept;
 }
+
+/** Options after the hook filled in the default `getRowId`. */
+export type WithRowId<TOptions, TData> = TOptions & { getRowId: (row: TData, index: number) => string };

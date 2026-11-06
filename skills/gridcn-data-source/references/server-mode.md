@@ -29,11 +29,14 @@ function OrdersGrid() {
 Rules that make this work, and break silently if skipped:
 
 - **Header clicks sort only with `headerClickBehavior="sort"`.** The default `"select"` selects the column, and the spec never changes.
-- **The hook owns the spec and sets `sortMode="server"` and `filterMode="server"`.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`, filter menu, header filters) and never reorders or filters `data`. Pass `fetchFilterValues` to list column values from your server.
+- **The hook owns the spec and sets `sortMode="server"` and `filterMode="server"`.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`, filter menu, header filters) and never reorders or filters `data`. Pass `fetchFilterValues` to list column values from your server. Each value is `{ value, label?, count? }`: the filter stores `value` (a code or id) and the list shows `label`. To name a server filter vocabulary, list `{ id, label, input?, match? }` objects in the column's `filterOperators`; with `filterMode="server"` the spec carries the `id` and the grid never calls `match`.
 - **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. The hook sends `searchText` in `spec` to `fetchRows`.
 - **A changed spec starts the blocks over.** `fetchRows` receives the spec of its request. Control it with `spec` and `onSpecChange` (for example from URL state); a content change restarts, an equal spec does not.
 - **Return `totalRowCount` for random access.** A first answer with a cursor, or with neither a count nor a cursor, makes the source sequential: resolve `{ rows, nextCursor }` or `{ rows, hasMore }`.
 - **`server.refresh()` refetches the rendered blocks in place** and applies one rule: a landing block replaces every row it carries, except a row with a pending cell edit or a save that was in flight at any moment since the request was sent, which keeps its local value, while a row with a pending delete is gone (the answer's copy is dropped, its slot stays empty) and a protected row the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there, else is hidden until a counted source refreshes when no pending insert or delete is left (a pages refresh appends it at the page end, so the page can exceed `pageSize`; a sequential refresh that ends first may drop it until its save settles); a block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. The guard that applies it mounts through `gridProps.plugins`: a `plugins` prop of your own replaces it, so write `plugins={[...server.gridProps.plugins, mine]}` (pages mode has the same guard). Call it after the `onSave` promise settles, because a row that still shows "saving" keeps its local value and misses server-computed fields. `server.retry()` repeats the failed blocks.
+- **Scroll mode limits the fetches.** A block starts after it stays in the wanted range for `loadDelay` ms (default 100; block 0, `refresh()`, `retry()`, and the refetch after a count change skip it). At most `maxConcurrentFetches` requests run (default 3). A request aborts when its block leaves the rendered rows by more than `overscan` plus one block, so pass `signal` to your client. `maxLoadedRows` (default 10,000; `Infinity` turns it off) unloads the least recently viewed blocks; rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay. A sequential source uses `loadDelay` only.
+- **`revalidateInterval` refreshes on a timer** (ms, at least 1000) while the page is visible, in both modes. A tick waits for a request in flight. **`prefetchNextPage: true`** loads the next page in pages mode and shows it with no request; a refresh, a spec or page size change, a local insert, delete, or move, or the start of a save drops it.
+- **Pushes into a server grid.** `updateCells`/`updateRows`/`deleteRowsById(ids, { source: "stream" })` never reach `onSave`. A push that changes a column of the sort, the filter, or (with a search text) any column leaves the row in place, sets `data-row-stale` on it, and sets `viewStale`; the server places it again on a reshape. `reshapeDelay` (ms, at least 250, off by default) makes the hook reshape (a `refresh()`) once per delay after a stale push; `server.reshape()`, a push delete, `reconcileView()`, and `reorder: "immediate"` reshape on the next frame. Call `server.reshape()` when the server reports an inserted row. A `"stream"` push writes into `readOnly` grids, columns, and rows; other sources keep the read-only checks. A row that an answer delivered with a pushed value laid over it (a push made while the request was open, or between its landing and its render) stops being stale and can sit in the wrong place until the next reshape places it; a later push to it marks it again. A push to a row with a save in flight skips with `saving`, and a `"stream"` call takes at most 100,000 patches (`limit`).
 - `DataGridUrlState` mounts on this grid through a controlled `spec`/`onSpecChange` pair; the store keeps the URL spec and never re-sorts or re-filters the partial `data`.
 
 ## `data-grid-pagination` (server mode)
@@ -43,7 +46,7 @@ Rules that make this work, and break silently if skipped:
 
 import { useEffect, useState } from "react";
 import { DataGrid, type SortSpec } from "@/components/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerPager, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
 function OrdersGrid() {
   const [page, setPage] = useState(1);
@@ -62,7 +65,7 @@ function OrdersGrid() {
     return () => { stale = true; };
   }, [page, pageSize, sorts]);
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: total,
@@ -124,5 +127,5 @@ empty group           -> matches every row (emit no predicate)
 ## No row count (cursor or "has more" APIs)
 
 - Scroll: `useDataGridServerRows({ mode: "scroll", getRowId, fetchRows: ({ cursor, start, end, signal }) => ... })`. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source; any other value (including `0`) means more. Without a cursor, resolve `{ rows, hasMore }`; `hasMore: false` ends the source. The hook keeps the first `end - start` rows of a longer answer. Blocks load in order, one at a time. A spec change restarts at block 0 by itself; `refresh()` refetches from the first block and keeps rows with a pending save. `evict` does nothing.
-- Pagination: `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
+- Pagination: `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
 - Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

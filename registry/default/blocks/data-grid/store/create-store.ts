@@ -54,7 +54,13 @@ import {
   reorderColumnIds as reorderColumnIdsBase,
   reorderGroupBlock,
   resolveSelectionConfig,
+  resolveSortMode,
+  resolveFilterMode,
   selectCellOf,
+  viewWindowOf,
+  windowView,
+  effectivePage,
+  fullViewOf,
   rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
@@ -66,15 +72,18 @@ import {
   MAX_HIDDEN_CHECKED_ROWS,
   NO_HIDDEN_CHECKED_ROWS,
   NO_REMEMBERED_ROWS,
+  releaseRemembered,
   windowModeActive,
   carryCheckedRows,
   hiddenCheckedRowsActive,
 } from "./hidden-checked-rows";
-import { resolveEditTarget, warnBothSelectionPropsOnce, warnDev } from "./commit";
+import { resolveEditTarget, warnDev } from "./commit";
 import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
+import { NO_STALE_ROWS, clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
 import { createRowIndexCache, resolveCellRef, viewRowOfDataIndex } from "./row-index";
@@ -116,6 +125,9 @@ function checkedChange(
   const after = checkedRowCount(next, s.viewIndex.length) + hiddenAfter;
   return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
+
+/** Longest wait between two "view stale" announcements of one grid. */
+const VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS = 30_000;
 
 /** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters. */
 function filterSpecKey(filters: readonly unknown[]): string {
@@ -204,8 +216,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
-  const initSortMode = init.sortMode ?? "client";
-  const initFilterMode = init.filterMode ?? "client";
+  const initSortMode = resolveSortMode(init);
+  const initFilterMode = resolveFilterMode(init);
+  const initPageSize = init.pageSize ?? init.defaultPageSize ?? null;
+  const initPage = init.page ?? init.defaultPage ?? 1;
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
@@ -223,6 +237,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     columnOrder: effectiveLayout.columnOrder,
     hiddenColumns: effectiveLayout.hiddenColumns,
     columnGroupModel: groupModel,
+    pageKey: `${initPage}|${initPageSize}`,
   };
   let lastPropsColumnGroups = init.columnGroups;
   // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
@@ -254,14 +269,48 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const warnHiddenCheckedIgnored = (reason: string): void => {
     if (warnedHiddenCheckedIgnored) return;
     warnedHiddenCheckedIgnored = true;
-    warnDev(`keepHiddenCheckedRows is ignored ${reason}`);
+    warnDev(`rememberCheckedRows is ignored ${reason}`);
   };
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
-  const dataWrite = createDataWriteContext(rowIndexCache);
+  const gates = createGateTracker({
+    timeoutMs: (name) => {
+      const wanted = store.getState().gateTimeoutMs;
+      return typeof wanted === "object" ? wanted[name] : wanted;
+    },
+    aborted: (gate, reason) => {
+      const onGateAborted = store.getState().onGateAborted;
+      if (onGateAborted) {
+        try {
+          onGateAborted({ gate, reason });
+        } catch (error) {
+          warnDev(`onGateAborted threw: ${String(error)}`);
+        }
+      }
+    },
+    publish: (gatesPending) => store.setState({ gatesPending }),
+    subscribe: (listener) => store.subscribe(listener),
+  });
+  const dataWrite = createDataWriteContext(rowIndexCache, gates);
+
+  const rebuildPageView = (s2: DataGridStoreState, page: number, pageSize: number | null): Partial<DataGridStoreState> => {
+    const window = pageSize === null ? null : { page, pageSize };
+    const viewIndex = s2.viewStale
+      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, window)
+      : windowView(fullViewOf(s2.viewIndex), window, s2.viewIndex);
+    resetDeferredRows(dataWrite);
+    return {
+      page,
+      pageSize,
+      viewIndex,
+      ...clearStaleRows(dataWrite),
+      ...followView(s2, viewIndex, s2.visibleColumns),
+      ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+    };
+  };
 
   const rowGestureAt = (
     s: DataGridStoreState,
@@ -478,33 +527,75 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     rowValidationKeys.set(rowId, keys);
   };
-  // rowId -> token of its newest pending async verdict; a newer run for the row supersedes the older one.
-  const pendingRowVerdicts = new Map<string, number>();
-  let rowVerdictSeq = 0;
+  // rowId -> its newest pending async verdict; a newer run for the row supersedes and aborts the older one.
+  const pendingRowVerdicts = new Map<string, GateRun>();
+  // Verdicts that settled in this tick and wait for their write; a newer run for the row drops its entry.
+  const settledVerdicts = new Map<string, Record<string, string> | null>();
+  const supersedeRowVerdict = (rowId: string): void => {
+    settledVerdicts.delete(rowId);
+    const older = pendingRowVerdicts.get(rowId);
+    if (!older) return;
+    pendingRowVerdicts.delete(rowId);
+    gates.abortRun(older);
+  };
+  let unwatchRowVerdicts: (() => void) | null = null;
+  const watchRowVerdicts = (): void => {
+    if (unwatchRowVerdicts) return;
+    unwatchRowVerdicts = store.subscribe((now, prev) => {
+      if (pendingRowVerdicts.size === 0) {
+        unwatchRowVerdicts?.();
+        unwatchRowVerdicts = null;
+        return;
+      }
+      if (now.data === prev.data) return;
+      const index = rowIndexCache.resolve(now.data, now.getRowId);
+      for (const rowId of Array.from(pendingRowVerdicts.keys())) if (!index.has(rowId)) supersedeRowVerdict(rowId);
+    });
+  };
+  const renameRowKeys = (oldId: string, newId: string): void => {
+    const keys = rowValidationKeys.get(oldId);
+    if (keys) {
+      rowValidationKeys.delete(oldId);
+      rowValidationKeys.set(newId, keys.map((key) => cellErrorKey(newId, key.slice(oldId.length + 1))));
+    }
+    supersedeRowVerdict(oldId);
+  };
   const warnGateOnce = createWarnOnce();
-  const holdRowVerdict = (rowId: string, verdict: PromiseLike<Record<string, string> | null>): void => {
-    const token = ++rowVerdictSeq;
-    pendingRowVerdicts.set(rowId, token);
+  // Verdicts that settle in the same tick merge into cellErrors with one copy and one write.
+  const flushSettledVerdicts = (): void => {
+    const batch = Array.from(settledVerdicts);
+    settledVerdicts.clear();
+    const s = store.getState();
+    const index = rowIndexCache.resolve(s.data, s.getRowId);
+    let next: Map<string, string> | null = null;
+    for (const [rowId, verdict] of batch) {
+      if (!index.has(rowId)) continue;
+      foldRowVerdict(
+        () => next ?? s.cellErrors,
+        () => next ?? (next = new Map(s.cellErrors)),
+        rowId,
+        verdict,
+      );
+    }
+    const merged = next as Map<string, string> | null;
+    if (merged) store.setState({ cellErrors: merged });
+  };
+  const holdRowVerdict = (rowId: string, run: GateRun, verdict: PromiseLike<Record<string, string> | null>): void => {
+    supersedeRowVerdict(rowId);
+    pendingRowVerdicts.set(rowId, run);
+    gates.hold(run);
+    watchRowVerdicts();
     const release = (): boolean => {
-      if (pendingRowVerdicts.get(rowId) !== token) return false;
+      gates.settle(run);
+      if (run.aborted || pendingRowVerdicts.get(rowId) !== run) return false;
       pendingRowVerdicts.delete(rowId);
       return true;
     };
     verdict.then(
       (resolved) => {
         if (!release()) return;
-        const s = store.getState();
-        const dataRowIndex = rowIndexCache.resolve(s.data, s.getRowId).get(rowId);
-        if (dataRowIndex === undefined) return;
-        let next: Map<string, string> | null = null;
-        foldRowVerdict(
-          () => next ?? s.cellErrors,
-          () => next ?? (next = new Map(s.cellErrors)),
-          rowId,
-          resolved,
-        );
-        const merged = next as Map<string, string> | null;
-        if (merged) store.setState({ cellErrors: merged });
+        settledVerdicts.set(rowId, resolved);
+        if (settledVerdicts.size === 1) queueMicrotask(flushSettledVerdicts);
       },
       (error: unknown) => {
         if (release()) warnGateOnce("validateRow", `validateRow rejected, so the row gets no verdict: ${String(error)}`);
@@ -536,17 +627,25 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       const dataRowIndex = rowIndex.get(rowId);
       if (dataRowIndex === undefined) continue;
       const row = nextData[dataRowIndex];
-      const verdict = validateRow(row, rowId);
+      const run = gates.begin("validateRow");
+      const verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
       if (isThenable<Record<string, string> | null>(verdict)) {
-        holdRowVerdict(rowId, verdict);
+        holdRowVerdict(rowId, run, verdict);
         continue;
       }
-      pendingRowVerdicts.delete(rowId);
+      if (pendingRowVerdicts.size > 0 || settledVerdicts.size > 0) supersedeRowVerdict(rowId);
       foldRowVerdict(current, ensure, rowId, verdict);
     }
     return next ?? cellErrors;
   };
-  let editStartPending = false;
+  let editStartRun: GateRun | null = null;
+  const cursorLeft = (now: DataGridStoreState, ref: CellRef, askedActive: ViewCoord | null): boolean => {
+    if (now.readOnly) return true;
+    const active = now.activeCell;
+    if (active === askedActive) return false;
+    const coord = resolveCellRef(now, rowIndexCache, ref);
+    return !coord || !active || active.row !== coord.row || active.col !== coord.col;
+  };
   const openEditor = (s: DataGridStoreState, coord: ViewCoord, rowId: string, columnId: string, initialText: string | undefined): void => {
     if (s.editing) store.getState().actions.cancelEditing();
     store.setState({
@@ -556,13 +655,17 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       activeCell: coord,
     });
   };
-  const holdEditStart = (s: DataGridStoreState, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
-    editStartPending = true;
+  const holdEditStart = (s: DataGridStoreState, run: GateRun, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
+    gates.hold(run);
     const askedActive = s.activeCell;
+    const finish = (): boolean => {
+      gates.settle(run);
+      if (editStartRun === run) editStartRun = null;
+      return !run.aborted;
+    };
     verdict.then(
       (allowed) => {
-        editStartPending = false;
-        if (allowed === false) return;
+        if (!finish() || allowed === false) return;
         const now = store.getState();
         if (now.readOnly) return;
         const coord = resolveCellRef(now, rowIndexCache, ref);
@@ -574,7 +677,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         openEditor(now, coord, ref.rowId, ref.columnId, initialText);
       },
       (error: unknown) => {
-        editStartPending = false;
+        if (!finish()) return;
         warnGateOnce("onEditStart rejected", `onEditStart rejected, so the edit does not start: ${String(error)}`);
       },
     );
@@ -607,14 +710,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  if (init.keepCheckedRows && init.keepHiddenCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
+  if (init.rememberCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes);
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize });
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
-  if (init.selection !== undefined && init.defaultSelection !== undefined) warnBothSelectionPropsOnce();
+  if (init.selection !== undefined && init.defaultSelection !== undefined) warnDev("both `selection` and `defaultSelection` were provided; `selection` wins (controlled) and `defaultSelection` is ignored");
   let initialSelection = emptySelection();
   let initialActiveCell: ViewCoord | null = null;
   if (initSelectionValue) {
@@ -728,6 +831,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       carryRows,
       remapEditing,
       endEditSession,
+      renameRowKeys,
     });
     const { _deleteCellsById, ...publicWriteActions } = dataWriteActions;
     const internal: DataGridInternalActions = {
@@ -752,6 +856,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _cancelSelection() {
         const s = get();
+        if (editStartRun) gates.abortRun(editStartRun, "cancelled");
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
@@ -783,7 +888,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (opts?.retain) {
             set({ activeCell: next, lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           } else {
-            set({ activeCell: next, selection: selectCellOf(s, next), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
+            set({ activeCell: next, selection: selectCellOf(s, next), ...releaseRemembered(s), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           }
         }
       },
@@ -831,7 +936,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
-          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
+          if (selectionConfig.rememberCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           return {
@@ -839,8 +944,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
             inputDebounceMs: props.inputDebounceMs,
+            onPageChange: props.onPageChange,
+            onPageSizeChange: props.onPageSizeChange,
+            gateTimeoutMs: props.gateTimeoutMs,
+            onGateAborted: props.onGateAborted,
             onSave: props.onSave,
             onSaveRejected: props.onSaveRejected,
+            resolveSaveConflict: props.resolveSaveConflict,
             fetchFilterValues: props.fetchFilterValues,
             labels: mergeLabels(props.labels),
             plugins: nextPlugins ?? s.plugins,
@@ -886,14 +996,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastPropsFilterState = props.filterState;
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
-          const nextSortMode = props.sortMode ?? "client";
-          const nextFilterMode = props.filterMode ?? "client";
+          const nextSortMode = resolveSortMode(props);
+          const nextFilterMode = resolveFilterMode(props);
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";
-          if (serverRows && s.keepCheckedRows && s.keepHiddenCheckedRows && s.totalRowCount === undefined) {
+          if (serverRows && s.rememberCheckedRows && s.totalRowCount === undefined) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           const nextSearchText = props.searchText ?? s.searchText;
+          const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState);
+          const nextPageSize = props.pageSize ?? s.pageSize;
+          const nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
+          if (filterSpecChanged && s.pageSize !== null && s.page !== 1) queueMicrotask(() => s.onPageChange?.(1));
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
           const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
           // Our own onDataChange array fed back is an echo; skipping its view rebuild saves ~56 ms at 100k sorted rows.
@@ -944,6 +1058,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             columnOrder: s.columnOrder,
             hiddenColumns: nextHiddenColumns,
             columnGroupModel: groupModel,
+            pageKey: `${nextPage}|${nextPageSize}`,
           };
           // An echo skips the recompute only when `data` is the only input that moved.
           const echoOnly =
@@ -954,7 +1069,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
           const nextViewIndex = unchanged
             ? s.viewIndex
-            : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes);
+            : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize });
           // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
           // merged over the incoming column state; a new `columns` array re-applies the controlled
           // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
@@ -1030,6 +1145,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           // A full rebuild leaves nothing pending for the incremental path to replay.
           if (!unchanged) resetDeferredRows(dataWrite);
+          let nextStaleRowIds = s.staleRowIds;
+          if (dataWrite.staleRows.size > 0) {
+            if (serverSpecChanged(s, { sortState: nextSortState, filterState: nextFilterState, searchText: nextSearchText })) nextStaleRowIds = clearStaleRows(dataWrite).staleRowIds;
+            else if (foreignData) nextStaleRowIds = staleStateAfterPrune(dataWrite, s.staleRowIds, pruneStaleRows(dataWrite, nextData, props.getRowId as (row: unknown, index: number) => string));
+          }
+          const staleChanged = nextStaleRowIds !== s.staleRowIds;
+          const clientViewActive = viewSorts(nextSortMode, nextSortState).length > 0 || viewFilters(nextFilterMode, nextFilterState).length > 0;
           // An echo-only sync (every recompute input unchanged, selection/layout no-ops, flags
           // stable) returns the same state so zustand skips every listener: the controlled loop
           // pays zero store work per drag step (decision 4).
@@ -1073,9 +1195,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             sortControlled: props.sortState !== undefined,
             filterControlled: props.filterState !== undefined,
             searchControlled: props.searchText !== undefined,
+            page: nextPage,
+            pageSize: nextPageSize,
+            pageControlled: props.page !== undefined,
+            pageSizeControlled: props.pageSize !== undefined,
             viewIndex: nextViewIndex,
-            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag.
-            viewStale: unchanged ? s.viewStale : false,
+            // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag. Stale rows stay until the server delivers them.
+            viewStale: !staleChanged && unchanged ? s.viewStale : nextStaleRowIds.size > 0 || (unchanged && s.viewStale && clientViewActive),
+            staleRowIds: nextStaleRowIds,
             // Rows move only on a foreign data replacement, never on our own echo.
             rowIdentityVersion: foreignData ? s.rowIdentityVersion + 1 : s.rowIdentityVersion,
             ...followed,
@@ -1112,7 +1239,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _disposeWrites() {
         dataWrite.disposed = true;
+        dataWrite.abortConflicts?.();
+        gates.abort();
       },
+      _gates: () => gates,
       _releasePluginClaims() {
         releasePluginClaims?.();
         releasePluginClaims = null;
@@ -1172,6 +1302,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     ...NO_REMEMBERED_ROWS,
     saveStatus: EMPTY_SAVE_STATUS,
     pendingSaveCount: 0,
+    gatesPending: EMPTY_GATES_PENDING,
     editing: null,
     editingError: null,
     editingRejectionCount: 0,
@@ -1194,11 +1325,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     searchOptions: initSearchOptions,
     sortControlled: init.sortState !== undefined,
     filterControlled: init.filterState !== undefined,
+    page: initPage,
+    pageSize: initPageSize,
+    pageControlled: init.page !== undefined,
+    pageSizeControlled: init.pageSize !== undefined,
+    onPageChange: init.onPageChange,
+    onPageSizeChange: init.onPageSizeChange,
     searchControlled: init.searchText !== undefined,
     ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes, initSearchOptions),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
+    staleRowIds: NO_STALE_ROWS,
     visibleColumns,
     scrollToCellImpl: null,
     focusImpl: null,
@@ -1227,10 +1365,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       selectCell(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
-        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord) });
+        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
       },
       selectCellAt(coord) {
-        set({ activeCell: coord, selection: selectCellOf(get(), coord) });
+        set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
       },
       extendTo(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
@@ -1239,11 +1377,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       extendToAt(coord) {
         set((s) => {
           // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
-          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord };
+          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
           const selection = s.selection.current ? extendTo(s.selection, coord) : selectCellOf(s, coord);
           // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
           const activeCell = s.selection.current ? s.activeCell : coord;
-          return { selection, activeCell };
+          return { selection, activeCell, ...(s.selection.current ? {} : releaseRemembered(s)) };
         });
       },
       extendSelection(direction, opts) {
@@ -1265,7 +1403,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       pushRangeAt(coord) {
         set((s) => {
           // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
-          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord };
+          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
           // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
           return { selection: pushRange(s.selection, coord), activeCell: coord };
         });
@@ -1388,8 +1526,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selectAllMatching() {
         const s = get();
         if (!s.enableRowSelection) return;
-        if (!s.keepCheckedRows || s.totalRowCount === undefined) {
-          warnDev("selectAllMatching is a no-op without keepCheckedRows and totalRowCount");
+        if (!s.rememberCheckedRows || s.totalRowCount === undefined) {
+          warnDev("selectAllMatching is a no-op without totalRowCount and rememberCheckedRows");
           return;
         }
         const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };
@@ -1539,28 +1677,54 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // Controlled: _syncProps writes the consumer's next `sortState` prop.
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2));
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
         });
+      },
+      setPage(page) {
+        const s = get();
+        if (s.pageSize === null || !Number.isFinite(page)) return;
+        const next = Math.max(1, Math.floor(page));
+        if (next === s.page) return;
+        s.onPageChange?.(next);
+        if (s.pageControlled) return;
+        set((s2) => rebuildPageView(s2, next, s2.pageSize));
+      },
+      setPageSize(pageSize) {
+        const s = get();
+        if (pageSize === null) {
+          if (s.pageSize === null || s.pageSizeControlled) return;
+          set((s2) => rebuildPageView(s2, 1, null));
+          return;
+        }
+        if (!Number.isFinite(pageSize) || pageSize < 1) return;
+        const size = Math.floor(pageSize);
+        if (size === s.pageSize) return;
+        const firstRow = s.pageSize === null ? 0 : (effectivePage(s.page, fullViewOf(s.viewIndex).length, s.pageSize) - 1) * s.pageSize;
+        const page = Math.floor(firstRow / size) + 1;
+        s.onPageSizeChange?.(size);
+        if (page !== s.page) s.onPageChange?.(page);
+        if (s.pageSizeControlled && s.pageControlled) return;
+        set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : page, s2.pageSizeControlled ? s2.pageSize : size));
       },
       setSorts(sorts) {
         const s = get();
         s.onSortChange?.(sorts);
         if (s.sortControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2));
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
           };
@@ -1571,14 +1735,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
         const withIds = withFilterIds(filters);
         s.onFilterChange?.(withIds);
+        const resetPage = s.pageSize !== null && s.page !== 1 && filterSpecKey(withIds) !== filterSpecKey(s.filterState);
+        if (resetPage) s.onPageChange?.(1);
         if (s.filterControlled) return;
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes);
+          const page = resetPage && !s2.pageControlled ? 1 : s2.page;
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize });
           resetDeferredRows(dataWrite);
           return {
+            page,
             filterState: withIds,
             viewIndex,
-            viewStale: false,
+            ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
             ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
             ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
@@ -1596,6 +1764,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set((s2) => ({
           searchText: nextText,
           searchOptions,
+          ...(nextText !== s2.searchText && dataWrite.staleRows.size > 0 ? clearStaleRows(dataWrite) : {}),
           ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
           ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
         }));
@@ -1612,11 +1781,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const rowId = s.getRowId(target.row, target.dataRowIndex);
         const gate = s.onEditStart;
         if (gate) {
-          if (editStartPending) return;
-          const verdict = gate({ rowId, columnId: target.column.id, viewRowIndex: coord.row, viewColumnIndex: coord.col });
+          if (editStartRun && !editStartRun.aborted) return;
+          const ref = { rowId, columnId: target.column.id };
+          const run = gates.begin("onEditStart", (now) => cursorLeft(now, ref, s.activeCell));
+          const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
           if (verdict === false) return;
           if (isThenable<boolean | void>(verdict)) {
-            holdEditStart(s, { rowId, columnId: target.column.id }, initialText, verdict);
+            editStartRun = run;
+            holdEditStart(s, run, ref, initialText, verdict);
             return;
           }
         }
@@ -1624,6 +1796,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       cancelEditing() {
         const s = get();
+        if (editStartRun) gates.abortRun(editStartRun, "cancelled");
         if (!s.editing) {
           set({ editingError: null });
           return;
@@ -1689,7 +1862,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Filter and sort settle the view in the same write as the spec change. Speak only when the rows or the sort order changed.
   const sortKey = (s: DataGridStoreState) => JSON.stringify(s.sortState);
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
+  let staleAnnouncedAt = -Infinity;
   store.subscribe((state, prev) => {
+    if (state.viewStale && !prev.viewStale && Date.now() - staleAnnouncedAt >= VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS) {
+      staleAnnouncedAt = Date.now();
+      store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "viewStale", 0) });
+      return;
+    }
     if (resultsAnnouncementArmed && state.announceResults && typeof state.totalRowCount === "number" && state.totalRowCount !== prev.totalRowCount) {
       store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
       return;

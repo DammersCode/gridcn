@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
@@ -13,8 +13,8 @@ export type AggregateSpecs<TData = unknown> = Record<string, AggregateReducer<TD
 
 /** Options for {@link useDataGridAggregate}. */
 export type UseDataGridAggregateOptions = {
-  /** `"view"` (default) reduces over the sorted/filtered `viewIndex` — the rows actually visible. `"all"` reduces over the full `data` array, ignoring any active filter. */
-  scope?: "view" | "all";
+  /** `"view"` (default) reduces over every row the sort and filter leave, all pages of a paged grid. `"page"` reduces over the shown page only. `"all"` reduces over the full `data` array, ignoring any active filter. */
+  scope?: "view" | "page" | "all";
 };
 
 const NUMERIC_REDUCERS = new Set(["sum", "avg", "min", "max"]);
@@ -47,7 +47,7 @@ function aggregateColumn<TData>(reducer: AggregateReducer<TData>, column: AnyCol
 // Fires at most once per app, dev-only: a sparse (lazy) data array reached the reducer.
 let warnedSparseData = false;
 
-function warnSparseData(scope: "view" | "all", holes: number): void {
+function warnSparseData(scope: "view" | "page" | "all", holes: number): void {
   if (!isDev() || warnedSparseData) return;
   warnedSparseData = true;
   console.warn(
@@ -66,9 +66,9 @@ function warnUnknownSpecKey(columnId: string): void {
   );
 }
 
-function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "all"): Record<string, unknown> {
+function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "page" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const scoped = scope === "all" ? state.data : state.viewIndex.map((i) => state.data[i]);
+  const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex : fullViewOf(state.viewIndex)).map((i) => state.data[i]);
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
   const rows = scoped.filter((row) => row !== undefined);
   if (rows.length !== scoped.length) warnSparseData(scope, scoped.length - rows.length);

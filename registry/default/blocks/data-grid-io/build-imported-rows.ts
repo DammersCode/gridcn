@@ -1,4 +1,4 @@
-import type { AnyColumnDef, CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import type { AnyColumnDef, CellType, ColumnDef, GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { isDev, isThenable, resolveColumnValidate, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -19,7 +19,24 @@ export type ImportRejectedCell = {
   importColumnIndex: number;
   /** The grid column the value was mapped to and cleared in. */
   gridColumnId: string;
+  /** The validator's reason, cut at {@link MAX_REJECTED_MESSAGE_LENGTH} characters. */
+  message?: string;
 };
+
+/** Longest validator message an {@link ImportRejectedCell} keeps. */
+export const MAX_REJECTED_MESSAGE_LENGTH = 200;
+
+/** Replaces `cellType.fromText` for one import cell. The returned value still goes through the column's `validate`. */
+export type ProcessCellFromText<TData> = (
+  text: string,
+  ctx: {
+    /** The row as `createRow` returned it. */
+    row: TData;
+    column: ColumnDef<TData, unknown, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    source: "import";
+    signal: AbortSignal;
+  },
+) => unknown;
 
 /** Result of {@link buildImportedRows}: the built rows plus every rejected (cleared) cell. */
 export type BuildImportedRowsResult<TData> = {
@@ -37,8 +54,10 @@ export type BuildImportedRowsOptions<TData> = {
   // AnyColumnDef doc: validate's function-or-schema union can't stay bivariant as a plain property.
   columns: readonly ColumnDef<TData, unknown, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>;
-  /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. A promise makes the build a Promise; a rejection rejects it. */
-  createRow: (index: number) => TData | Promise<TData>;
+  /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. A promise makes the build a Promise; a rejection rejects it. `ctx.signal` is `options.signal`. */
+  createRow: (index: number, ctx: GateContext) => TData | Promise<TData>;
+  /** Parses one cell instead of `cellType.fromText`; may return a promise, which makes the build asynchronous. Its value is validated like any other. */
+  processCellFromText?: ProcessCellFromText<TData>;
   /** Checked between chunks on the large-import path; throws `"import-cancelled"` when true. Ignored below {@link IMPORT_CHUNK_THRESHOLD_ROWS}. */
   signal?: AbortSignal;
 };
@@ -73,7 +92,7 @@ export const IMPORT_CANCELLED_MESSAGE = "import-cancelled";
  * validating it left to right cannot both be true, and the fresh row is the predictable one.
  */
 export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
-  const { dataRows, mapping, columns, cellTypes, createRow, signal } = options;
+  const { dataRows, mapping, columns, cellTypes, createRow, signal, processCellFromText } = options;
   const columnsById = new Map(columns.map((column) => [column.id, column] as const));
   const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => m.gridColumnId !== null);
 
@@ -89,11 +108,12 @@ export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData
     seenColumns.add(gridColumnId);
   }
 
-  if (dataRows.length > IMPORT_CHUNK_THRESHOLD_ROWS) {
-    return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal);
+  if (dataRows.length > IMPORT_CHUNK_THRESHOLD_ROWS || processCellFromText) {
+    return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal ?? new AbortController().signal, processCellFromText);
   }
 
-  const created = dataRows.map((_, index) => createRow(index));
+  const gateCtx: GateContext = { signal: signal ?? new AbortController().signal };
+  const created = dataRows.map((_, index) => createRow(index, gateCtx));
   if (created.some((row) => isThenable(row))) {
     return Promise.all(created).then((rows) => {
       if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
@@ -130,6 +150,8 @@ function buildCellsForRange<TData>(
   columnsById: ReadonlyMap<string, ColumnDef<TData, unknown, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
   rows: TData[],
+  processCellFromText?: ProcessCellFromText<TData>,
+  signal: AbortSignal = NEVER_ABORTED,
 ): { items: ValidateBatchItem[]; cells: ImportCell[] } {
   const items: ValidateBatchItem[] = [];
   const cells: ImportCell[] = [];
@@ -143,11 +165,22 @@ function buildCellsForRange<TData>(
 
       const text = sourceRow[importColumnIndex] ?? "";
       // as never: validate is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here — safe since column and row/value are all this same import's TData.
-      items.push({ validate: resolveColumnValidate(column as AnyColumnDef, cellType) as never, value: cellType.fromText(text, column.options), row: rows[rowIndex] });
+      items.push({ validate: resolveColumnValidate(column as AnyColumnDef, cellType) as never, value: processCellFromText ? processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal }) : cellType.fromText(text, column.options), row: rows[rowIndex] });
       cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options) });
     }
   }
   return { items, cells };
+}
+
+const NEVER_ABORTED = new AbortController().signal;
+
+/** Awaits every item whose value a `processCellFromText` hook returned as a promise. */
+async function settleItemValues(items: ValidateBatchItem[]): Promise<void> {
+  const pending: Promise<void>[] = [];
+  items.forEach((item, index) => {
+    if (isThenable(item.value)) pending.push(Promise.resolve(item.value).then((value) => void (items[index]!.value = value)));
+  });
+  if (pending.length > 0) await Promise.all(pending);
 }
 
 /** Yields to the event loop; a chunk boundary for both the main-thread-block fix and the Cancel affordance. */
@@ -166,17 +199,21 @@ async function buildImportedRowsChunked<TData>(
   activeMappings: readonly ResolvedMapping[],
   columnsById: ReadonlyMap<string, ColumnDef<TData, unknown, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
-  createRow: (index: number) => TData | Promise<TData>,
-  signal?: AbortSignal,
+  createRow: (index: number, ctx: GateContext) => TData | Promise<TData>,
+  signal: AbortSignal,
+  processCellFromText?: ProcessCellFromText<TData>,
 ): Promise<BuildImportedRowsResult<TData>> {
-  const created = dataRows.map((_, index) => createRow(index));
+  const gateCtx: GateContext = { signal };
+  const created = dataRows.map((_, index) => createRow(index, gateCtx));
   const rows = created.some((row) => isThenable(row)) ? await Promise.all(created) : (created as TData[]);
   const rejected: ImportRejectedCell[] = [];
 
   for (let start = 0; start < dataRows.length; start += CHUNK_SIZE) {
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const end = Math.min(start + CHUNK_SIZE, dataRows.length);
-    const { items, cells } = buildCellsForRange(dataRows, start, end, activeMappings, columnsById, cellTypes, rows);
+    const { items, cells } = buildCellsForRange(dataRows, start, end, activeMappings, columnsById, cellTypes, rows, processCellFromText, signal);
+    await settleItemValues(items);
+    if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const results = await runValidateBatch(items);
     writeCells(rows, cells, results, rejected);
     await yieldToEventLoop();
@@ -184,6 +221,11 @@ async function buildImportedRowsChunked<TData>(
   if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
 
   return { rows, rejected };
+}
+
+function rejectionMessage(result: ValidateResult): string | undefined {
+  if (!("error" in result) || typeof result.error !== "string" || result.error === "") return undefined;
+  return result.error.slice(0, MAX_REJECTED_MESSAGE_LENGTH);
 }
 
 /**
@@ -212,7 +254,7 @@ function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results:
     const result = results[i];
     if (!result) continue;
     const isRejected = "error" in result;
-    if (isRejected) rejected.push({ rowIndex: cell.rowIndex, importColumnIndex: cell.importColumnIndex, gridColumnId: cell.column.id });
+    if (isRejected) rejected.push({ rowIndex: cell.rowIndex, importColumnIndex: cell.importColumnIndex, gridColumnId: cell.column.id, message: rejectionMessage(result) });
     const value = isRejected ? cell.clearedValue : result.value;
 
     if (cell.rowIndex !== pendingRow) flush();

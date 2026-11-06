@@ -231,3 +231,11 @@ describe("planServerSetFilter", () => {
     expect(result).toEqual({ status: "apply", filters: [other, { columnId: "city", operator: "isAnyOf", value: ["A"] }] });
   });
 });
+
+describe("planServerSetFilter with coded values", () => {
+  it("writes the value of a checked entry, not its label", () => {
+    const known = new Map([["de", "DE"], ["fr", "FR"]]);
+    const plan = planServerSetFilter({ filters: [], columnId: "country", known, checked: new Set(["de"]), allowed: ["isAnyOf", "isNoneOf"] });
+    expect(plan).toEqual({ status: "apply", filters: [{ columnId: "country", operator: "isAnyOf", value: ["DE"] }] });
+  });
+});

@@ -50,7 +50,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
     if (serverEnabled) {
       return { values: [], capped: false, hasHoles: false, inGroup, partial: false, keys: [] as string[], texts: new Map<string, string>(), openFilters: state.filterState, initiallyChecked: new Set<string>() };
     }
-    const distinct = distinctColumnValues(state, column.id);
+    const distinct = distinctColumnValues(state, column.id, false);
     const keys = distinct.values.map((value) => value.key);
     const texts = new Map(distinct.values.map((value) => [value.key, value.text]));
     return { ...distinct, inGroup, partial: distinct.hasHoles || state.sortMode === "server" || state.filterMode === "server", keys, texts, openFilters: state.filterState, initiallyChecked: checkedKeysFromFilters(state.filterState, column.id, keys) };
@@ -58,7 +58,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const search = useDebouncedSearch();
   const { query } = search;
   const [overrides, setOverrides] = useState<ReadonlyMap<string, boolean>>(() => new Map());
-  const server = useServerFilterValues(column, query, overrides);
+  const server = useServerFilterValues(column, query, overrides, false);
   const localOptions = useMemo<SetFilterOption[]>(
     () => loaded.values.map((value) => (value.key === "" ? { ...value, label: labels.headerFilterBlanks } : value)),
     [loaded.values, labels.headerFilterBlanks],

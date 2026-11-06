@@ -2,8 +2,9 @@ import { page } from "vitest/browser";
 import { Component, useState, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPagination } from "./use-data-grid-pagination";
+import { useDataGridServerPager } from "./use-data-grid-server-pager";
 import { DataGridPaginationBar, DataGridPaginationPrev, DataGridPaginationNext } from "./pagination-footer";
 import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 // real stylesheet so Select/Button layout is real, matching other block browser tests
@@ -188,7 +189,7 @@ describe("pagination icons in a right-to-left page", () => {
 
 function OpenEndedGrid({ initialPage, hasNextPage }: { initialPage: number; hasNextPage: boolean }) {
   const [current, setCurrent] = useState(initialPage);
-  const { pager } = useDataGridPagination({ page: current, pageSize: 25, totalRowCount: null, hasNextPage, onPageChange: setCurrent });
+  const { pager } = useDataGridServerPager({ page: current, pageSize: 25, totalRowCount: null, hasMore: hasNextPage, onPageChange: setCurrent });
   return (
     <div style={{ height: 360, width: 400 }}>
       <DataGrid data={makeRows(25)} columns={columns} getRowId={(r) => r.id} className="h-72" />
@@ -215,5 +216,31 @@ describe("DataGridPaginationBar: unknown total", () => {
     await render(<OpenEndedGrid initialPage={1} hasNextPage />);
     await page.getByRole("button", { name: "Next page" }).click();
     await expect.element(page.getByText("Page 2")).toBeInTheDocument();
+  });
+});
+
+function ProviderPagedGrid() {
+  return (
+    <div style={{ height: 360, width: 400 }}>
+      <DataGridProvider data={makeRows(101)} columns={columns} getRowId={(r) => r.id} defaultPageSize={25} headerClickBehavior="sort">
+        <DataGridRoot className="h-72">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+        <DataGridPaginationBar />
+      </DataGridProvider>
+    </div>
+  );
+}
+
+describe("DataGridPaginationBar: inside a provider that pages its view", () => {
+  it("reads the pager from the grid, pages the rows, and sorts across pages", async () => {
+    await render(<ProviderPagedGrid />);
+    await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
+    await page.getByRole("button", { name: "Next page" }).click();
+    await expect.element(page.getByText("26–50 of 101")).toBeInTheDocument();
+    await expect.element(page.getByText("Person 25")).toBeInTheDocument();
+    await page.getByRole("columnheader", { name: "Name" }).click();
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
   });
 });

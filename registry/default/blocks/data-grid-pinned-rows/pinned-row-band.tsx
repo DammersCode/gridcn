@@ -2,7 +2,9 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { GRID_LAYER, type GridColumnLayout, type RenderedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { cn } from "@/lib/utils";
 import { DataGridPinnedRow } from "./pinned-row";
+import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Props for {@link DataGridPinnedRowBand}. */
 export type DataGridPinnedRowBandProps = {
@@ -21,6 +23,8 @@ export type DataGridPinnedRowBandProps = {
    * passes them through `RowBandRenderCtx`.
    */
   ariaRowIndexBase: number;
+  /** Server value state: anything but `"ready"` dims the band; `"loading"` and `"stale"` set `aria-busy`. */
+  status?: ServerAggregateStatus;
 };
 
 /**
@@ -33,7 +37,7 @@ export type DataGridPinnedRowBandProps = {
  * `useDataGridPinnedRows`'s `rowBands.renderBand` calls this once per non-empty band.
  */
 export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactNode {
-  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = props;
+  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase, status = "ready" } = props;
   if (rows.length === 0) return null;
 
   const bandHeight = rows.length * rowHeight;
@@ -54,7 +58,14 @@ export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactN
   };
 
   return (
-    <div role="rowgroup" data-grid-pinned-row-band={position} style={layerStyle}>
+    <div
+      role="rowgroup"
+      data-grid-pinned-row-band={position}
+      data-status={status}
+      aria-busy={status === "loading" || status === "stale" ? true : undefined}
+      className={cn(status !== "ready" && "opacity-60", status === "loading" && "motion-safe:animate-pulse")}
+      style={layerStyle}
+    >
       {rows.map((row, i) => (
         <DataGridPinnedRow
           // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.

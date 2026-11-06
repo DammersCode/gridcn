@@ -38,8 +38,10 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
-import type { RowSaveStatus, SaveAck, SaveRejectedContext } from "./write-ack";
-export type { RowSaveStatus, SaveAck, SaveRejectedContext, SaveRejection } from "./write-ack";
+import type { GateAbortReason, GateContext, GateName, GateTracker } from "./gate-signal";
+export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
+import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveResolution } from "./write-ack";
+export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -93,7 +95,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
    * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
    * blocks the next keydown before any passive effect runs and cancels an open edit session.
-   * Default `false`.
+   * A `"stream"` push (`updateCells`, `updateRows`, `deleteRowsById`) still writes. Default `false`.
    */
   readOnly?: boolean;
   /**
@@ -123,17 +125,27 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   onSaveRejected?: (ctx: SaveRejectedContext<TData>) => void;
   /**
+   * Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`).
+   * Return `"theirs"` (or nothing) to take the server's row, `"mine"` to keep the row in the grid, or
+   * `{ row }` for a merged row. `"mine"` and `{ row }` commit one `"merge"` change on top of the server's row, which
+   * `onSave` receives. A promise keeps the row `saving` until it settles; see {@link SaveConflictContext}.
+   */
+  resolveSaveConflict?: (ctx: SaveConflictContext<TData>) => SaveResolution<TData> | PromiseLike<SaveResolution<TData>>;
+  /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
-   * (edit, paste, fill, delete-contents, updateCells/updateRows) — the row already has ALL of the
+   * (edit, paste, fill, delete-contents, updateCells/updateRows, and every `commitChange` except a `"stream"`
+   * change, where it validates the inserted and updated rows, so an import, an undo and a rollback validate too) — the row already has ALL of the
    * gesture's cells applied, so the verdict is independent of column order inside a paste. Return
    * `columnId -> message` to surface errors (they land in `cellErrors`, same display as server
-   * errors), `null` when the row is fine. Values still commit either way. Not run on row
-   * insert/duplicate/delete or on consumer `data` replacement. A promise does not hold the write:
+   * errors), `null` when the row is fine. Values still commit either way. Not run on
+   * `insertRow`/`duplicateRows`/delete or on consumer `data` replacement. A promise does not hold the write:
    * its verdict merges into `cellErrors` when it settles. A newer verdict for the same row
    * supersedes a pending one, and a verdict for a row that is gone is dropped. A
-   * rejection adds no error.
+   * rejection adds no error. `signal` aborts when a newer run for the same row supersedes this one,
+   * when the row is gone, and when the grid unmounts; an aborted verdict is dropped. An id swap
+   * (`replaceRowId`) cancels a pending verdict of the row and runs `validateRow` again for the swapped row.
    */
-  validateRow?: (row: TData, rowId: string) => Record<string, string> | null | Promise<Record<string, string> | null>;
+  validateRow?: (row: TData, rowId: string, ctx: GateContext) => Record<string, string> | null | Promise<Record<string, string> | null>;
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
@@ -153,9 +165,10 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
-   * paste. The cell cap applies to the settled grid.
+   * paste. The cell cap applies to the settled grid. `signal` aborts when the grid goes read-only,
+   * an edit starts, the target row is gone, or the grid unmounts; an aborted result is dropped.
    */
-  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false | Promise<string[][] | false>;
+  processPaste?: (ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>;
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
@@ -169,16 +182,19 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
    * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
-   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`,
-   * and `true` while `totalRowCount` is set (a number or `null`).
+   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   * It does not control the memory of checked ids; see `rememberCheckedRows`.
    */
   keepCheckedRows?: boolean;
   /**
-   * Remembers a checked row that a filter hides and checks it again when the filter lets it back
-   * in. Hidden checked rows stay out of every row action, the controlled `selection`, and select
-   * all; `useDataGridHiddenCheckedCount` reads their number. Takes effect only with
-   * `keepCheckedRows` and client-side data; a server-sorted grid ignores it, and a grid ignores it while its data holds unloaded (lazy) rows. Default `false`.
+   * Remembers a checked row by id when it leaves `data` (a page change, a window move, a filter that hides it) and checks it
+   * again when it returns. Remembered rows stay out of every row action, the controlled `selection`, and select all;
+   * `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with `totalRowCount`.
+   * Default: `true` while `totalRowCount` is set, else `false`. Set `true` on a client grid to remember rows a client filter hides
+   * (a server-sorted or server-filtered grid without `totalRowCount` ignores it), `false` to turn the memory off in a window.
    */
+  rememberCheckedRows?: boolean;
+  /** @deprecated Alias of `rememberCheckedRows`; `rememberCheckedRows` wins when both are set. */
   keepHiddenCheckedRows?: boolean;
   /**
    * Wait in ms between the last keystroke and the commit of the grid's own text inputs: the toolbar search, the
@@ -187,9 +203,32 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   inputDebounceMs?: number;
   /**
+   * Shows `pageSize` rows of the sorted and filtered view at a time. The grid keeps the whole `data`, so sort, filter, aggregates, and
+   * streamed patches work across every page; only the rows on screen are one page. Set it to turn paging on (`defaultPageSize` seeds it,
+   * `pageSize` controls it with `onPageSizeChange`). A filter change goes back to page 1. Leave it unset to show every row.
+   */
+  pageSize?: number;
+  defaultPageSize?: number;
+  onPageSizeChange?: (pageSize: number) => void;
+  /** The current page, 1-based. Controls it with `onPageChange`; `defaultPage` seeds it. A page past the last one shows the last. Default 1. */
+  page?: number;
+  defaultPage?: number;
+  onPageChange?: (page: number) => void;
+  /**
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
+   * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
+   * (a gate waits for its promise).
+   */
+  gateTimeoutMs?: number | Partial<Record<GateName, number>>;
+  /**
+   * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
+   * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
+   */
+  onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
+  /**
    * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
-   * `keepCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked
+   * `rememberCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked
    * again when it returns, and `actions.selectAllMatching()` can check the whole result.
    * `useDataGridSelectedRows` reads the outcome. Default: `undefined` (`data` is the whole result).
    */
@@ -204,9 +243,11 @@ export type DataGridSyncProps<TData = unknown> = {
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
    * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
-   * A pending promise blocks a second delete. A throw or a rejection cancels.
+   * A pending promise blocks a second delete. A throw or a rejection cancels. `signal` aborts when
+   * the grid goes read-only, the rows or the checked rows change, or the grid unmounts; an aborted
+   * result is dropped.
    */
-  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>;
+  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean | Promise<boolean>;
   /**
    * Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list
    * per search. Columns with `options.choices` keep their declared list. Without it, both lists come
@@ -241,18 +282,20 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Builds a new row for `insertRow` (`index` is the data index at request time); absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it).
    * A promise holds the insert until every row settles; a pending promise blocks a second insert
-   * and a rejection cancels it.
+   * and a rejection cancels it. `signal` aborts when the grid goes read-only, the row the insert
+   * was anchored to is gone, or the grid unmounts; an aborted result is dropped.
    */
-  createRow?: (index: number) => TData | Promise<TData>;
+  createRow?: (index: number, ctx: GateContext) => TData | Promise<TData>;
   /**
    * Builds a duplicated row's identity for `duplicateRows`: given the
    * source row and its new data index, returns the row to insert (with a distinct id, e.g. a fresh
    * UUID, so the copy's `getRowId()` never collides with its source's React key). Absent makes
    * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`. A promise holds the
    * duplicate until every copy settles; a pending promise blocks a second duplicate and a
-   * rejection cancels it.
+   * rejection cancels it. `signal` aborts when the grid goes read-only, every source row is gone,
+   * or the grid unmounts; an aborted result is dropped.
    */
-  duplicateRow?: (row: TData, index: number) => TData | Promise<TData>;
+  duplicateRow?: (row: TData, index: number, ctx: GateContext) => TData | Promise<TData>;
   /**
    * Consumer-defined keyboard commands keyed by name — the dispatch target of keymap bindings
    * that name no built-in action (see {@link GridCommand}). A name that shadows a built-in action
@@ -269,9 +312,10 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   sortState?: SortSpec[];
   /**
-   * Who orders the rows. `"client"` (default): the grid sorts `data` by `sortState`. `"server"`:
+   * Who orders the rows. `"client"`: the grid sorts `data` by `sortState`. `"server"`:
    * the grid only tracks the spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`)
    * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridServerRows`.
+   * Default: `"server"` while `totalRowCount` is set (`data` is a window of the result), else `"client"`. Set `"client"` to sort the window locally.
    */
   sortMode?: "client" | "server";
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
@@ -281,9 +325,10 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
   /**
-   * Who filters the rows. `"client"` (default): the grid filters `data` by `filterState`. `"server"`:
+   * Who filters the rows. `"client"`: the grid filters `data` by `filterState`. `"server"`:
    * the grid only tracks the spec (filter menu, header filters, `data-filtered`, `onFilterChange`) and
    * never filters `data`; the consumer fetches the matching rows, e.g. with `useDataGridServerRows`.
+   * Default: `"server"` while `totalRowCount` is set, else `"client"`. Set `"client"` to filter the window locally.
    */
   filterMode?: "client" | "server";
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
@@ -397,8 +442,10 @@ export type DataGridSyncProps<TData = unknown> = {
     * edit session, so the veto never applies to them. A promise holds the editor: it opens when
     * the promise settles, unless the promise is `false`, the user moved to another cell, or the
     * grid went read-only. A pending promise ignores a second edit start, so keys typed meanwhile add no text. A rejection cancels.
+    * `signal` aborts when the cursor moves to another cell, the edit is cancelled (Escape), the grid
+    * goes read-only, or the grid unmounts; an aborted result is dropped.
     */
-   onEditStart?: (cell: ViewCellRef) => boolean | void | Promise<boolean | void>;
+   onEditStart?: (cell: ViewCellRef, ctx: GateContext) => boolean | void | Promise<boolean | void>;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),
@@ -581,6 +628,12 @@ export type CellErrorTarget = {
 /** One entry for {@link DataGridActions.setCellErrors}: the target cell plus its rejection message. */
 export type CellErrorEntry = CellErrorTarget & { message: string };
 
+/** Options for {@link DataGridActions.deleteRowsById}. */
+export type DeleteRowsByIdOptions = {
+  /** `"row-operation"` (default) runs the delete gate and reaches `onSave`. `"stream"` is a push from the server. */
+  source?: "row-operation" | "stream";
+};
+
 /** Options for {@link DataGridActions.updateCells} and {@link DataGridActions.updateRows}. */
 export type UpdateCellsOptions = {
   /**
@@ -612,10 +665,13 @@ export type UpdateCellsSkip = {
   /**
    * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
    * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
-   * row, via `readOnly(row)`) is read-only; `"invalid"` — the column's `validate` rejected the
-   * value; `"no-op"` — the value is `Object.is`-equal to the current one.
+   * row, via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
+   * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
+   * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
+   * `"stream"` batch met a row whose save is in flight, so push the value again after the save settles;
+   * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.
    */
-  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op";
+  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit";
 };
 
 /**
@@ -648,6 +704,7 @@ export type DataGridStoreState = Omit<
   | "rowMarkers"
   | "enableRowSelection"
   | "keepCheckedRows"
+  | "rememberCheckedRows"
   | "keepHiddenCheckedRows"
   | "totalRowCount"
   | "announceResults"
@@ -666,6 +723,12 @@ export type DataGridStoreState = Omit<
   | "defaultSortState"
   | "defaultFilterState"
   | "defaultSearchText"
+  | "pageSize"
+  | "page"
+  | "defaultPageSize"
+  | "defaultPage"
+  | "onPageChange"
+  | "onPageSizeChange"
   | "selection"
   | "columnLayout"
   | "readOnly"
@@ -681,9 +744,9 @@ export type DataGridStoreState = Omit<
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
   keepCheckedRows: boolean;
-  keepHiddenCheckedRows: boolean;
+  rememberCheckedRows: boolean;
   announceResults: boolean;
-  /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
+  /** Row ids of checked rows a filter hides; empty unless `rememberCheckedRows` is in effect. Actions never read it. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
@@ -691,6 +754,8 @@ export type DataGridStoreState = Omit<
   saveStatus: ReadonlyMap<string, RowSaveStatus>;
   /** Acknowledged changes whose promise has not settled. */
   pendingSaveCount: number;
+  /** The gates whose promise has not settled; the same empty set while none is pending. */
+  gatesPending: ReadonlySet<GateName>;
   /** `data` is a window of a larger result of this size (`null`: unknown); `undefined` when `data` is the whole result. */
   totalRowCount: number | null | undefined;
   enableColumnSelection: boolean;
@@ -800,6 +865,14 @@ export type DataGridStoreState = Omit<
   sortControlled: boolean;
   filterControlled: boolean;
   searchControlled: boolean;
+  /** Rows per page; `null` shows every row. */
+  pageSize: number | null;
+  /** The requested page; the view shows `min(page, last page)`. */
+  page: number;
+  pageControlled: boolean;
+  pageSizeControlled: boolean;
+  onPageChange: ((page: number) => void) | undefined;
+  onPageSizeChange: ((pageSize: number) => void) | undefined;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
   /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
@@ -831,6 +904,11 @@ export type DataGridStoreState = Omit<
    * {@link useDataGridViewStale}.
    */
   viewStale: boolean;
+  /**
+   * Under a server sort or filter, the ids of loaded rows that a push changed in a column the spec reads. The row keeps
+   * its place and carries `data-row-stale` until the server delivers it again. Empty in a client grid.
+   */
+  staleRowIds: ReadonlySet<string>;
   /** Recomputed by _syncProps/setColumnOrder-ish actions that touch order/visibility. */
   visibleColumns: readonly AnyColumnDef[];
   /**
@@ -922,12 +1000,29 @@ export type DataGridActions = {
   setAllRowsSelected(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
-   * No-op with a development warning without `keepCheckedRows` and `totalRowCount`. Read the outcome with `useDataGridSelectedRows`.
+   * No-op with a development warning without `totalRowCount` and `rememberCheckedRows`. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): void;
+  /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
+  setPage(page: number): void;
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with a number (not for `null`). */
+  setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
   clearSaveStatus(): void;
+  /**
+   * Swaps a row's id for the one the server assigned. `row` is the server's row; `getRowId(row)` is the new id.
+   * One write: the row keeps its data position and view position, `onDataChange` fires once with `source: "id-swap"`
+   * (`onSave` does not see it, history does not record it), and every state keyed by the old id follows: the open
+   * edit, cell errors, checked rows a filter hides, flashes, save status, saves still in flight and undo entries.
+   * No-op on a `readOnly` grid; a development warning for an unknown `oldId` or a new id another row holds. `validateRow` runs again for the swapped row; flashes of the row end.
+   */
+  replaceRowId(oldId: string, row: unknown): void;
+  /**
+   * `replaceRowId` for many rows in one write: one `onDataChange` with one `"id-swap"` change, one pass over `data`. Use it
+   * after a batch create. A swap that fails its checks is skipped with a development warning; the others apply.
+   */
+  replaceRowIds(swaps: readonly { oldId: string; row: unknown }[]): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;
   /**
@@ -1076,25 +1171,28 @@ export type DataGridActions = {
    * {@link insertRows} with count 1, so both share one implementation, one `onDataChange`,
    * and one undo step.
    */
-  insertRow(viewRowIndex: number, position: "above" | "below"): void;
+  insertRow(viewRowIndex: number, position: "above" | "below"): RowActionResult;
   /**
    * Inserts `count` rows built by the `createRow` prop (called with `dataRowIndex + i`)
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
    * absent; silent no-op for `count <= 0`.
    */
-  insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): void;
+  insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
-  deleteRows(viewRowIndexes: number[]): void;
-  /** Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped. */
-  deleteRowsById(rowIds: readonly string[]): void;
+  deleteRows(viewRowIndexes: number[]): RowActionResult;
+  /**
+   * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
+   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, unchecks the rows, and leaves the cursor and the other checked rows where they are.
+   */
+  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): RowActionResult;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
    * no-op when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key.
    */
-  duplicateRows(viewRowIndexes: number[]): void;
+  duplicateRows(viewRowIndexes: number[]): RowActionResult;
   /**
    * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
@@ -1170,6 +1268,8 @@ export type DataGridInternalActions = {
   _armWrites(): void;
   /** Marks the grid unmounted: a late save acknowledgement does nothing. */
   _disposeWrites(): void;
+  /** @internal The grid's async-gate tracker: pending state and abort for every consumer hook that may return a promise. */
+  _gates(): GateTracker;
   /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
    * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
@@ -1199,13 +1299,19 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
-export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results";
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale" | "saveRejected" | "historyBlocked";
 
-/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
+/** `count` is the moved rows, the checked rows, the view's loaded rows, or the rows a save refused, the rows a blocked history step names, by `kind`; `partial` marks a result count that leaves out unloaded rows, a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused), or a `historyBlocked` step whose rows are not loaded yet (absent: the rows are gone). */
 export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
+
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, the gate said no, or no row matched. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
+
+/** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
+export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
 
 /**
  * Everything `computeViewIndex`/`computeSearchMatches`/`computeVisibleColumns` read on a
@@ -1225,6 +1331,8 @@ export type SyncInputs = {
   columnOrder: string[] | null;
   hiddenColumns: readonly string[];
   columnGroupModel: ColumnGroupModel | null;
+  /** `"<page>|<pageSize>"`: a page change rebuilds the paged view. */
+  pageKey: string;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1237,7 +1345,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.searchText === b.searchText &&
     a.columnOrder === b.columnOrder &&
     a.hiddenColumns === b.hiddenColumns &&
-    a.columnGroupModel === b.columnGroupModel
+    a.columnGroupModel === b.columnGroupModel &&
+    a.pageKey === b.pageKey
   );
 }
 
@@ -1324,4 +1433,6 @@ export type DataGridRowCellState = {
   selectedColRanges: readonly ColRange[];
   /** The save status of this row (`"saving"` or `"failed"`), or undefined; read from the row's one subscription, not a per-row hook. */
   saveStatus: RowSaveStatus | undefined;
+  /** A push changed this row in a column the server spec reads, so it may sit at the wrong place until the server delivers it again. */
+  stale: boolean;
 };

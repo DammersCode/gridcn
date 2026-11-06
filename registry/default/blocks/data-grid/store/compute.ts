@@ -23,10 +23,13 @@ import {
   type CellAccessor,
   type SearchMatch,
 } from "../sort-filter";
+import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
+import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { CompactSelection } from "../selection/compact-selection";
+import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { isDev } from "../is-dev";
@@ -90,6 +93,11 @@ const HOLE_ROW_ID_PREFIX = "__lazy-unloaded-";
 /** Placeholder row id for a hole in `data` (an unloaded lazy row) — index-derived, stable only while the hole keeps its index. */
 export function holeRowId(dataRowIndex: number): string {
   return `${HOLE_ROW_ID_PREFIX}${dataRowIndex}`;
+}
+
+/** Whether `rowId` is the placeholder id of an unloaded row (a hole of a lazy source). */
+export function isPlaceholderRowId(rowId: string): boolean {
+  return holeRowIndex(rowId) >= 0;
 }
 
 /** The data index a {@link holeRowId} placeholder encodes, or -1 when `rowId` is not a placeholder. */
@@ -450,6 +458,15 @@ export function textAccessorFor(
       const cellType = column.type ? cellTypes?.[column.type] : undefined;
       return column.filterMatch ?? cellType?.filter?.match;
     },
+    filterCompare(columnId) {
+      return byId.get(columnId)?.filterCompare;
+    },
+    customFilterMatch(columnId, operator) {
+      const column = byId.get(columnId);
+      if (!column) return undefined;
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return resolveCustomFilterOperators(column, cellType).get(operator)?.match;
+    },
   };
 
   // A column opts into a custom row comparator through its own `sortCompare`, or through its
@@ -501,6 +518,23 @@ export function textAccessorFor(
         // fall through to the text comparator below
       }
       return defaultCompareText(toSafeText(valueA), toSafeText(valueB));
+    };
+  };
+
+  accessor.sortKeys = (columnId) => {
+    const column = byId.get(columnId);
+    if (!column || column.sortCompare) return undefined;
+    const cellType = declaredType(column);
+    const kind = cellType?.compare === compareNumbers ? "number" : cellType?.compare === compareLocaleText ? "text" : undefined;
+    if (!cellType || !kind) return undefined;
+    return {
+      kind,
+      read: (rowIndex) => {
+        const row = data[rowIndex];
+        if (row === undefined) return EMPTY_SORT_VALUE;
+        const value = rawCellValue(column, row);
+        return cellType.isEmpty(value) ? EMPTY_SORT_VALUE : value;
+      },
     };
   };
 
@@ -673,6 +707,7 @@ export function layoutSnapshotsEqual(a: ColumnLayout, b: ColumnLayout): boolean 
 
 /** True when `a`/`b` have the same length and every element is `===`-equal at each position. */
 export function sameElements(a: readonly number[], b: readonly number[]): boolean {
+  if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false;
@@ -707,12 +742,49 @@ export function computeViewIndex(
   filterState: readonly FilterNode[],
   prevViewIndex?: readonly number[],
   cellTypes?: Record<string, CellType>,
+  window: ViewWindow = null,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   // Quick-search never narrows viewIndex — it only highlights/navigates.
   const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState });
-  if (prevViewIndex && sameElements(next, prevViewIndex)) return prevViewIndex as number[];
-  return next;
+  const prevFull = prevViewIndex ? fullViewOf(prevViewIndex) : undefined;
+  const full = prevFull && sameElements(next, prevFull) ? (prevFull as number[]) : next;
+  return windowView(full, window, prevViewIndex);
+}
+
+/** The page of the view the grid shows: `pageSize` rows of the sorted and filtered list. `null` shows every row. */
+export type ViewWindow = { page: number; pageSize: number } | null;
+
+const FULL_VIEW = new WeakMap<readonly number[], number[]>();
+
+/** The whole sorted and filtered list behind a paged `viewIndex`; a view without a window is its own full list. */
+export function fullViewOf(viewIndex: readonly number[]): number[] {
+  return FULL_VIEW.get(viewIndex) ?? (viewIndex as number[]);
+}
+
+/** The last page that holds rows (at least 1) for `total` rows. */
+export function lastPageOf(total: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+}
+
+/** The page the window shows: `page` clamped into `[1, lastPage]`. */
+export function effectivePage(page: number, total: number, pageSize: number): number {
+  return Math.min(Math.max(1, Math.floor(page) || 1), lastPageOf(total, pageSize));
+}
+
+export function viewWindowOf(s: Pick<DataGridStoreState, "page" | "pageSize">): ViewWindow {
+  return s.pageSize === null ? null : { page: s.page, pageSize: s.pageSize };
+}
+
+/** Slices `full` to the window and remembers the full list; keeps `prev` when it already shows the same rows of the same list. */
+export function windowView(full: number[], window: ViewWindow, prev?: readonly number[]): number[] {
+  if (window === null) return full;
+  const size = Math.max(1, Math.floor(window.pageSize));
+  const start = (effectivePage(window.page, full.length, size) - 1) * size;
+  const slice = full.slice(start, start + size);
+  if (prev && FULL_VIEW.get(prev) === full && sameElements(slice, prev)) return prev as number[];
+  FULL_VIEW.set(slice, full);
+  return slice;
 }
 
 /**
@@ -857,7 +929,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   | "rowMarkers"
   | "enableRowSelection"
   | "keepCheckedRows"
-  | "keepHiddenCheckedRows"
+  | "rememberCheckedRows"
   | "totalRowCount"
   | "enableColumnSelection"
   | "enableRangeSelection"
@@ -872,7 +944,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
     keepCheckedRows: props.keepCheckedRows ?? false,
-    keepHiddenCheckedRows: props.keepHiddenCheckedRows ?? false,
+    rememberCheckedRows: props.rememberCheckedRows ?? props.keepHiddenCheckedRows ?? props.totalRowCount !== undefined,
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,
@@ -998,4 +1070,15 @@ export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState
       return getSelectedRowIds(getSnapshot());
     },
   };
+}
+
+type ModeProps = Pick<InternalSyncProps, "sortMode" | "filterMode" | "totalRowCount">;
+
+/** A grid whose `data` is a window of a larger result (`totalRowCount`) cannot sort it locally without being wrong, so the window defaults to the server. */
+export function resolveSortMode(props: ModeProps): "client" | "server" {
+  return props.sortMode ?? (props.totalRowCount !== undefined ? "server" : "client");
+}
+
+export function resolveFilterMode(props: ModeProps): "client" | "server" {
+  return props.filterMode ?? (props.totalRowCount !== undefined ? "server" : "client");
 }

@@ -18,7 +18,6 @@ import type { DensityMode, GetCellClassName, GetRowClassName } from "./types";
 import {
   useDataGridActions,
   useDataGridInternalActions,
-  useDataGridActiveColumn,
   useDataGridHasActiveCell,
   useDataGridInstanceId,
   useDataGridKeymap,
@@ -28,7 +27,6 @@ import {
   useDataGridReadOnly,
   useDataGridRowCount,
   useDataGridSelectionConfig,
-  useDataGridSelector,
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
@@ -52,6 +50,7 @@ import { resolveRowHeight } from "./rows/density";
 import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
 import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
+import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { isDev } from "./is-dev";
@@ -243,7 +242,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // Only an explicit prop skips the measurement entirely, so an `ltr` page (the overwhelmingly
   // common case) settles on the same value it started with and never re-renders for this.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (directionProp !== undefined) return;
     setDomDirection(readResolvedDirection(scrollRef.current));
   }, [directionProp]);
@@ -256,11 +255,14 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const headerHeight = headerRowHeight * headerRowCount;
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
+  const gatesPending = useDataGridStore((s) => (s.gatesPending.size === 0 ? "" : Array.from(s.gatesPending).join(" ")));
   const serverFiltered = useDataGridStore((s) => s.filterMode === "server" && (s.filterState.length > 0 || s.searchText !== ""));
   const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
-  const emptyStateLabel = gridLabels.emptyState;
+  const emptyReason: EmptyStateReason = dataLength === 0 && !serverFiltered ? "no-data" : "filtered";
+  const emptyStateLabel = emptyReason === "filtered" ? gridLabels.noResults : gridLabels.emptyState;
+  useLoadAnnouncement(loading, error);
   // The resolved row-band segments (every plugin's `rowBands`, in plugin array order); an empty
   // shared identity when no plugin contributes bands.
   const bands = useDataGridPluginBands();
@@ -284,9 +286,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
    // scrollable data rows.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
-  // column-only primitive subscription: the root re-renders when the active COLUMN changes
-  // (force-render-active-column below), never on row-only moves — vertical arrows stay cheap.
-  const activeColumn = useDataGridActiveColumn();
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
   // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
   // via its context value, on every single row/column move).
@@ -358,8 +357,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
   // store actions can size columns with canvas `measureText` without their own DOM query;
-  // cleared on unmount. Declared before the autosizeOnMount effect below so a same-mount run
-  // already finds the getter registered.
+  // cleared on unmount.
   useEffect(() => {
     internalActions._registerMeasureFonts(() => {
       const root = scrollRef.current;
@@ -367,10 +365,11 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const canvas = root.querySelector<HTMLElement>("[data-grid-rows-canvas]");
       const cell = root.querySelector<HTMLElement>('[role="gridcell"][data-column-id]');
       const header = root.querySelector<HTMLElement>('[role="columnheader"]');
-      const cellStyle = cell ? getComputedStyle(cell) : null;
+      // Body cells inherit the root's font; with no row mounted yet the root stands in.
+      const cellStyle = getComputedStyle(cell ?? root);
       return {
-        cellFont: cellStyle?.font ?? "",
-        cellPadding: cellStyle ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
+        cellFont: cellStyle.font,
+        cellPadding: cell ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
         headerFont: header ? getComputedStyle(header).font : "",
         window: canvas
           ? {
@@ -384,31 +383,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     });
     return () => internalActions._registerMeasureFonts(null);
   }, [internalActions, renderHeaderMenu, renderHeaderFilter]);
-
-  // autosizeOnMount: one autosize pass once the view first has rows (a lazy grid waits for its
-  // first page). Runs once per mount. A saved layout wins: columns with a saved width
-  // (`columnWidths`, e.g. from `defaultColumnLayout`) keep it and are left out of the pass. The
-  // one-shot store subscription avoids re-rendering this tree per view change.
-  const autosizeOnMount = useDataGridSelector((s) => s.autosizeOnMount);
-  const autoSizedOnMount = useRef(false);
-  useEffect(() => {
-    if (!autosizeOnMount || autoSizedOnMount.current) return;
-    const base = typeof autosizeOnMount === "object" ? autosizeOnMount : undefined;
-    let unsubscribe: () => void = () => {};
-    const run = () => {
-      if (autoSizedOnMount.current) return;
-      const s = storeApi.getState();
-      if (s.viewIndex.length === 0) return;
-      autoSizedOnMount.current = true;
-      unsubscribe();
-      const saved = new Set(Object.keys(s.columnWidths));
-      const columnIds = (base?.columnIds ?? s.visibleColumns.map((column) => column.id)).filter((id) => !saved.has(id));
-      actions.autosizeColumns({ ...base, columnIds });
-    };
-    unsubscribe = storeApi.subscribe(run);
-    run();
-    return unsubscribe;
-  }, [autosizeOnMount, actions, storeApi]);
 
   useViewportElement(scrollRef, viewportRef);
   // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
@@ -448,14 +422,18 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     contentWidth: totalWidth,
     overscan: columnOverscan,
   });
+  // The active column only when it sits outside the rendered window: moves inside the window never re-render the root.
+  const offWindowActiveColumn = useDataGridStore((s) => {
+    const col = s.activeCell?.col;
+    return col === undefined || columnWindowIndices.includes(col) ? null : col;
+  });
   const columnIndices = useMemo(() => {
-    const indices = columnWindowIndices;
     // the active cell's column always renders, even off-window, so focus survives scroll
-    if (activeColumn !== null && !indices.includes(activeColumn) && activeColumn < visibleColumns.length) {
-      return [...indices, activeColumn].sort((a, b) => a - b);
+    if (offWindowActiveColumn !== null && offWindowActiveColumn < visibleColumns.length) {
+      return [...columnWindowIndices, offWindowActiveColumn].sort((a, b) => a - b);
     }
-    return indices;
-  }, [columnWindowIndices, activeColumn, visibleColumns.length]);
+    return columnWindowIndices;
+  }, [columnWindowIndices, offWindowActiveColumn, visibleColumns.length]);
 
   // Full scroll extent includes both pinned bands: the top band sits above row 0 (part of
   // effectiveHeaderHeight already), the bottom band needs its own extra room reserved past the
@@ -524,8 +502,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     [columnIndices, visibleColumns],
   );
 
-  // Stable context value on real deps (mustFix): DataGridRoot re-renders on every activeCell move
-  // (the activeColumn subscription above), and cell.tsx/header.tsx read this context directly —
+  // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
+  // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
   // a fresh object literal here would bust every context consumer (all virtualized cells, header
   // cells) on every click/arrow-key move even though most of these fields didn't actually change.
   const contextValue = useMemo(
@@ -606,6 +584,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         aria-multiselectable={ariaMultiselectable || undefined}
         aria-readonly={readOnly || undefined}
         aria-busy={loading || undefined}
+        {...{ [GRID_ATTR.gatePending]: gatesPending || undefined }}
         className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}
         onKeyDown={interaction.onKeyDown}
@@ -672,7 +651,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   style={{ insetBlockStart: effectiveHeaderHeight }}
                 >
                   {(typeof emptyState === "function"
-                    ? emptyState({ reason: dataLength === 0 && !serverFiltered ? "no-data" : "filtered" })
+                    ? emptyState({ reason: emptyReason })
                     : emptyState) ?? emptyStateLabel}
                 </div>
               )}
@@ -689,7 +668,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     <>
                       <span>{gridLabels.errorState}</span>
                       {onRetry && (
-                        <Button type="button" variant="outline" size="xs" onClick={onRetry}>
+                        <Button type="button" variant="secondary" size="xs" className="border border-border" onClick={onRetry}>
                           {gridLabels.errorRetry}
                         </Button>
                       )}

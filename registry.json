@@ -231,6 +231,11 @@
                "target": "components/data-grid/live-region.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid/use-load-announcement.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/use-load-announcement.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/header-cell.tsx",
                "type": "registry:component",
                "target": "components/data-grid/header-cell.tsx"
@@ -501,6 +506,16 @@
                "target": "components/data-grid/sort-filter/incremental-view-index.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/sort-filter/builtin-compare.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/builtin-compare.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/sort-filter/keyed-sort.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/keyed-sort.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/sort-filter/default-compare-text.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/default-compare-text.ts"
@@ -534,6 +549,11 @@
                "path": "registry/default/blocks/data-grid/store/async-gate.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/async-gate.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/gate-signal.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/gate-signal.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/commit.ts",
@@ -599,6 +619,11 @@
                "path": "registry/default/blocks/data-grid/store/row-index.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/row-index.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/server-stale.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/server-stale.ts"
             },
     {
                "path": "registry/default/blocks/data-grid/store/selection-state.ts",
@@ -825,7 +850,7 @@
          "name": "data-grid-pinned-rows",
          "type": "registry:block",
          "title": "Data Grid Pinned Rows",
-         "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands.",
+         "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands, and useDataGridServerAggregate shows values a server computes for the whole result.",
          "author": "gridcn",
          "dependencies": [
             "zustand@^5.0.15"
@@ -858,6 +883,51 @@
                "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts",
                "type": "registry:component",
                "target": "components/data-grid-pinned-rows/use-data-grid-aggregate.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-server-aggregate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-pinned-rows/use-data-grid-server-aggregate.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-lookup",
+         "type": "registry:block",
+         "title": "Data Grid Lookup",
+         "description": "Async lookup cell type for the gridcn data grid: remote options with search as you type, a value and label stored together, abortable requests, and bounded untrusted answers.",
+         "author": "gridcn",
+         "dependencies": [],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/use-debounce",
+            "button",
+            "input",
+            "popover"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-lookup/data-grid-lookup.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-lookup/data-grid-lookup.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-lookup/lookup-cell-type.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-lookup/lookup-cell-type.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-lookup/lookup-editor.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-lookup/lookup-editor.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-lookup/lookup-model.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-lookup/lookup-model.ts"
             }
          ],
          "categories": [
@@ -1235,6 +1305,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/export-source.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/export-source.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/xlsx-writer.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/xlsx-writer.ts"
@@ -1365,6 +1440,11 @@
                "target": "components/data-grid-server/range-math.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-server/fetch-hygiene.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/fetch-hygiene.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-server/scroll-blocks.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/scroll-blocks.ts"
@@ -1378,6 +1458,16 @@
                "path": "registry/default/blocks/data-grid-server/refresh-guard.tsx",
                "type": "registry:component",
                "target": "components/data-grid-server/refresh-guard.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/parse-server-spec.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/parse-server-spec.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/save-refresh.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/save-refresh.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-server/read-answer.ts",
@@ -1423,6 +1513,16 @@
                "path": "registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts",
                "type": "registry:component",
                "target": "components/data-grid-pagination/use-data-grid-pagination.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-pagination/use-data-grid-server-pager.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-pagination/use-data-grid-server-pager.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-pagination/use-data-grid-pager.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-pagination/use-data-grid-pager.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-pagination/pagination-footer.tsx",
@@ -1472,7 +1572,85 @@
          "categories": [
             "data"
          ]
-      },      {
+      },
+      {
+         "name": "data-grid-views",
+         "type": "registry:block",
+         "title": "Data Grid Views",
+         "description": "Saved views add-on for the gridcn data grid: <DataGridViews /> saves, applies, updates, renames, deletes, and defaults named views of sort, filters, search, and column layout, and imports or exports one as bounded JSON checked against the live columns. useDataGridViews is the headless hook; a storage adapter (localStorage with an in-memory fallback by default, any async store) keeps the views. Zero core changes — purely additive.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "popover",
+            "button",
+            "badge",
+            "input",
+            "textarea"
+         ],
+         "dependencies": [
+            "lucide-react@^1.46.0"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-views/data-grid-views.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/data-grid-views.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/use-data-grid-views.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/use-data-grid-views.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/view-state.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/view-state.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/view-storage.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-views/view-storage.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-views/views-menu.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-views/views-menu.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-views-demo",
+         "type": "registry:example",
+         "title": "Data Grid Views Demo",
+         "description": "Saved views: pick, save, update, rename, delete, default, and import or export a view of sort, filters, search, and column layout.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "DammersCode/gridcn/data-grid-sort-list",
+            "DammersCode/gridcn/data-grid-views",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-views-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-views-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-status-bar",
          "type": "registry:block",
          "title": "Data Grid Status Bar",
@@ -1908,6 +2086,67 @@
          ]
       },
       {
+         "name": "data-grid-export-all-demo",
+         "type": "registry:example",
+         "title": "Data Grid Export All Demo",
+         "description": "A paged server grid whose export menu exports the whole filtered result through an async source in batches, and whose import sends the rows to the server and refreshes.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "DammersCode/gridcn/data-grid-server",
+            "DammersCode/gridcn/data-grid-io",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-export-all-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-export-all-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-io-hooks-demo",
+         "type": "registry:example",
+         "title": "Data Grid IO Hooks Demo",
+         "description": "Every export, import, and replace hook in one small grid with a side panel: upload instead of download, typed cells, a sample file with title rows, cell and row hooks, and a replace plan you approve before it is written.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-find-replace",
+            "DammersCode/gridcn/data-grid-io",
+            "button",
+            "checkbox",
+            "input",
+            "label",
+            "switch"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-io-hooks-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-io-hooks-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-url-state-demo",
          "type": "registry:example",
          "title": "Data Grid URL State Demo",
@@ -2298,6 +2537,61 @@
          ]
       },
       {
+         "name": "data-grid-server-totals-demo",
+         "type": "registry:example",
+         "title": "Data Grid Server Totals Demo",
+         "description": "A scrolling grid over a fake server whose totals row is computed by the server for the whole filtered result, with loading and stale states.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-server",
+            "DammersCode/gridcn/data-grid-pinned-rows",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-server-totals-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-server-totals-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-lookup-demo",
+         "type": "registry:example",
+         "title": "Data Grid Lookup Demo",
+         "description": "A customer column that searches a fake server as you type and stores the picked key with its label.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-lookup"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-lookup-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-lookup-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-conditional-styling-demo",
          "type": "registry:example",
          "title": "Data Grid Conditional Styling Demo",
@@ -2396,7 +2690,7 @@
          "name": "data-grid-open-ended-demo",
          "type": "registry:example",
          "title": "Data Grid Open-Ended Demo",
-         "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridServerRows({ mode: \"scroll\" }), and keyset pages with useDataGridPagination({ hasNextPage }).",
+         "description": "A server that sends a cursor and no row count: infinite scroll and a pager over a keyset API, both through useDataGridServerRows.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -2465,7 +2759,8 @@
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
-            "DammersCode/gridcn/data-grid-pagination"
+            "DammersCode/gridcn/data-grid-pagination",
+            "DammersCode/gridcn/data-grid-toolbar"
          ],
          "files": [
             {
@@ -3017,6 +3312,76 @@
          ]
       },
       {
+         "name": "data-grid-cursor-react-query-demo",
+         "type": "registry:example",
+         "title": "Data Grid Cursor React Query Demo",
+         "description": "A cursor source without a row count through useInfiniteQuery: infinite scroll and a pager that follows the cursor chain.",
+         "author": "gridcn",
+         "dependencies": [
+            "@tanstack/react-query@^5.103.2"
+         ],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-cursor-react-query-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-cursor-react-query-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-cursor-swr-demo",
+         "type": "registry:example",
+         "title": "Data Grid Cursor SWR Demo",
+         "description": "A cursor source without a row count through useSWRInfinite: infinite scroll and a pager that follows the cursor chain.",
+         "author": "gridcn",
+         "dependencies": [
+            "swr@^2.5.1"
+         ],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-cursor-swr-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-cursor-swr-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-lazy-swr-demo",
          "type": "registry:example",
          "title": "Data Grid Lazy SWR Demo",
@@ -3119,7 +3484,9 @@
             "DammersCode/gridcn/data-grid-pagination",
             "DammersCode/gridcn/data-grid-server",
             "DammersCode/gridcn/data-grid-toolbar",
-            "button"
+            "button",
+            "select",
+            "switch"
          ],
          "files": [
             {

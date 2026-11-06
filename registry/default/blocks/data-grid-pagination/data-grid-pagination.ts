@@ -1,12 +1,8 @@
 /** Public entry point — the only module consumers/docs should import from. */
 
-export {
-  useDataGridPagination,
-  type UseDataGridPaginationClientOptions,
-  type UseDataGridPaginationServerOptions,
-  type UseDataGridPaginationResult,
-  type DataGridPaginationControls,
-} from "./use-data-grid-pagination";
+export { useDataGridPagination, type UseDataGridPaginationClientOptions, type UseDataGridPaginationResult, type DataGridPaginationControls } from "./use-data-grid-pagination";
+export { useDataGridServerPager, type UseDataGridServerPagerOptions } from "./use-data-grid-server-pager";
+export { useDataGridPager, type UseDataGridPagerOptions } from "./use-data-grid-pager";
 export {
   DataGridPaginationBar,
   type DataGridPaginationBarProps,

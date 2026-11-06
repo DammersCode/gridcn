@@ -1,0 +1,9 @@
+{
+  "data-grid-io": [
+    "IMPORT_CANCELLED_MESSAGE"
+  ],
+  "data-grid-pinned-rows": [
+    "DataGridPinnedRow",
+    "DataGridPinnedRowBand"
+  ]
+}

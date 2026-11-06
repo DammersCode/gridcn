@@ -1,15 +1,9 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
-import {
-  DataGridProvider,
-  DataGridRoot,
-  DataGridHeader,
-  DataGridBody,
-  defineColumns,
-  type DataChange,
-} from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { useState, type ReactNode } from "react";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridToolbar, DataGridSearch, DataGridFilterMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
+import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
@@ -20,34 +14,33 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * Client mode: `useDataGridPagination` slices the full 240-row dataset into pages itself, no
- * server round trip. The footer sits outside `DataGridProvider` (it has no store to read from —
- * `pager` already carries everything it needs).
- *
- * `DataGrid`'s `onDataChange` only ever sees the current page's slice, so an edit is merged back
- * into the full dataset by row id here rather than replacing it outright (unlike the unpaginated
- * `useDataGridState` quick start, which can swap `data` wholesale because it always sees every row).
+ * Client paging: `defaultPageSize` pages the view of a 240-row dataset. The grid keeps every row, so a header click sorts all 240,
+ * the filter menu narrows all 240, and the footer counts the rows that remain. Quick search marks matches on the current page. A filter change goes back to page 1.
+ * The footer sits inside the provider and reads the pager from it.
  */
 export default function DataGridPaginationDemo(): ReactNode {
   const [rows, setRows] = useState(() => generateDemoRows(240));
-  const { pageData, pager } = useDataGridPagination({ data: rows, defaultPageSize: 25 });
-
-  const onDataChange = useCallback((next: readonly DemoRow[], _change: DataChange<DemoRow>) => {
-    setRows((prev) => {
-      const edited = new Map(next.map((row) => [row.id, row]));
-      return prev.map((row) => edited.get(row.id) ?? row);
-    });
-  }, []);
 
   return (
     <div className="w-full flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-      <DataGridProvider data={pageData!} columns={columns} getRowId={(row) => row.id} onDataChange={onDataChange}>
+      <DataGridProvider
+        data={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        onDataChange={(next) => setRows(next as DemoRow[])}
+        defaultPageSize={25}
+        headerClickBehavior="sort"
+      >
+        <DataGridToolbar>
+          <DataGridSearch />
+          <DataGridFilterMenu />
+        </DataGridToolbar>
         <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
+        <DataGridPaginationBar />
       </DataGridProvider>
-      <DataGridPaginationBar {...pager} />
     </div>
   );
 }

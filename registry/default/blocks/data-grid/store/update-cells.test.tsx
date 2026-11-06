@@ -121,7 +121,18 @@ describe("updateCells — patch application", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
-  it("skips a readOnly column", () => {
+  it('skips a readOnly column for source "edit"', () => {
+    const onDataChange = vi.fn();
+    const readOnlyColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", readOnly: true },
+      { id: "price", header: "Price", accessorKey: "price" },
+    ];
+    const { result } = renderHarness({ onDataChange, columnsOverride: readOnlyColumns });
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "X" }], { source: "edit" }));
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("writes a stream patch into a readOnly column", () => {
     const onDataChange = vi.fn();
     const readOnlyColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", readOnly: true },
@@ -129,7 +140,7 @@ describe("updateCells — patch application", () => {
     ];
     const { result } = renderHarness({ onDataChange, columnsOverride: readOnlyColumns });
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "X" }]));
-    expect(onDataChange).not.toHaveBeenCalled();
+    expect(lastData(onDataChange)[0]!.name).toBe("X");
   });
 
   it("skips an accessorFn-only column, which has no write path", () => {
@@ -414,10 +425,12 @@ describe("updateCells — sort/filter reconciliation", () => {
     expect(result.current.viewStale).toBe(true);
   });
 
-  it("does not flip viewStale for a streamed sort-column write under sortMode server", () => {
+  it("keeps the view order and flips viewStale for a streamed sort-column write under sortMode server", () => {
     const { result } = renderHarness({ sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
+    const before = result.current.viewIndex;
     act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
-    expect(result.current.viewStale).toBe(false);
+    expect(result.current.viewIndex).toBe(before);
+    expect(result.current.viewStale).toBe(true);
   });
 
   it("flips viewStale when a touched column feeds the active filter", () => {
@@ -1316,14 +1329,17 @@ describe("updateCells — verdict", () => {
 
   it("counts the applied cells and names every skipped patch with its reason", () => {
     const { result } = renderHarness({ columnsOverride: validated });
-    const verdict = result.current.actions.updateCells([
-      { rowId: "a", columnId: "price", value: 31 },
-      { rowId: "missing", columnId: "price", value: 1 },
-      { rowId: "b", columnId: "nope", value: 1 },
-      { rowId: "b", columnId: "price", value: -5 },
-      { rowId: "c", columnId: "note", value: "x" },
-      { rowId: "c", columnId: "price", value: 40 },
-    ]);
+    const verdict = result.current.actions.updateCells(
+      [
+        { rowId: "a", columnId: "price", value: 31 },
+        { rowId: "missing", columnId: "price", value: 1 },
+        { rowId: "b", columnId: "nope", value: 1 },
+        { rowId: "b", columnId: "price", value: -5 },
+        { rowId: "c", columnId: "note", value: "x" },
+        { rowId: "c", columnId: "price", value: 40 },
+      ],
+      { source: "edit" },
+    );
     expect(verdict).toEqual({
       applied: 1,
       pending: false,
@@ -1345,13 +1361,18 @@ describe("updateCells — verdict", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
-  it("reports a grid-level readOnly as an empty verdict", () => {
+  it('reports a grid-level readOnly as an empty verdict for source "edit"', () => {
     const { result } = renderHarness({ readOnly: true });
-    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({
+    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "edit" })).toEqual({
       applied: 0,
       skipped: [],
       pending: false,
     });
+  });
+
+  it("applies a stream batch in a grid-level readOnly grid", () => {
+    const { result } = renderHarness({ readOnly: true });
+    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({ applied: 1, skipped: [], pending: false });
   });
 
   it("skips patches aimed at an unloaded lazy hole", () => {

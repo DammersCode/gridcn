@@ -91,7 +91,7 @@ describe("a source with no row count in mode C (controlled state)", () => {
     const fetchRows = pagedSource(undefined);
     const grid = await mountServer(fetchRows);
     expect(grid.server().pager.totalRowCount).toBeNull();
-    expect(grid.server().pager.hasNextPage).toBe(true);
+    expect(grid.server().pager.hasMore).toBe(true);
     expect(grid.state().totalRowCount).toBeNull();
     act(() => grid.state().actions.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as never));
     act(() => grid.state().actions.setSearch("Name"));
@@ -104,7 +104,7 @@ describe("a source with no row count in mode C (controlled state)", () => {
     const grid = await mountServer(pagedSource(undefined));
     act(() => grid.server().pager.onPageChange(10));
     await grid.ready();
-    expect(grid.server().pager.hasNextPage).toBe(false);
+    expect(grid.server().pager.hasMore).toBe(false);
   });
 });
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import type {
@@ -21,6 +21,7 @@ import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, 
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
@@ -566,10 +567,11 @@ function computeRowCellState(s: DataGridStoreState, viewRow: number): DataGridRo
     ? EMPTY_COL_RANGES
     : selectedColRangesForRow(s.selection, viewRow, s.visibleColumns.length);
 
-  const rowId = s.saveStatus.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
+  const rowId = s.saveStatus.size === 0 && s.staleRowIds.size === 0 ? undefined : rowIdAtViewRow(s, viewRow);
   const saveStatus = rowId === undefined ? undefined : s.saveStatus.get(rowId);
+  const stale = rowId !== undefined && s.staleRowIds.has(rowId);
 
-  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus };
+  return { activeCol, editingCol, editingInitialText, editingSession, editingError, editingRejectionCount, searchMatchCols, errorCols, flashingCols, selectedColRanges, saveStatus, stale };
 }
 
 /** Content equality for two nullable `Set<number>`s — {@link computeRowCellState} allocates a fresh Set per call, so `searchMatchCols` needs content (not reference) comparison to stay referentially stable across unrelated store updates. */
@@ -599,6 +601,7 @@ function rowCellStateEqual(a: DataGridRowCellState, b: DataGridRowCellState): bo
     a.editingError === b.editingError &&
     a.editingRejectionCount === b.editingRejectionCount &&
     a.saveStatus === b.saveStatus &&
+    a.stale === b.stale &&
     searchMatchColsEqual(a.searchMatchCols, b.searchMatchCols) &&
     errorColsEqual(a.errorCols, b.errorCols) &&
     searchMatchColsEqual(a.flashingCols, b.flashingCols) &&
@@ -655,7 +658,7 @@ export function useDataGridSelectionConfig(): {
 
 /**
  * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
- * "all matching except these ids" after `actions.selectAllMatching()`. Needs `keepCheckedRows` and `totalRowCount`
+ * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `rememberCheckedRows`
  * to cover rows outside `data`. The value changes only when the selection or the data does.
  */
 export function useDataGridSelectedRows(): DataGridSelectedRows {
@@ -693,7 +696,18 @@ export function useDataGridPendingSaveCount(): number {
   return useDataGridStore((s) => s.pendingSaveCount);
 }
 
-/** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
+/** The consumer hooks whose promise has not settled (`processPaste`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`); the same empty set while none is pending. */
+export function useDataGridGatePending(): ReadonlySet<GateName> {
+  return useDataGridStore((s) => s.gatesPending);
+}
+
+/** Marks `name` pending in {@link useDataGridGatePending} while `active` is true; for add-ons that run a gate of their own. */
+export function useDataGridMarkGatePending(name: GateName, active: boolean): void {
+  const gates = useDataGridInternalActions()._gates();
+  useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
+}
+
+/** The number of checked rows a filter hides, remembered by `rememberCheckedRows`; `0` when the option is off. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

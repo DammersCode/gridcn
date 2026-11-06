@@ -45,15 +45,16 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
       aria-hidden="true"
       className="pointer-events-none border border-[color-mix(in_oklch,var(--presence-color,var(--color-primary))_100%,transparent)] bg-[color-mix(in_oklch,var(--presence-color,var(--color-primary))_12%,transparent)]"
       style={{
-        // positioned: cells are position:relative, so a static overlay would paint below them
-        position: "relative",
+        // positioned: cells are position:relative, so a static overlay would paint below them;
+        // out-of-flow when unpinned, so moving it does not re-lay out the canvas grid
+        position: "absolute",
+        inset: 0,
         "--presence-color": safeColor,
         gridColumnStart: rect.x + colOffset,
         gridColumnEnd: rect.x + rect.width + colOffset,
         gridRowStart: rect.y - windowStart + 1,
         gridRowEnd: rect.y + rect.height - windowStart + 1,
-        ...pinStyle,
-        ...(pinStyle ? { zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
+        ...(pinStyle ? { inset: undefined, ...pinStyle, zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
       } as CSSProperties}
     />
   );

@@ -1,6 +1,6 @@
 ---
 name: gridcn-addons
-description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
+description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, saved views, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
   gridcn-version: "1.3.0"
 ---
@@ -24,6 +24,7 @@ npx shadcn add @gridcn/<item>
 |---|---|---|
 | Fill handle | `data-grid-fill` | none |
 | Pinned rows | `data-grid-pinned-rows` | none |
+| Lookup cell | `data-grid-lookup` | none |
 | Presence | `data-grid-presence` | none |
 | Undo & redo | `data-grid-history` | none |
 | Toolbar | `data-grid-toolbar` | `@dnd-kit/react` |
@@ -31,6 +32,7 @@ npx shadcn add @gridcn/<item>
 | Keybindings dialog | `data-grid-keybindings` | none |
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
 | URL state | `data-grid-url-state` | `nuqs` |
+| Saved views | `data-grid-views` | none |
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
 | Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
 | Pagination | `data-grid-pagination` | none |
@@ -53,9 +55,9 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 |---|---|---|---|
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
-| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
-| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
+| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, showScope?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
+| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
 
@@ -67,9 +69,10 @@ Everything else mounts as a plain child component, inside the provider:
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
+| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage`, `storageKey`, `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
-| Pagination | `useDataGridPagination` + `DataGridPaginationBar` | standalone — does not read the store, works inside or outside the provider |
+| Pagination | `defaultPageSize` on the provider + `DataGridPaginationBar` (client); `useDataGridServerPager` + `DataGridPaginationBar {...pager}` (server) | the bar reads the pager from the provider when you spread nothing; spread `pager` and it works outside the provider too |
 
 `keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
 the `DataGrid` wrapper), never of `DataGridRoot`.
@@ -103,6 +106,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Pinned rows**: keep `topRows`/`bottomRows` referentially stable (`useMemo`/`useState`, not a
   fresh `[value]` literal per render) — a fresh array per render rebuilds the returned `plugin`
   every render, and the grid re-resolves its plugin list on every render.
+- **Server totals**: on a pages, scroll, or own-API grid render `<DataGridServerAggregateReporter fetchAggregates={({ spec, signal }) => …} onChange={setTotals} />` under the provider and pass `totals.row` as a band row and `totals.status` as `status`. It requests again on a filter or quick-search change (start the state from `PENDING_SERVER_AGGREGATE`); call `totals.refresh()` after a save.
+- **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column, and keep `fetchOptions` stable.
 - **Totals row**: the `plugin` is needed above the provider, but the aggregate is read inside it.
   Hold the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
   inside the provider, and pass `useMemo(() => [totals], [totals])` as `bottomRows`.
@@ -111,15 +116,25 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+- **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
 
 ## Async gates
 
-- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`. A gate gets no `AbortSignal`.
+- `processPaste`, `processCellFromClipboard`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`.
+- `actions.commitChange` runs `validateRow` for the rows it inserts or updates (every source except `"stream"`), so an import applied through it needs no extra validation.
+- Every gate gets an `AbortSignal` as its last argument (`processPaste({ cells, target, signal })`, `validateRow(row, rowId, { signal })`, `onEditStart(cell, { signal })`, `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`, `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`). Pass it to `fetch`. It aborts when a newer run replaces the gate, when the result cannot apply, and on unmount.
+- `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `data-gate-pending` meanwhile.
 
 ## Bounds and failure reporting
 
 - A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
 - An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
+- A grid that holds one page or some loaded blocks exports only those rows. For the whole server result pass `options={{ source }}` to `DataGridExportButton` (or `source` to `exportGrid`): `source({ spec, signal })` returns an array or an async iterable of batches, and your server applies `spec`. Bound it with `maxRows` and `maxBytes`.
+- On a server or counted grid, `onImport(rows, { signal })` must send the rows to the server and then call `server.refresh()`. Never append imported rows to `data` of a grid that has a `totalRowCount`.
+- To send an export somewhere else, pass `output(file, { fileName, format, signal })` (it replaces the download); shape the file with `columns` (ids, hidden allowed) and a sync `formatCell` that may return a number, boolean, or `Date` for typed xlsx cells. `buildCsv` and `exportRows` are the building blocks for custom formats.
+- Import hooks, in order: `parseFile`, `importDefaults.defaultHeaderRow` (a number is the header row index), `processImportRows`, `processCellFromText`, `onImport(rows, { signal, rejected, fileName, sheetName, mapping })`, `onImportError`. Hook results are re-checked against `importLimits`; `csvEncoding` takes only labels from `IMPORT_CSV_ENCODINGS`.
+- `useDataGridFindReplace({ onReplace })` can edit or veto (`false`) the plan before it is written.
+- Find & replace searches loaded rows only; on a counted or server-mode grid the panel says so.
 - Pass `onError` to `DataGridExportButton`. A throwing export is reported there. Without it, only a dev warning appears.
 - History `rollback(change)` is cell-level. It reverts only the cells that still hold the change's value and skips cells edited since.
 

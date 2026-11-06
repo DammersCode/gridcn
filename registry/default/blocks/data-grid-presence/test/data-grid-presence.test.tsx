@@ -14,6 +14,7 @@ import {
 import { useDataGridPresence, useDataGridPresenceHighlights, type PresenceHighlightEntry, type PresenceStoreApi } from "../data-grid-presence";
 import { MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../presence-overlay";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
+import { createPresenceStore, MAX_PRESENCE_ENTRIES } from "../presence-store";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
@@ -1087,5 +1088,41 @@ describe("safePresenceColor", () => {
   it("passes the value through where CSS.supports is unavailable", () => {
     vi.stubGlobal("CSS", undefined);
     expect(safePresenceColor("anything")).toBe("anything");
+  });
+});
+
+describe("presence store — untrusted peer entries", () => {
+  const range = { x: 0, y: 0, width: 1, height: 1 };
+  const load = (entries: unknown[]) => {
+    const store = createPresenceStore();
+    store.getState().setPresenceHighlights(entries as PresenceHighlightEntry[]);
+    return store.getState().highlights;
+  };
+
+  it("removes a non-string label and truncates a long one", () => {
+    const [objectLabel, longLabel] = load([
+      { id: "a", color: "red", range, label: { toString: () => "x" } },
+      { id: "b", color: "red", range, label: "x".repeat(500) },
+    ]);
+    expect(objectLabel).not.toHaveProperty("label");
+    expect(longLabel?.label).toHaveLength(64);
+  });
+
+  it("falls back for a non-string color and drops non-string or oversized ids", () => {
+    const kept = load([
+      { id: "a", color: { a: 1 }, range },
+      { id: 7, color: "red", range },
+      { id: "x".repeat(1000), color: "red", range },
+      { id: "b", color: "red", rowId: { a: 1 }, columnId: "name" },
+      { id: "c", color: "red", rowIds: ["1", {}], columnIds: ["name"] },
+    ]);
+    expect(kept.map((h) => h.id)).toEqual(["a"]);
+    expect(kept[0]?.color).toBe("var(--color-primary)");
+  });
+
+  it("copies only known fields and bounds the entry count", () => {
+    const [entry] = load([{ id: "a", color: "red", range, extra: { evil: 1 } }]);
+    expect(entry).not.toHaveProperty("extra");
+    expect(load(Array.from({ length: MAX_PRESENCE_ENTRIES + 5 }, (_, i) => ({ id: String(i), color: "red", range })))).toHaveLength(MAX_PRESENCE_ENTRIES);
   });
 });
