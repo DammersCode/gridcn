@@ -2194,7 +2194,8 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/pagination.mdx"
+            "content/docs/pagination.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.cursor.test.tsx"
           ]
         },
         "Z": {

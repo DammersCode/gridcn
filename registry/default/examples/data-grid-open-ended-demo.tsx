@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
-import { useDataGridPagination, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 
 type Row = { id: string; name: string; email: string };
 
@@ -79,41 +79,23 @@ function InfiniteScroll(): ReactNode {
   );
 }
 
-const PAGE_SIZE = 10;
-
 function KeysetPages(): ReactNode {
-  const [page, setPage] = useState(1);
-  const [pageRows, setPageRows] = useState<Row[]>([]);
-  const [hasNextPage, setHasNextPage] = useState(true);
-  const cursors = useRef<Map<number, string | undefined>>(new Map([[1, undefined]]));
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    fetchAfter(cursors.current.get(page), PAGE_SIZE, controller.signal).then(
-      ({ rows, nextCursor }) => {
-        if (nextCursor !== null) cursors.current.set(page + 1, nextCursor);
-        setPageRows(rows);
-        setHasNextPage(nextCursor !== null);
-        setLoading(false);
-      },
-      () => {},
-    );
-    return () => controller.abort();
-  }, [page]);
-
-  const { pager } = useDataGridPagination({ page, pageSize: PAGE_SIZE, totalRowCount: null, hasNextPage, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
+  const server = useDataGridServerRows<Row, string>({
+    pageSizeOptions: [10],
+    getRowId: (row) => row.id,
+    fetchRows: async ({ cursor, pageSize, signal }) => fetchAfter(cursor, pageSize, signal),
+  });
+  const { data, getRowId, onDataChange, plugins } = server.providerProps;
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm text-muted-foreground">{loading ? "Fetching…" : "The server sends a cursor and no total."}</div>
-      <Grid data={pageRows} getRowId={(row) => row.id} />
-      <DataGridPaginationBar {...pager} />
+      <div className="text-sm text-muted-foreground">{server.loading ? "Fetching…" : "The server sends a cursor and no total."}</div>
+      <Grid data={data} getRowId={getRowId} onDataChange={onDataChange} plugins={plugins} />
+      <DataGridPaginationBar {...server.pager} />
     </div>
   );
 }
 
-/** Two ways to connect a server that sends no row count: infinite scroll with a cursor chain, and pages with `hasNextPage`. */
+/** Two ways to connect a server that sends no row count: infinite scroll and pages, both following the cursor chain the hook keeps. */
 export default function DataGridOpenEndedDemo(): ReactNode {
   const [mode, setMode] = useState<"infinite" | "pages">("infinite");
   return (

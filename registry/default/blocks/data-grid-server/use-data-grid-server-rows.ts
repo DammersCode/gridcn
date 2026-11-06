@@ -16,11 +16,11 @@ export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from 
 export type { UseDataGridServerRowsScrollOptions, UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 
 /** Options of {@link useDataGridServerRows} in pages mode. */
-export type UseDataGridServerRowsOptions<TData> = {
+export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /** `"pages"` fetches one page per state and drives `pager`. Fixed for the life of the hook. Default `"pages"`. */
   mode?: "pages";
   getRowId: (row: TData, index: number) => string;
-  fetchRows: (request: ServerRowsPageRequest) => Promise<ServerRowsAnswer<TData>>;
+  fetchRows: (request: ServerRowsPageRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
   /** Rows per page while `pageSize` is not controlled. Default: the first of `pageSizeOptions`. */
   defaultPageSize?: number;
   /** Controls the page size; pair it with `onPageSizeChange`. */
@@ -120,12 +120,30 @@ export type UseDataGridServerRowsRootProps = {
   onRetry: () => void;
 };
 
-type Settled<TData> = { key: string; view: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown };
+type CursorChain<TCursor> = { key: string; cursors: Map<number, TCursor | undefined> };
+
+const furthestPage = (cursors: ReadonlyMap<number, unknown>) => [...cursors.keys()].reduce((a, b) => Math.max(a, b), 1);
+
+function resetChain<TCursor>(chain: CursorChain<TCursor>, key: string) {
+  if (chain.key === key) return;
+  chain.key = key;
+  chain.cursors.clear();
+  chain.cursors.set(1, undefined);
+}
+
+/** Stores the cursor of the page after `page`, and drops the cursors that hung off the old one. */
+function recordCursor<TCursor>(cursors: Map<number, TCursor | undefined>, page: number, nextCursor: TCursor | null) {
+  if (!cursors.has(page) || Object.is(cursors.get(page + 1), nextCursor)) return;
+  for (const known of cursors.keys()) if (known > page) cursors.delete(known);
+  if (nextCursor !== null) cursors.set(page + 1, nextCursor);
+}
+
+type Settled<TData> = { key: string; view: string; rows: TData[]; totalRowCount: number | null; hasMore: boolean; error: unknown; chainKey: string; furthestPage: number; cursorSource: boolean };
 
 const PREFETCH_MAX_AGE = 30_000;
 
 /** A landed prefetch waiting for the pager to reach its page. */
-type Landed<TData> = { view: string; rows: TData[]; read: ReadAnswer<TData>; guard: ProtectedRows; mark: number };
+type Landed<TData, TCursor> = { view: string; rows: TData[]; read: ReadAnswer<TData, TCursor>; guard: ProtectedRows; mark: number };
 
 /** The page request after the current page. `adopted` is set when the user reached the page while the request ran. */
 type PrefetchEntry = {
@@ -144,13 +162,15 @@ type PrefetchEntry = {
  * the grid's controlled state, so it works outside the provider and needs no bridge component.
  *
  * `mode: "pages"` (default) fetches one page per state and goes back to page 1 when the spec or the page size changes.
+ * An answer with `nextCursor` makes pages a cursor source: the hook keeps the cursor of every page it reached, sends it back
+ * as `cursor`, and drops the chain when the spec or the page size changes. Such a pager has no count and no jump past the chain.
  * `mode: "scroll"` fetches fixed-size blocks as the rendered rows move. An answer with `totalRowCount` makes it random access;
  * an answer with `nextCursor`, or with neither, makes it sequential: the loaded rows plus one block of skeletons.
  * The mode is fixed for the life of the hook.
  */
 export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData>;
-export function useDataGridServerRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData>;
-export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData> | UseDataGridServerRowsScrollOptions<TData, TCursor>) {
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor>): UseDataGridServerRowsResult<TData>;
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor> | UseDataGridServerRowsScrollOptions<TData, TCursor>) {
   const firstMode = useRef({ mode: options.mode ?? "pages", warned: false });
   if (isDev() && !firstMode.current.warned && (options.mode ?? "pages") !== firstMode.current.mode) {
     firstMode.current.warned = true;
@@ -162,20 +182,25 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   return options.mode === "scroll" ? useScrollBlocks(options) : usePagesRows(options);
 }
 
-function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseDataGridServerRowsResult<TData> {
+function usePagesRows<TData, TCursor>(options: UseDataGridServerRowsOptions<TData, TCursor>): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
-  const page = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
-  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page, pageSize, settledOnce: false, requested: false, error: null as unknown });
+  const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
+  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown });
   const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
     if (live.current.settledOnce) setPage(1);
   });
+  const chainKey = `${serverSpecKey(spec)}|${pageSize}`;
+  const chain = useRef<CursorChain<TCursor>>({ key: chainKey, cursors: new Map([[1, undefined]]) });
+  const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null, chainKey: "", furthestPage: 1, cursorSource: false });
+  const cursorSource = settled.chainKey === chainKey && settled.cursorSource;
+  const awaitingChain = !cursorSource && settled.cursorSource;
+  const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
   const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
-  const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null });
-  const [landed, setLanded] = useState<Landed<TData> | null>(null);
+  const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
   const view = `${specKey}|${page}|${pageSize}`;
@@ -199,8 +224,11 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   }, [pruneSaves, savingRows]);
 
   const commitLanding = useCallback(
-    (read: ReadAnswer<TData>, landing: { key: string; view: string; start: number; guard: ProtectedRows; mark: number }) => {
+    (read: ReadAnswer<TData, TCursor>, landing: { key: string; view: string; page: number; start: number; guard: ProtectedRows; mark: number }) => {
       live.current.settledOnce = true;
+      const cursorAnswer = read.nextCursor !== undefined;
+      if (cursorAnswer) recordCursor(chain.current.cursors, landing.page, read.nextCursor as TCursor | null);
+      const furthest = furthestPage(chain.current.cursors);
       const guarded = unionIds(unionIds(landing.guard, savedSince(landing.mark)), protectedRows());
       const gone = deleted.current.size > 0 ? new Set(deleted.current) : deleted.current;
       const answerRows = overlayPushed(read.rows.filter((row) => row !== undefined) as TData[], landing.mark, 0, live.current.options.getRowId);
@@ -209,13 +237,16 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
         view: landing.view,
         rows: keepProtectedRows(answerRows, prev.rows, guarded, gone, prev.view === landing.view, live.current.options.getRowId),
         totalRowCount: read.totalRowCount === undefined ? prev.totalRowCount : read.totalRowCount,
-        hasMore: read.hasMore,
+        hasMore: cursorAnswer ? read.nextCursor !== null : read.hasMore,
         error: null,
+        chainKey,
+        furthestPage: furthest,
+        cursorSource: cursorAnswer,
       }));
       const onLoaded = live.current.options.onLoaded;
       if (onLoaded) isolate("onLoaded", () => onLoaded({ start: landing.start, end: landing.start + read.rows.length }));
     },
-    [savedSince, protectedRows, overlayPushed],
+    [savedSince, protectedRows, overlayPushed, chainKey],
   );
 
   const failRequest = useCallback((requestKey: string, error: unknown) => {
@@ -271,6 +302,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     const controller = new AbortController();
     const { page: requestPage, pageSize: requestSize } = live.current;
     const requestSpec = spec;
+    resetChain(chain.current, chainKey);
     const protectedAtStart = savingRows();
     const markAtStart = saveMark();
     openMarks.current.main = markAtStart;
@@ -284,12 +316,12 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     settleMountState
       .then(() => {
         if (controller.signal.aborted) return Promise.reject(controller.signal.reason);
-        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: undefined, signal: controller.signal });
+        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: chain.current.cursors.get(requestPage), signal: controller.signal });
       })
       .then((answer) => {
         if (controller.signal.aborted) return;
-        const read = readAnswer<TData>(answer, range, warn, live.current.options.getRowId);
-        commitLanding(read, { key, view, start, guard: protectedAtStart, mark: markAtStart });
+        const read = readAnswer<TData, TCursor>(answer, range, warn, live.current.options.getRowId);
+        commitLanding(read, { key, view, page: requestPage, start, guard: protectedAtStart, mark: markAtStart });
         openMarks.current.main = null;
         releaseMarks();
       })
@@ -316,13 +348,13 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     openMarks.current.prefetch = entry.mark;
     const start = current * size;
     const range: RowRange = { start, end: start + size };
-    new Promise<ServerRowsAnswer<TData>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: undefined, signal: controller.signal })))
+    new Promise<ServerRowsAnswer<TData, TCursor>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: chain.current.cursors.get(current + 1), signal: controller.signal })))
       .then((answer) => {
         if (controller.signal.aborted) return;
-        const read = readAnswer<TData>(answer, range, warn, live.current.options.getRowId);
+        const read = readAnswer<TData, TCursor>(answer, range, warn, live.current.options.getRowId);
         entry.landed = true;
         if (entry.adopted !== null) {
-          commitLanding(read, { key: entry.adopted.key, view: ahead, start, guard: entry.guard, mark: entry.mark });
+          commitLanding(read, { key: entry.adopted.key, view: ahead, page: current + 1, start, guard: entry.guard, mark: entry.mark });
           prefetch.current = null;
           openMarks.current.prefetch = null;
           releaseMarks();
@@ -347,7 +379,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
 
   const adoptable = landed !== null && landed.view === view && settled.key !== key ? landed : null;
   const shown: Settled<TData> =
-    adoptable === null ? settled : { key, view, rows: adoptable.rows, totalRowCount: adoptable.read.totalRowCount === undefined ? settled.totalRowCount : adoptable.read.totalRowCount, hasMore: adoptable.read.hasMore, error: null };
+    adoptable === null ? settled : { key, view, rows: adoptable.rows, totalRowCount: adoptable.read.totalRowCount === undefined ? settled.totalRowCount : adoptable.read.totalRowCount, hasMore: adoptable.read.nextCursor !== undefined ? adoptable.read.nextCursor !== null : adoptable.read.hasMore, error: null, chainKey: settled.chainKey, furthestPage: settled.furthestPage, cursorSource: settled.cursorSource };
 
   const loading = shown.key !== key;
   const error = shown.key === key ? shown.error : null;
@@ -364,7 +396,7 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     prefetch.current = null;
     pruneIds(deleted.current, savingRows());
     const { page: landedPage, pageSize: landedSize } = live.current;
-    commitLanding(adoptable.read, { key, view, start: (landedPage - 1) * landedSize, guard: adoptable.guard, mark: adoptable.mark });
+    commitLanding(adoptable.read, { key, view, page: landedPage, start: (landedPage - 1) * landedSize, guard: adoptable.guard, mark: adoptable.mark });
     openMarks.current.prefetch = null;
     releaseMarks();
     setLanded(null);
@@ -397,6 +429,9 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
   );
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
+  useLayoutEffect(() => {
+    if (page !== wantedPage) setPage(page);
+  }, [page, wantedPage, setPage]);
 
   const seenSpecKey = useRef(specKey);
   const seenPage = useRef(page);
@@ -459,8 +494,8 @@ function usePagesRows<TData>(options: UseDataGridServerRowsOptions<TData>): UseD
     page,
     pageSize,
     pageSizeOptions,
-    totalRowCount: shown.totalRowCount,
-    hasNextPage: shown.hasMore,
+    totalRowCount: cursorSource ? null : shown.totalRowCount,
+    hasNextPage: shown.hasMore && !awaitingChain,
     onPageChange: setPage,
     onPageSizeChange,
   });

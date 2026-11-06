@@ -152,6 +152,15 @@ export function createRemoteServer() {
     return { rows: list.slice(query.start, query.end), total: list.length };
   }
 
+  /** A keyset page: the rows after the opaque `after` cursor, and the cursor of the next page (`null` at the end). No count. */
+  async function fetchAfter(query: Omit<RemoteQuery, "page" | "pageSize"> & { after?: string; limit: number }): Promise<{ rows: DemoRow[]; next: string | null }> {
+    const list = await select(query);
+    const last = query.after === undefined ? -1 : query.after.startsWith("after:") ? Number(query.after.slice("after:".length)) : Number.NaN;
+    if (!Number.isSafeInteger(last) || last < -1) throw new Error("invalid cursor");
+    const rows = list.slice(last + 1, last + 1 + query.limit);
+    return { rows, next: last + 1 + rows.length < list.length ? `after:${last + rows.length}` : null };
+  }
+
   /** The distinct values of a column with their row counts, filtered by a case-insensitive `search` and capped at `limit`. */
   async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { value: string; count: number }[] }> {
     if (!FILTERABLE_COLUMNS.has(query.columnId)) throw new Error("invalid column");
@@ -192,5 +201,5 @@ export function createRemoteServer() {
     order = order.filter((id) => rows.has(id));
   }
 
-  return { total: rows.size, fetchPage, fetchRange, fetchValues, applyOps, bumpScores, remove };
+  return { total: rows.size, fetchPage, fetchRange, fetchAfter, fetchValues, applyOps, bumpScores, remove };
 }
