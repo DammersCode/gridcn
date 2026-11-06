@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyChange, createHistory, invertChange } from "./history";
-import { computeDuplicateBatch } from "../store/commit";
+import { computeDuplicateBatch, startDuplicateCopies } from "../store/commit";
 import type { DataGridStoreState } from "../store/types";
 import type { DataChange, DataOp } from "../types";
 
@@ -502,7 +502,8 @@ describe("computeDuplicateBatch with applyChange", () => {
       getRowId: (r: R) => r.id,
       duplicateRow: (r: R) => ({ id: `${r.id}${++n}` }),
     } as unknown as DataGridStoreState;
-    const batch = computeDuplicateBatch(state, [0, 2])!;
+    const copies = startDuplicateCopies(state, [0, 2], { signal: new AbortController().signal })!;
+    const batch = computeDuplicateBatch(state, [0, 2], copies)!;
     const expected = batch.nextData.map((r) => (r as R).id);
     expect(expected).toEqual(["a", "a2", "b", "c", "c1"]);
     expect(batch.ops.map((op) => (op as { index: number }).index)).toEqual([1, 4]);
