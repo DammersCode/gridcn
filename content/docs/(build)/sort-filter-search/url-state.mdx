@@ -159,14 +159,14 @@ export function OrdersPage({ rows, total }: { rows: Order[]; total: number }) {
 
 The add-on restores sorts, filters, and search text through the store actions. Those actions call `onSortChange`, `onFilterChange`, and `onSearchTextChange` as any change does. With `sortMode="server"` and `filterMode="server"`, a link restores the spec and the grid never reorders or hides the rows you load. `useDataGridServerRows` sets both modes. Without the hook, set both modes on a scroll-mode grid. Otherwise the add-on sorts and filters the partial `data` on the client.
 
-The request is the restored spec, and the answer is the rows for it. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in the URL](/docs/server-pagination/keep-pages-url).
+The request is the restored spec, and the answer is the rows for it. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
 On a column with `choices`, a restored `isAnyOf` or `isNoneOf` list keeps at most `max(number of choices, 64)` values.
 
 ## Related
 
 - [URL state options](/docs/add-options/sort-filter-search/url-state-options): the full option list
-- [Keep pages in the URL](/docs/server-pagination/keep-pages-url): page numbers for server pages
+- [Keep pages in URL](/docs/server-pagination/keep-pages-url): page numbers for server pages
 - [Sorting](/docs/sort-filter-search/sorting): the sort the URL carries
 - [Filtering](/docs/sort-filter-search/filtering): the filter the URL carries
 - [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout): save a view without the URL

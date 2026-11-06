@@ -25,7 +25,7 @@ The demo opens the two date editors. Press <kbd>Enter</kbd> on a date cell. The 
 | `url` | `string \| null` | `label` |
 | `longText` | `string` | `maxLength`, `placeholder` |
 
-Every type follows the same text pipeline. The cell shows `toDisplayText`. A type without it shows `toText`. Copy and export use `toText`. Sort uses `compare`. [Cell type model](/docs/concepts/cell-type-model) describes the pipeline.
+Every type follows the same text pipeline. The built-in text cells show `toDisplayText`, and `toText` without it. `checkbox` draws a box, and a custom `Cell` decides its own display text. Copy and export use `toText`. Sort uses `compare`. [Cell type model](/docs/concepts/cell-type-model) describes the pipeline.
 
 This grid uses five of the types:
 

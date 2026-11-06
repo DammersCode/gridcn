@@ -146,7 +146,7 @@ Paste, fill, and `updateCells` hold the batch while an async schema resolves:
 - The grid runs at most 32 validations at once. A paste of 10,000 cells makes 32 calls at a time.
 - Nothing changes until every verdict is in. The accepted cells then commit together as one change.
 - A rejected cell drops and the other cells still commit.
-- A second paste, a sort or filter change, a deleted target row, or an unmounted grid drops the held batch silently. Paste and fill each supersede only their own batch. Any other write or row move that lands first also drops a held `updateCells` batch.
+- A second paste, a sort or filter change, a deleted target row, or an unmounted grid drops the held batch silently. Paste and fill each supersede only their own batch. Other writes also drop a held `updateCells` batch. [Stream updates](/docs/rows-live-data/stream-updates#what-does-not-change) lists them.
 
 Import validates each cell the same way. It writes an empty value for a rejected cell. See [Import](/docs/import-export/import).
 

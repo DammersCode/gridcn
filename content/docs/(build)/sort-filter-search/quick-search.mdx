@@ -83,7 +83,7 @@ With the find and replace add-on mounted, <kbd>Mod</kbd>+<kbd>F</kbd> in the gri
 
 The input waits `inputDebounceMs` <NewBadge /> after the last keystroke before it searches. The provider prop defaults to 200. `0` searches on each keystroke. The wait also applies to the filter value inputs, the header filter search, and the find and replace field. `debounceMs` on `DataGridSearch` overrides it for one box.
 
-Typed text <NewBadge /> is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is still waiting. While an IME composes, nothing commits. The composed text commits when the composition ends. See [useDebouncedInput](/docs/types-hooks/use-debounced-input).
+Typed text <NewBadge /> is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is still waiting. While an IME composes, the wait does not run. Blur and unmount commit the text so far, and the composed text commits when the composition ends. See [useDebouncedInput](/docs/types-hooks/use-debounced-input).
 
 {/* props: DataGridSearchProps */}
 

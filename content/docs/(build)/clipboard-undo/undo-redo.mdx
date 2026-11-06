@@ -131,7 +131,7 @@ In scroll mode, undo skips rows that are not loaded. In development, it warns on
 | --- | --- | --- |
 | `capacity` | `number` | `100` |
 | `datasetKey` | `string \| number` | none |
-| `recordSources` | `readonly DataChange<TData>["source"][]` | all except `"stream"` |
+| `recordSources` | `readonly DataChange<TData>["source"][]` | every source except `"stream"`, `"history"`, and `"rollback"` |
 
 `useDataGridState` takes `getRowId`, `capacity`, and `datasetKey`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
 
