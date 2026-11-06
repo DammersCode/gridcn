@@ -20,7 +20,7 @@ import { getCellValue } from "./columns/column-helpers";
 import { useDataGridCellTypes, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
-import { cellLayer } from "./layers";
+import { cellLayer, GRID_LAYER } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
@@ -165,6 +165,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   };
   // pinned outranks active-unpinned: pinning is a spatial guarantee, active is a focus state.
   style.zIndex = cellLayer(Boolean(pinned), isActive);
+  if (errorMessage && style.zIndex === GRID_LAYER.cell) style.zIndex = GRID_LAYER.cell + 1;
   // One-shot pulse on a freshly written cell; the animation overrides `background-color` only while
   // running, so the cell's own bg/hover classes take over again the moment the key lifts.
   if (isFlashing) style.animation = FLASH_ANIMATION;
@@ -378,8 +379,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // One visual language for "this value is wrong", whether a live sync/async
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
         // aria-invalid:ring-destructive/20 convention every shadcn form control in this repo already
-        // uses (input.tsx/button.tsx/select.tsx), inset + z-1 so it wins over the search-match tint.
-        errorMessage && "z-1 aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-dashed forced-colors:aria-invalid:outline-[CanvasText]",
+        // uses (input.tsx/button.tsx/select.tsx), inset; the z-index bump below lifts it above overlays.
+        errorMessage && "aria-invalid:ring-3 aria-invalid:ring-inset aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 forced-colors:aria-invalid:outline-2 forced-colors:aria-invalid:-outline-offset-2 forced-colors:aria-invalid:outline-dashed forced-colors:aria-invalid:outline-[CanvasText]",
         errorMessage &&
           (opaque
             ? "aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_10%,var(--color-background))] dark:aria-invalid:bg-[color-mix(in_oklch,var(--color-destructive)_15%,var(--color-background))]"
