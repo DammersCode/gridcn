@@ -1,41 +1,36 @@
 ---
 title: "Validation examples"
-description: Cell validation with plain functions or Standard Schema libraries, async checks, server errors, and cross-field rules.
+description: Try cell rules, async checks, server errors, cross-field rules, and async gates in live grids.
 icon: ShieldCheck
 type: landing
 ---
 
-Validation in four forms, plus async gates: synchronous rules as a plain function or a Standard Schema library
-column (Zod, Joi, Valibot), async checks with a visible pending state, server-side rejections
-painted after commit, and cross-field rules via `validateRow`. Async gates cover a server check on paste, edit start,
-and row insert. Each page embeds the live
-registry example. The [editing guide](/docs/editing-cells/validation#validation) has the full
-reference.
+Each example shows one way to reject or flag a value in a live grid. The [validation guide](/docs/editing-cells/validation) has the full reference.
 
 <Cards>
   <Card
-    title="Validation"
+    title="Validation example"
     href="/docs/validation-examples/validation-example"
-    description="One rule per column: function form plus a column per Standard Schema library."
+    description="Try a function rule, a soft rule, a transforming rule, and a Standard Schema column."
   />
   <Card
-    title="Async validation"
+    title="Async validation example"
     href="/docs/validation-examples/async-validation-example"
-    description="Pending state while a schema resolves, supersede on newer commits, bulk paths."
+    description="Check a value against a server, and see a single edit and a bulk paste wait for the answer."
   />
   <Card
-    title="Server errors"
+    title="Server errors example"
     href="/docs/validation-examples/server-errors-example"
-    description="Painting post-commit rejections with setCellErrors / clearCellErrors."
+    description="Mark a cell with the message of a server rejection after the value committed."
   />
   <Card
-    title="Cross-field"
+    title="Cross-field validation example"
     href="/docs/validation-examples/cross-field-validation-example"
-    description="Row-level rules with validateRow — End must stay at or after Start."
+    description="Flag a cell with a row rule that compares two columns."
   />
   <Card
-    title="Async gates"
+    title="Async gates example"
     href="/docs/validation-examples/async-gates-example"
-    description="Await a server in processPaste, validateRow, createRow, and the other event-time gates."
+    description="Ask a server before the grid acts on a paste, an edit start, a row insert, or a row check."
   />
 </Cards>

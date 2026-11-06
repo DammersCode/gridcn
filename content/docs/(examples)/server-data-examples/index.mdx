@@ -1,39 +1,36 @@
 ---
 title: "Server and data examples"
-description: Where the rows come from. Lazy loading, server pagination, the full remote contract, and ORM recipes.
+description: Try server rows, large local data, scroll mode, server pagination, and ORM route handlers in live grids.
 icon: Database
 type: landing
 ---
 
-The grid never cares where `data` comes from. This section shows the fetching patterns that
-pair with the add-ons: lazy row ranges, server-mode pagination, the full remote contract
-(sort, filter, search, and pagination in one request), and ORM recipes that wire the same
-contract into a real backend.
+These examples show where the rows come from: the browser, a server by range, or a server by page. The [data modes](/docs/data-modes) pages explain how to choose.
 
 <Cards>
   <Card
-    title="Server side"
+    title="Server rows example"
     href="/docs/server-data-examples/server-rows-example"
-    description="Sort, filter, search, and pagination sent to the server in one query per view state."
+    description="Send sort, filter, search, and page to your server with one fetchRows function."
   />
   <Card
-    title="Large data"
+    title="Large data example"
     href="/docs/server-data-examples/large-data-example"
-    description="100k rows fully loaded — virtualization keeps only the virtualized rows mounted."
+    description="Scroll 100,000 rows that are fully loaded in the browser."
   />
   <Card
-    title="Lazy loading"
-    href="/docs/server-data-examples"
-    description="Fetch only what scrolls into view — plain, TanStack Query, and SWR."
+    title="Scroll mode example"
+    href="/docs/server-data-examples/scroll-mode-example"
+    description="Load rows from a simulated server in blocks while the user scrolls."
   />
   <Card
-    title="Server pagination"
-    href="/docs/server-data-examples"
-    description="Client slice vs server mode — plain, TanStack Query, and SWR."
+    title="Server pagination example"
+    href="/docs/server-data-examples/server-pagination-example"
+    description="Fetch one page of rows per request, with the page and page size as the cache key."
   />
   <Card
-    title="ORM & data sources"
-    href="/docs/server-data-examples"
-    description="Drizzle, Prisma, Supabase — the fetch contract in real stack code."
+    title="ORM examples"
+    href="/docs/server-data-examples/orm-examples"
+    description="Map the request of a server grid onto a Drizzle, Prisma, or Supabase query."
   />
 </Cards>
