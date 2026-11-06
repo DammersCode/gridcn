@@ -35,6 +35,7 @@
     "---[Puzzle]Add-ons---",
     "addons/fill",
     "addons/pinned-rows",
+    "addons/lookup",
     "addons/presence",
     "addons/broadcasting-presence",
     "addons/undo-redo",

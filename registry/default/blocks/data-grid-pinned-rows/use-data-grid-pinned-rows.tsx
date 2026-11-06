@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { DataGridPlugin, RowBandRenderCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridPinnedRowBand } from "./pinned-row-band";
+import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Options for {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsOptions = {
@@ -10,6 +11,8 @@ export type UseDataGridPinnedRowsOptions = {
   topRows?: readonly unknown[];
   /** Rows pinned in a sticky band at the viewport's bottom edge; see {@link UseDataGridPinnedRowsOptions.topRows}. */
   bottomRows?: readonly unknown[];
+  /** Marks both bands while server values load, go stale, or fail: the bands dim and set `aria-busy` and `data-status`. Default `"ready"`. */
+  status?: ServerAggregateStatus;
 };
 
 /** Return value of {@link useDataGridPinnedRows}. */
@@ -29,7 +32,7 @@ const EMPTY_ROWS: readonly never[] = [];
  * in v1 (documented).
  */
 export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}): UseDataGridPinnedRowsResult {
-  const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS } = options;
+  const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS, status = "ready" } = options;
   // Stable identity keyed on the two row arrays' own references; a `plugins` array that churns this
   // member every render re-resolves the grid's plugins for no reason.
   const plugin = useMemo<DataGridPlugin<unknown>>(
@@ -38,16 +41,16 @@ export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}
       rowBands: {
         top: topRows,
         bottom: bottomRows,
-        render: renderPinnedRowBand,
+        render: (ctx: RowBandRenderCtx) => renderPinnedRowBand(ctx, status),
       },
     }),
-    [topRows, bottomRows],
+    [topRows, bottomRows, status],
   );
 
   return { plugin };
 }
 
-function renderPinnedRowBand(ctx: RowBandRenderCtx) {
+function renderPinnedRowBand(ctx: RowBandRenderCtx, status: ServerAggregateStatus) {
   const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = ctx;
   return (
     <DataGridPinnedRowBand
@@ -59,6 +62,7 @@ function renderPinnedRowBand(ctx: RowBandRenderCtx) {
       template={template}
       headerHeight={headerHeight}
       ariaRowIndexBase={ariaRowIndexBase}
+      status={status}
     />
   );
 }

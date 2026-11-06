@@ -840,7 +840,7 @@
       "name": "data-grid-pinned-rows",
       "type": "registry:block",
       "title": "Data Grid Pinned Rows",
-      "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands.",
+      "description": "Pinned top/bottom row bands add-on for the gridcn data grid: useDataGridPinnedRows registers a rowBands spec (e.g. a totals row) that stays sticky under the header or at the viewport's bottom edge, pixel-aligned with data rows and pinned columns. useDataGridAggregate computes filter-aware sum/avg/min/max/count for those bands, and useDataGridServerAggregate shows values a server computes for the whole result.",
       "author": "gridcn",
       "dependencies": [
         "zustand@^5.0.15"
@@ -873,6 +873,51 @@
           "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts",
           "type": "registry:component",
           "target": "components/data-grid-pinned-rows/use-data-grid-aggregate.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-server-aggregate.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-pinned-rows/use-data-grid-server-aggregate.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-lookup",
+      "type": "registry:block",
+      "title": "Data Grid Lookup",
+      "description": "Async lookup cell type for the gridcn data grid: remote options with search as you type, a value and label stored together, abortable requests, and bounded untrusted answers.",
+      "author": "gridcn",
+      "dependencies": [],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/use-debounce",
+        "button",
+        "input",
+        "popover"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-lookup/data-grid-lookup.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-lookup/data-grid-lookup.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-lookup/lookup-cell-type.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-lookup/lookup-cell-type.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-lookup/lookup-editor.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-lookup/lookup-editor.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-lookup/lookup-model.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-lookup/lookup-model.ts"
         }
       ],
       "categories": [
@@ -2378,6 +2423,61 @@
           "path": "registry/default/examples/demo-data.ts",
           "type": "registry:example",
           "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-totals-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Totals Demo",
+      "description": "A scrolling grid over a fake server whose totals row is computed by the server for the whole filtered result, with loading and stale states.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-server",
+        "DammersCode/gridcn/data-grid-pinned-rows",
+        "DammersCode/gridcn/data-grid-toolbar",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-totals-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-totals-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        },
+        {
+          "path": "registry/default/examples/fake-remote-server.ts",
+          "type": "registry:example",
+          "target": "components/fake-remote-server.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-lookup-demo",
+      "type": "registry:example",
+      "title": "Data Grid Lookup Demo",
+      "description": "A customer column that searches a fake server as you type and stores the picked key with its label.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-lookup"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-lookup-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-lookup-demo.tsx"
         }
       ],
       "categories": [

@@ -519,7 +519,7 @@
     },
     {
       "id": "pinned-rows",
-      "feature": "Pinned rows and aggregates",
+      "feature": "Pinned rows and aggregates (server totals through useDataGridServerAggregate)",
       "options": [],
       "cells": {
         "L": {
@@ -535,14 +535,18 @@
           ]
         },
         "PS": {
-          "status": "gap",
-          "track": "H",
-          "note": "Aggregates cover the current page or warn; no server totals."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+          ]
         },
         "Z": {
-          "status": "gap",
-          "track": "H",
-          "note": "Aggregates cover loaded rows or warn; no server totals."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+          ]
         },
         "C": {
           "status": "supported",
@@ -2334,6 +2338,70 @@
         "API": {
           "status": "n/a",
           "reason": "The inputs write no data."
+        }
+      },
+      "modeNeutral": true
+    },
+    {
+      "id": "lookup-cell",
+      "feature": "Async lookup cell",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-lookup/test/lookup-cell-type.test.ts",
+            "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
+          ]
         }
       },
       "modeNeutral": true

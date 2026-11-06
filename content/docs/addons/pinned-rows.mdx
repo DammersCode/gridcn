@@ -22,7 +22,7 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 </DataGridProvider>;
 ```
 
-<Tabs items={["Basics", "Totals"]}>
+<Tabs items={["Basics", "Totals", "Server totals"]}>
   <Tab value="Basics">
     ## Wiring it up
 
@@ -125,15 +125,15 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 
     <Callout type="warn" title="Under client-mode pagination, a totals band is page-local">
       The grid's `data` is the current page's slice. So `useDataGridAggregate` sums only that page's
-      rows, and `scope: "all"` does not help. The slice is the grid's whole `data`. Fetch
-      dataset-wide totals from your server. Or compute them from your full dataset outside the grid,
-      and pin the result as a static band row. See [Pagination](/docs/pagination).
+      rows, and `scope: "all"` does not help. The slice is the grid's whole `data`. For
+      dataset-wide totals, use `DataGridServerAggregateReporter` (see the Server totals tab). See
+      [Pagination](/docs/pagination).
     </Callout>
 
     <Callout type="warn" title="Not supported on a scroll-mode grid">
       On a `useDataGridServerRows({ mode: "scroll" })` grid, unloaded rows are `undefined` holes. The aggregate skips them (a
-      dev warning fires once), so the band covers loaded rows only. Use server-side totals, or
-      compute totals outside the grid from the full dataset. See
+      dev warning fires once), so the band covers loaded rows only. For totals of the whole
+      result, use `DataGridServerAggregateReporter` (see the Server totals tab). See
       [Lazy loading](/docs/lazy-loading).
     </Callout>
 
@@ -179,6 +179,81 @@ const { plugin } = useDataGridPinnedRows({ topRows: [averagesRow], bottomRows: [
 
     const top = useMemo(() => [computeTotalsRow(grid.data)], [grid.data]);
     ```
+  </Tab>
+  <Tab value="Server totals">
+    ## Totals from a server
+
+    <NewBadge />
+
+    A server grid holds one page or some blocks, so `useDataGridAggregate` cannot total the whole
+    result. `DataGridServerAggregateReporter` asks your server instead. It calls `fetchAggregates`
+    with the current spec and reports the values as a row for a band:
+
+    ```tsx
+    function MyGrid() {
+      const server = useDataGridServerRows<Order>({ getRowId, fetchRows });
+      const [totals, setTotals] = useState<ServerAggregateResult>(PENDING_SERVER_AGGREGATE);
+      const bottomRows = useMemo(() => [{ id: "__totals__", ...totals.row }], [totals.row]);
+      const { plugin } = useDataGridPinnedRows({ bottomRows, status: totals.status });
+
+      return (
+        <DataGridProvider {...server.providerProps} columns={columns} plugins={[plugin]}>
+          <DataGridServerAggregateReporter
+            onChange={setTotals}
+            fetchAggregates={({ spec, signal }) => api.totals({ filters: spec.filters, signal })}
+          />
+          <DataGridRoot {...server.rootProps}>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    ```
+
+    Start the state from `PENDING_SERVER_AGGREGATE`, as above.
+
+    <ComponentPreview name="data-grid-server-totals-demo" />
+
+    `fetchAggregates` resolves `{ [columnId]: value }` for the whole result of the spec. The same
+    code serves pages, scroll, controlled specs, and your own API, because the request carries the
+    spec and not the rows in the grid. The reporter requests once on mount. It requests again
+    after each filter or quick-search change. A sort does not change the totals, so it does not
+    request. A newer request aborts the older one through `signal`, and the grid drops a late
+    answer of the older one.
+
+    Inside the grid you can also call `useDataGridServerAggregate(options)` yourself. It returns the same
+    result.
+
+    `status` tells the band what to show:
+
+    | Status | Meaning |
+    | --- | --- |
+    | `"loading"` | No values yet. |
+    | `"stale"` | The old values stay while a newer request runs. |
+    | `"ready"` | The values match the spec. |
+    | `"error"` | The last request failed. The old values stay. `onError` fires once per failure. |
+
+    A band with a status other than `"ready"` dims. A band that loads or goes stale sets `aria-busy`.
+    Every band also carries a `data-status` attribute. `loading` is `true` for `"loading"` and `"stale"`. `refresh()` requests again and keeps the old
+    values on screen. `retry()` requests again after an error and does nothing otherwise.
+
+    | Option | Default | Effect |
+    | --- | --- | --- |
+    | `fetchAggregates` | required | Resolves the values for a `{ spec, columnIds, signal }` request. |
+    | `columnIds` | every column | The columns to ask for. |
+    | `debounceMs` | `150` | Wait after a filter or quick-search change before the request starts. |
+    | `onError` | none | Called once per failed request. |
+
+    The answer is untrusted. The hook keeps values only for the requested columns. It cuts text
+    at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An
+    answer that is not an object counts as an error. The band formats each value with the cell
+    type of its column, so a `number` column shows the total as a number.
+
+    <Callout type="warn" title="The server owns freshness">
+      An edit does not request new totals. Call `refresh()` after your save lands, or the band
+      keeps showing the totals of the last request.
+    </Callout>
   </Tab>
 </Tabs>
 

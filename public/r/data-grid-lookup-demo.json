@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-lookup-demo",
+  "title": "Data Grid Lookup Demo",
+  "author": "gridcn",
+  "description": "A customer column that searches a fake server as you type and stores the picked key with its label.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid",
+    "DammersCode/gridcn/data-grid-lookup"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-lookup-demo.tsx",
+      "content": "\"use client\";\r\n\r\nimport { useMemo, useState, type ReactNode } from \"react\";\r\nimport { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, type ColumnDef } from \"@/registry/default/components/data-grid/data-grid\";\r\nimport { lookupCellType, type LookupFetchRequest, type LookupOption, type LookupOptions, type LookupValue } from \"@/registry/default/components/data-grid-lookup/data-grid-lookup\";\r\n\r\ntype Order = { id: string; item: string; customer: LookupValue };\r\n\r\nconst COMPANIES = [\"Acme\", \"Globex\", \"Initech\", \"Umbrella\", \"Hooli\", \"Stark Industries\", \"Wayne Enterprises\", \"Wonka\", \"Soylent\", \"Cyberdyne\", \"Tyrell\", \"Vandelay\"].flatMap((name) =>\r\n  [\"North\", \"South\", \"East\", \"West\"].map((region, i) => ({ value: `${name}-${i}`.toLowerCase(), label: `${name} ${region}` })),\r\n);\r\n\r\n/** A fake foreign-key search: 48 companies, 400 ms away, filtered by the query. A real app calls its API with the signal. */\r\nfunction searchCompanies({ query, signal }: LookupFetchRequest): Promise<LookupOption[]> {\r\n  return new Promise((resolve, reject) => {\r\n    const timer = setTimeout(() => resolve(COMPANIES.filter((company) => company.label.toLowerCase().includes(query.toLowerCase()))), 400);\r\n    signal.addEventListener(\"abort\", () => {\r\n      clearTimeout(timer);\r\n      reject(new DOMException(\"aborted\", \"AbortError\"));\r\n    });\r\n  });\r\n}\r\n\r\nconst LOOKUP_OPTIONS: LookupOptions = { fetchOptions: searchCompanies };\r\n\r\nconst INITIAL: Order[] = [\r\n  { id: \"o1\", item: \"Anvil\", customer: { value: \"acme-0\", label: \"Acme North\" } },\r\n  { id: \"o2\", item: \"Rocket skates\", customer: null },\r\n  { id: \"o3\", item: \"Giant magnet\", customer: \"wonka-2\" },\r\n];\r\n\r\n/**\r\n * An async `lookup` column: double-click or press Enter on a Customer cell, type to search the fake server, then pick with the arrow\r\n * keys and Enter or with a click. The third row stores a bare key, so it shows the key in muted text until you pick its company.\r\n */\r\nexport default function DataGridLookupDemo(): ReactNode {\r\n  const [data, setData] = useState<Order[]>(INITIAL);\r\n  const columns = useMemo<readonly ColumnDef<Order, unknown>[]>(\r\n    () => [\r\n      { id: \"item\", header: \"Item\", accessorKey: \"item\", type: \"text\", width: 140, flex: 1 },\r\n      { id: \"customer\", header: \"Customer\", accessorKey: \"customer\", type: \"lookup\", options: LOOKUP_OPTIONS, width: 220, flex: 2 },\r\n    ],\r\n    [],\r\n  );\r\n  return (\r\n    <div className=\"w-full h-[200px] overflow-hidden rounded-md border border-border\">\r\n      <DataGridProvider data={data} onDataChange={(next) => setData([...next])} columns={columns} getRowId={(row) => row.id} cellTypes={{ lookup: lookupCellType }}>\r\n        <DataGridRoot className=\"h-full rounded-none border-none\">\r\n          <DataGridHeader />\r\n          <DataGridBody />\r\n        </DataGridRoot>\r\n      </DataGridProvider>\r\n    </div>\r\n  );\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/data-grid-lookup-demo.tsx"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

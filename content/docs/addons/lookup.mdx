@@ -1,0 +1,97 @@
+---
+title: Lookup cell
+description: A cell type whose options come from a server and are searched as you type.
+icon: Search
+---
+
+A `select` column takes a fixed list of choices. A foreign-key column can have thousands of
+options, so it needs a search. The `lookup` cell type calls your `fetchOptions` function while
+the user types, and stores the picked key together with its label.
+
+<ComponentPreview name="data-grid-lookup-demo" />
+
+<InstallCommand item="data-grid-lookup" manual manualSlot={<ManualInstall item="data-grid-lookup" />} />
+
+Register the type and give the column its options:
+
+```tsx
+import { lookupCellType, type LookupOptions } from "@/components/data-grid-lookup/data-grid-lookup";
+
+const customerOptions: LookupOptions = {
+  fetchOptions: async ({ query, signal }) => {
+    const res = await fetch(`/api/customers?q=${encodeURIComponent(query)}`, { signal });
+    return (await res.json()).map((c) => ({ value: c.id, label: c.name }));
+  },
+};
+
+<DataGrid
+  data={orders}
+  cellTypes={{ lookup: lookupCellType }}
+  columns={[{ id: "customer", header: "Customer", accessorKey: "customer", type: "lookup", options: customerOptions }]}
+/>;
+```
+
+Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads
+pasted labels through a cache that belongs to the `fetchOptions` function.
+
+## The stored value
+
+A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the
+text the grid shows, copies, sorts, searches, and filters. A row can also hold a bare key, for
+example `"c9"`. The cell shows the key in muted text, with a `data-unresolved` attribute, until
+the user picks an option.
+
+## Editing
+
+Press Enter, press F2, or double-click the cell to open the editor. Typing a character opens it
+with that character in the search box.
+
+| Key | Action |
+| --- | --- |
+| Type | Search after the pause set by `debounceMs`. |
+| Arrow Down, Arrow Up | Move through the options. |
+| Enter | Pick the active option. While typing is still pending, Enter searches first. |
+| Escape | Close the editor and keep the old value. |
+| Delete (cell not in edit) | Clear the cell. |
+
+A click on an option picks it. The editor opens with the default list when `minQueryLength` is
+`0`. An IME composition searches when it ends. Enter and Escape during a composition act on
+the composition and not on the cell.
+
+A new request aborts the one before it through `signal`. The editor drops a late answer of an
+older query. A failed request shows an error line with a Retry button. A grid with `readOnly`
+opens no editor.
+
+## Options
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `fetchOptions` | required | Resolves `{ value, label }[]` for `{ query, signal }`. |
+| `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
+| `minQueryLength` | `0` | Fewest typed characters that start a request. |
+| `maxResults` | `50` | Most options shown. The limit is `200`. |
+| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell, or with `"keep"` is stored as a key without a label, shown as unresolved. |
+| `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
+
+The answer is untrusted. The editor keeps only entries with a non-empty `value` (text or a finite number, stored as text) and a text
+`label`, drops a repeated `value`, cuts both at 256 characters, and keeps the first `maxResults`.
+It renders labels as text.
+
+## Clipboard, fill, import, and export
+
+- Copy and export write the label.
+- Paste and import turn a label or a key back into the option when the column has shown or
+  copied that option before. Any other text follows `unresolvedPaste`.
+- Fill copies the stored `{ value, label }`.
+- Clear and Delete store `null`.
+
+## Sort, search, and filter
+
+Sort, quick search, and the filter menu use the label. A filter value is the label text, so a
+server that filters a lookup column compares labels.
+
+## Related
+
+- [Build your own cell type](/docs/custom-cell-types)
+- [Editing & cell types](/docs/editing-cell-types)
+- [Server rows](/docs/lazy-loading)
