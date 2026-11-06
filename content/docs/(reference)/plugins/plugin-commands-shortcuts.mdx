@@ -1,9 +1,89 @@
 ---
 title: Plugin commands and shortcuts
-description: Plugin commands and shortcuts.
+description: Look up how plugin commands and keymaps merge with yours, which built-in actions a plugin can back, and which key bindings it keeps.
 type: reference
+aliases: ["plugin hotkeys", "plugin commands", "hollow actions", "bind a key from a plugin"]
 ---
 
-{/* docs-stub */}
+A plugin adds named commands with its `commands` member and binds keys to them with its `keymap` member. The grid merges both with the default keymap and with your props. This table lists the outcome of each conflict:
 
-This page is being written.
+| Situation | Result |
+| --- | --- |
+| Two plugins define the same command name | The later plugin wins. A development warning names both plugins. |
+| Your `commands` prop defines a name that a plugin defines | Your command wins, with no warning. |
+| A plugin command has the name of a built-in action | The grid drops the command and warns in development. The six pluggable actions are the exception. |
+| A plugin `keymap` names an action that is not a built-in action, or one that the plugin has no command for | The grid drops the entry and warns in development. |
+| A plugin binds a key that the default keymap or your `keymap` already binds to the same action | The grid drops that binding and warns in development. |
+
+## Commands and keymaps [#commands-and-keymaps]
+
+The commands map of the grid resolves in this order, and a later step wins:
+
+1. The commands of the plugins, in array order.
+2. Your `commands` prop.
+
+Each command has the `GridCommand` shape. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#custom-commands) lists its members. A command receives a `GridCommandCtx` with these values:
+
+- `api` is the imperative handle of the grid.
+- `cell` is the active cell as a `CellRef`, or `null`.
+- `viewRowIndex` and `viewColumnIndex` are the view indexes of the active cell.
+- `row` is the data row of the active cell. On a row that scroll mode has not loaded yet, it is `undefined`, and `cell` holds a placeholder row id that `api` cannot resolve.
+- `readOnly` is the effective read-only flag of the grid.
+
+When `when` returns `false`, the grid ignores the key. It does not call `preventDefault`, and it does not call `run`.
+
+The `scope` member sets the dispatch time of a command. With `"grid"`, the default, it dispatches while no edit session is open. With `"editing"`, it dispatches while a session is open. With `"always"`, it dispatches in both cases.
+
+## Pluggable built-ins [#pluggable-built-ins]
+
+Six built-in actions accept a plugin command. The core keeps the key binding of `undo`, `redo`, `fillDown`, and `fillRight`, and it calls `preventDefault` for them. Without a command of that name, the key does nothing, and the browser default stays blocked. A plugin or your `commands` prop gives the key a body. When the command's `when` returns `false`, the grid calls no `preventDefault`, and the browser default runs.
+
+| Action | Default keys | Backed by |
+| --- | --- | --- |
+| `undo` | <kbd>Mod</kbd>+<kbd>Z</kbd> | [Undo and redo](/docs/clipboard-undo/undo-redo) |
+| `redo` | <kbd>Mod</kbd>+<kbd>Y</kbd>, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | [Undo and redo](/docs/clipboard-undo/undo-redo) |
+| `fillDown` | <kbd>Mod</kbd>+<kbd>D</kbd> | [Fill handle](/docs/clipboard-undo/fill-handle) |
+| `fillRight` | <kbd>Mod</kbd>+<kbd>R</kbd> | [Fill handle](/docs/clipboard-undo/fill-handle) |
+| `openFindReplace` | <kbd>Ctrl</kbd>+<kbd>H</kbd> | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `openFind` | <kbd>Mod</kbd>+<kbd>F</kbd> | [Find and replace](/docs/sort-filter-search/find-replace) |
+
+The core has no binding for `openFindReplace` and `openFind`. The find and replace plugin binds them with its own `keymap`.
+
+## A plugin's own keymap entries [#a-plugins-own-keymap-entries]
+
+An entry in the `keymap` of a plugin needs two things. Its name must be a built-in action, and the plugin must define a command with that name. In practice, a plugin keymap binds the pluggable actions. Bind a command with a custom name through your own `keymap` prop.
+
+The grid drops a binding that the default keymap or your `keymap` already gives to the same action. The kept bindings replace the bindings of that action.
+
+The keymap resolves in this order, and a later step wins:
+
+1. `DEFAULT_KEYMAP`.
+2. The plugin keymaps, in array order.
+3. Your `keymap` prop.
+
+Inside `DataGridProvider`, `useDataGridKeymap()` returns the merged keymap, for a surface outside `DataGridRoot` such as a shortcut list.
+
+When kept plugin bindings replace the bindings of `fillDown`, <kbd>Mod</kbd>+<kbd>D</kbd> has no binding, and the browser default of the key runs.
+
+This plugin backs `openFind` and binds it to <kbd>Mod</kbd>+<kbd>F</kbd>:
+
+```tsx
+import type { DataGridPlugin } from "@/components/data-grid/data-grid";
+
+export function createFindPlugin(open: () => void): DataGridPlugin {
+  return {
+    name: "my-find",
+    commands: { openFind: { run: () => open() } },
+    keymap: { openFind: ["mod+f"] },
+  };
+}
+```
+
+After this plugin loads, <kbd>Mod</kbd>+<kbd>F</kbd> inside the grid runs `open`, and the browser find bar stays closed. A plugin object attaches to one grid, so call `createFindPlugin()` once per grid.
+
+## Related
+
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping)
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts)
+- [Undo and redo](/docs/clipboard-undo/undo-redo)

@@ -36,7 +36,7 @@ Follow these rules for the methods:
 
 - `fromText` never throws. Paste and import feed it any text. Return `clearValue()` for text it cannot parse.
 - Store serializable primitives. Use an ISO `yyyy-mm-dd` string and not a `Date`, and a plain number and not a money object. Compare, clipboard, and JSON then stay simple, and no time zone shifts a day.
-- Choose `isEmpty` for each type on purpose. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` is empty, so `0` and `false` count as values. `isEmpty` decides which cells sort last and where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
+- Choose `isEmpty` for each type on purpose. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` is empty, so `0` and `false` count as values. For a column with a comparator (`compare` or `sortCompare`), `isEmpty` decides which cells sort last. `isEmpty` also decides where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
 - Format for people in `toDisplayText`. Keep `toText` a plain string that `fromText` parses back.
 - Accept a stored value and a displayed label on paste. The `select` type writes the label in `toText`, and its `fromText` matches a pasted value first and a label second.
 
@@ -66,7 +66,7 @@ The editor holds its draft. `onChange(value)` stashes the draft in the grid, and
 
 Declare the value and options of a custom type through `GridCellTypes`, so that `defineColumns` narrows them:
 
-```ts
+```ts fragment="module augmentation"
 declare module "@/components/data-grid/types" {
   interface GridCellTypes {
     currency: { value: number | null; options: { currency: string } };

@@ -1,9 +1,113 @@
 ---
 title: Plugin shape
-description: Plugin shape.
+description: Learn which members a plugin object holds, how the grid orders and compares plugins, and what a plugin reaches through the grid handle.
 type: concept
+aliases: ["plugin members", "extension point", "plugin object type", "plugin identity"]
 ---
 
-{/* docs-stub */}
+A plugin is a plain object that reaches into the grid. The `plugins` prop of `DataGridProvider` takes an array of plugins. Many first-party add-ons install one plugin: fill, find and replace, history, pinned rows, presence, and server rows. Your own code passes its plugins through the same prop.
 
-This page is being written.
+## The plugin shape
+
+A plugin needs only `name`. Every other member is optional, and a plugin holds the members it needs:
+
+- `name` is the identity of the plugin and the React key of its components. Keep it unique per grid. When two plugins share a name, the grid ignores the later one and logs a development warning.
+- `Overlay` is a component that paints into the overlay layer. See [Plugin overlays](/docs/plugins/plugin-overlays).
+- `rowBands` adds rows to the top band, the bottom band, or both. See [Plugin overlays](/docs/plugins/plugin-overlays#row-bands).
+- `onDataChange` observes every data change. See [Plugin events](/docs/plugins/plugin-events).
+- `commands` adds named commands to the grid. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts).
+- `keymap` binds keys to the commands of the plugin.
+- `Mount` is a component that runs engine work inside the grid.
+
+The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict.
+
+This plugin logs the source of every data change:
+
+```tsx
+"use client";
+
+import { useMemo } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  type DataGridPlugin,
+} from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+function useChangeLogger(): { plugin: DataGridPlugin } {
+  return useMemo(
+    () => ({
+      plugin: {
+        name: "change-logger",
+        onDataChange: (_next, change) => console.log(change.source),
+      },
+    }),
+    [],
+  );
+}
+
+export function PeopleGrid({ rows }: { rows: Person[] }) {
+  const { plugin } = useChangeLogger();
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      plugins={[plugin]}
+    >
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Engine work
+
+`Mount` is a component that `DataGridRoot` renders after its children. It takes no props. It reads the grid through `useDataGridApi`.
+
+Keep an `Overlay` paint-only. When a plugin needs pointer work, listeners, or timers, run them in `Mount`. The fill add-on runs its drag engine from `Mount` and paints the preview from `Overlay`.
+
+## What a plugin can reach
+
+An observer and a command receive `api`, the imperative handle of the grid. It reads every state value and writes only through actions:
+
+- `api.store` is a read-only view of the store. It has `getState()`, `getInitialState()`, and `subscribe()`. It has no `setState`.
+- `api.store.getState()` returns the live state objects, without the `on*` callbacks of your props and the internal slots. Never mutate them.
+- `api.actions` holds the public actions. A plugin writes data only through them.
+
+A plugin that needs a value the context does not carry subscribes to the store with `api.store.subscribe((state, prev) => ...)`.
+
+## Identity
+
+The grid compares your `plugins` array entry by entry. When two arrays have the same length, the same `name` at each position, and identical members, they are equal. Equal arrays re-resolve nothing. The store keeps its resolved plugin list, merged commands, and merged keymap.
+
+An inline `plugins={[plugin]}` array is safe while each plugin object keeps its identity. The `plugin` that a first-party hook returns keeps its identity.
+
+Two changes force a re-resolution:
+
+- A plugin with the same `name` and a changed member, such as a rebuilt `Overlay` component or a new `onDataChange` closure. React remounts a component whose type changed, and a development warning names it.
+- A different array shape: a plugin added, removed, or moved.
+
+A plugin object attaches to one grid. When you pass it to a second grid, the second grid drops it, keeps the rest of its list, and logs a development warning.
+
+### Server rendering [#ssr]
+
+The grid renders row bands during server rendering, and the server markup carries the band heights. Write a plugin component so that it renders the same text on the server and on the client. Pin any locale-dependent formatting, and read no browser-only global, such as `window`, while it renders.
+
+## Related
+
+- [Plugin contract](/docs/plugins/plugin-contract)
+- [Plugin events](/docs/plugins/plugin-events)
+- [Write a plugin](/docs/recipes-custom-code/write-plugin)
+- [Plan a plugin](/docs/custom-code-path/plan-plugin)

@@ -1,9 +1,78 @@
 ---
 title: Plugin events
-description: Plugin events.
+description: Learn when a plugin observer runs, what it receives, how a throw in it is handled, and how it writes data back to the grid.
 type: concept
+aliases: ["data change observer", "observe edits", "react to data changes", "plugin onDataChange"]
 ---
 
-{/* docs-stub */}
+A plugin observes data with its `onDataChange` member. The grid calls it for every change it applies. The `source` field of the change names the origin: `"edit"`, `"paste"`, `"fill"`, `"delete"`, `"row-operation"`, `"import"`, `"history"` (undo and redo), `"rollback"`, `"stream"`, `"replace"`, or `"app"`.
 
-This page is being written.
+## Observing data changes
+
+One change reaches its listeners in this order:
+
+1. The store write lands.
+2. Your own `onDataChange` prop runs.
+3. Your `onSave` prop runs. It never receives a change with the source `"rollback"` or `"stream"`.
+4. Each plugin observer runs, in array order.
+
+Observers receive every source, also `"rollback"` and `"stream"`. When an observer reacts to user edits only, filter on `change.source`.
+
+An observer receives `(next, change, ctx)`:
+
+- `next` is the data array after this change.
+- `change` is the `DataChange` batch. Its `ops` hold one operation per changed row, and each operation carries a `rowId`.
+- `ctx.api` is the imperative handle of the grid.
+
+This plugin reports the source and the row ids of every change:
+
+```tsx
+"use client";
+
+import { useMemo } from "react";
+import type { DataGridPlugin } from "@/components/data-grid/data-grid";
+
+export function useAuditLog(
+  report: (source: string, rowIds: string[]) => void,
+): { plugin: DataGridPlugin } {
+  return useMemo(
+    () => ({
+      plugin: {
+        name: "audit-log",
+        onDataChange: (_next, change) => {
+          report(
+            change.source,
+            change.ops.map((op) => op.rowId),
+          );
+        },
+      },
+    }),
+    [report],
+  );
+}
+```
+
+Pass a `report` function with a stable identity. A new function rebuilds the plugin, and the grid resolves its plugins again.
+
+## Errors in observers
+
+When an observer runs, the change is already applied. An observer that throws logs a console warning. The remaining observers still run, and the grid never rolls the write back.
+
+A throw in your own `onDataChange` prop differs. The grid runs `onSave` and all observers first, then rethrows that error.
+
+## Writing back
+
+An observer writes through the public actions. `ctx.api.actions.commitChange(change)` applies a change batch to the grid.
+
+The write emits its own change, and every observer sees it. That includes the observer that wrote. Guard the observer so that it does not write in a loop.
+
+On a read-only grid, `commitChange` writes nothing and emits nothing.
+
+The [undo and redo](/docs/clipboard-undo/undo-redo) add-on uses this path. Its observer records each change. Its `undo` and `redo` commands apply the inverted batch through `commitChange`.
+
+## Related
+
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)
+- [Data change events](/docs/events-state/data-change-events)
+- [Undo and redo](/docs/clipboard-undo/undo-redo)

@@ -1,9 +1,60 @@
 ---
 title: Selection model
-description: Selection model.
+description: Understand the three selection channels, how a selection follows its records when the view changes, and which props turn a channel off.
 type: concept
+aliases: ["multi-select cells", "active cell and range", "range stack", "selection follows rows", "disable selection"]
 ---
 
-{/* docs-stub */}
+Each grid keeps one selection. The selection has three channels, and each channel records its own kind of choice. The channels use view indexes. When the view rebuilds, they stay on the same records.
 
-This page is being written.
+## Selection channels [#selection-model]
+
+- The cell channel holds the anchor cell and a rectangular range around it. The anchor is the active cell, and it always lies inside the range. With multi-range on, the channel also holds a stack of extra ranges from Ctrl or Cmd clicks. The stack never holds the main range.
+- The row channel holds whole rows. A marker checkbox, a marker press and drag, and the row keys set it. The grid calls these rows the checked rows.
+- The column channel holds whole columns. A header click and a header drag set it.
+
+A plain header click clears the cell range and the row channel, then selects the column. A plain marker press clears the cell range and the column channel, then selects the row. A Ctrl, Cmd, or Shift click on a header keeps the row channel. The same click on a marker keeps the column channel. With `headerClickBehavior="sort"`, a header click sorts the column and selects nothing. The overlay layer paints the column and row channels as full bands.
+
+A view index is a position in the current sorted and filtered order. A selection holds view indexes. When the view changes, the grid translates them to row ids and column ids.
+
+`useDataGridSelection()` reads the selection as a `GridSelection`. The row and column channels are `CompactSelectionLike` sets, and the exported `CompactSelection` class implements them. The type `SelectionConfig` describes the four props under Configurability.
+
+## Selection follows records
+
+A sort, a filter, a new `data` array, and a column move, hide, or pin all rebuild the view. The grid then carries the selection over by identity:
+
+- The row channel follows the row ids of the checked rows. A checked row that leaves the view leaves the channel. When two rows share one row id, the check follows the first row with that id.
+- The column channel follows column ids. A column that leaves the view leaves the channel.
+- The active cell follows its record and its column.
+- When the record or the column of the active cell leaves the view, the active cell keeps its view position, clamped into the view.
+- When the rebuild puts other records or other columns under the range, the grid collapses the range onto the active cell. A clamp that moves the active cell collapses the selection onto it. A clamp that leaves the cell in place drops the range.
+
+A row operation therefore never reaches a record that nobody selected. Delete rows after a sort deletes the same records you selected before the sort.
+
+A checked row that a filter hides leaves the row channel. The grid remembers it by row id when you set `keepCheckedRows` together with `keepHiddenCheckedRows` or `totalRowCount`. `keepHiddenCheckedRows` works only when the grid sorts and filters on the client. With a server sort or filter, set `totalRowCount`. [Checked rows](/docs/selection-shortcuts/checked-rows) explains both options.
+
+The channels behave the same in every data mode. On a server result, `keepCheckedRows` with `totalRowCount` keeps the checks by row id across pages, sorts, and filters. [Select server rows](/docs/rows-live-data/select-server-rows) covers that case.
+
+## Rows that an operation acts on
+
+One function gives the selected rows to the delete rows shortcut, the duplicate row shortcut, and the row items of the cell menu. The export scope "selection" uses it too. It returns the union of the main range, the stacked ranges, and the checked rows. With `keepCheckedRows` set, any checked row makes the checked rows the whole result, and the ranges count for nothing.
+
+When you select no row, the delete rows and duplicate row shortcuts act on the row of the active cell.
+
+## Configurability [#configurability]
+
+Four props of `DataGridProvider` turn parts of the selection off. All default to `true`:
+
+- `enableRowSelection` turns the row channel on or off.
+- `enableColumnSelection` turns the column channel on or off.
+- `enableRangeSelection` allows a range of more than one cell. When it is `false`, a drag or a Shift extension leaves a single active cell. <kbd>Mod</kbd>+<kbd>A</kbd> selects nothing. A Shift click on a marker or a header selects one row or one column.
+- `enableMultiRange` allows the stack. When it is `false`, a Ctrl or Cmd click acts as a plain click.
+
+A disabled channel loses its state and not only its gestures. With `enableColumnSelection={false}`, a header click does nothing, and the column channel does not exist.
+
+## Related
+
+- [Checked rows](/docs/selection-shortcuts/checked-rows)
+- [Pointer selection](/docs/selection-shortcuts/pointer-selection)
+- [State and view index](/docs/concepts/state-view-index)
+- [Select server rows](/docs/rows-live-data/select-server-rows)

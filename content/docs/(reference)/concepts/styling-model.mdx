@@ -1,9 +1,38 @@
 ---
 title: Styling model
-description: Styling model.
+description: Understand the layers you restyle the grid with, from theme tokens to plugin overlays, and which layer to pick for a given change.
 type: concept
+aliases: ["how styling works", "theme the grid", "restyle the grid", "override grid classes"]
 ---
 
-{/* docs-stub */}
+The grid ships no design layer of its own. It renders shadcn theme tokens, so restyling the grid starts with your theme. When a token is not enough, you go one layer deeper. Pick the shallowest layer that does the job.
 
-This page is being written.
+## Styling layers
+
+The layers run from the least effort to the most:
+
+1. Theme tokens. The grid colors resolve to shadcn tokens such as `--background`, `--border`, `--muted`, and `--primary`. Change a token in your `:root` and `.dark` blocks, and the whole grid follows in light and dark mode.
+2. CSS variables. The grid reads variables such as `--grid-column-border`, `--grid-pin-shadow`, and `--grid-scroll-shadow`, each with a fallback. The grid writes `--grid-row-height` itself from the `rowHeight` or `density` prop of `DataGridRoot`.
+3. Data-attribute CSS. The grid stamps attributes such as `data-active`, `data-editing`, `data-pinned`, `data-search-match`, and `data-hovered` on its elements. Select them in plain CSS to style a state, with no React involved.
+4. Class merges. `className` on `DataGridRoot` merges after the built-in classes, so your utility wins a conflict. The same holds for `getRowClassName` and `getCellClassName` on `DataGridRoot`, and for `cellClassName` and `headerClassName` on a column. A column's `cellClassName` merges after `getCellClassName`, so the column wins a conflict. Both callbacks receive a `CellClassNameCtx` with the value, the row, the row id, the column, and the view row index.
+5. Content replacement. `renderCell` on a column, `renderHeaderCell` on `DataGridHeader`, `renderMarker`, `emptyState`, and `loadingState` replace what the grid draws. They change the content and not the style.
+6. Plugin overlays. The `Overlay` member of a plugin paints your own layer above the cells. See [Plugin overlays](/docs/plugins/plugin-overlays).
+
+## Choose a layer
+
+- Re-brand the grid with the theme tokens. One change in `--primary` re-colors the selection, the active-cell ring, the resize handle, and the loading bar.
+- Change a size or a line with a CSS variable or a prop.
+- Style by state with data attributes. Do not select the grid's own utility classes, because class names can change between versions and data attributes do not.
+- Style one column or one row with a class merge.
+- Only when classes cannot express the change, reach for content replacement.
+
+## Why it works this way
+
+The grid paints with semantic tokens and uses no palette utility. It keeps your radius, base color, font, and spacing, so it matches the rest of your app without a grid-specific theme.
+
+## Related
+
+- [Style contract](/docs/contracts/style-contract)
+- [Colors and radius](/docs/theme-style-language/colors-radius)
+- [Style overrides](/docs/theme-style-language/style-overrides)
+- [Density and small screens](/docs/theme-style-language/density-small-screens)
