@@ -93,6 +93,7 @@ export async function POST(req: Request) {
 The client is the [server-side example](/docs/examples/data/server-side) with one change: its
 `fetchRows` posts `{ spec, start, end }` to this route and returns the JSON, and the demo's fake `applyOps` becomes your `UPDATE`/
 `INSERT`/`DELETE` handler.
+
 `parseServerSpec` rejects unknown column ids and operators, a deep or large tree, and long values. Cap the request body size at the framework or proxy: the limits do not bound a large JSON text.
 
 ## Shareable state

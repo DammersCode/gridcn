@@ -135,7 +135,7 @@ function parseRow(node: Raw, path: string, rules: ReadonlyMap<string, ServerSpec
   if (column.filterable === false) throw new ServerSpecError(`${path}.columnId`, `"${columnId}" cannot be filtered`);
   if (typeof node.operator !== "string") throw new ServerSpecError(`${path}.operator`, "must be a string");
   const operator = node.operator;
-  const custom = column.customOperators?.[operator];
+  const custom = column.customOperators && Object.hasOwn(column.customOperators, operator) ? column.customOperators[operator] : undefined;
   const allowed = column.operators ? column.operators.includes(operator) || custom !== undefined : isBuiltInOperator(operator) || custom !== undefined;
   if (!allowed) throw new ServerSpecError(`${path}.operator`, `"${operator}" is not allowed on "${columnId}"`);
   const input = custom ?? filterOperatorInput(operator);

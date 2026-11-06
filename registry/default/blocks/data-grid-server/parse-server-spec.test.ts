@@ -57,6 +57,13 @@ describe("parseServerSpec", () => {
     expect(parse({ filters: Array.from({ length: 65 }, () => row) }, { limits: { maxFilters: 100 } }).filters).toHaveLength(65);
   });
 
+  it("does not read operators from the prototype chain", () => {
+    const rules = { name: { customOperators: { inRegion: "single" as const } } };
+    for (const operator of ["constructor", "__proto__", "toString"]) {
+      expect(() => parse({ filters: [{ columnId: "name", operator, value: "x" }] }, { columns: rules })).toThrow(/not allowed/);
+    }
+  });
+
   it("rejects a join other than and/or", () => {
     expect(() => parse({ filters: [{ join: "xor", filters: [] }] })).toThrow(/join/);
   });
