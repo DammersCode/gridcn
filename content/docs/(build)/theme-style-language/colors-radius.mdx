@@ -1,10 +1,97 @@
 ---
 title: Colors and radius
-description: Colors and radius.
+description: Recolor the grid with your shadcn theme tokens, set the search highlight for light and dark mode, and square or round the grid frame.
 type: feature
-aliases: ["dark mode", "theme", "border radius"]
+demos: none
+aliases: ["dark mode", "theme", "border radius", "rounded corners", "brand color"]
 ---
 
-{/* docs-stub */}
+The grid paints with your shadcn theme tokens and takes its corners from your theme radius. Change the theme and the grid follows, in light and dark mode. The install adds two variables of its own: `--search-highlight` and `--grid-pin-shadow`.
 
-This page is being written.
+## Change colors
+
+Edit the tokens in your `:root` and `.dark` blocks. One token recolors every surface that uses it:
+
+```css
+:root {
+  --primary: oklch(0.6 0.15 250);
+  --primary-foreground: oklch(0.99 0 0);
+}
+.dark {
+  --primary: oklch(0.7 0.15 250);
+  --primary-foreground: oklch(0.2 0.05 250);
+}
+```
+
+The main tokens paint these surfaces:
+
+- `primary` paints the selection, the active cell ring, the resize handle, the loading bar, and the cell flash after a write.
+- `muted` paints the header, the row hover tint, and the loading skeleton.
+- `destructive` paints invalid cells and the validation message.
+- `background` and `border` paint the grid body and its lines.
+
+The grid reads more tokens, such as `muted-foreground` and `accent`. [Theme tokens](/docs/contracts/style-contract#theme-tokens) lists every surface of every token. To change one surface and keep its token, see [Style overrides](/docs/theme-style-language/style-overrides).
+
+## Dark mode
+
+The grid has no dark mode setting. Its colors are tokens, so the `.dark` values of your theme apply. These surfaces also use the Tailwind `dark:` variant, so your project needs the dark variant that `shadcn init` adds to your CSS:
+
+- An unchecked checkbox cell fills with `input/30` in dark mode.
+- An invalid cell tints with `destructive` at 15% and rings at 40% in dark mode. In light mode it tints at 10% and rings at 20%.
+- An inline editor has a transparent fill in dark mode.
+- A quick search match tints at 25% in dark mode and 60% in light mode.
+
+The quick search tint reads `--search-highlight`, then `--color-search-highlight`. The CLI install adds `--search-highlight` for light and dark mode. If neither variable exists, the grid uses `primary` for the tint: blended half with the background in light mode, and unblended in dark mode. Set your own color for each mode:
+
+```css
+:root {
+  --search-highlight: oklch(92.4% 0.12 95.746);
+}
+.dark {
+  --search-highlight: oklch(82.8% 0.189 84.429);
+}
+```
+
+In forced-colors mode (Windows high contrast), a search match gets an outline and an invalid cell gets a dashed outline. The active cell ring uses the system `Highlight` color.
+
+## Radius
+
+The grid frame uses `rounded-md`. The validation message and the checkbox use `rounded-sm`. The loading skeleton bars and the column menu trigger use bare `rounded`, a fixed `0.25rem` that ignores `--radius`. In the shadcn theme, `rounded-md` and `rounded-sm` derive from `--radius`. So `--radius: 0` squares the frame, and `--radius: 1rem` rounds it more.
+
+Cells, selection overlays, and the row hover tint have no radius. The thin resize line and the touch selection handles are always round.
+
+Inline editors fill the cell and take its square corners. The popups of the editors and menus come from your `ui/*` components (`Popover`, `Calendar`, `Select`). They take their corners from those components.
+
+To change the frame for one grid, pass a radius class. Your class wins over the built-in one:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function SquareGrid({ rows }: { rows: Row[] }) {
+  return (
+    <DataGrid
+      className="h-80 rounded-none"
+      defaultData={rows}
+      columns={columns}
+    />
+  );
+}
+```
+
+## Visual defaults [#visual-defaults]
+
+- Selecting a row or a column highlights the whole row or column band.
+- An edge shadow appears on each side where more content lies beyond the view. At a pinned band, it sits at the band boundary. [Density and small screens](/docs/theme-style-language/density-small-screens#scroll-shadows) covers its variables.
+- Menus and popups follow the shadcn style that you chose at `shadcn init` (the `style` in `components.json`). Inline editors have no border or focus ring of their own. The active cell ring shows the focus.
+
+## Related
+
+- [Style contract](/docs/contracts/style-contract)
+- [Style overrides](/docs/theme-style-language/style-overrides)
+- [Density and small screens](/docs/theme-style-language/density-small-screens)
