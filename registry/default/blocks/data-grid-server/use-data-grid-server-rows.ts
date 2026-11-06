@@ -9,6 +9,7 @@ import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
+import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, useControlled, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
@@ -63,6 +64,10 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   onLoaded?: (range: RowRange) => void;
   /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
+  /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
+  onSave?: SaveRefreshOptions<TData>["onSave"];
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  refreshAfterSave?: SaveRefreshPolicy;
 };
 
 /** Return value of {@link useDataGridServerRows}. */
@@ -99,6 +104,8 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   getRowId: (row: TData, index: number) => string;
   /** Keeps the rows in step with edits, inserts, deletes, and reverts of a refused save. Send changes to your API from `onSave`. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
+  /** Present when the hook got an `onSave`. */
+  onSave?: SaveRefreshOptions<TData>["onSave"];
   sortMode: "server";
   filterMode: "server";
   sortState: SortSpec[];
@@ -502,11 +509,14 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     onPageSizeChange,
   });
 
+  const onSave = useSaveRefresh(options, refresh);
+
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
       data: shown.rows,
       getRowId,
       onDataChange,
+      ...(onSave ? { onSave } : {}),
       sortMode: "server",
       filterMode: "server",
       sortState: spec.sorts as SortSpec[],
@@ -519,7 +529,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       keepCheckedRows: true,
       plugins,
     }),
-    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
+    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);

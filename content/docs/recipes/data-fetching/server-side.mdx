@@ -168,6 +168,7 @@ refused. The grid marks the rows `saving`, reverts only the refused ones, and ca
 />
 ```
 
+Pass `onSave` to `useDataGridServerRows` instead, and `gridProps` carries it. The hook then fetches the rows again after the saves settle, so the grid shows the server's truth <NewBadge />:```tsxconst server = useDataGridServerRows<Order>({  fetchRows,  onSave: async (change) => ({ rejected: await api.saveOrders(change.ops) }),});````refreshAfterSave` sets when the refresh runs:| Value | Refresh ||---|---|| `"settled"` (default) | Once, after every save in flight has settled. Parallel saves cost one request. || `"each"` | After every save that settles. || `false` | Never. Call `server.refresh()` yourself. || `(report) => boolean` | Once, after every save in flight has settled, when it returns `true`. `report` holds `saved`, `rejected`, and `failed` counts. |`server.refresh()` stays available in every case. A rejected or failed save counts as settled.
 `onSave` never receives the revert (`source: "rollback"`) or a server push (`source: "stream"`). See
 [Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change)
 and [TanStack Query](/docs/recipes/data-fetching/tanstack-query).

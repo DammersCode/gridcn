@@ -9,6 +9,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The grid compares the `labels` prop by content, so a literal object of strings no longer needs `useMemo`. A label that is a function still counts as changed when its identity changes.
+- `useDataGridServerRows` takes `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your handler and refreshes by the policy: `"settled"` (default, once after every save in flight), `"each"`, `false`, or a function of the saved, rejected, and failed counts. `refresh()` stays available.
 - `history.record` warns in development when an inserted row is already in `data` (the change was applied twice).
 - Scroll mode of `useDataGridServerRows` takes `source: "indexed" | "cursor"` to fix the fetch order instead of leaving it to the shape of the first answer. An indexed source that answers without `totalRowCount` warns in development.
 - **Breaking:** the barrels of `data-grid-toolbar`, `data-grid-io`, and `data-grid-keybindings` no longer export helpers that nothing teaches: `operatorsForColumnType`, `operatorLabel`, `operatorHasValue`, `buildExportHeaders`, `quoteCsvField`, `downloadBlob`, `IMPORT_CANCELLED_MESSAGE`, `IMPORT_PREVIEW_ROW_COUNT`, and the keybinding category helpers. `pnpm lint` now fails when a barrel adds a value the docs never mention.

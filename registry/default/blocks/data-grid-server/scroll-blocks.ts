@@ -8,6 +8,7 @@ import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionI
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
+import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useReshape, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
@@ -75,6 +76,10 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onLoaded?: (range: RowRange) => void;
   /** Fires after the hook merged an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
+  /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
+  onSave?: SaveRefreshOptions<TData>["onSave"];
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  refreshAfterSave?: SaveRefreshPolicy;
 };
 
 /** Props of {@link UseDataGridServerRowsScrollResult.gridProps} that belong to `DataGridProvider`. */
@@ -85,6 +90,8 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   getRowId: (row: TData, index: number) => string;
   /** Keeps the rows in step with edits, inserts, deletes, and reverts of a refused save. Send changes to your API from `onSave`. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
+  /** Present when the hook got an `onSave`. */
+  onSave?: SaveRefreshOptions<TData>["onSave"];
   /** Reports the rendered rows so the hook can fetch the blocks they need. */
   onRenderedRowsChange: (range: RowRange) => void;
   sortMode: "server";
@@ -969,11 +976,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, streamUpdateRow],
   );
 
+  const onSave = useSaveRefresh(options, refresh);
+
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
       data: rows as TData[],
       getRowId,
       onDataChange,
+      ...(onSave ? { onSave } : {}),
       onRenderedRowsChange,
       sortMode: "server",
       filterMode: "server",
@@ -987,7 +997,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       keepCheckedRows: true,
       plugins,
     }),
-    [rows, count, spec, getRowId, onDataChange, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
+    [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);

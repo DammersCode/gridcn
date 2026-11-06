@@ -154,9 +154,18 @@ void _syncSliceExhaustive;
 /** True when any of `keys` differs by reference between `last` and `next`. */
 function sliceChanged(last: InternalSyncProps, next: InternalSyncProps, keys: readonly (keyof InternalSyncProps)[]): boolean {
   for (const key of keys) {
-    if (last[key] !== next[key]) return true;
+    if (key === "labels" ? !sameLabels(last.labels, next.labels) : last[key] !== next[key]) return true;
   }
   return false;
+}
+
+/** Structural equality for a labels object: nested plain objects by content, strings by value, functions by identity. */
+export function sameLabels(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((key) => Object.hasOwn(b, key) && sameLabels((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
 }
 
 /**

@@ -11,4 +11,5 @@ export {
   type UseDataGridServerRowsScrollOptions,
   type UseDataGridServerRowsScrollResult,
 } from "./use-data-grid-server-rows";
+export type { SaveRefreshPolicy, SaveRefreshReport } from "./save-refresh";
 export { parseServerSpec, ServerSpecError, type ParseServerSpecOptions, type ServerSpecColumnRules, type ServerSpecLimits } from "./parse-server-spec";

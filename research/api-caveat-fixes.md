@@ -49,3 +49,7 @@ The hook already composes: its `onDataChange` option runs after the merge (pages
 ### F13 (decided: no default createRow)
 - The cell menu items and the shortcuts already hide without `createRow` / `duplicateRow` (`cell-menu-content.tsx`, `use-grid-interaction.ts`); the import dialog's `createRow` is a required prop, so a missing one fails in the editor, not silently.
 - A default `createRow` would return `{}`: such a row has no `id`, so the default `getRowId` throws on it. Declined for type safety; callers keep full control of the base row. The "createRow is required" callout is now a plain sentence.
+
+### F16 (partly done)
+- Done: `labels` is compared by content (`sameLabels`); the i18n callout becomes a sentence.
+- Kept: the two class-name function warnings (cost is real), `topRows`/`bottomRows` stability (rows are arbitrary objects, so a structural compare costs more than the render it saves), `fetchOptions` cache key (the cache is keyed by the function on purpose). Their callouts stay, shortened where possible.

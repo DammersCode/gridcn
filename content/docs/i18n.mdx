@@ -182,12 +182,7 @@ function OrdersGrid() {
 }
 ```
 
-<Callout type="warn" title="Pass a stable labels reference">
-  Like `columns`, `data`, and `getRowClassName`, `labels` becomes a prop that the engine depends
-  on. Build it with `useMemo`, keyed on your active locale, rather than a fresh object literal on
-  every render.
-</Callout>
-
+The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function (such as `pasteBlocked`) counts as changed unless it keeps its identity: wrap it, or build the object with `useMemo` keyed on your active locale.
 ## RTL layout
 
 `labels` translates strings. It does not flip layout. `direction` flips layout. It does not

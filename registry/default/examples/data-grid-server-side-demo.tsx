@@ -129,6 +129,7 @@ function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { rev
     prefetchNextPage: true,
     revalidateInterval: revalidate ? 10_000 : undefined,
     reshapeDelay,
+    onSave: (change) => remote.applyOps(change.ops),
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -143,10 +144,6 @@ function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { rev
           {...server.providerProps}
           columns={columns}
           headerClickBehavior="sort"
-          onSave={(change) => {
-            remote.applyOps(change.ops);
-            server.refresh();
-          }}
         >
           <DataGridToolbar>
             <DataGridSearch />
@@ -172,6 +169,7 @@ function ScrollGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { re
     defaultSpec: BY_SCORE,
     revalidateInterval: revalidate ? 10_000 : undefined,
     reshapeDelay,
+    onSave: (change) => remote.applyOps(change.ops),
     fetchRows: async ({ spec, start, end, signal }) => {
       const answer = await remote.fetchRange({ start, end, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -186,10 +184,6 @@ function ScrollGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { re
           {...server.providerProps}
           columns={columns}
           headerClickBehavior="sort"
-          onSave={(change) => {
-            remote.applyOps(change.ops);
-            server.refresh();
-          }}
         >
           <DataGridToolbar>
             <DataGridSearch />
