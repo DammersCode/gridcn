@@ -1,0 +1,95 @@
+---
+title: Shape the export file
+description: Pick the columns, format each cell, and send the finished file to your server instead of a browser download.
+type: task
+aliases: ["export formatCell", "export columns", "export output", "upload export", "buildCsv", "exportRows"]
+---
+
+Three options shape the file, and one option decides where it goes. They apply to a loaded export and to an export with a [`source`](/docs/import-export/export-whole-result).
+
+<ComponentPreview name="data-grid-io-hooks-demo" />
+
+## Before you start
+
+Install `data-grid-io`. See [Export](/docs/import-export/export).
+
+## Steps
+
+1. Set `columns` to the column ids to write, in order. A hidden column is allowed. An unknown id throws a `RangeError` before anything is fetched. A `source` gets the same list as `ctx.columnIds`, so your server can select only those columns.
+2. Set `formatCell` to return the value of one cell.
+3. Set `output` to receive the finished file.
+
+This example sends the file to your server and downloads nothing:
+
+```tsx
+import { DataGridExportButton } from "@/components/data-grid-io/data-grid-io";
+
+export function UploadReport() {
+  return (
+    <DataGridExportButton
+      options={{
+        columns: ["name", "price", "createdAt"],
+        formatCell: ({ column, value, text }) =>
+          column.id === "price" ? Number(value) : text,
+        output: async (file, { fileName, signal }) => {
+          await fetch(`/api/reports/${fileName}`, {
+            method: "PUT",
+            body: file,
+            signal,
+          });
+        },
+      }}
+    />
+  );
+}
+```
+
+## Result
+
+`output` gets a finished `Blob`. The grid never builds a URL from it. If `output` rejects, the export rejects. The `signal` aborts when the export is cancelled, and `output` does not run for an aborted export. A loaded export with `output` shows the button as busy while it runs.
+
+`formatCell` runs once for every cell after the cell type made its text. `text` is that default. It must return at once: it cannot return a promise. To use data you fetch, load it in the `source`. It returns a string, a number, a boolean, a `Date`, or `null` for an empty cell.
+
+| Value | CSV | XLSX |
+|---|---|---|
+| string | written as text, cut at 32,767 characters | a text cell, cut at 32,767 characters |
+| finite number | the number as text | a number cell, so Excel can sum it |
+| boolean | `true` or `false` | a boolean cell |
+| valid `Date` | ISO 8601 text | a date cell |
+| `NaN`, `Infinity`, invalid `Date`, `null`, `undefined` | empty | empty |
+
+A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB, or CR still gets the quote prefix. An XLSX string is always a text cell. The limits `maxRows` and `maxBytes` count the formatted output.
+
+## Build the file without a download
+
+`buildCsv(state, options)` returns the CSV `Blob` of the loaded rows, like `buildXlsx`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each batch of text rows to `onBatch`. Use it to write your own format:
+
+```tsx
+import {
+  exportRows,
+  type ExportSource,
+} from "@/components/data-grid-io/data-grid-io";
+import type { DataGridReadState } from "@/components/data-grid/data-grid-sdk";
+
+export async function toJsonLines(
+  state: DataGridReadState,
+  source: ExportSource,
+) {
+  const lines: string[] = [];
+  const options = { source, maxRows: 50_000, maxBytes: 20_000_000 };
+  await exportRows(state, options, (rows) => {
+    const batch = rows.map((row) => JSON.stringify(row));
+    lines.push(...batch);
+    return batch.reduce((size, line) => size + line.length, 0);
+  });
+  return lines;
+}
+```
+
+`onBatch` returns the size of the batch it kept, in characters or bytes, so `maxBytes` can stop the export.
+
+## Related
+
+- [Export](/docs/import-export/export): formats, scopes, and print.
+- [Export the whole result](/docs/import-export/export-whole-result): the `source` option.
+- [Export options](/docs/add-options/import-export/export-options): every option.

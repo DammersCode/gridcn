@@ -60,6 +60,7 @@ A request that fails reverts the whole change. After the revert, `onSaveRejected
 ## What onSave receives [#what-onsave-receives]
 
 - It runs once per change, after `onDataChange`.
+- <NewBadge /> A row with a save in flight carries `aria-busy="true"`. A refused save reads through the live region, for example "2 rows not saved" (`labels.grid.saveRejected`).
 - The `source` of a change names its origin. The origins are an edit, a paste, a fill, a delete, a row operation, and an import. They also include a find and replace, a programmatic `record()`, and an undo or redo.
 - `onSave` never receives a change with `source: "rollback"` or `source: "stream"`. A revert and a server push do not go back to the server.
 - A `readOnly` grid writes nothing for a cell edit, so `onSave` does not run.
@@ -82,14 +83,14 @@ Both hooks work inside `DataGridProvider`, so call them in a composed layout wit
 
 ## Save rows from a server source [#server-source]
 
-With `useDataGridServerRows`, `gridProps` keeps the rows in step with each edit. Add `onSave` next to the spread. The hook offers `refresh` to fetch the current page again. A refresh keeps the local value of a row with a pending save or an open edit. To read the value the server holds, refresh after the save settles.
+With `useDataGridServerRows`, pass `onSave` to the hook. `gridProps.onSave` runs your handler and then fetches again by the `refreshAfterSave` policy. A refresh keeps the local value of a row with a pending save or an open edit. The fetch reads the values that the server computed after the save settled.
 
-This grid sends the change, then fetches the page again:
+This grid sends the change, and the hook fetches the page again once the saves settle:
 
 ```tsx
 "use client";
 
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
@@ -100,9 +101,18 @@ const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer" },
 ]);
 
+async function save(change: DataChange<Order>) {
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+}
+
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     getRowId: (row) => row.id,
+    onSave: save,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/orders?${query}`, { signal });
@@ -111,22 +121,42 @@ export function OrdersGrid() {
     },
   });
 
-  return (
-    <DataGrid
-      {...server.gridProps}
-      columns={columns}
-      onSave={(change) => {
-        void fetch("/api/orders", {
-          method: "POST",
-          body: JSON.stringify(change.ops),
-        }).then(() => server.refresh());
-      }}
-    />
-  );
+  return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```
 
-This `onSave` returns nothing, so the grid sets no status and reverts nothing. Return the promise instead to get the status and the revert, and refresh after it settles.
+<NewBadge />
+
+`refreshAfterSave` takes one of these values:
+
+| Value | Refresh |
+| --- | --- |
+| `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. A burst of saves costs one request. |
+| `"each"` | After every save that settles. |
+| `false` | Never. Call `server.refresh()` yourself. |
+| a function | Once after the saves settle, when `({ saved, rejected, failed })` returns `true`. |
+
+A refresh needs a promise from `onSave` and at least one save that the server answered. A handler that returns nothing never triggers a refresh. A hook without `onSave` leaves a provider `onSave` of your own in place.
+
+## Swap a client id for the server id [#id-swap]
+
+<NewBadge />
+
+A row that the user creates carries a client id. After the server saves it, replace that id with the id of the server row. Call `actions.replaceRowId(oldId, row)` with the server row:
+
+```tsx
+import { useDataGridApi } from "@/components/data-grid/data-grid";
+
+function useSwapIds() {
+  const { actions } = useDataGridApi();
+  return (clientId: string, serverRow: { id: string }) =>
+    actions.replaceRowId(clientId, serverRow);
+}
+```
+
+The row keeps its data position and its view position. One `onDataChange` call fires with `source: "id-swap"`. `onSave` does not receive it, and history does not record it. The state keyed by the row id follows the new id. That covers the open edit, the cell errors, the save status, the saves in flight, and the undo steps. Flashes of the row end, and `validateRow` runs again for the swapped row.
+
+After a batch create, call `actions.replaceRowIds([{ oldId, row }])`. It swaps many rows in one write and one `onDataChange`. A `readOnly` grid skips the swap. An unknown `oldId`, or a new id that another row holds, warns once in development.
 
 ## Server mode [#server-mode]
 

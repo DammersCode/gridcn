@@ -137,7 +137,7 @@ With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `pre
 
 With `useDataGridServerRows` in pages mode, call `queryClient.fetchQuery` inside `fetchRows` as in [Cache scroll blocks](#wiring-a-fetchcache-library-react-query). Key the query by `serverSpecKey(spec)`, `page`, and `pageSize`.
 
-With `useDataGridPagination` and your own fetch, use the page and the page size as the query key. `keepPreviousData` keeps the old page on screen while the next one loads:
+With `useDataGridServerPager` and your own fetch, use the page and the page size as the query key. `keepPreviousData` keeps the old page on screen while the next one loads:
 
 ```tsx
 "use client";
@@ -147,7 +147,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
-  useDataGridPagination,
+  useDataGridServerPager,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
@@ -167,7 +167,7 @@ export function OrdersGrid() {
     },
     placeholderData: keepPreviousData,
   });
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: query.data?.total ?? 0,

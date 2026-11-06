@@ -24,6 +24,9 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onEditEnd` | A session ends, or validation refuses a commit attempt. | [Edit and validation events](/docs/events-state/edit-validation-events#oneditend) |
 | `onEditStart` | An editor is about to open. | [Edit and validation events](/docs/events-state/edit-validation-events#oneditstart) |
 | `onFilterChange` | Fires with the next filter tree. | [Sort and filter events](/docs/events-state/sort-filter-events#onfilterchange) |
+| `onGateAborted` | Fires once for every async gate that the grid stopped waiting for, with its name and the reason. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `onPageChange` | Fires with the new page after a page change, and with 1 after a filter change. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `onPageSizeChange` | Fires with the new page size after a change of the page size. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `onRenderedRowsChange` | Fires with the range of rendered view rows. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | `onRetry` | Runs on a press of the Retry button. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
 | `onSave` | Sends a change to a server. | [Data change events](/docs/events-state/data-change-events#onsave) |

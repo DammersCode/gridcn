@@ -68,7 +68,8 @@ export function ExportAllButton() {
 
 `scope` picks the rows:
 
-- `view` (default) writes the rows of the current view, in sort order and after the filters. Quick search does not narrow the view, so it does not narrow the export.
+- `view` (default) writes the rows of the current view, in sort order and after the filters. A grid that pages its view writes every page. Quick search does not narrow the view, so it does not narrow the export.
+- `page` <NewBadge /> writes the rows of the shown page. A grid without paging treats it as `view`.
 - `all` writes every row of `data` in data order, whatever the sort and the filters.
 - `selection` writes the rows that a cell range or a checked row marker covers, in view order. With `keepCheckedRows`, one checked row limits the export to the checked rows.
 
@@ -118,7 +119,7 @@ export function useUploadWorkbook() {
 
 `printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar.
 
-Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A call while a print frame is open replaces that frame. A lazy grid prints its loaded rows only. Print does nothing during server rendering.
+Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A call while a print frame is open replaces that frame. Print does nothing during server rendering.
 
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
@@ -129,19 +130,25 @@ Print takes the same `scope` as export. It prints visible columns in view order.
 
 ## Server mode
 
-Export has a gap in client pagination and in every server mode. It writes only the rows that the grid holds in `data`, and it never asks the server for more.
+Without a `source`, export covers the rows the grid holds. It never asks the server for more.
 
-- Client pagination and server pagination write the current page. The `all` scope also writes that page only.
-- Scroll mode writes the loaded rows. Every scope skips unloaded rows, so load the range first.
-- With your own API (`onDataChange` write-through), export writes the rows that `data` holds, and rows that the app has not loaded stay out.
+- A client grid that pages its view (`pageSize`) holds every row. The `view` and `all` scopes write all pages. Use `scope: "page"` for the shown page only.
+- Server pages write the current page. The `all` scope writes that page only.
+- Scroll mode writes the loaded rows. Every scope skips unloaded rows.
+- With your own API (`onDataChange` write-through), export writes the rows that `data` holds.
 - With `sortMode="server"`, the `view` scope keeps the order of `data`. With `filterMode="server"`, it applies no filter.
 - With controlled `sortState` and `filterState`, export follows the view like a local grid.
-- Print covers the rows in `data` by design: it prints the loaded rows, in the order and with the filters above.
 
-To export a full result in a server mode, fetch the rows from your server and write the file there. See [Server pagination](/docs/server-pagination) for the page requests. With client pagination, build the file from your full array, for example with `rowsToCsv`.
+<NewBadge />
+
+To write the whole server result, pass a `source`. See [Export the whole result](/docs/import-export/export-whole-result).
+
+Print covers the rows the grid holds, in the same way. A grid fed by `useDataGridServerRows` prints its current page, or the loaded blocks in scroll mode, not the rest of the server result. To print the whole result, use a CSV or XLSX export of the whole result.
 
 ## Related
 
 - [Export options](/docs/add-options/import-export/export-options): every `exportGrid`, `buildXlsx`, and `printGrid` option.
+- [Export the whole result](/docs/import-export/export-whole-result): the `source` option for server and paged grids.
+- [Shape the export file](/docs/import-export/shape-export-file): `columns`, `formatCell`, and `output`.
 - [Import](/docs/import-export/import): the dialog that reads CSV and Excel files into rows.
 - [Clipboard](/docs/clipboard-undo/clipboard): the copy text that export reuses.

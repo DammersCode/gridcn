@@ -1,0 +1,144 @@
+---
+title: Show totals from a server
+description: Pin a totals row that your server computes for the whole filtered result, in pages mode, scroll mode, and with your own API.
+type: task
+aliases: ["server totals", "server aggregates", "fetchAggregates", "totals band server"]
+---
+
+A server grid holds one page or some blocks, so `useDataGridAggregate` cannot total the whole result. `DataGridServerAggregateReporter` asks your server instead. It calls `fetchAggregates` with the current spec and reports the values as a row for a pinned band.
+
+<ComponentPreview name="data-grid-server-totals-demo" />
+
+<InstallCommand item="data-grid-pinned-rows" manual manualSlot={<ManualInstall item="data-grid-pinned-rows" />} />
+
+## Fetch the totals [#fetch-totals]
+
+1. Keep the result of the reporter in state. Start the state from `PENDING_SERVER_AGGREGATE`.
+2. Pass the values to `useDataGridPinnedRows` as a row, with the `status` of the result.
+3. Render `DataGridServerAggregateReporter` inside `DataGridProvider`. Pass `onChange` and `fetchAggregates`.
+4. Resolve `{ [columnId]: value }` in `fetchAggregates` for the whole result of `spec`.
+
+This grid pins the totals of the filtered result:
+
+```tsx
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridServerAggregateReporter,
+  PENDING_SERVER_AGGREGATE,
+  useDataGridPinnedRows,
+  type ServerAggregateResult,
+} from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+async function post(url: string, body: unknown, signal: AbortSignal) {
+  const request = { method: "POST", body: JSON.stringify(body), signal };
+  return (await fetch(url, request)).json();
+}
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    fetchRows: async ({ start, end, spec, signal }) => {
+      const answer = await post("/api/orders", { start, end, spec }, signal);
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+  const [totals, setTotals] = useState<ServerAggregateResult>(
+    PENDING_SERVER_AGGREGATE,
+  );
+  const bottomRows = useMemo(
+    () => [{ id: "__totals__", customer: "Total", ...totals.row }],
+    [totals.row],
+  );
+  const { plugin } = useDataGridPinnedRows({
+    bottomRows,
+    status: totals.status,
+  });
+  const plugins = useMemo(() => [plugin], [plugin]);
+
+  return (
+    <DataGridProvider
+      {...server.providerProps}
+      columns={columns}
+      plugins={plugins}
+    >
+      <DataGridServerAggregateReporter
+        onChange={setTotals}
+        fetchAggregates={({ spec, signal }) => {
+          const { filters, searchText } = spec;
+          return post("/api/orders/totals", { filters, searchText }, signal);
+        }}
+      />
+      <DataGridRoot {...server.rootProps}>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+Inside the grid, call `useDataGridServerAggregate(options)` yourself. It returns the same result.
+
+## When it requests [#when-it-requests]
+
+The request carries the spec and not the rows in the grid. The same code serves pages mode, scroll mode, a controlled spec, and your own API.
+
+- The reporter requests once on mount.
+- It requests again after each filter or quick-search change, after `debounceMs`.
+- A sort does not change the totals, so it does not request.
+- A newer request aborts the older one through `signal`, and the grid drops a late answer of the older one.
+
+## Show the status [#status]
+
+`status` tells the band what to show:
+
+| Status | Meaning |
+| --- | --- |
+| `"loading"` | No values yet. |
+| `"stale"` | The old values stay while a newer request runs. |
+| `"ready"` | The values match the spec. |
+| `"error"` | The last request failed. The old values stay. `onError` fires once per failure. |
+
+A band with a status other than `"ready"` dims. A band that loads or goes stale sets `aria-busy`. Every band also carries a `data-status` attribute. `loading` is `true` for `"loading"` and `"stale"`. `refresh()` requests again and keeps the old values on screen. `retry()` requests again after an error and does nothing otherwise.
+
+## Options [#options]
+
+{/* props: DataGridServerAggregateReporterProps */}
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `fetchAggregates` | required | Resolves the values for a `{ spec, columnIds, signal }` request. |
+| `columnIds` | every column | The columns to ask for. |
+| `debounceMs` | `150` | Milliseconds to wait after a filter or quick-search change before the request starts. |
+| `onError` | none | Called once per failed request. |
+| `onChange` | required on the reporter | Receives the result, to keep in state. |
+
+The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.
+
+<Callout type="warn">
+  Call `refresh()` after your save lands. An edit does not request new totals, so the band keeps the totals of the last request.
+</Callout>
+
+## Related
+
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): the bands and the totals of loaded rows
+- [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options): every option
+- [Server rows contract](/docs/contracts/server-rows-contract): the spec that `fetchAggregates` receives
+- [Data mode support](/docs/data-modes/data-mode-support): the features per data mode

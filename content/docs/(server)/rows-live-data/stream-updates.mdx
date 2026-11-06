@@ -44,7 +44,11 @@ export function TickerFeed({ quotes }: { quotes: Quote[] }) {
 
 One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again.
 
-A hidden column takes patches like a visible one. The grid skips a patch for an unknown row or column, a read-only column, or an unchanged value. On a `readOnly` grid, every batch does nothing.
+A call with `source: "stream"` (the default) takes at most 100,000 patches <NewBadge />. The grid skips the patches after the limit.
+
+A hidden column takes patches like a visible one. The grid skips a patch for an unknown row or column, a row with a save in flight, or an unchanged value.
+
+A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows <NewBadge />. A call with another `source`, for example `"edit"`, keeps every read-only check.
 
 ## Patch whole rows [#whole-rows]
 
@@ -80,9 +84,9 @@ The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value
 
 If no patched column feeds the active sort or filter, `"defer"` acts as `"never"`.
 
-`"immediate"` removes each patched row from the order, tests it against the filter again, and puts it back at its sorted position. The grid rebuilds the whole order when this batch and the earlier deferred batches touch more than 256 rows. After an edit, paste, fill, cell clear, undo, redo, rollback, row operation, or data swap, the next batch also rebuilds once.
+`"immediate"` finds each patched row and keeps the order when every row still sits between its neighbors. Otherwise it removes the patched rows, tests them against the filter again, and puts them back at the positions a full sort gives them. A batch that cannot change a sort or filter value skips this work. The grid rebuilds the whole order when this batch and the earlier deferred batches touch more than 256 rows. After an edit, paste, fill, cell clear, undo, redo, rollback, row operation, or data swap, the next batch also rebuilds once.
 
-With `sortMode="server"` and `filterMode="server"`, the grid does not read the sort or filter state, so the flag never turns on.
+With `sortMode="server"` or `filterMode="server"`, the server orders the rows. A push marks the row stale and the hook can refetch. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view). <NewBadge />
 
 ## Control the data yourself [#controlled-mode]
 
@@ -90,7 +94,7 @@ In controlled mode, store the array that `onDataChange` gives you in state, and 
 
 ## Undo and save [#undo-history]
 
-A batch carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it.
+A batch carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it. A push into a row with a save in flight is skipped with reason `saving` <NewBadge />. Push the value again after the save settles.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, list the sources for the history add-on. The list replaces the default, so keep the default sources in it:
 
@@ -119,24 +123,11 @@ A plain `updateCells` call that does not wait keeps the held batch, until the ro
 
 ## Read the verdict [#what-the-verdict-tells-you]
 
-`updateCells` and `updateRows` return an `UpdateCellsVerdict`:
-
-- `applied` counts the cells the call wrote.
-- `skipped` holds one `UpdateCellsSkip` per patch that the grid checked and did not write, with its `patchIndex` and a `reason`. On a `readOnly` grid, `skipped` is empty. Two patches to one cell in one batch count once, and the last one wins.
-- `pending` is `true` while an async schema holds the batch. `settled` resolves with the final verdict. A superseded batch resolves with `applied: 0` and no `skipped` entries.
-
-| Reason | Meaning |
-| --- | --- |
-| `unknown-row` | The row id is not in `data`. |
-| `unknown-column` | The column id is not a known column. |
-| `hole` | The row is an unloaded scroll-mode row. |
-| `readonly` | The column is read-only, has no write path (`accessorFn` without `setValue`), or the row is read-only through `readOnly(row)`. |
-| `invalid` | The column's `validate` rejected the value. |
-| `no-op` | The value equals the current value. |
+`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons.
 
 ## Related
 
-- [Change server rows](/docs/rows-live-data/change-server-rows)
+- [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view)
 - [Show presence](/docs/rows-live-data/show-presence)
 - [Data change events](/docs/events-state/data-change-events)
 - [Undo and redo](/docs/clipboard-undo/undo-redo)

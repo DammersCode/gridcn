@@ -1,0 +1,92 @@
+---
+title: Cancel async gates
+description: Abort the request of a slow gate with its signal, set a timeout for every gate, and show the pending state while a gate waits.
+icon: Timer
+type: feature
+aliases: ["abort signal", "gate timeout", "cancel paste request"]
+---
+
+A gate is a callback that runs before the grid acts, such as `processPaste` or `onEditStart`. A gate can return a promise, and the grid waits for it. This page shows how to stop that wait: pass the `AbortSignal` of the gate to your request, set `gateTimeoutMs`, and read the pending state. [Async gates example](/docs/validation-examples/async-gates-example) runs the gates live.
+
+## Cancel a request with the signal [#cancel-a-request-with-the-signal]
+
+Every gate receives an `AbortSignal` as its last argument. The signal aborts in three cases:
+
+- A newer run of the same gate replaces the run. For example, the user moves to another cell before `onEditStart` settles.
+- The grid unmounts.
+- The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
+
+Pass the signal to `fetch`, and the request stops when the signal aborts. Pass the function as the `processPaste` prop:
+
+```tsx
+async function processPaste({
+  cells,
+  signal,
+}: {
+  cells: string[][];
+  signal: AbortSignal;
+}) {
+  const response = await fetch("/api/normalize", {
+    method: "POST",
+    body: JSON.stringify(cells),
+    signal,
+  });
+  return response.ok ? response.json() : false;
+}
+```
+
+The grid drops an aborted gate result. A rejection after an abort adds no warning, so an `AbortError` from `fetch` needs no `catch`.
+
+| Gate | Signal position |
+|---|---|
+| `processPaste` | `({ cells, target, signal })` |
+| `validateRow` | `(row, rowId, { signal })` |
+| `onEditStart` | `(cell, { signal })` |
+| `createRow` | `(index, { signal })` |
+| `duplicateRow` | `(row, index, { signal })` |
+| `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
+| `mapColumn` | `(header, index, { signal })` |
+
+A gate that ignores the extra argument keeps working.
+
+## Stop waiting for a slow gate [#gate-timeout]
+
+A gate waits for its promise. Set `gateTimeoutMs` to abort a gate whose promise has not settled in time. The signal aborts, the grid cancels the action, and the next action can start. Pass one number for every gate, or an object with a number for each gate name. Pass the value as the `gateTimeoutMs` prop of `DataGridProvider`:
+
+```tsx
+const gateTimeoutMs = { processPaste: 10_000, onEditStart: 3_000 };
+```
+
+`onGateAborted({ gate, reason })` fires once for every gate that the grid stopped waiting for. `reason` is one of these:
+
+| Reason | Meaning |
+|---|---|
+| `"timeout"` | The gate ran longer than `gateTimeoutMs`. |
+| `"changed"` | The rows, the checked rows, or `readOnly` changed while the gate waited. |
+| `"superseded"` | A newer run of the same gate replaced it. |
+| `"cancelled"` | The user pressed <kbd>Escape</kbd>. |
+| `"reset"` | The grid reset or unmounted. |
+
+Both props are off by default.
+
+## Show the pending state [#show-the-pending-state]
+
+`useDataGridGatePending()` returns the set of gate names whose promise has not settled. Call it inside the provider:
+
+```tsx
+function PendingLabel() {
+  const pending = useDataGridGatePending();
+  if (!pending.has("processPaste")) return null;
+  return <span>Normalizing the paste</span>;
+}
+```
+
+The set is empty while no gate runs. The grid root also sets `data-gate-pending` while a gate runs. The value lists the gate names, separated by spaces, for example `data-gate-pending="processPaste validateRow"`. The root has no `aria-busy`, because the live region sits outside the root and a busy root can mute announcements. Style the busy grid with CSS on `[data-gate-pending]`.
+
+## Related
+
+- [Async gates example](/docs/validation-examples/async-gates-example): a live grid with three gates
+- [Clipboard](/docs/clipboard-undo/clipboard#overrides): `processPaste` and its signal
+- [Validation](/docs/editing-cells/validation#cross-field-rules-validaterow): `validateRow` and its signal
+- [Row operations](/docs/rows-pages-menus/row-operations): `onBeforeDeleteRows`
+- [Edit and validation events](/docs/events-state/edit-validation-events): the gate callbacks and their context

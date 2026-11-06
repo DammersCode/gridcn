@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "find-replace-options",
+    "saved-views-options",
     "sort-list-options",
     "toolbar-options",
     "url-state-options"

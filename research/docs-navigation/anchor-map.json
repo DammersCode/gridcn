@@ -47,6 +47,8 @@
   "related": "/docs/clipboard-undo/fill-handle#related"
  },
  "/docs/addons/find-replace": {
+  "rows-the-search-covers": "/docs/sort-filter-search/find-replace#server-mode",
+  "check-a-replace-before-it-runs": "/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs",
   "find": "/docs/sort-filter-search/find-replace#find",
   "replace": "/docs/sort-filter-search/find-replace#replace",
   "where-replace-works": "/docs/sort-filter-search/find-replace#where-replace-works",
@@ -58,6 +60,10 @@
   "related": "/docs/sort-filter-search/find-replace#related"
  },
  "/docs/addons/import-export": {
+  "export-the-whole-result": "/docs/import-export/export-whole-result",
+  "control-the-file": "/docs/import-export/shape-export-file",
+  "import-into-a-server-grid": "/docs/import-export/import-server-grid",
+  "control-the-import": "/docs/import-export/control-import",
   "export": "/docs/import-export/export#export",
   "print": "/docs/import-export/export#print",
   "import": "/docs/import-export/import#import",
@@ -135,6 +141,7 @@
   "related": "/docs/clipboard-undo/undo-redo#related"
  },
  "/docs/addons/url-state": {
+  "with-saved-views": "/docs/sort-filter-search/url-state#with-saved-views",
   "usage": "/docs/sort-filter-search/url-state#usage",
   "prefix": "/docs/sort-filter-search/url-state#prefix",
   "behavior": "/docs/sort-filter-search/url-state#behavior",
@@ -222,18 +229,18 @@
   "sort": "/docs/data-modes/data-mode-support#sort",
   "filter-set-values": "/docs/data-modes/data-mode-support#filter-set-values",
   "quick-search": "/docs/data-modes/data-mode-support#quick-search",
-  "row-ids": "/docs/data-modes/data-mode-support#row-ids",
+  "row-ids": "/docs/data-modes/data-mode-support#matrix",
   "row-grouping": "/docs/data-modes/data-mode-support#row-grouping",
-  "pinned-rows-and-aggregates": "/docs/data-modes/data-mode-support#pinned-rows-and-aggregates",
+  "pinned-rows-and-aggregates": "/docs/data-modes/data-mode-support#matrix",
   "column-pin-hide-order-and-size": "/docs/data-modes/data-mode-support#column-pin-hide-order-and-size",
   "fill": "/docs/data-modes/data-mode-support#fill",
   "import": "/docs/data-modes/data-mode-support#import",
-  "export": "/docs/data-modes/data-mode-support#export",
+  "export": "/docs/data-modes/data-mode-support#matrix",
   "print": "/docs/data-modes/data-mode-support#print",
-  "undo-and-redo": "/docs/data-modes/data-mode-support#undo-and-redo",
+  "undo-and-redo": "/docs/data-modes/data-mode-support#matrix",
   "url-state": "/docs/data-modes/data-mode-support#url-state",
   "presence": "/docs/data-modes/data-mode-support#presence",
-  "find-and-replace": "/docs/data-modes/data-mode-support#find-and-replace",
+  "find-and-replace": "/docs/data-modes/data-mode-support#matrix",
   "scroll-row-fetching": "/docs/data-modes/data-mode-support#scroll-row-fetching",
   "pagination": "/docs/data-modes/data-mode-support#pagination",
   "keys-labels-and-cell-types": "/docs/data-modes/data-mode-support#keys-labels-and-cell-types",

@@ -47,7 +47,7 @@ If the server refuses an `insert`, the grid removes the row. If it refuses a `de
 
 ## Take the id from the server [#take-the-id-from-the-server]
 
-The grid keeps the id that `createRow` returns. It does not replace that id after the server answers. To use a server id, let `createRow` return a promise. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
+The grid keeps the id that `createRow` returns until you swap it. After the server answers, call `actions.replaceRowId(oldId, row)` with the server row <NewBadge />. See [Save edits](/docs/save-server/save-edits#id-swap). Or let `createRow` return a promise that creates the row first. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
 
 While a `createRow` promise is pending, the next insert does nothing. While a `duplicateRow` promise is pending, the next duplicate does nothing. If the anchor row left the grid or the grid turned `readOnly` before the promise resolves, the grid drops the operation.
 
@@ -57,7 +57,7 @@ If the promise creates the row on the server, skip the `insert` operation in `on
 
 A scroll-mode grid holds unloaded rows as holes. If their target touches a hole, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing. The target is every row of a delete, every source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid writes nothing, calls no `onDataChange`, and warns once in development.
 
-`deleteRowsById` skips an id that matches no row and deletes the rest. A placeholder id `__lazy-unloaded-<index>` matches a hole, so it cancels the whole request. Drop those ids before you call it. `reorderRows` does nothing while any row is unloaded.
+`deleteRowsById` skips an id that matches no row and deletes the rest. A placeholder id matches a hole, so it cancels the whole request. Drop those ids before you call it. <NewBadge /> `isPlaceholderRowId(id)` tells a placeholder from a real id. `reorderRows` does nothing while any row is unloaded.
 
 Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRowsById`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
 
@@ -80,7 +80,7 @@ After a row operation in a scroll-mode source with a row count, the hook refresh
 
 ## Refresh after the save [#refresh-after-the-save]
 
-In server pagination, the operations act on the current page. Call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
+In server pagination, the operations act on the current page. Pass `onSave` to `useDataGridServerRows` and the hook refreshes after the saves settle (`refreshAfterSave`, default `"settled"`) <NewBadge />. Or call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
 
 ## Confirm a delete [#confirm-a-delete]
 
@@ -94,8 +94,8 @@ When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do n
 
 ## Related
 
+- [Handle row action results](/docs/rows-live-data/handle-row-action-results)
 - [Row operations](/docs/rows-pages-menus/row-operations)
 - [Save and revert](/docs/save-server/save-revert)
 - [Handle refused saves](/docs/save-server/handle-refused-saves)
-- [Select server rows](/docs/rows-live-data/select-server-rows)
 - [Data change events](/docs/events-state/data-change-events)

@@ -61,6 +61,8 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 
 - The hook sizes `data` to the row count. Every row without data renders as a skeleton row.
 - When the rendered rows move, the hook adds `overscan` rows on each side and rounds the span out to `blockSize` rows. It requests each missing block with one request.
+- <NewBadge /> A block request starts after the block stays in the rendered rows plus `overscan` for `loadDelay` milliseconds (default 100). A fast scroll or a thumb drag starts no request until it rests. Block 0, `refresh()`, `retry()`, and the refetch after the first answer or a count change start at once. Pass `loadDelay: 0` to start at once.
+- <NewBadge /> A request aborts when its rows leave the rendered rows by more than `overscan` plus one block. At most `maxConcurrentFetches` requests run at once (default 3, at most 16). The blocks of `refresh()` and `retry()` wait in a queue behind that cap and count as `loading`.
 - A scroll never requests a loaded or in-flight block again. Loaded blocks load again after `refresh()`, after a row operation, and after a changed row count. Adjacent loaded blocks merge.
 - A request holds `spec`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` in random access.
 - A spec change, a changed row count, or a `refresh()` replaces the requests in flight and aborts their `signal`. An unmount aborts them too.
@@ -68,15 +70,16 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 - A short answer marks only its rows as loaded and warns in development. The next report of the rendered rows requests the rest.
 - A burst of landing blocks costs about one update of `data` per frame.
 
-`blockSize` is 50 and `overscan` is 30 by default. When your server caches a page by its own size, set `blockSize` to that size. Each request then matches one cache entry.
+`blockSize` is 50 and `overscan` is 30 by default. <NewBadge /> Pass `source: "indexed"` to fix random access. A scroll-mode grid defaults `sortMode` and `filterMode` to `"server"`: see [Query server rows](/docs/data-modes/query-server-rows). `getRowId` is optional <NewBadge />. It defaults to the `id` field of the row.
 
 ## Skeleton rows
 
 `data` is a sparse array with the length of the row count. Loaded indices hold rows. Unloaded indices are holes, and each hole renders skeleton cells with a `data-skeleton` attribute. To restyle them with CSS, see [Style contract](/docs/contracts/style-contract).
 
 - The function forms of column `readOnly`, `getRowClassName`, `getCellClassName`, and column `cellClassName` skip holes. They never receive an `undefined` row.
-- `getRowId` runs on loaded rows only. A hole gets the id `__lazy-unloaded-<index>`, which names a position and not a record.
+- `getRowId` runs on loaded rows only. A hole gets a placeholder id that names a position and not a record. <NewBadge /> `isPlaceholderRowId(id)` from `data-grid` tells a placeholder id from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only.
 - A skeleton cell opens no editor, and the grid skips a write to an unloaded row.
+- <NewBadge /> `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row, and warn once per grid in development. Delete known rows with `deleteRowsById`. See [Row operations](/docs/rows-live-data/change-server-rows#scroll-mode).
 
 ## Edit loaded rows [#editing-loaded-rows]
 

@@ -2,7 +2,7 @@
 title: Load without row count
 description: Load a keyset or "has more" API in scroll mode when the server sends a next cursor and no row count.
 type: task
-aliases: ["cursor paging", "keyset paging", "unknown total", "next token"]
+aliases: ["keyset paging", "unknown total", "next token"]
 ---
 
 A keyset API gives a next cursor and no row count. Scroll mode loads such a source one block at a time, and each request carries the cursor of the block before it. The grid shows the loaded rows plus one block of skeleton rows, so the scroll height grows in steps.
@@ -61,6 +61,12 @@ A first answer with `nextCursor`, or with neither `totalRowCount` nor `nextCurso
 
 At the end the skeleton rows go away and `totalRowCount` holds the final row count.
 
+## Fix the fetch order [#source]
+
+<NewBadge />
+
+The first answer picks the order. To fix it, pass `source: "indexed"` for random access or `source: "cursor"` for a sequential source. An indexed source that answers without `totalRowCount` warns in development.
+
 ## How the source advances
 
 When the rendered rows come within `overscan` rows of the loaded end, the next block starts. `overscan` is 30 by default. One block loads at a time.
@@ -68,7 +74,7 @@ When the rendered rows come within `overscan` rows of the loaded end, the next b
 - A failed block sets `error`, calls `onError`, and stops the source. `retry()` repeats the block, and so does the next report of the rendered rows.
 - A change of the sort, filter, or search text drops the loaded rows and the cursor. The source starts again at block 0.
 - `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land.
-- `evict` does nothing, because a sequential source cannot refetch an arbitrary range. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
+- `evict` does nothing, because a sequential source cannot refetch an arbitrary range. <NewBadge /> `maxLoadedRows` does not apply either. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
 
 ## Select rows without a row count
 

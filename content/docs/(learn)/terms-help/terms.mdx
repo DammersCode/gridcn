@@ -16,6 +16,7 @@ A term row links to the page that explains it.
 | Term | Meaning | Page |
 | --- | --- | --- |
 | operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. | [Data change events](/docs/events-state/data-change-events#datachange) |
+| export source | The function that returns the rows of the whole result for an all-rows export. | [Export the whole result](/docs/import-export/export-whole-result) |
 | row id | The stable id from `getRowId`. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | view index | A row's position in the sorted and filtered list the user sees. | [State and view index](/docs/concepts/state-view-index) |
 | data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
@@ -31,6 +32,22 @@ A term row links to the page that explains it.
 | row count | The size of the result. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | all matching | The whole result as the target of a bulk action. | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. | [Event shapes](/docs/events-state/event-shapes#gates) |
+| gate pending | The state of a gate whose promise has not settled. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| keep range | The wanted range grown by one more block on each side. | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
+| eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateInterval`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
+| paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| stale row | A loaded row that a push changed in a column the server spec reads. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. | [Saved views](/docs/sort-filter-search/saved-views) |
+| server aggregate | A value for a band that a server computes for the whole result of the current spec. | [Show totals from a server](/docs/data-modes/show-server-totals) |
+| save conflict | A refused save for which the server sent its current row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | [Save edits](/docs/save-server/save-edits#id-swap) |
+| lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
+| custom operator | A filter operator a column registers in `filterOperators` with an `id`, a `label`, an `input` shape, and an optional `match`. | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
 | seed | The initial value a `default*` prop gives once, at mount. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
 | virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
 | rendered rows | The rows in the DOM. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
@@ -104,12 +121,26 @@ A word in this table names a term from the first table.
 | `lazy mode` | scroll mode | [Scroll mode](/docs/scroll-mode) |
 | `infinite rows` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `open-ended source` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
+| `visible window` | wanted range | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| `purge` | eviction | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
+| `polling` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| `auto-refresh` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| `preload` | prefetch | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | `value search` | value query | [Server rows contract](/docs/contracts/server-rows-contract) |
 | `result set` | result | [Data modes](/docs/data-modes) |
 | `dataset` | result | [Data modes](/docs/data-modes) |
 | `row total` | row count | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| `sliced data` | paged view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `page slice` | paged view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `select everything` | all matching | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `interceptor` | gate | [Event shapes](/docs/events-state/event-shapes#gates) |
+| `gate busy` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| `gate loading` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| `stream update` | push | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `live update` | push | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `dirty row` | stale row | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| `outdated row` | stale row | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| `re-sort request` | reshape | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `deleteContents` | clearContents | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | `editReplace` | typeToReplace | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | `retainMove*` | moveUpKeepSelection | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
@@ -134,6 +165,8 @@ A word in this table names a term from the first table.
 | `filter bracket` | filter group | [Filtering](/docs/sort-filter-search/filtering) |
 | `nested filter` | filter group | [Filtering](/docs/sort-filter-search/filtering) |
 | `join operator` | filter group | [Filtering](/docs/sort-filter-search/filtering) |
+| `custom filter type` | custom operator | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
+| `plugin operator` | custom operator | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
 | `value list` | set values | [Header filter](/docs/sort-filter-search/header-filter) |
 | `facet list` | set values | [Header filter](/docs/sort-filter-search/header-filter) |
 | `distinct list` | set values | [Header filter](/docs/sort-filter-search/header-filter) |
@@ -146,6 +179,9 @@ A word in this table names a term from the first table.
 | `escape hatch` | override | [Display override](/docs/editing-cells/display-override) |
 | `write result` | save acknowledgement | [Save edits](/docs/save-server/save-edits) |
 | `save state` | save status | [Save edits](/docs/save-server/save-edits) |
+| `edit conflict` | save conflict | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| `rekey` | id swap | [Save edits](/docs/save-server/save-edits#id-swap) |
+| `rename id` | id swap | [Save edits](/docs/save-server/save-edits#id-swap) |
 
 ## Search words [#search-words]
 
@@ -154,6 +190,7 @@ A search word in this table opens the page that answers it.
 | Word | Page |
 | --- | --- |
 | `a11y` | [Screen reader support](/docs/accessibility/screen-reader-support) |
+| `abort signal` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
 | `access control` | [Lock cells by role](/docs/editing-cells/lock-cells-role) |
 | `active cell and range` | [Selection model](/docs/concepts/selection-model) |
 | `add a row` | [Row operations](/docs/rows-pages-menus/row-operations) |
@@ -164,11 +201,14 @@ A search word in this table opens the page that answers it.
 | `all add-ons` | [Add-ons A to Z](/docs/fit-features/add-ons-a-z) |
 | `all props` | [Props A to Z](/docs/cheatsheets-messages/props-z) |
 | `and or filter` | [Filtering](/docs/sort-filter-search/filtering) |
+| `announcements` | [Live region messages](/docs/accessibility/live-region-messages) |
 | `apply change` | [Operation engine contract](/docs/contracts/operation-engine-contract) |
 | `arrow keys` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `asian language typing` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `assistive technology` | [Screen reader support](/docs/accessibility/screen-reader-support) |
+| `async select` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `auth gated cells` | [Lock cells by role](/docs/editing-cells/lock-cells-role) |
+| `autocomplete cell` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `autofill` | [Fill handle](/docs/clipboard-undo/fill-handle) |
 | `autofill options` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `autosize` | [Column sizing](/docs/columns/column-sizing) |
@@ -180,9 +220,11 @@ A search word in this table opens the page that answers it.
 | `border radius` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `brand color` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `breaking changes` | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
+| `buildCsv` | [Shape the export file](/docs/import-export/shape-export-file) |
 | `bulk replace` | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `button bar` | [Toolbar](/docs/sort-filter-search/toolbar) |
 | `callbacks` | [Events A to Z](/docs/cheatsheets-messages/events-z) |
+| `cancel paste request` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
 | `cell class` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `cell click` | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `cell count` | [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options) |
@@ -230,11 +272,12 @@ A search word in this table opens the page that answers it.
 | `csv injection` | [Export](/docs/import-export/export) |
 | `csv options` | [Export options](/docs/add-options/import-export/export-options) |
 | `csv upload` | [Import](/docs/import-export/import) |
+| `csvEncoding` | [Control the import](/docs/import-export/control-import) |
 | `ctrl h` | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `ctrl z` | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `currency` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `cursor event` | [Selection and cell events](/docs/events-state/selection-cell-events) |
-| `cursor paging` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
+| `cursor paging` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `cursors` | [Show presence](/docs/rows-live-data/show-presence) |
 | `custom cell type` | [Write a cell type](/docs/recipes-custom-code/write-cell-type) |
 | `custom cell type checklist` | [Cell type model](/docs/concepts/cell-type-model) |
@@ -248,8 +291,11 @@ A search word in this table opens the page that answers it.
 | `dark mode` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `data attributes` | [Style contract](/docs/contracts/style-contract) |
 | `data change observer` | [Plugin events](/docs/plugins/plugin-events) |
+| `data-grid-views` | [Saved views](/docs/sort-filter-search/saved-views) |
+| `data-row-stale` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `DataGridHeader` | [DataGridProvider](/docs/components-props/data-grid-provider) |
 | `DataGridPlugin type` | [Plugin contract](/docs/plugins/plugin-contract) |
+| `DataGridViewsStorage` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
 | `dataset key` | [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
 | `date picker` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `debounce text field` | [useDebouncedInput](/docs/types-hooks/use-debounced-input) |
@@ -258,6 +304,7 @@ A search word in this table opens the page that answers it.
 | `default keymap` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `default keys` | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | `default skip columns` | [Import options](/docs/add-options/import-export/import-options) |
+| `default view` | [Saved views](/docs/sort-filter-search/saved-views) |
 | `delay a value` | [useDebounce](/docs/types-hooks/use-debounce) |
 | `delete rows` | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `disable selection` | [Selection model](/docs/concepts/selection-model) |
@@ -281,8 +328,16 @@ A search word in this table opens the page that answers it.
 | `event names` | [Events A to Z](/docs/cheatsheets-messages/events-z) |
 | `evict rows` | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
 | `expand row` | [Open a detail panel](/docs/recipes-custom-code/open-detail-panel) |
+| `export all rows` | [Export the whole result](/docs/import-export/export-whole-result) |
 | `export button props` | [Export options](/docs/add-options/import-export/export-options) |
+| `export columns` | [Shape the export file](/docs/import-export/shape-export-file) |
+| `export formatCell` | [Shape the export file](/docs/import-export/shape-export-file) |
+| `export output` | [Shape the export file](/docs/import-export/shape-export-file) |
+| `export server rows` | [Export the whole result](/docs/import-export/export-whole-result) |
+| `export source` | [Export the whole result](/docs/import-export/export-whole-result) |
+| `exportRows` | [Shape the export file](/docs/import-export/shape-export-file) |
 | `extension point` | [Plugin shape](/docs/plugins/plugin-shape) |
+| `fetchAggregates` | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `fill options` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `filter by column` | [Header filter](/docs/sort-filter-search/header-filter) |
 | `filter groups` | [Filtering](/docs/sort-filter-search/filtering) |
@@ -290,10 +345,14 @@ A search word in this table opens the page that answers it.
 | `filter operators` | [Filtering](/docs/sort-filter-search/filtering) |
 | `find in grid` | [Quick search](/docs/sort-filter-search/quick-search) |
 | `footer parts` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| `foreign key column` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `formula injection` | [Export](/docs/import-export/export) |
 | `freeze columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `freeze rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `frozen columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
+| `gate timeout` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `gateTimeoutMs` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `getrowid` | [DataGrid props](/docs/components-props/data-grid-props) |
 | `github registry` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `grid context` | [DataGridProvider](/docs/components-props/data-grid-provider) |
@@ -316,7 +375,12 @@ A search word in this table opens the page that answers it.
 | `how styling works` | [Styling model](/docs/concepts/styling-model) |
 | `id from api` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `ime enter submits` | [isComposingKey](/docs/types-hooks/is-composing-key) |
+| `import encoding` | [Control the import](/docs/import-export/control-import) |
 | `import file size limit` | [Import options](/docs/add-options/import-export/import-options) |
+| `import hooks` | [Control the import](/docs/import-export/control-import) |
+| `import server rows` | [Import into a server grid](/docs/import-export/import-server-grid) |
+| `import to server` | [Import into a server grid](/docs/import-export/import-server-grid) |
+| `import totalRowCount` | [Import into a server grid](/docs/import-export/import-server-grid) |
 | `infinite scroll` | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | `insert on server` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `invalid value` | [Validation](/docs/editing-cells/validation) |
@@ -326,6 +390,7 @@ A search word in this table opens the page that answers it.
 | `keybindings` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `keybindings dialog props` | [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options) |
 | `keyboard shortcuts in the grid` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
+| `keyset pagination` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `keyset paging` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `known issues` | [Accessibility gaps](/docs/accessibility/accessibility-gaps) |
 | `laggy` | [Performance guidance](/docs/performance/performance-guidance) |
@@ -355,18 +420,23 @@ A search word in this table opens the page that answers it.
 | `multi-field edit` | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
 | `multi-select cells` | [Selection model](/docs/concepts/selection-model) |
 | `multiplayer` | [Show presence](/docs/rows-live-data/show-presence) |
+| `named view` | [Saved views](/docs/sort-filter-search/saved-views) |
 | `new row` | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `next cursor` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `next token` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `next.js app router` | [Install gridcn](/docs/learning-path/install-gridcn) |
+| `noResults announcement` | [Live region messages](/docs/accessibility/live-region-messages) |
 | `number cell` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `number format` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `nuqs` | [URL state options](/docs/add-options/sort-filter-search/url-state-options) |
 | `observe edits` | [Plugin events](/docs/plugins/plugin-events) |
+| `ok false` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `ondatachange` | [Data change events](/docs/events-state/data-change-events) |
 | `one million rows` | [Row limits](/docs/performance/row-limits) |
 | `oneditend` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `oneditstart` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `onFill args` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
+| `onGateAborted` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `oninvalid` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `onsave` | [Save edits](/docs/save-server/save-edits) |
 | `onsaverejected` | [Save edits](/docs/save-server/save-edits) |
@@ -386,6 +456,7 @@ A search word in this table opens the page that answers it.
 | `pagination` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `paging` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `paint over cells` | [Plugin overlays](/docs/plugins/plugin-overlays) |
+| `parseFile` | [Control the import](/docs/import-export/control-import) |
 | `partial save` | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | `paste from a spreadsheet` | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `patch rows` | [Operation engine contract](/docs/contracts/operation-engine-contract) |
@@ -403,12 +474,16 @@ A search word in this table opens the page that answers it.
 | `plugin members` | [Plugin shape](/docs/plugins/plugin-shape) |
 | `plugin object type` | [Plugin shape](/docs/plugins/plugin-shape) |
 | `plugin onDataChange` | [Plugin events](/docs/plugins/plugin-events) |
+| `prefetchNextPage` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `presence highlight` | [Presence options](/docs/add-options/server/presence-options) |
 | `print options` | [Export options](/docs/add-options/import-export/export-options) |
+| `processCellFromText` | [Control the import](/docs/import-export/control-import) |
+| `processImportRows` | [Control the import](/docs/import-export/control-import) |
 | `programmatic row actions` | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `programmatic undo` | [Undo for code changes](/docs/clipboard-undo/undo-code-changes) |
 | `prop names` | [Props A to Z](/docs/cheatsheets-messages/props-z) |
 | `props` | [DataGrid props](/docs/components-props/data-grid-props) |
+| `push delete` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `query string` | [URL state](/docs/sort-filter-search/url-state) |
 | `quick start` | [Render your first grid](/docs/learning-path/render-your-first-grid) |
 | `range stack` | [Selection model](/docs/concepts/selection-model) |
@@ -424,6 +499,7 @@ A search word in this table opens the page that answers it.
 | `release notes` | [Version policy and changelog](/docs/support-upgrades/version-policy-changelog) |
 | `remap shortcuts` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `remember column layout` | [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout) |
+| `remember view` | [Saved views](/docs/sort-filter-search/saved-views) |
 | `remembered checks` | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `remote cursors` | [Presence options](/docs/add-options/server/presence-options) |
 | `remove rows` | [Row operations](/docs/rows-pages-menus/row-operations) |
@@ -434,11 +510,13 @@ A search word in this table opens the page that answers it.
 | `report a bug privately` | [Security policy](/docs/support-upgrades/security-policy) |
 | `request spec` | [Server rows options](/docs/add-options/server/server-rows-options) |
 | `required field` | [Validation](/docs/editing-cells/validation) |
+| `reshape` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `resize columns` | [Column sizing](/docs/columns/column-sizing) |
 | `responsive` | [Density and small screens](/docs/theme-style-language/density-small-screens) |
 | `restore view` | [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout) |
 | `restyle the grid` | [Styling model](/docs/concepts/styling-model) |
 | `retry failed fetch` | [Recover from load errors](/docs/scroll-mode/recover-load-errors) |
+| `revalidateInterval` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `revert edit` | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `right to left` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `right-click menu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
@@ -455,11 +533,14 @@ A search word in this table opens the page that answers it.
 | `row index` | [State and view index](/docs/concepts/state-view-index) |
 | `row position` | [State and view index](/docs/concepts/state-view-index) |
 | `row selector` | [Row markers](/docs/rows-pages-menus/row-markers) |
+| `RowActionResult` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `rows per page` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `rtl` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `save column layout` | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `save new row` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `save status` | [Save edits](/docs/save-server/save-edits) |
+| `saved view` | [Saved views](/docs/sort-filter-search/saved-views) |
+| `saveRejected` | [Live region messages](/docs/accessibility/live-region-messages) |
 | `schema` | [Validation](/docs/editing-cells/validation) |
 | `scroll event` | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `search and replace` | [Find and replace](/docs/sort-filter-search/find-replace) |
@@ -480,9 +561,11 @@ A search word in this table opens the page that answers it.
 | `semver` | [Version policy and changelog](/docs/support-upgrades/version-policy-changelog) |
 | `send selection` | [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) |
 | `series descriptor` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
+| `server aggregates` | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `server error` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `server filter` | [Query server rows](/docs/data-modes/query-server-rows) |
 | `server grid problem` | [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data) |
+| `server options` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `server pagination` | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | `server row operations` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `server rows not loading` | [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data) |
@@ -492,6 +575,7 @@ A search word in this table opens the page that answers it.
 | `server side pagination` | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | `server side sorting` | [Query server rows](/docs/data-modes/query-server-rows) |
 | `server sort` | [Query server rows](/docs/data-modes/query-server-rows) |
+| `server totals` | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `shadcn` | [Install gridcn](/docs/learning-path/install-gridcn) |
 | `share a link` | [URL state options](/docs/add-options/sort-filter-search/url-state-options) |
 | `share selection` | [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) |
@@ -501,6 +585,8 @@ A search word in this table opens the page that answers it.
 | `shortcuts outside the grid` | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 | `show columns` | [Column visibility](/docs/columns/column-visibility) |
 | `skeleton` | [Loading state](/docs/theme-style-language/loading-state) |
+| `skip reason` | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
+| `skipped patches` | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
 | `slow scrolling` | [Performance guidance](/docs/performance/performance-guidance) |
 | `sort by column` | [Sorting](/docs/sort-filter-search/sorting) |
 | `sort list` | [Sorting](/docs/sort-filter-search/sorting) |
@@ -510,6 +596,7 @@ A search word in this table opens the page that answers it.
 | `spreadsheet filter list` | [Header filter](/docs/sort-filter-search/header-filter) |
 | `spreadsheet paste` | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `stale index` | [State and view index](/docs/concepts/state-view-index) |
+| `stale row` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `state hooks` | [Store hooks](/docs/types-hooks/store-hooks) |
 | `sticky columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `sticky rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
@@ -534,6 +621,7 @@ A search word in this table opens the page that answers it.
 | `toolbar slots` | [Toolbar](/docs/sort-filter-search/toolbar) |
 | `tooltip provider` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `totals band` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
+| `totals band server` | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `totals row` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `totals row options` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
 | `toText fromText` | [Cell type model](/docs/concepts/cell-type-model) |
@@ -551,9 +639,13 @@ A search word in this table opens the page that answers it.
 | `undo scroll mode` | [Undo with server data](/docs/save-server/undo-server-data) |
 | `unknown total` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `update version` | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
+| `updateCells result` | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
+| `UpdateCellsVerdict` | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
+| `upload export` | [Shape the export file](/docs/import-export/shape-export-file) |
 | `use data grid hooks` | [Store hooks](/docs/types-hooks/store-hooks) |
 | `usedatagridclipboard` | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `usedatagridserverrows` | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `useDataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
 | `validate cell` | [Validation](/docs/editing-cells/validation) |
 | `validate row` | [Validation](/docs/editing-cells/validation) |
 | `validaterow` | [Validation](/docs/editing-cells/validation) |
@@ -561,7 +653,12 @@ A search word in this table opens the page that answers it.
 | `validation from server` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `veto edit` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `view coord` | [Exported types](/docs/types-hooks/exported-types) |
+| `view import` | [Saved views](/docs/sort-filter-search/saved-views) |
+| `view storage` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
 | `ViewCoord` | [State and view index](/docs/concepts/state-view-index) |
+| `views` | [Saved views](/docs/sort-filter-search/saved-views) |
+| `views options` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
+| `viewStale` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `virtual scroll` | [Virtualization](/docs/performance/virtualization) |
 | `vite` | [Install gridcn](/docs/learning-path/install-gridcn) |
 | `wait for typing` | [useDebounce](/docs/types-hooks/use-debounce) |

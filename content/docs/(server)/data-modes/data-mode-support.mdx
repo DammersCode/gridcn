@@ -12,7 +12,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 ## Data modes
 
 - **L**: Local array. `data` holds every row in memory.
-- **PC**: Client pagination. `useDataGridPagination` slices `data` into pages.
+- **PC**: Client pagination. `defaultPageSize` pages the view of the whole `data`.
 - **PS**: Server pagination. The server returns one page per request.
 - **Z**: Scroll rows. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
 - **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
@@ -105,7 +105,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"No swap from a client id to the server-assigned id after create."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Counts and total</th>
@@ -130,11 +130,11 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
     </tr>
     <tr>
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates</th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates (server totals through useDataGridServerAggregate)</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover the current page or warn; no server totals."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover loaded rows or warn; no server totals."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -177,8 +177,8 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Import</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Rows that onImport appends to data conflict with the row count that the server reports. Send the rows to the server and load the rows again."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
@@ -187,13 +187,13 @@ A grid feature can behave differently on a local array, on server pages and on s
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Export</th>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports the rows of the current page only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Print</th>
@@ -211,11 +211,11 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Undo warns over rows not loaded yet."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"A refused undo or redo keeps its stack entry."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row create, duplicate and delete</th>
@@ -262,6 +262,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pushes into a server-ordered view</th>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The client sorts and filters itself, so a push never leaves a row in the wrong place."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">URL state</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -270,6 +281,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"URL state drives the controlled props itself."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="gap" note={"A deep-linked set-filter list keeps at most as many values as the static choices of the column, and at least 64. The grid drops the values past that bound, and an isNoneOf list past it drops the whole filter."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Saved views</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
@@ -309,8 +331,41 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Find and replace</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Export output and cell shaping</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Import cell hook</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Replace plan cut by a hook</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -326,6 +381,39 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"Not a sort concern."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Not a filter concern."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Not a write concern."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Scroll fetch limits</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"A page mode request is one per state; a newer page aborts the older one."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Revalidation on a timer</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Next page prefetch</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"overscan already loads rows ahead on both sides."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pagination</th>
@@ -363,7 +451,7 @@ A grid feature can behave differently on a local array, on server pages and on s
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">One server data source (`useDataGridServerRows`)</th>
       <td className="text-center"><ParityCell status="n/a" note={"A local array needs no fetch."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Client pagination slices data."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"A client grid with defaultPageSize holds every row, so no fetch runs."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -393,6 +481,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"The inputs write no data."} /></td>
     </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Async lookup cell</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -413,20 +512,11 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **FS**: n/a: Search highlights loaded rows and never filters.
 - **API**: n/a: Search writes no data.
 
-### Row ids
-
-**API**: Gap: No swap from a client id to the server-assigned id after create.
-
 ### Row grouping
 
 - **L, PC**: Gap: Row grouping is not available.
 - **PS, Z, SS, FS, API**: Gap: Server grouping is not defined.
 - **C**: n/a: Grouping has no controlled state.
-
-### Pinned rows and aggregates
-
-- **PS**: Gap: Aggregates cover the current page or warn. No server totals.
-- **Z**: Gap: Aggregates cover loaded rows or warn. No server totals.
 
 ### Column pin, hide, order and size
 
@@ -438,22 +528,15 @@ Fill skips rows not loaded yet and warns.
 
 ### Import
 
-- **PC, PS, C, SS, FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state. The app decides where they land.
-- **Z**: Gap: Rows that `onImport` appends to `data` conflict with the row count that the server reports. Send the rows to the server and load the rows again.
-
-### Export
-
-- **PC**: Gap: Exports the rows of the current page only.
-- **PS, Z, SS, FS, API**: Gap: Exports loaded rows only.
+**PC, C, SS, FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state. The app decides where they land.
 
 ### Print
 
 **PC, PS, Z**: n/a: Print covers loaded rows by design.
 
-### Undo and redo
+### Pushes into a server-ordered view
 
-- **Z**: Gap: Undo warns over rows not loaded yet.
-- **API**: Gap: A refused undo or redo keeps its stack entry.
+**L, PC**: n/a: The client sorts and filters itself, so a push never leaves a row in the wrong place.
 
 ### URL state
 
@@ -464,10 +547,6 @@ Fill skips rows not loaded yet and warns.
 
 Mode-neutral by design.
 
-### Find and replace
-
-**PS, Z**: Gap: Loaded rows only. No server scope.
-
 ### Scroll row fetching
 
 - **L, PC**: n/a: Rows are in memory.
@@ -475,6 +554,20 @@ Mode-neutral by design.
 - **SS**: n/a: Not a sort concern.
 - **FS**: n/a: Not a filter concern.
 - **API**: n/a: Not a write concern.
+
+### Scroll fetch limits
+
+- **L, PC**: n/a: Rows are in memory.
+- **PS**: n/a: A page mode request is one per state. A newer page aborts the older one.
+
+### Revalidation on a timer
+
+**L, PC**: n/a: Rows are in memory.
+
+### Next page prefetch
+
+- **L, PC**: n/a: Rows are in memory.
+- **Z**: n/a: `overscan` already loads rows ahead on both sides.
 
 ### Pagination
 
@@ -494,7 +587,7 @@ Mode-neutral.
 ### One server data source (`useDataGridServerRows`)
 
 - **L**: n/a: A local array needs no fetch.
-- **PC**: n/a: Client pagination slices `data`.
+- **PC**: n/a: A client grid with `defaultPageSize` holds every row, so no fetch runs.
 
 ### Error state and retry
 

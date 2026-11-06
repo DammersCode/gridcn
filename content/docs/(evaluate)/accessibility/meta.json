@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "screen-reader-support",
+    "live-region-messages",
     "keyboard-test-coverage",
     "accessibility-gaps"
   ]

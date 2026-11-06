@@ -4,6 +4,8 @@
     "index",
     "editable-columns",
     "built-cell-types",
+    "lookup-cell",
+    "cancel-async-gates",
     "validation",
     "display-override",
     "edit-rows-forms",

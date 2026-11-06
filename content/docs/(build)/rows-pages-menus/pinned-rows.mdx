@@ -173,13 +173,17 @@ The `aria-rowindex` order is: header rows, pinned-top rows, data rows, pinned-bo
 
 Aggregates reduce the rows that the grid holds in memory. Two server modes limit that scope:
 
-- **Pagination.** `data` is the current page, so `useDataGridAggregate` covers that page. `scope: "all"` covers the same page. Fetch totals for the whole dataset from your server and pin them as a static row. See [Load rows by page](/docs/server-pagination/load-rows-page).
-- **Scroll mode.** Unloaded rows are `undefined` holes. The aggregate skips them and warns once in development, so the band covers loaded rows only. Use server totals. See [Scroll mode](/docs/scroll-mode).
+- **Client pagination.** `defaultPageSize` pages the view of the whole array. `useDataGridAggregate` totals every row that the filter leaves, not one page. Pass `scope: "page"` to total the shown page only.
+- **Server pagination.** `data` is the current page, so `useDataGridAggregate` covers that page.
+- **Scroll mode.** Unloaded rows are `undefined` holes. The aggregate skips them and warns once in development, so the band covers loaded rows only.
+
+For totals of the whole server result, use `DataGridServerAggregateReporter`. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals). <NewBadge />
 
 With `filterMode="server"` or `sortMode="server"`, the view holds the rows of the response, so `scope: "view"` covers the response.
 
 ## Related
 
 - [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options): the full option list
-- [Client pagination](/docs/rows-pages-menus/client-pagination): why a totals band is page-local
+- [Show totals from a server](/docs/data-modes/show-server-totals): totals of the whole result
+- [Client pagination](/docs/rows-pages-menus/client-pagination): totals under paging
 - [Column order and pinning](/docs/columns/column-order-pinning): pinned columns inside a band

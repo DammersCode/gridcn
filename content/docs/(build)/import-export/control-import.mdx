@@ -1,0 +1,92 @@
+---
+title: Control the import
+description: Replace the file parser, set the accepted file types and encoding, rewrite rows and cells, and handle a failed onImport.
+type: task
+aliases: ["import hooks", "parseFile", "processImportRows", "processCellFromText", "csvEncoding", "import encoding"]
+---
+
+Hook points shape the import. Pass them to `DataGridImportButton` or `DataGridImportDialog`. Every hook is optional. This line shows where each one runs:
+
+1. `parseFile` reads the file.
+2. `defaultHeaderRow` drops the rows above the header.
+3. `processImportRows` rewrites the rows.
+4. The column mapping assigns file columns to grid columns.
+5. `processCellFromText` parses each cell.
+6. `validate` checks each value.
+7. `onImport` receives the rows.
+
+<ComponentPreview name="data-grid-io-hooks-demo" />
+
+## Before you start
+
+Install `data-grid-io`. See [Import](/docs/import-export/import). A hook cannot raise a bound. Every hook result passes the same bounds as a built-in result, after the hook runs. Raise a bound with `importLimits`. The dialog rejects a file over `maxFileBytes` before `parseFile` runs.
+
+## Steps
+
+1. Pick the hooks from the table.
+2. Pass them as props. The `processCellFromText` hook in the sample trims every cell.
+
+```tsx
+import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
+import { api, type Order } from "./api";
+
+export function ImportOrders({ refresh }: { refresh: () => void }) {
+  return (
+    <DataGridImportButton<Order>
+      createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
+      importDefaults={{ defaultHeaderRow: 3 }}
+      csvEncoding="windows-1252"
+      processImportRows={({ rows }) => rows.filter((row) => row[0] !== "TOTAL")}
+      processCellFromText={(text) => text.trim()}
+      onImport={async (rows, { signal, rejected, fileName }) => {
+        await api.import(rows, { signal, fileName, skipped: rejected.length });
+        refresh();
+      }}
+      onImportError={(error) => console.error(error)}
+    />
+  );
+}
+```
+
+| Hook | Runs | What it does |
+|---|---|---|
+| `parseFile` | for every parse: file load, delimiter, sheet | Reads the file instead of the built-in parser. Return `{ rows }`: arrays of strings. The rows must fit `importLimits`. |
+| `accept` | when the drop zone opens | Sets the file types the drop zone takes. Default: csv, tsv, xls, xlsx. |
+| `csvEncoding` | when a CSV file is read | Decodes the CSV with this label instead of UTF-8. `parseFile` replaces it. |
+| `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. The dialog drops the rows above it. |
+| `importDefaults.mapColumn` | for each file header | Receives `(header, index, { signal })`. The `signal` aborts when a newer parse replaces the run or the dialog unmounts. The dialog ignores an aborted result. |
+| `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
+| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. |
+| `onImport` | after the build | Gets `rows` and `{ signal, rejected, fileName, sheetName, mapping }`. |
+| `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |
+
+The `createRow` prop receives `(index, { signal })` with the same `signal`.
+
+## Result
+
+`csvEncoding` takes one of these labels: `utf-8`, `utf-16le`, `utf-16be`, `iso-8859-1`, `iso-8859-2`, `iso-8859-15`, `windows-1250`, `windows-1251`, `windows-1252`, `windows-1253`, `windows-1254`, `windows-1257`, `shift_jis`, `euc-jp`, `euc-kr`, `gb18030`, and `big5`. The list is `IMPORT_CSV_ENCODINGS`. Any other label throws a `RangeError`.
+
+`processImportRows` and `parseFile` must return arrays of strings. A result that has another shape, or more rows, columns, or cells than `importLimits` allows, stops the import and the dialog shows an error.
+
+`processCellFromText` defaults to the grid's `processCellFromClipboard`, then to the column's `fromText`. A grid that sets `processCellFromClipboard` therefore uses it for imports too. A promise result makes the build asynchronous. The hook runs for every cell of a block of 2,000 rows at once, so limit the concurrency inside the hook. Its value still goes through the column's `validate`. The dialog clears a cell that fails. `rejected` lists it with the validator's message, cut at 200 characters.
+
+When `onImport` rejects, the dialog shows `The import failed: <message>` if the error has a message. Without one, it shows the generic line. Both texts come from `labels.io`.
+
+## Load a file from code
+
+Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one you fetched or one the user dropped on the page. The dialog loads it when it opens. For a custom dialog, `useDataGridImportPreview` returns `build()`, which runs `processImportRows` and the row build for the current preview:
+
+```tsx
+const built = await preview.build({ columns, cellTypes, createRow, signal });
+if (built) await save(built.rows);
+```
+
+## Server mode
+
+These hooks work the same in every data mode. A server grid sends the rows to its server in `onImport` and calls `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
+
+## Related
+
+- [Import](/docs/import-export/import): the dialog.
+- [Import options](/docs/add-options/import-export/import-options): every field and limit.
+- [Labels and i18n](/docs/theme-style-language/labels-i18n): the `labels.io` texts.

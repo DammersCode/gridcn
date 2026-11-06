@@ -5,7 +5,7 @@ icon: Files
 type: example
 ---
 
-In server mode, `useDataGridPagination` only does the page math. You own `page`, `pageSize`, and `totalRowCount`, and you fetch each page. A fetch library fits in the one place where you fetch. Both grids below load 25 rows per page from a fake server with about 300 ms of latency. Both write an edit to that server.
+`useDataGridServerPager` only does the page math. You own `page`, `pageSize`, and `totalRowCount`, and you fetch each page. A fetch library fits in the one place where you fetch. Both grids below load 25 rows per page from a fake server with about 300 ms of latency. Both write an edit to that server.
 
 ## TanStack Query [#tanstack-query]
 
@@ -31,7 +31,7 @@ import {
 } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
-  useDataGridPagination,
+  useDataGridServerPager,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
@@ -56,7 +56,7 @@ export function OrdersGrid() {
     placeholderData: keepPreviousData,
   });
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: query.data?.total ?? 0,

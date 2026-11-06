@@ -5,6 +5,7 @@
     "data-mode-support",
     "fetch-cache",
     "query-server-rows",
+    "show-server-totals",
     "troubleshoot-server-data"
   ]
 }

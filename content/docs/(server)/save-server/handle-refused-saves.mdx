@@ -86,6 +86,33 @@ const rejection = {
 
 If a newer write to the row is pending or has settled, the grid ignores `current`. If `getRowId(current)` throws or differs from `rowId`, the grid ignores `current` and warns once in development.
 
+## Resolve a conflict [#resolve-a-conflict]
+
+<NewBadge />
+
+When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`. `mine` is the row in the grid. `theirs` is `current`. Return one of these:
+
+| Return | Result |
+| --- | --- |
+| `"theirs"` or nothing | The grid takes the server row. |
+| `"mine"` | The grid keeps its row. |
+| `{ row }` | The grid takes your merged row. |
+
+`"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it, so the server sees the new write. History does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
+
+This handler keeps the user's `note` and takes the server's other fields:
+
+```tsx
+import type { SaveConflictContext } from "@/components/data-grid/data-grid";
+import type { Order } from "./orders";
+
+function resolveSaveConflict({ mine, theirs }: SaveConflictContext<Order>) {
+  return { row: { ...theirs, note: mine.note } };
+}
+```
+
+A change that took server content has `DataChange.serverRowIds`. `useDataGridHistory` drops the older undo steps for those rows.
+
 ## React to a refusal [#react-to-a-refusal]
 
 - The revert is one `onDataChange` call with `source: "rollback"`. The `reverts` field names the refused change. `onSave` never receives that call.

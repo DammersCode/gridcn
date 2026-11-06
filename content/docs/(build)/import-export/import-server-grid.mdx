@@ -1,0 +1,54 @@
+---
+title: Import into a server grid
+description: Send the imported rows to your server from onImport, then refresh the grid, because a grid with a row count cannot append rows.
+type: task
+aliases: ["import to server", "import server rows", "import totalRowCount"]
+---
+
+The import dialog never writes rows into the grid. `onImport(rows, { signal })` is the only exit. A grid with a `totalRowCount` or unloaded rows cannot take appended rows. The data exceeds the count, and the next refresh drops them. Send the rows to your server instead.
+
+<ComponentPreview name="data-grid-export-all-demo" />
+
+## Before you start
+
+- Install `data-grid-io`. See [Import](/docs/import-export/import).
+- Fetch the rows with `useDataGridServerRows`, so that `server.refresh()` exists.
+
+## Steps
+
+1. Pass `createRow` to `DataGridImportButton`. It builds the base row of each imported record.
+2. In `onImport`, send the rows to your API and wait for the answer.
+3. Call `server.refresh()`.
+4. Set `importLimits.maxRows` to what one request of yours accepts.
+
+```tsx
+import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
+import { api, type Order } from "./api";
+
+export function ImportOrders({ refresh }: { refresh: () => void }) {
+  return (
+    <DataGridImportButton<Order>
+      createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
+      onImport={async (rows, { signal }) => {
+        await api.createOrders(rows, { signal });
+        refresh();
+      }}
+    />
+  );
+}
+```
+
+Pass `server.refresh` as `refresh`.
+
+## Result
+
+The dialog stays pending until `onImport` settles. If it rejects, the dialog stays open and the user can retry. `signal` aborts when the user clicks Cancel or the dialog closes. A late answer after that changes nothing.
+
+The server decides where the new rows sit under the current sort. `server.refresh()` reads the new `totalRowCount` and the rows in view. Rows keep the ids that `createRow` gave them. If your server assigns ids, read them from the refreshed rows.
+
+## Related
+
+- [Import](/docs/import-export/import): the dialog.
+- [Control the import](/docs/import-export/control-import): `onImportError` and the other hooks.
+- [Save edits](/docs/save-server/save-edits): the request shape for writes.
+- [Import options](/docs/add-options/import-export/import-options): every import option and type

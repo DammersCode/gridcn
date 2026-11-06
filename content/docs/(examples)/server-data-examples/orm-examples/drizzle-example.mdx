@@ -5,13 +5,14 @@ icon: Database
 type: example
 ---
 
-This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request and answers `{ rows, totalRowCount }` from a `users` table with a serial `id` and the text columns `name`, `email`, and `role`.
+This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`. It answers `{ rows, totalRowCount }` from a `users` table with a serial `id` and the text columns `name`, `email`, and `role`.
 
 ## The route [#the-route]
 
 The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds the row id as the last sort, so no two rows tie and a page never repeats a row:
 
 ```ts fragment="needs drizzle-orm" title="app/api/grid/route.ts"
+import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
 import {
   and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, lte, ne,
   notIlike, notInArray, or, sql, type SQL,
@@ -39,40 +40,16 @@ const OPERATORS: Record<string, (c: PgColumn, v: any) => SQL> = {
   isNoneOf: (c, v) => (v.length ? notInArray(c, v) : sql`true`),
 };
 
-function isValidLeaf(node: any): boolean {
-  if (!Object.hasOwn(COLUMNS, node?.columnId)) return false;
-  if (!Object.hasOwn(OPERATORS, node.operator)) return false;
-  if (node.operator === "empty" || node.operator === "notEmpty") return true;
-  if (node.operator === "isAnyOf" || node.operator === "isNoneOf") {
-    return Array.isArray(node.value) && node.value.length <= 1000
-      && node.value.every((item: unknown) => typeof item === "string");
-  }
-  return typeof node.value === "string";
-}
+const columnRules = Object.fromEntries(
+  Object.keys(COLUMNS).map((id) => [id, { operators: Object.keys(OPERATORS) }]),
+);
 
-function isValidTree(nodes: any, depth = 0, budget = { left: 64 }): boolean {
-  return Array.isArray(nodes) && nodes.every((node: any) => {
-    if (--budget.left < 0) return false;
-    if (!Array.isArray(node?.filters)) return isValidLeaf(node);
-    const joins = node.join === "and" || node.join === "or";
-    return joins && depth < 2 && isValidTree(node.filters, depth + 1, budget);
-  });
-}
-
-const isValidSort = (sort: any) =>
-  Object.hasOwn(COLUMNS, sort?.columnId) &&
-  (sort.direction === "asc" || sort.direction === "desc");
-
-function isValidRequest(body: any): boolean {
-  const { spec, start, end } = body ?? {};
-  const { sorts, filters, searchText } = spec ?? {};
-  return (
+function readRange(body: any): { start: number; end: number } | null {
+  const { start, end } = body ?? {};
+  const valid =
     Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
-    Number.isSafeInteger(end) && end > start &&
-    typeof searchText === "string" && searchText.length <= 200 &&
-    Array.isArray(sorts) && sorts.length <= 8 && sorts.every(isValidSort) &&
-    isValidTree(filters)
-  );
+    Number.isSafeInteger(end) && end > start;
+  return valid ? { start, end } : null;
 }
 
 function toWhere(node: any): SQL | undefined {
@@ -86,10 +63,15 @@ function toWhere(node: any): SQL | undefined {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!isValidRequest(body)) {
+  const range = readRange(body);
+  if (!range) return new Response("Invalid request", { status: 400 });
+  const { start, end } = range;
+  let spec;
+  try {
+    spec = parseServerSpec(body.spec, { columns: columnRules });
+  } catch {
     return new Response("Invalid request", { status: 400 });
   }
-  const { spec, start, end } = body;
   const pattern = infix(spec.searchText);
   const where = and(
     spec.searchText
@@ -114,13 +96,13 @@ About the sample:
 
 - The grid sends every value as text. A numeric column needs `Number(value)`.
 - The grid compares text without case. The sample uses `ilike` for the pattern operators only. Compare `lower(column)` in the others to match.
-- The grid keeps two group levels at most. The sample sets the other caps: 8 sorts, 200 characters of search text, 64 filters and groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 8 sorts, 200 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, a `[min, max]` pair in which either bound can be `""`. The sample refuses it.
 - The grid's `empty` also matches a null cell. A nullable column needs an `IS NULL` test.
 - The route caps a page at 500 rows. A larger page returns fewer rows than the grid asked for.
 
-<Callout type="warn" title="Check every column id">
-Answer 400 if `columnId` is not an own key of `COLUMNS`. `Object.hasOwn` refuses inherited names such as `constructor`. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
+<Callout type="warn">
+  Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
 </Callout>
 
 ## The client [#the-client]

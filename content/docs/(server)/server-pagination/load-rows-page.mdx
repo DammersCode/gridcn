@@ -82,11 +82,11 @@ If the count shrinks below the page, the pager calls `onPageChange` once with th
 
 `totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid with `keepCheckedRows`, so checked rows survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
-If your server sends no count, answer `{ rows, hasMore }` and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists.
+If your server sends no count, answer `{ rows, hasMore }` and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. A cursor API answers `nextCursor`: see [Tune page loading](/docs/server-pagination/tune-page-loading). <NewBadge />
 
 ## Fetch the pages yourself [#own-fetch]
 
-If you fetch with your own code, call `useDataGridPagination` in its server shape. It keeps no page state. You control `page` and `pageSize`, and you set `filterMode="server"` with a controlled `filterState`, so the grid does not filter the fetched page again.
+If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state. You control `page` and `pageSize`, and you set `filterMode="server"` with a controlled `filterState`, so the grid does not filter the fetched page again.
 
 If the page, the page size, or the filters change, this grid fetches again:
 
@@ -101,7 +101,7 @@ import {
 } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
-  useDataGridPagination,
+  useDataGridServerPager,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
@@ -135,7 +135,7 @@ export function OrdersGrid() {
     };
   }, [page, pageSize, filters]);
 
-  const { pager } = useDataGridPagination({
+  const { pager } = useDataGridServerPager({
     page,
     pageSize,
     totalRowCount: total,
@@ -169,12 +169,12 @@ export function OrdersGrid() {
 }
 ```
 
-Pass `keepCheckedRows` with `totalRowCount` to keep checked rows across pages. With a cursor API, keep the cursor of each page in your own state. If the page size, sort, or filter changes, reset the chain. The `stale` flag drops the answer of a replaced request, so a slow page 2 cannot overwrite page 3. If you pass no `onPageSizeChange`, a page-size change does nothing, and development builds log a warning.
+A `totalRowCount` on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
 
 ## Related
 
+- [Tune page loading](/docs/server-pagination/tune-page-loading): a cursor API, prefetch, and a refresh timer
 - [Client pagination](/docs/rows-pages-menus/client-pagination): the same footer on a local array
 - [Server rows options](/docs/add-options/server/server-rows-options#server-mode): every option and the answer checks
 - [Keep pages in URL](/docs/server-pagination/keep-pages-url): the page in the address bar
 - [Server pagination example](/docs/server-data-examples/server-pagination-example): pages with a fetch cache
-- [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data): wrong counts and missing rows

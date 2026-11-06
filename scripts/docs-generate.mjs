@@ -388,6 +388,13 @@ const PURPOSE = {
   "DataGridSyncProps.duplicateRow": "Builds the new row for `duplicateRows` from the source row and its new data index.",
   "DataGridSyncProps.totalRowCount": "Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown.",
   "DataGridSyncProps.validateRow": "Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied.",
+  "DataGridSyncProps.gateTimeoutMs": "Aborts an async gate that has not settled after this many ms. Default: off.",
+  "DataGridSyncProps.defaultPage": "Seeds the page of a paged grid once. Default 1.",
+  "DataGridSyncProps.defaultPageSize": "Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view.",
+  "DataGridSyncProps.onPageSizeChange": "Fires with the new page size after a change of the page size.",
+  "DataGridSyncProps.onPageChange": "Fires with the new page after a page change, and with 1 after a filter change.",
+  "DataGridSyncProps.onGateAborted": "Fires once for every async gate that the grid stopped waiting for, with its name and the reason.",
+  "DataGridSyncProps.keepHiddenCheckedRows": "Deprecated alias of `rememberCheckedRows`. `rememberCheckedRows` wins when both are set.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",
 };
 

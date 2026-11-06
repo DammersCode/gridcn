@@ -51,9 +51,7 @@ function MyGrid() {
 }
 ```
 
-<Callout type="warn">
-  Mount `DataGridContextMenu` inside `DataGridProvider`. It reads the grid store, so it throws outside the provider.
-</Callout>
+`DataGridContextMenu` belongs inside `DataGridProvider`. Outside it, the grid throws an error that names the provider.
 
 ## Header surface
 

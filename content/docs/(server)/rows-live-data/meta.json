@@ -3,8 +3,11 @@
   "pages": [
     "index",
     "change-server-rows",
+    "handle-row-action-results",
     "select-server-rows",
     "stream-updates",
+    "push-server-ordered-view",
+    "read-push-verdict",
     "show-presence",
     "broadcast-your-selection"
   ]

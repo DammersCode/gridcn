@@ -5,11 +5,11 @@ type: reference
 aliases: ["page size options", "pager props", "footer parts"]
 ---
 
-`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. `DataGridPaginationBar` renders the footer from the pager. The behavior, the page-local sort and filter, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
+`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. A grid pages its view with `pageSize` on `DataGridProvider`, and `useDataGridPager()` returns its pager. `DataGridPaginationBar` renders the footer from the pager. The behavior, the page-local sort and filter, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
 
 ## Client options [#client-mode]
 
-An options object with `data` selects client mode. The hook slices `data` into pages.
+The hook slices `data` into pages.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
 
@@ -19,17 +19,25 @@ An options object with `data` selects client mode. The hook slices `data` into p
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationResult" />
 
-`pageData` is `undefined` in server mode. The pager has one shape in both modes:
+`pageData` holds the rows of the current page. The pager has one shape for every source of pages:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
 
-## Server options
+## Server pager
 
-An options object without `data` selects server mode. Its options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options).
+<NewBadge />
+
+`useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange, pageSizeOptions, onPageSizeChange })` returns `{ pager }` for rows that you fetch yourself. `totalRowCount` is a number, or `null` for an unknown size. `hasMore` is read only while `totalRowCount` is `null`. Without `onPageSizeChange`, the bar hides the page-size select. Its other options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options). Its options type is `UseDataGridServerPagerOptions`.
+
+## Grid pager
+
+<NewBadge />
+
+`useDataGridPager({ pageSizeOptions })` returns the pager of a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
 
 ## DataGridPaginationBar [#datagridpaginationbarprops]
 
-Spread the `pager` onto the bar. The bar reads no grid state, so it works inside or outside `DataGridProvider`. The `labels` prop of the grid does not reach the bar. Pass the bar its own `labels`.
+Spread the `pager` onto the bar. Inside a paged `DataGridProvider`, pass no pager and the bar reads the grid. The `labels` prop of the grid does not reach the bar. Pass the bar its own `labels`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
 

@@ -105,15 +105,22 @@ function MyGrid() {
 
 - `processCellForClipboard(value, { row, column })` returns the text of one copied cell. Without it, the `toText` of the cell type decides.
 - `processCellFromClipboard(text, { row, column })` returns the value of one pasted cell. Without it, the `fromText` of the cell type decides.
-- `processPaste({ cells, target })` receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. Return the grid to write, or `false` to veto the whole paste.
+- `processPaste({ cells, target, signal })` receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` <NewBadge /> is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, the target row is gone, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
 `processPaste` <NewBadge /> and `processCellFromClipboard` also accept a promise:
 
 ```tsx
-async function processPaste({ cells }: { cells: string[][] }) {
+async function processPaste({
+  cells,
+  signal,
+}: {
+  cells: string[][];
+  signal: AbortSignal;
+}) {
   const response = await fetch("/api/normalize-paste", {
     method: "POST",
     body: JSON.stringify(cells),
+    signal,
   });
   return response.ok ? ((await response.json()) as string[][]) : false;
 }
@@ -137,7 +144,7 @@ If the row moved, the paste follows it. The [Async gates example](/docs/validati
 | `sanitizeClipboardFormulas` | `boolean` | `false` |
 | `processCellForClipboard` | `(value, ctx) => string` | none |
 | `processCellFromClipboard` | `(text, ctx) => unknown` | none |
-| `processPaste` | `({ cells, target }) => string[][] \| false \| Promise<string[][] \| false>` | none |
+| `processPaste` | `({ cells, target, signal }) => string[][] \| false \| Promise<string[][] \| false>` | none |
 
 ## Copy and paste from code [#copy-and-paste-from-code]
 

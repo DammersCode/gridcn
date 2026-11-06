@@ -1,0 +1,120 @@
+---
+title: Lookup cell
+description: Add a cell type whose options come from a server and are searched as the user types.
+icon: Search
+type: feature
+aliases: ["async select", "foreign key column", "autocomplete cell", "server options"]
+---
+
+A `select` column takes a fixed list of choices. A foreign-key column can have thousands of options, so it needs a search. The `lookup` cell type calls your `fetchOptions` function while the user types. It stores the picked key together with its label.
+
+<ComponentPreview name="data-grid-lookup-demo" />
+
+<InstallCommand item="data-grid-lookup" manual manualSlot={<ManualInstall item="data-grid-lookup" />} />
+
+Register the type and give the column its options:
+
+```tsx
+import {
+  lookupCellType,
+  type LookupOptions,
+} from "@/components/data-grid-lookup/data-grid-lookup";
+import { DataGrid, type ColumnDef } from "@/components/data-grid/data-grid";
+
+const customerOptions: LookupOptions = {
+  fetchOptions: async ({ query, signal }) => {
+    const url = `/api/customers?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { signal });
+    return (await res.json()).map((c) => ({ value: c.id, label: c.name }));
+  },
+};
+
+type Order = { id: string; customer: string | null };
+
+const columns: ColumnDef<Order, unknown>[] = [
+  {
+    id: "customer",
+    header: "Customer",
+    accessorKey: "customer",
+    type: "lookup",
+    options: customerOptions,
+  },
+];
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return (
+    <DataGrid
+      data={orders}
+      cellTypes={{ lookup: lookupCellType }}
+      columns={columns}
+    />
+  );
+}
+```
+
+Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads pasted labels through a cache that belongs to the `fetchOptions` function.
+
+## The stored value
+
+A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
+
+A row can also hold a bare key, for example `"c9"`. The cell shows the key in muted text with a `data-unresolved` attribute until the user picks an option.
+
+## Editing
+
+Press <kbd>Enter</kbd>, press <kbd>F2</kbd>, or double-click the cell to open the editor. Typing a character opens it with that character in the search box.
+
+| Key | Action |
+| --- | --- |
+| Type | Search after the pause set by `debounceMs`. |
+| <kbd>ArrowDown</kbd>, <kbd>ArrowUp</kbd> | Move through the options. |
+| <kbd>Enter</kbd> | Pick the active option. While typing is pending, <kbd>Enter</kbd> searches first. |
+| <kbd>Escape</kbd> | Close the editor and keep the old value. |
+| <kbd>Delete</kbd> (cell not in edit) | Clear the cell. |
+
+A click on an option picks it. If `minQueryLength` is `0`, the editor opens with the default list. An IME composition searches when it ends. <kbd>Enter</kbd> and <kbd>Escape</kbd> during a composition act on the composition, not on the cell.
+
+A new request aborts the one before it through `signal`. The editor drops a late answer of an older query. A failed request shows an error line with a Retry button. A grid with `readOnly` opens no editor.
+
+## Options
+
+{/* props: LookupOptions */}
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `fetchOptions` | required | Resolves `{ value, label }[]` for `{ query, signal }`. |
+| `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
+| `minQueryLength` | `0` | Fewest typed characters that start a request. |
+| `maxResults` | `50` | Most options shown. The limit is `200`. |
+| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the text is stored as a key without a label and shown as unresolved. |
+| `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
+
+The answer is untrusted. The editor keeps only entries with a non-empty `value` (text or a finite number, stored as text) and a text `label`. It drops a repeated `value`, cuts both at 256 characters, and keeps the first `maxResults`. It renders labels as text.
+
+## Clipboard, fill, import, and export
+
+- Copy and export write the label.
+- Paste and import turn a label or a key back into the option when the column has shown or copied that option before. Any other text follows `unresolvedPaste`.
+- Fill copies the stored `{ value, label }`.
+- Clear and <kbd>Delete</kbd> store `null`.
+
+## Sort, search, and filter
+
+Sort, quick search, and the filter menu use the label. A filter value is the label text. A server that filters a lookup column compares labels.
+
+## Client and server modes
+
+The cell calls your `fetchOptions` in every data mode, because the options live on your server and not in the grid rows. Local data, pagination, scroll mode, and a server-sorted grid all use the same column definition.
+
+## Types [#types]
+
+- `LookupOption` is `{ value, label }`.
+- `LookupValue` is the stored value: a `LookupOption`, a bare key string without a label, or `null`.
+- `LookupFetchRequest` is the argument of `fetchOptions`: `query` and `signal`.
+- `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
+
+## Related
+
+- [Built-in cell types](/docs/editing-cells/built-cell-types): the seven cell types that ship in the core.
+- [Cell type model](/docs/concepts/cell-type-model): the pipeline every cell type follows.
+- [Header filter](/docs/sort-filter-search/header-filter): `fetchFilterValues` fills a set filter from a server.

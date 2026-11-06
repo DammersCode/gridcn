@@ -1,0 +1,152 @@
+---
+title: Saved views
+description: Name, save, open, and share the sort, filters, search, and column layout of a grid with the data-grid-views add-on.
+type: feature
+aliases: ["views", "data-grid-views", "saved view", "named view", "remember view", "default view", "view import"]
+---
+
+Users set up a grid the way they like it, then lose it on the next visit. `data-grid-views` saves the sort, the filters, the search text, and the column layout under a name and opens it with one click. `DataGridViews` is the toolbar button. `useDataGridViews` is the hook behind it.
+
+<ComponentPreview name="data-grid-views-demo" />
+
+<InstallCommand item="data-grid-views" manual manualSlot={<ManualInstall item="data-grid-views" />} />
+
+Place the button inside the provider:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { DataGridViews } from "@/components/data-grid-views/data-grid-views";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+function OrdersGrid({ rows }: { rows: Order[] }) {
+  return (
+    <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id}>
+      <DataGridToolbar>
+        <DataGridViews storageKey="orders-views" />
+      </DataGridToolbar>
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storageKey`. If `localStorage` is blocked or full, the views stay in memory for the page. The popover shows a save error with a Retry button.
+
+## What a view holds [#what-a-view-holds]
+
+A view holds the sort and the filters, with their groups and custom operators. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
+
+Opening a view runs the same actions as a user gesture, and only for the parts that differ from the grid. The change callbacks of a controlled `sortState`, `filterState`, `searchText`, or `columnLayout` fire for those parts.
+
+## The button [#the-button]
+
+The button shows the name of the active view. A "Modified" badge appears when the grid differs from that view. The popover has:
+
+- one row per view: open, default star, rename, and delete (the second press deletes)
+- "Update" for the active view, shown only while the grid differs from it
+- a name field and "Save as new view"
+- a text area with "Export active view" and "Import view"
+
+Opening the active view again reverts the changes. Every control is a native button or text field in the tab order of the popover. The default star is a toggle button with `aria-pressed`, and the active view has `aria-current`. Renaming accepts <kbd>Enter</kbd> to save and <kbd>Esc</kbd> to cancel. A polite status message announces each action, and a load or save failure shows as an alert with a Retry button.
+
+## Default view [#default-view]
+
+The star marks one view as the default. After the views load, the default view applies if all of these hold:
+
+- `enableDefaultView` is not `false`.
+- `value` and `defaultValue` are both unset.
+- The grid still holds its start state.
+
+A grid that something else already changed keeps its state. A link with sort or filter params from [URL state](/docs/sort-filter-search/url-state) wins over the default view when you mount both add-ons.
+
+`value` and `onValueChange` control which view is active, and `defaultValue` seeds it once:
+
+```tsx
+const [viewId, setViewId] = useState<string | null>(null);
+
+<DataGridViews value={viewId} onValueChange={setViewId} />;
+```
+
+When `value` changes, the hook opens that view. A pick only calls `onValueChange`. The grid changes when you pass the new `value` back. Saving or importing a view opens it at once and then calls `onValueChange` with its id.
+
+## Storage [#storage]
+
+A storage adapter has two functions. `load` returns the stored document, or `undefined` for none. `save` receives the whole document. Both can be async. `load` gets a signal that aborts on unmount. The hook checks everything that `load` returns, so a hand-edited document cannot break the grid.
+
+Throw from `load` when the store cannot be read. The popover then shows a Retry button and runs no save, so the stored views stay safe. A document with an unknown `version` counts as a read failure. A document over 1,000,000 characters is never saved.
+
+This adapter keeps the views on your server:
+
+```ts
+import type { DataGridViewsStorage } from "@/components/data-grid-views/data-grid-views";
+
+const serverViews: DataGridViewsStorage = {
+  load: async ({ signal }) => {
+    const response = await fetch("/api/grid-views/orders", { signal });
+    if (response.status === 404) return undefined;
+    if (!response.ok) throw new Error("Loading views failed");
+    return response.json();
+  },
+  save: async (document) => {
+    const response = await fetch("/api/grid-views/orders", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(document),
+    });
+    if (!response.ok) throw new Error("Saving views failed");
+  },
+};
+```
+
+Pass it as `storage`. A thrown error from `save` shows in the popover with a Retry button, and `onError` receives it. The change stays on screen. Saves that start while another save runs collapse into one, so the last document wins. `createLocalStorageViewsStorage(key)` is the default adapter. `createMemoryViewsStorage(seed?)` keeps views for the life of the page. Two tabs that share one `localStorage` key overwrite each other's saves.
+
+## Share a view as text [#share-a-view-as-text]
+
+"Export active view" writes the view as JSON into the text area. "Import view" reads that text and adds it as a new view. Import bounds the text and checks it against the live columns:
+
+- Import refuses text over 100,000 characters, and anything but a gridcn view file.
+- A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. The status message reports how many entries it left out.
+- A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filterOperators` keeps a value of the shape its `input` names. Any other shape drops the filter.
+- A list is cut to 1,000 entries. A view keeps at most 64 filters and 16 filter groups. The document keeps at most 50 views.
+
+## Use the hook [#use-the-hook]
+
+`useDataGridViews(options)` takes the same options as the button and returns the state and the actions for your own UI. Call it inside the provider. The full lists are on [Saved views options](/docs/add-options/sort-filter-search/saved-views-options):
+
+```tsx
+const views = useDataGridViews({ storage: serverViews });
+
+<button onClick={() => views.saveView("My view")}>Save</button>;
+```
+
+## Server mode [#server-mode]
+
+A view stores the grid state only, so it works in every data mode:
+
+- **Local array and client pagination.** Opening a view sorts and filters the local rows again.
+- **Server pages and scroll rows** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange` and `onFilterChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A filter on a set column keeps its saved values even when they are not in the `choices` of the column.
+- **Controlled state.** Your props receive the change callbacks.
+
+A view saves no page number. A view that changes the sort or the filters sends server rows back to page 1. A view that changes only the layout keeps the page.
+
+## Related
+
+- [Saved views options](/docs/add-options/sort-filter-search/saved-views-options): options, result, and storage types
+- [URL state](/docs/sort-filter-search/url-state): the same state in the address bar
+- [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout): the same idea with the default props of the grid
+- [Filtering](/docs/sort-filter-search/filtering): the state a view holds

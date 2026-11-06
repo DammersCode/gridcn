@@ -57,6 +57,7 @@ With `data`, you own the array and pass `next` back. With `defaultData`, the gri
 | `source` | What caused the change |
 | `label` | A name for the history entry, such as `"Add row"` |
 | `reverts` | On a `"rollback"` change, the change it undoes |
+| `serverRowIds` <NewBadge /> | On a change that took server content, the ids of those rows |
 
 Each operation addresses a row by `rowId`, because row ids survive sorts and filters and view indexes do not.
 
@@ -81,6 +82,8 @@ An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, 
 | `import` | A change you apply with `commitChange` and tag as an import |
 | `history` | An undo or a redo |
 | `rollback` | The revert of a refused save |
+| `merge` <NewBadge /> | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
+| `id-swap` <NewBadge /> | `actions.replaceRowId` or `actions.replaceRowIds`. `onSave` does not receive it, and history does not record it |
 | `stream` | A batch from `updateCells` or `updateRows` |
 | `replace` | A batch from find and replace |
 | `app` | A change you apply with the history `record` function |
@@ -93,7 +96,7 @@ An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, 
 
 ## onSave [#onsave]
 
-`onSave` runs once per change, after `onDataChange` and before the plugin observers. It never receives a `"rollback"` change or a `"stream"` change. Return a promise to acknowledge the change. This sample saves each change and throws on a failed request. Pass it as `onSave={save}`:
+`onSave` runs once per change, after `onDataChange` and before the plugin observers. It never receives a `"rollback"`, `"stream"`, or `"id-swap"` change. Return a promise to acknowledge the change. This sample saves each change and throws on a failed request. Pass it as `onSave={save}`:
 
 ```tsx
 import type { DataChange } from "@/components/data-grid/data-grid";
@@ -116,13 +119,15 @@ async function save(change: DataChange<Row>) {
 
 `useDataGridRowSaveStatus(rowId)` reads the `RowSaveStatus` of one row. The row carries `data-save-status="saving"` while the promise is pending. The grid reverts each refused entry through `onDataChange` with `source: "rollback"`. A refused row shows `data-save-status="failed"`.
 
+`resolveSaveConflict({ rowId, mine, theirs, change, message, signal })` decides what a refused row becomes when the server sent `current`. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). <NewBadge /> `actions.replaceRowId(oldId, row)` swaps a client id for the server id. See [Save edits](/docs/save-server/save-edits#id-swap).
+
 ### onSaveRejected [#onsaverejected]
 
 The callback fires once per refused change, after the revert. It receives a `SaveRejectedContext`: `{ change, rejected, error }`. When the promise resolved with `{ rejected }`, `error` is `null`. The grid logs a throw inside the callback and isolates it.
 
 ## onBeforeDeleteRows [#onbeforedeleterows]
 
-The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `{ rowIds, hiddenCount }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
+The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `{ rowIds, hiddenCount, signal }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
 
 A pending promise blocks a second delete. A throw or a rejection cancels the delete. If the grid became `readOnly`, or the rows or the checked rows changed while the promise was pending, the grid drops a confirmed delete.
 

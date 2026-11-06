@@ -64,6 +64,14 @@ When every numeric cell comes from one column, the `toDisplayText` of that colum
 
 The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show, it renders nothing.
 
+## Select-all banner [#select-all-banner]
+
+<NewBadge />
+
+A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region.
+
+Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size. The bar aggregates the selected cells, which sit on the current page. The `data-grid-status-bar` item depends on the shadcn `button` component.
+
 ## When it computes [#when-it-computes]
 
 The hook recomputes after the selection settles. A selection whose ranges cover up to 5,000 cells computes at once. A larger selection computes on a 150 ms trailing timer, so dragging a large range does not walk the whole selection on every frame.
@@ -110,4 +118,5 @@ The result holds `cells`, `count`, `numeric`, `sum`, `avg`, `min`, `max`, `numer
 - [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options): the props and labels
 - [Pointer selection](/docs/selection-shortcuts/pointer-selection): the gestures that build a selection
 - [Checked rows](/docs/selection-shortcuts/checked-rows): the hidden checked row count
+- [Client pagination](/docs/rows-pages-menus/client-pagination): the bar aggregates the selected cells, which sit on the current page
 - [Pinned rows](/docs/rows-pages-menus/pinned-rows): the other totals surface, for a fixed band

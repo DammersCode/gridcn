@@ -31,7 +31,7 @@ A sort, a filter, a new `data` array, and a column move, hide, or pin all rebuil
 
 A row operation therefore never reaches a record that nobody selected. Delete rows after a sort deletes the same records you selected before the sort.
 
-A checked row that a filter hides leaves the row channel. The grid remembers it by row id when you set `keepCheckedRows` together with `keepHiddenCheckedRows` or `totalRowCount`. `keepHiddenCheckedRows` works only when the grid sorts and filters on the client. With a server sort or filter, set `totalRowCount`. [Checked rows](/docs/selection-shortcuts/checked-rows) explains both options.
+A checked row that a filter hides leaves the row channel. The grid remembers it by row id when `rememberCheckedRows` is on. It is on by default while `totalRowCount` is set. On a client grid, set `rememberCheckedRows` to remember rows that a client filter hides. With a server sort or filter, set `totalRowCount`. [Checked rows](/docs/selection-shortcuts/checked-rows) explains both options.
 
 The channels behave the same in every data mode. On a server result, `keepCheckedRows` with `totalRowCount` keeps the checks by row id across pages, sorts, and filters. [Select server rows](/docs/rows-live-data/select-server-rows) covers that case.
 

@@ -55,11 +55,13 @@ export function People({ people }: { people: Person[] }) {
   A soft rule is the exception.
 </Callout>
 
+The message shows as an error line <NewBadge /> next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors. See [Blocking and soft rules](/docs/validation-examples/validation-example#blocking-and-soft-rules).
+
 If a validator throws or its promise rejects, the grid rejects the value and shows the error message. A throwing validator blocks the edit even on a soft column.
 
 ## Soft rules [#soft-rules-oninvalid]
 
-By default a rejection blocks the commit. Set `onInvalid: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded.
+By default a rejection blocks the commit. Set `onInvalid: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
 A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. In the function form, return `null` to skip the rule for a row. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
 
@@ -207,7 +209,13 @@ export function Lines({ lines }: { lines: Line[] }) {
 }
 ```
 
-`validateRow` does not run on row insert, duplicate, or delete. It does not run after you replace the `data` array. It can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
+`validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
+
+`validateRow` <NewBadge /> also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
+
+`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
+
+`validateRow` receives `{ signal }` <NewBadge /> as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
 
 ### Props [#props]
 
@@ -222,7 +230,7 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 | Prop | Type | Default |
 |---|---|---|
-| `validateRow` | `(row, rowId) => Record<string, string> \| null` or a promise of it | - |
+| `validateRow` | `(row, rowId, { signal }) => Record<string, string> \| null` or a promise of it | - |
 | `onValidationError` | `(event) => void` | - |
 
 ## Server mode

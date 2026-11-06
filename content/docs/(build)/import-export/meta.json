@@ -3,6 +3,10 @@
   "pages": [
     "index",
     "export",
-    "import"
+    "import",
+    "export-whole-result",
+    "shape-export-file",
+    "import-server-grid",
+    "control-import"
   ]
 }

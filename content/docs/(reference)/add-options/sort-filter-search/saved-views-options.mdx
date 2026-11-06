@@ -1,0 +1,44 @@
+---
+title: Saved views options
+description: Look up the options of useDataGridViews, the result it returns, the props of DataGridViews, and the storage adapter types.
+type: reference
+aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsStorage"]
+---
+
+`useDataGridViews` keeps the saved views of a grid and returns the state and the actions. `DataGridViews` renders the toolbar button on top of it. The behavior is on [Saved views](/docs/sort-filter-search/saved-views).
+
+## Options [#options]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-views/use-data-grid-views.ts" name="UseDataGridViewsOptions" />
+
+`DataGridViews` takes these options and two more props:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-views/views-menu.tsx" name="DataGridViewsProps" />
+
+Names are trimmed and cut to 80 characters. `labels` overrides the English strings of the button. `DataGridViewsLabels` lists them.
+
+## Result [#result]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-views/use-data-grid-views.ts" name="UseDataGridViewsResult" />
+
+The result reads and changes the views:
+
+- `activeViewId` and `activeView` name the open view, or are `null`.
+- `modified` is `true` when the grid differs from the active view.
+- `defaultViewId` names the view that opens first.
+- `selectView(id)` opens a view. `saveView(name)` saves the grid state under a name. `updateView(id)` replaces a view with the grid state. `renameView(id, name)` and `deleteView(id)` edit the list. `setDefaultView(id)` picks the default view.
+
+A `DataGridView` has an `id`, a `name`, and a `DataGridViewState` with the sorts, the filters, the search text, the search options, and the column layout. The storage adapter persists a `DataGridViewsDocument`: its `version`, its `views`, and its `defaultViewId`.
+
+`importView(text, { name })` returns an `ImportViewResult`: `{ ok: true, view, dropped }` or `{ ok: false, reason }`. `name` applies when the file has none. `exportView(id)` returns the view as compact JSON text, or `null` for an unknown id or a view over 100,000 characters.
+
+## Storage [#storage]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-views/view-storage.ts" name="DataGridViewsStorage" />
+
+`createLocalStorageViewsStorage(key)` returns the default adapter. `createMemoryViewsStorage(seed?)` returns an adapter that keeps views for the life of the page.
+
+## Related
+
+- [Saved views](/docs/sort-filter-search/saved-views): how views behave
+- [URL state options](/docs/add-options/sort-filter-search/url-state-options): the same state in the URL

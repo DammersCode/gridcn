@@ -44,6 +44,7 @@ async function saveOrders(change: DataChange<Order>) {
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     getRowId: (row) => row.id,
+    onSave: saveOrders,
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const response = await fetch("/api/orders/query", {
         method: "POST",
@@ -62,7 +63,6 @@ export function OrdersGrid() {
         {...server.gridProps}
         columns={columns}
         headerClickBehavior="sort"
-        onSave={saveOrders}
         className="h-96"
       />
       <DataGridPaginationBar {...server.pager} />
@@ -73,8 +73,8 @@ export function OrdersGrid() {
 
 - The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` in pages mode. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
 - `fetchRows` resolves `{ rows, totalRowCount }`. A server without a count resolves `{ rows, hasMore }`. [Server rows options](/docs/add-options/server/server-rows-options#serverrowsanswer) lists how the hook checks an answer.
-- `server.gridProps` carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `keepCheckedRows`, `loading`, `error`, `onRetry`, and `plugins`. A header click sorts only with `headerClickBehavior="sort"`.
-- Treat the request as untrusted input. Check that the filter tree has at most 2 levels of groups, 16 groups, and 64 rows. Allow only known column ids, and allow only `"and"` or `"or"` as a `join`. Cap the request body size. The [ORM examples](/docs/server-data-examples/orm-examples) show the check.
+- `server.gridProps` carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `loading`, `error`, `onRetry`, `plugins`, and your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). <NewBadge /> A header click sorts only with `headerClickBehavior="sort"`.
+- Treat the request as untrusted input. Pass it through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query. It throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. Cap the request body size. The [ORM examples](/docs/server-data-examples/orm-examples) call it. <NewBadge />
 - Put your own `onDataChange` in the hook options. A spread override drops the merge of the hook. A `plugins` prop of your own goes after the guard: `plugins={[...server.gridProps.plugins, mine]}`.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 

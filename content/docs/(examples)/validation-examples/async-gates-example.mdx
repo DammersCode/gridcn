@@ -71,6 +71,7 @@ type SkuApi = {
 | `createRow` | the insert, until every row settles | a second insert does nothing | the insert does not happen |
 | `duplicateRow` | the duplicate, until every copy settles | a second duplicate does nothing | the duplicate does not happen |
 | `validateRow` | nothing: the write commits first | a newer verdict for the row replaces it | the row gets no verdict |
+| `onBeforeDeleteRows` <NewBadge /> | the delete | the grid ignores a second delete | the delete does not happen |
 
 `mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onEditStart` returns `false` to cancel.
 
@@ -81,7 +82,9 @@ The grid reads its state again when the promise settles. It discards the result 
 - Edit start: the grid is `readOnly`, the cell is gone, or the user moved to another cell.
 - Row verdict: the row left the data.
 
-A row that moved keeps its gesture, because the grid follows the row id. A gate gets no `AbortSignal`. Show a busy state while a gate is pending, as the demo does.
+A row that moved keeps its gesture, because the grid follows the row id. The grid ignores a second gesture of the same kind until the promise settles.
+
+The grid also passes an `AbortSignal` to every gate. [Cancel async gates](/docs/editing-cells/cancel-async-gates) covers the signal, `gateTimeoutMs`, and the pending state.
 
 ## Client and server modes
 
@@ -93,6 +96,7 @@ A held gesture emits one change when the promise settles. A refetch that removes
 
 ## Related
 
+- [Cancel async gates](/docs/editing-cells/cancel-async-gates): the signal, the timeout, and the pending state
 - [Async validation example](/docs/validation-examples/async-validation-example): a schema that returns a promise
 - [Cross-field validation example](/docs/validation-examples/cross-field-validation-example): `validateRow`
 - [Clipboard](/docs/clipboard-undo/clipboard#overrides): `processPaste` and `processCellFromClipboard`

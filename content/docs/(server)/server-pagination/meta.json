@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "load-rows-page",
+    "tune-page-loading",
     "keep-pages-url"
   ]
 }

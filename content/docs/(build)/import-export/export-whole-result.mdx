@@ -1,0 +1,78 @@
+---
+title: Export the whole result
+description: Export every row of a server result, or of a paged grid, with a source function that returns the rows in batches, with limits and cancel.
+type: task
+aliases: ["export all rows", "export source", "export server rows"]
+---
+
+A paged or scroll-mode grid holds only part of its result. Pass a `source` to `exportGrid` or to `DataGridExportButton` to write all of it. This page applies to a client grid that pages its view, to server pages, and to scroll mode.
+
+<ComponentPreview name="data-grid-export-all-demo" />
+
+## Before you start
+
+- Install `data-grid-io`. See [Export](/docs/import-export/export).
+- Pick an endpoint that returns rows for the grid's `spec`: the sort, the filters, and the search text. Your server applies the spec. The grid applies nothing to the rows.
+
+## Steps
+
+1. Write the `source`. It returns an array, or an async iterable of row batches. It receives `{ spec, signal, columnIds }`.
+2. Pass it in `options`. Set `maxRows` to the most rows your server can send.
+
+```tsx
+import {
+  DataGridExportButton,
+  type ExportSourceContext,
+} from "@/components/data-grid-io/data-grid-io";
+import { api, type Order } from "./api";
+
+async function* ordersSource({ spec, signal }: ExportSourceContext) {
+  for (let offset = 0; ; offset += 500) {
+    const query = { ...spec, offset, limit: 500, signal };
+    const rows: Order[] = await api.orders(query);
+    if (rows.length === 0) return;
+    yield rows;
+  }
+}
+
+export function ExportAll() {
+  const options = { source: ordersSource, maxRows: 200_000 };
+  return <DataGridExportButton options={options} />;
+}
+```
+
+## Result
+
+With a `source`, `DataGridExportButton` adds "Export all rows" items. The plain items still export the rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". When the export ends, the button announces the row count. It says so when a limit made the file incomplete.
+
+A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass `source: () => allRows`. The source returns the rows in the order you choose.
+
+`exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` ended the export before the source did. The file then holds the rows read so far.
+
+## Limits and options
+
+{/* props: ExportRowsOptions */}
+
+| Option | Default | Meaning |
+|---|---|---|
+| `source` | none | Where the rows of the whole result come from. `scope` does not apply. |
+| `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. |
+| `maxBytes` | 256 MiB | Stops the export after this much file text. An xlsx file counts characters. |
+| `signal` | none | Cancels the export. The promise rejects and no file downloads. |
+| `onProgress` | none | Called after each batch with `{ rowCount, byteCount }`. |
+
+- Each batch must be an array. Any other value rejects the export and downloads nothing.
+- The export skips `null` and `undefined` rows.
+- A source that returns only empty batches, or far more `null` rows than `maxRows`, rejects.
+- A source that returns more rows than `maxRows` is cut at `maxRows`.
+- A `maxRows` or `maxBytes` below 0 counts as 0.
+- A CSV cell that looks like a formula gets the same quote prefix as in a loaded export.
+- A CSV export writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file.
+- An invalid `workbookName` rejects before the source runs.
+
+## Related
+
+- [Export](/docs/import-export/export): the loaded export and print.
+- [Shape the export file](/docs/import-export/shape-export-file): `columns`, `formatCell`, and `output`.
+- [Export options](/docs/add-options/import-export/export-options): every option.
+- [Server pagination](/docs/server-pagination): the page requests that the source can reuse.

@@ -1,0 +1,82 @@
+---
+title: Push into a server-ordered view
+description: Mark pushed rows as stale, reshape the view from the server, and delete rows that the server removed, when the server sorts or filters the rows.
+type: task
+aliases: ["stale row", "viewStale", "reshape", "data-row-stale", "push delete"]
+---
+
+A push (`updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`) writes a value into a grid whose order your server decides. The grid cannot move the row. It marks the row stale and lets the hook refetch. See [Stream updates](/docs/rows-live-data/stream-updates) for the push itself.
+
+This page applies with `sortMode="server"` or `filterMode="server"`. Your server orders and filters the rows. The grid never tests a pushed row against the sort or filter. A push is a call to `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`.
+
+A push that changes a column the server reads leaves the row where it is. The grid marks the row as a stale row and sets `viewStale`. The server reads these columns:
+
+- With `sortMode="server"`: the columns of the active sort.
+- With `filterMode="server"`: the columns of the filter. While the search text is not empty, every column.
+
+A stale row carries the attribute `data-row-stale`. The grid ships no style for it. Style it from the grid root:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; price: number };
+
+const columns = defineColumns<Order>()([
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+
+function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    fetchRows: async () => ({ rows: [], totalRowCount: 0 }),
+  });
+  return (
+    <DataGrid
+      {...server.gridProps}
+      columns={columns}
+      className="[&_[data-row-stale]]:text-muted-foreground"
+    />
+  );
+}
+```
+
+The `reorder` option sets the behavior per call:
+
+| Value | Behavior |
+| --- | --- |
+| `"defer"` (default) | The value changes in place and the row turns stale. |
+| `"immediate"` | As `"defer"`, and the grid asks `useDataGridServerRows` to reshape on the next frame. Without the hook, the rows stay marked and development builds warn once. |
+| `"never"` | The value changes in place and no row turns stale. |
+
+A row stops being stale when:
+
+- Your data delivers a different row object for its id.
+- Its id leaves `data`, for example by a page change, an eviction, or a delete.
+- The sort, filter, or search text changes.
+
+`reconcileView()` asks `useDataGridServerRows` to reshape and keeps the marks until the answer delivers the rows again. Without the hook, it clears the marks. When the view turns stale, the live region reads `labels.grid.viewStale` once, at most once every 30 seconds, in every data mode.
+
+A reshape is a `refresh()` that the hook runs, so the server places the rows again. Set `reshapeDelay` (milliseconds, at least 250, off by default) on the hook to reshape on its own after a push. A stale row then starts one throttled `refresh()` after the delay. A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. Without `reshapeDelay`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
+
+To remove a row that the server deleted, push a delete:
+
+```tsx
+actions.deleteRowsById(["AAPL"], { source: "stream" });
+```
+
+A push delete skips `onBeforeDeleteRows`, `onSave`, and the undo history. It unchecks the row. The cursor and the other checked rows stay where they are. The server owns the row count. Until the reshape runs, the count can be off by the deleted rows.
+
+The grid cannot place an inserted row, because it does not know the position. When the server reports a new row, call `server.reshape()`.
+
+A push to a row that is not loaded is skipped with reason `unknown-row`, and the next block brings the server value. A push made while a request is open stays: the cells that the push wrote stay on the row that the answer delivers.
+
+## Try it [#demo]
+
+The demo on [Server rows example](/docs/server-data-examples/server-rows-example) pushes score changes every 500 ms. Its switch starts and stops the feed. A button pushes a delete with `deleteRowsById(ids, { source: "stream" })`. A select sets `reshapeDelay` to off or to one second.
+
+## Related
+
+- [Stream updates](/docs/rows-live-data/stream-updates): push values into cells
+- [Query server rows](/docs/data-modes/query-server-rows): the spec your server reads
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): `reshapeDelay` and `revalidateInterval`
+- [Data mode support](/docs/data-modes/data-mode-support): pushes per data mode

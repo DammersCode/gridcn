@@ -40,6 +40,15 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 [Operation engine contract](/docs/contracts/operation-engine-contract) covers `applyChange` and `invertChange`. [Data change events](/docs/events-state/data-change-events) covers `source`.
 
+### Gates and saves [#gates-and-saves]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onEditStart`, and `import`. |
+| `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
+| `RowActionSkipReason` | A union of 7 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
+| `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
+
 ## Sort and filter [#sort-and-filter]
 
 | Type | Shape | Meaning |
@@ -49,6 +58,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `FilterOperator` | A union of 15 operator names | For example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
 | `FilterNode` | `FilterSpec \| FilterGroup` | One entry of `filterState`. |
 | `FilterGroup` | `{ filterId?, join, filters }` | Filters that match together. `join` is a `FilterJoinOperator`, `"and"` or `"or"`. |
+| `FilterOperatorInput` | `"none" \| "single" \| "range" \| "list"` | The value shape that a filter operator takes. |
 | `FilterValue` | `{ label, count? }` | One value that `fetchFilterValues` offers to a set filter. |
 | `SearchOptions` | `{ matchCase?, wholeCell? }` | The options of the quick search. |
 | `SearchMatch` | `{ row, columnId }` | One quick-search hit in view index. |

@@ -33,28 +33,52 @@ Spread `gridProps` onto `DataGrid`. For a composed layout, spread `providerProps
 
 ### Pager options [#pager-options]
 
-`pager` comes from `useDataGridPagination` in its server shape. If you fetch rows without `useDataGridServerRows`, call that hook yourself. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself.
+`pager` in pages mode comes from `useDataGridServerPager`. If you fetch rows without `useDataGridServerRows`, call that hook yourself. It returns `{ pager }`. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
 
-If `page` is outside the page range, the hook calls `onPageChange` once with the clamped page. It skips this while `totalRowCount` is `0`, so a deep link survives until the first count arrives. If you pass no `onPageSizeChange`, a page-size change does nothing, and development builds log a warning. `DataGridPaginationControls` is the result. See [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options#result).
+If `page` is outside the page range, the hook calls `onPageChange` once with the clamped page. It skips this while `totalRowCount` is `0`, so a deep link survives until the first count arrives. If you pass no `onPageSizeChange`, the bar hides the page-size select. `DataGridPaginationControls` is the result. See [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options#result).
 
 ### Without a total [#without-a-total]
 
 A server that sends no count answers `totalRowCount: null` and `hasMore`. The pager then reports `totalRowCount: null`:
 
 - The footer shows "Page 3" in place of a range.
-- Next stays enabled while `hasNextPage` is `true`, and Last stays disabled.
-- The page count is the current page, plus 1 while `hasNextPage` is `true`.
+- Next stays enabled while `hasMore` is `true`, and Last stays disabled.
+- The page count is the current page, plus 1 while `hasMore` is `true`.
 - The hook lifts a page below 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
 
 ## Scroll mode [#scroll-mode]
 
-Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source.
+Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source. <NewBadge /> Set `source: "indexed"` or `source: "cursor"` to fix the order. An indexed source that answers without `totalRowCount` warns in development.
+
+<NewBadge />
+
+`getRowId` is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
+
+<NewBadge />
+
+The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
 
 ### Scroll options [#usedatagridserverrowsscrolloptions]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
+
+### Fetch limits [#fetch-limits]
+
+<NewBadge />
+
+{/* props: UseDataGridServerRowsScrollOptions */}
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `loadDelay` | `100` | Milliseconds a block stays in the wanted range before its request starts. `0` starts at once. |
+| `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
+| `maxLoadedRows` | `10000` | Most rows kept loaded. `Infinity` keeps every row. |
+| `revalidateInterval` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. |
+| `reshapeDelay` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. |
+
+The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row-retention).
 
 ### Scroll result [#usedatagridserverrowsscrollresult]
 
@@ -63,6 +87,21 @@ Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The f
 In scroll mode, `providerProps` holds:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollProviderProps" />
+
+## Save options [#save-options]
+
+<NewBadge />
+
+Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your handler and then refreshes by the policy:
+
+{/* props: SaveRefreshOptions */}
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
+| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of `{ saved, rejected, failed }` returns whether to refresh. |
+
+`refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 
 ## Request [#serverrowsrequest]
 
@@ -129,6 +168,11 @@ export function OrdersGrid() {
 ```
 
 Your API reads `start` and `end` as the row range and returns the rows with the count of the filtered result.
+
+## Save policy types [#save-policy]
+
+- `SaveRefreshPolicy` is the value of `refreshAfterSave`: `false`, `"each"`, `"settled"`, or a function of a `SaveRefreshReport`.
+- `SaveRefreshReport` counts the saves of one batch: `saved`, `rejected`, and `failed`.
 
 ## Related
 

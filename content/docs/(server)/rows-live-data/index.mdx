@@ -13,6 +13,11 @@ A server grid holds one page or the loaded blocks, and other users or feeds chan
     href="/docs/rows-live-data/change-server-rows"
   />
   <Card
+    title="Handle row action results"
+    description="Read why a row action did nothing, and stop an async gate that never settles with gateTimeoutMs and onGateAborted."
+    href="/docs/rows-live-data/handle-row-action-results"
+  />
+  <Card
     title="Select server rows"
     description="Keep checked rows across pages, select every matching row of a server result, and send the selection to your API as ids or as a spec."
     href="/docs/rows-live-data/select-server-rows"
@@ -21,6 +26,16 @@ A server grid holds one page or the loaded blocks, and other users or feeds chan
     title="Stream updates"
     description="Push live values into cells by row id with updateCells, without a full data replacement, and control how a sorted view reacts."
     href="/docs/rows-live-data/stream-updates"
+  />
+  <Card
+    title="Push into a server-ordered view"
+    description="Mark pushed rows as stale, reshape the view from the server, and delete rows that the server removed."
+    href="/docs/rows-live-data/push-server-ordered-view"
+  />
+  <Card
+    title="Read a push verdict"
+    description="Read how many cells a push wrote, which patches the grid skipped and why, and when an async schema settles the batch."
+    href="/docs/rows-live-data/read-push-verdict"
   />
   <Card
     title="Show presence"

@@ -31,6 +31,8 @@ Props of DataGrid, DataGridProvider.
 | `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events) |
 | `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `defaultPage` | Seeds the page of a paged grid once. Default 1. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
@@ -46,18 +48,23 @@ Props of DataGrid, DataGridProvider.
 | `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `filterMode` | `"client"` filters `data`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `headerClickBehavior` | How a plain header click behaves. Default 'select'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `keepCheckedRows` | Keeps the checked rows when a cell is selected and makes row operations act only on the checked rows while any exist. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `keepHiddenCheckedRows` | Remembers a checked row that a filter hides and checks it again when the filter lets it back in. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `keepHiddenCheckedRows` | Deprecated alias of `rememberCheckedRows`. `rememberCheckedRows` wins when both are set. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `labels` | Partial i18n override, deep-merged over DEFAULT_LABELS. See useDataGridLabels. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `page` | The current page, 1-based. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `pageSize` | Shows `pageSize` rows of the sorted and filtered view at a time. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `plugins` | Installs plugins: overlay layers, row bands, data-change observers, commands, keymap bindings, and root mounts. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processCellForClipboard` | Overrides a cell's clipboard-copy text. Falls back to the cell type's `toText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processCellFromClipboard` | Overrides parsing pasted text into a cell value. Falls back to the cell type's `fromText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `readOnly` | Disables editing and delete in the whole grid. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `rememberCheckedRows` | Remembers a checked row by id when it leaves `data` and checks it again when it returns. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `rowMarkers` | Marker column mode. Default 'none'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
@@ -106,6 +113,7 @@ Props of ColumnDef.
 | `accessorKey` | Row field that holds the value. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `cellClassName` | Adds classes to every cell of the column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterable` | `false` removes the column from the filter column picker and the header filter. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `filterCompare` | Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the numeric-then-text default. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterMatch` | Replaces the text matcher for this column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterOperators` | Operators that the filter menu offers. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#fields) |

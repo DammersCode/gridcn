@@ -115,13 +115,50 @@ A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `
 
 ## Server mode
 
-Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page. An undo skips the operations for rows on other pages.
+Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page.
 
 `onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` refuses all or part of a change, the grid reverts the refused rows and removes the entry from the stack.
 
 If your `onDataChange` writes to your backend and you pass no `onSave`, the stack does not learn whether the server accepted the write. After a failed save, call `rollback(change)`.
 
-In scroll mode, undo skips rows that are not loaded. In development, it warns once. [Undo with server data](/docs/save-server/undo-server-data) covers the combination.
+### Rows that are not loaded or gone [#rows-not-loaded]
+
+<NewBadge />
+
+An update, delete, or move needs its row in `data`. An insert needs no row. If a row is missing, `undo` and `redo` apply nothing, and the live region announces the block. What happens to the entry depends on why the row is missing:
+
+| Case | Entry | `onSkip` reason |
+| --- | --- | --- |
+| Every needed row is in `data` | applied | none |
+| A needed row is a hole in a sparse `data` array (scroll mode) | stays on its stack | `"rows-not-loaded"` |
+| A needed row is gone from a dense `data` array | dropped | `"rows-gone"` |
+
+For `"rows-not-loaded"`, load the rows and call `undo` again. Pass `onSkip` to react:
+
+```tsx
+const history = useDataGridHistory({
+  onSkip: ({ direction, reason, rowIds }) => {
+    if (reason === "rows-not-loaded") {
+      toast(`Scroll to load ${rowIds.length} rows, then ${direction} again`);
+    }
+  },
+});
+```
+
+`onSkip` receives `{ direction, reason, rowIds }`. `direction` is `"undo"` or `"redo"`, and `rowIds` lists the missing rows. A throw in `onSkip` is logged and isolated. A `datasetKey` change clears both stacks without calling `onSkip`.
+
+### Refused undo and redo [#refused-undo]
+
+<NewBadge />
+
+If `onSave` refuses an undo or a redo, the grid reverts the change with a `"rollback"` change. History then puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A refused ordinary change still drops its entry.
+
+### Rows the server replaced [#server-replaced-rows]
+
+<NewBadge />
+
+- A save conflict that takes the server row, or any change with `serverRowIds`, replaces the content of those rows. History removes the operations on those rows from all older entries. An entry left with no operations goes. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict).
+- `actions.replaceRowId(oldId, row)` swaps a server-assigned id into a row. History rewrites the older entries to the new id, so an earlier edit still undoes. History does not record the swap.
 
 ## Options
 
@@ -131,6 +168,7 @@ In scroll mode, undo skips rows that are not loaded. In development, it warns on
 | --- | --- | --- |
 | `capacity` | `number` | `100` |
 | `datasetKey` | `string \| number` | none |
+| `onSkip` <NewBadge /> | `(ctx: { direction; reason; rowIds }) => void` | none |
 | `recordSources` | `readonly DataChange<TData>["source"][]` | every source except `"stream"`, `"history"`, and `"rollback"` |
 
 `useDataGridState` takes `getRowId`, `capacity`, and `datasetKey`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.

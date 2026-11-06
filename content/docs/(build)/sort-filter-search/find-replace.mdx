@@ -85,7 +85,7 @@ Replace skips a cell when:
 - the replaced text is longer than 100,000 characters,
 - the column's `validate` rejects the new value. `onValidationError` receives these cells with the source `"replace"`.
 
-The status line shows how many cells changed and how many were skipped. With an async `validate`, it shows `Validating…` until the batch settles.
+The status line shows how many cells changed and how many Replace skipped. With an async `validate`, it shows `Validating…` until the batch settles.
 
 ### Where Replace works
 
@@ -96,6 +96,31 @@ One Replace all changes at most `replaceAllLimit` cells. When more cells match, 
 The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd> and `open("find")` hide it, and <kbd>Ctrl</kbd>+<kbd>H</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
 
 A sort or filter on a replaced column does not move rows while the panel is open. The view reconciles on the next sort or filter change.
+
+### Check a replace before it runs
+
+<NewBadge />
+
+`onReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
+
+```tsx
+const findReplace = useDataGridFindReplace({
+  onReplace: async ({ plan, signal }) => {
+    const allowed = await api.checkEdit(plan.patches, { signal });
+    return allowed ? plan : false;
+  },
+});
+```
+
+The hook can drop, add, or change patches. A patch holds the new value of one cell, and it goes through the column's `validate`. A patch for a hidden column is written too, so check what the hook adds.
+
+The replace is cancelled, and the status line says `Replace cancelled`, when:
+
+- the returned plan holds more than `replaceAllLimit` patches,
+- the hook returns something that is not a plan, or rejects,
+- a row that the plan writes changes or goes away while the hook runs.
+
+A change of the find text, the replacement, or an option, a newer replace, or closing the panel aborts `signal` and drops a late answer.
 
 ## Keyboard
 
@@ -119,7 +144,9 @@ With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> with focus in 
 
 ## Server mode
 
-Find and Replace work on the rows the grid holds. In server pages mode and in scroll mode they cover the loaded rows only. A row that exists only on the server is not searched or replaced. There is no server scope.
+Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText` and let your server evaluate it.
+
+A grid with a `totalRowCount`, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. <NewBadge /> The Find field points to the note with `aria-describedby`. A local grid shows no note. Pass `showScope: true` to show it there, or `showScope: false` to hide it.
 
 Replace writes through the same path as an edit. `onDataChange` and `onSave` receive each Replace as one change with the source `"replace"`. A refused save reverts the refused cells. See [Save edits](/docs/save-server/save-edits).
 
@@ -131,6 +158,8 @@ Replace writes through the same path as an edit. `onDataChange` and `onSave` rec
 |---|---|---|---|
 | `scope` | `"view" \| "selection"` | `"view"` | Which cells Replace covers. |
 | `replaceAllLimit` | `number` | `10000` | Most cells one Replace all changes. Clamped to 1 to 100,000. |
+| `showScope` <NewBadge /> | `boolean` | by grid | Shows or hides the "Searches loaded rows only" note. Default: shown for a grid with a `totalRowCount` or a server `sortMode` or `filterMode`. |
+| `onReplace` <NewBadge /> | `({ plan, signal }) => plan \| false \| Promise` | none | Checks or changes the plan before it writes. `false` cancels. |
 
 ### planReplace
 

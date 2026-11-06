@@ -1,0 +1,41 @@
+---
+title: Tune page loading
+description: Page through a cursor API, load the next page early, and refresh the page on a timer with useDataGridServerRows in pages mode.
+type: task
+demos: compare
+aliases: ["cursor paging", "keyset pagination", "prefetchNextPage", "revalidateInterval", "next cursor"]
+---
+
+These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works.
+
+## Page through a cursor API [#cursor-chain]
+
+A keyset API returns a `nextCursor` and no page numbers. Answer `{ rows, nextCursor }`. The page request carries `cursor`, the `nextCursor` of the page before. The hook then treats the source as a cursor source:
+
+- It stores the cursor of each page it reached, and reuses it for back, forward, `refresh()`, and `retry()`.
+- It drops the chain when the sort, the filter, the search text, or the page size changes.
+- It shows a pager without a count and without a last page.
+- It moves a `page` beyond the known chain back to the furthest known page.
+
+`nextCursor: null` ends the source. Do not keep the chain in your own state.
+
+With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for you. These demos show infinite scroll and a pager over a cursor API:
+
+<ComponentPreview name="data-grid-cursor-react-query-demo" />
+
+<ComponentPreview name="data-grid-cursor-swr-demo" />
+
+## Load the next page early [#prefetch]
+
+Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. The default is `false`.
+
+## Refresh on a timer [#revalidate]
+
+Set `revalidateInterval` (at least 1000 milliseconds) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. The default is off.
+
+## Related
+
+- [Load rows by page](/docs/server-pagination/load-rows-page): the pager and the count
+- [Load without row count](/docs/scroll-mode/load-without-row-count): a cursor API in scroll mode
+- [Server rows options](/docs/add-options/server/server-rows-options#server-mode): every option
+- [Fetch with a cache](/docs/data-modes/fetch-cache): demos with a cursor API

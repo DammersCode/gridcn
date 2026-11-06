@@ -87,13 +87,52 @@ By default, every column offers the text operators: `contains`, `notContains`, `
 
 Every value is text, even for number and date columns. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
 
-Three fields change this behavior for one column:
+Four fields change this behavior for one column:
 
 - `filterOperators` replaces the list of operators the filter menu offers.
 - `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with a custom match drops `isAnyOf` and `isNoneOf` from its default operators.
 - `filterable: false` keeps the column out of the filter menu and the header filter.
+- `filterCompare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks, versions, or any order that the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order. A column with `filterMatch` ignores `filterCompare` for built-in operators.
 
 A cell type sets the same defaults with `filter.operators` and `filter.match`. The column's own fields win.
+
+### Custom operators [#custom-operators]
+
+<NewBadge />
+
+A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. A server vocabulary gets a name in the grid this way. A `FilterOperator` is a built-in operator or any string. `BuiltInFilterOperator` is the closed set of built-in operators.
+
+This column registers one operator:
+
+```tsx
+const inRegion = {
+  id: "inRegion",
+  label: "is in region",
+  input: "single",
+} as const;
+
+const columns = defineColumns<Order>()([
+  {
+    id: "city",
+    header: "City",
+    accessorKey: "city",
+    filterOperators: ["contains", inRegion],
+  },
+]);
+```
+
+{/* props: CustomFilterOperator */}
+
+| Field | Meaning |
+|---|---|
+| `id` | Stored in `filterState`, in the URL, and in the spec your server receives. It must not equal a built-in operator. |
+| `label` | The text of the operator select. |
+| `input` | The value shape: `"single"` (default), `"range"` for a from and to pair, `"list"` for a list of values, or `"none"` for no value. |
+| `match(text, filter)` | Decides on the client whether a row passes. A thrown error fails the row. |
+
+With `filterMode="server"`, the grid never calls `match`, so leave it out. Your server maps the `id` to its own query. In client mode, a custom operator without `match` does not narrow rows, and the grid warns once in development. `useDataGridUrlState` writes a custom `id` to the URL and reads it back. `parseFilterState` takes `operatorInput` to accept a custom `id`.
+
+An empty grid shows `labels.grid.noResults` <NewBadge /> ("No results") when a filter or the search hides every row. A grid with no rows and no filter shows `labels.grid.emptyState`. This holds in client and server filter mode.
 
 ## Filter menu
 

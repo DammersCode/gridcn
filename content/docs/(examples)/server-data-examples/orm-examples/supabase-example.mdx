@@ -9,13 +9,14 @@ type: example
 This recipe needs a server and is not a registry item.
 </Callout>
 
-A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
 
 ## The route [#the-route]
 
 The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string and combines the strings with `.or()`. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
 
 ```ts fragment="needs @supabase/supabase-js"
+import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
 // app/api/grid/route.ts
 import { createClient } from "@supabase/supabase-js";
 
@@ -49,53 +50,18 @@ const CLAUSES: Record<string, (c: string, v: any) => string> = {
   isNoneOf: (c, v) => `${c}.not.in.${list(v)}`,
 };
 
-function isValidLeaf(node: any): boolean {
-  if (!COLUMNS.has(node?.columnId)) return false;
-  if (!Object.hasOwn(CLAUSES, node.operator)) return false;
-  if (node.operator === "empty" || node.operator === "notEmpty") return true;
-  if (node.operator === "isAnyOf" || node.operator === "isNoneOf") {
-    return Array.isArray(node.value) && node.value.length <= 1000
-      && node.value.every((item: unknown) => typeof item === "string");
-  }
-  return typeof node.value === "string";
-}
+const columnRules = Object.fromEntries(
+  [...COLUMNS].map((id) => [id, { operators: Object.keys(CLAUSES) }]),
+);
 
-function isValidTree(nodes: any, depth = 0, budget = { left: 64 }): boolean {
-  return Array.isArray(nodes) && nodes.every((node: any) => {
-    if (--budget.left < 0) return false;
-    if (!Array.isArray(node?.filters)) return isValidLeaf(node);
-    const joins = node.join === "and" || node.join === "or";
-    return joins && depth < 2 && isValidTree(node.filters, depth + 1, budget);
-  });
-}
-
-const isValidSort = (sort: any) =>
-  COLUMNS.has(sort?.columnId) &&
-  (sort.direction === "asc" || sort.direction === "desc");
-
-function isValidRequest(body: any): boolean {
-  const { spec, start, end } = body ?? {};
-  const { sorts, filters, searchText } = spec ?? {};
-  return (
+function readRange(body: any): { start: number; end: number } | null {
+  const { start, end } = body ?? {};
+  const valid =
     Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
-    Number.isSafeInteger(end) && end > start &&
-    typeof searchText === "string" && searchText.length <= 200 &&
-    Array.isArray(sorts) && sorts.length <= 8 && sorts.every(isValidSort) &&
-    isValidTree(filters)
-  );
+    Number.isSafeInteger(end) && end > start;
+  return valid ? { start, end } : null;
 }
 
-const isEmptyGroup = (node: any) =>
-  Array.isArray(node.filters) && node.filters.length === 0;
-
-function clause(node: any): string {
-  if (!Array.isArray(node.filters)) {
-    return CLAUSES[node.operator](node.columnId, node.value);
-  }
-  return `${node.join}(${node.filters.map(clause).join(",")})`;
-}
-
-// An empty group matches every row, so an "or" with one adds no condition.
 function orClause(group: any): string {
   if (group.filters.some(isEmptyGroup)) return "";
   return group.filters.map(clause).join(",");
@@ -111,11 +77,15 @@ function applyNode(query: Query, node: any): Query {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  if (!isValidRequest(body)) {
+  const range = readRange(body);
+  if (!range) return new Response("Invalid request", { status: 400 });
+  const { start, end } = range;
+  let spec;
+  try {
+    spec = parseServerSpec(body.spec, { columns: columnRules });
+  } catch {
     return new Response("Invalid request", { status: 400 });
   }
-
-  const { spec, start, end } = body;
   const limit = Math.min(end - start, 500);
   let query = supabase.from("users").select("*", { count: "exact" });
   if (spec.searchText) {
@@ -139,8 +109,7 @@ About the sample:
 - `range(from, to)` includes both ends, hence the `- 1`.
 - The grid compares text without case. The sample uses `ilike` for the pattern operators only.
 - In `ilike` patterns, `%`, `_`, and `*` in the user text act as wildcards.
-- The grid keeps at most two group levels in a filter tree. The check refuses a deeper tree.
-- The sample sets the other caps, not the grid: 8 sorts, 200 characters of search text, 64 filters and groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 8 sorts, 200 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.

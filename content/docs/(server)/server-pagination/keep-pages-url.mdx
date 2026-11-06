@@ -79,7 +79,7 @@ A change of the page size resets `page` to 1. A change of the sort, filter, or s
 
 A link to a page past the last page requests that page first. When the row count arrives, the pager moves to the last page and writes it to the URL.
 
-With your own fetch and `useDataGridPagination` in place of `useDataGridServerRows`, the URL hook cannot see your filters. Call `url.onPageChange(1)` where you handle a filter change. Pass `totalRowCount` to `useDataGridUrlPagination` to clamp a page past the last page.
+With your own fetch and `useDataGridServerPager` in place of `useDataGridServerRows`, the URL hook cannot see your filters. Call `url.onPageChange(1)` where you handle a filter change. Pass `totalRowCount` to `useDataGridUrlPagination` to clamp a page past the last page.
 
 ## Restore the sort, filter, and search
 

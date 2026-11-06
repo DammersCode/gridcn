@@ -1923,32 +1923,32 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
           ]
         }
@@ -1979,14 +1979,14 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
           ]
         },
         "SS": {
@@ -2004,7 +2004,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
           ]
         }

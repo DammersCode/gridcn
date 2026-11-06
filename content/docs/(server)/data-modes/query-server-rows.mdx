@@ -60,9 +60,35 @@ export function OrdersGrid() {
 }
 ```
 
-The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Check the column ids and the size of the filter tree before you build a query. See [ORM examples](/docs/server-data-examples/orm-examples).
+The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and [ORM examples](/docs/server-data-examples/orm-examples).
 
 Pages mode takes the same spec. A spec change there goes back to page 1 and fetches again. In scroll mode it starts the blocks over.
+
+## Check the spec on your server [#parse-the-spec]
+
+<NewBadge />
+
+`parseServerSpec(body, { columns, limits })` from `data-grid-server` turns an untrusted request body into a bounded, typed `ServerSpec`. It throws a `ServerSpecError` with the `path` of the bad part, for example `filters[2].value`. It checks the column ids and the operators of each column. It checks the value shapes, the depth of the filter tree, and the number of sorts, filters, and groups. It checks the length of every value. It drops every key it does not know and builds no query.
+
+```ts
+import { parseServerSpec, ServerSpecError } from "@/components/data-grid-server/data-grid-server";
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  try {
+    const spec = parseServerSpec(body.spec, { columns: ["customer", "total"] });
+    // map spec.sorts, spec.filters, and spec.searchText to your query layer
+    return Response.json(await queryOrders(spec, body.start, body.end));
+  } catch (error) {
+    if (error instanceof ServerSpecError) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
+}
+```
+
+`columns` is a list of ids, or a map from id to rules: `sortable`, `filterable`, `operators`, and `customOperators`. `limits` sets `maxSorts` (8), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (200).
 
 ## Sort on the server [#sorting-a-scroll-grid]
 

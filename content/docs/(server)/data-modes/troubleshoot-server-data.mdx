@@ -22,7 +22,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 - **The count stays unknown although the server sends `total`.** The hook reads `totalRowCount` and `hasMore` only. Rename them to `totalRowCount` and `hasMore`. Development builds warn.
 - **The count stops at 10,000,000.** The hook clamps a larger count to that value.
 - **The page goes back to page 1.** Nothing needs a fix. The pages hold other rows after a change from the page-size select, the sort, the filter, or the search text. The hook resets the page.
-- **The page-size select does nothing.** With `useDataGridPagination` in its server shape, pass `onPageSizeChange`. Development builds warn without it.
+- **The page-size select does nothing.** With `useDataGridServerPager`, pass `onPageSizeChange`. Without it, the bar hides the page-size select.
 
 ## Edits and saves [#saves]
 

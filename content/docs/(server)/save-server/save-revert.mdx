@@ -159,6 +159,12 @@ The refetch replaces every row. An edit that the user made during the request sh
 
 A server often rejects one field, for example with a 422. Paint that rejection on the cell and keep the row. See [Show errors on cells](/docs/save-server/show-errors-cells).
 
+## Server grids and controlled state [#server-grids]
+
+<NewBadge />
+
+With `useDataGridServerRows`, pass `onSave` and `refreshAfterSave` to the hook. The hook fetches again after the saves settle, so Strategy B needs no code of its own. [Save edits](/docs/save-server/save-edits#server-source) lists the policies. If your app owns the controlled `sortState`, `filterState`, or `searchText`, the refresh sends the current spec. The refetched rows keep the order of the view.
+
 ## Result
 
 An edit appears in the grid before the server answers. A failed save reverts the edit. A saved edit stays, or the refetch replaces it with the server values.

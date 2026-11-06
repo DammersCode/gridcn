@@ -103,7 +103,9 @@ export const fetchFilterValues: FetchFilterValues = async (ctx) => {
 };
 ```
 
-Pass it as `fetchFilterValues={fetchFilterValues}` to `DataGridProvider`. The function receives `{ columnId, query, filters, signal }`. It returns `{ values: { label: string; count?: number }[] }`.
+Pass it as `fetchFilterValues={fetchFilterValues}` to `DataGridProvider`. The function receives `{ columnId, query, filters, signal }`. It returns `{ values: { value: string; label?: string; count?: number }[] }`.
+
+Each value has a `value` <NewBadge /> and an optional `label`. The filter stores `value`, so `filterState`, the URL, and the spec your server receives hold the code. The list shows `label`, and shows `value` when `label` is absent. Return `{ value: "DE", label: "Germany" }` for a column of country codes.
 
 {/* props: FetchFilterValuesContext */}
 
@@ -116,7 +118,7 @@ Pass it as `fetchFilterValues={fetchFilterValues}` to `DataGridProvider`. The fu
 
 The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request, or an answer without a `values` array, shows one error line, and the next open asks again. Set the texts with `labels.toolbar.headerFilterLoading` and `labels.toolbar.headerFilterError`.
 
-A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each label at 1,000 characters, and renders it as text. A list from the server stores the checked values with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
+A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each text at 1,000 characters, and renders it as text. A list from the server stores the checked `value` entries with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
 
 ## Server mode
 

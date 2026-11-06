@@ -100,9 +100,9 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 
 A hand-edited URL cannot express an unbounded view. The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups. An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, and 1,000 values for any other column. An `isNoneOf` list over the same bound drops the whole segment. The URL writes an empty list entry (the blank value) as a lone `%`. The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins. A URL beyond these limits gives fewer filters and sorts.
 
-<Callout type="warn" title="A URL-applied sort has no arrow in the default config">
-  `?sort=name:asc` reorders the rows, but the sort arrow shows only with `headerClickBehavior="sort"`. Set it, or install `data-grid-sort-list`, so users can see and clear the sort.
-</Callout>
+A sort from the URL (`?sort=name:asc`) shows its arrow in the header whatever `headerClickBehavior` says. <NewBadge /> Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
+
+The add-on checks every URL value against the live columns: their ids, their visibility, the `sortable` and `filterable` flags, and the `choices`. A spec for a column that is gone never reaches the view.
 
 ## Column layout
 
@@ -122,46 +122,47 @@ The `layout` option picks which parts of the column layout go into the URL. The 
 
 ## Pagination
 
-`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. Pagination has no store slot, so it is a standalone hook. The parent fetches `rows` for the page and page size in the URL:
+`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. It returns the controlled pair `page`, `pageSize`, `onPageChange`, and `onPageSizeChange`, plus the resolved `pageSizeOptions`. Spread the result onto `DataGridProvider`. The provider pages its view with it, and `DataGridPaginationBar` with no props reads the pager:
 
 ```tsx
 "use client";
 
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import {
-  DataGridPaginationBar,
-  useDataGridPagination,
-} from "@/components/data-grid-pagination/data-grid-pagination";
+import { DataGridProvider } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
+import { columns, type Order } from "./orders";
 
-type Order = { id: string; customer: string };
-
-const columns = defineColumns<Order>()([
-  { id: "customer", header: "Customer", accessorKey: "customer" },
-]);
-
-export function OrdersPage({ rows, total }: { rows: Order[]; total: number }) {
-  const url = useDataGridUrlPagination({ totalRowCount: total });
-  const { pager } = useDataGridPagination({ totalRowCount: total, ...url });
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  const url = useDataGridUrlPagination({ totalRowCount: rows.length });
 
   return (
-    <>
-      <DataGrid data={rows} readOnly columns={columns} getRowId={(r) => r.id} />
-      <DataGridPaginationBar {...pager} />
-    </>
+    <DataGridProvider data={rows} columns={columns} {...url}>
+      {/* grid parts */}
+      <DataGridPaginationBar />
+    </DataGridProvider>
   );
 }
 ```
 
-`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default 25). A `pageSize` outside the default list 10, 25, 50, 100 falls back to the default, and the hook returns the resolved `pageSizeOptions`. With `totalRowCount`, an out-of-range `page` clamps to the last page once the count is positive, and the clamped value goes back to the URL. A change of `pageSize` resets the URL `page` to 1.
+For a server grid, pass the same result into `useDataGridServerRows` or `useDataGridServerPager`. See [Keep pages in URL](/docs/server-pagination/keep-pages-url).
+
+`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default 25). A `pageSize` outside `pageSizeOptions` falls back to the default. Without `pageSizeOptions`, the pager list 10, 25, 50, 100 is the gate. With `totalRowCount`, an out-of-range `page` clamps to the last page once the count is positive, and the clamped value goes back to the URL. A change of `pageSize` resets the URL `page` to 1.
+
+The grid's own `setPageSize` keeps the first visible row on a page-size change. The URL hook resets to page 1 instead, because a page number is valid only for the size it was chosen at.
 
 ## Server mode
 
 The add-on restores sorts, filters, and search text through the store actions. Those actions call `onSortChange`, `onFilterChange`, and `onSearchTextChange` as any change does. With `sortMode="server"` and `filterMode="server"`, a link restores the spec and the grid never reorders or hides the rows you load. `useDataGridServerRows` sets both modes. Without the hook, set both modes on a scroll-mode grid. Otherwise the add-on sorts and filters the partial `data` on the client.
 
-The request is the restored spec, and the answer is the rows for it. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
+A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. <NewBadge /> The request is the restored spec, and the answer is the rows for it. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
 On a column with `choices`, a restored `isAnyOf` or `isNoneOf` list keeps at most `max(number of choices, 64)` values.
+
+## With saved views
+
+<NewBadge />
+
+Mount `<DataGridUrlState>` beside the saved views add-on (`data-grid-views`). The URL sets the first state, and a link with sort, filter, or search params wins over the default view. Opening a view writes its state to the URL. When you call `applyFromUrl()` on back or forward, the active view stays active and shows as modified.
 
 ## Related
 

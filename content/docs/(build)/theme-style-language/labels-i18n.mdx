@@ -79,6 +79,8 @@ function ClearFiltersButton() {
 
 [Labels reference](/docs/components-props/labels) lists every field of every group.
 
+The `grid` group <NewBadge /> also holds `noResults`, which shows when a filter or search leaves zero rows. It holds `viewStale` and `saveRejected`, a function of the row count. It holds the undo and redo notices `historyRowsNotLoaded` and `historyRowsGone`. The `statusBar` group holds the select-all banner text, and `labels.statusBar.allSelected` and `selectAllMatching` take `null` for an unknown result size. The `findReplace` group holds `scopeLoadedRows` and `replaceCancelled`.
+
 `keybindings.actions` maps an action to its name. The defaults name the built-in actions. A custom action from `commands` that the map leaves out gets a name made from its own id.
 
 ## Full German example
@@ -110,6 +112,8 @@ const de: DeepPartialLabels = {
   },
   grid: {
     emptyState: "Keine Zeilen",
+    noResults: "Keine Ergebnisse",
+    saveRejected: (n) => `${n} nicht gespeichert`,
     loading: "Wird geladen…",
     rowsChecked: (n) => `${n} ${n === 1 ? "Zeile" : "Zeilen"} ausgewählt`,
   },
@@ -118,20 +122,16 @@ const de: DeepPartialLabels = {
 
 ## Wire an i18n library [#wiring-a-real-i18n-library]
 
-`labels` is a plain object, so it works with any i18n library. Build it from your translate function. Memoize it on the active locale. A fresh object on every render makes the grid merge it again and hand out new labels on every render:
+`labels` is a plain object, so it works with any i18n library. Build it from your translate function:
 
 ```tsx
-import { useMemo } from "react";
 import { DataGrid, type DeepPartialLabels } from "@/components/data-grid/data-grid";
 
 export function OrdersGrid({ t }: { t: (key: string) => string }) {
-  const labels = useMemo<DeepPartialLabels>(
-    () => ({
-      toolbar: { searchPlaceholder: t("toolbar.searchPlaceholder") },
-      grid: { emptyState: t("grid.emptyState") },
-    }),
-    [t],
-  );
+  const labels: DeepPartialLabels = {
+    toolbar: { searchPlaceholder: t("toolbar.searchPlaceholder") },
+    grid: { emptyState: t("grid.emptyState") },
+  };
 
   return (
     <DataGrid className="h-80" defaultData={[]} columns={[]} labels={labels} />
@@ -140,6 +140,8 @@ export function OrdersGrid({ t }: { t: (key: string) => string }) {
 ```
 
 `t` stands for the translate function of your i18n library.
+
+The grid compares `labels` by content <NewBadge />, so a literal object of strings needs no `useMemo`. A label that is a function, such as `pasteBlocked`, counts as changed unless it keeps its identity. Wrap such a label, or build the object with `useMemo` keyed on your active locale.
 
 ## RTL layout
 

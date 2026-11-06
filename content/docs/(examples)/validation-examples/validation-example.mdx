@@ -5,7 +5,7 @@ icon: ShieldCheck
 type: example
 ---
 
-Each column of this grid rejects a bad value in its own way. A list above the grid names the rule of each column. Type a value that breaks a rule and press <kbd>Enter</kbd>. The editor stays open and shows the message under the cell.
+Each column of this grid rejects a bad value in its own way. A list above the grid names the rule of each column. Type a value that breaks a rule and press <kbd>Enter</kbd>. A blocking rule keeps the editor open and shows the message next to the cell. A soft rule commits the value and flags the cell.
 
 <ComponentPreview name="data-grid-validation-demo" />
 
@@ -18,9 +18,32 @@ Each column of this grid rejects a bad value in its own way. A list above the gr
 - **SKU** uses an async Standard Schema with about 800 ms of latency. SKU-001 and SKU-002 already exist. See [Async validation example](/docs/validation-examples/async-validation-example).
 - **Price** uses a transforming schema. The text `42.9` commits as `43`, because the schema output is what the cell stores.
 - **Notes** uses `onInvalid: "warn"`. A note over 12 characters commits, and the cell stays flagged until a valid commit.
-- **Zod Score**, **Joi Code**, and **Valibot Tag** each use a library schema. A rejection shows the message of the library.
+- **Zod Score**, **Joi Code**, and **Valibot Tag** each use a library schema. Break each one to read its message.
 
 To try the bulk path, copy a column of mixed ages from a spreadsheet and paste it onto Age. The valid cells commit and the invalid cells drop.
+
+## Blocking and soft rules [#blocking-and-soft-rules]
+
+<NewBadge />
+
+The demo lists the kind of every column above the grid. `onInvalid: "warn"` makes a rule soft.
+
+| | Blocking rule (default) | Soft rule (`onInvalid: "warn"`) |
+| --- | --- | --- |
+| Demo columns | Age, Email, SKU, Price, Zod Score, Joi Code, Valibot Tag | Notes |
+| <kbd>Enter</kbd>, <kbd>Tab</kbd>, or a click on another cell | The editor stays open | The editor closes |
+| The value | Stays out of the data | Enters the data as typed |
+| Message on hover | Yes, while the editor is open | Yes, always |
+| Message in a line next to the cell | Yes, while the editor is open | When the user edits the flagged cell again |
+| <kbd>Escape</kbd> | Cancels the edit and restores the old value. The error goes away | Cancels the edit. A flagged cell keeps its flag |
+| The error ends when | The user commits a valid value, or cancels with <kbd>Escape</kbd> | The user commits a valid value |
+| Paste and fill | Invalid cells drop | Invalid cells drop |
+
+For a value that must never reach your data, such as an amount, use a blocking rule. For a value that is allowed but needs a second look, such as a long note, use a soft rule.
+
+Every cell that shows an error also shows its message on hover, and carries it in `aria-description`. A cell that is not being edited shows a tooltip. A cell with an open editor shows the native tooltip (its `title`). It also shows the line next to the cell, so the user reads the message without a hover.
+
+A server rejection set with `actions.setCellErrors` looks like a soft flag. It has the same ring, tint, and tooltip, and the value stays in the grid. The cell shows the line when the user opens it. The next commit of a new value clears the error. See [Server errors example](/docs/validation-examples/server-errors-example).
 
 ## Write the rules [#function-form]
 

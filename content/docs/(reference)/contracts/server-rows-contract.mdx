@@ -27,7 +27,7 @@ For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race g
 
 ## The contract
 
-1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount, so a spec restored at mount never sorts or filters on the client.
+1. Pass `totalRowCount` (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there. <NewBadge />
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
@@ -92,8 +92,8 @@ new order.
 
 The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
 indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
-response holds the matching rows. The tree is untrusted input. Check its depth, size, and column
-names before you build a query (the [ORM recipes](/docs/server-data-examples) show the check).
+response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` <NewBadge /> before
+you build a query. It checks the depth, the size, the column ids, the operators, and the value shapes (the [ORM examples](/docs/server-data-examples/orm-examples) call it). See [Query server rows](/docs/data-modes/query-server-rows#parse-the-spec).
 
 The header filter popover and the `isAnyOf` input of the filter menu list the values of the
 loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See
@@ -125,7 +125,7 @@ calls your `onPageChange` once with the clamped page. It skips this while `total
 
 The cell range and the active cell follow their row ids while the rows stay in `data`. A page
 change or refetch that removes a row drops it from the range. Checked rows depend on `totalRowCount`:
-without it, a checked row that leaves `data` drops out. With it (and `keepCheckedRows`), the grid
+without it, a checked row that leaves `data` drops out. With it, the grid
 remembers the check by row id and checks the row again when it returns. See
 [Selection and bulk actions](#selection-and-bulk-actions).
 
@@ -136,8 +136,8 @@ remembers the check by row id and checks the row again when it returns. See
 Pass the filtered row count to the provider as `totalRowCount`. It sizes the "select all" count and
 marks `data` as a window of a larger result. A server that sends no count works in both modes:
 
-- Pages: answer `{ rows, hasMore }` to `useDataGridServerRows`, or pass `useDataGridPagination({ page, pageSize, totalRowCount: null, hasNextPage, onPageChange })`. The footer shows
-  "Page N" and enables Next while `hasNextPage` is true. See [Pager options](/docs/add-options/server/server-rows-options#without-a-total).
+- Pages: answer `{ rows, hasMore }` to `useDataGridServerRows`, or pass `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })`. The footer shows
+  "Page N" and enables Next while `hasMore` is true. See [Pager options](/docs/add-options/server/server-rows-options#without-a-total).
 - Scroll: `useDataGridServerRows({ mode: "scroll" })` loads a cursor chain and grows the list in steps. Answer
   `{ rows, nextCursor }`, or `{ rows, hasMore }` without a cursor. See
   [A source with no total](/docs/scroll-mode/load-without-row-count#a-source-with-no-total). When the source sends no count, `gridProps` carries `totalRowCount: null` until the source ends.
@@ -146,7 +146,7 @@ marks `data` as a window of a larger result. A server that sends no count works 
 
 <NewBadge />
 
-Set `keepCheckedRows` and `totalRowCount` (`useDataGridServerRows` sets both). Checks then survive page changes, evictions, and server sort
+Set `totalRowCount` (`useDataGridServerRows` sets it). It turns on `rememberCheckedRows`, so checks survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result. Render this button inside the `DataGridProvider`:
 
 ```tsx
@@ -222,7 +222,7 @@ export function SavedOrders({ first, save, notify }: SavedProps) {
 }
 ```
 
-`onSave` never receives the revert (`source: "rollback"`) or a server push (`source: "stream"`). See
+`onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`). <NewBadge /> Pass `resolveSaveConflict` to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
 [Handle refused saves](/docs/save-server/handle-refused-saves#strategy-c-acknowledge-each-change)
 and [Fetch with a cache](/docs/data-modes/fetch-cache).
 
@@ -237,8 +237,9 @@ until your API answers. The grid drops the answer of a gate, with no error, in t
 - an editor is open when a pending paste settles,
 - the user moves to another cell during a pending edit start.
 
-A gate gets no `AbortSignal`. Show a busy state while a gate is pending. The grid ignores a
-second paste, edit start, insert, or duplicate until the first one settles.
+Every gate receives an `AbortSignal` that aborts when the result cannot apply. `gateTimeoutMs` <NewBadge /> aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
+`useDataGridGatePending()` while a gate is pending. The grid ignores a second paste, edit start, insert, or
+duplicate until the first one settles.
 
 `validateRow` runs after the write commits, and its verdict sets the row errors.
 
@@ -283,6 +284,10 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
   Without both modes set to `"server"`, a URL-restored spec sorts and filters partial data in the
   browser. The result is wrong, and the grid shows no error.
 </Callout>
+
+### Check the request on your server [#parse-server-spec]
+
+`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: the most sorts, filters, groups, and the longest value.
 
 ## Related
 

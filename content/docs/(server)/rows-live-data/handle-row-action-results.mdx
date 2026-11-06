@@ -1,0 +1,33 @@
+---
+title: Handle row action results
+description: Read why a row action did nothing, and stop an async gate that never settles with gateTimeoutMs and onGateAborted.
+type: task
+aliases: ["RowActionResult", "gateTimeoutMs", "onGateAborted", "ok false", "gate pending"]
+---
+
+`insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, and `deleteRowsById` can do nothing. They tell you why. A gate such as `onBeforeDeleteRows` can also wait forever. This page covers both. See [Change server rows](/docs/rows-live-data/change-server-rows) for the actions.
+
+## Read the result of an action [#action-results]
+
+Each of the five row actions returns `{ ok: true }` once it ran or an async gate started. Otherwise it returns `{ ok: false, reason }`. The `reason` names the cause:
+
+| `reason` | Meaning |
+| --- | --- |
+| `"readOnly"` | The grid is read-only. |
+| `"unloaded-rows"` | A target row is not loaded. |
+| `"gate-pending"` | The promise of `createRow`, `duplicateRow`, or `onBeforeDeleteRows` has not settled. |
+| `"no-factory"` | `createRow` or `duplicateRow` is missing. |
+| `"gate-declined"` | `onBeforeDeleteRows` returned `false`. |
+| `"gate-threw"` | `onBeforeDeleteRows` threw. |
+| `"nothing-to-do"` | No target row matched, or `count` was 0. |
+ `reorderRows` and `moveRowsBy` return `true` or `false`.
+
+## Stop a gate that never settles [#gate-timeout]
+
+Set `gateTimeoutMs` to abort an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise has not settled in time. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
+
+## Related
+
+- [Row operations](/docs/rows-pages-menus/row-operations): the gates and the factories
+- [Change server rows](/docs/rows-live-data/change-server-rows): the actions on server rows
+- [Data change events](/docs/events-state/data-change-events): the row operations that a change reports

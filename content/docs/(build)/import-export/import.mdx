@@ -56,6 +56,8 @@ export function ImportOrders() {
 
 `onImport(rows)` decides where the rows land: append, replace, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 
+A `commitChange` runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. <NewBadge /> You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validation).
+
 `commitChange` reaches `onDataChange` and `onSave` like a gesture, and `useDataGridHistory` records one entry. Replacing `data` does neither.
 
 ## Walk through the dialog
@@ -124,7 +126,7 @@ Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change 
 - `defaultDelimiter` sets the delimiter and skips detection. `autoDetectDelimiter: false` without it means a comma.
 - `defaultHeaderRow` sets the header toggle.
 - `defaultSkipColumns` skips source columns by header text (any case) or 0-based index.
-- `mapColumn(header, index)` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. The dialog does not compare the answers. When two answers name one grid column, the later one wins on import.
+- `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. The dialog does not compare the answers. When two answers name one grid column, the later one wins on import.
 
 [Import options](/docs/add-options/import-export/import-options) lists every field.
 
@@ -138,11 +140,12 @@ The dialog's drop target is the `dropzone` item, which `data-grid-io` installs. 
 
 ## Server mode
 
-Import reads no sort, filter, page, or server state. Scroll mode has a gap: rows that `onImport` appends to `data` conflict with the row count that the server reports. In a server grid, send the rows to your API from `onImport` and return the request's promise. A failed request keeps the dialog open with an error. After it resolves, load the rows again. [Save edits](/docs/save-server/save-edits) shows the request.
+Import reads no sort, filter, page, or server state. The dialog never writes rows into the grid. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so send the rows to your API from `onImport` and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid). <NewBadge />
 
 ## Related
 
-- [Import options](/docs/add-options/import-export/import-options): every `importDefaults` and `importLimits` field.
+- [Control the import](/docs/import-export/control-import): `parseFile`, `csvEncoding`, `processImportRows`, `processCellFromText`, and `onImportError`.
+- [Import into a server grid](/docs/import-export/import-server-grid): send the rows to your server.
+- [Import options](/docs/add-options/import-export/import-options): every field and limit.
 - [Export](/docs/import-export/export): the matching CSV and XLSX download.
 - [Validation](/docs/editing-cells/validation): the `validate` check that clears a cell on import.
-- [Undo and redo](/docs/clipboard-undo/undo-redo): how an import becomes one history entry.

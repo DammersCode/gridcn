@@ -140,6 +140,14 @@ A `DropzoneRejection` is `{ file, reasons }`. Each reason is `accept`, `maxSize`
 
 The root carries `data-drag-active` during a drag and `data-disabled` while `disabled` is `true`.
 
+## Types [#types]
+
+- `ProcessCellFromText` converts the text of one imported cell. It receives the text and `{ row, column, source, signal }`.
+- `ProcessImportRows` rewrites or drops the data rows before they are mapped. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
+- `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
+- `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter }`.
+- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, and `sheetName`.
+
 ## Related
 
 - [Import](/docs/import-export/import): the dialog, the Excel rules, and the limits in use.
