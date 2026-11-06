@@ -28,16 +28,18 @@ import {
 import {
   GRID_ATTR,
   isComposingKey,
+  isDev,
   useDataGridInputDebounce,
   useDataGridInstanceId,
+  useDataGridSelector,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MAX_REPLACE_INPUT_LENGTH, planReplace, type ReplaceOptions } from "./plan-replace";
+import { MAX_REPLACE_INPUT_LENGTH, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
 
 export type PanelStore = {
-  getOptions(): ReplaceOptions;
-  setOptions(options: ReplaceOptions): void;
+  getOptions(): PanelOptions;
+  setOptions(options: PanelOptions): void;
   getState(): { open: boolean; mode: "find" | "replace"; openCount: number };
   subscribe(listener: () => void): () => void;
   open(mode: "find" | "replace"): void;
@@ -45,10 +47,44 @@ export type PanelStore = {
   close(): void;
 };
 
+/** Replace options plus the panel's own: `showScope` forces the loaded-rows note on or off; unset it shows when the result can exceed the loaded rows. */
+export type PanelOptions = ReplaceOptions & {
+  showScope?: boolean;
+  onReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
+};
+
 type PanelProps = { panelStore: PanelStore };
 
-type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | null;
+type Status = { kind: "replaced"; replaced: number; skipped: number; more: boolean } | { kind: "validating" } | { kind: "cancelled" } | null;
 
+
+/** True when a row the plan writes is gone or is another object since the plan was built. */
+function patchedRowsChanged(before: { data: readonly unknown[]; getRowId: (row: never, index: number) => string }, after: { data: readonly unknown[]; getRowId: (row: never, index: number) => string }, plan: ReplacePlan): boolean {
+  const ids = new Set(plan.patches.map((patch) => patch.rowId));
+  const rowsBefore = new Map<string, unknown>();
+  before.data.forEach((row, index) => {
+    if (row === undefined) return;
+    const id = before.getRowId(row as never, index);
+    if (ids.has(id)) rowsBefore.set(id, row);
+  });
+  let seen = 0;
+  for (let index = 0; index < after.data.length; index++) {
+    const row = after.data[index];
+    if (row === undefined) continue;
+    const id = after.getRowId(row as never, index);
+    if (!rowsBefore.has(id)) continue;
+    seen++;
+    if (rowsBefore.get(id) !== row) return true;
+  }
+  return seen < rowsBefore.size;
+}
+
+function isUsablePlan(plan: unknown, limit: number): plan is ReplacePlan {
+  if (typeof plan !== "object" || plan === null) return false;
+  const { patches } = plan as { patches?: unknown };
+  if (!Array.isArray(patches) || patches.length > limit) return false;
+  return patches.every((patch: unknown) => typeof patch === "object" && patch !== null && typeof (patch as { rowId?: unknown }).rowId === "string" && typeof (patch as { columnId?: unknown }).columnId === "string");
+}
 
 export function FindReplacePanel({ panelStore }: PanelProps): ReactNode {
   const { open, mode, openCount } = useSyncExternalStore(panelStore.subscribe, panelStore.getState, panelStore.getState);
@@ -66,6 +102,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const capped = useDataGridSearchCapped();
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
+  const resultExceedsLoaded = useDataGridSelector<unknown, boolean>((state) => state.totalRowCount !== undefined || state.sortMode === "server" || state.filterMode === "server");
+  const showScope = panelStore.getOptions().showScope ?? resultExceedsLoaded;
+  const scopeId = useId();
 
   const delayMs = useDataGridInputDebounce();
   const [replacement, setReplacement] = useState("");
@@ -83,6 +122,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [position, setPosition] = useState<{ top: number; end: number; rtl: boolean }>({ top: 8, end: 8, rtl: false });
   const findRef = useRef<HTMLInputElement | null>(null);
   const applyTokenRef = useRef(0);
+  const hookControllerRef = useRef<AbortController | null>(null);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
@@ -94,6 +134,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     findRef.current?.select();
     return () => {
       applyTokenRef.current++;
+      hookControllerRef.current?.abort();
     };
   }, []);
 
@@ -104,7 +145,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   useEffect(() => {
     replacedRef.current.clear();
     setStatus(null);
-  }, [searchedText]);
+    applyTokenRef.current++;
+    hookControllerRef.current?.abort();
+  }, [searchedText, searchOptions]);
 
   const closePanel = () => {
     panelStore.close();
@@ -164,6 +207,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
+    applyTokenRef.current++;
+    hookControllerRef.current?.abort();
     replacedRef.current.clear();
     jumpOnCommitRef.current = null;
     findInput.inputProps.onChange(event);
@@ -198,38 +243,80 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const replaced = replacedRef.current;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
     const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
-    if (!only) {
-      if (!plan.remaining) replaced.clear();
-      else for (const { rowId, columnId } of plan.patches) replaced.set(rowId, (replaced.get(rowId) ?? new Set()).add(columnId));
-    }
-    const verdict = plan.patches.length === 0 ? null : api.actions.updateCells(plan.patches, { source: "replace", reorder: "defer" });
-    const token = ++applyTokenRef.current;
-    const finish = (settled: { applied: number; skipped: readonly unknown[] } | null) => {
-      setStatus({
-        kind: "replaced",
-        replaced: settled?.applied ?? 0,
-        skipped: plan.skipped.length + (settled?.skipped.length ?? 0),
-        more: plan.remaining,
-      });
-      runSearch(find, searchOptions);
-      if (only) {
-        const left = api.store.getState().searchMatches.length;
-        if (left > 0) goTo(Math.min(cursor, left - 1));
+    const run = (finalPlan: ReplacePlan) => {
+      if (!only) {
+        if (!finalPlan.remaining) replaced.clear();
+        else for (const { rowId, columnId } of finalPlan.patches) replaced.set(rowId, (replaced.get(rowId) ?? new Set()).add(columnId));
       }
+      const verdict = finalPlan.patches.length === 0 ? null : api.actions.updateCells(finalPlan.patches, { source: "replace", reorder: "defer" });
+      const token = ++applyTokenRef.current;
+      const finish = (settled: { applied: number; skipped: readonly unknown[] } | null) => {
+        setStatus({
+          kind: "replaced",
+          replaced: settled?.applied ?? 0,
+          skipped: finalPlan.skipped.length + (settled?.skipped.length ?? 0),
+          more: finalPlan.remaining,
+        });
+        runSearch(find, searchOptions);
+        if (only) {
+          const left = api.store.getState().searchMatches.length;
+          if (left > 0) goTo(Math.min(cursor, left - 1));
+        }
+      };
+      if (verdict?.pending) {
+        setStatus({ kind: "validating" });
+        void verdict.settled?.then(
+          (settled) => {
+            if (token === applyTokenRef.current) finish(settled);
+          },
+          () => {
+            if (token === applyTokenRef.current) finish(null);
+          },
+        );
+        return;
+      }
+      finish(verdict);
     };
-    if (verdict?.pending) {
-      setStatus({ kind: "validating" });
-      void verdict.settled?.then(
-        (settled) => {
-          if (token === applyTokenRef.current) finish(settled);
-        },
-        () => {
-          if (token === applyTokenRef.current) finish(null);
-        },
-      );
+
+    const onReplace = panelStore.getOptions().onReplace;
+    if (!onReplace) {
+      run(plan);
       return;
     }
-    finish(verdict);
+    hookControllerRef.current?.abort();
+    const controller = new AbortController();
+    hookControllerRef.current = controller;
+    const hookToken = ++applyTokenRef.current;
+    setStatus({ kind: "validating" });
+    const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
+    const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
+    void Promise.resolve()
+      .then(() => onReplace({ plan, signal: controller.signal }))
+      .then(
+        (result) => {
+          if (!current()) return;
+          const latest = api.store.getState();
+          if (latest.readOnly || latest.editing !== null || result === false) {
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          if (!isUsablePlan(result, limit)) {
+            if (isDev()) console.warn("[data-grid-find-replace] onReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          if (latest.data !== s.data && patchedRowsChanged(s, latest, result)) {
+            setStatus({ kind: "cancelled" });
+            return;
+          }
+          run({ patches: result.patches, skipped: Array.isArray(result.skipped) ? result.skipped : [], remaining: result.remaining === true });
+        },
+        (error: unknown) => {
+          if (!current()) return;
+          if (isDev()) console.warn("[data-grid-find-replace] onReplace threw; the replace is cancelled", error);
+          setStatus({ kind: "cancelled" });
+        },
+      );
   };
 
   const replaceOne = () => {
@@ -273,6 +360,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const noResults = status === null && find.trim() !== "" && searchedText === find && !hasMatches;
   const statusText = (() => {
     if (status?.kind === "validating") return labels.validating;
+    if (status?.kind === "cancelled") return labels.replaceCancelled;
     if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
     if (find.trim() === "") return labels.typeToSearch;
     if (searchedText !== find) return "";
@@ -333,6 +421,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             onChange={onFindChange}
             onKeyDown={onFindKeyDown}
             aria-label={labels.findLabel}
+            aria-describedby={showScope ? scopeId : undefined}
             placeholder={labels.findLabel}
             className="h-8 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
@@ -358,6 +447,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             onChange={(event) => {
               setReplacement(event.target.value);
               replacedRef.current.clear();
+              applyTokenRef.current++;
+              hookControllerRef.current?.abort();
             }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}
@@ -372,6 +463,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             <ReplaceAll />
           </Button>
         </div>
+      )}
+      {showScope && (
+        <p id={scopeId} className="px-1 text-xs text-muted-foreground">
+          {labels.scopeLoadedRows}
+        </p>
       )}
       <div role="status" aria-live="polite" title={statusText} className={cn("h-5 truncate px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
         {statusText}

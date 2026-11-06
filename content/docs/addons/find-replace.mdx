@@ -80,6 +80,43 @@ The Replace row holds the Replace field, the Replace button, and the Replace all
 status line shows how many cells changed and how many were skipped. With an async `validate`, it
 shows `Validating…` until the batch settles.
 
+## Rows the search covers
+
+<NewBadge />
+
+Find and Replace work on the rows the grid holds. A grid with a `totalRowCount`, or with a server
+`sortMode` or `filterMode`, holds only part of its result. The panel then shows "Searches loaded
+rows only" under the fields, and the Find field points to the note with `aria-describedby`.
+A search that finds nothing there does not mean the server result has no match.
+
+The note is off for a local grid. Client pages hold one page of the rows without a count. Pass
+`showScope: true` to `useDataGridFindReplace` to show the note there. `showScope: false` hides it.
+To search the whole result, filter or search on the server through the grid's `searchText`.
+
+## Check a replace before it runs
+
+<NewBadge />
+
+`onReplace` runs after the panel builds the list of changes and before it writes them. It gets the
+`plan` and a `signal`. Return the plan to write, or `false` to cancel:
+
+```tsx
+const findReplace = useDataGridFindReplace({
+  onReplace: async ({ plan, signal }) => {
+    const allowed = await api.checkEdit(plan.patches, { signal });
+    return allowed ? plan : false;
+  },
+});
+```
+
+The hook may drop, add, or change patches. The returned plan holds at most `replaceAllLimit`
+patches. A longer plan, a result that is not a plan, or a rejection cancels the replace, and the
+status line says `Replace cancelled`. A patch holds the new value of one cell, and it goes through
+the column's `validate`. A patch for a hidden column is written too, so check what the hook adds.
+A change of the find text, the replacement, or an option, a newer replace, or closing the panel
+aborts `signal` and drops a late answer. If a row that the returned plan writes is
+changed or removed while the hook runs, the replace is cancelled. The hook sees the same rows the panel searches: the loaded rows.
+
 ## Where Replace works
 
 Replace covers the visible columns of the rows in the view. Hidden columns, filtered-out rows,

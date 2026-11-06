@@ -93,8 +93,9 @@ ignores view order entirely and exports every row of the raw `data` array as-is.
 Every scope emits all visible columns, so an exported row always lines up with its header row. A
 cell range that covers part of a row still exports that row in full.
 
-Export covers only loaded rows: on a [lazy](/docs/lazy-loading) grid, unloaded rows are skipped
-in every scope. Export after the range you need is loaded.
+Without a `source`, export covers the rows the grid holds: a page, or the loaded blocks of a
+scroll-mode grid. Unloaded rows are skipped in every scope. To export the whole result, see
+[Export the whole result](#export-the-whole-result).
 
 `DataGridExportButton` forwards its `options` prop to `exportGrid`, so
 `<DataGridExportButton options={{ scope: "selection" }} />` makes its menu export the selection.
@@ -103,12 +104,126 @@ in every scope. Export after the range you need is loaded.
 scope holds more rows, the export keeps the first `maxRows` rows and the dev console warns.
 
 XLSX exports name their single sheet `workbookName` (default `'Sheet1'`). A name that Excel does not
-accept as a sheet name rejects the export: more than 31 characters, one of `[ ] : * ? / \`, or
-`History`. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
+accept as a sheet name rejects the export: an empty name, more than 31 characters, one of
+`[ ] : * ? / \`, a leading or trailing apostrophe, or `History` in any letter case. `buildXlsx(state, options)` builds the workbook as a `Blob` without triggering a
 download, for uploads to a server. The xlsx file is compressed.
 
 `DataGridExportButton` takes an `onError` callback for a failed export. Without one, a failure
 logs a dev-only warning.
+
+## Export the whole result
+
+<NewBadge />
+
+A paged or scroll-mode grid holds only part of its result. Pass a `source` to export all of it.
+`source` is a function that returns the rows: an array, or an async iterable of row batches. It
+receives the grid's `spec` (sort, filters, and search text) and an `AbortSignal`. The grid applies
+nothing to the rows. Your server applies the spec.
+
+<ComponentPreview name="data-grid-export-all-demo" />
+
+```tsx
+async function* ordersSource({ spec, signal }: ExportSourceContext) {
+  for (let offset = 0; ; offset += 500) {
+    const rows = await api.orders({ ...spec, offset, limit: 500, signal });
+    if (rows.length === 0) return;
+    yield rows;
+  }
+}
+
+<DataGridExportButton options={{ source: ordersSource, maxRows: 200_000 }} />
+```
+
+With `source`, `DataGridExportButton` adds "Export all rows" items. The plain items still export the
+rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". The button
+announces the row count when the export ends, and says so when a limit made the file incomplete.
+
+For client pages (`useDataGridPagination` with `data`), pass `source: () => allRows`. The grid
+holds one page, so its sort and filter cover that page only. The source returns the rows in the
+order you choose.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `source` | none | Where the rows of the whole result come from. `scope` does not apply. |
+| `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. |
+| `maxBytes` | 256 MiB | Stops the export after this much file text. An xlsx file counts characters. |
+| `signal` | none | Cancels the export. The promise rejects and no file downloads. |
+| `onProgress` | none | Called after each batch with `{ rowCount, byteCount }`. |
+
+`exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes`
+ended the export before the source did. The file then holds the rows read so far.
+
+Each batch must be an array, or the export rejects and downloads nothing. The export skips `null`
+and `undefined` rows. A source that returns only empty batches, or far more `null` rows than
+`maxRows`, rejects. A source that returns more rows than `maxRows` is cut at `maxRows`. A `maxRows`
+or `maxBytes` below 0 counts as 0. Formula-like CSV cells get the same quote prefix as in a
+loaded export. A CSV export writes the file batch by batch. An xlsx export holds all rows in memory
+until it writes the file, and an invalid `workbookName` rejects before the source runs.
+
+## Control the file
+
+<NewBadge />
+
+<ComponentPreview name="data-grid-io-hooks-demo" />
+
+Three options shape the file, and one option decides where it goes. They apply to a loaded export
+and to an export with a `source`.
+
+- `output` receives the finished file instead of the browser download.
+- `columns` lists the column ids to write, in order. A hidden column is allowed. An unknown id
+  throws a `RangeError` before anything is fetched. `source` gets the same list as
+  `ctx.columnIds`, so your server can select only those columns.
+- `formatCell` returns the value of one cell.
+
+This example sends the file to your server and downloads nothing:
+
+```tsx
+<DataGridExportButton
+  options={{
+    columns: ["name", "price", "createdAt"],
+    formatCell: ({ column, value, text }) => (column.id === "price" ? Number(value) : text),
+    output: async (file, { fileName, format, signal }) => {
+      await fetch(`/api/reports/${fileName}`, { method: "PUT", body: file, signal });
+    },
+  }}
+/>
+```
+
+`output` gets a finished `Blob`. The grid never builds a URL from it. If `output` rejects, the
+export rejects. The `signal` aborts when the export is cancelled, and `output` does not run for an
+aborted export.
+
+`formatCell` runs once for every cell after the cell type made its text. `text` is that default.
+It must return at once: it cannot return a promise. To use data you fetch, load it in the `source`.
+It may return a string, a number, a boolean, a `Date`, or `null` for an empty cell.
+
+| Value | CSV | XLSX |
+|---|---|---|
+| string | written as text, cut at 32,767 characters | a text cell, cut at 32,767 characters |
+| finite number | the number as text | a number cell, so Excel can sum it |
+| boolean | `true` or `false` | a boolean cell |
+| valid `Date` | ISO 8601 text | a date cell |
+| `NaN`, `Infinity`, invalid `Date`, `null`, `undefined` | empty | empty |
+
+A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB, or CR still gets
+the quote prefix, and an XLSX string is always a text cell. The limits `maxRows` and `maxBytes`
+count the formatted output.
+
+`buildCsv(state, options)` builds the CSV `Blob` of the loaded rows without a download, like
+`buildXlsx`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads
+the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each
+batch of text rows to `onBatch`. Use it to write your own format:
+
+```tsx
+const lines: string[] = [];
+await exportRows(state, { source, maxRows: 50_000, maxBytes: 20_000_000 }, (rows) => {
+  const batch = rows.map((row) => JSON.stringify(row));
+  lines.push(...batch);
+  return batch.reduce((size, line) => size + line.length, 0);
+});
+```
+
+`onBatch` returns the size of the batch it kept, in characters or bytes, so `maxBytes` can stop the export.
 
 ## Print
 
@@ -132,9 +247,10 @@ at 10,000 by default, further cut to fit a hard ceiling of 500,000 cells. Cell t
 32,767 characters is cut. When the cap reduces the output, the table ends with a "Printed N of M
 rows" note.
 
-<Callout type="warn" title="A lazy grid prints its loaded rows only">
-Print reads the grid's data, like export. A lazy grid prints the rows it has loaded, not the rows
-it has not loaded yet. Load the range you need first, then print.
+<Callout type="warn" title="Print covers the rows the grid holds">
+Print reads the grid's data. A grid fed by `useDataGridServerRows` prints its current page, or the
+blocks it has loaded in scroll mode, not the rest of the server result. Load the range you need
+first, then print. To print the whole result, use a CSV or xlsx export of the whole result.
 </Callout>
 
 `DataGridPrintButton` forwards its `options` prop to `printGrid`, so
@@ -222,6 +338,103 @@ formats:
 Some programs save other content with an `.xls` extension: an HTML table, Excel 2003 XML, or an
 Excel 5.0/95 workbook. The import rejects these files with the `errorUnsupportedExcelFormat`
 message. Save such a file as `.xlsx` in Excel, then import it again.
+
+## Import into a server grid
+
+<NewBadge />
+
+The dialog never writes rows into the grid. `onImport(rows, { signal })` is the only exit. A grid
+with a `totalRowCount` or unloaded rows cannot take appended rows: the data would exceed the count,
+and the next refresh would drop them. So send the rows to your server instead:
+
+```tsx
+<DataGridImportButton
+  createRow={createRow}
+  onImport={async (rows, { signal }) => {
+    await api.createOrders(rows, { signal });
+    server.refresh();
+  }}
+/>
+```
+
+The dialog stays pending until `onImport` settles. If it rejects, the dialog stays open and the
+user can retry. `signal` aborts when the user clicks Cancel or the dialog closes. A late answer
+after that changes nothing. The server decides where the new rows sit under the current sort.
+`server.refresh()` reads the new `totalRowCount` and the rows in view.
+
+Lower `importLimits.maxRows` to what one request of yours accepts. Rows keep the ids that
+`createRow` gave them. If your server assigns ids, read them from the refreshed rows.
+
+## Control the import
+
+<NewBadge />
+
+These hook points shape the import. This line shows where each one runs:
+
+```text
+file -> parseFile -> defaultHeaderRow -> processImportRows -> column mapping -> processCellFromText -> validate -> onImport
+```
+
+Each hook is optional. Pass them to `DataGridImportButton` or `DataGridImportDialog`. Every hook
+result passes the same bounds as a built-in result, after the hook runs. A hook cannot raise a
+bound. Raise a bound with `importLimits`. A file over `maxFileBytes` is rejected before
+`parseFile` runs.
+
+```tsx
+<DataGridImportButton
+  createRow={createRow}
+  importDefaults={{ defaultHeaderRow: 3 }}
+  csvEncoding="windows-1252"
+  processImportRows={({ rows }) => rows.filter((row) => row[0] !== "TOTAL")}
+  processCellFromText={(text, { column }) => (column.id === "price" ? parsePrice(text) : text)}
+  onImport={async (rows, { signal, rejected, fileName }) => {
+    await api.import(rows, { signal, fileName, skipped: rejected.length });
+    server.refresh();
+  }}
+  onImportError={(error) => reportError(error)}
+/>
+```
+
+| Hook | Runs | What it does |
+|---|---|---|
+| `parseFile` | for every parse: file load, delimiter, sheet | Reads the file instead of the built-in parser. Return `{ rows }`: arrays of strings. The rows must fit `importLimits`. |
+| `accept` | when the drop zone opens | Sets the file types the drop zone takes. Default: csv, tsv, xls, xlsx. |
+| `csvEncoding` | when a CSV file is read | Decodes the CSV with this label instead of UTF-8. `parseFile` replaces it. |
+| `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. Rows above it are dropped. |
+| `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
+| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. |
+| `onImport` | after the build | Gets `rows` and `{ signal, rejected, fileName, sheetName, mapping }`. |
+| `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |
+
+`csvEncoding` takes one of these labels: `utf-8`, `utf-16le`, `utf-16be`, `iso-8859-1`,
+`iso-8859-2`, `iso-8859-15`, `windows-1250`, `windows-1251`, `windows-1252`, `windows-1253`,
+`windows-1254`, `windows-1257`, `shift_jis`, `euc-jp`, `euc-kr`, `gb18030`, and `big5`. The
+list is `IMPORT_CSV_ENCODINGS`. Any other label throws a `RangeError`.
+
+`processImportRows` and `parseFile` must return arrays of strings. A result that has another shape,
+or more rows, columns, or cells than `importLimits` allows, stops the import and the dialog shows
+an error. `processCellFromText` defaults to the grid's `processCellFromClipboard`, then to the
+column's `fromText`. A grid that sets `processCellFromClipboard` therefore uses it for imports too.
+A promise result makes the build asynchronous: the hook runs for every cell of a block of 2,000
+rows at once, so limit the concurrency inside the hook. Its value still goes through the
+column's `validate`. A cell that fails is cleared. It is listed in `rejected` with the validator's
+message, cut at 200 characters.
+
+When `onImport` rejects, the dialog shows `The import failed: <message>` if the error has a
+message. Without one, it shows the generic line. Both texts come from `labels.io`.
+
+Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one that was
+dropped on the page or fetched. The dialog loads it when it opens. For a custom dialog,
+`useDataGridImportPreview` returns `build()`, which runs `processImportRows` and the row build
+for the current preview:
+
+```tsx
+const built = await preview.build({ columns, cellTypes, createRow, signal });
+if (built) await save(built.rows);
+```
+
+These hooks work the same in every data mode. A server grid sends the rows to its server in
+`onImport` and calls `server.refresh()`, as in [Import into a server grid](#import-into-a-server-grid).
 
 ## Import limits
 

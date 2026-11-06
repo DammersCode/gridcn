@@ -15,8 +15,8 @@ export type ImportDefaults = {
   defaultDelimiter?: CsvDelimiter;
   /** false disables delimiter auto-detection; defaultDelimiter (or ",") is used. Default true. */
   autoDetectDelimiter?: boolean;
-  /** Default for the header-row toggle. Default true (current behavior). */
-  defaultHeaderRow?: boolean;
+  /** Default for the header-row toggle. A number is the 0-based index of the header row: the rows above it are dropped, and that row is the header. `true` is `0`. Default `true`. */
+  defaultHeaderRow?: boolean | number;
   /** Source columns to preselect as skipped: header names (case-insensitive) or indices. */
   defaultSkipColumns?: readonly (string | number)[];
   /**

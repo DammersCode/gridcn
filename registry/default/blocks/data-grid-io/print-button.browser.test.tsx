@@ -2,6 +2,7 @@ import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, vi, type MockInstance } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/use-data-grid-server-rows";
 import { DataGridPrintButton } from "./data-grid-io";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
@@ -83,6 +84,44 @@ describe("DataGridPrintButton (browser)", () => {
       expect(table.querySelectorAll("tbody tr")).toHaveLength(2);
       expect([...table.querySelectorAll("tbody td")].map((td) => td.textContent)).toEqual(["Alice", "hello, world", "Bob", "plain"]);
       expect(doc.querySelector('meta[http-equiv="Content-Security-Policy"]')).not.toBeNull();
+    } finally {
+      restore();
+    }
+  });
+
+  it("prints the rows an API-fed grid holds, as text, and not the rest of the server result", async () => {
+    const { spy, restore } = stubIframePrint();
+    const hostile = "<img src=x onerror=alert(1)>";
+    const fetchRows = vi.fn(({ start, end }: { start: number; end: number }) =>
+      Promise.resolve({
+        rows: Array.from({ length: end - start }, (_, i): Row => ({ id: `r${start + i}`, name: start + i === 0 ? hostile : `Person ${start + i}`, note: "n" })),
+        totalRowCount: 50,
+      }),
+    );
+    function ApiGrid() {
+      const server = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows, defaultPageSize: 5 });
+      return (
+        <DataGridProvider {...server.providerProps} columns={columns}>
+          <DataGridPrintButton />
+          <DataGridRoot className="h-[200px]" {...server.rootProps}>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    try {
+      await render(<ApiGrid />);
+      await expect.element(page.getByText("Person 4")).toBeInTheDocument();
+      await userEvent.click(page.getByRole("button", { name: "Print" }));
+
+      await vi.waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+      const doc = document.querySelector("iframe")!.contentDocument!;
+      const cells = [...doc.querySelectorAll("tbody td")].map((td) => td.textContent);
+      expect(doc.querySelectorAll("tbody tr")).toHaveLength(5);
+      expect(cells[0]).toBe(hostile);
+      expect(doc.querySelector("tbody img")).toBeNull();
+      expect(cells).not.toContain("Person 5");
     } finally {
       restore();
     }

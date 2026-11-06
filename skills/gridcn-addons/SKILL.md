@@ -54,7 +54,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, showScope? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
@@ -124,6 +124,12 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 
 - A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
 - An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
+- A grid that holds one page or some loaded blocks exports only those rows. For the whole server result pass `options={{ source }}` to `DataGridExportButton` (or `source` to `exportGrid`): `source({ spec, signal })` returns an array or an async iterable of batches, and your server applies `spec`. Bound it with `maxRows` and `maxBytes`.
+- On a server or counted grid, `onImport(rows, { signal })` must send the rows to the server and then call `server.refresh()`. Never append imported rows to `data` of a grid that has a `totalRowCount`.
+- To send an export somewhere else, pass `output(file, { fileName, format, signal })` (it replaces the download); shape the file with `columns` (ids, hidden allowed) and a sync `formatCell` that may return a number, boolean, or `Date` for typed xlsx cells. `buildCsv` and `exportRows` are the building blocks for custom formats.
+- Import hooks, in order: `parseFile`, `importDefaults.defaultHeaderRow` (a number is the header row index), `processImportRows`, `processCellFromText`, `onImport(rows, { signal, rejected, fileName, sheetName, mapping })`, `onImportError`. Hook results are re-checked against `importLimits`; `csvEncoding` takes only labels from `IMPORT_CSV_ENCODINGS`.
+- `useDataGridFindReplace({ onReplace })` can edit or veto (`false`) the plan before it is written.
+- Find & replace searches loaded rows only; on a counted or server-mode grid the panel says so.
 - Pass `onError` to `DataGridExportButton`. A throwing export is reported there. Without it, only a dev warning appears.
 - History `rollback(change)` is cell-level. It reverts only the cells that still hold the change's value and skips cells edited since.
 
