@@ -1,102 +1,146 @@
 ---
 title: "Prisma example"
-description: The grid's server fetch contract with Prisma. The same shape as a Prisma query, operator mapping included.
+description: Build a route handler that maps the sort, filter, search text, and row range of a server grid onto a Prisma query.
 icon: Boxes
 type: example
 ---
 
 <Callout type="info" title="Recipe">
-Recipe: not a shadcn registry example. It requires a server.
+This recipe needs a server and is not a registry item.
 </Callout>
 
-Prisma's `where` delegates line up almost one-to-one with the grid's filter operators, so
-the mapping is a table, not a switch:
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `User` model with a unique `id` and the text fields `name`, `email`, and `role`.
 
-```ts
+## The route [#the-route]
+
+Each grid operator maps to a function that builds a Prisma `where` object. The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
+
+```ts fragment="needs @prisma/client"
 // app/api/grid/route.ts
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 
-// grid operator → Prisma delegate; the "" pair is the empty/notEmpty values
-const OPS: Record<string, string> = {
-  contains: "contains",
-  notContains: "notContains",
-  equals: "equals",
-  notEquals: "notEquals",
-  startsWith: "startsWith",
-  endsWith: "endsWith",
-  gt: "gt",
-  gte: "gte",
-  lt: "lt",
-  lte: "lte",
-  empty: "equals",
-  notEmpty: "notEquals",
+const COLUMNS = new Set<string>(["name", "email", "role"]);
+const text = (id: string, op: string, value: string) => ({
+  [id]: { [op]: value, mode: "insensitive" },
+});
+
+type Build = (id: string, v: any) => Prisma.UserWhereInput;
+
+const OPERATORS: Record<string, Build> = {
+  contains: (id, v) => text(id, "contains", v),
+  notContains: (id, v) => ({ NOT: text(id, "contains", v) }),
+  startsWith: (id, v) => text(id, "startsWith", v),
+  endsWith: (id, v) => text(id, "endsWith", v),
+  equals: (id, v) => text(id, "equals", v),
+  notEquals: (id, v) => ({ NOT: text(id, "equals", v) }),
+  gt: (id, v) => ({ [id]: { gt: v } }),
+  gte: (id, v) => ({ [id]: { gte: v } }),
+  lt: (id, v) => ({ [id]: { lt: v } }),
+  lte: (id, v) => ({ [id]: { lte: v } }),
+  empty: (id) => ({ [id]: "" }),
+  notEmpty: (id) => ({ NOT: { [id]: "" } }),
+  isAnyOf: (id, v) => ({ [id]: { in: v } }),
+  isNoneOf: (id, v) => ({ [id]: { notIn: v } }),
 };
 
-const ALLOWED = new Set(["name", "email", "role", "score"]);
-
-// The body is untrusted: cap its size at the framework or proxy, and bound the tree before it reaches a query.
-function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
-  if (!Array.isArray(nodes)) throw new Error("invalid filters");
-  for (const node of nodes) {
-    if (Array.isArray(node?.filters)) {
-      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
-      assertFilterTree(node.filters, depth + 1, count);
-    } else if (!ALLOWED.has(node?.columnId) || !Object.hasOwn(OPS, node.operator) || ++count.leaves > 64) {
-      throw new Error("invalid filter");
-    }
+function isValidLeaf(node: any): boolean {
+  if (!COLUMNS.has(node?.columnId)) return false;
+  if (!Object.hasOwn(OPERATORS, node.operator)) return false;
+  if (node.operator === "empty" || node.operator === "notEmpty") return true;
+  if (node.operator === "isAnyOf" || node.operator === "isNoneOf") {
+    return Array.isArray(node.value) && node.value.length <= 1000
+      && node.value.every((item: unknown) => typeof item === "string");
   }
+  return typeof node.value === "string";
 }
 
-function toWhere(node): Prisma.UserWhereInput {
-  if (Array.isArray(node.filters)) {
-    if (node.filters.length === 0) return {};
-    const children = node.filters.map(toWhere);
-    return node.join === "or" ? { OR: children } : { AND: children };
-  }
-  const value = node.operator === "empty" ? "" : node.operator === "notEmpty" ? { not: "" } : node.value;
-  return { [node.columnId]: { [OPS[node.operator]]: value } };
+function isValidTree(nodes: any, depth = 0, budget = { left: 64 }): boolean {
+  return Array.isArray(nodes) && nodes.every((node: any) => {
+    if (--budget.left < 0) return false;
+    if (!Array.isArray(node?.filters)) return isValidLeaf(node);
+    const joins = node.join === "and" || node.join === "or";
+    return joins && depth < 2 && isValidTree(node.filters, depth + 1, budget);
+  });
 }
 
-export async function POST(req: Request) {
-  const { spec, start, end } = await req.json();
-  const { sorts, filters, searchText } = spec;
-  assertFilterTree(filters);
-  const limit = Math.min(Math.max(end - start, 1), 500);
+const isValidSort = (sort: any) =>
+  COLUMNS.has(sort?.columnId) &&
+  (sort.direction === "asc" || sort.direction === "desc");
 
+function isValidRequest(body: any): boolean {
+  const { spec, start, end } = body ?? {};
+  const { sorts, filters, searchText } = spec ?? {};
+  return (
+    Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
+    Number.isSafeInteger(end) && end > start &&
+    typeof searchText === "string" && searchText.length <= 200 &&
+    Array.isArray(sorts) && sorts.length <= 8 && sorts.every(isValidSort) &&
+    isValidTree(filters)
+  );
+}
+
+function toWhere(node: any): Prisma.UserWhereInput {
+  if (!Array.isArray(node.filters)) {
+    return OPERATORS[node.operator](node.columnId, node.value);
+  }
+  const parts = node.filters.map(toWhere);
+  if (parts.length === 0) return {};
+  return node.join === "or" ? { OR: parts } : { AND: parts };
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+  if (!isValidRequest(body)) {
+    return new Response("Invalid request", { status: 400 });
+  }
+
+  const { spec, start, end } = body;
+  const search = ["name", "email"].map((id) =>
+    text(id, "contains", spec.searchText),
+  );
   const where: Prisma.UserWhereInput = {
-    ...(searchText
-      ? { OR: [{ name: { contains: searchText, mode: "insensitive" } }, { email: { contains: searchText, mode: "insensitive" } }] }
-      : {}),
-    ...(filters.length ? { AND: filters.map(toWhere) } : {}),
+    AND: [
+      spec.searchText ? { OR: search } : {},
+      ...spec.filters.map(toWhere),
+    ],
   };
 
   const [totalRowCount, rows] = await Promise.all([
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
-      orderBy: sorts.length
-        ? sorts.map((s) => ({ [s.columnId]: s.direction }))
-        : [{ id: "asc" }],
+      orderBy: [
+        ...spec.sorts.map((s: any) => ({ [s.columnId]: s.direction })),
+        { id: "asc" },
+      ],
       skip: start,
-      take: limit,
+      take: Math.min(end - start, 500),
     }),
   ]);
-
   return Response.json({ rows, totalRowCount });
 }
 ```
 
-Notes:
+About the sample:
 
-- `mode: "insensitive"` gives the case-insensitive `contains` the grid's quick search
-  implies. Drop it for exact semantics.
-- `isAnyOf` maps to `in: f.value`, and `isNoneOf` maps to `notIn: f.value`. Add them to the table above when you need them.
-- The client is the [server-side example](/docs/server-data-examples/server-rows-example) with one change: its `fetchRows` posts
-  `{ spec, start, end }` to this route and returns the JSON. Edits become `prisma.user.update` in the same write-through handler.
+- The grid sends every value as text. A numeric field needs `Number(value)` in its operator.
+- The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`. `in` and `notIn` compare with case.
+- The grid keeps at most two group levels in a filter tree. The check refuses a deeper tree.
+- The sample sets the other caps, not the grid: 8 sorts, 200 characters of search text, 64 filters and groups, and 1,000 list values. A request over a cap gets status 400.
+- Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
+- The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
+- The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
+- An empty group becomes `{}`, because the grid treats an empty group as a match for every row.
 
-## Shareable state
+<Callout type="warn" title="Check every column id">
+If `columnId` is not in `COLUMNS`, answer 400, and never build the `where` object from it. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
+</Callout>
 
-Same as the [Drizzle recipe](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state):
-[DataGridUrlState](/docs/sort-filter-search/url-state) moves the view state to the URL, and this route reads
-it from the query string instead of a JSON body.
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave` and a `prisma.user.update` call.
+
+## Related
+
+- [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip

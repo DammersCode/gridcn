@@ -1354,6 +1354,7 @@
         "L": {
           "status": "supported",
           "evidence": [
+            "content/docs/(build)/theme-style-language/loading-state.mdx",
             "content/docs/(examples)/style-examples/loading-state-example.mdx"
           ]
         },

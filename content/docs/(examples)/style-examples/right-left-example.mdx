@@ -1,77 +1,72 @@
 ---
 title: "Right-to-left example"
-description: Every string through typed labels, with per-locale direction (English, Deutsch, and Arabic in one grid).
+description: Switch one grid between English, German, and Arabic, with translated labels and a layout direction that follows the locale.
 icon: Languages
 type: example
 ---
 
-The demo carries three locales: English, Deutsch, and Arabic. Each locale brings its strings
-and its text direction: labels, column headers, and hint text translate through deep-merged
-`labels` overrides, and the Arabic locale flips the grid to RTL through the `direction` prop.
-Pick a language and the direction follows it.
+The demo has three locales: English, Deutsch, and Arabic. Each locale sets the `labels` of the grid, the column headers, a hint text, and a text direction. Pick a language. The strings change, and the Arabic locale flips the grid to right-to-left.
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
 <InstallCommand item="data-grid-i18n-demo" />
 
-## The labels prop
+## The labels prop [#the-labels-prop]
 
-Every user-facing string lives in one typed `DataGridLabels` object with English defaults.
-Pass a partial override to `DataGridProvider` (or `DataGrid`). It deep-merges over
-`DEFAULT_LABELS`. Only the keys you specify change:
+The grid keeps every user-facing string in one `DataGridLabels` object with English defaults. The `labels` prop of `DataGridProvider` and `DataGrid` deep-merges over it. Only the keys you set change. A label that holds a value, such as `searchMatches`, is a function that receives the values.
 
-```tsx
-<DataGridProvider
-  labels={{
-    toolbar: { searchPlaceholder: "Rechercher…" },
-    contextMenu: { copy: "Copier", paste: "Coller" },
-  }}
-  {...grid}
-  columns={columns}
-/>
-```
+Column headers are not labels. They belong to the column definitions, so build the columns from the locale and memoize them.
 
-Interpolated strings are functions that receive real arguments:
+## RTL [#rtl]
 
-```ts
-searchMatches: (current: number, total: number) => `${current}/${total}`,
-```
-
-## RTL
-
-Direction is layout state, not a string: derive it from the locale the way a real app does,
-and pass it to the root:
+`direction` is `"ltr"` or `"rtl"`. Take it from the same locale record as the labels. The demo also sets `dir` on the element around the grid, so the page around the grid mirrors with it:
 
 ```tsx
-<DataGridRoot direction={locale.dir} /> // "ltr" | "rtl"
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  type DeepPartialLabels,
+  type GridDirection,
+} from "@/components/data-grid/data-grid";
+
+type Locale = "en" | "de" | "ar";
+type Row = { id: string; name: string };
+
+const TRANSLATIONS: Record<
+  Locale,
+  { dir: GridDirection; labels: DeepPartialLabels }
+> = {
+  en: { dir: "ltr", labels: {} },
+  de: { dir: "ltr", labels: { grid: { emptyState: "Keine Zeilen" } } },
+  ar: { dir: "rtl", labels: { grid: { emptyState: "لا صفوف" } } },
+};
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function LocaleGrid({ locale }: { locale: Locale }) {
+  const { dir, labels } = TRANSLATIONS[locale];
+  return (
+    <div dir={dir}>
+      <DataGridProvider defaultData={[]} columns={columns} labels={labels}>
+        <DataGridRoot className="h-48" direction={dir}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </div>
+  );
+}
 ```
 
-The grid's inline-axis math (scroll normalization, pointer-to-cell translation, arrow-key
-mirroring, pin zones) runs through the direction utilities, so RTL flips the interaction axis too:
-pinning, selection, and keyboard navigation follow it. Set `dir` on the
-wrapping element as well, so the surrounding page chrome matches.
-
-## Which i18n library?
-
-gridcn takes plain strings, so it composes with whatever you already run. There is no
-adapter. `next-intl` and `react-i18next` both hand you typed strings per locale. The pattern is
-the same for either: keep one `labels` object per locale (or build it per locale in a hook)
-and pass it:
-
-```tsx
-const { labels } = useTranslations("grid"); // next-intl
-// or: const t = useTranslation().t; build the DeepPartialLabels from t("grid.*")
-
-<DataGridProvider labels={labelsForLocale(locale)}>
-  <DataGridRoot direction={dirForLocale(locale)} />
-</DataGridProvider>;
-```
-
-The full merge model (which keys replace vs merge, function labels, `DeepPartialLabels`) is
-on the [i18n guide](/docs/theme-style-language/labels-i18n), and the per-group coverage table is under
-[Coverage by group](/docs/theme-style-language/labels-i18n#coverage-by-group).
+With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid reads the direction it inherits from the page once, at mount. A locale switch changes the direction at run time, so pass `direction`.
 
 ## Related
 
-- [I18n](/docs/theme-style-language/labels-i18n): the `DataGridLabels` reference and a full German example
-- [Styling](/docs/style-examples/styling-example): appearance when the theme changes instead
+- [Labels and i18n](/docs/theme-style-language/labels-i18n): the merge rules, the coverage by group, and how to wire an i18n library
+- [What mirrors in RTL](/docs/theme-style-language/labels-i18n#what-mirrors): the full list
+- [Styling example](/docs/style-examples/styling-example): the look of the grid after a theme change

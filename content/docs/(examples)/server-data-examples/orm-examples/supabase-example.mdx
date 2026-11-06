@@ -1,103 +1,158 @@
 ---
 title: "Supabase example"
-description: The grid's server fetch contract with Supabase, using Supabase.from().select() plus range as the shortest path.
+description: Build a route handler that maps the sort, filter, search text, and row range of a server grid onto a Supabase query.
 icon: Cloud
 type: example
 ---
 
 <Callout type="info" title="Recipe">
-Recipe: not a shadcn registry example. It requires a server.
+This recipe needs a server and is not a registry item.
 </Callout>
 
-Supabase's PostgREST API already does filtering, ordering, and pagination, so the handler
-is mostly translation:
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
 
-```ts
+## The route [#the-route]
+
+The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string and combines the strings with `.or()`. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
+
+```ts fragment="needs @supabase/supabase-js"
 // app/api/grid/route.ts
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-side: bypass row-level security
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-const ALLOWED = new Set(["name", "email", "role", "score"]);
-const OPS = { equals: "eq", notEquals: "neq", gt: "gt", gte: "gte", lt: "lt", lte: "lte" } as const;
+type Query = { or: (conditions: string) => Query };
+const COLUMNS = new Set<string>(["name", "email", "role"]);
 
-// PostgREST filter strings split on commas and parentheses, so quote every value.
-const quote = (value: string) => `"${String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+// A condition string splits on commas and parentheses, so quote every value.
+const quote = (value: string) =>
+  `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+const list = (values: string[]) => `(${values.map(quote).join(",")})`;
 
-// The body is untrusted: cap its size at the framework or proxy, and bound the tree before you build a query.
-function assertFilterTree(nodes, depth = 0, count = { leaves: 0, groups: 0 }) {
-  if (!Array.isArray(nodes)) throw new Error("invalid filters");
-  for (const node of nodes) {
-    if (Array.isArray(node?.filters)) {
-      if (depth >= 2 || ++count.groups > 16 || (node.join !== "and" && node.join !== "or")) throw new Error("invalid group");
-      assertFilterTree(node.filters, depth + 1, count);
-    } else if (typeof node?.columnId !== "string" || !ALLOWED.has(node.columnId) || !Object.hasOwn(OPS, node.operator) || ++count.leaves > 64) {
-      throw new Error("invalid filter");
-    }
+const CLAUSES: Record<string, (c: string, v: any) => string> = {
+  contains: (c, v) => `${c}.ilike.${quote(`%${v}%`)}`,
+  notContains: (c, v) => `${c}.not.ilike.${quote(`%${v}%`)}`,
+  startsWith: (c, v) => `${c}.ilike.${quote(`${v}%`)}`,
+  endsWith: (c, v) => `${c}.ilike.${quote(`%${v}`)}`,
+  equals: (c, v) => `${c}.eq.${quote(v)}`,
+  notEquals: (c, v) => `${c}.neq.${quote(v)}`,
+  gt: (c, v) => `${c}.gt.${quote(v)}`,
+  gte: (c, v) => `${c}.gte.${quote(v)}`,
+  lt: (c, v) => `${c}.lt.${quote(v)}`,
+  lte: (c, v) => `${c}.lte.${quote(v)}`,
+  empty: (c) => `${c}.eq.""`,
+  notEmpty: (c) => `${c}.neq.""`,
+  isAnyOf: (c, v) => `${c}.in.${list(v)}`,
+  isNoneOf: (c, v) => `${c}.not.in.${list(v)}`,
+};
+
+function isValidLeaf(node: any): boolean {
+  if (!COLUMNS.has(node?.columnId)) return false;
+  if (!Object.hasOwn(CLAUSES, node.operator)) return false;
+  if (node.operator === "empty" || node.operator === "notEmpty") return true;
+  if (node.operator === "isAnyOf" || node.operator === "isNoneOf") {
+    return Array.isArray(node.value) && node.value.length <= 1000
+      && node.value.every((item: unknown) => typeof item === "string");
   }
+  return typeof node.value === "string";
 }
 
-// An "or" group is one or(...) string; a nested group inside it becomes and(...) or or(...). Empty groups drop out.
-function orClause(group) {
-  return group.filters
-    .filter((node) => !Array.isArray(node.filters) || node.filters.length > 0)
-    .map((node) => (Array.isArray(node.filters) ? `${node.join}(${node.filters.map(leafClause).join(",")})` : leafClause(node)))
-    .join(",");
+function isValidTree(nodes: any, depth = 0, budget = { left: 64 }): boolean {
+  return Array.isArray(nodes) && nodes.every((node: any) => {
+    if (--budget.left < 0) return false;
+    if (!Array.isArray(node?.filters)) return isValidLeaf(node);
+    const joins = node.join === "and" || node.join === "or";
+    return joins && depth < 2 && isValidTree(node.filters, depth + 1, budget);
+  });
 }
 
-function leafClause(f) {
-  return `${f.columnId}.${OPS[f.operator]}.${quote(f.value)}`;
+const isValidSort = (sort: any) =>
+  COLUMNS.has(sort?.columnId) &&
+  (sort.direction === "asc" || sort.direction === "desc");
+
+function isValidRequest(body: any): boolean {
+  const { spec, start, end } = body ?? {};
+  const { sorts, filters, searchText } = spec ?? {};
+  return (
+    Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
+    Number.isSafeInteger(end) && end > start &&
+    typeof searchText === "string" && searchText.length <= 200 &&
+    Array.isArray(sorts) && sorts.length <= 8 && sorts.every(isValidSort) &&
+    isValidTree(filters)
+  );
 }
 
-// The top level combines with "and": an "and" group flattens into it, an "or" group becomes one or(...) filter.
-function applyNode(query, node) {
-  if (!Array.isArray(node.filters)) return query.filter(node.columnId, OPS[node.operator], node.value);
+const isEmptyGroup = (node: any) =>
+  Array.isArray(node.filters) && node.filters.length === 0;
+
+function clause(node: any): string {
+  if (!Array.isArray(node.filters)) {
+    return CLAUSES[node.operator](node.columnId, node.value);
+  }
+  return `${node.join}(${node.filters.map(clause).join(",")})`;
+}
+
+// An empty group matches every row, so an "or" with one adds no condition.
+function orClause(group: any): string {
+  if (group.filters.some(isEmptyGroup)) return "";
+  return group.filters.map(clause).join(",");
+}
+
+// The top level combines with "and": an "and" group flattens into it.
+function applyNode(query: Query, node: any): Query {
+  if (!Array.isArray(node.filters)) return query.or(clause(node));
   if (node.join === "and") return node.filters.reduce(applyNode, query);
-  const clause = orClause(node);
-  return clause ? query.or(clause) : query;
+  const text = orClause(node);
+  return text ? query.or(text) : query;
 }
 
-export async function POST(req: Request) {
-  const { spec, start, end } = await req.json();
-  const { sorts, filters, searchText } = spec;
-  assertFilterTree(filters);
-  const limit = Math.min(Math.max(end - start, 1), 500);
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+  if (!isValidRequest(body)) {
+    return new Response("Invalid request", { status: 400 });
+  }
 
+  const { spec, start, end } = body;
+  const limit = Math.min(end - start, 500);
   let query = supabase.from("users").select("*", { count: "exact" });
-  if (searchText) {
-    query = query.or(`name.ilike.%${searchText}%,email.ilike.%${searchText}%`);
+  if (spec.searchText) {
+    const pattern = quote(`%${spec.searchText}%`);
+    query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
   }
-  query = filters.reduce(applyNode, query);
-  for (const s of sorts) {
-    query = query.order(s.columnId, { ascending: s.direction === "asc" });
+  query = spec.filters.reduce(applyNode, query);
+  for (const sort of spec.sorts) {
+    query = query.order(sort.columnId, { ascending: sort.direction === "asc" });
   }
+  query = query.order("id");
 
-  const { data: rows, count: totalRowCount, error } = await query.range(start, start + limit - 1);
-
+  const { data, count, error } = await query.range(start, start + limit - 1);
   if (error) throw new Error(error.message);
-  return Response.json({ rows, totalRowCount });
+  return Response.json({ rows: data, totalRowCount: count });
 }
 ```
 
-Notes:
+About the sample:
 
-- `range(from, to)` is inclusive on both ends, hence the `- 1`.
-- Column filters map to PostgREST operators one-to-one: `eq`, `neq`, `gt`, `gte`, `lt`,
-  `lte`, `like`, `in.(...)`. The route above maps the first six.
-- The route covers the top-level rows and one level of `or` groups, with a nested group
-  written as `and(...)` or `or(...)`. A deeper tree needs a recursive string builder. The body is untrusted:
-  `assertFilterTree` checks every column id against `ALLOWED`, every operator with `Object.hasOwn`, and
-  bounds the tree to 2 levels, 16 groups, and 64 rows. `quote` escapes each value. Cap the request
-  body size too, because the tree limits do not bound a large JSON text.
-- `SUPABASE_SERVICE_ROLE_KEY` keeps the grid's requests server-side. With the anon key, you
-  also need a permissive RLS policy on `users` for reads.
-- The client is the [server-side example](/docs/server-data-examples/server-rows-example) unchanged. Edits
-  become `supabase.from("users").update(...)` in the write-through handler.
+- `range(from, to)` includes both ends, hence the `- 1`.
+- The grid compares text without case. The sample uses `ilike` for the pattern operators only.
+- In `ilike` patterns, `%`, `_`, and `*` in the user text act as wildcards.
+- The grid keeps at most two group levels in a filter tree. The check refuses a deeper tree.
+- The sample sets the other caps, not the grid: 8 sorts, 200 characters of search text, 64 filters and groups, and 1,000 list values. A request over a cap gets status 400.
+- Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
+- The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
+- The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
 
-## Shareable state
+<Callout type="warn" title="Keep the key on the server">
+The service role key bypasses row-level security, so read it only in the route. With the anon key, add a read policy on `users`. Check every column id against `COLUMNS` and quote every value, or a crafted request adds conditions to the query. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
+</Callout>
 
-Same as the other recipes: [DataGridUrlState](/docs/sort-filter-search/url-state) moves the view state to the
-URL, and this route reads the same values from the query string.
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave` and a `supabase.from("users").update(...)` call.
+
+## Related
+
+- [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip

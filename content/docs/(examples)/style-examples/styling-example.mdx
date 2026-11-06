@@ -1,46 +1,72 @@
 ---
 title: "Styling example"
-description: Value-driven styling on all four surfaces (grid-level and per-column class hooks, on shadcn tokens).
+description: Style a whole column, style rows by their data, and change the row height with density, all with class names on shadcn tokens.
 icon: Palette
 type: example
 ---
 
-Styling never needs a fork: four class hooks cover every value-driven case, and everything
-resolves through existing shadcn tokens.
+Class hooks style the grid by value, and every class name can use your shadcn tokens, so a theme change carries over. This demo styles a column, styles at-risk rows, and changes the density of the rows.
 
-## Patterns
+## Patterns [#patterns]
 
 <ComponentPreview name="data-grid-styling-patterns-demo" />
 
 <InstallCommand item="data-grid-styling-patterns-demo" />
 
-- A **brand column** styled end to end with per-column `cellClassName`/`headerClassName`.
-- An **at-risk row** styled beyond a background tint via the grid-level `getRowClassName`.
-- A **live density toggle**: `density="compact" | "default" | "comfortable"`, or an explicit
-  `rowHeight`, which always wins.
+- The Region column carries `cellClassName` and `headerClassName`. Every cell and the header of the column get the same classes.
+- A row with the stage "at-risk" gets the classes of `getRowClassName`.
+- The select changes `density`.
 
-## Every surface, one dataset
+This grid does the same:
 
-<ComponentPreview name="data-grid-conditional-styling-demo" />
+```tsx
+import {
+  DataGrid,
+  defineColumns,
+  type GetRowClassName,
+} from "@/components/data-grid/data-grid";
 
-<InstallCommand item="data-grid-conditional-styling-demo" />
+type Deal = { id: string; region: string; stage: string };
 
-The same HR dataset with all four value-driven surfaces active at once: grid-level
-`getRowClassName`/`getCellClassName` plus per-column `cellClassName`/`headerClassName`. The
-hooks receive the row value, so the class can depend on the data (at-risk, overdue, top score)
-instead of on a fixed state.
+const getRowClassName: GetRowClassName<Deal> = (row) =>
+  row.stage === "at-risk"
+    ? "border-s-2 border-s-destructive bg-destructive/5 text-destructive"
+    : undefined;
 
-## The contract
+const columns = defineColumns<Deal>()([
+  {
+    id: "region",
+    header: "Region",
+    accessorKey: "region",
+    cellClassName: "bg-primary/5 border-e border-e-primary/30 font-medium",
+    headerClassName: "bg-primary/10 border-e border-e-primary/30 text-primary",
+  },
+  { id: "stage", header: "Stage", accessorKey: "stage" },
+]);
 
-- gridcn uses only existing shadcn tokens (`bg-background`, `text-foreground`, `border-border`,
-  `bg-muted`, `bg-primary`, `ring`, `bg-destructive`) so theme switches carry over for free.
-- Static state (active cell, editing, pinned, read-only, cell type) is styled through the
-  data-attribute contract:
-  [Styling & theming: data-attribute contract](/docs/contracts/style-contract#data-attribute-contract).
-- The two grid-specific CSS variables (`--grid-row-height`, `--grid-pin-shadow`) are on
-  [Styling & theming: CSS variables](/docs/theme-style-language/colors-radius#css-variables).
+export function Deals({ rows }: { rows: Deal[] }) {
+  return (
+    <DataGrid
+      className="h-80"
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      getRowClassName={getRowClassName}
+      density="compact"
+    />
+  );
+}
+```
+
+## Row height [#row-height]
+
+`density` is `"compact"`, `"default"`, or `"comfortable"`, which set the row height to 28, 36, or 44 pixels. If you also pass `rowHeight`, `rowHeight` wins. Neither changes the header height.
+
+Define `getRowClassName` at module scope, as the sample does, or memoize it. The grid merges the class names after its built-in classes, so a conflicting utility wins.
 
 ## Related
 
-- [Styling & theming](/docs/theme-style-language): the full token and attribute reference
-- [I18n & RTL](/docs/style-examples/right-left-example): appearance when the language changes too
+- [Style overrides](/docs/theme-style-language/style-overrides): all four class hooks and the state attributes
+- [Density and small screens](/docs/theme-style-language/density-small-screens): the row height and header height props
+- [Style contract](/docs/contracts/style-contract#css-variables): the CSS variables and the data attributes
+- [Right-to-left example](/docs/style-examples/right-left-example): the grid with another language

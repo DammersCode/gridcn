@@ -1,42 +1,66 @@
 ---
 title: "Loading state example"
-description: The three states of the loading prop (skeleton viewport, slim indeterminate bar, and the ordinary empty state).
+description: Show a skeleton, a progress bar, or the empty state with the loading prop, and replace each display with your own.
 icon: Loader
 type: example
 ---
 
-One prop, `loading`, plus whether rows exist, covers all three states. The demo's two switches
-(loading, rows present) reach each one live.
+The `loading` prop and the number of rows in view decide what the grid shows. In the demo, the Loading switch sets `loading`, and the Rows present switch adds or removes the rows. Together they reach every state in the table.
 
 <ComponentPreview name="data-grid-loading-demo" />
 
 <InstallCommand item="data-grid-loading-demo" />
 
-| Rows | `loading` | What renders |
+| Rows in view | `loading` | The grid shows |
 |---|---|---|
-| none | `true` | A viewport-filling skeleton: pulsing rows in place of the empty grid. |
-| present | `true` | A slim indeterminate bar under the header while the existing rows stay on screen. |
-| none | `false` | The ordinary empty state (the `labels.grid.emptyState` string). |
+| none | `true` | Skeleton rows that fill the viewport. |
+| some | `true` | A slim indeterminate bar under the header. The rows stay on screen. |
+| none | `false` | The empty state, with the text `labels.grid.emptyState`. |
 
 <Callout type="info" title="Where the data comes from">
-`loading` only controls rendering. Pass it from whatever owns your request
-state (`isPending` from React Query, `isLoading` from SWR, your own flag). The data-fetching
-patterns it pairs with are on the
-[Data & Integrations](/docs/server-data-examples) pages.
+`loading` changes what the grid shows and fetches nothing. Pass the flag from the code that owns your request. The server rows hook returns `loading` in `gridProps`.
 </Callout>
 
-## Customizing the look
+## Customizing the look [#customizing-the-look]
 
-`loadingState` replaces the skeleton (zero rows) or the indeterminate bar (rows present) while
-`loading` is true. It accepts a plain node or a function receiving `{ reason }`: `"no-data"`
-or `"rows-present"`. The replacement renders directly under the header at full width, and the
-node owns its own accessibility.
+While `loading` is true, `loadingState` replaces the skeleton and the bar. It takes a node, or a function that receives `{ reason }`. If no rows are in view, the reason is `"no-data"`. If rows are in view, it is `"rows-present"`. The grid renders the result under the header at full width, and the result owns its accessibility.
 
-`emptyState` takes the same two forms. Its `reason` is `"no-data"` when the data array is empty
-and `"filtered"` when rows exist but none are in view.
+`emptyState` takes the same two forms. If `data` is empty and no server filter or search is active, its reason is `"no-data"`. In every other case the reason is `"filtered"`:
+
+The sample passes `data` without `onDataChange`, so it sets `readOnly`:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function Orders({ rows, loading }: { rows: Order[]; loading: boolean }) {
+  return (
+    <DataGrid
+      className="h-80"
+      data={rows}
+      columns={columns}
+      readOnly
+      loading={loading}
+      loadingState={({ reason }) => (
+        <p className="p-4 text-sm">
+          {reason === "no-data" ? "Fetching orders…" : "Refreshing…"}
+        </p>
+      )}
+      emptyState={({ reason }) =>
+        reason === "filtered" ? "No order matches" : "No orders yet"
+      }
+    />
+  );
+}
+```
 
 ## Related
 
-- [Lazy loading](/docs/server-data-examples): skeleton rows for per-range fetching instead of
-  the grid-level `loading` prop
-- [Styling](/docs/style-examples/styling-example): theming the skeleton via shadcn tokens
+- [Loading state](/docs/theme-style-language/loading-state): the props, the error state, and server mode
+- [Scroll mode](/docs/scroll-mode): skeleton cells for rows that are not loaded yet
+- [Styling example](/docs/style-examples/styling-example): class names on shadcn tokens
