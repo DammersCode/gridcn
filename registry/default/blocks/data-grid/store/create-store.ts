@@ -54,6 +54,8 @@ import {
   reorderColumnIds as reorderColumnIdsBase,
   reorderGroupBlock,
   resolveSelectionConfig,
+  resolveSortMode,
+  resolveFilterMode,
   selectCellOf,
   rowIdAtViewRow,
   toggleSortAdditive,
@@ -209,8 +211,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
-  const initSortMode = init.sortMode ?? "client";
-  const initFilterMode = init.filterMode ?? "client";
+  const initSortMode = resolveSortMode(init);
+  const initFilterMode = resolveFilterMode(init);
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
@@ -952,8 +954,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastPropsFilterState = props.filterState;
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
-          const nextSortMode = props.sortMode ?? "client";
-          const nextFilterMode = props.filterMode ?? "client";
+          const nextSortMode = resolveSortMode(props);
+          const nextFilterMode = resolveFilterMode(props);
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";
           if (serverRows && s.rememberCheckedRows && s.totalRowCount === undefined) {

@@ -84,7 +84,7 @@ describe("load announcements", () => {
   });
 
   it("stays quiet when only the client evaluated search changed between loads", async () => {
-    const grid = mount({ totalRowCount: 5 });
+    const grid = mount({ totalRowCount: 5, filterMode: "client" });
     await grid.rerender({ loading: false });
     await grid.rerender({ loading: false, searchText: "x" });
     await grid.rerender({ loading: true, searchText: "x" });

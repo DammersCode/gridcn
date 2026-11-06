@@ -338,12 +338,7 @@ and nothing more. The hook sends `searchText` in the spec, so your backend can s
   [Pinned rows](/docs/addons/pinned-rows)).
 </Callout>
 
-<Callout type="warn" title="DataGridUrlState on a scroll grid">
-  `DataGridUrlState` (from [URL state](/docs/addons/url-state)) writes its URL sort, filter, and
-  search spec into the store on mount. The hook already sets `sortMode="server"` and `filterMode="server"`, so the
-  store keeps the spec and never sorts or filters the partial `data`. Fetch the rows for the spec
-  that the URL restored.
-</Callout>
+[DataGridUrlState](/docs/addons/url-state) writes its URL sort, filter, and search spec into the store on mount. The grid declares `totalRowCount`, so it keeps the spec and never sorts or filters the partial `data`. Fetch the rows for the spec that the URL restored.
 
 ## A source with no total
 

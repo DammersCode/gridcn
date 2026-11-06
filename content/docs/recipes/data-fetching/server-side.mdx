@@ -21,7 +21,7 @@ For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race g
 
 ## The contract
 
-1. Set `sortMode="server"` and `filterMode="server"` on the provider. Set them at mount, so a spec restored at mount never sorts or filters on the client.
+1. Pass `totalRowCount` (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode` or `filterMode` to `"client"` to override one.
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.

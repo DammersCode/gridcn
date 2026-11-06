@@ -289,9 +289,10 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   sortState?: SortSpec[];
   /**
-   * Who orders the rows. `"client"` (default): the grid sorts `data` by `sortState`. `"server"`:
+   * Who orders the rows. `"client"`: the grid sorts `data` by `sortState`. `"server"`:
    * the grid only tracks the spec (header click cycle, `aria-sort`, sort indicator, `onSortChange`)
    * and never reorders `data`; the consumer fetches rows in that order, e.g. with `useDataGridServerRows`.
+   * Default: `"server"` while `totalRowCount` is set (`data` is a window of the result), else `"client"`. Set `"client"` to sort the window locally.
    */
   sortMode?: "client" | "server";
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
@@ -301,9 +302,10 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
   /**
-   * Who filters the rows. `"client"` (default): the grid filters `data` by `filterState`. `"server"`:
+   * Who filters the rows. `"client"`: the grid filters `data` by `filterState`. `"server"`:
    * the grid only tracks the spec (filter menu, header filters, `data-filtered`, `onFilterChange`) and
    * never filters `data`; the consumer fetches the matching rows, e.g. with `useDataGridServerRows`.
+   * Default: `"server"` while `totalRowCount` is set, else `"client"`. Set `"client"` to filter the window locally.
    */
   filterMode?: "client" | "server";
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */

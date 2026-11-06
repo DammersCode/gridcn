@@ -1029,3 +1029,14 @@ export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState
     },
   };
 }
+
+type ModeProps = Pick<InternalSyncProps, "sortMode" | "filterMode" | "totalRowCount">;
+
+/** A grid whose `data` is a window of a larger result (`totalRowCount`) cannot sort it locally without being wrong, so the window defaults to the server. */
+export function resolveSortMode(props: ModeProps): "client" | "server" {
+  return props.sortMode ?? (props.totalRowCount !== undefined ? "server" : "client");
+}
+
+export function resolveFilterMode(props: ModeProps): "client" | "server" {
+  return props.filterMode ?? (props.totalRowCount !== undefined ? "server" : "client");
+}
