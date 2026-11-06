@@ -541,7 +541,7 @@ describe("reorderRows", () => {
     act(() => result.current.reorderRows(0, 2));
 
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort, filter, or page"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort or filter"));
     warn.mockRestore();
   });
 
@@ -555,7 +555,7 @@ describe("reorderRows", () => {
     act(() => result.current.reorderRows(0, 2));
 
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort, filter, or page"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("sort or filter"));
     warn.mockRestore();
   });
 
