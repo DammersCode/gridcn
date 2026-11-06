@@ -1,27 +1,49 @@
 ---
 title: "Minimal grid example"
-description: The quick-start minimum (the core item alone, defaultData, zero app-side state).
+description: Render a grid from one registry item, three columns, and seed rows, with no state of your own.
 icon: Square
 type: example
 ---
 
-The smallest working grid: one registry item, `defaultData`, and no app-side state. The grid
-owns its rows internally. You only reach for `data` + `onDataChange` when you need to persist,
-fetch, or react to edits.
+The smallest working grid needs the `data-grid` item, a column list, and `defaultData`. The grid seeds its rows once from `defaultData`, then owns them and applies every edit itself.
 
 <ComponentPreview name="data-grid-minimal-demo" />
 
 <InstallCommand item="data-grid-minimal-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `<DataGrid>` convenience wrapper: header, body, and viewport composed for you
-- `defineColumns` with three built-in types: `text`, `number`, `checkbox`
-- `defaultData`: seed rows with no `data`/`onDataChange` wiring
-- `getRowId`: stable row identity from the data itself
-- `className`: the grid takes a CSS box. Here `w-full h-[240px]`
+- `DataGrid` composes the provider, the scroll root, the header, and the body.
+- `defineColumns` types three columns: `text`, `number`, and `checkbox`.
+- `defaultData` seeds the rows. The grid ignores later changes to the prop.
+- `className` sizes the grid. The demo sets `w-full h-[240px]`.
+
+The grid reads the row id from the `id` field of each row. If your rows have no `id` field, pass `getRowId`. If the app must own the rows, pass `data` and `onDataChange`.
+
+A minimal version of the demo, with its imports:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; age: number; active: boolean };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+  { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
+]);
+
+const rows: Person[] = [
+  { id: "1", name: "Ada Lovelace", age: 28, active: true },
+  { id: "2", name: "Grace Hopper", age: 34, active: true },
+];
+
+export function PeopleGrid() {
+  return <DataGrid defaultData={rows} columns={columns} className="h-60" />;
+}
+```
 
 ## Related
 
-- [Quick start](/docs/learning-path/render-your-first-grid): the same minimum, step by step
-- [Editable hero grid](/docs/basic-examples/editable-grid-example): the full composition
+- [Render your first grid](/docs/learning-path/render-your-first-grid): the same minimum, step by step
+- [Editable grid example](/docs/basic-examples/editable-grid-example): the split composition with an add-on

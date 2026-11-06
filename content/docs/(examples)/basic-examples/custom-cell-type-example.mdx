@@ -1,34 +1,30 @@
 ---
 title: "Custom cell type example"
-description: A worked currency type (plain-number storage, cached locale display, symbol-stripping input).
+description: Register a currency cell type with its own display, editor, and text parsing, and use it in two locales.
 icon: Wrench
 type: example
 ---
 
-The worked example from the custom-cell-types guide: a `currency` type registered via the
-`cellTypes` prop. Storage is a plain `number | null` (a serializable primitive, the same lesson
-the built-in `date` type follows with ISO strings). Display runs through a cached
-`Intl.NumberFormat`. `fromText` strips currency symbols and normalizes decimal separators.
+A custom `currency` type stores a plain `number | null`, shows it through `Intl.NumberFormat`, and edits it as text. Type `$1,234.56` into a price cell and press <kbd>Enter</kbd>. The type strips the symbol and the cell stores `1234.56`.
 
 <ComponentPreview name="data-grid-custom-cell-demo" />
 
 <InstallCommand item="data-grid-custom-cell-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `CellType` contract: `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText` (never throws),
-  `clearValue`, `isEmpty`, `compare`, `align`
-- `useCellEditor`: the grid's text-editor primitive: draft state, end-caret focus, one-shot
-  commit guard, and the Enter/Escape/blur bindings, so the custom editor behaves identically
-  to the built-ins
-- The typed `options` prop on `Cell` and `Editor`: no cast on `column.options`
-- Formatter cache keyed on serialized `options`: `options` literals are re-created every
-  render, so identity keying misses
-- `cellTypes={{ currency }}`: the prop **merges over** the built-ins, which keep working
-  unnamed
-- Two locale variants (`en-US`/USD, `de-DE`/EUR) from one type via `options`
+- The `CellType` object sets `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText`, `clearValue`, `isEmpty`, `compare`, and `align`. `toText` returns the unformatted number for copy and export. `toDisplayText` returns the formatted text.
+- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number.
+- `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It also supplies a commit that runs once, and the <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur bindings. The demo passes it a `toDraft` and a `toValue` function.
+- `Cell` and `Editor` receive the column `options` with the type `CurrencyOptions`, so reading `options.currency` needs no cast.
+- The demo keeps one `Intl.NumberFormat` for each locale and currency pair, so a cell reuses a formatter.
+- `cellTypes={{ currency }}` on `DataGridProvider` merges over the built-in types. The `text` column of the demo keeps working.
+- One type serves two columns through `options`: `{ currency: "USD" }` and `{ currency: "EUR", locale: "de-DE" }`. A column with no `locale` uses `en-US`.
+
+The demo types its columns as `ColumnDef` because `currency` is not a key of `GridCellTypes`. To make `defineColumns` check `type: "currency"` and its options, add the key to `GridCellTypes`.
 
 ## Related
 
-- [Custom cell types](/docs/recipes-custom-code): the full contract, member by member
-- [Built-in cell types](/docs/basic-examples/cell-types-example): the types this one extends
+- [Write a cell type](/docs/recipes-custom-code/write-cell-type): the steps to write a type and its `GridCellTypes` key
+- [CellType contract](/docs/contracts/cell-type-contract): every member of `CellType`
+- [Cell types example](/docs/basic-examples/cell-types-example): the built-in types

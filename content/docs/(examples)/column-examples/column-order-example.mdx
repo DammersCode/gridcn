@@ -1,32 +1,25 @@
 ---
 title: "Column order example"
-description: Drag a header within its pin zone, or move columns programmatically with setColumnOrder.
+description: Drag a header to reorder columns inside their pin zone, or move a column with setColumnOrder.
 icon: GripVertical
 type: example
 ---
 
-Two paths to the same `columnOrder` state: drag a header (the move is scoped to the header's
-pin zone), or call `actions.setColumnOrder(id, targetId, position)` programmatically. The demo
-shows both. Name opts out with `reorderable: false`, and Score is pinned right, so it only
-moves with the pinned zone.
+Two paths change the column order: drag a header, or call `actions.setColumnOrder(id, targetId, position)`. The demo offers both. The demo sets `reorderable: false` on Name and pins Score to the end edge.
 
 <ComponentPreview name="data-grid-column-drag-demo" />
 
 <InstallCommand item="data-grid-column-drag-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `enableColumnReorder`: header drag with a drop indicator, grid-wide default `true`
-- `reorderable: false` on Name: the per-column opt-out that beats the grid flag
-- `pin: "right"` on Score: a drag crossing pin zones is a no-op
-- Picker + Left/Right buttons: `setColumnOrder(selectedId, neighborId, "before" | "after")`
-  from `useDataGridActions()`, disabled at the order's edges
-
-## Behavior reference
-
-- [Reorder](/docs/columns/column-order-pinning#reorder): the drag gesture, gating, and the layout-change payload
-- [Row drag & drop](/docs/row-examples/row-order-example): the same two-path shape for rows
+- `enableColumnReorder` lets the user drag a header. The grid shows a drop indicator. The prop defaults to `true`.
+- `reorderable: false` on Name keeps that column in place, while `enableColumnReorder` is `true`.
+- A column moves only inside its pin zone. A drop across zones does nothing. Score is the only column pinned to the end edge, so it has nowhere to move.
+- The picker and the Left and Right buttons call `setColumnOrder(selectedId, neighborId, "before" | "after")`. The buttons come from `useDataGridActions()`. At the ends of the order, the matching button is off.
 
 ## Related
 
-- [Column layout](/docs/column-examples/column-layout-example): the reorder persists into the layout snapshot
+- [Column order and pinning](/docs/columns/column-order-pinning#reorder): the drag rules and the layout change event
+- [Row order example](/docs/row-examples/row-order-example): the same two paths for rows
+- [Column layout example](/docs/column-examples/column-layout-example): save the order with the layout

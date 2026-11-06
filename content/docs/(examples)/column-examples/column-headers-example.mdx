@@ -1,30 +1,28 @@
 ---
 title: "Column headers example"
-description: ReactNode headers with live sort-state icons (string headers still work).
+description: Set a column header to your own node with icons that follow the sort state, and keep a plain-text label.
 icon: Heading
 type: example
 ---
 
-`ColumnDef.header` accepts a component, not just a string. The header subscribes to live grid
-state and re-renders when it changes. In `sort` header-click mode a custom header owns its own
-display: the built-in sort arrow is only appended to string headers.
+`ColumnDef.header` takes a string or a React node. Click the Name or Score header to sort. A minus icon means no sort. An up icon means ascending. A down icon means descending.
 
 <ComponentPreview name="data-grid-custom-headers-demo" />
 
 <InstallCommand item="data-grid-custom-headers-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `header: <span>…</span>`: ReactNode headers on Name and Score
-- `useDataGridSortState()`: the live sort spec list. The icon follows unsorted → asc → desc
-- `headerText: "Name"`: the accessible/aria text when `header` is not a plain string
-- Email stays a string header and gets the built-in sort arrow appended
+- `headerClickBehavior="sort"` makes a header click sort the column up, then down, then clear the sort.
+- `header` on Name and Score is a node. A node header renders as it is and owns its display, so the grid adds no sort arrow to it.
+- `SortStateIcon` calls `useDataGridSortState()` to read the sort list and picks an icon from the entry of its column.
+- `headerText` gives the plain-text label of a column whose `header` is a node. Without it, the label is the column id.
+- Email keeps a string header. The grid appends the built-in sort arrow to it.
 
-## Behavior reference
-
-- [Custom headers](/docs/columns/column-headers-groups#custom-headers): when to use a component header and the
-  `headerText` contract
+To keep the built-in arrow in a node header, render `DataGridSortIndicator` inside it, with `columnId` and the `sortState` from `useDataGridSortState()`.
 
 ## Related
 
-- [Pinning](/docs/column-examples/pinned-columns-example): the built-in header menu on string headers
+- [Column headers and groups](/docs/columns/column-headers-groups#custom-headers): custom header content and `renderHeaderCell`
+- [Sorting](/docs/sort-filter-search/sorting): the sort state and the click cycle
+- [Pinned columns example](/docs/column-examples/pinned-columns-example): the header menu and resize edges

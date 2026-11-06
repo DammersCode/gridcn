@@ -1,36 +1,30 @@
 ---
 title: "Pinned columns example"
-description: Pin columns to the start or the end, resize edges, double-click autosize, hide and restore.
+description: Pin columns to the start or end edge, resize edges, autosize on double-click, and hide and restore columns.
 icon: Pin
 type: example
 ---
 
-The column surface in one grid: Name is pinned left and Score pinned right by default, Email
-opts out of resizing, and the long Bio column is a `flex: 1` autosize target. Pinning, resize,
-reorder, and visibility are all on by default and adjustable per column (`pinnable`,
-`resizable`, `reorderable`) or grid-wide (`enableColumnPinning`, etc.). To pin rows too, see the
-[rows pinning example](/docs/row-examples/pinned-rows-example).
+The demo pins Name to the start edge and Score to the end edge. Scroll the grid sideways to see them stay in place. Email cannot resize, and the long Bio column fills the free width.
 
 <ComponentPreview name="data-grid-pinning-demo" />
 
 <InstallCommand item="data-grid-pinning-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `pin: "left"` / `pin: "right"`: pinned bands with the frozen-edge shadow
-- `resizable: false` on Email. Drag another header's edge to resize
-- `flex: 1` on Bio: double-click a header edge to autosize to its content
-- Header dropdown (hover a header for the ghost chevron, or right-click): pin/unpin, autosize
-- Toolbar columns menu: hide a column, then restore it the same way
+- `pin: "left"` on Name and `pin: "right"` on Score pin the columns to the start and end. A pinned edge shows a shadow once other columns scroll under it.
+- `resizable: false` on Email removes its resize handle. Drag the end edge of another header to resize it.
+- `flex: 1` on Bio makes it fill the free width. Double-click the end edge of its header to autosize it to its content.
+- Hover a header to see the menu button, or right-click the header. The menu pins, unpins, hides, and autosizes the column. The demo wires it with `DataGridContextMenu` and `DataGridHeaderDropdown`.
+- The `DataGridColumnsMenu` in the toolbar hides and restores columns.
 
-## Behavior reference
-
-- [Pin start/end](/docs/columns/column-order-pinning#pin-startend): pin semantics and the persistent indicator
-- [Resize](/docs/columns/column-sizing#resize): drag, double-click autosize, per-column opt-out
-- [Visibility](/docs/columns/column-visibility#visibility): hide/restore and what happens to pinned state
-- [Flex fill](/docs/columns/column-sizing#flex-fill): how `flex` distributes the leftover width
+Pin, resize, and reorder are on for every column. Set `pinnable`, `resizable`, or `reorderable` to `false` on a column to turn one off. Set `enableColumnPinning`, `enableColumnResize`, or `enableColumnReorder` to `false` to turn one off for the grid. To pin rows as well, see the [pinned rows example](/docs/row-examples/pinned-rows-example).
 
 ## Related
 
-- [Drag & drop](/docs/column-examples/column-order-example): moving columns (drag or programmatic)
-- [Column layout](/docs/column-examples/column-layout-example): persisting all of the above
+- [Column order and pinning](/docs/columns/column-order-pinning#pin-startend): the pin rules and the pin indicator
+- [Column sizing](/docs/columns/column-sizing#resize): resize, autosize, and flex fill
+- [Column visibility](/docs/columns/column-visibility#visibility): hide and restore columns
+- [Column order example](/docs/column-examples/column-order-example): move columns by drag or by code
+- [Column layout example](/docs/column-examples/column-layout-example): save all of the above

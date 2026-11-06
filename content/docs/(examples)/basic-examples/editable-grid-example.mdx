@@ -1,30 +1,26 @@
 ---
 title: "Editable grid example"
-description: Every built-in cell type, range selection, the fill handle add-on, and native clipboard.
+description: Edit seven columns of built-in cell types, select ranges, copy and paste, and drag the fill handle.
 icon: Table2
 type: example
 ---
 
-The hero grid: an editable table with every built-in cell type in one composition. It uses the
-split composition (`DataGridProvider` + `DataGridRoot` + header/body parts) to show the parts.
-The `data-grid-fill` add-on is passed through the provider's `plugins` prop; the plugin's own
-`Mount` member renders inside `DataGridRoot`, so no extra child is needed.
+Press <kbd>Enter</kbd> or <kbd>F2</kbd> on a cell to edit it. Drag over cells to select a range. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> or <kbd>Ctrl</kbd>+<kbd>V</kbd> to copy and paste. Drag the fill handle to copy or continue a series.
 
 <ComponentPreview name="data-grid-demo" />
 
 <InstallCommand item="data-grid-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `text`, `number` (with `min`/`max` options), `checkbox`, `select` (choices), `date`
-  (`displayFormat`): all seven columns, `flex`-sized
-- Range selection: click-drag to select a rectangular range
-- `useDataGridFill`: the fill-handle plugin (overlay + drag engine)
-- Native clipboard: `Ctrl`/`Cmd`+C/V over the selection
-- `defaultData` via `generateDemoRows(12)`: seed rows, zero app-side state
+- Seven columns use `text`, `number`, `checkbox`, `select`, and `date`. The `number` columns set `min` and `max`, the `select` column sets `choices`, and the `date` column sets `displayFormat`.
+- `defaultData` seeds twelve rows from `generateDemoRows(12)`. The demo keeps no state.
+- `DataGridProvider`, `DataGridRoot`, `DataGridHeader`, and `DataGridBody` compose the grid in parts.
+- `useDataGridFill` returns `{ plugin }`. The demo passes `plugin` in the `plugins` prop of `DataGridProvider`. The plugin renders its own mount inside `DataGridRoot`, so the demo adds no child for it.
+- Range selection and the clipboard belong to the core. They need no add-on.
 
 ## Related
 
-- [Fill handle](/docs/clipboard-undo/fill-handle): the add-on this demo wires
-- [Clipboard](/docs/clipboard-undo/clipboard): copy/paste behavior and its overrides
-- [Built-in cell types](/docs/basic-examples/cell-types-example): one column per type
+- [Fill handle](/docs/clipboard-undo/fill-handle): the add-on that this demo wires
+- [Clipboard](/docs/clipboard-undo/clipboard): copy and paste behavior and its overrides
+- [Cell types example](/docs/basic-examples/cell-types-example): one column per cell type

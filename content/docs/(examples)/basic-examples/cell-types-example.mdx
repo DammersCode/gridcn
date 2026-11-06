@@ -1,29 +1,29 @@
 ---
 title: "Cell types example"
-description: Each built-in type in one grid, plus read-only, a validate rule, and a renderCell override.
+description: Edit each built-in cell type in one grid, and see read-only, number clamping, and a renderCell override.
 icon: Grid3x3
 type: example
 ---
 
-One column per built-in cell type, plus the three most common column-level overrides: `readOnly`,
-a sync `validate` rule, and a `renderCell` display override that keeps the type's full
-edit/sort/clipboard pipeline.
+The grid has one column for each built-in cell type. Extra columns show a read-only column, number options, and a `renderCell` display override. Press <kbd>Enter</kbd> or <kbd>F2</kbd> on a cell to open its editor.
 
 <ComponentPreview name="data-grid-cell-types-demo" />
 
 <InstallCommand item="data-grid-cell-types-demo" />
 
-## What's in the demo
+## What the demo shows [#whats-in-the-demo]
 
-- `text`: plain strings, the default type
-- `text` + `readOnly: true`: displays, refuses edits
-- `number` + `options: { min, max }`: clamped input
-- `number` + `validate`: rejects values under 18, keeps the editor open with the message
-- `checkbox`, `select` (choices), `date` (`displayFormat`)
-- `number` + `renderCell`: renders a progress bar. Editing, pasting, and sorting still run the
-  number type's pipeline
+- `text` is the type of a column that sets no `type`.
+- `readOnly: true` on a column refuses edits, pastes, and fills for its cells.
+- `number` with `options: { min: 18, max: 100 }` clamps a typed or pasted value into that range.
+- `number` with `options.format` shows `style: "currency"` text. Copy, export, and the editor keep the raw number.
+- `checkbox`, `select` with `choices`, and `date` with `displayFormat` use the other built-in editors.
+- `url` renders a link. The link opens on <kbd>Alt</kbd>+<kbd>Enter</kbd>. The demo row with a `javascript:` value renders as plain text.
+- `longText` opens a multi-line editor in a popover. <kbd>Shift</kbd>+<kbd>Enter</kbd> inserts a line break.
+- `renderCell` on a `number` column draws a progress bar. The `number` type still handles editing, paste, and sort.
 
 ## Related
 
-- [Editing cell types](/docs/editing-cells): the full guide: types, validation, async rules
-- [Custom cell types](/docs/basic-examples/custom-cell-type-example): when a built-in type doesn't fit
+- [Built-in cell types](/docs/editing-cells/built-cell-types): every type and its options
+- [Display override](/docs/editing-cells/display-override): the arguments of `renderCell`
+- [Custom cell type example](/docs/basic-examples/custom-cell-type-example): a type that none of these cover
