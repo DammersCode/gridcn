@@ -506,9 +506,10 @@ export function computeDuplicateBatch(
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
     const insertAt = sourceIndex + 1;
-    const copy = duplicateRow(sourceRow, insertAt);
+    const finalIndex = insertAt + i;
+    const copy = duplicateRow(sourceRow, finalIndex);
     nextData.splice(insertAt, 0, copy);
-    opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, insertAt), row: copy, index: insertAt });
+    opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, finalIndex), row: copy, index: finalIndex });
   }
   const ops = uniqueAscending.map((index) => opsByIndex.get(index)).filter((op): op is DataOp<unknown> => op != null);
   return { nextData, ops };

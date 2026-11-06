@@ -45,14 +45,11 @@ export function invertChange<TData>(change: DataChange<TData>, source: "history"
  * update/delete operation is no longer present (row was deleted by a later change),
  * that operation is skipped silently rather than throwing.
  *
- * `index` convention: operation indices are snapshot positions — each operation's index
- * is that row's position in the array as it stood before the whole batch
- * was applied (the natural output of a delete-range/insert-range emitter),
- * not a running "log-time" position updated one operation at a time. update/delete operations
- * are row-id-based so their index is informational only; insert operations (including
- * ones produced by inverting a delete batch) are therefore applied in
- * ascending-index order regardless of the order they appear in `ops`, so a
- * multi-row batch round-trips through invertChange correctly.
+ * `index` convention: update/delete operation indices are informational only (those operations are
+ * row-id-based). An insert's `index` is the row's slot in the resulting array, after all of the
+ * batch's inserts are in place (the natural output of an insert-rows or duplicate-rows emitter).
+ * Inserts are applied in ascending-index order regardless of their order in `ops`, so a multi-row
+ * batch (including one produced by inverting a delete batch) round-trips through invertChange.
  */
 export function applyChange<TData>(
   data: readonly TData[],
