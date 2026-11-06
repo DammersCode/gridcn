@@ -1,9 +1,135 @@
 ---
 title: DataGridProvider
-description: DataGridProvider.
+description: Look up the props of DataGridProvider, DataGridHeader, and DataGridBody, compose the parts of a grid yourself, and create the store outside the provider.
 type: reference
+aliases: ["compose grid", "grid context", "lift store", "DataGridHeader"]
 ---
 
-{/* docs-stub */}
+`DataGridProvider` creates the store of one grid and serves it to every part and hook beneath it. `DataGrid` wraps it. If a toolbar, a context menu, or another control must sit beside the grid and read the same state, use the provider yourself. Two grids on one page each get their own store.
 
-This page is being written.
+## Props [#props]
+
+The provider takes every provider prop of `DataGrid`, for example `data`, `columns`, `labels`, and `plugins`. The [DataGrid props page](/docs/components-props/data-grid-props#all-props) lists them. These props come on top:
+
+{/* props: DataGridProviderProps */}
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | Required | The parts and the controls of the grid. |
+| `ref` | `Ref<DataGridApi<TData>>` | none | Receives the ref handle. |
+| `store` | The store that `useDataGridStoreProps` returns | none | Pass it alone. |
+
+The root props live on `DataGridRoot`: `className`, `rowHeight`, `density`, `emptyState`, `loading`, `error`, the render slots, `getRowClassName`, and `getCellClassName`. The [root props table](/docs/components-props/data-grid-props#root-props) lists them all. `onFill` belongs to the fill add-on: pass it to `useDataGridFill` ([Fill handle](/docs/clipboard-undo/fill-handle)).
+
+## Compose the parts [#compose]
+
+Put `DataGridRoot`, `DataGridHeader`, and `DataGridBody` inside the provider. Any other component inside the provider can call the grid hooks:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; symbol: string };
+
+const orders: Order[] = [{ id: "o1", symbol: "ACME" }];
+const columns = defineColumns<Order>()([
+  { id: "symbol", header: "Symbol", accessorKey: "symbol" },
+]);
+
+function ClearButton() {
+  const actions = useDataGridActions();
+  return <button onClick={() => actions.clearSelection()}>Clear</button>;
+}
+
+export function OrderGrid() {
+  return (
+    <DataGridProvider defaultData={orders} columns={columns}>
+      <ClearButton />
+      <DataGridRoot className="h-80">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+### Part props [#part-props]
+
+| Part | Prop | Type | Description |
+| --- | --- | --- | --- |
+| `DataGridHeader` | `className` | `string` | Classes for the header row layer. |
+| `DataGridHeader` | `renderHeaderCell` | `HeaderCellRenderer` | Replaces the contents of each header cell. See below. |
+| `DataGridBody` | `className` | `string` | Classes for the rows canvas. |
+
+The parts take `DataGridHeaderProps` and `DataGridBodyProps`. [Custom header cells](/docs/columns/column-headers-groups#header-cell-contents) shows a use of `renderHeaderCell`.
+
+`renderHeaderCell` is a `HeaderCellRenderer`. It receives `ctx` (`HeaderCellRenderCtx`: `column`, `index`, `width`, `headerClickBehavior`, and `sortState`) and `Default`, the built-in cell contents. It returns the contents of the cell. Pass a stable function.
+
+A grid hook called outside the provider throws an error that names the provider.
+
+## External store [#store-external-store-ownership]
+
+Without `store`, the provider creates its store and keeps it in sync with its props. After mount, the ref handle reaches the actions and the state from anywhere. Create the store yourself in two cases:
+
+- Code outside the provider needs the actions or the state on the first render.
+- Several provider trees share one store.
+
+`useDataGridStoreProps(props)` takes the provider props and returns `{ store, actions }`. Pass the same live props that the grid renders from, because the hook syncs the store whenever a prop changes. Then pass `store` to `DataGridProvider` or `DataGrid`:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  useDataGridStoreProps,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; symbol: string };
+
+const columns = defineColumns<Order>()([
+  { id: "symbol", header: "Symbol", accessorKey: "symbol" },
+]);
+
+export function OrderPage() {
+  const [orders, setOrders] = useState<readonly Order[]>([
+    { id: "o1", symbol: "ACME" },
+  ]);
+  const { store, actions } = useDataGridStoreProps({
+    data: orders,
+    columns,
+    onDataChange: (next) => setOrders(next),
+  });
+
+  const flag = () =>
+    actions.setCellErrors([
+      { rowId: "o1", columnId: "symbol", message: "Unknown symbol" },
+    ]);
+
+  return (
+    <>
+      <button onClick={flag}>Flag the symbol</button>
+      <DataGrid className="h-80" store={store} />
+    </>
+  );
+}
+```
+
+- With `store` set, the provider creates no store and syncs no props. The `useDataGridStoreProps` call drives the store.
+- The grid ignores provider props next to `store`. If you pass both, a development build warns once.
+- `actions` is stable for the life of the store. A closure, such as a save handler or a socket listener, can hold it.
+- `store.getState()` reads the state and `store.subscribe()` listens for changes. Both work outside React. The ref handle offers the same two methods in its `store` member.
+- The ref handle exists after the grid mounts. Before that, use the `actions` that the hook returns.
+
+## Related
+
+- [DataGrid props](/docs/components-props/data-grid-props)
+- [Store hooks](/docs/types-hooks/store-hooks)
+- [State and view index](/docs/concepts/state-view-index)
+- [Events and state](/docs/events-state)

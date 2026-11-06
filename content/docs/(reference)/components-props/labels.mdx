@@ -1,9 +1,111 @@
 ---
 title: Labels
-description: Labels.
+description: Look up every string in DataGridLabels, grouped by the surface that owns it, and the rules that merge a labels override.
 type: reference
+aliases: ["localization", "translation keys", "ui text"]
 ---
 
-{/* docs-stub */}
+`DataGridLabels` holds every user-facing string of the core and the add-ons, grouped by the surface that owns it. `DEFAULT_LABELS` holds the English defaults. The `labels` prop of `DataGrid` and `DataGridProvider` takes a `DeepPartialLabels` object that overrides some of them. The [Labels and i18n guide](/docs/theme-style-language/labels-i18n) shows how to wire a translation library and flip the layout to right to left.
 
-This page is being written.
+| Group | Surface |
+| --- | --- |
+| `toolbar` | Quick search, filter menu, header filter, columns menu |
+| `sort` | Sort list |
+| `filterOperators` | Operator names in the filter menu |
+| `contextMenu` | Cell and header context menu, header dropdown |
+| `keybindings` | Keybindings dialog |
+| `markers` | Row marker column |
+| `grid` | Core grid messages: messages for empty, busy, and failed states, the date editor, and screen reader announcements |
+| `io` | Export menu, import dialog, print button |
+| `pagination` | Pager |
+| `statusBar` | Status bar |
+| `findReplace` | Find and replace panel |
+
+A label is a string or a function. A function label receives the values that its text needs, such as a count or a page number, and returns the string. The type of each field names its arguments:
+
+```tsx
+import {
+  DataGrid,
+  type DeepPartialLabels,
+} from "@/components/data-grid/data-grid";
+
+const labels: DeepPartialLabels = {
+  grid: { emptyState: "Keine Zeilen" },
+  toolbar: { searchMatches: (current, total) => `${current} von ${total}` },
+};
+
+export function EmptyGrid() {
+  return (
+    <DataGrid className="h-80" defaultData={[]} columns={[]} labels={labels} />
+  );
+}
+```
+
+The empty grid shows "Keine Zeilen". With the toolbar add-on, its search shows "3 von 17" for the third of 17 matches. Every other string stays English.
+
+## Override rules [#override-rules]
+
+- Plain objects merge key by key, at every depth.
+- A string, a function, or an array that you set replaces the default as a whole.
+- The grid merges again whenever the `labels` object changes identity. Define it outside the component or memoize it.
+- `useDataGridLabels()` returns the merged result under the provider.
+
+<Callout type="warn">
+  Leave out every key that you do not translate. A key that you set to `undefined` replaces the default with `undefined`. A string label then disappears from the UI, and calling a function label throws an error.
+</Callout>
+
+## DataGridLabels [#datagridlabels]
+
+Each group below is one key of `DataGridLabels`.
+
+### toolbar [#toolbar]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridToolbarLabels" />
+
+### sort [#sort]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridSortLabels" />
+
+### filterOperators [#filteroperators]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridFilterOperatorLabels" />
+
+### contextMenu [#contextmenu]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridContextMenuLabels" />
+
+### keybindings [#keybindings]
+
+In the keybindings dialog, a custom command shows its `label`. Without `label` and without an entry in `keybindings.actions`, the dialog shows the action name as words: `exportCsv` shows as "Export csv".
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridKeybindingsLabels" />
+
+### markers [#markers]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridMarkerLabels" />
+
+### grid [#grid]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridGridLabels" />
+
+### io [#io]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridIOLabels" />
+
+### pagination [#pagination]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridPaginationLabels" />
+
+### statusBar [#statusbar]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridStatusBarLabels" />
+
+### findReplace [#findreplace]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridFindReplaceLabels" />
+
+## Related
+
+- [Labels and i18n](/docs/theme-style-language/labels-i18n)
+- [DataGrid props](/docs/components-props/data-grid-props)
+- [DataGridProvider](/docs/components-props/data-grid-provider)

@@ -1,10 +1,187 @@
 ---
 title: DataGrid props
-description: DataGrid props.
+description: Look up every prop of DataGrid, the root props for size and states, and the methods of the ref handle.
 type: reference
 aliases: ["getrowid", "row id", "props"]
 ---
 
-{/* docs-stub */}
+`DataGrid` renders the provider, the scroll root, the header, and the body in one component. Its props type is `DataGridProps<TData>`, and its props come from two sets. The provider props set data, columns, behavior, and events. The root props set size, states, and render slots. The `ref` prop receives a handle with methods.
 
-This page is being written.
+| Concern | Props | Guide |
+| --- | --- | --- |
+| Rows and ids | `data`, `defaultData`, `getRowId` | [Define columns](/docs/learning-path/define-columns) |
+| Saving | `onDataChange`, `onSave`, `onSaveRejected` | [Plan server saves](/docs/server-path/plan-server-saves) |
+| Sort, filter, search | `sortState`, `filterState`, `searchText`, and their `default` and `on` props | [Sorting](/docs/sort-filter-search/sorting) |
+| Server data | `sortMode`, `filterMode`, `totalRowCount` | [Load server rows](/docs/server-path/load-server-rows) |
+| Selection | `selection`, `defaultSelection`, `onSelectionChange` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| Column layout | `columnLayout`, `columnGroups`, `autosizeOnMount` | [Column visibility](/docs/columns/column-visibility) |
+| Editing | `validateRow`, `onEditStart`, `onEditEnd` | [Validation](/docs/editing-cells/validation) |
+| Clipboard | `processCellForClipboard`, `processPaste` | [Clipboard](/docs/clipboard-undo/clipboard) |
+| Keys | `keymap`, `commands` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| Add-ons | `plugins` | [Plugins](/docs/plugins) |
+| Text | `labels` | [Labels](/docs/components-props/labels) |
+
+## Rows and ids [#rows-and-ids]
+
+Without `store`, `columns` is the only required prop. `data` and `defaultData` are both optional. With neither, the grid has no rows.
+
+- `data` makes the grid controlled. The grid shows the array that you pass. Every edit reaches your state through `onDataChange`, and the grid shows it after you pass the new array. A new array with the same rows on each render logs a development warning.
+- `defaultData` seeds the grid once. The grid owns the rows afterwards, and a later change to the prop has no effect.
+
+Pass one of them. If you pass both, `data` wins and a development build warns once.
+
+`getRowId(row, index)` returns the row id of a row. A row id is a string that is unique and stable. Without `getRowId`, the grid reads the `id` field of the row, a string or a number. A row without that field throws an error. A number `id` becomes a string, so row `1` has the row id `"1"`. If two rows share a row id, the grid uses the first one. If the id lives elsewhere, pass `getRowId`:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { orderNumber: string; symbol: string };
+
+const orders: Order[] = [{ orderNumber: "A-100", symbol: "ACME" }];
+const columns = defineColumns<Order>()([
+  { id: "symbol", header: "Symbol", accessorKey: "symbol" },
+]);
+
+export function OrderGrid() {
+  return (
+    <DataGrid
+      className="h-80"
+      defaultData={orders}
+      columns={columns}
+      getRowId={(order) => order.orderNumber}
+    />
+  );
+}
+```
+
+With server data, `getRowId` returns the same id for a record in every answer, because selection, edits, and saves find the row by it. A row that `createRow` adds keeps the id that `createRow` returns. [Change server rows](/docs/rows-live-data/change-server-rows) shows how to use a server id.
+
+## Root props [#root-props]
+
+These props set the look and the states of the grid. When you compose the parts yourself, `DataGridRoot` takes the same props. Pass the row type, for example `<DataGridRoot<Order>>`, to type the rows that `getRowClassName` and `getCellClassName` receive.
+
+{/* props: DataGridRootProps */}
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `className` | `string` | none | Classes for the scroll root. Set the height here. |
+| `rowHeight` | `number` | none | Row height in px. It overrides `density`. |
+| `density` | `"compact" \| "default" \| "comfortable"` | `"default"` | Row height preset: 28, 36, or 44 px. |
+| `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
+| `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
+| `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows". |
+| `loading` | `boolean` | `false` | Shows the loading skeleton or the loading bar. |
+| `loadingState` | `ReactNode \| LoadingStateRenderer` | none | Replaces the built-in loading display. |
+| `error` | `unknown` | none | Any value except `undefined` and `null` shows the error state. |
+| `onRetry` | `() => void` | none | Runs on a press of the Retry button. |
+| `errorState` | `ReactNode \| (ctx) => ReactNode` | none | Replaces the built-in error state. A function receives `{ error, retry }`. |
+| `renderHeaderMenu` | `HeaderMenuRenderer` | none | Renders a menu trigger in each header cell. |
+| `renderHeaderFilter` | `(ctx) => ReactNode` | none | Renders the header filter in each column that offers a set filter (`isAnyOf` or `isNoneOf`) and is not `filterable: false`. |
+| `renderMarker` | `MarkerCellRenderer` | none | Replaces the content of a row marker cell. A function receives `MarkerCellRenderCtx`. Needs a `rowMarkers` mode other than `"none"`. |
+| `renderMarkerHeader` | `MarkerHeaderRenderer` | none | Replaces the select-all checkbox of the marker header. A function receives `MarkerHeaderRenderCtx`. |
+| `getRowClassName` | `GetRowClassName<TData>` | none | Adds classes to a row. |
+| `getCellClassName` | `GetCellClassName<TData>` | none | Adds classes to a cell. |
+| `children` | `ReactNode` | header and body (`DataGrid` only) | The parts inside the root. |
+
+Pass a stable function to `renderMarker`, `renderMarkerHeader`, `getRowClassName`, and `getCellClassName`. A new `getRowClassName` or `getCellClassName` function on each render logs a development warning. See [Keep references stable](/docs/performance/performance-guidance#keep-references-stable).
+
+### Render slot arguments [#render-slots]
+
+- `renderMarker` receives `MarkerCellRenderCtx`: `rowId`, `viewRowIndex`, `isRowChannelSelected` (the row has a whole-row selection), and `isCellSelected` (a selection covers at least one cell of the row).
+- `renderMarkerHeader` receives `MarkerHeaderRenderCtx`: `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`.
+
+- `renderHeaderMenu` receives `column`, `index`, and `trigger`, the menu button of the grid. Render `trigger` as the trigger of your menu.
+- `renderHeaderFilter` receives `column` and `index`.
+- `getRowClassName` receives the row and its view index. `getCellClassName` receives `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, and the column.
+
+### Direction [#direction]
+
+Without `direction`, the grid reads the direction of the page once at mount. A grid inside `<html dir="rtl">` runs right to left with no prop. Pass `direction` to force one direction.
+
+### Empty, loading, and error states [#states]
+
+- `emptyState` shows for a view with no rows. Its `reason` is `"no-data"` for empty data. With rows that a filter hides, or with an active server filter or search, it is `"filtered"`. It never shows during `loading` or an `error`.
+- An `emptyState` of `null`, or a function that returns `null` or `undefined`, shows `labels.grid.emptyState`.
+- `loading` is a flag for display only. With no rows it shows a skeleton. With rows it keeps them and adds a thin bar under the header.
+- `error` with no rows shows a centered message. With rows it shows a bar under the header and keeps the rows. The message comes from `labels.grid.errorState`. The grid never renders the error value.
+- The Retry button needs `onRetry`. Without it, the button does not show.
+- When the error state goes away while its Retry button or a control of `errorState` has focus, focus returns to the grid. Focus that the user moved elsewhere stays.
+- The function form of `loadingState` receives `reason`: `"no-data"` for the skeleton and `"rows-present"` for the bar.
+
+## Ref handle [#imperative-handle]
+
+The `ref` prop receives the `DataGridApi` of the grid. The object is stable for the life of the grid, so a toolbar or an effect can hold it. `DataGridProvider` takes the same `ref`. Under the provider, `useDataGridApi(ref?)` returns the same object. Pass a cell by `rowId` and `columnId`:
+
+```tsx
+import { useRef } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; symbol: string };
+
+const orders: Order[] = [{ id: "o1", symbol: "ACME" }];
+const columns = defineColumns<Order>()([
+  { id: "symbol", header: "Symbol", accessorKey: "symbol" },
+]);
+
+export function OrderGrid() {
+  const gridRef = useRef<DataGridApi<Order>>(null);
+
+  const showFirst = () => {
+    const cell = { rowId: "o1", columnId: "symbol" };
+    gridRef.current?.scrollTo(cell);
+    gridRef.current?.actions.selectCell(cell);
+  };
+
+  return (
+    <>
+      <button onClick={showFirst}>Show ACME</button>
+      <DataGrid
+        ref={gridRef}
+        className="h-80"
+        defaultData={orders}
+        columns={columns}
+      />
+    </>
+  );
+}
+```
+
+{/* props: DataGridApi */}
+
+| Member | Description |
+| --- | --- |
+| `actions` | The stable actions object. It is the same object as `useDataGridActions()`. |
+| `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. The state omits the event callbacks, such as `onDataChange` and `onSelectionChange` (`DataGridReadState`). |
+| `scrollTo()` | Takes a cell by `rowId` and `columnId` and scrolls it into view. A cell whose row left the data or the view, or whose column is hidden, does nothing, and a development build warns once. |
+| `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
+| `startEditing()` | Takes a cell and opens an editor there. It follows the rules of the keyboard edit gestures. |
+| `stopEditing()` | Closes the editor and discards the draft. `onEditEnd` fires with `result: "cancel"`. |
+| `getSelection()` | Returns the selection as a snapshot. |
+| `setSelection()` | Takes a `SelectionState` and applies it as a whole. `null` clears it. |
+| `getRow()` | Takes a view index and returns the row there, or `undefined`. |
+| `getViewRowIds()` | Returns the row id of every view row, in view order. |
+
+- `startEditing` does nothing on a `readOnly` grid, on a read-only cell, and on a cell whose type has `activate`, such as a checkbox. `onEditStart` can still veto the edit.
+- `getSelection`, `getRow`, and `getViewRowIds` read at call time. They never re-render the caller.
+- If the result differs from the current selection, `setSelection` fires `onSelectionChange`. To select one cell, call `actions.selectCell(ref)`.
+- `getViewRowIds()[i]` is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass.
+- `scrollTo` and `focus` do nothing until a `DataGridRoot` mounts.
+
+## All provider props [#all-props]
+
+The table lists every provider prop with its description. The [DataGridProvider page](/docs/components-props/data-grid-provider) adds the `store`, `children`, and `ref` props.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/store/types.ts" name="DataGridSyncProps" />
+
+## Related
+
+- [DataGridProvider](/docs/components-props/data-grid-provider)
+- [ColumnDef](/docs/components-props/column-def)
+- [Events and state](/docs/events-state)
+- [Props A to Z](/docs/cheatsheets-messages/props-z)
+- [Render your first grid](/docs/learning-path/render-your-first-grid)

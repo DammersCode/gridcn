@@ -1,9 +1,138 @@
 ---
 title: ColumnDef
-description: ColumnDef.
+description: Look up every field of ColumnDef, the object that defines one column: its value, cell type, size, sort, filter, and look.
 type: reference
+aliases: ["column definition", "column options", "column config"]
 ---
 
-{/* docs-stub */}
+A `ColumnDef` describes one column. It names the column, says how to read and write the value, picks the cell type, and sets size, sort, filter, and look. Pass an array of them to the `columns` prop.
 
-This page is being written.
+| Concern | Fields | Section |
+| --- | --- | --- |
+| Identity and header | `id`, `header`, `headerText`, `headerClassName` | [Fields](#fields) |
+| Value | `accessorKey`, `accessorFn`, `setValue`, `readOnly`, `renderCell`, `cellClassName` | [Read and write a value](#values) |
+| Cell type | `type`, `options` | [Fields](#fields) |
+| Validation | `validate`, `onInvalid` | [Validation](#validation) |
+| Size | `width`, `minWidth`, `maxWidth`, `flex`, `resizable` | [Width and flex](#width) |
+| Sort and filter | `sortable`, `sortCompare`, `filterable`, `filterMatch`, `filterOperators` | [Sort and filter](#sort-and-filter) |
+| Layout | `pin`, `pinnable`, `reorderable`, `hidden` | [Fields](#fields) |
+
+`defineColumns` checks each literal. The `type` key sets the value type and the `options` type of the column. A column without `type` is a `text` column. `accessorKey` must name a row field of that value type, and `accessorFn` must return it:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; symbol: string; qty: number; price: number };
+
+export const columns = defineColumns<Order>()([
+  {
+    id: "symbol",
+    header: "Symbol",
+    accessorKey: "symbol",
+    pin: "left",
+    width: 120,
+  },
+  {
+    id: "qty",
+    header: "Qty",
+    accessorKey: "qty",
+    type: "number",
+    validate: (value) => (value !== null && value < 0 ? "Use 0 or more" : null),
+  },
+  {
+    id: "total",
+    header: "Total",
+    type: "number",
+    accessorFn: (row) => row.qty * row.price,
+    flex: 1,
+    minWidth: 100,
+  },
+]);
+```
+
+The `symbol` column pins to the start side at 120 px. The `qty` column is a number column that rejects negative values. The `total` column shows a computed value. It has no `setValue`, so the grid blocks edits to it. It takes the free width of the grid.
+
+Keep the `columns` array stable: define it outside the component or memoize it. A new array with the same content on each render triggers a development warning.
+
+## Fields [#fields]
+
+{/* props: ColumnDef */}
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | Required | Stable identity of the column. Duplicate ids trigger a development warning. |
+| `header` | `string \| ReactNode` | Required | A string header shows a sort arrow once you sort the column. The arrow needs `headerClickBehavior="sort"` and a sortable column. A node renders as given, with no sort arrow. |
+| `headerText` | `string` | none | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, the labels, menus, export, and import matching use the column id, and autosize measures no header text. |
+| `accessorKey` | `keyof TData` (string keys) | none | Row field that holds the value. |
+| `accessorFn` | `(row) => TValue` | none | Computes the value from the row. |
+| `setValue` | `(row, value) => TData` | spread of `accessorKey` | Returns a new row with the value written. |
+| `type` | `string` | `"text"` | Key of the cell type. A key that names no registered cell type renders as text and drops edits, pastes, and deletes. A development build warns once. |
+| `options` | `unknown` | none | Settings for the cell type, such as the choices of a select. |
+| `readOnly` | `boolean \| (row) => boolean` | none | Blocks edits. The function form decides per row. |
+| `validate` | `(value, row) => string \| null` or a schema | none | Rejects a value. |
+| `onInvalid` | `"block" \| "warn"` | `"block"` | What a rejection does to a single-cell commit. |
+| `width` | `number` | `150` | Width in px. |
+| `minWidth` | `number` | none | Smallest width in px. |
+| `maxWidth` | `number` | none | Largest width in px. |
+| `flex` | `number` | none | Share of the free width of the grid. |
+| `pin` | `"left" \| "right"` | none | Starting pin side. `"left"` is the start side and `"right"` the end side. In a right-to-left page, both flip. |
+| `sortable` | `boolean` | `true` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. |
+| `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
+| `filterMatch` | `(value, filter) => boolean` | none | Replaces the text matcher for this column. |
+| `filterOperators` | `readonly FilterOperator[]` | from `type` | Operators that the filter menu offers. |
+| `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
+| `hidden` | `boolean` | none | `true` hides the column at start. `setColumnHidden` and the columns menu change it later. |
+| `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
+| `reorderable` | `boolean` | `true` | `false` stops the drag of this column. `setColumnOrder` ignores the column. |
+| `pinnable` | `boolean` | `true` | `false` removes pin and unpin. `setColumnPin` ignores the column. |
+| `renderCell` | `(props) => ReactNode` | none | Replaces how the cell looks. |
+| `cellClassName` | `string \| (ctx) => string` | none | Adds classes to every cell of the column. |
+| `headerClassName` | `string` | none | Adds classes to the header cell. |
+
+## Read and write a value [#values]
+
+`accessorKey` reads a row field and `accessorFn` computes a value. A column with only `accessorFn` blocks edits. Add `setValue` to allow them. Without `setValue`, a column with `accessorKey` writes by spreading the row with the new field value. `getCellValue(row, column)` reads the value of a column from a row the way the grid does. It throws for a column with neither `accessorKey` nor `accessorFn`. In a development build, `defineColumns` warns for a column with neither `accessorKey` nor `accessorFn`.
+
+`readOnly: true` blocks edits. A function receives the row. The grid-wide `readOnly` prop overrides every column.
+
+`renderCell` changes the display only. The cell type still handles editing, copy, and sorting. It receives `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
+
+## Validation [#validation]
+
+`validate` takes a function that returns an error message or `null`. It also takes any [Standard Schema](https://standardschema.dev) for the value. For a schema, the committed value is the value that the schema returns, so a schema can transform input.
+
+- `onInvalid: "block"` refuses the commit. The editor stays open with the message.
+- `onInvalid: "warn"` commits the raw value and flags the cell. The next valid commit of that cell clears the flag. A validator that throws, or a schema promise that rejects, blocks the commit even in a `"warn"` column.
+- Paste, fill, and `updateCells` drop a rejected cell, even in a `"warn"` column.
+- An async schema works in the editor and in bulk writes. A bulk write runs at most 32 validations at a time.
+
+## Width and flex [#width]
+
+`width` starts at 150 px. A resize clamps to `maxWidth` and to the larger of `minWidth` and 32 px.
+
+`flex` shares the free width of the grid among the flex columns, in proportion to their `flex` values. A column stops at `maxWidth`, and its unused share goes to the others. A flex column never shrinks below its `width`. A width override takes the column out of the flex share: a resize, an autosize, `setColumnWidth`, or a width in the column layout. `resetColumnWidth` puts it back.
+
+## Sort and filter [#sort-and-filter]
+
+- `sortable: false` removes header-click sorting. `setSorts` and `toggleSort` still sort the column. URL state drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column.
+- `sortCompare` receives two whole rows. A result of zero, a non-finite number such as `NaN`, or a thrown error defers that pair to the default text compare. The `SortSpec` direction still applies, and empty cells still sort last.
+- `filterable: false` hides the column from the filter column picker. Filters that already target the column keep applying.
+- `filterMatch` receives the raw cell value and the filter. A thrown error fails the row for that filter.
+- `filterOperators` wins over the `filter.operators` of the cell type and the defaults. The `operatorsForColumn` prop of the filter menu wins over it. A column with `filterMatch`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filterOperators` and without `filter.operators` on the cell type.
+- With `sortMode="server"`, the server orders the rows and `sortCompare` does not run. With `filterMode="server"`, the server filters and `filterMatch` does not run. `filterOperators` sets the operators of the filter menu in both modes.
+
+## Types [#types]
+
+`ColumnDef<TData, TValue, TValidate>` has `TValidate` set to `TValue` by default. `AnyColumnDef` is `ColumnDef<unknown, unknown, any>`: a column of any row type. `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return arrays of it. Pass a row type, such as `useDataGridVisibleColumns<Order>()`, to get `ColumnDefOf<Order>` instead. With `defineColumns`, you never set `TValidate` yourself.
+
+`ColumnDefOf<TData>` is `ColumnDef<TData, unknown, any>`, the column type of the `columns` prop. Import `StandardSchemaV1` from `@/components/data-grid/types`. `StandardSchemaV1.InferInput<S>` and `StandardSchemaV1.InferOutput<S>` give the input and output types of a schema.
+
+`TypedColumnDef<TData, K>` is the column type for cell type `K`. `defineColumns` checks each literal against `AnyTypedColumn<TData>`, the union of these types. `TypedTextColumnDef<TData>` is its `text` branch, where `type` is optional.
+
+## Related
+
+- [DataGrid props](/docs/components-props/data-grid-props)
+- [Define columns](/docs/learning-path/define-columns)
+- [Cell type model](/docs/concepts/cell-type-model)
+- [Validation](/docs/editing-cells/validation)
+- [Column sizing](/docs/columns/column-sizing)
