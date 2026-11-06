@@ -1,9 +1,104 @@
 ---
 title: Undo with server data
-description: Undo with server data.
+description: Save undo and redo to your server, drop the undo entry of a refused save, and run the history add-on over scroll-mode rows.
+icon: Undo2
 type: task
+aliases: ["undo save", "undo scroll mode"]
 ---
 
-{/* docs-stub */}
+The history add-on records the changes a user makes. When the grid saves to a server, an undo is one more change to save. This page shows how undo and redo reach `onSave`, how a refused save leaves the undo stack, and how to run history over scroll-mode rows.
 
-This page is being written.
+## Save undo and redo
+
+An undo or redo reaches `onDataChange` and `onSave` with `source: "history"`. Your `onSave` sees it as a normal change and sends it to the server. Do not filter that source out, or the server keeps the old value.
+
+## Roll back a failed save [#rolling-back-a-failed-save]
+
+If the server refuses a change, return the refusal from `onSave`. The grid reverts the change and, when the revert writes, removes its entry from the undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. The whole entry goes, so the rows that the server accepted lose their undo step. See [Handle refused saves](/docs/save-server/handle-refused-saves).
+
+To revert a change yourself, call `rollback(change)` with the change that `onSave` received:
+
+```tsx
+import {
+  DataGrid,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+import { columns, type Row } from "./rows";
+import { api } from "./api";
+
+export function RowsGrid({ rows }: { rows: Row[] }) {
+  const history = useDataGridHistory<Row>();
+
+  async function onSave(change: DataChange<Row>) {
+    try {
+      await api.save(change);
+    } catch {
+      history.rollback(change);
+    }
+  }
+
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onSave={onSave}
+      plugins={[history.plugin]}
+    />
+  );
+}
+```
+
+`rollback` applies the inverse change with `source: "rollback"` and removes the entry from the stack. A cell reverts only while it still holds the change's value, so later edits stay. If the user already undid the change, `rollback` writes nothing. `onSave` never receives a `"rollback"` change, and history records neither `"history"` nor `"rollback"` changes. `createHistory` from `@/components/data-grid/data-grid-sdk` exposes the same removal as `discard(change)`.
+
+<Callout type="warn" title="A refused undo keeps its stack entry">
+  If the server refuses an undo or a redo, the grid reverts the data. The entry stays on the stack where the undo or redo put it, so the stack and the data disagree. When `change.source` is `"history"`, call `history.clear()` from `onSaveRejected`.
+</Callout>
+
+## Run history with scroll mode [#with-scroll-mode]
+
+`useDataGridServerRows` in scroll mode owns the `data` array. The array is sparse. Loaded indices hold rows, and unloaded indices hold holes. Spread `gridProps`, and put the history plugin after the plugins that `gridProps` carries:
+
+```tsx
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import { columns, type Row } from "./rows";
+import { fetchRows } from "./api";
+
+export function ScrollGrid() {
+  const server = useDataGridServerRows<Row>({
+    mode: "scroll",
+    fetchRows,
+    getRowId: (row) => row.id,
+  });
+  const history = useDataGridHistory<Row>({
+    datasetKey: JSON.stringify(server.spec),
+  });
+
+  return (
+    <DataGrid
+      {...server.gridProps}
+      columns={columns}
+      plugins={[...server.gridProps.plugins, history.plugin]}
+    />
+  );
+}
+```
+
+Three rules keep the combination safe:
+
+- Pass the plain `getRowId` to the hook and `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
+- An entry whose rows left the loaded rows skips those operations and keeps the rest. So `canUndo` can stay true for an entry that changes nothing.
+- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
+
+When `undo` runs over a sparse array, it warns once in development.
+
+## Related
+
+- [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Save and revert](/docs/save-server/save-revert)
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
+- [Data change events](/docs/events-state/data-change-events)

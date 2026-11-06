@@ -1,9 +1,131 @@
 ---
 title: Select server rows
-description: Select server rows.
+description: Keep checked rows across pages, select every matching row of a server result, and send the selection to your API as ids or as a spec.
+icon: SquareCheck
 type: task
+aliases: ["checked rows across pages", "server selection", "select all pages", "select every row"]
 ---
 
-{/* docs-stub */}
+A server grid holds one page, or the loaded part of a scroll-mode source. Declare the size of the whole result and keep the checked rows. The checks then survive page changes. "Select all matching" then covers rows that the grid never loaded.
 
-This page is being written.
+<ComponentPreview name="data-grid-server-selection-demo" />
+
+## Declare the result [#selection-over-a-server-result]
+
+Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. Set `keepCheckedRows` with it. `totalRowCount` does not turn `keepCheckedRows` on. `useDataGridServerRows` sets both in `gridProps` and `providerProps`.
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Description | Default |
+| --- | --- | --- |
+| `totalRowCount` | The size of the result. A negative or non-finite number counts as `null`. | none |
+| `keepCheckedRows` | When the user selects a cell, the checked rows stay. Row operations then act on the checked rows only. | `false` |
+
+With both props:
+
+- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode and needs no `keepHiddenCheckedRows`.
+- `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
+- Without both props, `selectAllMatching()` does nothing and warns in development. With `enableRowSelection={false}`, it does nothing.
+
+## Read the selection as a value [#read-the-selection-as-a-value]
+
+`useDataGridSelectedRows()` returns the selection as a `DataGridSelectedRows` value. Send it to your server, which applies the action:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  useDataGridSelectedRows,
+} from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import { columns, type Order } from "./orders";
+import { api, fetchRows } from "./api";
+
+function DeleteSelected() {
+  const selected = useDataGridSelectedRows();
+  const remove = () =>
+    api.deleteOrders(
+      selected.mode === "ids"
+        ? { ids: selected.ids }
+        : { spec: selected.spec, exceptIds: selected.excludedIds },
+    );
+  return <button onClick={remove}>Delete {selected.count ?? "all"}</button>;
+}
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows,
+  });
+
+  return (
+    <DataGridProvider
+      {...server.providerProps}
+      columns={columns}
+      rowMarkers="checkbox"
+    >
+      <DataGridRoot {...server.rootProps} className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridPaginationBar {...server.pager} />
+      <DataGridStatusBar />
+      <DeleteSelected />
+    </DataGridProvider>
+  );
+}
+```
+
+In `ids` mode, `ids` lists the checked loaded rows and the remembered ones. Unloaded rows have no id and stay out. In `allMatching` mode, `excludedIds` lists the unchecked rows. `count` is `totalRowCount` minus the exclusions, or `null` when the size is unknown. `spec` holds the sort, the filters, and the search text that the grid held when you read the value.
+
+The server applies the action to every row that matches `spec`, except the excluded ids. Validate and bound the ids and the filter tree again on the server.
+
+## Use the select-all banner [#the-select-all-banner]
+
+If you set `totalRowCount`, `DataGridStatusBar` shows a banner:
+
+- When you check every row of a page and the result is larger, it shows "All 10 on this page are selected." The button reads "Select all 237 matching", or "Select all matching" for `null`.
+- After the button, it reads "All 237 selected.", or "All matching rows are selected." for `null`, with the button "Clear selection". The count drops by one for each row you uncheck.
+- While "all matching" is on, a change of the filter or the search text ends it and unchecks every row. The banner starts again from the next checked page. Selecting all matching announces the count in the live region. When the size is unknown, it announces that all matching rows are checked.
+
+The labels are `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`.
+
+## What ends "all matching"
+
+These end it:
+
+- `clearSelection()`, `setSelection(null)`, and an empty controlled `selection`
+- Escape and the header checkbox turned off
+- A change of the filter or the search text
+- A row delete: `deleteRows`, `deleteRowsById`, or the context menu Delete item
+- `keepCheckedRows` turned off, or `totalRowCount` removed
+
+This list covers the common causes, not every path.
+
+The grid remembers at most 100,000 ids. In `ids` mode, it drops the rows beyond the cap. In `allMatching` mode, more than 100,000 exclusions end "all matching" and uncheck every row, because a dropped exclusion selects more rows. The grid warns once in development. An unloaded row of a scroll-mode source stays checked in `allMatching` mode. You cannot exclude it, because it has no id. `useDataGridHiddenCheckedCount()` is `0` while "all matching" is on.
+
+<Callout type="warn" title="Row operations skip rows that the grid does not hold">
+  While "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
+</Callout>
+
+## Copy and export loaded rows [#selecting-copying-and-exporting]
+
+A scroll-mode grid holds unloaded rows as holes. None of these gestures fetches a row:
+
+- Ctrl/Cmd+A twice selects the full view, holes included. It selects cells and checks no rows. `getRowIds` lists the loaded rows of that selection and skips unloaded rows.
+- Copy writes empty cells for unloaded rows.
+- Export covers the loaded rows only. It skips holes in every scope.
+- With `totalRowCount`, `useDataGridSelectedRows()` lists real ids only.
+
+To act on rows that the grid does not hold, send the selection value to your server.
+
+## Related
+
+- [Checked rows](/docs/selection-shortcuts/checked-rows)
+- [Selection model](/docs/concepts/selection-model)
+- [Change server rows](/docs/rows-live-data/change-server-rows)
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)

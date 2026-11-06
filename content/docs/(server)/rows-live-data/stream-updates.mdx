@@ -1,23 +1,29 @@
 ---
 title: "Stream updates"
-description: Push live values into cells by row id, without a full data replacement.
+description: Push live values into cells by row id with updateCells, without a full data replacement, and control how a sorted view reacts.
 icon: Radio
 type: task
 aliases: ["realtime", "websocket", "live updates"]
 ---
 
-`updateCells` writes values straight into the grid by row id, for live feeds that update many cells per second.
+`updateCells` writes values into the grid by row id. Use it for live feeds that update many cells per second.
 
 <ComponentPreview name="data-grid-streaming-demo" />
 
-## Usage
+## Write patches [#usage]
 
-Address each write by the row's `getRowId` value and the column id:
+Address each write by the `getRowId` value and the column id. Render the feed component inside `DataGridProvider`, next to `DataGridRoot`:
 
 ```tsx
-import { useDataGridActions, type CellPatch } from "@/components/data-grid/data-grid";
+import { useEffect } from "react";
+import {
+  useDataGridActions,
+  type CellPatch,
+} from "@/components/data-grid/data-grid";
 
-function TickerFeed() {
+type Quote = { symbol: string; price: number };
+
+export function TickerFeed({ quotes }: { quotes: Quote[] }) {
   const actions = useDataGridActions();
 
   useEffect(() => {
@@ -30,179 +36,108 @@ function TickerFeed() {
       actions.updateCells(patches);
     }, 250);
     return () => clearInterval(id);
-  }, [actions]);
+  }, [actions, quotes]);
 
   return null;
 }
 ```
 
-One call is one batch. The grid applies all patches together and fires `onDataChange` once, with
-one `update` operation per touched row. Rows you do not patch keep their identity and do not render again.
+One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again.
 
-A patch with an unknown `rowId` or `columnId` is skipped. A patch to a read-only column, or a
-patch whose value equals the current value, is also skipped. A hidden column can be patched. On a
-`readOnly` grid, every batch is a silent no-op.
+A hidden column takes patches like a visible one. The grid skips a patch for an unknown row or column, a read-only column, or an unchanged value. On a `readOnly` grid, every batch does nothing.
 
-<Callout title="Row ids, not coordinates">
-  A view coordinate changes when the user sorts or filters. A row id does not, so a feed can write
-  correctly while the user changes the view.
-</Callout>
+## Patch whole rows [#whole-rows]
 
-## Sorted and filtered views
+`actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5 } }])` takes `RowPatch` entries and patches several columns of one row at once. Each entry in `changes` becomes one patch. The options are the same as for `updateCells`.
 
-If a patch changes a value that the active sort or filter reads, a full re-sort moves the row.
-By default the row keeps its position, and the grid sets a stale flag. Read the flag with
-`useDataGridViewStale` and give the user a control to re-sort:
+## Sorted and filtered views [#sorted-and-filtered-views]
+
+If a patch changes a value that the sort or filter reads, the row keeps its position and the grid sets a stale flag. Read the flag with `useDataGridViewStale` and give the user a control to re-sort. Render it inside the provider too:
 
 ```tsx
-function ReSortBar() {
+import {
+  useDataGridActions,
+  useDataGridViewStale,
+} from "@/components/data-grid/data-grid";
+
+export function ReSortBar() {
   const actions = useDataGridActions();
   const viewStale = useDataGridViewStale();
   if (!viewStale) return null;
-
-  return (
-    <button onClick={() => actions.reconcileView()}>Re-sort</button>
-  );
+  return <button onClick={() => actions.reconcileView()}>Re-sort</button>;
 }
 ```
 
-A direct write raises the same flag: an edit, paste, fill, or cleared selection that touches a
-column the active sort or filter reads leaves the row where it is and marks the view stale.
+`reconcileView()` clears the flag. A change of sort or filter does the same. An edit, paste, fill, or cleared selection that touches such a column also marks the view stale.
 
-`reconcileView()` rebuilds the order and clears the flag. A sort, filter, or search change does
-the same thing.
+The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value and sets this behavior per call, for example `{ reorder: "immediate" }`:
 
-The `reorder` option sets this behavior per call:
-
-```tsx
-actions.updateCells(patches, { reorder: "immediate" });
-```
-
-| Value | Behavior | When to use |
-| --- | --- | --- |
-| `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. | When a row that jumps position mid-read is worse than a stale order the user clears on demand. |
-| `"immediate"` | The grid moves the patched rows to their new positions in the same call. | When the displayed order must always match the sort. |
-| `"never"` | The value changes and `viewStale` stays false. | |
-
-If no patched column feeds the active sort or filter, `"defer"` becomes `"never"` automatically, so
-`viewStale` stays false for a feed that writes only non-sorted columns.
-
-`"immediate"` does not re-sort all rows. It removes each patched row from the order, tests it
-against the active filter again, and puts it back at the position a full sort gives it. The
-cost is set by the number of patched rows, not by the number of rows in the grid.
-
-At 100,000 rows with one sort column, a production build measures:
-
-| Rows in the batch | Cost per call |
+| Value | Behavior |
 | --- | --- |
-| 1 | 0.3-0.5 ms |
-| 20 | 0.9 ms |
-| 256 | 7.6 ms |
+| `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. |
+| `"immediate"` | The grid moves the patched rows to their new positions in the same call. |
+| `"never"` | The value changes and `viewStale` stays false. |
 
-Above 256 rows in one batch, the grid rebuilds the full order instead. It also rebuilds when the
-sort or filter changed in the same tick, or when a column supplies its own comparator.
+If no patched column feeds the active sort or filter, `"defer"` acts as `"never"`.
 
-The demo's auto-sort switch toggles `reorder` between the modes on every tick. On, rows on the
-sorted column stay in the correct order without a re-sort click.
+`"immediate"` removes each patched row from the order, tests it against the filter again, and puts it back at its sorted position. The grid rebuilds the whole order when this batch and the earlier deferred batches touch more than 256 rows. After an edit, paste, fill, cell clear, undo, redo, rollback, row operation, or data swap, the next batch also rebuilds once.
 
-## Controlled mode
+With `sortMode="server"` and `filterMode="server"`, the grid does not read the sort or filter state, so the flag never turns on.
 
-`updateCells` works with `data` and with `defaultData`. In controlled mode, store the array that
-`onDataChange` gives you and pass it back unchanged:
+## Control the data yourself [#controlled-mode]
 
-```tsx
-const [data, setData] = useState(rows);
+In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again. If you rebuild the array before you store it, the grid computes those results again on every update.
 
-<DataGridProvider
-  data={data}
-  columns={columns}
-  getRowId={(row) => row.id}
-  onDataChange={(next) => setData(next as Row[])}
-/>
-```
+## Undo and save [#undo-history]
 
-The grid recognizes its own array and keeps the sort, filter, and search results it already has.
-If you map, filter, or rebuild the array before you store it, the grid cannot recognize it and
-computes those results again on every update.
+A batch carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it.
 
-<Callout title="Keep the sort and filter props stable">
-  A new `sortState` or `filterState` array on each render is a change of input, and the grid
-  computes the view again. Pass a stable reference.
-</Callout>
+To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, list the sources for the history add-on. The list replaces the default, so keep the default sources in it:
 
-## Undo history
-
-A `updateCells` batch is tagged `source: "stream"`. `useDataGridHistory` does not record that
-source, because a feed at 100 updates per second removes all user entries from the undo stack.
-
-To make one batch undoable, tag it as an edit:
-
-```tsx
-actions.updateCells(patches, { source: "edit" });
-```
-
-To record streams as well, list the sources you want:
-
-```tsx
-useDataGridHistory({
-  recordSources: ["edit", "paste", "fill", "delete", "row-operation", "import", "stream", "app"],
+```tsx fragment="inside your grid component"
+const history = useDataGridHistory<Row>({
+  recordSources: [
+    "edit", "paste", "fill", "delete", "row-operation",
+    "import", "replace", "app", "stream",
+  ],
 });
 ```
 
-See [Undo & redo](/docs/clipboard-undo/undo-redo).
+## What stays in place [#what-does-not-change]
 
-## What does not change
+A batch without `reorder: "immediate"` does not move the selection, the active cell, or an open editor. An immediate re-sort moves the open edit with its row.
 
-A `updateCells` batch without `reorder: "immediate"` does not move the selection, the active
-cell, or an open editor. An immediate re-sort is the exception: it re-sorts the view and
-re-anchors the open edit to its row's new view position, keeping the typed draft while the row
-stays in the rendered rows. A feed cannot pull the grid away from a user who is editing a
-cell.
+If a value fails `validate`, the grid skips it and applies the rest of the batch. `onValidationError` then reports the skipped values with `source: "stream"`. See [Edit and validation events](/docs/events-state/edit-validation-events). When the producer already checked the values, set `skipValidation: true`.
 
-Values are checked with each column's `validate` function. A value that fails is skipped, and the
-rest of the batch is applied. Set `skipValidation: true` when the producer already checked the
-values.
+A batch into a column with an async schema changes nothing until the schema answers. The accepted cells then commit together as one `onDataChange`. A write that changes the rows, or a rebuild of the view, supersedes the held batch, and the grid drops its late answer. This list covers the common triggers, not every path:
 
-<Callout type="idea" title="An async schema holds the batch">
-  A batch into a column with an async `validate` changes nothing until the schema resolves. The
-  accepted cells then commit together as one `onDataChange`. A cell that fails drops silently, and
-  a batch in which every cell fails commits nothing. A newer `updateCells` call, or any row-moving
-  operation, supersedes the held batch; its late verdict is dropped. The full bulk-path contract,
-  shared by paste, fill, and import, is on
-  [Editing & cell types: async schemas](/docs/editing-cells/validation#on-bulk-paths).
-</Callout>
+- A newer batch that also waits for an async schema, or an `"immediate"` batch that writes a value
+- An edit, paste, fill, cell clear, undo, redo, rollback, or row operation
+- A sort or filter change, a hidden or shown column, `reconcileView()` on a stale view, or a new `data`, `columns`, or `searchText` prop
 
-## What the verdict tells you
+A plain `updateCells` call that does not wait keeps the held batch, until the rows that wait for a re-sort pass 256. If every cell fails, the batch commits nothing. See [Validation](/docs/editing-cells/validation#on-bulk-paths).
 
-`updateCells` and `updateRows` return a verdict for every patch in the batch:
+## Read the verdict [#what-the-verdict-tells-you]
 
-```tsx
-const verdict = actions.updateCells(patches);
-// { applied: 1, skipped: [{ patchIndex: 1, reason: "no-op" }], pending: false }
-```
+`updateCells` and `updateRows` return an `UpdateCellsVerdict`:
 
-- `applied` - the number of cells the call wrote.
-- `skipped` - one entry per patch that was not written, with its `patchIndex` in `patches` and a `reason`:
-  - `unknown-row` - the row id is not in `data`.
-  - `unknown-column` - the column id is not a known column.
-  - `hole` - the row is an unloaded lazy hole.
-  - `readonly` - the column, or the row via `readOnly(row)`, is read-only.
-  - `invalid` - the column's `validate` rejected the value.
-  - `no-op` - the value equals the current one.
-- `pending` - `true` when an async schema holds the batch. Its outcome is not reportable on the
-  return value; the accepted cells commit when the schema resolves.
+- `applied` counts the cells the call wrote.
+- `skipped` holds one `UpdateCellsSkip` per patch that the grid checked and did not write, with its `patchIndex` and a `reason`. On a `readOnly` grid, `skipped` is empty. Two patches to one cell in one batch count once, and the last one wins.
+- `pending` is `true` while an async schema holds the batch. `settled` resolves with the final verdict. A superseded batch resolves with `applied: 0` and no `skipped` entries.
 
-A batch that writes nothing emits no `onDataChange`.
+| Reason | Meaning |
+| --- | --- |
+| `unknown-row` | The row id is not in `data`. |
+| `unknown-column` | The column id is not a known column. |
+| `hole` | The row is an unloaded scroll-mode row. |
+| `readonly` | The column is read-only, has no write path (`accessorFn` without `setValue`), or the row is read-only through `readOnly(row)`. |
+| `invalid` | The column's `validate` rejected the value. |
+| `no-op` | The value equals the current value. |
 
-## Whole rows
+## Related
 
-`updateRows` takes a partial row instead of one cell:
-
-```tsx
-actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5, change: 1.2 } }]);
-```
-
-Each entry in `changes` becomes one patch. The options are the same.
-
-See [Events & state](/docs/events-state) for the `onDataChange` payload shape and
-[Performance](/docs/performance) for the row and cell render contracts.
+- [Change server rows](/docs/rows-live-data/change-server-rows)
+- [Show presence](/docs/rows-live-data/show-presence)
+- [Data change events](/docs/events-state/data-change-events)
+- [Undo and redo](/docs/clipboard-undo/undo-redo)
+- [State and view index](/docs/concepts/state-view-index)

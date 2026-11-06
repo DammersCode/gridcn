@@ -1,9 +1,101 @@
 ---
 title: Change server rows
-description: Change server rows.
+description: Insert, duplicate, delete, and move rows in a grid that loads rows from a server, and send each change to your API from onSave.
+icon: ListPlus
 type: task
+aliases: ["server row operations", "save new row", "insert on server", "id from api"]
 ---
 
-{/* docs-stub */}
+Row operations change the rows of the grid. Each one reaches `onDataChange` and `onSave` as an `insert`, `delete`, or `move` operation with a row id. On a server grid, send those operations to your API and let a refusal revert them.
 
-This page is being written.
+`useDataGridServerRows` sets `keepCheckedRows`. If any row is checked, the operations act on the checked rows only.
+
+## Enable the operations [#enable-the-operations]
+
+Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts:
+
+```tsx
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { opsToRequests } from "./ops-to-requests";
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  async function onSave(change: DataChange<Order>) {
+    await Promise.all(opsToRequests(change.ops));
+  }
+
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      createRow={() => ({ id: crypto.randomUUID(), item: "", quantity: 0 })}
+      duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
+      onSave={onSave}
+    />
+  );
+}
+```
+
+Without `createRow` or `duplicateRow`, the matching operation does nothing and warns in development. The context menu hides the matching items.
+
+## Send the operations [#send-the-operations]
+
+`opsToRequests` from [Save and revert](/docs/save-server/save-revert#translate-operations-into-api-calls) maps `insert` to a create request, `delete` to a remove request, and `update` to a patch. It sends all `move` operations of one change in one request, because the server must apply them as a batch.
+
+If the server refuses an `insert`, the grid removes the row. If it refuses a `delete`, the grid brings the row back. See [Handle refused saves](/docs/save-server/handle-refused-saves).
+
+## Take the id from the server [#take-the-id-from-the-server]
+
+The grid keeps the id that `createRow` returns. It does not replace that id after the server answers. To use a server id, let `createRow` return a promise. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
+
+While a `createRow` promise is pending, the next insert does nothing. While a `duplicateRow` promise is pending, the next duplicate does nothing. If the anchor row left the grid or the grid turned `readOnly` before the promise resolves, the grid drops the operation.
+
+If the promise creates the row on the server, skip the `insert` operation in `onSave`, because the server already has the row.
+
+## Delete rows you know [#scroll-mode]
+
+A scroll-mode grid holds unloaded rows as holes. If their target touches a hole, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing. The target is every row of a delete, every source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid writes nothing, calls no `onDataChange`, and warns once in development.
+
+`deleteRowsById` skips an id that matches no row and deletes the rest. A placeholder id `__lazy-unloaded-<index>` matches a hole, so it cancels the whole request. Drop those ids before you call it. `reorderRows` does nothing while any row is unloaded.
+
+Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRowsById`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+
+export function DeleteKnownRows() {
+  const actions = useDataGridActions();
+  return (
+    <button onClick={() => actions.deleteRowsById(["o-17", "o-18"])}>
+      Delete
+    </button>
+  );
+}
+```
+
+To delete every row of a filtered server result, call your own endpoint and run `server.refresh()`.
+
+After a row operation in a scroll-mode source with a row count, the hook refreshes the rendered rows on the next frame. The refresh keeps a row with a pending save or an open edit. A row with a pending delete stays gone. When the last insert or delete save settles, the hook refreshes the rendered rows again.
+
+## Refresh after the save [#refresh-after-the-save]
+
+In server pagination, the operations act on the current page. Call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
+
+## Confirm a delete [#confirm-a-delete]
+
+`onBeforeDeleteRows` runs before every delete, from the shortcut, the context menu, and `deleteRows` or `deleteRowsById`. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+
+When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do nothing. See [Select server rows](/docs/rows-live-data/select-server-rows).
+
+## Move rows [#move-rows]
+
+`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` emit one `move` operation per moved row. The grid blocks them while a client-side sort or filter is active, the grid is `readOnly`, `enableRowReorder` is `false`, or a row is unloaded. A server sort or a server filter does not block moves. Your server decides the order of the next answer.
+
+## Related
+
+- [Row operations](/docs/rows-pages-menus/row-operations)
+- [Save and revert](/docs/save-server/save-revert)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Select server rows](/docs/rows-live-data/select-server-rows)
+- [Data change events](/docs/events-state/data-change-events)

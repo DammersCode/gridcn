@@ -1,10 +1,172 @@
 ---
 title: Save and revert
-description: Save and revert.
+description: Send each grid edit to your API from onSave, then roll the grid back on failure or refetch the rows after the server confirms.
+icon: ArrowLeftRight
 type: task
 aliases: ["optimistic update", "rollback", "roll back"]
 ---
 
-{/* docs-stub */}
+Send every edit to your API from `onSave`. The grid shows the edit at once. If the request fails, the grid reverts it. If the server recomputes values, refetch the rows after the save.
 
-This page is being written.
+The samples keep the rows in your own state, and `onDataChange` writes each change into it. The `DataChange` shape is on [Data change events](/docs/events-state/data-change-events).
+
+## Load the rows [#initial-fetch]
+
+Fetch once, hold the rows in state, and pass the setter to `onDataChange`:
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { api } from "./api";
+import { opsToRequests } from "./ops-to-requests";
+
+export function OrdersGrid() {
+  const [data, setData] = useState<readonly Order[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.orders.list().then((rows) => {
+      if (!cancelled) setData(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function save(change: DataChange<Order>) {
+    await Promise.all(opsToRequests(change.ops));
+  }
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={setData}
+      onSave={save}
+    />
+  );
+}
+```
+
+## Translate operations into API calls [#translate-operations-into-api-calls]
+
+Put `opsToRequests` in `ops-to-requests.ts`. `change.ops` holds one operation per touched row. Switch on `op.type` to pick the request. Sorting or filtering changes a view index, so key each request by `rowId`:
+
+```ts
+import type { DataOp } from "@/components/data-grid/data-grid";
+import type { Order } from "./orders";
+import { api } from "./api";
+
+export function opsToRequests(ops: DataOp<Order>[]) {
+  const requests = ops.flatMap((op) => {
+    switch (op.type) {
+      case "update": {
+        const patch = op.cells
+          ? Object.fromEntries(op.cells.map((c) => [c.columnId, c.value]))
+          : op.row;
+        return [api.orders.patch(op.rowId, patch)];
+      }
+      case "insert":
+        return [api.orders.create(op.row)];
+      case "delete":
+        return [api.orders.remove(op.rowId)];
+      case "move":
+        return [];
+    }
+  });
+  const moves = ops.flatMap((op) =>
+    op.type === "move" ? [{ rowId: op.rowId, to: op.to }] : [],
+  );
+  if (moves.length > 0) requests.push(api.orders.reorder(moves));
+  return requests;
+}
+```
+
+A cell edit, paste, or fill carries `op.cells`. A whole-row update has no `cells`. Send all moves of one change in one request. Each `to` is the final index of the row after the whole batch. The server removes every moved row, then inserts the rows in ascending `to` order. Moves applied one at a time end in the wrong order.
+
+## Strategy A: roll back on failure [#strategy-a-optimistic-roll-back-on-failure]
+
+Keep the grid's value in `data` and let `onSave` return the promise of the requests. If the promise rejects, the grid reverts the whole change and calls `onSaveRejected`:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { opsToRequests } from "./ops-to-requests";
+
+export function RevertingGrid({ rows }: { rows: Order[] }) {
+  const [data, setData] = useState<readonly Order[]>(rows);
+
+  async function save(change: DataChange<Order>) {
+    await Promise.all(opsToRequests(change.ops));
+  }
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={setData}
+      onSave={save}
+      onSaveRejected={() => alert("Could not save. The change was reverted.")}
+    />
+  );
+}
+```
+
+The revert is one more `onDataChange` call with `source: "rollback"`. `onSave` never receives that call, so a revert does not go back to the server. A cell reverts only while it still holds the refused value, so a newer edit of the same cell stays.
+
+If one request of a batch fails and the others succeed, the whole batch reverts. To revert only the refused rows, see [Handle refused saves](/docs/save-server/handle-refused-saves).
+
+## Strategy B: refetch after the save [#strategy-b-refetch-on-settle]
+
+If the server recomputes values, for example a price that triggers a discount, pick this strategy. Replace `data` with a fresh fetch after the write succeeds:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { api } from "./api";
+import { opsToRequests } from "./ops-to-requests";
+
+export function RefetchingGrid({ rows }: { rows: Order[] }) {
+  const [data, setData] = useState<readonly Order[]>(rows);
+
+  async function save(change: DataChange<Order>) {
+    await Promise.all(opsToRequests(change.ops));
+    setData(await api.orders.list());
+  }
+
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onDataChange={setData}
+      onSave={save}
+    />
+  );
+}
+```
+
+The refetch replaces every row. An edit that the user made during the request shows the server value until its own save refetches. To keep such rows, use `useDataGridServerRows` and call `server.refresh()` after the `onSave` promise settles. The refresh keeps a row with an open edit or a save in flight.
+
+## Show the server error on the cell [#the-failure-path]
+
+A server often rejects one field, for example with a 422. Paint that rejection on the cell and keep the row. See [Show errors on cells](/docs/save-server/show-errors-cells).
+
+## Result
+
+An edit appears in the grid before the server answers. A failed save reverts the edit. A saved edit stays, or the refetch replaces it with the server values.
+
+## Related
+
+- [Save edits](/docs/save-server/save-edits)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Show errors on cells](/docs/save-server/show-errors-cells)
+- [Undo with server data](/docs/save-server/undo-server-data)
+- [State and view index](/docs/concepts/state-view-index)

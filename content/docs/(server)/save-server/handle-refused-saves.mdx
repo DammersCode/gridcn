@@ -1,10 +1,107 @@
 ---
 title: Handle refused saves
-description: Handle refused saves.
+description: Answer from onSave with the rows the server refused, so the grid reverts only those rows and keeps the rest.
+icon: ShieldAlert
 type: task
-aliases: ["conflict", "refused save"]
+aliases: ["conflict", "refused save", "partial save"]
 ---
 
-{/* docs-stub */}
+When a server refuses some rows of a change, return those rows from `onSave`. The grid marks the rows `saving` while the promise is pending. It reverts only the refused rows and keeps everything the server accepted.
 
-This page is being written.
+<ComponentPreview name="data-grid-write-ack-demo" />
+
+## Strategy C: acknowledge each change [#strategy-c-acknowledge-each-change]
+
+Send one request per operation, then return a rejection for each request that failed:
+
+```tsx
+import {
+  DataGrid,
+  type DataChange,
+  type SaveAck,
+  type SaveRejection,
+} from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { sendOp } from "./api";
+
+async function onSave(change: DataChange<Order>): Promise<SaveAck<Order>> {
+  const results = await Promise.allSettled(change.ops.map(sendOp));
+  const rejected = results.flatMap((result, i): SaveRejection<Order>[] =>
+    result.status === "rejected"
+      ? [{ rowId: change.ops[i]!.rowId, message: String(result.reason) }]
+      : [],
+  );
+  return { rejected };
+}
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onSave={onSave}
+      onSaveRejected={({ rejected }) => alert(rejected[0]?.message)}
+    />
+  );
+}
+```
+
+`sendOp` sends one request per operation, so each refusal maps to one row. If the change holds `move` operations, send them together as in [Translate operations into API calls](/docs/save-server/save-revert#translate-operations-into-api-calls). When that request fails, refuse every moved row.
+
+With controlled `data`, `onDataChange` keeps your state in step and returns nothing. `onSave` is the only callback that answers the grid.
+
+## What the answer means
+
+- A promise that resolves with nothing accepts the whole change.
+- A promise that rejects, or a handler that throws, refuses the whole change. Every row of the change reverts.
+- `{ rejected: [] }` accepts the whole change.
+- The grid reads at most 10,000 entries of `rejected`. It skips an entry without a string `rowId`. An answer whose `rejected` is not an array accepts the whole change.
+
+{/* props: SaveRejection */}
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `rowId` | The row the server refused. | none |
+| `columnId` | Refuses one cell of an update. | whole row |
+| `message` | Text for `onSaveRejected`. The grid does not render it. | none |
+| `current` | The row with the values the server holds. | none |
+
+A cell reverts only while it still holds the refused value. A newer edit of the same cell stays.
+
+## Put the server row in place [#current]
+
+If you pass `current`, the revert writes that row in place of the old local row. A refused delete restores `current`. A refused insert removes the row and ignores `current`. A refused move reverts its position. Pass a rejection with `current` like this:
+
+```ts
+import type { SaveRejection } from "@/components/data-grid/data-grid";
+import type { Order } from "./orders";
+
+const rejection = {
+  rowId: "o-17",
+  message: "Locked by another user",
+  current: { id: "o-17", status: "shipped" } as Order,
+} satisfies SaveRejection<Order>;
+```
+
+If a newer write to the row is pending or has settled, the grid ignores `current`. If `getRowId(current)` throws or differs from `rowId`, the grid ignores `current` and warns once in development.
+
+## React to a refusal [#react-to-a-refusal]
+
+- The revert is one `onDataChange` call with `source: "rollback"`. The `reverts` field names the refused change. `onSave` never receives that call.
+- `onSaveRejected({ change, rejected, error })` runs once per refused change, after the revert. If the promise resolved with `{ rejected }`, `error` is `null`. Otherwise `error` is the rejection reason.
+- While the promise is pending, the row element carries `data-save-status="saving"`. After a refusal it carries `failed` until the next save of the row or `actions.clearSaveStatus()`.
+- `useDataGridRowSaveStatus(rowId)` and `useDataGridPendingSaveCount()` read the same state.
+- The revert of a cell edit clears the cell errors of the reverted cells.
+- When the revert writes, `useDataGridHistory` removes the refused change from its undo stack. The whole entry goes, so the rows that the server accepted lose their undo step.
+- On a `readOnly` grid, the grid skips the revert, warns once in development, and still calls `onSaveRejected`.
+- If you replace the data before the answer, a refused update of a row that left the data reverts nothing. A refused delete puts the row back into the new data. When that matters, reload the rows in `onSaveRejected`.
+- The callbacks run after the outermost write: `onDataChange`, then `onSave`, then plugin observers. After a refusal, the rollback `onDataChange` runs, then `onSaveRejected`. A throw in one callback does not stop the next.
+
+## Related
+
+- [Save edits](/docs/save-server/save-edits)
+- [Save and revert](/docs/save-server/save-revert)
+- [Show errors on cells](/docs/save-server/show-errors-cells)
+- [Undo with server data](/docs/save-server/undo-server-data)
+- [Data change events](/docs/events-state/data-change-events)

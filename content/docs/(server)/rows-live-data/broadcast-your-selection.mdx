@@ -1,71 +1,116 @@
 ---
 title: "Broadcast your selection"
-description: Send your own selection to peers over a real websocket, and choose the divergence-proof payload form.
+description: Send your own selection to peers over a websocket as row ids, so every peer paints it correctly under its own sort and filter.
 icon: Radio
 type: task
+aliases: ["share selection", "send selection"]
 ---
 
-Follow-up to [Multiplayer presence](/docs/rows-live-data/show-presence). The receiving side is the
-`useDataGridPresence` add-on. This page covers the other direction: broadcasting your own
-selection over a real websocket.
+The receiving side is the `data-grid-presence` add-on, which [Show presence](/docs/rows-live-data/show-presence) covers. This page covers the other direction. You send the local selection to a websocket, and the server relays a snapshot of all peers.
 
-## Wiring a real websocket
+## Wire the websocket and send the selection [#wiring-a-real-websocket]
 
-The demo on the [Multiplayer presence](/docs/rows-live-data/show-presence) page simulates 3 users
-with `setInterval`. A real integration looks like this:
+`onSelectionChange` on the grid fires on every committed change: a click, a drag-extend step, a row, column, or all selection, and a clear. Its first argument is the stable `SelectionState`. It holds row ids and column ids and no view positions. The second argument has `getRowIds()`, which lists every selected row in view order.
+
+Send the row ids and the column ids between the two corners of the range:
 
 ```tsx
 "use client";
 
-import { useEffect } from "react";
-import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
+import { useEffect, useRef } from "react";
+import { DataGrid } from "@/components/data-grid/data-grid";
+import {
+  useDataGridPresence,
+  type PresenceHighlightEntry,
+} from "@/components/data-grid-presence/data-grid-presence";
+import { columns, type Row } from "./rows";
 
-function usePresenceSync(roomId: string) {
+type Props = { rows: Row[]; roomId: string; userId: string; color: string };
+
+export function SharedGrid({ rows, roomId, userId, color }: Props) {
   const { plugin, setPresenceHighlights } = useDataGridPresence();
+  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const socket = new WebSocket(`wss://your-server/rooms/${roomId}`);
+    socketRef.current = socket;
     socket.onmessage = (event) => {
-      const highlights = JSON.parse(event.data);
-      setPresenceHighlights(highlights);
+      let peers: unknown;
+      try {
+        peers = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      if (!Array.isArray(peers)) return;
+      setPresenceHighlights(
+        peers.filter(
+          (peer): peer is PresenceHighlightEntry =>
+            typeof peer === "object" &&
+            peer !== null &&
+            peer.id !== userId &&
+            (peer.label === undefined || typeof peer.label === "string"),
+        ),
+      );
     };
     return () => socket.close();
-  }, [setPresenceHighlights, roomId]);
+  }, [roomId, userId, setPresenceHighlights]);
 
-  return plugin;
+  const columnIds = columns.map((column) => column.id);
+
+  return (
+    <DataGrid
+      data={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      plugins={[plugin]}
+      onSelectionChange={(next, details) => {
+        const socket = socketRef.current;
+        if (socket?.readyState !== WebSocket.OPEN) return;
+        if (!next.range) {
+          socket.send(JSON.stringify({ type: "leave", id: userId }));
+          return;
+        }
+        const { start, end } = next.range;
+        const from = columnIds.indexOf(start.columnId);
+        const to = columnIds.indexOf(end.columnId);
+        const [lo, hi] = from < to ? [from, to] : [to, from];
+        const span = columnIds.slice(lo, hi + 1);
+        socket.send(
+          JSON.stringify({
+            type: "selection",
+            id: userId,
+            color,
+            rowIds: details.getRowIds(),
+            columnIds: span,
+          }),
+        );
+      }}
+    />
+  );
 }
 ```
 
-## Sending your selection
+The sample takes the column span from the order of `columns`. If users reorder or hide columns, build `columnIds` from the visible column order instead, for example with `useDataGridVisibleColumns()` in a component under the provider.
 
-Your own selection still needs to be broadcast in the other direction. Wire `onSelectionChange`
-on `DataGridProvider` rather than hand-rolling a `useDataGridSelection()` plus `useEffect`
-subscription. It already fires on every committed change (click, extend step, row, column, or
-all selection, and clear) from the actions layer of the store. It also fires once per step of a
-drag-extend gesture, exactly the granularity that a live broadcast wants.
+## Relay a snapshot [#sending-your-selection]
 
-The payload is the stable `SelectionState`: `range` corners and `rangeStack` are
-`{ rowId, columnId }` pairs, and `rowIds`/`columnIds` are stable ids. It carries no view
-positions, so a peer with a different local sort or filter resolves every ref against its own
-view. Send `next` as-is (no hooks, no column-indexing by hand):
+`setPresenceHighlights` replaces the whole list. So your server answers every `selection` or `leave` message with the full list of peers. Each entry is a row-id range entry with the `id`, `color`, `rowIds`, and `columnIds` that the peer sent. The sample above filters out the entry of the local user.
 
-```tsx
-<DataGridProvider
-  data={data}
-  columns={columns}
-  getRowId={getRowId}
-  plugins={[plugin]}
-  onSelectionChange={(next) => {
-    if (!next.range && next.rowIds.length === 0 && next.columnIds.length === 0) {
-      // cleared — send the leave message instead
-      return;
-    }
-    socket.send(JSON.stringify({ id: userId, color, selection: next }));
-  }}
->
-```
+The receiver resolves the ids against its own view. The receiver drops a row that a local filter hides and a hidden column. A payload from a fuller view therefore paints cleanly on a narrower one.
 
-The receiver applies the payload with `actions.setSelection(next)` or a controlled `selection`
-prop. Rows the receiver has filtered out and hidden or unknown columns are dropped, and dev
-mode warns once for the dropped refs (no mapping code on the receive side). A payload from a
-fuller view therefore applies cleanly to a narrower one.
+`getRowIds()` lists every selected row, and checked rows count too. A select-all of 100,000 rows sends 100,000 ids. Cap the list on the sender or on the server.
+
+In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded rows of the range.
+
+The sample sends the columns of the main range only. It sends only selections with a range. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
+
+`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order (`getViewRowIds()` on the grid ref). Send one entry per range. `getViewRowIds()` gives an unloaded row an id that starts with `__lazy-unloaded-`. Drop those ids.
+
+Treat every incoming message as untrusted input. The add-on drops entries with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`. It does not check `label`, so the sample drops an entry whose `label` is not a string. The add-on renders a string `label` as text.
+
+## Related
+
+- [Show presence](/docs/rows-live-data/show-presence)
+- [Presence options](/docs/add-options/server/presence-options)
+- [Selection and cell events](/docs/events-state/selection-cell-events)
+- [Selection model](/docs/concepts/selection-model)

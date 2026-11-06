@@ -1,9 +1,110 @@
 ---
 title: Show errors on cells
-description: Show errors on cells.
+description: Paint a server rejection on the exact cell it names with setCellErrors, keep the value, and clear the error when the user fixes it.
+icon: CircleAlert
 type: task
+aliases: ["server error", "validation from server", "error from api"]
 ---
 
-{/* docs-stub */}
+A server can reject a value after the grid committed it, for example with a 422 that names the field. `actions.setCellErrors` marks that cell with the same ring and tint as a rejected `validate` call. The value stays in the grid.
 
-This page is being written.
+<ComponentPreview name="data-grid-cell-errors-demo" />
+
+## Mark the cells that the server rejected [#server-errors]
+
+1. Keep a `ref` to the grid. The rejection arrives long after the grid mounted, so the handler reaches the actions through the ref.
+2. In `onSave`, catch the failure and map the server's field errors to `{ rowId, columnId, message }` entries.
+3. Call `setCellErrors` with the entries.
+
+```tsx
+import { useRef } from "react";
+import {
+  DataGrid,
+  type DataChange,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+import { sendOp, parseFieldErrors } from "./api";
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  const gridRef = useRef<DataGridApi<Order>>(null);
+
+  async function onSave(change: DataChange<Order>) {
+    try {
+      await Promise.all(change.ops.map(sendOp));
+    } catch (error) {
+      const errors = parseFieldErrors(error, change.ops);
+      gridRef.current?.actions.setCellErrors(errors);
+    }
+  }
+
+  return (
+    <DataGrid
+      ref={gridRef}
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      onSave={onSave}
+    />
+  );
+}
+```
+
+`parseFieldErrors` is your own function. It matches the server's error shape against `change.ops` to find the `rowId` of each failed field.
+
+Because the `catch` block returns normally, the `onSave` promise resolves and the grid keeps the value. If you rethrow, the grid reverts the whole change. See [Save and revert](/docs/save-server/save-revert).
+
+## What the user sees
+
+- The cell shows the ring, the tint, and `aria-invalid`. The message is the `aria-description` of the cell.
+- Hover the cell to read the message in a tooltip.
+- Open the cell for editing to read the message under the editor.
+- A live `validate` rejection of the open edit wins over the stored message.
+
+## When the error clears
+
+When the user commits a new value to a cell, its error clears. Edit, paste, fill, `updateCells`, and a cleared selection all clear it. The server can set the error again for a value that is still wrong.
+
+A row that leaves `data` loses its errors. A refused save that reverts a cell also clears the error of that cell.
+
+To clear errors yourself, pass the targets. Without targets, the call clears every cell error. Render this button inside `DataGridProvider`, next to `DataGridRoot`. [Select server rows](/docs/rows-live-data/select-server-rows#read-the-selection-as-a-value) shows that layout:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+
+export function ClearErrorsButton() {
+  const actions = useDataGridActions();
+  return (
+    <button onClick={() => actions.clearCellErrors()}>Clear all</button>
+  );
+}
+```
+
+`setCellErrors` merges per cell. An entry for another cell survives. Calling it with an empty list does nothing.
+
+## Read the errors
+
+`useDataGridCellErrors()` returns a `ReadonlyMap<string, string>` of messages. Build a key with `cellErrorKey(rowId, columnId)`. Render the component inside `DataGridProvider`, next to `DataGridRoot`:
+
+```tsx
+import {
+  cellErrorKey,
+  useDataGridCellErrors,
+} from "@/components/data-grid/data-grid";
+
+export function EmailError({ rowId }: { rowId: string }) {
+  const errors = useDataGridCellErrors();
+  return <span>{errors.get(cellErrorKey(rowId, "email"))}</span>;
+}
+```
+
+<Callout type="warn" title="Cell errors are not edits">
+  `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and the history add-on does not record them. Undo does not need to step over an error.
+</Callout>
+
+## Related
+
+- [Save and revert](/docs/save-server/save-revert)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Validation](/docs/editing-cells/validation)
+- [Edit and validation events](/docs/events-state/edit-validation-events)
