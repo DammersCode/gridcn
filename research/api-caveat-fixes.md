@@ -72,3 +72,16 @@ Low value, touches the context-menu resolver contract; only worth doing together
 
 ### F14 (not done)
 One shared `{ ok: false, reason }` result for every mode-dependent row action touches a dozen actions, their menu and shortcut gating, and the return types. Not started; spec below.
+
+## Not done: the pagination wave (F1, F4, F5, F18) and F14
+
+These need one coherent change; none of it is started in code. Spec for the next session:
+
+**F1, paginate the view.** Provider props `page`, `pageSize` (controlled pair with `onPageChange` / `onPageSizeChange`, plus `defaultPage`, `defaultPageSize`). The store keeps the full sorted and filtered list and exposes the `[page*size, +size)` window as `viewIndex`; a module-level `WeakMap` maps a windowed array to its full list (`fullViewOf`) so the 9 `computeViewIndex` / `incrementalViewIndex` call sites (`create-store.ts` 1037, 1636, 1652, 1670; `data-write.ts` 238, 241, 273; init at 678) change by one argument. A filter or search change resets to page 1; the page clamps when the total shrinks. `reorderRows`, `insertRow` positions and `moveRows` treat an active window like an active sort. A hook `useDataGridPager()` inside the provider returns `DataGridPaginationControls` from the store (total from `fullViewOf(viewIndex).length`), and `DataGridPaginationBar` reads it when spread no props. Open design question: quick search computes matches over `viewIndex`, so with a window it sees the current page only; the fix is to compute matches over the full list and jump the page on "next match".
+Capabilities to keep: controlled page, page size options, the pager math (`pagination-math`), `pageData`-style slicing for people who paginate themselves (`useDataGridPagination({ data })` stays until the provider path ships, then is removed with a **Breaking** entry).
+
+**F5 and F4.** Split `useDataGridPagination` server mode into `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, ... })` returning `{ pager }`; point every server doc at `useDataGridServerRows`; give `useDataGridUrlPagination` the same controlled pair (it has it). Call sites: 7 demos, 4 recipe pages, 3 skills.
+
+**F18.** `DataGridPaginationControls.hasNextPage` becomes `hasMore` (pager spread onto `DataGridPaginationBar`, `useDataGridServerRows` passes `hasMore`); document the `totalRowCount` `undefined` / `null` table once in `GLOSSARY.md`.
+
+**F14.** A `RowActionResult = { ok: true } | { ok: false; reason }` returned by `deleteRows`, `insertRow`, `duplicateRows`, `reorderRows`, `moveRows`; reasons: `"readOnly" | "unloaded-rows" | "view-active" | "gate-pending" | "no-factory"`. Menu items and shortcuts show disabled for the same reasons. Land the reasons first (return values only), then the gating.
