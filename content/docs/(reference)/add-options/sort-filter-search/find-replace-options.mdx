@@ -1,9 +1,122 @@
 ---
 title: Find and replace options
-description: Find and replace options.
+description: Look up the options of useDataGridFindReplace, the open and close methods it returns, and the planReplace function.
 type: reference
+aliases: ["replace all", "replace in cells"]
 ---
 
-{/* docs-stub */}
+`useDataGridFindReplace` returns a `plugin` that mounts the find and replace panel. It also returns `open` and `close` methods for your own buttons. The `planReplace` function builds the list of changes without writing them.
 
-This page is being written.
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| `scope` | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `replaceAllLimit` | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `open` | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `close` | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `planReplace` | Plans the changes and writes nothing | [Find and replace](/docs/sort-filter-search/find-replace) |
+
+## useDataGridFindReplace [#usedatagridfindreplace]
+
+Pass the `plugin` to the grid:
+
+```tsx
+import { DataGrid } from "@/components/data-grid/data-grid";
+import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+
+export function PeopleGrid() {
+  const findReplace = useDataGridFindReplace({ replaceAllLimit: 500 });
+
+  return (
+    <DataGrid
+      data={[{ id: "1", name: "Ada" }]}
+      columns={[{ id: "name", accessorKey: "name", header: "Name" }]}
+      getRowId={(row) => row.id}
+      plugins={[findReplace.plugin]}
+    />
+  );
+}
+```
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace.tsx" name="UseDataGridFindReplaceOptions" />
+
+### scope [#scope]
+
+`"view"` covers every visible column of the rows in the view. `"selection"` covers only the selected cells.
+
+### replaceAllLimit [#replacealllimit]
+
+`planReplace` clamps the value to 1 through 100,000. The default is 10,000. When more cells match, Replace all changes the first cells up to the limit. A second click skips the cells the first click changed and continues.
+
+## Result
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace.tsx" name="UseDataGridFindReplaceResult" />
+
+### open [#open]
+
+`open("replace")` is the default. It shows the Replace field. `open("find")` shows the Find field only. In a `readOnly` grid, the Replace buttons stay disabled.
+
+### close [#close]
+
+`close()` closes the panel.
+
+## Commands and keys
+
+The plugin registers two commands. Remap them with the `keymap` prop of the grid.
+
+| Command | Default key | Result |
+| --- | --- | --- |
+| `openFindReplace` | <kbd>Ctrl</kbd>+<kbd>H</kbd> | Opens the panel with Replace. In a `readOnly` grid, it opens Find only |
+| `openFind` | <kbd>Mod</kbd>+<kbd>F</kbd> | Opens the panel with Find only |
+
+## planReplace [#planreplace]
+
+`planReplace(state, find, replacement, options)` takes a `ReplaceState` and returns a `ReplacePlan`: `{ patches, skipped, remaining }`. It reads the grid state and writes nothing. Render the button inside `DataGridProvider`. It passes `patches` to `updateCells` to write them:
+
+```tsx
+import { useDataGridApi } from "@/components/data-grid/data-grid";
+import { planReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+
+export function ReplaceButton() {
+  const api = useDataGridApi();
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const plan = planReplace(api.store.getState(), "Ada", "Grace");
+        api.actions.updateCells(plan.patches, { source: "replace" });
+      }}
+    >
+      Replace Ada
+    </button>
+  );
+}
+```
+
+`planReplace` cuts the find text and the replacement to 1,000 characters. It trims spaces at both ends of the find text.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/plan-replace.ts" name="ReplaceOptions" />
+
+`planReplace` also takes `only`, a `{ rowId, columnId }` cell. With `only`, the plan covers that cell.
+
+### skipped [#skipped]
+
+Each entry of `skipped` holds a cell and a `reason`. The `reason` is a `ReplaceSkipReason`:
+
+| Reason | Cause |
+| --- | --- |
+| `readonly` | The column or row blocks writes, or the column has no `accessorKey` or `setValue` |
+| `unparseable` | The new text cannot become a value of the column type |
+| `too-long` | The new text exceeds 100,000 characters |
+| `no-occurrence` | The cell matched, but its text holds no occurrence of the find text |
+
+### remaining [#remaining]
+
+If the limit stops the scan while more cells match, `remaining` is `true`.
+
+## Related
+
+- [Find and replace](/docs/sort-filter-search/find-replace)
+- [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options)
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping)
+- [Options A to Z](/docs/cheatsheets-messages/options-z)

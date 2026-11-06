@@ -1,9 +1,64 @@
 ---
 title: Sort list options
-description: Sort list options.
+description: Look up the props of DataGridSortList, the toolbar popover that adds, removes, and reorders the sorts of the grid.
 type: reference
+aliases: ["sort popover"]
 ---
 
-{/* docs-stub */}
+`DataGridSortList` is a toolbar button with a popover. Each sort is one row in the popover. The component takes two props and needs no other setup.
 
-This page is being written.
+| Prop | Purpose | Guide |
+| --- | --- | --- |
+| `allColumns` | Lists hidden columns in the column select | [Sorting](/docs/sort-filter-search/sorting) |
+| `className` | Styles the button | [Toolbar](/docs/sort-filter-search/toolbar) |
+
+## DataGridSortList [#datagridsortlist]
+
+Import it from `@/components/data-grid-sort-list/data-grid-sort-list` and place it inside `DataGridToolbar`, inside `DataGridProvider`:
+
+```tsx
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+
+export function SortToolbar() {
+  return (
+    <DataGridToolbar>
+      <DataGridSortList allColumns />
+    </DataGridToolbar>
+  );
+}
+```
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-sort-list/sort-list.tsx" name="DataGridSortListProps" />
+
+### allColumns [#allcolumns]
+
+By default the column select lists the visible sortable columns. With `allColumns`, it lists every sortable column, hidden ones included. This lets the user manage a sort on a hidden column.
+
+## Behavior
+
+The popover reads and writes the same sort state as the column headers. A sort that the user adds in the popover shows in the headers, and a sort from a header click shows in the popover.
+
+- A sort row holds a column select, a direction select, a remove button, and a drag handle.
+- The array order of the sorts is the precedence. A drag or a keyboard move changes it.
+- The footer has an add button. While a sort is active, it also has a clear button that removes every sort.
+- The button shows a count badge while at least one sort is active.
+
+### Keys on the drag handle
+
+| Key | Result |
+| --- | --- |
+| <kbd>ArrowUp</kbd>, <kbd>ArrowDown</kbd> | Moves the row one position |
+| <kbd>Backspace</kbd>, <kbd>Delete</kbd> | Removes the row |
+
+Every move announces the new position through a polite live region. Set the text with `labels.sort.sortReorderAnnouncement`. After a move, focus stays on the handle of the moved row.
+
+## Server mode
+
+With `sortMode="server"`, the popover changes the sort state and the grid does not reorder the rows. Your `onSortChange` handler fetches the rows for the new sort.
+
+## Related
+
+- [Sorting](/docs/sort-filter-search/sorting)
+- [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options)
+- [Labels](/docs/components-props/labels)

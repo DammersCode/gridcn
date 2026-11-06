@@ -1,9 +1,122 @@
 ---
 title: Toolbar options
-description: Toolbar options.
+description: Look up the props of DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu, and DataGridHeaderFilter.
 type: reference
+aliases: ["search props", "filter menu props", "operatorsForColumn"]
 ---
 
-{/* docs-stub */}
+The toolbar add-on exports five components. `DataGridToolbar` is the frame. `DataGridSearch`, `DataGridFilterMenu`, and `DataGridColumnsMenu` sit inside it. `DataGridHeaderFilter` mounts in the header through the `renderHeaderFilter` slot.
 
-This page is being written.
+| Component | Purpose | Guide |
+| --- | --- | --- |
+| [`DataGridToolbar`](#datagridtoolbar) | Lays out the toolbar slots | [Toolbar](/docs/sort-filter-search/toolbar) |
+| [`DataGridSearch`](#datagridsearch) | Quick search input | [Quick search](/docs/sort-filter-search/quick-search) |
+| [`DataGridFilterMenu`](#datagridfiltermenu) | Filter popover | [Filtering](/docs/sort-filter-search/filtering) |
+| [`DataGridColumnsMenu`](#datagridcolumnsmenu) | Shows and hides columns | [Toolbar](/docs/sort-filter-search/toolbar) |
+| [`DataGridHeaderFilter`](#datagridheaderfilter) | Value list in a column header | [Header filter](/docs/sort-filter-search/header-filter) |
+
+`DataGridToolbar`, `DataGridSearch`, `DataGridFilterMenu`, and `DataGridColumnsMenu` accept `className`. Import the components from `@/components/data-grid-toolbar/data-grid-toolbar`:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  type ColumnDef,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridColumnsMenu,
+  DataGridFilterMenu,
+  DataGridHeaderFilter,
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+type Person = { id: string; name: string };
+
+const data: Person[] = [{ id: "1", name: "Ada" }];
+const columns: ColumnDef<Person>[] = [
+  { id: "name", accessorKey: "name", header: "Name" },
+];
+
+export function PeopleGrid() {
+  return (
+    <DataGridProvider data={data} columns={columns} getRowId={(row) => row.id}>
+      <DataGridToolbar>
+        <DataGridSearch debounceMs={300} />
+        <DataGridFilterMenu allColumns />
+        <DataGridColumnsMenu />
+      </DataGridToolbar>
+      <DataGridRoot
+        renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
+      >
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## DataGridToolbar [#datagridtoolbar]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/toolbar.tsx" name="DataGridToolbarProps" />
+
+Place it inside `DataGridProvider`, above `DataGridRoot`. Its children share the store of the grid.
+
+## DataGridSearch [#datagridsearch]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/search.tsx" name="DataGridSearchProps" />
+
+### captureFindShortcut [#capturefindshortcut]
+
+While focus is inside this grid or its toolbar, <kbd>Mod</kbd>+<kbd>F</kbd> focuses the input and leaves the browser find bar closed. Focus anywhere else keeps the browser behavior. The handler skips a key press that another handler already handled.
+
+## DataGridFilterMenu [#datagridfiltermenu]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/filter-menu.tsx" name="DataGridFilterMenuProps" />
+
+### operatorsForColumn [#operatorsforcolumn]
+
+The menu picks the operator list of a column in this order:
+
+1. `operatorsForColumn`. A returned `undefined` falls through.
+2. The `filterOperators` of the column.
+3. The `filter.operators` of the cell type.
+4. The default list for the column type.
+
+### allColumns [#allcolumns]
+
+Without `allColumns`, a filter on a hidden column keeps applying. The menu renders it without column context and prints a warning in development.
+
+## DataGridColumnsMenu [#datagridcolumnsmenu]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/columns-menu.tsx" name="DataGridColumnsMenuProps" />
+
+The menu shows and hides columns. It has no pin controls.
+
+## DataGridHeaderFilter [#datagridheaderfilter]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/header-filter.tsx" name="DataGridHeaderFilterProps" />
+
+Spread the context of the `renderHeaderFilter` slot into the component. The slot passes both props.
+
+## Operator helpers
+
+The barrel also exports three helpers for a custom filter UI:
+
+- `operatorsForColumnType(type)` returns the default operator list for a column type.
+- `operatorLabel(operator, labels)` returns the label of an operator from `labels.filterOperators`.
+- `operatorHasValue(operator)` returns `false` for `empty` and `notEmpty`, and `true` for every other operator.
+
+## Server mode
+
+Without `fetchFilterValues`, the value list of `DataGridHeaderFilter` and the `isAnyOf` and `isNoneOf` inputs of a column without `choices` read the loaded rows. Pass `fetchFilterValues` to `DataGridProvider` to read the values from your server. The [header filter page](/docs/sort-filter-search/header-filter) describes the request.
+
+## Related
+
+- [Toolbar](/docs/sort-filter-search/toolbar)
+- [Header filter](/docs/sort-filter-search/header-filter)
+- [Sort list options](/docs/add-options/sort-filter-search/sort-list-options)
+- [Options A to Z](/docs/cheatsheets-messages/options-z)

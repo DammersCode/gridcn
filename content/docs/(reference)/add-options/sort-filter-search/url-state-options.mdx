@@ -1,9 +1,114 @@
 ---
 title: URL state options
-description: URL state options.
+description: Look up the options of DataGridUrlState, useDataGridUrlState, and useDataGridUrlPagination, plus the URL keys and their limits.
 type: reference
+aliases: ["nuqs", "share a link"]
 ---
 
-{/* docs-stub */}
+`DataGridUrlState` syncs the sort, filter, search, and column layout of the grid with the URL through nuqs. `useDataGridUrlPagination` syncs the page and the page size. Both need a nuqs adapter above them in the tree.
 
-This page is being written.
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`DataGridUrlState`](#datagridurlstate) | Component that syncs the view state | [URL state](/docs/sort-filter-search/url-state) |
+| [`useDataGridUrlState`](#usedatagridurlstate) | Hook behind the component | [URL state](/docs/sort-filter-search/url-state) |
+| [`useDataGridUrlPagination`](#usedatagridurlpagination) | Hook for `page` and `pageSize` | [URL state](/docs/sort-filter-search/url-state) |
+
+## DataGridUrlState [#datagridurlstate]
+
+The component renders nothing. Mount it once inside `DataGridProvider`. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. Render it inside `DataGridProvider`:
+
+```tsx
+import { NuqsAdapter } from "nuqs/adapters/react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  type ColumnDef,
+} from "@/components/data-grid/data-grid";
+import { DataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+
+type Person = { id: string; name: string };
+
+const data: Person[] = [{ id: "1", name: "Ada" }];
+const columns: ColumnDef<Person>[] = [
+  { id: "name", accessorKey: "name", header: "Name" },
+];
+
+export function OrdersGrid() {
+  return (
+    <NuqsAdapter>
+      <DataGridProvider
+        data={data}
+        columns={columns}
+        getRowId={(row) => row.id}
+      >
+        <DataGridUrlState
+          prefix="orders"
+          layout={["order", "hidden", "widths"]}
+        />
+        <DataGridRoot>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    </NuqsAdapter>
+  );
+}
+```
+
+## useDataGridUrlState [#usedatagridurlstate]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts" name="UseDataGridUrlStateOptions" />
+
+### prefix [#prefix]
+
+The prefix and an underscore start every key of the grid. `prefix="orders"` gives `orders_sort`, `orders_filter`, `orders_q`, `orders_join`, and `orders_cols`. The pagination hook uses the same rule for `page` and `pageSize`.
+
+### layout [#layout]
+
+Each part is a `UrlLayoutPart`. The default is `["order", "hidden"]`. `layout={[]}` turns layout sync off. A part is in the URL only while it differs from the layout the grid started with.
+
+| Part | Key | Format |
+| --- | --- | --- |
+| `order` | `cols` | Column ids, comma-separated |
+| `hidden` | `hide` | Column ids, comma-separated. `-` means no hidden column |
+| `widths` | `widths` | `id:px` pairs in whole pixels |
+| `pins` | `pins` | `id:s` or `id:e` pairs. `-` means no pinned column |
+
+## Result
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts" name="UseDataGridUrlStateResult" />
+
+The URL applies to the store once, on mount. After that, the store drives the URL. When the URL changes outside the grid, call `applyFromUrl`. A key that the URL lacks then clears its sort, filter, or search.
+
+## useDataGridUrlPagination [#usedatagridurlpagination]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.ts" name="UseDataGridUrlPaginationOptions" />
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.ts" name="UseDataGridUrlPaginationResult" />
+
+The result spreads into the server mode of `useDataGridPagination`. The URL omits `page` at 1 and `pageSize` at `defaultPageSize`. A change of `pageSize` resets `page` to 1.
+
+## Limits
+
+A hand-edited URL cannot grow the view state without bound. Every write uses `history: "replace"`.
+
+- `filter`: 64 rows, 16 groups, 256 segments.
+- `filter` list values: A column with `choices` allows the larger of its choice count and 64. Other columns allow 1,000. A longer `isAnyOf` list keeps its first entries. A longer `isNoneOf` list drops the segment.
+- `sort`: 64 sorts, 256 segments, one direction for each column.
+- `cols`, `hide`, `widths`, `pins`: 1,024 entries. The grid ignores a key over 16,384 characters.
+- `pageSize`: a value outside `pageSizeOptions` reads as `defaultPageSize`.
+- `page`: An integer from 1 to 1,000,000. Anything else reads as 1.
+
+A sort or filter row for a removed, hidden, or unsortable, or unfilterable column drops from the URL state. Ids that match no column drop from the layout.
+
+## Server mode
+
+On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes. Without both modes, the add-on sorts and filters the partial `data` on the client. Value lists that depend on server filtering have a known gap in server filter mode.
+
+## Related
+
+- [URL state](/docs/sort-filter-search/url-state)
+- [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options)
+- [Options A to Z](/docs/cheatsheets-messages/options-z)

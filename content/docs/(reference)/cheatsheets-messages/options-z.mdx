@@ -1,10 +1,84 @@
 ---
 title: Options A to Z
-description: Options A to Z.
+description: Find the add-on option you need by name, see which hook or component takes it, and open its reference page.
 type: cheatsheet
 aliases: ["add-on options", "option names"]
 ---
 
-{/* docs-stub */}
+Each table lists the options of one add-on group. The "Used by" column names the hook, component, or function that takes them. Each row links to the reference page of that add-on.
 
-This page is being written.
+## Sort, filter, and search
+
+Options of the sort, filter, search, and URL add-ons.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `allColumns` | `DataGridSortList`, `DataGridFilterMenu` | [Sort list options](/docs/add-options/sort-filter-search/sort-list-options#allcolumns) |
+| `debounceMs`, `captureFindShortcut`, `placeholder` | `DataGridSearch` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridsearch) |
+| `operatorsForColumn` | `DataGridFilterMenu` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#operatorsforcolumn) |
+| `column`, `index` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
+| `scope`, `replaceAllLimit` | `useDataGridFindReplace`, `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
+| `matchCase`, `wholeCell`, `only`, `skip` | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
+| `prefix`, `layout` | `DataGridUrlState`, `useDataGridUrlState` | [URL state options](/docs/add-options/sort-filter-search/url-state-options#usedatagridurlstate) |
+| `prefix`, `defaultPageSize`, `pageSizeOptions`, `totalRowCount` | `useDataGridUrlPagination` | [URL state options](/docs/add-options/sort-filter-search/url-state-options#usedatagridurlpagination) |
+
+## Clipboard and undo
+
+Options of the fill handle and the history add-ons.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `disabled`, `onFill`, `detectSeries` | `useDataGridFill` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
+| `getRowId`, `capacity`, `datasetKey` | `useDataGridState` | [Undo redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
+| `capacity`, `datasetKey`, `recordSources` | `useDataGridHistory` | [Undo redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
+
+## Import, export, and print
+
+Options of the file add-ons.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `formats`, `options`, `onError` | `DataGridExportButton` | [Export options](/docs/add-options/import-export/export-options) |
+| `format`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, `fileName`, `workbookName`, `maxRows` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options) |
+| `createRow`, `onImport`, `importDefaults`, `importLimits` | `DataGridImportButton` | [Import options](/docs/add-options/import-export/import-options) |
+| `columnFallback`, `defaults`, `limits` | `useDataGridImportPreview` | [Import options](/docs/add-options/import-export/import-options) |
+
+## Rows, pages, and menus
+
+Options of the pagination, pinned rows, and menu add-ons.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `data`, `defaultPageSize`, `pageSize`, `pageSizeOptions`, `defaultPage`, `page`, `onPageChange`, `onPageSizeChange` | `useDataGridPagination` client mode | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| `page`, `pageSize`, `totalRowCount`, `hasNextPage`, `onPageChange`, `pageSizeOptions`, `onPageSizeChange` | `useDataGridPagination` server mode | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| `className`, `labels`, `windowSize`, `children` | `DataGridPaginationBar` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| `getCellMenuItems`, `getHeaderMenuItems` | `DataGridContextMenu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
+| `topRows`, `bottomRows` | `useDataGridPinnedRows` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
+| `scope` | `useDataGridAggregate` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
+
+## Selection and shortcuts
+
+Options of the status bar and the key dialog.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `aggregates`, `formatValue`, `locale`, `labels` | `DataGridStatusBar` | [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options) |
+| `open`, `onOpenChange`, `defaultOpen`, `trigger` | `DataGridKeybindingsDialog` | [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options) |
+
+## Server
+
+Options of the server rows and presence add-ons.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `mode`, `getRowId`, `fetchRows`, `defaultSpec`, `spec`, `onSpecChange`, `onError`, `onLoaded`, `onDataChange` | `useDataGridServerRows` | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `page`, `defaultPage`, `pageSize`, `defaultPageSize`, `pageSizeOptions`, `onPageChange`, `onPageSizeChange` | `useDataGridServerRows` pages mode | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `blockSize`, `overscan` | `useDataGridServerRows` scroll mode | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `maxRects`, `onExcessRects` | `useDataGridPresence` | [Presence options](/docs/add-options/server/presence-options) |
+
+## Related
+
+- [Props A to Z](/docs/cheatsheets-messages/props-z)
+- [Hooks A to Z](/docs/cheatsheets-messages/hooks-z)
+- [Events A to Z](/docs/cheatsheets-messages/events-z)
+- [Add-on options](/docs/add-options)
