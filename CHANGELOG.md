@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** the barrels of `data-grid-toolbar`, `data-grid-io`, and `data-grid-keybindings` no longer export helpers that nothing teaches: `operatorsForColumnType`, `operatorLabel`, `operatorHasValue`, `buildExportHeaders`, `quoteCsvField`, `downloadBlob`, `IMPORT_CANCELLED_MESSAGE`, `IMPORT_PREVIEW_ROW_COUNT`, and the keybinding category helpers. `pnpm lint` now fails when a barrel adds a value the docs never mention.
 - `isPlaceholderRowId(id)` (from `data-grid`) tells the placeholder id of an unloaded row from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only, so no caller matches an id prefix.
 - `getRowId` is optional in `useDataGridServerRows` (both modes). It defaults to the row's `id` field, the same default as `DataGridProvider`, so the hook and the grid agree; a row without a string or number `id` throws.
 - `totalRowCount` makes `sortMode` and `filterMode` default to `"server"`: a window of a result cannot be sorted or filtered locally without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window in the browser. A grid without `totalRowCount` keeps the `"client"` default.

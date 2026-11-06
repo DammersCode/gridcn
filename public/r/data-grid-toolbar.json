@@ -24,7 +24,7 @@
   "files": [
     {
       "path": "registry/default/blocks/data-grid-toolbar/data-grid-toolbar.ts",
-      "content": "/** Public entry point — the only module consumers/docs should import from. */\r\n\r\nexport { DataGridToolbar, type DataGridToolbarProps } from \"./toolbar\";\r\nexport { DataGridSearch, type DataGridSearchProps } from \"./search\";\r\nexport { DataGridFilterMenu, type DataGridFilterMenuProps } from \"./filter-menu\";\r\nexport { DataGridColumnsMenu, type DataGridColumnsMenuProps } from \"./columns-menu\";\r\nexport { operatorsForColumnType, operatorLabel, operatorHasValue } from \"./operators-for-column-type\";\r\nexport { DataGridHeaderFilter, type DataGridHeaderFilterProps } from \"./header-filter\";\r\n",
+      "content": "/** Public entry point — the only module consumers/docs should import from. */\n\nexport { DataGridToolbar, type DataGridToolbarProps } from \"./toolbar\";\nexport { DataGridSearch, type DataGridSearchProps } from \"./search\";\nexport { DataGridFilterMenu, type DataGridFilterMenuProps } from \"./filter-menu\";\nexport { DataGridColumnsMenu, type DataGridColumnsMenuProps } from \"./columns-menu\";\nexport { DataGridHeaderFilter, type DataGridHeaderFilterProps } from \"./header-filter\";\n",
       "type": "registry:component",
       "target": "components/data-grid-toolbar/data-grid-toolbar.ts"
     },

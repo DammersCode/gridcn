@@ -4,5 +4,4 @@ export { DataGridToolbar, type DataGridToolbarProps } from "./toolbar";
 export { DataGridSearch, type DataGridSearchProps } from "./search";
 export { DataGridFilterMenu, type DataGridFilterMenuProps } from "./filter-menu";
 export { DataGridColumnsMenu, type DataGridColumnsMenuProps } from "./columns-menu";
-export { operatorsForColumnType, operatorLabel, operatorHasValue } from "./operators-for-column-type";
 export { DataGridHeaderFilter, type DataGridHeaderFilterProps } from "./header-filter";
