@@ -1,9 +1,65 @@
 ---
 title: Version policy and changelog
-description: Version policy and changelog.
+description: Find how gridcn numbers releases, where the changelog lists breaking changes, and how to pin a release.
 type: reference
+aliases: ["semver", "release notes"]
 ---
 
-{/* docs-stub */}
+gridcn ships as source through the shadcn registry, so it has no npm version. A release is a git tag, and `CHANGELOG.md` lists what each release changed. Read the changelog before you update installed files.
 
-This page is being written.
+| Topic | Rule |
+|---|---|
+| Release | A git tag `vMAJOR.MINOR.PATCH` |
+| Breaking change | Any release can carry one. The changelog marks it **Breaking:**. |
+| Public API | The props, hooks, and exports that the docs name, and `data-grid-sdk` |
+| Pinned release | `#<ref>` on the GitHub registry path |
+| Security fixes | Version 1.x, see [Supported versions](/docs/support-upgrades/security-policy#supported-versions) |
+
+## Release tags [#version]
+
+A release is a git tag named `vMAJOR.MINOR.PATCH`, for example `v1.3.0`. The changelog heading of each release has the same number and the release date. The current release line is 1.x. The [tags page](https://github.com/DammersCode/gridcn/tags) lists every release.
+
+Any release can carry a change marked **Breaking:** in the changelog. Read the changelog of every release between your version and the target. [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn#updating-installed-code) shows how to find your version.
+
+## Public API [#what-10-promises]
+
+The props, hooks, and exports that the docs name are the public API. The `data-grid-sdk` module is the API for add-on authors. [Write a plugin](/docs/recipes-custom-code/write-plugin) shows it. Anything else in an installed file is internal and can change in any release.
+
+Installed files are your source. [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) shows how a new install treats the files that you changed.
+
+## Changelog [#changelog]
+
+`CHANGELOG.md` is at the root of the [repository](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md). It follows these rules:
+
+- The top section, `Unreleased`, lists changes that no tag has shipped. An install without a ref already gets them.
+- Each release has a heading with its number and date.
+- An entry that breaks a public prop, hook, export, or behavior carries the **Breaking:** marker. It names the replacement or describes the new behavior.
+- A release can open with a list of its breaking entries, grouped by area.
+
+## Pin a release [#pinned-installs]
+
+The hosted `@gridcn` registry serves the source of the most recent deployment of the `main` branch. To pin a release, add `#<ref>` to the GitHub registry path. The ref is a tag, a branch, or a full 40-character commit SHA. Without a ref, the CLI uses the default branch:
+
+<InstallCommand command="shadcn add DammersCode/gridcn/data-grid#v1.3.0" />
+
+The ref applies to the item you name. The CLI fetches every registry dependency of that item without the ref, from the default branch. Most add-ons depend on the core item, `data-grid`. These add-ons also depend on another gridcn item:
+
+| Add-on | Also depends on |
+|---|---|
+| `data-grid-server`, `data-grid-url-state` | `data-grid-pagination` |
+| `data-grid-toolbar`, `data-grid-find-replace` | `use-debounce` |
+| `data-grid-io` | `dropzone` |
+
+To pin the whole install, install each dependency with the same ref first. Install `data-grid` before the others. Then install the add-on. If the CLI asks to overwrite a dependency file, answer no.
+
+To resolve a tag, a branch, or the default branch, the CLI runs `git ls-remote`. It then reads the files from `raw.githubusercontent.com`. If `git ls-remote` fails, the CLI resolves the ref through the GitHub API. It uses the `GH_TOKEN` or `GITHUB_TOKEN` variable, or the `gh` CLI when neither is set. A full commit SHA skips the lookup. Every `@gridcn` add-on that needs the core fetches it through the GitHub path. A core install from `@gridcn` needs neither `git` nor GitHub access.
+
+## Support [#support--security]
+
+Report bugs and feature requests in the [issue tracker](https://github.com/DammersCode/gridcn/issues/new/choose). Ask questions in the [Q&A discussions](https://github.com/DammersCode/gridcn/discussions/new?category=q-a). To report a vulnerability, follow the [Security policy](/docs/support-upgrades/security-policy).
+
+## Related
+
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
+- [Security policy](/docs/support-upgrades/security-policy)
+- [Browser and framework support](/docs/support-upgrades/browser-framework-support)

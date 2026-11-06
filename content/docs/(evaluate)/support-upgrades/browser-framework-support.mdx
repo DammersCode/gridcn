@@ -1,9 +1,50 @@
 ---
 title: Browser and framework support
-description: Browser and framework support.
+description: Check which browsers, React, Tailwind, TypeScript, and Node.js versions gridcn is built and tested against.
 type: reference
+aliases: ["compatibility", "system requirements", "supported browsers"]
 ---
 
-{/* docs-stub */}
+gridcn targets current Chromium, Firefox, and Safari, and React 19. Automated browser tests run in Chromium only.
 
-This page is being written.
+## Framework floors
+
+| Requirement | Version | Source |
+|---|---|---|
+| React | 19 | The store reads context with the `use()` API, which React 18 lacks. |
+| Tailwind CSS | 4 | The classes use Tailwind 4 syntax, such as the variant `data-checked:`. Tailwind 3 does not read it. |
+| TypeScript | 5.9 or later | CI type-checks the repository with TypeScript 5.9 and with TypeScript 7. No gate runs TypeScript 6. |
+| Next.js | 16, App Router | An install test builds and renders every demo in a fresh `create-next-app` project. |
+| Vite | React and Tailwind 4 | The install test has a Vite mode that builds a `shadcn create -t vite` app. |
+| Node.js | 20.18.1 or later | The floor of shadcn CLI 4.21, the version CI tests. A later CLI can raise it. Next.js 16 needs 20.9. CI runs Node.js 24. |
+
+`data-grid-io` installs `hucre`, which declares Node.js 24 or later. On an older Node.js, npm and pnpm print an engine warning, and Yarn 1 stops the install.
+
+The shadcn CLI and a `components.json` file are the install path. The `data-grid` item depends on shadcn components such as `button`, `popover`, and `dropdown-menu`.
+
+## Browsers [#browser-support]
+
+The browser suite runs real Chromium through Playwright. Test your own flows in every engine you ship to. Firefox and Safari are outside the automated suite.
+
+## Browser API fallbacks
+
+| Area | Behavior |
+|---|---|
+| Clipboard copy | Ctrl+C and Ctrl+X (Cmd on macOS) use the browser's copy and cut events. The context menu, `copy()`, and `cut()` of [`useDataGridClipboard`](/docs/clipboard-undo/clipboard#copy-and-paste-from-code) use the async Clipboard API. If that API is missing or the write fails, gridcn falls back to `document.execCommand("copy")`, which writes plain text only. `copy()` and `cut()` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. After a failed write, the context menu disables Cut and Copy and shows a tooltip that says to use Ctrl+C or Ctrl+X. |
+| Clipboard paste | Ctrl+V (Cmd+V on macOS) uses the browser's paste event and needs no permission. The context menu and `pasteFromClipboard()` of `useDataGridClipboard` call `navigator.clipboard.readText()`, which needs the user's permission. If the read fails, `pasteFromClipboard()` resolves `"permission-denied"`. The context menu then disables Paste and shows a tooltip that says to use Ctrl+V. |
+| Pointer capture | Cell range drag, column resize, row reorder, and the fill handle capture the pointer. If the browser refuses or lacks capture, gridcn skips it and does not throw. |
+
+## React Compiler
+
+CI runs the unit and browser suites a second time with the React Compiler (`babel-plugin-react-compiler` 1.0.0) enabled. Everyday development runs without it. A problem that appears only with the compiler can therefore surface late. If you find one, report it in the [issue tracker](https://github.com/DammersCode/gridcn/issues/new/choose) and put `reactCompiler` in the title.
+
+## Row ceiling
+
+The maximum row count depends on the browser and the row height. [Row limits](/docs/performance/row-limits) has the numbers.
+
+## Related
+
+- [Row limits](/docs/performance/row-limits)
+- [Accessibility](/docs/accessibility)
+- [Install gridcn](/docs/learning-path/install-gridcn)
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)

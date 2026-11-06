@@ -45,8 +45,8 @@ the exact warning text to search for.
 **When to reach for it.** Scrolling stutters, typing lags, or an edit is slow. Also use it when
 you review code that passes props or callbacks into the grid.
 
-**It is working if** the development console shows no `[data-grid]` warning while you scroll and
-edit, and the React DevTools Profiler shows only the rows that enter the viewport rendering.
+**It is working if** the development console shows no `[data-grid]` warning while you scroll and edit.
+The React DevTools Profiler shows renders only for the rows that enter the viewport.
 
 ## gridcn-custom-cell-type
 
@@ -75,8 +75,8 @@ sort, filter, and search to the server. Otherwise these gestures see only the lo
 skill also handles stale page responses, the spec reset on a sort change, and the combinations
 that the add-ons do not support.
 
-**When to reach for it.** You connect the grid to an API, the dataset is too large for one
-request, or sort and filter must cover rows that are not loaded.
+**When to reach for it.** You connect the grid to an API, or the dataset is too large for one
+request. Also use it when sort and filter must cover rows that are not loaded.
 
 **It is working if** every sort, filter, and search path covers the full dataset, or the page
 states that it covers only the loaded rows.
@@ -100,18 +100,16 @@ development warning.
 
 ## gridcn-upgrade
 
-**What it does.** gridcn is source that you own, not an npm dependency. An update re-runs the
-install and merges the upstream files with your copy. In a Git project, the skill first asks you
-whether to upgrade on the current branch or on a new branch. Then it reads the
-[changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) for breaking entries.
-It sorts every installed file with `--dry-run`, overwrites only the files that you did not edit,
-and merges your edits into the others. Then it checks the aliases and the imports.
+**What it does.** gridcn is source that you own. In a Git project, the skill asks which branch to
+use. It reads the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) for
+breaking entries. It runs `--dry-run` and checks `git log` for your edits. It overwrites the files
+that you did not edit and merges your edits into the others. Then it checks aliases and imports.
 
-**When to reach for it.** You update to a newer release, you pull one upstream fix, or you changed
-installed files and want to keep the changes.
+**When to reach for it.** You update to a newer release or pull one upstream fix. Also use it when
+installed files carry edits that must survive.
 
-**It is working if** your type check and build pass, every breaking entry has its replacement, and
-the smoke test from [Installation](/docs/learning-path/install-gridcn) passes.
+**It is working if** your type check and build pass, the skill applied every breaking entry, and
+the smoke test from [Fix install problems](/docs/terms-help/fix-install-problems) passes.
 
 <Callout type="warn">
   Commit or stash your changes before you run `gridcn-upgrade`. If the project has no Git, back up
@@ -122,7 +120,6 @@ the smoke test from [Installation](/docs/learning-path/install-gridcn) passes.
 
 - [Installation](/docs/learning-path/install-gridcn)
 - [Performance](/docs/performance)
-- [Custom cell types](/docs/recipes-custom-code)
-- [Lazy loading](/docs/scroll-mode)
-- [Add-ons](/docs/fit-features/feature-matrix)
-- [Project status](/docs/support-upgrades/version-policy-changelog)
+- [Custom cell types](/docs/recipes-custom-code/write-cell-type)
+- [Feature matrix](/docs/fit-features/feature-matrix)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)

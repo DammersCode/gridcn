@@ -1,9 +1,70 @@
 ---
 title: Security policy
-description: Security policy.
+description: Report a gridcn vulnerability privately, see which versions get fixes, and check what counts as in scope.
 type: reference
+aliases: ["report a bug privately"]
 ---
 
-{/* docs-stub */}
+Report a vulnerability privately. A confirmed vulnerability gets a fix before the advisory goes public. The report, support, and scope rules match `SECURITY.md` in the [repository](https://github.com/DammersCode/gridcn/blob/main/SECURITY.md).
 
-This page is being written.
+| Topic | Rule |
+|---|---|
+| Report | GitHub Security Advisory |
+| Response | Best effort within 7 days |
+| Supported | Version 1.x |
+
+## Report a vulnerability
+
+Open a [GitHub Security Advisory](https://github.com/DammersCode/gridcn/security/advisories/new). Do not open a public issue or pull request for a vulnerability.
+
+Include these details:
+
+- The affected registry item, for example `data-grid-io`.
+- The tag or commit you installed from. For an install from the hosted `@gridcn` registry, give the install date.
+- Steps to reproduce.
+
+The response time is best effort within 7 days.
+
+## Supported versions
+
+| Version | Receives security fixes |
+|---|---|
+| 1.x | Yes |
+| 0.x | No |
+
+## Scope
+
+In scope:
+
+- The registry source under `registry/` and the payloads in `public/r/`.
+- The documentation site and its demos.
+- Handling of untrusted input.
+
+Out of scope:
+
+- Code you edited after installing it.
+- Vulnerabilities in your own app, in your data source, or in dependencies that gridcn does not pin.
+- Denial of service through data volume you chose to load, beyond the [import limits](/docs/import-export/import#import-limits).
+
+gridcn pins `hucre` to an exact version. The other packages install from a version range.
+
+Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, URL state, cell values shown as text or links, and CSV export.
+
+## How gridcn handles untrusted input
+
+- The grid renders a cell value as text, never as HTML. gridcn reads pasted HTML with the browser's DOMParser, which runs no script.
+- If a cell link uses a protocol other than `http:`, `https:`, or `mailto:`, such as `javascript:`, the cell renders plain text. A relative link and a link over 2,048 characters also render plain text.
+- A cell value that throws on conversion to text, such as an object without a prototype, shows as empty text.
+- A paste applies at most 200,000 cells. [Clipboard](/docs/clipboard-undo/clipboard#known-limitations) lists the caps.
+- URL state reads a bounded number of filters and groups. [URL state](/docs/sort-filter-search/url-state) lists the bounds.
+- CSV export prefixes a formula-like cell with a single quote. Set `sanitizeFormulas: false` on `exportGrid` to turn this off.
+- XLSX export writes every cell as a text cell, so no cell runs as a formula.
+- Copy and cut keep formula-like text as it is. Set the grid prop `sanitizeClipboardFormulas` to prefix it. [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing) has the details.
+- An import rejects a file that exceeds any bound: file size, rows, columns, cells, or decompressed size. It never truncates the file.
+
+## Related
+
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
+- [Import](/docs/import-export/import)
+- [Export](/docs/import-export/export)

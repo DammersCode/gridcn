@@ -1,10 +1,64 @@
 ---
 title: Upgrade gridcn
-description: Upgrade gridcn.
+description: Update installed gridcn files to a newer release, keep your edits, and apply the breaking changes the changelog lists.
 type: task
 aliases: ["breaking changes", "migration", "update version"]
 ---
 
-{/* docs-stub */}
+Installed gridcn files are your source, so an upgrade reinstalls the registry files and asks before it replaces a file that differs. Follow these steps to keep your edits and apply each breaking change.
 
-This page is being written.
+A coding agent can run these steps with the [`gridcn-upgrade` skill](/docs/try-automate/use-agent-skills#gridcn-upgrade).
+
+Before you start, commit your work. A clean working tree makes every upgrade change visible in `git diff`.
+
+## Steps [#updating-installed-code]
+
+1. Find the release you installed. The installed files carry no version. List the commits that changed them, and find the commit of your last install:
+
+   ```bash
+   git log --date=short --format="%h %ad %s" -- components/data-grid
+   ```
+
+   Your version is the last release in the changelog with a date on or before the date of that commit. If you installed with a ref, that ref is your version. If your `components.json` aliases put the files elsewhere, use that folder.
+
+2. Collect every **Breaking:** entry in the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) from your version to the target. For an install without a ref, also read the `Unreleased` section.
+
+3. Use the same path in steps 3, 4, and 5. For a pinned release, write `DammersCode/gridcn/<item>#<ref>` in place of `@gridcn/<item>` in each command. Preview the install of each item you use. The command lists each file as `create`, `overwrite`, or `skip` and writes nothing. `overwrite` marks a file that differs. Step 5 asks before it overwrites it:
+
+   <InstallCommand command="shadcn add @gridcn/data-grid --dry-run" />
+
+4. Show the diff of a file you edited:
+
+   <InstallCommand command="shadcn add @gridcn/data-grid --diff components/data-grid/data-grid.tsx" />
+
+5. Run the install again for the core and for every add-on you use. The `@gridcn` path installs the most recent deployment, so one command covers all items:
+
+   <InstallCommand command="shadcn add @gridcn/data-grid @gridcn/data-grid-history" />
+
+   For each existing file that differs from the new version, the CLI asks whether to overwrite it. The default answer is no. Answer yes for a file that you did not edit. Answer no for a file with edits you keep, and merge the upstream change by hand. To see whether you edited a file, run `git log --oneline -- <file>`. A commit after your last install is an edit.
+
+   For a pinned release, install each dependency of an add-on first, with `data-grid` before the others. Install the add-on after them, all with `#<ref>`. An add-on install fetches its dependencies without the ref. When it asks about a dependency file, answer no. [Pin a release](/docs/support-upgrades/version-policy-changelog#pinned-installs) explains why.
+
+   The CLI also asks about the shadcn components that gridcn needs, such as `components/ui/button.tsx`. To keep your own version of such a component, answer no.
+
+6. Apply each breaking entry from step 2. If an entry renames an identifier, search your code for the old name and replace it. If an entry changes a behavior, check the code that depends on it.
+
+7. Run your type check. A removed or renamed export fails the check:
+
+   ```bash
+   npx tsc --noEmit
+   ```
+
+8. Run your tests.
+
+Each file that you overwrote matches the version from step 5. Each file that you kept holds your edits and the upstream changes that you merged. The type check and the tests pass.
+
+## Heavily edited files
+
+When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- components/data-grid`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
+
+## Related
+
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)
+- [Install gridcn](/docs/learning-path/install-gridcn)
+- [Fix install problems](/docs/terms-help/fix-install-problems)

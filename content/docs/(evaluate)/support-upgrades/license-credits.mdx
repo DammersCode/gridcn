@@ -1,6 +1,6 @@
 ---
 title: "License and credits"
-description: "The Apache License 2.0: what you may do and what you must keep."
+description: "Use gridcn under the Apache License 2.0: what you may do, what you must keep, and the packages it installs."
 icon: Scale
 type: reference
 ---
@@ -8,12 +8,19 @@ type: reference
 gridcn is open source under the Apache License 2.0. The legal text is
 [`LICENSE`](https://github.com/DammersCode/gridcn/blob/main/LICENSE).
 
+| Topic | Rule |
+|---|---|
+| License | Apache License 2.0 |
+| Commercial use | Allowed |
+| You must | Keep the license text and the copyright notice, and mark changed files |
+
 ## What you may do
 
 - Use gridcn in personal, internal, and **commercial** products: websites, apps, SaaS.
 - Modify the code and keep your changes private. Your product does not have to be open source.
 - Copy, distribute, and sell gridcn, in original or modified form.
 - Fork the repository.
+- Use the patents of the contributors that gridcn needs. If you sue anyone over a patent in gridcn, this patent license ends.
 - Contribute to the official repository through pull requests.
 
 ## What you must do
@@ -22,10 +29,45 @@ When you distribute gridcn or a modified version of it:
 
 - Include a copy of the license. The `data-grid` install writes it to
   `components/data-grid/LICENSE.md`.
-- Keep the copyright notice.
+- Keep the copyright notice, `Copyright 2026 DammersCode`, in the license file.
 - Mark the files that you changed.
 
 ## What the license does not grant
 
 - Rights to the gridcn name or logo.
-- A warranty. gridcn is provided "as is".
+- A warranty. gridcn comes "as is".
+
+## Credits
+
+The gridcn items install these packages. The shadcn components that they depend on, such as `calendar`, install their own packages:
+
+| Package | License | Installed by |
+|---|---|---|
+| `@base-ui/react` | MIT | `data-grid`, `data-grid-context-menu` |
+| `zustand` | MIT | `data-grid`, `data-grid-context-menu`, `data-grid-fill`, `data-grid-pinned-rows`, `data-grid-presence` |
+| `use-sync-external-store` | MIT | `data-grid` |
+| `lucide-react` | ISC | `data-grid`, `data-grid-context-menu`, `data-grid-find-replace`, `data-grid-io`, `data-grid-pagination`, `data-grid-sort-list`, `data-grid-toolbar`, `dropzone` |
+| `papaparse` | MIT | `data-grid-io` |
+| `hucre` | MIT | `data-grid-io` |
+| `@dnd-kit/dom`, `@dnd-kit/react` | MIT | `data-grid-sort-list`, `data-grid-toolbar` |
+| `nuqs` | MIT | `data-grid-url-state` |
+| `@types/papaparse` (dev) | MIT | `data-grid-io` |
+
+These projects shaped gridcn:
+
+- [shadcn/ui](https://ui.shadcn.com): the registry system (`registry.json`, the `shadcn` CLI) that ships gridcn. The grid's menus, popovers, and buttons use its primitives: `button`, `input`, `select`, `popover`, `dropdown-menu`, `context-menu`, `calendar`, and more.
+- [Base UI](https://base-ui.com): the headless, accessible primitives under the shadcn components.
+- [diceui](https://diceui.com) (MIT, (c) 2024 Sadman Sakib): gridcn adapts its toolbar, filter, and sort-list patterns, and its FPS meter.
+- [tablecn](https://github.com/sadmann7/tablecn) (MIT, (c) Sadman Sakib): gridcn adapts the aligned-row layout of its filter and sort popovers, and its join-column pattern.
+- [dnd kit](https://dndkit.com): drag-to-reorder in the filter and sort-list popovers. Column reorder in the core grid uses native pointer events.
+- [Lucide](https://lucide.dev): the icons of the grid.
+- [PapaParse](https://www.papaparse.com): the CSV parsing of `data-grid-io`.
+- [nuqs](https://nuqs.dev): the search-param sync of `data-grid-url-state`.
+- [Standard Schema](https://standardschema.dev): the validation interface that the `validate` option of a cell accepts.
+- [Zustand](https://zustand.docs.pmnd.rs): the state store under the core grid.
+- [Fumadocs](https://fumadocs.dev): this documentation site.
+
+## Related
+
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)
+- [Security policy](/docs/support-upgrades/security-policy)

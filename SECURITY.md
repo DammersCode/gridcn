@@ -6,7 +6,8 @@ Report a vulnerability privately through a GitHub Security Advisory:
 <https://github.com/DammersCode/gridcn/security/advisories/new>
 
 Do not open a public issue or pull request for a vulnerability. Include the affected registry
-item (for example `data-grid-io`), the version or commit, and steps to reproduce.
+item (for example `data-grid-io`), the tag or commit you installed from (for an install from the
+hosted `@gridcn` registry, the install date), and steps to reproduce.
 
 Response time: best effort within 7 days. A fix for a confirmed vulnerability ships before the
 advisory is published.
