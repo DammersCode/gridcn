@@ -89,6 +89,8 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
   const getRowId = (row: Row) => row.id;
   let created = 0;
   const baseProps = {
+    sortMode: "client" as const,
+    filterMode: "client" as const,
     createRow: () => ({ id: `new${created++}`, name: "New", n: 0 }),
     duplicateRow: (row: Row) => ({ ...row, id: `${row.id}-copy` }),
   };

@@ -30,6 +30,7 @@ exports[`lists the runtime names of the \`data-grid\` barrel so an addition is a
   "getCellValue",
   "invertChange",
   "isMacPlatform",
+  "isPlaceholderRowId",
   "longTextCellType",
   "numberCellType",
   "safeHref",
