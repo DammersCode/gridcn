@@ -301,10 +301,7 @@ first, then print. To print the whole result, use a CSV or xlsx export of the wh
   </Step>
 </Steps>
 
-<Callout type="warn" title="createRow is required">
-  It builds the base row, with defaults for any grid column absent from the imported file, and
-  the dialog writes mapped values onto this base row.
-</Callout>
+The dialog takes a `createRow` prop. It builds the base row, with defaults for any grid column absent from the imported file, and the dialog writes mapped values onto this base row.
 
 In the dialog, each grid column can be mapped from at most one source column at a time. Once a
 source column claims a grid column, that grid column disappears from every other source column's
