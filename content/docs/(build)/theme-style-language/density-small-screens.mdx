@@ -1,10 +1,119 @@
 ---
 title: Density and small screens
-description: Density and small screens.
+description: Set row and header height, fit the grid and toolbar to narrow screens, and restyle the scroll shadows with CSS variables.
 type: feature
-aliases: ["row height", "compact"]
+demos: none
+aliases: ["row height", "compact", "mobile", "responsive"]
 ---
 
-{/* docs-stub */}
+A dense table shows more rows, and a roomy table is easier to tap. `density` picks a row height preset, `rowHeight` sets exact pixels, and `headerHeight` sets the header. On a narrow screen, the grid scrolls inside its own box.
 
-This page is being written.
+## Density and row height [#density-and-row-height]
+
+`density` takes `compact`, `default`, or `comfortable`. The presets give rows a height of 28, 36, and 44 px. `rowHeight` sets exact pixels and wins over `density`. Header rows do not follow either one. `headerHeight` sets the height of one header row. [Column groups](/docs/columns/column-headers-groups#column-groups) add header rows of the same height.
+
+```tsx
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type DensityMode,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function DenseGrid() {
+  const [density, setDensity] = useState<DensityMode>("compact");
+  return (
+    <>
+      <button onClick={() => setDensity("comfortable")}>Comfortable</button>
+      <DataGrid
+        className="h-80"
+        defaultData={rows}
+        columns={columns}
+        density={density}
+      />
+    </>
+  );
+}
+```
+
+{/* props: DataGridRootProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `density` | `"compact" \| "default" \| "comfortable"` | `"default"` |
+| `rowHeight` | `number` | none |
+| `headerHeight` | `number` | `36` |
+
+Set the heights with these props. The grid writes `--grid-row-height` itself and uses the same numbers to place the rows. A CSS rule on the row height does not reach that calculation.
+
+## Small screens [#small-screens]
+
+The grid scrolls sideways and down inside its own box, so a wide table does not widen the page. Give the grid a height. Columns keep their widths. A column with `flex` grows to share extra width and never gets narrower than its `width`.
+
+The toolbar is one row that scrolls sideways. Pass `flex-wrap` to let its controls wrap onto a second line:
+
+```tsx
+import {
+  DataGridFilterMenu,
+  DataGridSearch,
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+<DataGridToolbar className="flex-wrap">
+  <DataGridSearch />
+  <DataGridFilterMenu />
+</DataGridToolbar>
+```
+
+On a touch screen, the grid adapts:
+
+- The resize handle of a header is wider.
+- Each header shows a drag handle for column reorder.
+- The header menu button and the header filter button stay visible. On a pointer device, they show on hover.
+
+## Scroll shadows [#scroll-shadows]
+
+A soft shadow marks each side where more content lies beyond the visible area. The right shadow shows while more columns follow, and the bottom shadow shows while more rows follow. After the user scrolls, the left and top shadows show too. A pinned column zone or row band moves the shadow to its boundary.
+
+Set these CSS variables on the grid or on any ancestor:
+
+| Variable | Effect | Default |
+| --- | --- | --- |
+| `--grid-scroll-shadow` | color of the edge shadows | `--grid-pin-shadow` |
+| `--grid-pin-shadow` | color of the shadows at pinned zones | 10% black in light mode, 40% in dark mode |
+| `--grid-shadow-size` | width of the side shadows and height of the top and bottom shadows | `8px` |
+
+`--grid-scroll-shadow: transparent` hides the edge shadows and keeps the shadows at pinned zones:
+
+```css
+.my-grid {
+  --grid-scroll-shadow: transparent;
+}
+```
+
+For a different look, select the shadow elements. Each one has `data-grid-pin-shadow` with its side. A shadow at a pinned zone also has `data-pinned`. The grid sets `background-image` inline, so the rule needs `!important`:
+
+```css
+[data-grid-pin-shadow="right"]:not([data-pinned]) {
+  background-image: linear-gradient(
+    to left,
+    var(--color-primary),
+    transparent
+  ) !important;
+}
+```
+
+## Related
+
+- [Style overrides](/docs/theme-style-language/style-overrides)
+- [Column sizing](/docs/columns/column-sizing)
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Colors and radius](/docs/theme-style-language/colors-radius)
+- [DataGrid props](/docs/components-props/data-grid-props)

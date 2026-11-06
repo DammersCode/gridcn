@@ -1,9 +1,154 @@
 ---
 title: Style overrides
-description: Style overrides.
+description: Restyle grid parts with plain CSS, style rows and cells by value with class callbacks, and style by state with data attributes.
 type: feature
+aliases: ["custom css", "conditional styling", "row color", "cell class"]
 ---
 
-{/* docs-stub */}
+The grid paints with shadcn tokens, so your theme restyles it. When a token is not enough, override the classes of one part. Plain CSS changes the built-in parts. Class callbacks and column fields style rows and cells by value. Data attributes style by state.
 
-This page is being written.
+<ComponentPreview name="data-grid-conditional-styling-demo" />
+
+## Override with CSS [#override-recipes]
+
+The built-in classes are Tailwind utilities in the `utilities` cascade layer. A CSS rule that you write outside any `@layer` beats every layered rule, whatever the specificity or the order. So one selector overrides a built-in class with no `!important`:
+
+```css
+/* selection range: another fill and border */
+[data-grid-selection-overlay] {
+  background-color: color-mix(in oklch, var(--color-accent) 20%, transparent);
+  border-color: var(--color-accent);
+}
+
+/* active cell: a dashed outline instead of the ring */
+[data-grid-active-cell-overlay] {
+  box-shadow: none;
+  outline: 2px dashed var(--color-ring);
+  outline-offset: -2px;
+}
+
+/* invalid cell: a rail instead of the inset ring, the tint stays */
+[role="gridcell"][data-invalid] {
+  box-shadow: none;
+  border-inline-start: 2px solid var(--color-destructive);
+}
+
+/* search match: an underline instead of the background tint */
+[role="gridcell"][data-search-match] {
+  background-color: transparent;
+  text-decoration: underline solid var(--search-highlight, currentColor) 2px;
+}
+```
+
+## Style rows and cells by value [#programmatic-per-rowper-cell-styling]
+
+Four hooks add classes by value:
+
+- `getRowClassName(row, viewRowIndex)` on `DataGrid` or `DataGridRoot` styles a row.
+- `getCellClassName(ctx)` on the same components styles a cell.
+- `cellClassName` on a `ColumnDef` styles every cell of the column. It takes a string, or a function with the same `ctx`.
+- `headerClassName` on a `ColumnDef` styles the header cell.
+
+`ctx` holds `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, and `column`. All four merge through `cn()` after the built-in classes, so a conflicting utility wins. The column classes apply last, so they win over a grid-wide default. The callbacks skip rows that are not loaded yet.
+
+```tsx
+import {
+  DataGrid,
+  defineColumns,
+  type GetCellClassName,
+  type GetRowClassName,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; status: string; balance: number };
+
+const getRowClassName: GetRowClassName<Row> = (row) =>
+  row.status === "archived" ? "opacity-50" : undefined;
+
+const getCellClassName: GetCellClassName<Row> = ({ value, columnId }) =>
+  columnId === "balance" && typeof value === "number" && value < 0
+    ? "text-destructive"
+    : undefined;
+
+const columns = defineColumns<Row>()([
+  {
+    id: "status",
+    header: "Status",
+    accessorKey: "status",
+    headerClassName: "text-primary",
+  },
+  { id: "balance", header: "Balance", accessorKey: "balance", type: "number" },
+]);
+
+export function Accounts({ rows }: { rows: Row[] }) {
+  return (
+    <DataGrid
+      className="h-80"
+      defaultData={rows}
+      columns={columns}
+      getRowClassName={getRowClassName}
+      getCellClassName={getCellClassName}
+    />
+  );
+}
+```
+
+Result: archived rows fade, and negative balances turn red.
+
+<Callout type="warn" title="Pass a stable function">
+  Define `getRowClassName` and `getCellClassName` at module scope, or memoize them. A new function on every render re-renders every row and cell. A changed identity makes the grid log a warning in development.
+</Callout>
+
+### Style a whole column [#styling-a-whole-column]
+
+When a rule depends on the column only, use the string form of `cellClassName`. Add `headerClassName` to style the header with it:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Deal = { id: string; region: string };
+
+const columns = defineColumns<Deal>()([
+  {
+    id: "region",
+    header: "Region",
+    accessorKey: "region",
+    cellClassName: "bg-primary/5 border-e border-e-primary/30 font-medium",
+    headerClassName: "bg-primary/10 border-e border-e-primary/30 text-primary",
+  },
+]);
+```
+
+If the same rule also reads `value` or `row`, use `getCellClassName`.
+
+## Style by state with CSS [#styling-by-state-with-css-only]
+
+The grid keeps these data attributes up to date. Scope each selector to the grid, because other components also use `data-*` attributes. CSS selectors on them need no callback:
+
+| Attribute | Set on |
+| --- | --- |
+| `data-active` | the active cell |
+| `data-editing` | a cell in edit mode |
+| `data-pinned="left"` or `"right"` | header and body cells of a pinned column |
+| `data-row-selected` | the marker cell of a selected row |
+| `data-search-match` | a cell that matches the quick search |
+| `data-invalid` | a cell with a validation error |
+| `data-filtered` | a header cell of a filtered column |
+| `data-hovered` | the row under the pointer |
+
+```css
+[role="gridcell"][data-active] {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+[role="gridcell"][data-pinned="right"] {
+  border-inline-start: 1px solid var(--color-border);
+}
+```
+
+## Related
+
+- [Colors and radius](/docs/theme-style-language/colors-radius)
+- [Density and small screens](/docs/theme-style-language/density-small-screens)
+- [Style contract](/docs/contracts/style-contract)
+- [Styling model](/docs/concepts/styling-model)

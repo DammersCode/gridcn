@@ -1,10 +1,117 @@
 ---
 title: Column order and pinning
-description: Column order and pinning.
+description: Let users drag columns into a new order and pin columns to the start or end edge so they stay in view while the grid scrolls.
 type: feature
 aliases: ["frozen columns", "freeze columns", "sticky columns", "pin left"]
 ---
 
-{/* docs-stub */}
+A wide grid scrolls columns out of view. A pinned column stays at the start or end edge while the rest scrolls. Reorder lets users place the columns they read together next to each other. Both are on by default.
 
-This page is being written.
+<ComponentPreview name="data-grid-pinning-demo" />
+
+## Reorder [#reorder]
+
+Drag a header sideways to move its column. A drop indicator shows where the column lands. A drag that leaves the header starts the reorder. <kbd>Shift</kbd>+drag selects columns and does not reorder. On a touch screen, each header shows a drag handle that starts the reorder.
+
+A column moves inside its pin zone: start-pinned, unpinned, or end-pinned. A drop in another zone changes nothing, and it does not change the pin.
+
+The keyboard has no reorder shortcut. For your own control, call `setColumnOrder`. The column lands next to the target:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+
+function MoveEmailFirst() {
+  const actions = useDataGridActions();
+  return (
+    <button onClick={() => actions.setColumnOrder("email", "name", "before")}>
+      Email before name
+    </button>
+  );
+}
+```
+
+Render the button inside `DataGridProvider`. `reorderable: false` on a column stops the drag of that column and stops drops onto it. `enableColumnReorder={false}` turns reorder off for the grid.
+
+## Pin to the start or end [#pin-startend]
+
+`pin: "left"` pins a column to the start side, and `pin: "right"` pins it to the end side. In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state.
+
+The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
+
+At run time, users pin and unpin through the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface). Your code calls `setColumnPin(id, "left" | "right" | null)`. `pinnable: false` on a column and `enableColumnPinning={false}` on the grid turn pinning off.
+
+A soft shadow marks the edge of a pinned zone. It shows only while content scrolls out underneath. [Density and small screens](/docs/theme-style-language/density-small-screens#scroll-shadows) lists the CSS variables that style it.
+
+## Mark pinned headers [#persistent-pin-indicator]
+
+The shadow marks the edge of the zone, not each pinned header. Header and body cells of a pinned column carry `data-pinned="left"` or `data-pinned="right"`. Style the marker with CSS:
+
+```css
+[role="columnheader"][data-pinned] {
+  border-bottom-color: var(--color-primary);
+}
+```
+
+For an icon, read the current pin from the store. The icon follows pin changes at run time:
+
+```tsx
+import { Pin } from "lucide-react";
+import {
+  DataGrid,
+  defineColumns,
+  useDataGridAllColumns,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+function PinMark({ columnId }: { columnId: string }) {
+  const column = useDataGridAllColumns().find((entry) => entry.id === columnId);
+  if (!column?.pin) return null;
+  return <Pin className="size-3 text-muted-foreground" aria-hidden />;
+}
+
+const columns = defineColumns<Row>()([
+  {
+    id: "name",
+    header: (
+      <span className="flex items-center gap-1">
+        Name <PinMark columnId="name" />
+      </span>
+    ),
+    headerText: "Name",
+    accessorKey: "name",
+    pin: "left",
+  },
+]);
+
+export function MarkedGrid({ rows }: { rows: Row[] }) {
+  return <DataGrid className="h-80" defaultData={rows} columns={columns} />;
+}
+```
+
+## Options
+
+{/* props: ColumnDef */}
+
+| Field | Type | Default |
+| --- | --- | --- |
+| `pin` | `"left" \| "right"` | none |
+| `pinnable` | `boolean` | `true` |
+| `reorderable` | `boolean` | `true` |
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `enableColumnPinning` | `boolean` | `true` |
+| `enableColumnReorder` | `boolean` | `true` |
+
+A pin or reorder that changes the layout fires `onColumnLayoutChange` once. [Persist a user's layout](/docs/columns/column-visibility#persisting-a-users-layout) shows how to save it.
+
+## Related
+
+- [Column sizing](/docs/columns/column-sizing)
+- [Column visibility](/docs/columns/column-visibility)
+- [Header menu of the context menu add-on](/docs/rows-pages-menus/context-menu#header-surface)
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows)
+- [ColumnDef reference](/docs/components-props/column-def)

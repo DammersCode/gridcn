@@ -1,9 +1,155 @@
 ---
 title: Column headers and groups
-description: Column headers and groups.
+description: Replace header labels with your own nodes, replace whole header cells, and put shared group headers above runs of columns.
 type: feature
+aliases: ["custom header", "header cell", "colspan"]
 ---
 
-{/* docs-stub */}
+A header shows a label, a sort arrow, and a menu button. Set `header` to your own node to change the label. Use `renderHeaderCell` to change the whole cell content. Use `columnGroups` to put one shared header above several columns.
 
-This page is being written.
+<ComponentPreview name="data-grid-column-groups-demo" />
+
+## Custom header content [#custom-headers]
+
+`header` takes a string or a React node. The grid truncates a string. A node renders as it is and owns its display. A node can be a component that reads grid state, for example the sort direction.
+
+With `headerClickBehavior="sort"`, a click on the header cycles the sort of its column. A string header then gets the built-in arrow, and a node does not. Place `DataGridSortIndicator` inside the node to add the arrow. Pass it `columnId` and the `sortState` from `useDataGridSortState()`. It renders nothing for an unsorted column. This sample builds its own three-state icon:
+
+```tsx
+import type { ReactNode } from "react";
+import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  DataGrid,
+  defineColumns,
+  useDataGridSortState,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; score: number };
+
+function ScoreIcon(): ReactNode {
+  const sort = useDataGridSortState().find((spec) => spec.columnId === "score");
+  if (sort?.direction === "asc") return <TrendingUp className="size-3.5" />;
+  if (sort?.direction === "desc") return <TrendingDown className="size-3.5" />;
+  return <Minus className="size-3.5 text-muted-foreground" />;
+}
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  {
+    id: "score",
+    header: (
+      <span className="flex items-center gap-1.5">
+        Score <ScoreIcon />
+      </span>
+    ),
+    headerText: "Score",
+    accessorKey: "score",
+    type: "number",
+  },
+]);
+
+export function Scores({ rows }: { rows: Row[] }) {
+  return (
+    <DataGrid
+      className="h-80"
+      defaultData={rows}
+      columns={columns}
+      headerClickBehavior="sort"
+    />
+  );
+}
+```
+
+If `header` is a node, set `headerText`. Without it, the screen reader label, the header menu, and the export use the column id. `headerClassName` adds classes to the header cell.
+
+## Replace the header cell content [#header-cell-contents]
+
+`ColumnDef.header` replaces the label inside the built-in cell. `renderHeaderCell` on `DataGridHeader` replaces everything inside the cell. The grid keeps the cell itself: its place, pin offset, `role`, `aria-colindex`, sort and select gestures, and resize handle.
+
+The slot runs once for each visible column. It receives `ctx` and `Default`. `ctx` holds `column`, `index`, `width`, `headerClickBehavior`, and `sortState`. `Default` is the built-in content: the label, the sort arrow, the header filter button, the reorder drag handle on touch screens, and the menu button. A custom node loses all of them. Return `Default` to keep them:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+} from "@/components/data-grid/data-grid";
+
+<DataGridProvider defaultData={rows} columns={columns}>
+  <DataGridRoot className="h-80">
+    <DataGridHeader
+      renderHeaderCell={(ctx, Default) =>
+        ctx.column.id === "name" ? <strong>{ctx.column.id}</strong> : Default
+      }
+    />
+    <DataGridBody />
+  </DataGridRoot>
+</DataGridProvider>
+```
+
+A press that starts on a button, link, form control, `role="button"` element, or editable element does not sort, select, or start a reorder. `renderHeaderCell` is a prop of `DataGridHeader`, so compose the parts as above.
+
+## Column groups [#column-groups]
+
+`columnGroups` on `DataGridProvider` puts a shared header above columns. It names the columns by id, and the `columns` array stays flat. Groups nest:
+
+```tsx
+import { DataGrid, type ColumnGroupDef } from "@/components/data-grid/data-grid";
+
+const columnGroups: ColumnGroupDef[] = [
+  { id: "contact", header: "Contact", children: ["name", "email"] },
+  {
+    id: "work",
+    header: "Work",
+    children: [
+      "role",
+      { id: "history", header: "History", children: ["joined", "age"] },
+    ],
+  },
+];
+
+<DataGrid defaultData={rows} columns={columns} columnGroups={columnGroups} />;
+```
+
+{/* props: ColumnGroupDef */}
+
+| Field | Type | Default |
+| --- | --- | --- |
+| `id` | `string` | required, unique across groups and columns |
+| `header` | `string \| ReactNode` | required |
+| `headerText` | `string` | none |
+| `children` | `readonly (string \| ColumnGroupDef)[]` | required |
+| `headerClassName` | `string` | none |
+
+The header has one row for each group level and one row for the column headers. `headerHeight` sets the height of one row. The header block grows by one row for each level, and the `aria-rowindex` of data rows grows by the same number. A column outside every group spans all rows. A column in a shallower group spans the rows that remain.
+
+A group keeps its columns together:
+
+- A dragged column moves inside its group, or next to a whole sibling group. A drop that takes it out of its group does nothing.
+- A dragged group header moves the group as one block inside its parent. If a member has `reorderable: false`, or the members sit in different pin zones, the move does nothing.
+- A saved or URL `order` that splits a group gets repaired. All members move to the place of the first member.
+
+Pinning stays per column. A group with columns in two pin zones shows one header cell for each zone. Hiding a column shrinks the group header. Hiding all columns of a group removes it.
+
+In the default `select` mode, a press on a group header selects its visible columns. <kbd>Shift</kbd> extends the selection, and <kbd>Ctrl</kbd> or <kbd>Cmd</kbd> adds to it. Group headers do not sort, resize, or filter. The string label of an unpinned group wider than 128 px stays in view while the user scrolls. The columns menu of the toolbar lists the members under a heading with the group label. Export and print write the column headers and leave out the group headers.
+
+The grid ignores what it cannot use:
+
+- an id that is not a column
+- a column that a second group lists, which stays in the first group
+- a group id that repeats or equals a column id
+- nesting deeper than 8 levels, and everything after the first 5000 entries
+
+In development, the grid logs each ignored entry once.
+
+<Callout type="warn">
+  An inline group `header` node is new on every render and rebuilds the header. Define the nodes outside the component, or memoize `columnGroups`. The grid compares an inline array by structure, so an equal array does not rebuild.
+</Callout>
+
+## Related
+
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Column visibility](/docs/columns/column-visibility)
+- [Header examples](/docs/column-examples/column-headers-example)
+- [ColumnDef reference](/docs/components-props/column-def)

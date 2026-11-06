@@ -1,10 +1,118 @@
 ---
 title: Column sizing
-description: Column sizing.
+description: Set column widths, let users resize by drag, fit columns to their content with autosize, and let flex columns fill free space.
 type: feature
+demos: none
 aliases: ["resize columns", "column width", "autosize"]
 ---
 
-{/* docs-stub */}
+A column needs a width that fits its data. Set `width`, `minWidth`, and `maxWidth` on the column. The user drags the header edge to resize it. `autosizeColumns` fits columns to their content. `flex` shares the free width of the grid.
 
-This page is being written.
+The [Column layout example](/docs/column-examples/column-layout-example) shows resize, reorder, and a saved layout together.
+
+## Resize [#resize]
+
+Drag the end edge of a header to resize the column. A double-click on the edge fits the column to its content. A column without `width` is 150 px wide.
+
+A resize stops at the larger of `minWidth` and 32 px, and at `maxWidth` on the other side. The edge handle is wider on a touch screen.
+
+`resizable: false` on a column and `enableColumnResize={false}` on the grid turn the handle off. Both also leave the column out of autosize.
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; email: string; age: number };
+
+const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@mail.test", age: 36 }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", width: 160, minWidth: 80 },
+  {
+    id: "email",
+    header: "Email",
+    accessorKey: "email",
+    width: 220,
+    maxWidth: 400,
+  },
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    resizable: false,
+  },
+]);
+
+export function SizedGrid() {
+  return <DataGrid className="h-80" defaultData={rows} columns={columns} />;
+}
+```
+
+During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once. `actions.resetColumnWidth(id)` drops the stored width and brings back the width from the column.
+
+## Autosize [#autosize]
+
+A double-click on the edge handle fits one column. In the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface), "Autosize column" does the same, and "Autosize all columns" fits every visible column that can be resized.
+
+Autosize measures the display text of `sampleRows` rows. The rows are spread evenly across the sorted and filtered view. The pass adds the rows on screen and the last row. It also measures the header text, with room for the sort arrow, the menu button, and the filter button where the column shows them. The cell padding comes on top, and the result stays inside `minWidth` and `maxWidth`.
+
+A text longer than 1000 characters counts as 1000 characters. The pass measures the display text of the cell type. It does not measure the output of `renderCell`.
+
+`actions.autosizeColumns(options)` runs the pass from code. It writes every changed width at once, fires `onColumnLayoutChange` once, and returns the measured widths. A pass that changes nothing fires nothing. Render the button below inside `DataGridProvider`:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+
+function FitNameButton() {
+  const actions = useDataGridActions();
+  return (
+    <button onClick={() => actions.autosizeColumns({ columnIds: ["name"] })}>
+      Fit name
+    </button>
+  );
+}
+```
+
+The pass skips hidden columns, columns with `resizable: false`, and unknown ids.
+
+{/* props: AutosizeOptions */}
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `columnIds` | `readonly string[]` | every visible resizable column |
+| `sampleRows` | `number` | `1000`, clamped to 1 to 10,000 |
+| `includeHeader` | `boolean` | `true` |
+
+`autosizeOnMount` on `DataGridProvider` runs one pass once the view has rows. A grid that loads rows later waits for them. Pass `true` for the defaults, or pass the options above. The pass runs once per mount. A column with a stored width, for example from `defaultColumnLayout`, keeps it:
+
+```tsx
+<DataGrid defaultData={rows} columns={columns} autosizeOnMount />
+```
+
+## Flex fill [#flex-fill]
+
+A column with `flex` grows from its `width` to take free width. Flex columns share the free width in proportion to their `flex` values, as CSS `flex-grow` does. A column without `flex`, or with `flex: 0`, keeps its width:
+
+```tsx
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", width: 160, flex: 1 },
+  { id: "email", header: "Email", accessorKey: "email", width: 200, flex: 2 },
+  { id: "age", header: "Age", accessorKey: "age", width: 80 },
+]);
+```
+
+Here `email` grows twice as fast as `name`, and `age` stays at 80 px. `maxWidth` caps the growth, and the other flex columns take the unused share. A flex column never gets narrower than its `width`.
+
+A flex column that the user resizes keeps the new width and leaves the flex share. `resetColumnWidth` puts it back.
+
+## Server mode
+
+Widths belong to the browser in every data mode. The grid sends no width to `fetchRows` or `onSave`. Save widths with `onColumnLayoutChange`.
+
+Autosize measures the rows the grid holds. In pages mode, that is the current page. In scroll mode, that is the loaded rows. Rows that are not loaded stay out of the pass, so a later block with longer text does not widen the column.
+
+## Related
+
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout)
+- [Header menu of the context menu add-on](/docs/rows-pages-menus/context-menu#header-surface)
+- [ColumnDef reference](/docs/components-props/column-def)

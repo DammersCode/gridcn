@@ -1,98 +1,89 @@
 ---
-title: "Labels and i18n"
-description: Translate every user-facing string via the typed labels object. No i18n library required.
+title: Labels and i18n
+description: Translate every grid string with one typed labels object, wire it to your i18n library, and switch the grid to right-to-left layout.
 icon: Languages
 type: feature
 aliases: ["translation", "rtl", "right to left", "language"]
 ---
 
-Every user-facing string lives in one typed `DataGridLabels` object with English defaults.
+Every user-facing string lives in one typed `DataGridLabels` object with English defaults. Pass a partial `labels` object to translate it. The `direction` prop flips the layout for right-to-left languages. The grid has no i18n dependency.
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
-**See example:** [I18n & RTL](/docs/style-examples/right-left-example)
-
 ## The `labels` prop
 
-Pass a partial override to `DataGridProvider` (or `DataGrid`). It deep-merges over
-`DEFAULT_LABELS`, so only the keys you specify change, and everything else stays English:
+Pass `labels` to `DataGridProvider` or `DataGrid`. The grid deep-merges it over `DEFAULT_LABELS`. Only the keys you set change, and the rest stay English:
 
 ```tsx
-<DataGridProvider
-  labels={{
-    toolbar: { searchPlaceholder: "Rechercher…" },
-    contextMenu: { copy: "Copier", paste: "Coller" },
-  }}
-  {...grid}
-  columns={columns}
-/>
+import { DataGrid, type DeepPartialLabels } from "@/components/data-grid/data-grid";
+
+const labels: DeepPartialLabels = {
+  toolbar: { searchPlaceholder: "Rechercher…" },
+  contextMenu: { copy: "Copier", paste: "Coller" },
+  grid: { emptyState: "Aucune ligne" },
+};
+
+export function FrenchGrid() {
+  return (
+    <DataGrid className="h-80" defaultData={[]} columns={[]} labels={labels} />
+  );
+}
 ```
 
-Interpolated strings are functions, not templates, so they receive real arguments, not
-placeholder tokens:
+A label that contains a value, such as a count, is a function. The grid calls it with the values:
 
 ```ts
-searchMatches: (current: number, total: number) => `${current}/${total}`,
+import type { DeepPartialLabels } from "@/components/data-grid/data-grid";
+
+const labels: DeepPartialLabels = {
+  toolbar: { searchMatches: (current, total) => `${current}/${total}` },
+};
 ```
 
 ### Deep merging (`DeepPartialLabels`)
 
-The merge is recursive per plain-object key. Arrays and functions replace the base value as a
-whole, rather than merging element by element. A function you provide fully replaces the default
-function, and gridcn does not merge the function itself:
+The merge goes through plain objects key by key. A function, an array, or a string that you set replaces the default as a whole. The grid does not merge a function with the default function.
 
-```ts
-export type DeepPartialLabels<T = DataGridLabels> = {
-  [K in keyof T]?: T[K] extends (...args: never[]) => unknown
-    ? T[K]
-    : T[K] extends readonly unknown[]
-      ? T[K]
-      : T[K] extends object
-        ? DeepPartialLabels<T[K]>
-        : T[K];
-};
-```
-
-In practice, overriding `toolbar.searchPlaceholder` alone leaves every other `toolbar.*` string,
-and every other group, at its English default. You never have to restate the whole shape to
-change one word.
+Setting `toolbar.searchPlaceholder` leaves every other `toolbar` string and every other group in English. A key that you set to `undefined` replaces the default with `undefined`, so leave out keys that you do not translate.
 
 ### Reading effective labels
 
-Call `useDataGridLabels()` inside any component under `DataGridProvider` to read the merged
-labels, defaults plus your overrides, for your own custom UI to use. This is useful when you
-build a bespoke toolbar button or empty-state message that stays consistent with the rest
-of the grid's copy.
+Call `useDataGridLabels()` under `DataGridProvider` to read the merged labels. Your own controls then use the same copy as the grid:
+
+```tsx
+import { useDataGridLabels } from "@/components/data-grid/data-grid";
+
+function ClearFiltersButton() {
+  const labels = useDataGridLabels();
+  return <button>{labels.toolbar.clearFilters}</button>;
+}
+```
 
 ## Coverage by group
 
-`DataGridLabels` groups strings by owning surface. Every group is optional to override. Omit a
-group entirely, and it stays fully English.
+`DataGridLabels` groups strings by the surface that owns them. Leave a group out and it stays in English.
 
-| Group | Covers | Owning surface |
-|---|---|---|
-| `toolbar` | Search placeholder and aria-labels, match counter, filter menu strings including the filter group labels, the And/Or connector text, and the reorder announcement, columns menu | `data-grid-toolbar` |
-| `sort` | Sort button and aria-label, add and clear sort, ascending and descending, per-row remove and reorder arias, and the reorder announcement | `data-grid-sort-list` |
-| `filterOperators` | Per-operator display names (`contains`, `equals`, `gt`, and more) shown in the operator select of the filter menu | `data-grid-toolbar` |
-| `contextMenu` | Cut, copy, paste, row insert, duplicate, delete, sort, pin, hide, autosize, shared verbatim between the right-click menu and the header dropdown | `data-grid-context-menu` |
-| `keybindings` | Shortcuts dialog title and description, category headings, native-clipboard rows, and a per-`GridAction` label map | `data-grid-keybindings` |
-| `markers` | Select-all header checkbox and per-row checkbox aria-labels, the reorder-handle aria-label, and the reorder announcement | core (`rowMarkers`) |
-| `grid` | Core strings not owned by an add-on: the empty-state message, the loading-skeleton and progress-bar aria-label, the date editor placeholder and calendar button aria-label, and the live-region announcements for checked rows and result counts | core |
-| `io` | Export dropdown, import dialog (file picker, delimiter, column mapping, preview, errors) | `data-grid-io` |
-| `pagination` | Footer first, prev, next, last, page-number aria-labels, page-size select, "x-y of z" range label | `data-grid-pagination` |
-| `statusBar` | Aggregate labels (count, sum, avg, min, max) and the capped-walk title | `data-grid-status-bar` |
-| `findReplace` | Panel field names, toggles, buttons, and the match and result status lines | `data-grid-find-replace` |
+| Group | Covers | Owner |
+| --- | --- | --- |
+| `toolbar` | search, filter menu, header filter, columns menu | `data-grid-toolbar` |
+| `sort` | sort button, sort list, announcements | `data-grid-sort-list` |
+| `filterOperators` | operator names such as `contains` and `gt` | `data-grid-toolbar` |
+| `contextMenu` | cut, copy, paste, row items, sort, pin, hide, autosize | `data-grid-context-menu` |
+| `keybindings` | shortcuts dialog and action names | `data-grid-keybindings` |
+| `markers` | select-all, row checkboxes, reorder handle and announcements | core |
+| `grid` | empty-state, progress, and error messages, date editor, announcements | core |
+| `io` | export, import dialog, print | `data-grid-io` |
+| `pagination` | page buttons, page size, range text | `data-grid-pagination` |
+| `statusBar` | count, sum, average, minimum, maximum, selection text | `data-grid-status-bar` |
+| `findReplace` | panel fields, buttons, status lines | `data-grid-find-replace` |
 
-<Callout title="Full shape lives in API reference">
-  The exact type of every field of every group is generated from source in
-  [API reference](/docs/components-props/labels#datagridlabels). This page covers the merge model and gives
-  a worked translation. That page is the field-by-field reference.
-</Callout>
+[Labels reference](/docs/components-props/labels) lists every field of every group.
+
+`keybindings.actions` maps an action to its name. The defaults name the built-in actions. A custom action from `commands` that the map leaves out gets a name made from its own id.
 
 ## Full German example
 
-A representative override. Omit any group or key you do not need to change, and see the API
-reference for the full field-by-field shape:
+A representative override. Leave out any key that you do not translate:
 
 ```tsx
 import type { DeepPartialLabels } from "@/components/data-grid/data-grid";
@@ -100,75 +91,79 @@ import type { DeepPartialLabels } from "@/components/data-grid/data-grid";
 const de: DeepPartialLabels = {
   toolbar: {
     searchPlaceholder: "Suchen…",
-    searchMatches: (current, total) => `${current}/${total}`,
     filter: "Filter",
     addFilter: "Filter hinzufügen",
     clearFilters: "Alle löschen",
-    noFiltersApplied: "Keine Filter angewendet.",
-    addFilterGroup: "Gruppe hinzufügen",
-    removeFilterGroupAriaLabel: "Gruppe entfernen",
-    filterGroupName: "Gruppe",
-    filterGroupJoinAriaLabel: (position, group) => `Verknüpfung von Filter ${position} in Gruppe ${group}`,
     filterConnectorAnd: "Und",
     filterConnectorOr: "Oder",
-    headerFilterGroupRows: "Diese Spalte hat auch Filter in einer Gruppe. Zurücksetzen entfernt sie ebenfalls.",
     columns: "Spalten",
   },
   contextMenu: {
     cut: "Ausschneiden",
     copy: "Kopieren",
     paste: "Einfügen",
-    insertRowAbove: "Zeile oberhalb einfügen",
-    duplicateRows: (count) => (count > 1 ? "Zeilen duplizieren" : "Zeile duplizieren"),
+    duplicateRows: (n) => (n > 1 ? "Zeilen duplizieren" : "Zeile duplizieren"),
     deleteRow: "Zeile löschen",
     pinStart: "Am Anfang anheften",
-    pinEnd: "Am Ende anheften",
     pinEnd: "Am Ende anheften",
     autosize: "Spaltenbreite anpassen",
   },
   grid: {
     emptyState: "Keine Zeilen",
     loading: "Wird geladen…",
-    dateCalendarAriaLabel: "Kalender",
-    rowsChecked: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"} ausgewählt`,
-    resultsCount: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"}`,
-    resultsCountLoaded: (count) => `${count} geladene ${count === 1 ? "Zeile" : "Zeilen"}`,
-    allMatchingChecked: "Alle passenden Zeilen ausgewählt",
+    rowsChecked: (n) => `${n} ${n === 1 ? "Zeile" : "Zeilen"} ausgewählt`,
   },
-  // sort, filterOperators, keybindings, markers, and io follow the same pattern.
 };
-
-<DataGridProvider labels={de} {...grid} columns={columns}>
 ```
 
-<Callout type="idea" title="keybindings.actions is a partial map">
-  `keybindings.actions` is `Partial<Record<GridAction, string>>`. Any `GridAction` that you do
-  not list falls back to an auto-humanized version of its name (for example `moveUp` becomes
-  "Move up"). This is not English text that silently leaks through untranslated forever. Add
-  entries as you notice gaps.
-</Callout>
+## Wire an i18n library [#wiring-a-real-i18n-library]
 
-## Wiring a real i18n library
-
-gridcn has no i18n library dependency. `labels` is a plain object, so it composes with whatever
-i18n library your app already uses, such as react-i18next or next-intl. Build it from
-your translation function instead of hardcoding strings:
+`labels` is a plain object, so it works with any i18n library. Build it from your translate function. Memoize it on the active locale. A fresh object on every render makes the grid merge it again and hand out new labels on every render:
 
 ```tsx
-import { useTranslation } from "react-i18next";
+import { useMemo } from "react";
+import { DataGrid, type DeepPartialLabels } from "@/components/data-grid/data-grid";
 
-function OrdersGrid() {
-  const { t } = useTranslation("grid");
-  const grid = useDataGridState(initialRows, { getRowId: (row) => row.id });
-
-  const labels: DeepPartialLabels = {
-    toolbar: { searchPlaceholder: t("toolbar.searchPlaceholder") },
-    grid: { emptyState: t("grid.emptyState") },
-  };
+export function OrdersGrid({ t }: { t: (key: string) => string }) {
+  const labels = useMemo<DeepPartialLabels>(
+    () => ({
+      toolbar: { searchPlaceholder: t("toolbar.searchPlaceholder") },
+      grid: { emptyState: t("grid.emptyState") },
+    }),
+    [t],
+  );
 
   return (
-    <DataGridProvider labels={labels} {...grid} columns={columns}>
-      <DataGridRoot>
+    <DataGrid className="h-80" defaultData={[]} columns={[]} labels={labels} />
+  );
+}
+```
+
+`t` stands for the translate function of your i18n library.
+
+## RTL layout
+
+`labels` translates strings. It does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  type DeepPartialLabels,
+} from "@/components/data-grid/data-grid";
+
+const TRANSLATIONS = {
+  en: { dir: "ltr", labels: { toolbar: { searchPlaceholder: "Search…" } } },
+  ar: { dir: "rtl", labels: { toolbar: { searchPlaceholder: "بحث…" } } },
+} as const satisfies Record<string, { dir: string; labels: DeepPartialLabels }>;
+
+export function LocaleGrid({ locale }: { locale: keyof typeof TRANSLATIONS }) {
+  const { dir, labels } = TRANSLATIONS[locale];
+  return (
+    <DataGridProvider defaultData={[]} columns={[]} labels={labels}>
+      <DataGridRoot className="h-80" direction={dir}>
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>
@@ -177,62 +172,28 @@ function OrdersGrid() {
 }
 ```
 
-<Callout type="warn" title="Pass a stable labels reference">
-  Like `columns`, `data`, and `getRowClassName`, `labels` becomes a prop that the engine depends
-  on. Build it with `useMemo`, keyed on your active locale, rather than a fresh object literal on
-  every render.
+Without `direction`, the grid reads the direction it inherits from the page once, at mount. A grid inside `<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction. If the direction changes at run time, pass `direction` too.
+
+### What mirrors [#what-mirrors]
+
+Direction mirrors the column order, pinned zones, row marker column, pin shadows, resize handles, drop indicators, and the pointer math for selection and drags.
+
+- Arrow keys move visually. In `rtl`, <kbd>ArrowRight</kbd> moves toward the right edge of the screen, which is the previous column.
+- <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid in both directions.
+- <kbd>Home</kbd> and <kbd>End</kbd> stay logical. <kbd>Home</kbd> goes to the first column in both directions.
+- Cell values render inside `<bdi>`, so each value reads in its own script. Cell editors carry `dir="auto"`, so the caret follows the value.
+
+### Base UI chrome [#base-ui-chrome]
+
+`DataGridRoot` sets `dir` on the grid element and wraps its subtree in the direction provider of Base UI. Menus, popovers, and dialogs of the add-ons then place and navigate correctly. Portaled content that you render yourself, outside the grid, needs `dir` passed to it.
+
+<Callout type="warn" title="Set dir on the document too">
+  The grid element carries its own `dir`. The page around it does not. Set `dir="rtl"` on `<html>` or on a layout wrapper so the rest of the page mirrors with the grid.
 </Callout>
 
-## RTL layout
+## Related
 
-`labels` translates strings. It does not flip layout. `direction` flips layout. It does not
-translate strings. Most apps derive both from one active locale, as the
-[demo above](#the-labels-prop) does:
-
-```tsx
-const TRANSLATIONS = {
-  en: { dir: "ltr", values: { searchPlaceholder: "Search…" } },
-  ar: { dir: "rtl", values: { searchPlaceholder: "بحث…" } },
-} as const;
-
-const { dir, values } = TRANSLATIONS[locale];
-
-<DataGridProvider labels={{ toolbar: values }} {...grid} columns={columns}>
-  <DataGridRoot direction={dir}>
-    <DataGridHeader />
-    <DataGridBody />
-  </DataGridRoot>
-</DataGridProvider>
-```
-
-Omit `direction` and the grid reads the direction it inherits from the page, so a grid inside
-`<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction
-independent of the page.
-
-### What mirrors
-
-Column order, pinned column bands, the row-marker column, pin shadows, selection rectangles,
-resize handles, and drop indicators all mirror. Pointer hit-testing, drag auto-scroll, column
-resize, and column reorder are correct in both directions.
-
-Arrow keys move **visually**: under `rtl`, `ArrowRight` moves to the next column on the screen,
-which is the previous column index. This matches spreadsheet behavior on right-to-left systems.
-
-`Tab` and `Shift+Tab` leave the grid in both directions. `Home` and `End` stay logical:
-`Home` goes to the first column in both directions.
-
-Cell values render inside `<bdi>`, so each value's own script reads in its own direction
-(alignment stays the grid's). Cell editors carry `dir="auto"` instead. The caret follows the
-value being typed.
-
-### Base UI chrome
-
-`DataGridRoot` sets `dir` on the grid element and wraps its subtree in Base UI's
-`DirectionProvider`, which drives Base UI's own positioning and keyboard navigation. Menus,
-popovers, and dialogs from the add-ons need no extra setup. Portaled content that you render
-yourself, outside the grid subtree, needs `dir` passed to it explicitly.
-
-<Callout type="warn" title="Set `dir` on the document too">
-  The grid element carries its own `dir`, but page chrome around it does not. Set `dir="rtl"` on
-  `<html>` or a layout wrapper so the rest of your interface mirrors with the grid.
-</Callout>
+- [I18n and RTL example](/docs/style-examples/right-left-example)
+- [Labels reference](/docs/components-props/labels)
+- [Messages cheatsheet](/docs/cheatsheets-messages/messages)
+- [Loading state](/docs/theme-style-language/loading-state)

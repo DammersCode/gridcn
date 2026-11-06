@@ -1,10 +1,96 @@
 ---
 title: Loading state
-description: Loading state.
+description: Show a skeleton or a progress bar while data loads, replace it with your own display, and show a failed load with a retry button.
 type: feature
-aliases: ["loading spinner"]
+aliases: ["loading spinner", "skeleton"]
 ---
 
-{/* docs-stub */}
+A grid with zero rows shows the empty state, which reads as a query without results. While a request runs, that message is wrong. Set `loading` and the grid shows that data is on the way. The flag is presentational. It does not fetch anything.
 
-This page is being written.
+<ComponentPreview name="data-grid-loading-demo" />
+
+## Loading flag [#loading-state]
+
+Pass `loading` to `DataGrid` or `DataGridRoot`:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function LoadingGrid({ rows }: { rows: Row[] }) {
+  const [loading, setLoading] = useState(true);
+  return (
+    <>
+      <button onClick={() => setLoading(false)}>Loaded</button>
+      <DataGrid
+        className="h-80"
+        data={rows}
+        columns={columns}
+        loading={loading}
+      />
+    </>
+  );
+}
+```
+
+- With zero rows, a skeleton fills the viewport. The empty state does not show while `loading` is true.
+- With rows present, such as a background refresh, the rows stay visible. A slim indeterminate bar appears under the header.
+- The grid root has `aria-busy="true"` while `loading` is true.
+- The skeleton and the screen reader progress element use `labels.grid.loading` as their label.
+- With `prefers-reduced-motion`, the skeleton does not pulse and the bar does not sweep.
+
+`--grid-loading-sweep-duration` sets the duration of the sweep. The default is `1.2s`.
+
+## Replace the display [#custom-display]
+
+`loadingState` replaces the skeleton and the bar. It takes a node, or a function that receives `{ reason }`. `reason` is `"no-data"` for zero rows and `"rows-present"` otherwise. The grid renders the result under the header at full width. The node owns its accessibility:
+
+```tsx
+<DataGrid
+  data={rows}
+  columns={columns}
+  loading={loading}
+  loadingState={({ reason }) => (
+    <p className="p-4 text-sm">
+      {reason === "no-data" ? "Fetching rows…" : "Refreshing…"}
+    </p>
+  )}
+/>
+```
+
+## Error state [#error-state]
+
+A failed load needs its own message. Any `error` value except `undefined` and `null` shows it. With zero rows, the grid centers a message with a Retry button. With rows present, a slim alert bar appears under the header and the rows stay. The text comes from `labels.grid.errorState`, and the built-in display never shows the error value.
+
+Pressing Retry runs `onRetry`. If you omit `onRetry`, the button stays hidden. `errorState` replaces the display with a node, or with a function that receives `{ error, retry }`.
+
+## Server mode
+
+The hooks for server rows return `loading`, `error`, and `onRetry` in `gridProps`. Spread `gridProps` and the states work with no more code. `loading` is true while a request of the current spec runs. `error` holds the failure of that request, and `onRetry` repeats it.
+
+In scroll mode, `loading` is true while any block request runs. Rows that are not loaded yet also show a skeleton in their cells. `onError` and `onLoaded` of the hook fire after a request fails or lands. [Server rows options](/docs/add-options/server/server-rows-options) lists them.
+
+## Options
+
+{/* props: DataGridRootProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `loading` | `boolean` | `false` |
+| `loadingState` | `ReactNode \| LoadingStateRenderer` | none |
+| `error` | `unknown` | none |
+| `onRetry` | `() => void` | none |
+| `errorState` | `ReactNode \| ((ctx) => ReactNode)` | none |
+
+## Related
+
+- [Loading state example](/docs/style-examples/loading-state-example)
+- [Labels and i18n](/docs/theme-style-language/labels-i18n)
+- [Server rows options](/docs/add-options/server/server-rows-options)
+- [DataGrid props](/docs/components-props/data-grid-props)
