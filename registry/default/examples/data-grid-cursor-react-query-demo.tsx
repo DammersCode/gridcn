@@ -70,7 +70,7 @@ function Pages(): ReactNode {
     pageSizeOptions: [PAGE_SIZE],
     onPageChange: (next) => {
       if (next <= loaded) setPage(next);
-      else void query.fetchNextPage().then(() => setPage(next));
+      else void query.fetchNextPage().then((result) => (result.data?.pages.length ?? 0) >= next && setPage(next));
     },
   });
   return (

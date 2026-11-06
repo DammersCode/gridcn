@@ -155,7 +155,7 @@ export function createRemoteServer() {
   /** A keyset page: the rows after the opaque `after` cursor, and the cursor of the next page (`null` at the end). No count. */
   async function fetchAfter(query: Omit<RemoteQuery, "page" | "pageSize"> & { after?: string; limit: number }): Promise<{ rows: DemoRow[]; next: string | null }> {
     const list = await select(query);
-    const last = query.after === undefined ? -1 : Number(query.after.slice("after:".length));
+    const last = query.after === undefined ? -1 : query.after.startsWith("after:") ? Number(query.after.slice("after:".length)) : Number.NaN;
     if (!Number.isSafeInteger(last) || last < -1) throw new Error("invalid cursor");
     const rows = list.slice(last + 1, last + 1 + query.limit);
     return { rows, next: last + 1 + rows.length < list.length ? `after:${last + rows.length}` : null };

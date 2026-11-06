@@ -33,7 +33,7 @@ function useCursorRows(limit: number) {
 }
 
 function InfiniteScroll(): ReactNode {
-  const { data, size, setSize, isValidating, hasNextPage } = useCursorRows(50);
+  const { data, size: loadedPages, setSize, isValidating, hasNextPage } = useCursorRows(50);
   const rows = useMemo(() => data?.flatMap((page) => page.rows) ?? [], [data]);
   return (
     <div className="flex flex-col gap-2">
@@ -47,7 +47,7 @@ function InfiniteScroll(): ReactNode {
           columns={columns}
           getRowId={getRowId}
           onRenderedRowsChange={({ end }) => {
-            if (hasNextPage && !isValidating && data?.length === size && end >= rows.length - 20) void setSize(size + 1);
+            if (hasNextPage && !isValidating && data?.length === loadedPages && end >= rows.length - 20) void setSize(loadedPages + 1);
           }}
         >
           <DataGridRoot className="h-full">
@@ -74,7 +74,7 @@ function Pages(): ReactNode {
     pageSizeOptions: [PAGE_SIZE],
     onPageChange: (next) => {
       if (next <= loaded) setPage(next);
-      else void setSize(next).then(() => setPage(next));
+      else void setSize(next).then((pages) => (pages?.length ?? 0) >= next && setPage(next));
     },
   });
   return (

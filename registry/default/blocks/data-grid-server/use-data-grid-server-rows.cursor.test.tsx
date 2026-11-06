@@ -109,3 +109,31 @@ describe("cursor pages", () => {
     expect(hook.result.current.pager.page).toBe(2);
   });
 });
+
+describe("cursor pages, races", () => {
+  it("drops a slow answer of a page the user left", async () => {
+    const resolvers: Record<number, () => void> = {};
+    const fetchRows = vi.fn(async ({ page }: ServerRowsPageRequest<string>): Promise<ServerRowsAnswer<Row, string>> => {
+      if (page === 2) await new Promise<void>((resolve) => (resolvers[2] = resolve));
+      return { rows: [{ id: `p${page}` }], nextCursor: page < 3 ? `c${page}` : null };
+    });
+    const hook = renderHook(() => useDataGridServerRows<Row, string>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 1, pageSizeOptions: [1] }));
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    act(() => hook.result.current.pager.onPageChange(2));
+    act(() => hook.result.current.pager.onPageChange(1));
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    resolvers[2]?.();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(hook.result.current.gridProps.data).toEqual([{ id: "p1" }]);
+  });
+
+  it("keeps later cursors when a refetch returns the same next cursor", async () => {
+    const { hook, requests, settle, goTo } = setup();
+    await settle();
+    await goTo(2);
+    await goTo(3);
+    await goTo(2);
+    await goTo(3);
+    expect(requests.at(-1)).toEqual({ page: 3, cursor: "after:19" });
+  });
+});

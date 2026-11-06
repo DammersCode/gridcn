@@ -189,7 +189,7 @@ rendering performance, and using the two together is not supported. When to pick
     - Page 1 gets `cursor: undefined`. The hook stores the `nextCursor` of page `p` as the cursor of page `p + 1`. `nextCursor: null` ends the source.
     - A change of the sort, filter, search text, or page size drops the chain and goes back to page 1.
     - Back, forward, `refresh()`, and `retry()` reuse the stored cursors.
-    - The pager reaches the pages whose cursor is known, and shows no count or last page. A `page` beyond the chain moves back to the furthest known page through `onPageChange`.
+    - The pager shows the pages up to one past the current page, and no count or last page. A page whose cursor is known is reachable. A cursor source starts at page 1; a `defaultPage` or URL page beyond the chain moves back. A `page` beyond the chain moves back to the furthest known page through `onPageChange`.
 
     With React Query or SWR, the library owns the cache and the chain. Pass `hasNextPage` to `useDataGridPagination` and
     fetch the next page before you move to it:

@@ -112,7 +112,7 @@ function resetChain<TCursor>(chain: CursorChain<TCursor>, key: string) {
 
 /** Stores the cursor of the page after `page`, and drops the cursors that hung off the old one. */
 function recordCursor<TCursor>(cursors: Map<number, TCursor | undefined>, page: number, nextCursor: TCursor | null) {
-  if (!cursors.has(page)) return;
+  if (!cursors.has(page) || Object.is(cursors.get(page + 1), nextCursor)) return;
   for (const known of cursors.keys()) if (known > page) cursors.delete(known);
   if (nextCursor !== null) cursors.set(page + 1, nextCursor);
 }
@@ -159,7 +159,8 @@ function usePagesRows<TData, TCursor>(options: UseDataGridServerRowsOptions<TDat
   const chain = useRef<CursorChain<TCursor>>({ key: chainKey, cursors: new Map([[1, undefined]]) });
   const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null, chainKey: "", furthestPage: 1, cursorSource: false });
   const cursorSource = settled.chainKey === chainKey && settled.cursorSource;
-  const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : wantedPage;
+  const awaitingChain = !cursorSource && settled.cursorSource;
+  const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
   const { plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, savingRows } = useRefreshGuard();
 
@@ -283,7 +284,7 @@ function usePagesRows<TData, TCursor>(options: UseDataGridServerRowsOptions<TDat
     pageSize,
     pageSizeOptions,
     totalRowCount: cursorSource ? null : settled.totalRowCount,
-    hasNextPage: settled.hasMore,
+    hasNextPage: settled.hasMore && !awaitingChain,
     onPageChange: setPage,
     onPageSizeChange,
   });

@@ -26,13 +26,13 @@ const server = useDataGridServerRows<Order, string>({
 ## Chain rules
 
 - Page 1 has cursor `undefined`. An answer for page `p` that carries `nextCursor` stores it as the
-  cursor of page `p + 1`. Storing it drops every later cursor (they hung off the old one).
+  cursor of page `p + 1`. A different cursor than the stored one drops every later cursor (they hung off the old one).
 - `nextCursor: null` means no next page (`hasNextPage` is false). Any other value, `0` included, means more.
 - The chain resets when the sort, filter, search text, or page size changes. The page resets to 1 (as
   for every pages source).
 - `refresh` and `retry` repeat the current page with its stored cursor; the chain survives.
-- A page is reachable when its cursor is known. The pager shows the pages up to the furthest known
-  one, and no last page or count. A controlled `page` (URL state, `defaultPage`) beyond the known
+- A page is reachable when its cursor is known. The pager shows pages up to one past the
+  current page, and no last page or count. A controlled `page` (URL state, `defaultPage`) beyond the known
   chain snaps back to the furthest known page and calls `onPageChange`.
 - Back and forward within the chain reuse the stored cursors; each move fetches again.
 - A cursor answer's `totalRowCount` feeds `totalRowCount`, but the pager stays count-free.
