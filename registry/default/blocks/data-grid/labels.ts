@@ -309,7 +309,7 @@ export type DataGridStatusBarLabels = {
   max: string;
   /** `title` while the walk stopped at the cell cap; `count` is the cap. */
   approximate: (count: number) => string;
-  /** Item beside the selection stats; `count` is the number of hidden checked rows (`keepHiddenCheckedRows`). */
+  /** Item beside the selection stats; `count` is the number of hidden checked rows (`rememberCheckedRows`). */
   hiddenChecked: (count: number) => string;
   /** Stand-alone text when fewer than two cells are selected, so the bar has no stats to attach `hiddenChecked` to. */
   hiddenCheckedOnly: (count: number) => string;

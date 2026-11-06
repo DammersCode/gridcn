@@ -87,7 +87,7 @@ Applies to streaming on top of either:
 
 ## Selection over a server result
 
-- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown) plus `keepCheckedRows`. Checks then survive page changes, evictions, and server sort or filter changes, by row id.
+- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); add `keepCheckedRows` to act on the checks. Checks then survive page changes, evictions, and server sort or filter changes, by row id.
 - "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
 - While `allMatching` is on, Delete rows, Duplicate row, and Move rows skip the checked rows. The grid does not hold them.
 

@@ -887,7 +887,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   | "rowMarkers"
   | "enableRowSelection"
   | "keepCheckedRows"
-  | "keepHiddenCheckedRows"
+  | "rememberCheckedRows"
   | "totalRowCount"
   | "enableColumnSelection"
   | "enableRangeSelection"
@@ -902,7 +902,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
     keepCheckedRows: props.keepCheckedRows ?? false,
-    keepHiddenCheckedRows: props.keepHiddenCheckedRows ?? false,
+    rememberCheckedRows: props.rememberCheckedRows ?? props.keepHiddenCheckedRows ?? props.totalRowCount !== undefined,
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,

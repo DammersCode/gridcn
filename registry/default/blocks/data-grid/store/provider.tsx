@@ -107,6 +107,7 @@ const CONFIG_KEYS = [
   "rowMarkers",
   "enableRowSelection",
   "keepCheckedRows",
+  "rememberCheckedRows",
   "keepHiddenCheckedRows",
   "totalRowCount",
   "announceResults",

@@ -707,7 +707,7 @@ export function useDataGridMarkGatePending(name: GateName, active: boolean): voi
   useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
-/** The number of checked rows a filter hides, remembered by `keepHiddenCheckedRows`; `0` when the option is off. */
+/** The number of checked rows a filter hides, remembered by `rememberCheckedRows`; `0` when the option is off. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

@@ -17,14 +17,13 @@ export function windowModeActive(s: Pick<DataGridStoreState, "totalRowCount">): 
 }
 
 /**
- * Whether checked rows that leave the view are remembered: needs `keepCheckedRows`, and either `totalRowCount`
- * (any mode) or `keepHiddenCheckedRows` on a client-sorted, client-filtered grid.
+ * Whether checked rows that leave the view are remembered: `rememberCheckedRows`, with `totalRowCount`
+ * (any mode) or on a client-sorted, client-filtered grid.
  */
 export function hiddenCheckedRowsActive(
-  s: Pick<DataGridStoreState, "keepCheckedRows" | "keepHiddenCheckedRows" | "sortMode" | "filterMode" | "totalRowCount">,
+  s: Pick<DataGridStoreState, "rememberCheckedRows" | "sortMode" | "filterMode" | "totalRowCount">,
 ): boolean {
-  if (!s.keepCheckedRows) return false;
-  return windowModeActive(s) || (s.keepHiddenCheckedRows && s.sortMode !== "server" && s.filterMode !== "server");
+  return s.rememberCheckedRows && (windowModeActive(s) || (s.sortMode !== "server" && s.filterMode !== "server"));
 }
 
 function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {

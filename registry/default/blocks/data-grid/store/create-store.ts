@@ -259,7 +259,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const warnHiddenCheckedIgnored = (reason: string): void => {
     if (warnedHiddenCheckedIgnored) return;
     warnedHiddenCheckedIgnored = true;
-    warnDev(`keepHiddenCheckedRows is ignored ${reason}`);
+    warnDev(`rememberCheckedRows is ignored ${reason}`);
   };
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
@@ -670,7 +670,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  if (init.keepCheckedRows && init.keepHiddenCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
+  if (init.rememberCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes);
@@ -896,7 +896,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
-          if (selectionConfig.keepCheckedRows && selectionConfig.keepHiddenCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
+          if (selectionConfig.rememberCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           return {
@@ -956,7 +956,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterMode = props.filterMode ?? "client";
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";
-          if (serverRows && s.keepCheckedRows && s.keepHiddenCheckedRows && s.totalRowCount === undefined) {
+          if (serverRows && s.rememberCheckedRows && s.totalRowCount === undefined) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           const nextSearchText = props.searchText ?? s.searchText;
@@ -1467,8 +1467,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selectAllMatching() {
         const s = get();
         if (!s.enableRowSelection) return;
-        if (!s.keepCheckedRows || s.totalRowCount === undefined) {
-          warnDev("selectAllMatching is a no-op without keepCheckedRows and totalRowCount");
+        if (!s.rememberCheckedRows || s.totalRowCount === undefined) {
+          warnDev("selectAllMatching is a no-op without totalRowCount and rememberCheckedRows");
           return;
         }
         const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };

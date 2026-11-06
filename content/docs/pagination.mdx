@@ -196,8 +196,8 @@ rendering performance, and using the two together is not supported. When to pick
 
     <ComponentPreview name="data-grid-cursor-swr-demo" />
 
-    Checked rows do not survive a page change by default. Pass `totalRowCount={pager.totalRowCount}` with
-    `keepCheckedRows` to keep them by row id and to select every matching row. See
+    Checked rows survive a page change once `totalRowCount={pager.totalRowCount}` is set. Add
+    `keepCheckedRows` to act on them. Select every matching row with `actions.selectAllMatching()`. See
     [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
 
     `pageData` is `undefined` in server mode. You already fetched exactly the rows for the

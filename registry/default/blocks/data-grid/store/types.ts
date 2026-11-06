@@ -182,16 +182,19 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
    * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
-   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`,
-   * and `true` while `totalRowCount` is set (a number or `null`).
+   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   * It does not control the memory of checked ids; see `rememberCheckedRows`.
    */
   keepCheckedRows?: boolean;
   /**
-   * Remembers a checked row that a filter hides and checks it again when the filter lets it back
-   * in. Hidden checked rows stay out of every row action, the controlled `selection`, and select
-   * all; `useDataGridHiddenCheckedCount` reads their number. Takes effect only with
-   * `keepCheckedRows` and client-side data; a server-sorted grid ignores it, and a grid ignores it while its data holds unloaded (lazy) rows. Default `false`.
+   * Remembers a checked row by id when it leaves `data` (a page change, a window move, a filter that hides it) and checks it
+   * again when it returns. Remembered rows stay out of every row action, the controlled `selection`, and select all;
+   * `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with `totalRowCount`.
+   * Default: `true` while `totalRowCount` is set, else `false`. Set `true` on a client grid to remember rows a client filter hides
+   * (a server-sorted or server-filtered grid without `totalRowCount` ignores it), `false` to turn the memory off in a window.
    */
+  rememberCheckedRows?: boolean;
+  /** @deprecated Alias of `rememberCheckedRows`; `rememberCheckedRows` wins when both are set. */
   keepHiddenCheckedRows?: boolean;
   /**
    * Wait in ms between the last keystroke and the commit of the grid's own text inputs: the toolbar search, the
@@ -202,7 +205,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
-   * `keepCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked
+   * `rememberCheckedRows`, a checked row that leaves `data` is remembered by row id in every mode and checked
    * again when it returns, and `actions.selectAllMatching()` can check the whole result.
    * `useDataGridSelectedRows` reads the outcome. Default: `undefined` (`data` is the whole result).
    */
@@ -676,6 +679,7 @@ export type DataGridStoreState = Omit<
   | "rowMarkers"
   | "enableRowSelection"
   | "keepCheckedRows"
+  | "rememberCheckedRows"
   | "keepHiddenCheckedRows"
   | "totalRowCount"
   | "announceResults"
@@ -709,9 +713,9 @@ export type DataGridStoreState = Omit<
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
   keepCheckedRows: boolean;
-  keepHiddenCheckedRows: boolean;
+  rememberCheckedRows: boolean;
   announceResults: boolean;
-  /** Row ids of checked rows a filter hides; empty unless `keepHiddenCheckedRows` is in effect. Actions never read it. */
+  /** Row ids of checked rows a filter hides; empty unless `rememberCheckedRows` is in effect. Actions never read it. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
@@ -957,7 +961,7 @@ export type DataGridActions = {
   setAllRowsSelected(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
-   * No-op with a development warning without `keepCheckedRows` and `totalRowCount`. Read the outcome with `useDataGridSelectedRows`.
+   * No-op with a development warning without `totalRowCount` and `rememberCheckedRows`. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): void;
   clearSelection(): void;

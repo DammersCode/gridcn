@@ -129,10 +129,10 @@ With `keepCheckedRows`, a cell click, an arrow key, and a Shift or Ctrl click le
 
 While at least one row is checked, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. Cell operations such as copy, cut, fill, and Delete stay on the cell range. With no checked row, row operations use the range.
 
-A filter removes the checked rows it hides. Set `keepHiddenCheckedRows` to remember them:
+A filter removes the checked rows it hides. Set `rememberCheckedRows` to remember them <NewBadge />:
 
 ```tsx
-<DataGridProvider keepCheckedRows keepHiddenCheckedRows {...grid} columns={columns}>
+<DataGridProvider keepCheckedRows rememberCheckedRows {...grid} columns={columns}>
 ```
 
 A hidden checked row is a checked row that the current filter hides. The grid checks it again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
@@ -152,11 +152,11 @@ The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`,
 | Prop | Type | Default |
 |---|---|---|
 | `keepCheckedRows` | `boolean` | `false` |
-| `keepHiddenCheckedRows` | `boolean` | `false` |
+| `rememberCheckedRows` <NewBadge /> | `boolean` | `true` with `totalRowCount`, else `false` |
 | `announceResults` <NewBadge /> | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
-`keepHiddenCheckedRows` takes effect only with `keepCheckedRows`. `announceResults` reads the row count of the view after a filter or sort change; see [Accessibility](/docs/accessibility). `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
+`announceResults` reads the row count of the view after a filter or sort change; see [Accessibility](/docs/accessibility). `onBeforeDeleteRows` is described in [Row operations](/docs/row-operations#confirm-a-delete).
 
 ## Selection over a server result
 
@@ -170,8 +170,8 @@ A server grid holds one page, or the loaded part of a lazy source. Set `totalRow
 
 With `totalRowCount`:
 
-- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode, and `keepHiddenCheckedRows` is not needed.
-- Pass `keepCheckedRows` together with `totalRowCount`. `totalRowCount` does not turn it on. `useDataGridServerRows` sets `keepCheckedRows` in `gridProps`. <NewBadge />
+- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. The row shows as checked again when it returns. This works in every mode,, and `rememberCheckedRows` is not needed.
+- `totalRowCount` alone turns on the memory of checked ids (`rememberCheckedRows`). Pass `keepCheckedRows` too to keep the checks on a cell click and to act only on the checked rows; `useDataGridServerRows` does both in `gridProps`. <NewBadge />
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
 - `useDataGridSelectedRows()` reads the selection as a value.
 

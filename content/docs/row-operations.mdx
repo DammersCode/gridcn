@@ -84,7 +84,7 @@ While a promise is pending, a second delete does nothing. When the promise resol
 | Move row(s) up | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> | `moveRowsUp` |
 | Move row(s) down | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> | `moveRowsDown` |
 
-With `keepCheckedRows`, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`keepHiddenCheckedRows`) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
+With `keepCheckedRows`, Duplicate and Delete act only on the checked rows while any row is checked. Hidden checked rows (`rememberCheckedRows`) are never deleted, duplicated, or moved. See [Checked rows](/docs/selection-keyboard#checked-rows).
 
 Every binding lives in `DEFAULT_KEYMAP`, so it can be remapped or dropped through the `keymap`
 prop like every other binding (see [Keybindings](/docs/addons/keybindings#remapping)).

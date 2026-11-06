@@ -90,7 +90,7 @@ calls your `onPageChange` once with the clamped page ([Server mode](/docs/pagina
 
 The cell range and the active cell follow their row ids while the rows stay in `data`. A page
 change or refetch that removes a row drops it from the range. Checked rows depend on `totalRowCount`:
-without it, a checked row that leaves `data` drops out. With it (and `keepCheckedRows`), the grid
+without it, a checked row that leaves `data` drops out. With it, the grid
 remembers the check by row id and checks the row again when it returns. See
 [Selection and bulk actions](#selection-and-bulk-actions).
 
@@ -142,7 +142,7 @@ marks `data` as a window of a larger result. A server that sends no count has tw
 
 <NewBadge />
 
-Set `keepCheckedRows` and `totalRowCount` (`useDataGridServerRows` sets both). Checks then survive page changes, evictions, and server sort
+Checks survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result:
 
 ```tsx

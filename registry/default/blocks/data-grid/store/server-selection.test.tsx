@@ -175,12 +175,12 @@ describe("select all matching", () => {
     }
   });
 
-  it("is a no-op with a warning without totalRowCount or keepCheckedRows", () => {
+  it("is a no-op with a warning without totalRowCount or with rememberCheckedRows off", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const noTotal = mount({ totalRowCount: undefined });
     act(() => noTotal.state().actions.selectAllMatching());
     expect(noTotal.state().allMatching).toBe(false);
-    const noKeep = mount({ keepCheckedRows: false });
+    const noKeep = mount({ rememberCheckedRows: false });
     act(() => noKeep.state().actions.selectAllMatching());
     expect(noKeep.state().allMatching).toBe(false);
     expect(warn).toHaveBeenCalledTimes(2);
@@ -318,17 +318,18 @@ describe("select all matching and the result spec", () => {
     expect(m.state().allMatching).toBe(true);
   });
 
-  it("totalRowCount alone leaves keepCheckedRows off, so selectAllMatching warns", () => {
+  it("totalRowCount alone turns the id memory on and leaves keepCheckedRows off", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ keepCheckedRows: undefined });
     expect(m.state().keepCheckedRows).toBe(false);
+    expect(m.state().rememberCheckedRows).toBe(true);
     act(() => m.state().actions.selectAllMatching());
-    expect(m.state().allMatching).toBe(false);
+    expect(m.state().allMatching).toBe(true);
   });
 
-  it("an explicit keepCheckedRows false keeps selectAllMatching off with a warning", () => {
+  it("an explicit rememberCheckedRows false keeps selectAllMatching off with a warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount({ keepCheckedRows: false });
+    const m = mount({ rememberCheckedRows: false });
     act(() => m.state().actions.selectAllMatching());
     expect(m.state().allMatching).toBe(false);
     expect(warn).toHaveBeenCalledTimes(1);
