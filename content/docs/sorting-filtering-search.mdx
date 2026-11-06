@@ -269,7 +269,7 @@ back as the view" mode. This follows the same controlled-input convention as a p
 the canonical definition, and [Server-side data](/docs/recipes/data-fetching/server-side) for the full
 server-side pattern.
 
-When `data` holds only part of the result set, set `sortMode="server"`: the grid tracks the sort spec and never reorders `data`. See [Lazy loading](/docs/lazy-loading#sorting-a-scroll-grid).
+When `data` holds only part of the result set, declare it with `totalRowCount`: `sortMode` and `filterMode` then default to `"server"`, and the grid tracks the sort spec and never reorders `data`. Set `sortMode="client"` or `filterMode="client"` to work on the loaded rows instead. See [Lazy loading](/docs/lazy-loading#sorting-a-scroll-grid).
 
 <NewBadge />
 

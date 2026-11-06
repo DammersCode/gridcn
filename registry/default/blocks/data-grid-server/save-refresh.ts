@@ -12,6 +12,10 @@ export type SaveRefreshReport = {
   rejected: number;
   /** Saves whose `onSave` threw or whose promise rejected. */
   failed: number;
+  /** The changes of those saves, oldest first, at most 100, for a policy that decides per change. */
+  changes: readonly DataChange<unknown>[];
+  /** Saves still in flight when the decision runs; above 0 only when the 10 second wait forced it. */
+  pending: number;
 };
 
 /**
@@ -46,7 +50,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   useLayoutEffect(() => {
     live.current = { options, refresh };
   });
-  const state = useRef({ inflight: 0, report: { saved: 0, rejected: 0, failed: 0 } as SaveRefreshReport, scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
+  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
@@ -64,16 +68,19 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
     if (!current.mounted) return;
     const policy = live.current.options.refreshAfterSave ?? "settled";
     if (policy === false) {
-      current.report = { saved: 0, rejected: 0, failed: 0 };
+      current.counts = { saved: 0, rejected: 0, failed: 0 };
+      current.changes = [];
       return;
     }
     if (policy !== "each" && current.inflight > 0 && !force) return;
-    if (current.report.saved + current.report.rejected === 0) {
-      current.report = { saved: 0, rejected: 0, failed: 0 };
+    if (current.counts.saved + current.counts.rejected === 0) {
+      current.counts = { saved: 0, rejected: 0, failed: 0 };
+      current.changes = [];
       return;
     }
-    const report = current.report;
-    current.report = { saved: 0, rejected: 0, failed: 0 };
+    const report: SaveRefreshReport = { ...current.counts, changes: current.changes, pending: current.inflight };
+    current.counts = { saved: 0, rejected: 0, failed: 0 };
+    current.changes = [];
     if (typeof policy === "function") {
       let wanted = false;
       try {
@@ -87,9 +94,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   }, []);
 
   const settle = useCallback(
-    (kind: keyof SaveRefreshReport) => {
+    (kind: "saved" | "rejected" | "failed", change: DataChange<TData>) => {
       const current = state.current;
-      current.report[kind] += 1;
+      current.counts[kind] += 1;
+      if (current.changes.length < 100) current.changes.push(change);
       if (current.scheduled) return;
       current.scheduled = true;
       setTimeout(() => decide(), 0); // after the grid has settled the row, so the refresh sees it as saved
@@ -121,7 +129,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       try {
         result = run(change);
       } catch (error) {
-        settle("failed");
+        settle("failed", change);
         throw error;
       }
       if (!isThenable(result)) return result;
@@ -130,12 +138,12 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       return Promise.resolve(result).then(
         (ack) => {
           state.current.inflight -= 1;
-          settle(ack && (ack.rejected?.length ?? 0) > 0 ? "rejected" : "saved");
+          settle(ack && (ack.rejected?.length ?? 0) > 0 ? "rejected" : "saved", change);
           return ack;
         },
         (error: unknown) => {
           state.current.inflight -= 1;
-          settle("failed");
+          settle("failed", change);
           throw error;
         },
       );

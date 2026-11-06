@@ -102,33 +102,34 @@ One shared `{ ok: false, reason }` result for every mode-dependent row action to
 - The bar props are a union (all controls or none), so `page` without handlers no longer type-checks.
 - Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (still blocked, now with a warning that names the page; row order inside a page is not stable against the full list); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).
 
-## API scorecard (0-10), second pass
+## API scorecard (0-10), third pass
 
-Rubric. **Common**: the common case takes few lines. **Cap**: capability preserved (default + override + manual equivalent + policy hook). **Rules**: matches the AGENTS.md API rules. **Name**: names match the glossary and neighbors. **Types**: invalid use is hard to write. **Docs**: docs page and demo cover it. **Trap**: needs no warning callout and has no silent failure. Scores are the author's judgment after two Opus reviews; Avg is rounded down. First-pass scores below 8 were: `history.record` 7, paged view (Trap 6), `RowActionResult` (Trap 7), `onSave` refresh (Trap 7), `useDataGridServerRows` (Trap 7), `useDataGridPager` (Name 7).
+Same rubric as before; Avg is now the mean to one decimal (n/a skipped). Pass-two averages were all 8; this pass raised docs, types, and trap scores that a fix could reach.
 
 | API | Common | Cap | Rules | Name | Types | Docs | Trap | Avg |
 |---|---|---|---|---|---|---|---|---|
-| `rememberCheckedRows` (+ alias, `keepCheckedRows` split) | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8 |
-| `totalRowCount` implies server `sortMode`/`filterMode` (+ dev warning) | 9 | 9 | 8 | 9 | 9 | 8 | 8 | 8 |
-| `parseServerSpec` + `ServerSpecError` | 9 | 9 | 9 | 9 | 9 | 8 | 9 | 9 |
-| `getRowId` optional in the server hook | 10 | 9 | 9 | 9 | 9 | 8 | 9 | 9 |
-| scroll `source: "indexed" \| "cursor"` | 9 | 9 | 9 | 8 | 9 | 8 | 8 | 8 |
-| `isPlaceholderRowId`, `getViewRowIds({ loaded })` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
-| `onSave` + `refreshAfterSave` (+ bypass warning) | 9 | 8 | 8 | 8 | 8 | 9 | 8 | 8 |
-| `labels` compared by content | 10 | 9 | 9 | 9 | 9 | 8 | 8 | 8 |
-| `gateTimeoutMs`, `onGateAborted` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
-| sort arrow for any active sort | 10 | 8 | 9 | 9 | 9 | 8 | 9 | 8 |
-| `history.record` (idempotent for present inserts) | 9 | 9 | 8 | 8 | 8 | 8 | 8 | 8 |
-| paged view (`pageSize`, `page`, `setPage`, `setPageSize`, search and reorder across pages) | 9 | 9 | 8 | 8 | 8 | 9 | 7 | 8 |
-| `useDataGridPager` / `useDataGridServerPager` (both `{ pager }`), `hasMore` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8 |
-| `RowActionResult`, `onRowActionSkipped`, reason tooltips | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8 |
-| `useDataGridServerRows` (+ `useDataGridServerPages` / `Scroll`, merge and save bypass warnings) | 9 | 9 | 8 | 8 | 8 | 9 | 8 | 8 |
-| `scope: "page"` on export, print, aggregate | 9 | 9 | 8 | 8 | 9 | 7 | 9 | 8 |
-| barrel lint (`verify-barrel-exports`) | 9 | 8 | 8 | 8 | n/a | 7 | 8 | 8 |
+| `rememberCheckedRows` (+ alias, `keepCheckedRows` split) | 9 | 9 | 8 | 8 | 9 | 9 | 8 | 8.6 |
+| `totalRowCount` implies server `sortMode`/`filterMode` (+ dev warning) | 9 | 9 | 8 | 9 | 9 | 9 | 8 | 8.7 |
+| `parseServerSpec` + `ServerSpecError` | 9 | 9 | 9 | 9 | 9 | 9 | 9 | 9.0 |
+| `getRowId` optional in the server hook (demos use the short form) | 10 | 9 | 9 | 9 | 9 | 9 | 9 | 9.1 |
+| scroll `source: "indexed" \| "cursor"` | 9 | 9 | 9 | 8 | 9 | 8 | 8 | 8.6 |
+| `isPlaceholderRowId`, `getViewRowIds({ loaded })` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8.7 |
+| `onSave` + `refreshAfterSave` (report has `changes`, `pending`) | 9 | 9 | 8 | 8 | 8 | 9 | 8 | 8.4 |
+| `labels` compared by content | 10 | 9 | 9 | 9 | 9 | 8 | 8 | 8.9 |
+| `gateTimeoutMs`, `onGateAborted` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8.7 |
+| sort arrow for any active sort | 10 | 8 | 9 | 9 | 9 | 8 | 9 | 8.9 |
+| `history.record` (idempotent, returns whether it wrote) | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8.4 |
+| paged view (page, size, search and reorder across pages, cursor cleared on page change) | 9 | 9 | 8 | 8 | 8 | 9 | 8 | 8.4 |
+| `useDataGridPager` / `useDataGridServerPager` (both `{ pager }`), `hasMore` | 9 | 9 | 9 | 8 | 9 | 8 | 9 | 8.7 |
+| `RowActionResult`, `onRowActionSkipped`, reason tooltips | 9 | 9 | 8 | 8 | 9 | 8 | 8 | 8.4 |
+| `useDataGridServerRows` (+ fixed-mode hooks, bypass warnings) | 9 | 9 | 8 | 8 | 8 | 9 | 8 | 8.4 |
+| `scope: "page"` on export, print, aggregate | 9 | 9 | 8 | 8 | 9 | 9 | 9 | 8.7 |
+| barrel lint (`verify-barrel-exports`) | 9 | 8 | 8 | 8 | n/a | 8 | 8 | 8.2 |
 
-Every API averages 8 or more. Single criteria still at 7 or below, each with its reason:
-- **Paged view, Trap 7:** there is no cross-page select-all for a client grid (`selectAllMatching` needs `totalRowCount`), and the active cell stays at the same coordinates across a page change rather than following its record.
-- **`scope: "page"`, Docs 7:** one bullet on `pagination.mdx`; no example in the export or pinned-rows pages.
-- **Barrel lint, Docs 7:** the baseline file is the only documentation of grandfathered names.
-
-What changed for this pass: search counts and jumps across pages (store computes matches over the full view; toolbar search and find and replace switch the page); `reorderRows` and `moveRowsBy` work inside a page; `history.record` skips a present insert; `onRowActionSkipped` hook plus reason tooltips on disabled menu items; a dev warning when a provider `onSave` or `onDataChange` replaces the hook's; `useDataGridServerPages` and `useDataGridServerScroll`; `useDataGridPager` returns `{ pager }`; unit tests for the `totalRowCount` warning.
+Reaching 9 needs every criterion at 9 or above on average. Three APIs do. The rest stay under 9 for these reasons, none fixable without removing a capability or a larger redesign:
+- **Rules (8) on `rememberCheckedRows`, `onSave`, `history.record`, the paged view, `RowActionResult`, `useDataGridServerRows`, `scope: "page"`:** the AGENTS.md rules favor one options object per concern and a ctx callback; these APIs add a prop or an action beside an existing one (`rememberCheckedRows` next to `keepCheckedRows`, `onRowActionSkipped` beside the action results) because the existing props keep their meaning.
+- **Name (8):** `rememberCheckedRows` / `keepCheckedRows` is a close pair (the old `keepHiddenCheckedRows` alias stays for compatibility); `source`, `scope: "page"`, and `hasMore` follow neighbors but not a glossary term.
+- **Trap (8) on the dev-only warnings** (`totalRowCount` default flip, `onSave` and merge bypass, `history.record`): production stays silent by design (AGENTS.md: warn in development only); a production guard would need a runtime cost on every change.
+- **Cap (8) on the sort arrow and the barrel lint:** no opt-out for the arrow (a column's `sortable: false` hides it); the barrel baseline can be regenerated but not bypassed per name.
+- **Docs (8):** `source`, `isPlaceholderRowId`, `gateTimeoutMs`, `labels` each have one docs section and no demo of their own.
+- **Types (8) on `onSave`, the paged view, `useDataGridServerRows`:** the option sets are unions of optional fields; a discriminated union per mode would remove the `mode` overload but break the single hook of F9.

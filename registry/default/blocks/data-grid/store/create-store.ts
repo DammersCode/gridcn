@@ -311,6 +311,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       viewIndex,
       ...clearStaleRows(dataWrite),
       ...followView(s2, viewIndex, s2.visibleColumns),
+      ...(page !== s2.page || pageSize !== s2.pageSize ? { activeCell: null } : {}),
       ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
     };
   };

@@ -184,7 +184,7 @@ const server = useDataGridServerRows<Order>({
 | `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. Parallel saves cost one request. |
 | `"each"` | After every save that settles. |
 | `false` | Never. Call `server.refresh()` yourself. |
-| `(report) => boolean` | Once, after every save in flight has settled, when it returns `true`. `report` holds `saved`, `rejected`, and `failed` counts. |
+| `(report) => boolean` | Once, after every save in flight has settled, when it returns `true`. `report` holds the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. |
 
 Only a promise counts as a save: an `onSave` that returns nothing never triggers a refresh, because the grid cannot tell when the server has the change. A refresh needs at least one save the server answered, so an outage does not trigger one. `server.refresh()` stays available in every case.
 `onSave` never receives the revert (`source: "rollback"`) or a server push (`source: "stream"`). See

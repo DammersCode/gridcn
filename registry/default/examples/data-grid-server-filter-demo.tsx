@@ -23,7 +23,6 @@ export default function DataGridServerFilterDemo(): ReactNode {
 
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal, spec }) => {
       const page = await remote.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal });
       return { rows: page.rows, totalRowCount: page.total };

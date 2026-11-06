@@ -72,7 +72,7 @@ describe("useSaveRefresh", () => {
     const m = mount({ onSave: async () => ({ rejected: [{ rowId: "a" }] as never }), refreshAfterSave: policy });
     await m.save();
     await flush();
-    expect(policy).toHaveBeenCalledWith({ saved: 0, rejected: 1, failed: 0 });
+    expect(policy).toHaveBeenCalledWith({ saved: 0, rejected: 1, failed: 0, changes: [change], pending: 0 });
     expect(m.refresh).not.toHaveBeenCalled();
   });
 

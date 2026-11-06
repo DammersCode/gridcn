@@ -282,7 +282,9 @@ describe("useDataGridHistory", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const h = setupHarness();
     const existing = initialRows[0]!;
-    act(() => h.history().record({ source: "app", ops: [{ type: "insert", rowId: "a", row: existing, index: 0 }] }));
+    let applied = true;
+    act(() => void (applied = h.history().record({ source: "app", ops: [{ type: "insert", rowId: "a", row: existing, index: 0 }] })));
+    expect(applied).toBe(false);
     expect(warn.mock.calls.filter((c) => String(c[0]).includes("already holds"))).toHaveLength(1);
     expect(h.data()).toHaveLength(initialRows.length);
     expect(h.history().canUndo).toBe(false);

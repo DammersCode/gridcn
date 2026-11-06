@@ -9,6 +9,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- A page change clears the active cell instead of leaving it on whichever record now sits at the same coordinates. Search and find and replace still select the match they jump to.
+- `history.record` returns `true` when it wrote the change and `false` when it did nothing. The `refreshAfterSave` report adds `changes` (at most 100, oldest first) and `pending`.
+- The docs show `scope: "page"`, `parseServerSpec` as a section, and the `totalRowCount` mode defaults on the sorting page; the server demos drop the `getRowId` line the hook now defaults.
 - A paged grid searches every page: `searchMatches` and the match count cover the whole view, the highlights show the matches on the shown page, and next and previous match (toolbar search, find and replace) jump to the page of the match. Find and replace's "replace all" covers every page. `reorderRows` and `moveRowsBy` work inside a paged grid with page-relative rows (a sort or filter still blocks them).
 - `history.record` is idempotent: an insert of a row that `data` already holds is skipped, with a development warning, so applying the change to your own array first no longer writes it twice.
 - `onRowActionSkipped({ action, reason })` fires whenever `insertRows`, `duplicateRows`, or `deleteRows` does nothing, whichever way it started (shortcut, menu, or call). Disabled row items of the context menu show the reason as a tooltip (`labels.contextMenu.rowActionReadOnly`, `rowActionHiddenChecked`).

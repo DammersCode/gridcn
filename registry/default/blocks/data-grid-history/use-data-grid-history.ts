@@ -95,10 +95,10 @@ export type UseDataGridHistoryResult<TData> = {
   /**
    * Applies a programmatic change (the consumer-built operation batch) to the grid as one write AND
    * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
-   * records like any user gesture. No-op when the grid is not mounted yet or is read-only.
+   * records like any user gesture. Returns `true` when it wrote the change, `false` when it did nothing (the grid is not mounted yet, or every operation was an insert of a row `data` already holds).
    * `label` is an optional human-readable entry label.
    */
-  record: (change: DataChange<TData>, label?: string) => void;
+  record: (change: DataChange<TData>, label?: string) => boolean;
 };
 
 /**
@@ -206,12 +206,13 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const record = useCallback(
     (change: DataChange<TData>, label?: string) => {
       const api = apiRef.current;
-      if (!api) return;
+      if (!api) return false;
       const fresh = withoutPresentInserts(api.store.getState(), change);
-      if (fresh.ops.length === 0) return;
+      if (fresh.ops.length === 0) return false;
       // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
       api.actions.commitChange({ ...fresh, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
+      return true;
     },
     [history],
   );

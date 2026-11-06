@@ -63,7 +63,6 @@ function LazySwrGrid(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
   const server = useDataGridServerRows<LazyRow>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => ({
       rows: await preload(["rows", start, end] as [string, number, number], (key) => api.fetchRows({ start: key[1], end: key[2], signal })),
       totalRowCount: TOTAL_COUNT,
