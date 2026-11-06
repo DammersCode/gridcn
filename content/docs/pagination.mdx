@@ -169,11 +169,32 @@ rendering performance, and using the two together is not supported. When to pick
 
     The pager then reports `totalRowCount: null`. The footer shows "Page 3" instead of a range, enables
     Next while `hasNextPage` is `true`, and disables Last. The numbered buttons reach one page past
-    the current one. The hook lifts a page below 1 and never clamps the upper end. Keep the
-    cursor of each page in your own state, and reset the chain when the page size, sort, or filter
-    changes.
+    the current one. The hook lifts a page below 1 and never clamps the upper end.
 
     <ComponentPreview name="data-grid-open-ended-demo" />
+
+    `useDataGridServerRows` keeps the cursor chain for you. <NewBadge /> Return `nextCursor` from `fetchRows`
+    and read `cursor` from the request:
+
+    ```tsx
+    const server = useDataGridServerRows<Order, string>({
+      getRowId: (row) => row.id,
+      fetchRows: async ({ cursor, pageSize, spec, signal }) => {
+        const res = await api.orders({ after: cursor, limit: pageSize, spec, signal });
+        return { rows: res.items, nextCursor: res.next ?? null };
+      },
+    });
+    ```
+
+    - Page 1 gets `cursor: undefined`. The hook stores the `nextCursor` of page `p` as the cursor of page `p + 1`. `nextCursor: null` ends the source.
+    - A change of the sort, filter, search text, or page size drops the chain and goes back to page 1.
+    - Back, forward, `refresh()`, and `retry()` reuse the stored cursors.
+    - The pager reaches the pages whose cursor is known, and shows no count or last page. A `page` beyond the chain moves back to the furthest known page through `onPageChange`.
+
+    With React Query or SWR, the library owns the cache and the chain. Pass `hasNextPage` to `useDataGridPagination` and
+    fetch the next page before you move to it:
+
+    <ComponentPreview name="data-grid-cursor-swr-demo" />
 
     Checked rows do not survive a page change by default. Pass `totalRowCount={pager.totalRowCount}` with
     `keepCheckedRows` to keep them by row id and to select every matching row. See
