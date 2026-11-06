@@ -33,7 +33,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 
 ## Selection [#selection]
 
-Checked rows vanish on a page change, or select all matching does nothing. Both need `keepCheckedRows` and `totalRowCount`. The hook passes both. With your own fetch, pass both to the grid. If one is missing, `actions.selectAllMatching()` warns in development builds.
+Checked rows vanish on a page change, or select all matching does nothing. Both need `totalRowCount`, and the memory needs `rememberCheckedRows` left on. The hook passes `totalRowCount`. With your own fetch, pass it to the grid. If one is missing, `actions.selectAllMatching()` warns in development builds.
 
 ## The hook setup [#setup]
 

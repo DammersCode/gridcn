@@ -95,7 +95,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **URL state**: exactly one `NuqsAdapter` for the whole app — never nest a second one closer to the
   grid. Wrap the grid in `<Suspense>` if the page is statically prerendered (Next.js requirement,
   since the adapter calls `useSearchParams()`). On a scroll-mode grid, mount
-  `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"`; otherwise it
+  `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"` (a grid with `totalRowCount` has both by default); otherwise it
   re-sorts and re-filters the partial `data` client-side.
 - **Scroll mode + pagination are mutually exclusive.** Neither exists for render performance
   (virtualization already covers that); pick scroll mode for one continuous infinite-scroll dataset, or
@@ -159,9 +159,9 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   `DataGridProvider`; outside it, it throws immediately rather than silently failing.
 - **`?` shortcut or keybindings dialog inert**: `DataGridKeybindingsShortcut` must be inside
   `DataGridRoot` (it reads the root's container element); the dialog itself only needs the provider.
-- **URL param has no visible effect**: a URL-applied sort with no visible arrow is expected in the
-  default `headerClickBehavior` config — the sync still works; add `data-grid-sort-list` or
-  `headerClickBehavior="sort"` for a visible affordance.
+- **URL param has no visible effect**: a URL-applied sort shows the arrow on a string header in
+  every `headerClickBehavior` mode. If nothing changes, check that the column is sortable and that
+  the URL hook's props reach the provider.
 - **Fill, pinned rows, or presence inert**: confirm the hook's `plugin` actually reaches the
   provider's `plugins` prop. Nothing errors when it does not.
 

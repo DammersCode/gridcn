@@ -47,7 +47,7 @@ The empty grid shows "Keine Zeilen". With the toolbar add-on, its search shows "
 
 - Plain objects merge key by key, at every depth.
 - A string, a function, or an array that you set replaces the default as a whole.
-- The grid merges again whenever the `labels` object changes identity. Define it outside the component or memoize it.
+- The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function counts as changed when its identity changes.
 - `useDataGridLabels()` returns the merged result under the provider.
 
 <Callout type="warn">

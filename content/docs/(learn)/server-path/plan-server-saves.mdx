@@ -21,7 +21,7 @@ An `onSave` that returns no promise and does not throw cannot revert. The grid t
 
 ## Wire the first save [#wire-the-first-save]
 
-This grid sends each change to an API and refreshes the page after the server accepts it. If the request fails, the thrown error reverts the change:
+This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `api.ts`, both from [Load server rows](/docs/server-path/load-server-rows). It sends each change to an API and refreshes the page after the server accepts it. If the request fails, the thrown error reverts the change:
 
 ```tsx
 "use client";

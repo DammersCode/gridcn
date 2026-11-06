@@ -12,11 +12,11 @@ Sort, filters, and quick search text each have a controlled prop. The callback r
 |---|---|---|
 | `sortState` | The sort, controlled by your code | none |
 | `defaultSortState` | The sort, seeded once | none |
-| `sortMode` | `"client"` sorts `data`. `"server"` only tracks the sort | `"client"` |
+| `sortMode` | `"client"` sorts `data`. `"server"` only tracks the sort | `"client"`, or `"server"` with `totalRowCount` |
 | `onSortChange` | Fires with the next sort | none |
 | `filterState` | The filter tree, controlled by your code | none |
 | `defaultFilterState` | The filters, seeded once | none |
-| `filterMode` | `"client"` filters `data`. `"server"` only tracks the filters | `"client"` |
+| `filterMode` | `"client"` filters `data`. `"server"` only tracks the filters | `"client"`, or `"server"` with `totalRowCount` |
 | `onFilterChange` | Fires with the next filter tree | none |
 | `searchText` | The quick search text, controlled by your code | none |
 | `defaultSearchText` | The quick search text, seeded once | none |

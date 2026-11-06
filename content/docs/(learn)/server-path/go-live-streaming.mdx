@@ -19,23 +19,36 @@ This grid applies price pushes to the rows it loaded:
 "use client";
 
 import { useEffect, useRef } from "react";
-import { DataGrid, type DataGridApi } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns, type DataGridApi } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
-import { columns, type Quote } from "./quotes";
-import { loadPage } from "./api";
 
-type PriceMessage = { symbol: string; price: number }[];
+type Quote = { symbol: string; price: number };
+type PriceMessage = Quote[];
+
+const columns = defineColumns<Quote>()([
+  { id: "symbol", header: "Symbol", accessorKey: "symbol" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
 
 export function QuotesGrid() {
   const gridRef = useRef<DataGridApi<Quote>>(null);
   const server = useDataGridServerRows<Quote>({
     getRowId: (row) => row.symbol,
-    fetchRows: loadPage,
+    fetchRows: async ({ spec, page, pageSize, signal }) => {
+      const response = await fetch("/api/quotes/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...spec, page, pageSize }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
   });
 
   useEffect(() => {

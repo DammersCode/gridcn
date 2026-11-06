@@ -1,6 +1,6 @@
 ---
 title: ColumnDef
-description: Look up every field of ColumnDef, the object that defines one column: its value, cell type, size, sort, filter, and look.
+description: "Look up every field of ColumnDef, the object that defines one column: its value, cell type, size, sort, filter, and look."
 type: reference
 aliases: ["column definition", "column options", "column config"]
 ---
@@ -61,7 +61,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | Required | Stable identity of the column. Duplicate ids trigger a development warning. |
-| `header` | `string \| ReactNode` | Required | A string header shows a sort arrow once you sort the column. The arrow needs `headerClickBehavior="sort"` and a sortable column. A node renders as given, with no sort arrow. |
+| `header` | `string \| ReactNode` | Required | A string header shows a sort arrow once you sort the column. The arrow shows on a sorted column, or on every sortable column with `headerClickBehavior="sort"`. A node renders as given, with no sort arrow. |
 | `headerText` | `string` | none | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, the labels, menus, export, and import matching use the column id, and autosize measures no header text. |
 | `accessorKey` | `keyof TData` (string keys) | none | Row field that holds the value. |
 | `accessorFn` | `(row) => TValue` | none | Computes the value from the row. |

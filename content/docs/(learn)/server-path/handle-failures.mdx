@@ -12,7 +12,7 @@ Before you start, [plan server saves](/docs/server-path/plan-server-saves). Your
 2. Pass `onSaveRejected` to the grid. It runs once for each refused save, after the grid reverted the change.
 3. Leave out `errorState`. The built-in error state shows the failure and a Retry button.
 
-This grid reports both failures:
+This grid imports `columns`, `Order`, `loadPage`, `sendChange`, and `notify` from the files of [Load server rows](/docs/server-path/load-server-rows). It reports both failures:
 
 ```tsx
 "use client";

@@ -5,7 +5,7 @@ type: task
 aliases: ["evict rows", "memory limit", "refresh rows"]
 ---
 
-Loaded rows stay in the sparse `data` array. A spec change, a changed row count, a remount, or `evict` removes them. <NewBadge /> The hook also unloads rows itself, as `maxLoadedRows` below says. `refresh()` drops the loaded rows outside the rendered rows. So does a row operation on a result with a row count. A long scroll through a large result grows the array. Three members of the `useDataGridServerRows` result tune that: `refresh`, `evict`, and `getLoadedRanges`.
+Loaded rows stay in the sparse `data` array. A long scroll through a large result grows the array. The hook unloads rows itself above `maxLoadedRows`, as the next section says. A spec change, a changed row count, a remount, or `evict` also removes them. `refresh()` drops the loaded rows outside the rendered rows. So does a row operation on a result with a row count. Four levers tune the array: `maxLoadedRows`, `refresh`, `evict`, and `getLoadedRanges`.
 
 ## Cap the loaded rows [#max-loaded-rows]
 

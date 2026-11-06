@@ -102,7 +102,7 @@ These warnings come from the size of the grid.
 | Message | What to do | Page |
 | --- | --- | --- |
 | `gridcn: the grid viewport shows more than 200 rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at 200 rows.` | Give the grid a bounded height with `className` or a sized parent. | [Virtualization](/docs/performance/virtualization) |
-| `gridcn: <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...` | Use fewer rows in the scroll area. Use pages or scroll mode so that the grid does not hold the whole result. | [Row limits](/docs/performance/row-limits) |
+| `gridcn: <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...` | Show fewer rows at once. Page them with server pagination, or narrow the view with a filter. | [Row limits](/docs/performance/row-limits) |
 | `gridcn: rendered row count (<n>) does not match the expected window size (<expected>) — start=<start> end=<end> activeRowOffWindow=<flag>.` | Report this as a bug with the values in the text. | [Virtualization](/docs/performance/virtualization) |
 
 ## Plugin warnings [#plugin-warnings]

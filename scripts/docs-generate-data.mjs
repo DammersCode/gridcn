@@ -10,17 +10,17 @@ export const FINDER = [
   {
     id: "data-fetching",
     title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/save-server/save-revert", "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures"],
+    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/save-server/save-revert", "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
   },
   {
     id: "sort-filter-search",
     title: "Sort, filter, and search",
-    pages: ["/docs/learning-path/sort-filter-rows", "/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state"],
+    pages: ["/docs/learning-path/sort-filter-rows", "/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views"],
   },
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: ["/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/lock-cells-role", "/docs/recipes-custom-code/write-cell-type"],
+    pages: ["/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
   },
   {
     id: "ui-patterns",

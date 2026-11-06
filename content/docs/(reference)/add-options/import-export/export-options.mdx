@@ -15,10 +15,7 @@ The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and
 | `buildXlsx(state, options?)` | `Promise<Blob>` | Builds the workbook and starts no download. |
 | `printGrid(state, options?)` | `void` | Opens the print dialog for a paged table. It does nothing without a DOM. |
 | `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
-| `buildExportHeaders(state)` | `string[]` | Builds the header text of the visible columns. |
 | `rowsToCsv(rows, delimiter, sanitizeFormulas?)` | `string` | Joins rows into CSV with CRLF line ends. `sanitizeFormulas` defaults to `true`. |
-| `quoteCsvField(value, delimiter)` | `string` | Quotes a field that holds the delimiter, a quote, or a line break. |
-| `downloadBlob(blob, fileName)` | `void` | Downloads a `Blob` through a temporary link. |
 
 ## Example [#example]
 

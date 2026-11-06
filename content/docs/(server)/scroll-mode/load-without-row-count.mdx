@@ -74,11 +74,11 @@ When the rendered rows come within `overscan` rows of the loaded end, the next b
 - A failed block sets `error`, calls `onError`, and stops the source. `retry()` repeats the block, and so does the next report of the rendered rows.
 - A change of the sort, filter, or search text drops the loaded rows and the cursor. The source starts again at block 0.
 - `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land.
-- `evict` does nothing, because a sequential source cannot refetch an arbitrary range. <NewBadge /> `maxLoadedRows` does not apply either. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
+- `evict` <NewBadge /> does nothing, because a sequential source cannot refetch an arbitrary range. `maxLoadedRows` does not apply either. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
 
 ## Select rows without a row count
 
-Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows. It never means every matching row. `server.gridProps` carries `totalRowCount: null` until the source ends, and `keepCheckedRows`, so the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Select server rows](/docs/rows-live-data/select-server-rows).
+Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows. It never means every matching row. `server.gridProps` carries `totalRowCount: null` until the source ends. The grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
 ## Related
 

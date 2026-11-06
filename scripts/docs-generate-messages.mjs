@@ -95,7 +95,7 @@ export const MESSAGES = [
     intro: "These warnings come from the size of the grid.",
     rows: [
       { text: "gridcn: the grid viewport shows more than 200 rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className=\"h-150\" or h-full inside a sized parent). Rendering is capped at 200 rows.", file: "registry/default/blocks/data-grid/virtualization/use-row-window.ts", find: "the grid viewport shows more than", fix: "Give the grid a bounded height with `className` or a sized parent.", page: "/docs/performance/virtualization" },
-      { text: "gridcn: <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...", file: "registry/default/blocks/data-grid/body.tsx", find: "which is above the browser height limit", fix: "Use fewer rows in the scroll area. Use pages or scroll mode so that the grid does not hold the whole result.", page: "/docs/performance/row-limits" },
+      { text: "gridcn: <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...", file: "registry/default/blocks/data-grid/body.tsx", find: "which is above the browser height limit", fix: "Show fewer rows at once. Page them with server pagination, or narrow the view with a filter.", page: "/docs/performance/row-limits" },
       { text: "gridcn: rendered row count (<n>) does not match the expected window size (<expected>) — start=<start> end=<end> activeRowOffWindow=<flag>.", file: "registry/default/blocks/data-grid/body.tsx", find: "does not match the expected window size", fix: "Report this as a bug with the values in the text.", page: "/docs/performance/virtualization" },
     ],
   },

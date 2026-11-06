@@ -45,7 +45,7 @@ export function ExportAll() {
 
 With a `source`, `DataGridExportButton` adds "Export all rows" items. The plain items still export the rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". When the export ends, the button announces the row count. It says so when a limit made the file incomplete.
 
-A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass `source: () => allRows`. The source returns the rows in the order you choose.
+A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass a `source` that fetches every page from your API, as the sample above does. The source returns the rows in the order you choose.
 
 `exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` ended the export before the source did. The file then holds the rows read so far.
 

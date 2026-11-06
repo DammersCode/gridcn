@@ -46,7 +46,7 @@ const columns = defineColumns<Person>()([
 ]);
 
 export function People({ people }: { people: Person[] }) {
-  return <DataGrid data={people} columns={columns} />;
+  return <DataGrid defaultData={people} columns={columns} />;
 }
 ```
 
@@ -86,7 +86,7 @@ const columns = defineColumns<Note>()([
 ]);
 
 export function Notes({ notes }: { notes: Note[] }) {
-  return <DataGrid data={notes} columns={columns} />;
+  return <DataGrid defaultData={notes} columns={columns} />;
 }
 ```
 
@@ -199,7 +199,7 @@ const columns = defineColumns<Line>()([
 export function Lines({ lines }: { lines: Line[] }) {
   return (
     <DataGrid
-      data={lines}
+      defaultData={lines}
       columns={columns}
       validateRow={(row) =>
         row.discount > row.price ? { discount: "Discount above price" } : null

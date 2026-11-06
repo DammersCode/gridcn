@@ -27,6 +27,10 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 - A cell entry without a non-empty `columnId`.
 - A range entry with empty `rowIds` or `columnIds`, or with a `columnIds` that holds a non-string.
 - A view entry without a finite `x`, `y`, `width`, and `height`.
+- An entry whose `id` is missing, not a string, or longer than 256 characters.
+- An entry past the first 1000, and an id list of more than 10,000 ids.
+
+The hook repairs two fields. A `label` that is no string is removed, and a label of more than 64 characters is cut. A `color` that is no string, or longer than 128 characters, paints as `var(--color-primary)`.
 
 Development builds warn once for each dropped entry.
 

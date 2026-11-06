@@ -98,7 +98,7 @@ The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends only on the core `data-grid`:
+Each add-on is a separate registry item that depends on the core `data-grid`. A few also install the shadcn/ui components they use, `data-grid-pagination`, or `use-debounce`:
 
 | Item | Adds | Docs |
 | --- | --- | --- |
@@ -113,8 +113,11 @@ Each add-on is a separate registry item that depends only on the core `data-grid
 | `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/sort-filter-search/find-replace) |
 | `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/import-export) |
 | `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/sort-filter-search/url-state) |
-| `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Lazy loading](https://gridcn.vercel.app/docs/scroll-mode) |
-| `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Pagination](https://gridcn.vercel.app/docs/server-pagination/load-rows-page) |
+| `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Scroll mode](https://gridcn.vercel.app/docs/scroll-mode) |
+| `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Client pagination](https://gridcn.vercel.app/docs/rows-pages-menus/client-pagination), [server pagination](https://gridcn.vercel.app/docs/server-pagination/load-rows-page) |
+| `data-grid-lookup` | Lookup cell: remote options with search as you type, value and label stored together | [Lookup cell](https://gridcn.vercel.app/docs/editing-cells/lookup-cell) |
+| `data-grid-views` | Saved views of sort, filters, search, and column layout | [Saved views](https://gridcn.vercel.app/docs/sort-filter-search/saved-views) |
+| `use-debounce` | The `useDebounce` and `useDebouncedInput` hooks that the toolbar, find and replace, and lookup use | [useDebounce](https://gridcn.vercel.app/docs/types-hooks/use-debounce) |
 | `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
 
 ## Agent skills

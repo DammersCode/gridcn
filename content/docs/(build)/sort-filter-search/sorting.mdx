@@ -61,7 +61,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 
 The default `headerClickBehavior` is `"select"`, so a header click selects the column. With `"sort"`, a plain click cycles the column: ascending first, then descending, then no sort. <kbd>Shift</kbd>+click adds the column to the sort. A new column joins at the end, so the first sort stays primary. Another <kbd>Shift</kbd>+click cycles that column in place.
 
-In `"sort"` mode, a string header shows a sort arrow. In the default mode, a sort from the sort list or the URL reorders rows without an arrow. To show the arrow, set `headerClickBehavior="sort"`.
+A string header shows a sort arrow on every sorted column, whatever `headerClickBehavior` says. A sort from the sort list or the URL shows the arrow too. In `"sort"` mode, the arrow also shows on a column that is not sorted yet.
 
 `sortable: false` on a column removes it from the header click and from the sort list. Code can still sort it with `actions.setSorts()`. Read the sorts with `useDataGridSortState()`.
 

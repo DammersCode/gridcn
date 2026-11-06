@@ -52,6 +52,8 @@ An add-on is an optional item with its own folder, such as `components/data-grid
     { value: "data-grid-url-state", label: "URL state" },
     { value: "data-grid-pagination", label: "Pagination" },
     { value: "data-grid-server", label: "Server rows" },
+    { value: "data-grid-lookup", label: "Lookup cell" },
+    { value: "data-grid-views", label: "Saved views" },
   ]}
 />
 
@@ -69,6 +71,8 @@ An add-on install fetches the core from GitHub, so it needs `git` or access to t
 | `data-grid-url-state` | `nuqs` | `data-grid-pagination` |
 | `data-grid-server` | None | `data-grid-pagination` |
 | `data-grid-pagination` | `lucide-react` | None |
+| `data-grid-lookup` | None | `use-debounce` |
+| `data-grid-views` | `lucide-react` | None |
 | `data-grid-fill`, `data-grid-presence`, `data-grid-pinned-rows` | `zustand` | None |
 | `data-grid-history`, `data-grid-keybindings`, `data-grid-status-bar` | None | None |
 

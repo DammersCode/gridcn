@@ -154,21 +154,19 @@ import { useDataGridSelectedRows } from "@/components/data-grid/data-grid";
 
 type DeleteProps = {
   deleteOrders: (body: object) => Promise<void>;
-  filters: unknown;
-  search: string;
 };
 
-export function DeleteSelected({ deleteOrders, filters, search }: DeleteProps) {
+export function DeleteSelected({ deleteOrders }: DeleteProps) {
   const selected = useDataGridSelectedRows();
   const body =
     selected.mode === "ids"
       ? { ids: selected.ids }
-      : { filters, search, exceptIds: selected.excludedIds };
+      : { spec: selected.spec, exceptIds: selected.excludedIds };
   return <button onClick={() => deleteOrders(body)}>Delete</button>;
 }
 ```
 
-Send the spec you already hold with the ids. The server evaluates and bounds both. See
+Send `selected.spec`, the spec the selection was made under, with the ids. The server evaluates and bounds both. See
 [Selection over a server result](/docs/rows-live-data/select-server-rows#selection-over-a-server-result).
 
 ## Saving and refusals

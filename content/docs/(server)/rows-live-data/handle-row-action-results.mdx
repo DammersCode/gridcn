@@ -20,7 +20,8 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"gate-declined"` | `onBeforeDeleteRows` returned `false`. |
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
 | `"nothing-to-do"` | No target row matched, or `count` was 0. |
- `reorderRows` and `moveRowsBy` return `true` or `false`.
+
+`reorderRows` and `moveRowsBy` return `true` or `false`.
 
 ## Stop a gate that never settles [#gate-timeout]
 

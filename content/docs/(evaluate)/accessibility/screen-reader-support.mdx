@@ -9,7 +9,7 @@ How does the grid present itself to a screen reader? It follows the WAI-ARIA gri
 
 ## Conformance target [#conformance-target]
 
-The target is WCAG 2.1 AA. gridcn makes no conformance claim, and no conformance audit has run. The automated checks run axe-core in Chromium on two fixtures. One has a toolbar, markers, a pinned row, and a sort. One has column groups. The repository records no manual pass with a screen reader.
+The target is WCAG 2.1 AA. gridcn makes no conformance claim, and no conformance audit has run. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. The repository records no manual pass with a screen reader.
 
 ## Roles and indices [#semantics]
 
@@ -38,7 +38,7 @@ The marker column sits outside this index space. It has no `aria-colindex`. `ari
 
 ### Sort and state [#sort-and-read-only-state]
 
-A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. Only the visual arrow depends on the mode: it shows for `"sort"` on a column with a string header. A column with `sortable: false` has no `aria-sort`.
+A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. The visual arrow shows on every sorted column with a string header. In `"sort"` mode, it shows on the other sortable columns too. A column with `sortable: false` has no `aria-sort`.
 
 With `readOnly`, the root has `aria-readonly`. While any of `enableRangeSelection`, `enableRowSelection`, `enableColumnSelection`, or `enableMultiRange` is true, the root has `aria-multiselectable`. All four default to `true`.
 
@@ -80,9 +80,9 @@ Each grid adds one live region: a `role="status"` element with `aria-live="polit
 
 The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeat of the same change gets the same text again.
 
-With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet, for example a moved filter row. Every sort change announces. A sort that keeps the order announces too. A change on mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers the rows of the current page.
+With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers the rows of the current page.
 
-A server sort or a server filter stays quiet. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
+A server sort or a server filter stays quiet. A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
 
 `announceResults` is a `boolean` prop of the grid. The default is `false`. The props table of [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
 

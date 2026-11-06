@@ -12,7 +12,7 @@ A server grid holds one page, or the loaded part of a scroll-mode source. Declar
 
 ## Declare the result [#selection-over-a-server-result]
 
-Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. Set `keepCheckedRows` with it. `totalRowCount` does not turn `keepCheckedRows` on. `useDataGridServerRows` sets both in `gridProps` and `providerProps`.
+Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `totalRowCount` turns on `rememberCheckedRows`, so the checks survive page changes. `keepCheckedRows` keeps the checks on a cell click. `useDataGridServerRows` sets `totalRowCount` and `keepCheckedRows` in `gridProps` and `providerProps`.
 
 {/* props: DataGridSyncProps */}
 

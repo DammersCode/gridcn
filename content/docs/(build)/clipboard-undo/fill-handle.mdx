@@ -30,7 +30,7 @@ const columns = defineColumns<Row>()([
 function MyGrid() {
   const { plugin } = useDataGridFill();
 
-  return <DataGrid data={data} columns={columns} plugins={[plugin]} />;
+  return <DataGrid defaultData={data} columns={columns} plugins={[plugin]} />;
 }
 ```
 

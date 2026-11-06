@@ -17,39 +17,77 @@ Before you start, [compare the data modes](/docs/server-path/compare-data-modes)
 3. Resolve with `rows` and `totalRowCount`.
 4. Spread `server.gridProps` onto `DataGrid` and `server.pager` onto the pager.
 
-This grid loads orders from an API:
+The next steps reuse two small files. `orders.ts` holds the row type and the columns:
+
+```ts
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+export type Order = { id: string; customer: string; total: number };
+
+export const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+```
+
+`api.ts` holds the calls to your API. `notify` shows a message to the user:
+
+```ts
+import type { DataChange } from "@/components/data-grid/data-grid";
+import type {
+  ServerRowsPageRequest,
+} from "@/components/data-grid-server/data-grid-server";
+import type { Order } from "./orders";
+
+export async function loadPage(
+  { spec, page, pageSize, signal }: ServerRowsPageRequest,
+) {
+  const response = await fetch("/api/orders/query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...spec, page, pageSize }),
+    signal,
+  });
+  const answer = await response.json();
+  return {
+    rows: answer.rows as Order[],
+    totalRowCount: answer.total as number,
+  };
+}
+
+export async function sendChange(change: DataChange<Order>) {
+  const response = await fetch("/api/orders/changes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error("Save refused");
+}
+
+export function notify(message: string) {
+  window.alert(message);
+}
+```
+
+This grid loads orders with `loadPage`:
 
 ```tsx
 "use client";
 
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGrid } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
-
-type Order = { id: string; customer: string; total: number };
-
-const columns = defineColumns<Order>()([
-  { id: "customer", header: "Customer", accessorKey: "customer" },
-  { id: "total", header: "Total", accessorKey: "total", type: "number" },
-]);
+import { columns, type Order } from "./orders";
+import { loadPage } from "./api";
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     getRowId: (row) => row.id,
-    fetchRows: async ({ spec, page, pageSize, signal }) => {
-      const response = await fetch("/api/orders/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...spec, page, pageSize }),
-        signal,
-      });
-      const answer = await response.json();
-      return { rows: answer.rows, totalRowCount: answer.total };
-    },
+    fetchRows: loadPage,
   });
 
   return (

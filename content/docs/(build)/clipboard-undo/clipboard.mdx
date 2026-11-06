@@ -40,7 +40,9 @@ const columns = defineColumns<Row>()([
 ]);
 
 function MyGrid() {
-  return <DataGrid data={rows} columns={columns} sanitizeClipboardFormulas />;
+  return (
+    <DataGrid defaultData={rows} columns={columns} sanitizeClipboardFormulas />
+  );
 }
 ```
 
@@ -94,7 +96,7 @@ function pasteValue(text: string, { column }: ClipboardProcessCtx<Row>) {
 function MyGrid() {
   return (
     <DataGrid
-      data={rows}
+      defaultData={rows}
       columns={columns}
       processCellForClipboard={copyText}
       processCellFromClipboard={pasteValue}

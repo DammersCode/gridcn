@@ -35,7 +35,7 @@ Completion for this step: the grid renders and the chosen hook's `gridProps`/`pa
 
 ## 3. Put sort/filter/search on the server if the grid scrolls or pages
 
-A scroll or paged grid's uncontrolled sort/filter/search only ever sees the rows currently loaded (the sparse array's loaded ranges, or the current page slice) — never a warning, never an error, just a wrong-looking result over part of the dataset. `searchText` is worse: it never narrows rows at all, only highlights matches already in `data`, on any grid.
+A scroll or paged grid without `totalRowCount` has an uncontrolled sort/filter/search that only ever sees the rows currently loaded (the sparse array's loaded ranges, or the current page slice) — never a warning, never an error, just a wrong-looking result over part of the dataset. `searchText` is worse: it never narrows rows at all, only highlights matches already in `data`, on any grid.
 
 Decide per gesture, for the chosen strategy:
 
@@ -55,11 +55,11 @@ Applies to scroll mode:
 
 Applies to `data-grid-pagination`:
 
-- A sort, filter, or search change must call `onPageChange(1)` yourself (client or server mode) — the pager does not do this for you, uncontrolled or via `useDataGridUrlPagination`.
+- With your own fetch state, a sort, filter, or search change must call `onPageChange(1)` yourself. A `DataGridProvider` with `pageSize` and `useDataGridServerRows` reset the page by themselves.
 - Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and expect the hook to call your `onPageChange` once with the clamped page when a shrunk `totalRowCount` leaves `page` out of range (it never sets your state itself).
 - Checked rows, the cell range, and the active cell follow row ids only while the rows stay in `data`; a page change drops those whose rows leave. Key the provider by page or clear the selection in `onPageChange` to clear everything.
-- Merge a page's edited slice back into the full dataset by row id in `onDataChange` — replacing the whole dataset with just the page's slice silently drops every other row.
-- `useDataGridUrlPagination` only composes with pagination's server mode; client mode's `defaultPageSize` seeds once from local state and can't take a pushed URL value.
+- With server pages, `data` holds one page, so `onDataChange` acts on that page only. A `DataGridProvider` with `pageSize` keeps all of `data`.
+- `useDataGridUrlPagination` spreads into `DataGridProvider`, `useDataGridServerPager`, or `useDataGridServerRows`.
 
 Applies to streaming on top of either:
 
@@ -87,7 +87,7 @@ Applies to streaming on top of either:
 
 ## Selection over a server result
 
-- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); add `keepCheckedRows` to act on the checks. Checks then survive page changes, evictions, and server sort or filter changes, by row id.
+- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); add `keepCheckedRows` to act on the checks. `totalRowCount` turns on `rememberCheckedRows`, so checks survive page changes, evictions, and server sort or filter changes, by row id.
 - "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
 - While `allMatching` is on, Delete rows, Duplicate row, and Move rows skip the checked rows. The grid does not hold them.
 

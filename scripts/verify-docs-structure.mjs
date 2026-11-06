@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
 import { capped, codeBlocks, frontField, proseOnly, readLf, rel, splitFrontmatter, urlOfPage, walk } from "./docs-verify-lib.mjs";
 
 export const PAGE_TYPES = ["landing", "feature", "concept", "task", "step", "reference", "example", "cheatsheet"];
@@ -17,6 +18,9 @@ export function aliasesOf(front) {
   const block = /^aliases:\s*\n((?:\s+-\s+.*\n?)+)/m.exec(front);
   return block ? [...block[1].matchAll(/-\s+(.*)/g)].map((m) => m[1].trim().replace(/^["']|["']$/g, "")) : [];
 }
+
+// The YAML parser of the docs build (fumadocs-core), so a page that breaks the build fails here first.
+const yaml = createRequire(createRequire(import.meta.url).resolve("fumadocs-core/package.json"))("yaml");
 
 export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist, base = "origin/release/2.0" } = {}) {
   const contentDir = join(root, "content/docs");
@@ -37,11 +41,23 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
   const referenceLinks = [];
   let pages = 0;
   let noRelated = 0;
+  for (const file of walk(contentDir, [".json"])) {
+    try {
+      JSON.parse(readLf(file));
+    } catch (error) {
+      failures.push(`${rel(root, file)}: not valid JSON: ${error.message}`);
+    }
+  }
   for (const file of walk(contentDir, [".mdx"])) {
     pages++;
     const text = readLf(file);
     const { front, body, bodyOffset } = splitFrontmatter(text);
     const here = rel(root, file);
+    try {
+      yaml.parse(front);
+    } catch (error) {
+      failures.push(`${here}: the frontmatter is not valid YAML (quote a value that holds ": "): ${error.message.split("\n")[0]}`);
+    }
     const type = frontField(front, "type");
     const isLanding = type === "landing" || (file.endsWith("index.mdx") && !type);
     const title = frontField(front, "title");

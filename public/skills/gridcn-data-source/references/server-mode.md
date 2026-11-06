@@ -103,9 +103,9 @@ Rules:
 - The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The lazy-loading rules above apply unchanged: `sortMode="server"`, and `headerClickBehavior="sort"`.
 - The `useEffect`'s `stale` flag is required in server mode: a page-2 response arriving after a page-3 request has already fired must not clobber page 3's rows.
 - The hook fires your `onPageChange` once with the clamped page when `totalRowCount` shrinks below the current page, and never while the count is 0. It never sets state itself.
-- A sort, filter, or search change must call `onPageChange(1)` by hand — the pagination hook has no visibility into filter/search wiring, uncontrolled or through `useDataGridUrlPagination`.
-- Merge edits back into the full dataset by row id in `onDataChange`; do not replace the whole dataset with the page-sliced array.
-- `useDataGridUrlPagination` (from `data-grid-url-state`) composes only with this server mode, spreading `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of local state above — client mode's `defaultPageSize` seeds once and cannot take a pushed URL value.
+- With your own fetch state, a sort, filter, or search change must call `onPageChange(1)` by hand. A `DataGridProvider` with `pageSize` and `useDataGridServerRows` go back to page 1 by themselves.
+- With server pages, `data` holds one page, so `onDataChange` and `onSave` act on that page only. A `DataGridProvider` with `pageSize` keeps all of `data`, so no merge is needed.
+- `useDataGridUrlPagination` (from `data-grid-url-state`) spreads `{ page, pageSize, onPageChange, onPageSizeChange }` from `url` in place of the local state above. It also works with `DataGridProvider` paging and `useDataGridServerRows`.
 
 ## Send filters to the API
 

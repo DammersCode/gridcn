@@ -132,6 +132,8 @@ const columns = defineColumns<Order>()([
 
 With `filterMode="server"`, the grid never calls `match`, so leave it out. Your server maps the `id` to its own query. In client mode, a custom operator without `match` does not narrow rows, and the grid warns once in development. `useDataGridUrlState` writes a custom `id` to the URL and reads it back. `parseFilterState` takes `operatorInput` to accept a custom `id`.
 
+On the server, list the `id` in the `customOperators` of the column rule of `parseServerSpec`.
+
 An empty grid shows `labels.grid.noResults` <NewBadge /> ("No results") when a filter or the search hides every row. A grid with no rows and no filter shows `labels.grid.emptyState`. This holds in client and server filter mode.
 
 ## Filter menu
@@ -141,8 +143,6 @@ The popover lists the filter tree. The first entry of the top level and of each 
 Each row has a column select, an operator select, and a value input. It also has a remove button and a drag handle. The foot of the popover holds the "Add filter" and "Add group" buttons. Each group has its own "Add filter" button. A top-level group also has its own "Add group" button.
 
 A new group takes the opposite join of its parent, so a group in the top level starts as "Or". The value input follows the cell type. `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
-
-To build "(Name contains A or B) and Country = X", add a Country filter, add a group, and give the group two Name rows.
 
 The menu offers the visible columns. A filter on a hidden column keeps applying, but its row shows a raw column id and logs a development warning. Pass `allColumns` to list hidden columns. Pass `operatorsForColumn(column)` to replace the operator list per column. A returned `undefined` falls through to `filterOperators`, then the cell type, then the defaults.
 

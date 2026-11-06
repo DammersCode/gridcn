@@ -30,7 +30,7 @@ const columns = defineColumns<Row>()([
 function Grid({ rows }: { rows: Row[] }) {
   return (
     <DataGrid
-      data={rows}
+      defaultData={rows}
       columns={columns}
       onEditStart={({ rowId }) => {
         const row = rows.find((candidate) => candidate.id === rowId);

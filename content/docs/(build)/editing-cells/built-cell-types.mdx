@@ -67,7 +67,7 @@ const columns = defineColumns<Person>()([
 ]);
 
 export function People({ people }: { people: Person[] }) {
-  return <DataGrid data={people} columns={columns} />;
+  return <DataGrid defaultData={people} columns={columns} />;
 }
 ```
 

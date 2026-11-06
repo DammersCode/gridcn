@@ -88,7 +88,7 @@ The URL applies to the store once, on mount. After that, the store drives the UR
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.ts" name="UseDataGridUrlPaginationResult" />
 
-The result spreads into the server mode of `useDataGridPagination`. The URL omits `page` at 1 and `pageSize` at `defaultPageSize`. A change of `pageSize` resets `page` to 1.
+The result spreads into `DataGridProvider`, `useDataGridServerPager`, or `useDataGridServerRows`. The URL omits `page` at 1 and `pageSize` at `defaultPageSize`. A change of `pageSize` resets `page` to 1.
 
 ## Limits
 
@@ -105,7 +105,7 @@ A sort or filter row for a removed, hidden, or unsortable, or unfilterable colum
 
 ## Server mode
 
-On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes. Without both modes, the add-on sorts and filters the partial `data` on the client. Value lists that depend on server filtering have a known gap in server filter mode.
+On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. Value lists that depend on server filtering have a known gap in server filter mode.
 
 ## Related
 

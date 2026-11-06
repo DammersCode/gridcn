@@ -114,7 +114,7 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 
 `preview` is an `ImportFileState`. `loadFile(file, gridColumns)` takes the grid columns as `ImportTargetColumn` entries: `{ id, header, headerText? }`. `error` is an `ImportErrorKey`, a key into `labels.io`. To build the rows, pass `importRows` as `dataRows`, `preview.mapping` as `mapping`, and `columns` and `cellTypes` from the read state, and your `createRow`, to `buildImportedRows`. `isParsing` is `true` while a file loads.
 
-`setMapping(importColumnIndex, gridColumnId)` sets one menu, and `null` skips the column. It does not check for a grid column that another source column already holds. `setHasHeaderRow`, `setDelimiter`, and `setSheetName` are the calls for the header toggle, the delimiter menu, and the sheet picker of your UI. `previewRows` holds at most `IMPORT_PREVIEW_ROW_COUNT` rows, which is `10`.
+`setMapping(importColumnIndex, gridColumnId)` sets one menu, and `null` skips the column. It does not check for a grid column that another source column already holds. `setHasHeaderRow`, `setDelimiter`, and `setSheetName` are the calls for the header toggle, the delimiter menu, and the sheet picker of your UI. `previewRows` holds at most 10 rows.
 
 ## Dropzone [#dropzone]
 

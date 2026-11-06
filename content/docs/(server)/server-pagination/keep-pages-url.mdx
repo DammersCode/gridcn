@@ -71,6 +71,7 @@ Open `?page=3&pageSize=50` and the grid fetches rows `[100, 150)`.
 - When `pageSize` equals `defaultPageSize` (25 by default), it leaves the URL.
 - A bad `page` falls back to 1. A bad `pageSize`, or one outside `pageSizeOptions`, falls back to `defaultPageSize`. A link cannot force an unbounded fetch.
 - Every write uses `history: "replace"`. Paging adds no browser history entries.
+- The page size starts at 25. `useDataGridServerRows` starts at 10, so spreading `...url` into it switches the grid to 25.
 - `prefix` namespaces the keys, so two grids on one page keep separate pages.
 
 ## Pages that reset

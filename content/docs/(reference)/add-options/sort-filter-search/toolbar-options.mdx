@@ -102,14 +102,6 @@ The menu shows and hides columns. It has no pin controls.
 
 Spread the context of the `renderHeaderFilter` slot into the component. The slot passes both props.
 
-## Operator helpers
-
-The barrel also exports three helpers for a custom filter UI:
-
-- `operatorsForColumnType(type)` returns the default operator list for a column type.
-- `operatorLabel(operator, labels)` returns the label of an operator from `labels.filterOperators`.
-- `operatorHasValue(operator)` returns `false` for `empty` and `notEmpty`, and `true` for every other operator.
-
 ## Server mode
 
 Without `fetchFilterValues`, the value list of `DataGridHeaderFilter` and the `isAnyOf` and `isNoneOf` inputs of a column without `choices` read the loaded rows. Pass `fetchFilterValues` to `DataGridProvider` to read the values from your server. The [header filter page](/docs/sort-filter-search/header-filter) describes the request.

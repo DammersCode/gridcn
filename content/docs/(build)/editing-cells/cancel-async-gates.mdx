@@ -3,6 +3,7 @@ title: Cancel async gates
 description: Abort the request of a slow gate with its signal, set a timeout for every gate, and show the pending state while a gate waits.
 icon: Timer
 type: feature
+demos: none
 aliases: ["abort signal", "gate timeout", "cancel paste request"]
 ---
 
@@ -47,7 +48,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
 
-A gate that ignores the extra argument keeps working.
+`gateTimeoutMs` covers the first six gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working.
 
 ## Stop waiting for a slow gate [#gate-timeout]
 
@@ -71,9 +72,11 @@ Both props are off by default.
 
 ## Show the pending state [#show-the-pending-state]
 
-`useDataGridGatePending()` returns the set of gate names whose promise has not settled. Call it inside the provider:
+`useDataGridGatePending()` returns the set of gate names whose promise has not settled. The set can hold `"import"` while the import dialog parses or validates. No timeout applies to that gate. Call it inside the provider:
 
 ```tsx
+import { useDataGridGatePending } from "@/components/data-grid/data-grid";
+
 function PendingLabel() {
   const pending = useDataGridGatePending();
   if (!pending.has("processPaste")) return null;

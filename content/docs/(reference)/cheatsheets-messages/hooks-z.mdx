@@ -28,6 +28,7 @@ Call these inside a `DataGridProvider`. Import them from `@/components/data-grid
 | `useDataGridColumnWidths` | Returns the width overrides of a list of columns. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcolumnwidths) |
 | `useDataGridEditing` | Returns the edit in progress. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridediting) |
 | `useDataGridFilterState` | Returns the filter tree. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridfilterstate) |
+| `useDataGridGatePending` | Returns the set of gate names whose promise has not settled. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | `useDataGridGetSelectionValues` | Returns a callback that reads the values of the main range. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridgetselectionvalues) |
 | `useDataGridHiddenCheckedCount` | Returns the count of checked rows that a filter hides. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridhiddencheckedcount) |
 | `useDataGridIsColumnHidden` | Returns whether a column is hidden. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridiscolumnhidden) |
@@ -78,16 +79,20 @@ Import it from `@/components/data-grid/data-grid-sdk`.
 | `useDataGridFindReplace` | Mounts find and replace. | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `useDataGridHistory` | Mounts undo and redo on a state you own. | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `useDataGridImportPreview` | Parses a file into a preview. | [Import options](/docs/add-options/import-export/import-options) |
-| `useDataGridPagination` | Returns the pager props. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `useDataGridPager` | Returns the pager of the provider. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `useDataGridPagination` | Returns the pager props for a list outside the grid. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `useDataGridPinnedRows` | Mounts pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `useDataGridPresence` | Shows the cells that other users select. | [Show presence](/docs/rows-live-data/show-presence) |
 | `useDataGridPresenceHighlights` | Returns the current highlights from the `storeApi` of `useDataGridPresence`. | [Presence options](/docs/add-options/server/presence-options) |
 | `useDataGridPrint` | Prints the grid. | [Export options](/docs/add-options/import-export/export-options) |
 | `useDataGridSelectionStats` | Returns statistics of the selection. | [Status bar](/docs/selection-shortcuts/status-bar) |
+| `useDataGridServerAggregate` | Returns the totals of a server result. | [Show server totals](/docs/data-modes/show-server-totals) |
+| `useDataGridServerPager` | Builds the pager for rows you fetch yourself. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | `useDataGridServerRows` | Fetches rows from your backend. | [Server rows options](/docs/add-options/server/server-rows-options) |
 | `useDataGridState` | Holds the data and the history together. | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `useDataGridUrlPagination` | Keeps `page` and `pageSize` in the URL. | [Keep pages in the URL](/docs/server-pagination/keep-pages-url) |
 | `useDataGridUrlState` | Keeps the sort, filter, and search in the URL. | [URL state](/docs/sort-filter-search/url-state) |
+| `useDataGridViews` | Saves, applies, and manages named views. | [Saved views](/docs/sort-filter-search/saved-views) |
 
 ## Utility hooks
 

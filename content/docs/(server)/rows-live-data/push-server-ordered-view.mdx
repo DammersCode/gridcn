@@ -7,7 +7,7 @@ aliases: ["stale row", "viewStale", "reshape", "data-row-stale", "push delete"]
 
 A push (`updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`) writes a value into a grid whose order your server decides. The grid cannot move the row. It marks the row stale and lets the hook refetch. See [Stream updates](/docs/rows-live-data/stream-updates) for the push itself.
 
-This page applies with `sortMode="server"` or `filterMode="server"`. Your server orders and filters the rows. The grid never tests a pushed row against the sort or filter. A push is a call to `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`.
+This page applies with `sortMode="server"` or `filterMode="server"`. Your server orders and filters the rows. The grid never tests a pushed row against the sort or filter.
 
 A push that changes a column the server reads leaves the row where it is. The grid marks the row as a stale row and sets `viewStale`. The server reads these columns:
 

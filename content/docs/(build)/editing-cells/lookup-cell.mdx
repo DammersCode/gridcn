@@ -44,7 +44,7 @@ const columns: ColumnDef<Order, unknown>[] = [
 export function Orders({ orders }: { orders: Order[] }) {
   return (
     <DataGrid
-      data={orders}
+      defaultData={orders}
       cellTypes={{ lookup: lookupCellType }}
       columns={columns}
     />

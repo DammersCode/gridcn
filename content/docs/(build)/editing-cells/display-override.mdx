@@ -36,7 +36,7 @@ const columns = defineColumns<Player>()([
 ]);
 
 export function Players({ players }: { players: Player[] }) {
-  return <DataGrid data={players} columns={columns} />;
+  return <DataGrid defaultData={players} columns={columns} />;
 }
 ```
 
