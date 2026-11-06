@@ -134,7 +134,7 @@ export function OrdersGrid() {
 | `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. A burst of saves costs one request. |
 | `"each"` | After every save that settles. |
 | `false` | Never. Call `server.refresh()` yourself. |
-| a function | Once after the saves settle, when `({ saved, rejected, failed })` returns `true`. |
+| a function | Once after the saves settle, when it returns `true`. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. <NewBadge /> |
 
 A refresh needs a promise from `onSave` and at least one save that the server answered. A handler that returns nothing never triggers a refresh. A hook without `onSave` leaves a provider `onSave` of your own in place.
 

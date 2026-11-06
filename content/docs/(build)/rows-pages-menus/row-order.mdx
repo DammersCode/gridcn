@@ -104,7 +104,7 @@ The grid does not recompute search matches after a move. They point at other row
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, a move happens inside the current page.
+With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, `reorderRows` and `moveRowsBy` take page rows and a move happens inside the shown page. <NewBadge />
 
 ## Related
 

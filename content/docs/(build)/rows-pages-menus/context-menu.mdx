@@ -80,7 +80,7 @@ The cell menu holds these items, in order:
 4. **Duplicate rows**. It needs `duplicateRow`.
 5. **Delete rows**, a destructive item. It runs `onBeforeDeleteRows` first.
 
-Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. If only hidden rows have checks, Duplicate and Delete turn off too. The shortcut of each item shows as a key hint. [Row operations](/docs/rows-pages-menus/row-operations) owns what each operation does.
+Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. If only hidden rows have checks, Duplicate and Delete turn off too. A turned-off row item shows the reason as its tooltip: `labels.contextMenu.rowActionReadOnly` or `labels.contextMenu.rowActionHiddenChecked`. <NewBadge /> The shortcut of each item shows as a key hint. [Row operations](/docs/rows-pages-menus/row-operations) owns what each operation does.
 
 If a Cut or Copy write fails, the next menu opens with both items turned off and the `labels.contextMenu.clipboardFailed` tooltip. After that menu closes, both items work again.
 

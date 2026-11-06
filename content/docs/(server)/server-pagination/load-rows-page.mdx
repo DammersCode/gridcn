@@ -169,7 +169,7 @@ export function OrdersGrid() {
 }
 ```
 
-A `totalRowCount` on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
+`useDataGridServerPages` is `useDataGridServerRows` fixed to pages mode, so the mode cannot change under a mounted hook. <NewBadge /> A `totalRowCount` on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
 
 ## Related
 

@@ -5,7 +5,7 @@ type: reference
 aliases: ["page size options", "pager props", "footer parts"]
 ---
 
-`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. A grid pages its view with `pageSize` on `DataGridProvider`, and `useDataGridPager()` returns its pager. `DataGridPaginationBar` renders the footer from the pager. The behavior, the page-local sort and filter, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
+`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. A grid pages its view with `pageSize` on `DataGridProvider`, and `useDataGridPager()` returns `{ pager }`. `DataGridPaginationBar` renders the footer from the pager. The behavior, the page-local sort and filter, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
 
 ## Client options [#client-mode]
 
@@ -33,7 +33,7 @@ The hook slices `data` into pages.
 
 <NewBadge />
 
-`useDataGridPager({ pageSizeOptions })` returns the pager of a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
+`useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
 
 ## DataGridPaginationBar [#datagridpaginationbarprops]
 

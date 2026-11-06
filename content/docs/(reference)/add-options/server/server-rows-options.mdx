@@ -7,6 +7,8 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 `useDataGridServerRows` owns the sort, filter, search text, and rows of one server source. You write `fetchRows`. The hook calls it, aborts a request that a newer one replaces, and keeps the last good rows on screen. `mode` picks how rows reach the grid. The steps and the contract are on [Server rows contract](/docs/contracts/server-rows-contract).
 
+`useDataGridServerPages(options)` and `useDataGridServerScroll(options)` are `useDataGridServerRows` fixed to one mode. They take the options of that mode without `mode`, so the mode cannot change under a mounted hook. <NewBadge />
+
 ## Pages mode [#server-mode]
 
 The default mode fetches one page for each state. If the sort, the filter, the search text, or the page size changes, the grid returns to page 1.
@@ -99,7 +101,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 | Option | Default | Effect |
 | --- | --- | --- |
 | `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
-| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of `{ saved, rejected, failed }` returns whether to refresh. |
+| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of the save report returns whether to refresh. |
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 
@@ -172,7 +174,7 @@ Your API reads `start` and `end` as the row range and returns the rows with the 
 ## Save policy types [#save-policy]
 
 - `SaveRefreshPolicy` is the value of `refreshAfterSave`: `false`, `"each"`, `"settled"`, or a function of a `SaveRefreshReport`.
-- `SaveRefreshReport` counts the saves of one batch: `saved`, `rejected`, and `failed`.
+- `SaveRefreshReport` describes the saves of one batch. It holds the `saved`, `rejected`, and `failed` counts. It holds the `changes` of those saves, oldest first, at most 100. It holds `pending`, the saves still in flight. `pending` is above 0 only when the 10 second wait forced the decision. <NewBadge />
 
 ## Related
 
