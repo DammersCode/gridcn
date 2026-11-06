@@ -1,9 +1,126 @@
 ---
 title: Exported types
-description: Exported types.
+description: Look up the shape of the types that the data-grid module exports, such as CellRef, SelectionState, DataChange, GridCommand, and ColumnLayout.
 type: reference
+aliases: ["typescript types", "type definitions", "cell ref", "view coord", "grid rect"]
 ---
 
-{/* docs-stub */}
+The `data-grid` module exports these types next to the components and hooks. Import them from `@/components/data-grid/data-grid`. Each table gives the shape and the meaning of a type, and most link the page that uses it. The types of columns, cell types, cell callbacks, and saves live on their own pages: [ColumnDef](/docs/components-props/column-def), [CellType contract](/docs/contracts/cell-type-contract), and [Event shapes](/docs/events-state/event-shapes).
 
-This page is being written.
+## Addresses [#addresses]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `CellRef` | `{ rowId, columnId }` | The stable identity of a cell: the row id from `getRowId` plus the column id. A sort, a filter, or a reorder never changes it. The actions `setActiveCell`, `selectCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue` take a `CellRef`. Each has an `*At` variant, such as `selectCellAt`, that takes a `ViewCoord`. A ref whose row or column is not in the view does nothing, and development mode warns once. |
+| `ViewCoord` | `{ col, row }` | A cell position in view index. `row` is the position in the sorted and filtered list. `col` is the position among the visible columns, without the marker column. When the view changes, the position moves. Store a `CellRef` instead. |
+| `ViewCellRef` | `CellRef & { viewRowIndex, viewColumnIndex }` | A `CellRef` plus the view position of the cell at the time of the event. `onActiveCellChange`, `onEditStart`, and `onEditEnd` deliver it. |
+| `GridRect` | `{ x, y, width, height }` | A rectangle of cells. It covers the columns `x` to `x + width - 1` and the rows `y` to `y + height - 1`. |
+| `CellErrorTarget` | `{ rowId, columnId }` | A cell that `clearCellErrors` names. |
+| `CellErrorEntry` | `CellErrorTarget & { message }` | A cell and its error message for `setCellErrors`. |
+
+[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the handle members that take a `CellRef`, such as `scrollTo` and `startEditing`.
+
+## Selection [#selection]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `CellRange` | `{ start, end }` | Two `CellRef` corners of a rectangle, in either diagonal order. |
+| `SelectionState` | `{ anchor, range, rangeStack, rowIds, columnIds }` | The selection in stable terms. It is the payload of `onSelectionChange`. The active cell is not part of it. The `selection` and `defaultSelection` props, `getSelection`, and `setSelection` use it too. |
+| `GridSelection` | `{ current, rows, columns }` | The selection in view index. `current` holds `cell`, `range`, and `rangeStack`. |
+
+[Selection and cell events](/docs/events-state/selection-cell-events) lists the callbacks.
+
+## Data changes [#data-changes]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `DataOp<TData>` | An `update`, `insert`, `delete`, or `move` operation | One row operation, addressed by row id. |
+| `RowPatch` | `{ rowId, changes }` | One whole-row update for `actions.updateRows`. `changes` maps column ids to new values. |
+| `DataChange<TData>` | `{ ops, source, label?, reverts? }` | One batch of operations with its origin. |
+
+[Operation engine contract](/docs/contracts/operation-engine-contract) covers `applyChange` and `invertChange`. [Data change events](/docs/events-state/data-change-events) covers `source`.
+
+## Sort and filter [#sort-and-filter]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `SortSpec` | `{ columnId, direction }` | One sort. `direction` is `"asc"` or `"desc"`. |
+| `FilterSpec` | `{ filterId?, columnId, operator, value? }` | One filter row. `value` is a string, a pair, or a list, by operator. |
+| `FilterOperator` | A union of 15 operator names | For example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
+| `FilterNode` | `FilterSpec \| FilterGroup` | One entry of `filterState`. |
+| `FilterGroup` | `{ filterId?, join, filters }` | Filters that match together. `join` is a `FilterJoinOperator`, `"and"` or `"or"`. |
+| `FilterValue` | `{ label, count? }` | One value that `fetchFilterValues` offers to a set filter. |
+| `SearchOptions` | `{ matchCase?, wholeCell? }` | The options of the quick search. |
+| `SearchMatch` | `{ row, columnId }` | One quick-search hit in view index. |
+| `CellTypeFilter` | `{ operators?, match?, valueInput? }` | The filter capabilities of a cell type. |
+| `CellTypeValueInput` | `"text" \| "number" \| "date" \| "boolean" \| "choices"` | The built-in widget of a filter value. |
+| `FilterValueInputProps` | `{ column, operator, value, onValueChange }` | The props of a custom `valueInput` component. |
+
+`createFilterMatcher(filter)` parses the bounds of a `FilterSpec` once. It returns a `(text: string) => boolean` matcher. The grid's built-in text filter uses the same matcher. A column with `filterMatch`, or a cell type with `filter.match`, filters with that function instead. [CellType contract](/docs/contracts/cell-type-contract) covers the filter members.
+
+## Commands and keys [#commands-and-keys]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `GridActions` | An interface of the named keyboard actions | Extend it by declaration merging. |
+| `GridAction` | `keyof GridActions` | Every named action, built in or merged. |
+| `Keymap` | `Partial<Record<GridAction, KeyBinding[]>>` | Key bindings by action. |
+| `GridCommand<TData>` | `{ run, when?, scope?, label?, group? }` | A custom command. `scope` is `"grid"`, `"editing"`, or `"always"`. |
+| `GridCommandCtx<TData>` | `{ api, cell, viewRowIndex, viewColumnIndex, row, readOnly }` | The context of `run` and `when`. |
+| `CommandGroup` | `"navigation" \| "selection" \| "editing" \| "clipboardFill" \| "history" \| "other"` | The sections of the keybindings dialog. |
+
+[Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows them in use.
+
+## Handle and store [#handle-and-store]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, startEditing, stopEditing, getSelection, setSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
+| `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. |
+| `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
+| `DataGridReadState` | The state that `store.getState()` returns | The argument of `exportGrid` and `printGrid`. |
+
+[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the members of the handle.
+
+## Plugins [#plugins]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `DataGridPlugin<TData>` | `{ name, Overlay?, rowBands?, onDataChange?, commands?, keymap?, Mount? }` | One entry of the `plugins` prop. |
+| `PluginRowBands` | `{ top?, bottom?, render }` | The rows a plugin adds above and below the data. |
+| `RowBandRenderCtx` | The layout of one band | The argument of `render`. |
+| `DataGridPluginCtx<TData>` | `{ api }` | The context of the `onDataChange` observer. |
+| `OverlayPluginCtx` | The window and pin helpers | The props of an `Overlay` component. |
+
+[Plugin contract](/docs/plugins/plugin-contract) covers the members.
+
+## Events [#events]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `GridEditEndEvent` | `ViewCellRef & { result }` | The payload of `onEditEnd`. `result` is `"commit"`, `"cancel"`, or `"rejected"`. |
+| `GridBulkValidationError` | `{ rowId, columnId, viewRowIndex, value, message }` | One cell that a bulk write refused. |
+| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, or `"replace"`. |
+
+[Edit and validation events](/docs/events-state/edit-validation-events) lists the moment each one fires.
+
+## Layout and display [#layout-and-display]
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
+| `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
+| `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
+| `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
+| `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |
+| `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. The function form of `emptyState` receives it as `reason`. |
+| `LoadingStateReason` | `"no-data" \| "rows-present"` | Which loading view the function form of `loadingState` replaces, as `reason`: the skeleton (`"no-data"`) or the header bar (`"rows-present"`). |
+| `DensityMode` | `"compact" \| "default" \| "comfortable"` | A row height preset. |
+
+[DataGrid props](/docs/components-props/data-grid-props) lists the props that take the layout and display types.
+
+## Related
+
+- [DataGrid props](/docs/components-props/data-grid-props): the props that take these types.
+- [Event shapes](/docs/events-state/event-shapes): the callback for each event.
+- [Store hooks](/docs/types-hooks/store-hooks): the hooks that return them.

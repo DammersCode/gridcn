@@ -1,9 +1,90 @@
 ---
 title: Export options
-description: Export options.
+description: Look up the options of exportGrid, buildXlsx, and printGrid, the props of the export and print buttons, and the helper functions of data-grid-io.
 type: reference
+aliases: ["csv options", "xlsx options", "print options", "export button props"]
 ---
 
-{/* docs-stub */}
+The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and prints them as a paged table. `exportGrid`, `buildXlsx`, and `printGrid` take the read state of the grid and an optional options object. The read state is `useDataGridStoreApi().getState()`, from `@/components/data-grid/data-grid-sdk`. `useDataGridApi().store.getState()` returns the same state (see [External store](/docs/components-props/data-grid-provider#store-external-store-ownership)). The hooks `useDataGridExport` and `useDataGridPrint` bind that state for you. [Export](/docs/import-export/export) explains the behavior.
 
-This page is being written.
+## Functions [#functions]
+
+| Function | Returns | What it does |
+| --- | --- | --- |
+| `exportGrid(state, options?)` | `Promise<void>` | Writes a CSV or XLSX file and starts the download. |
+| `buildXlsx(state, options?)` | `Promise<Blob>` | Builds the workbook and starts no download. |
+| `printGrid(state, options?)` | `void` | Opens the print dialog for a paged table. It does nothing without a DOM. |
+| `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
+| `buildExportHeaders(state)` | `string[]` | Builds the header text of the visible columns. |
+| `rowsToCsv(rows, delimiter, sanitizeFormulas?)` | `string` | Joins rows into CSV with CRLF line ends. `sanitizeFormulas` defaults to `true`. |
+| `quoteCsvField(value, delimiter)` | `string` | Quotes a field that holds the delimiter, a quote, or a line break. |
+| `downloadBlob(blob, fileName)` | `void` | Downloads a `Blob` through a temporary link. |
+
+## Example [#example]
+
+This sample downloads `orders.csv` with semicolons, no byte order mark, the selected rows, and at most 1,000 data rows:
+
+```tsx
+import { useDataGridExport } from "@/components/data-grid-io/data-grid-io";
+
+export function ExportSelectionButton() {
+  const { exportGrid } = useDataGridExport();
+  return (
+    <button
+      onClick={() =>
+        exportGrid({
+          format: "csv",
+          scope: "selection",
+          csvDelimiter: ";",
+          csvBom: false,
+          fileName: "orders",
+          maxRows: 1000,
+        })
+      }
+    >
+      Export selection
+    </button>
+  );
+}
+```
+
+Render the button under the grid provider.
+
+## ExportGridOptions [#exportgridoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
+
+Every scope covers the rows in `data` only. In pagination that is the current page, and in scroll mode the loaded rows. See [Export: server mode](/docs/import-export/export#server-mode). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, or a tab.
+
+## BuildXlsxOptions [#buildxlsxoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="BuildXlsxOptions" />
+
+XLSX export and print cut a cell text at 32,767 characters. CSV export does not cut.
+
+## PrintGridOptions [#printgridoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
+
+`pageSize` takes a `PrintPageSize`: `"A3"`, `"A4"`, `"Letter"`, or `"Legal"`. The printed rows are `min(maxRows, floor(500,000 / visible columns))`. `maxRows` defaults to `10,000`. Print uses the display text of each cell (`toDisplayText`, else `toText`).
+
+## DataGridExportButtonProps [#datagridexportbuttonprops]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/export-button.tsx" name="DataGridExportButtonProps" />
+
+## DataGridPrintButtonProps [#datagridprintbuttonprops]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/print-button.tsx" name="DataGridPrintButtonProps" />
+
+## Hook results [#hook-results]
+
+| Hook | Result |
+| --- | --- |
+| `useDataGridExport()` | `UseDataGridExportResult`, `{ exportGrid }`. `exportGrid(options?)` returns `Promise<void>`. |
+| `useDataGridPrint()` | `UseDataGridPrintResult`, `{ printGrid }`. `printGrid(options?)` returns `void`. |
+
+## Related
+
+- [Export](/docs/import-export/export): the scopes, the CSV and XLSX rules, and print.
+- [Import options](/docs/add-options/import-export/import-options): the options of the matching import.
+- [Clipboard](/docs/clipboard-undo/clipboard): the cell text that copy and export share.

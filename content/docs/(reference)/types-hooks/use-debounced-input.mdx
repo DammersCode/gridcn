@@ -1,9 +1,88 @@
 ---
 title: useDebouncedInput
-description: useDebouncedInput.
+description: Drive a text input that shows each keystroke at once, calls `onCommit` when the typing pauses, and keeps the last keystrokes on blur, Enter, and unmount.
 type: reference
+aliases: ["debounced input", "debounce text field", "commit on pause"]
 ---
 
-{/* docs-stub */}
+`useDebouncedInput` drives a text input. The input shows each keystroke at once. `onCommit` runs once with the text of the input, after the typing pauses. The toolbar search, the filter value inputs, and find and replace use the hook.
 
-This page is being written.
+<InstallCommand item="use-debounce" />
+
+The hook ships in the `use-debounce` item, next to [`useDebounce`](/docs/types-hooks/use-debounce).
+
+## useDebouncedInput [#usedebouncedinput]
+
+```ts fragment="signature"
+function useDebouncedInput(
+  value: string,
+  onCommit: (next: string) => void,
+  options?: UseDebouncedInputOptions,
+): UseDebouncedInputResult;
+```
+
+`value` is the text that the parent holds. Spread `inputProps` on an `input` or a `textarea`:
+
+```tsx
+import { useState } from "react";
+import { useDebouncedInput } from "@/components/gridcn/use-debounce";
+
+export function NameInput() {
+  const [name, setName] = useState("");
+  const input = useDebouncedInput(name, setName);
+  return <input {...input.inputProps} />;
+}
+```
+
+`name` changes 300 ms after the last keystroke. The input shows the typed text meanwhile.
+
+## Options [#options]
+
+{/* props: UseDebouncedInputOptions */}
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `delayMs` | `number` | `300` |
+
+A `delayMs` of `0` calls `onCommit` on each keystroke.
+
+## Result [#result]
+
+{/* props: UseDebouncedInputResult */}
+
+| Member | Type | Meaning |
+| --- | --- | --- |
+| `inputProps` | `DebouncedInputProps` | The props to spread: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, and `onCompositionEnd`. |
+| `inputValue` | `string` | The text in the input. It equals `inputProps.value`. |
+| `flush` | `() => void` | Calls `onCommit` with a pending value at once. |
+| `cancel` | `() => void` | Drops a pending value and shows `value` again. |
+
+## When onCommit runs [#when-the-value-commits]
+
+- Blur calls `onCommit` with a pending value.
+- <kbd>Enter</kbd> does the same.
+- Unmount does the same, so closing a popover during the wait keeps the last keystrokes.
+- <kbd>Escape</kbd> drops a pending value and shows `value` again. It does not call `onCommit`.
+- During an IME composition (text that an input method editor builds, see [isComposingKey](/docs/types-hooks/is-composing-key)), the wait does not run, and <kbd>Enter</kbd> and <kbd>Escape</kbd> do nothing. When the composition ends, the hook schedules the call. Blur and unmount still call `onCommit` with the text so far.
+- The call goes to the `onCommit` of the most recent render.
+
+## What the input shows [#what-the-input-shows]
+
+- While text is pending, the input keeps the text. When nothing is pending, a change of `value` from outside shows in the input.
+- A committed text is a text that `onCommit` received. After `onCommit` runs, the input keeps the typed text until the parent applies the committed texts. When `value` changes to a text that `onCommit` did not receive, the input shows `value`.
+- If the user types a committed text again, the echoes in between can show for a moment. The input ends on the typed text.
+- The hook remembers the last 64 committed texts that the parent has not applied. A late echo of one of them does not replace newer typing. The echo of an older text counts as a change from outside.
+
+<Callout type="warn">
+If the parent never applies a text, the input shows text that the parent does not hold. The text stays until <kbd>Escape</kbd> or until `value` changes to a text that `onCommit` did not receive.
+</Callout>
+
+<Callout type="warn">
+A handler that you place after the spread replaces the one in `inputProps`. If you replace `onKeyDown`, return early on [`isComposingKey(event)`](/docs/types-hooks/is-composing-key), then call `flush()` for <kbd>Enter</kbd> and `cancel()` for <kbd>Escape</kbd>. If you replace `onChange`, `onBlur`, `onCompositionStart`, or `onCompositionEnd`, call the handler of `inputProps` from your handler.
+</Callout>
+
+## Related
+
+- [useDebounce](/docs/types-hooks/use-debounce): the hook, and the `inputDebounceMs` wait of the grid inputs.
+- [isComposingKey](/docs/types-hooks/is-composing-key): the key test that the hook uses.
+- [Quick search](/docs/sort-filter-search/quick-search): a grid input that uses the hook.

@@ -1,9 +1,58 @@
 ---
 title: isComposingKey
-description: isComposingKey.
+description: Tell a key of an IME composition from a plain key, so your Enter and Escape handlers ignore keys that confirm composed text.
 type: reference
+aliases: ["cjk enter key", "ime enter submits", "asian language typing"]
 ---
 
-{/* docs-stub */}
+An IME (input method editor) is the tool for typing Chinese, Japanese, or Korean. While it composes text, a key such as <kbd>Enter</kbd> confirms the text and is not a command. `isComposingKey` tells the two apart. The function does not depend on the grid.
 
-This page is being written.
+<InstallCommand item="is-composing-key" />
+
+The item installs to `components/gridcn/is-composing-key.ts`.
+
+## isComposingKey [#iscomposingkey]
+
+```ts fragment="signature"
+function isComposingKey(
+  event: React.KeyboardEvent | Pick<KeyboardEvent, "isComposing" | "keyCode">,
+): boolean;
+```
+
+The function returns `true` while a key belongs to an IME composition. Gate your own <kbd>Enter</kbd> and <kbd>Escape</kbd> handlers with it:
+
+```tsx
+import { isComposingKey } from "@/components/gridcn/is-composing-key";
+
+export function NameField({ onEnter }: { onEnter: () => void }) {
+  return (
+    <input
+      onKeyDown={(event) => {
+        if (isComposingKey(event)) return;
+        if (event.key === "Enter") onEnter();
+      }}
+    />
+  );
+}
+```
+
+While an IME composes, <kbd>Enter</kbd> confirms the composed text and `onEnter` does not run.
+
+## Arguments [#arguments]
+
+| Argument | Type | Meaning |
+| --- | --- | --- |
+| `event` | React keyboard event, or `{ isComposing, keyCode }` | The keydown to test. |
+
+## Behavior [#behavior]
+
+- If `isComposing` is `true` or `keyCode` is `229`, the result is `true`.
+- Safari confirms a composition with `isComposing` set to `false` and `keyCode` set to `229`. A test of `isComposing` alone misses that key.
+- For a React event, the function reads `nativeEvent`.
+- The `data-grid-sdk` module of the core exports the same function. The grid keyboard, `useCellEditor`, and the text, number, URL, date, and long text editors use it.
+- `useDebouncedInput` applies the same test in its `onKeyDown`. The hook carries its own copy, so the `use-debounce` item needs no `is-composing-key` item.
+
+## Related
+
+- [useDebouncedInput](/docs/types-hooks/use-debounced-input): the input hook that ignores keys of a composition.
+- [Quick search](/docs/sort-filter-search/quick-search): a grid input that waits for a composition to end.

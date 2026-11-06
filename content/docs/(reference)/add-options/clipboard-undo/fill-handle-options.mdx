@@ -1,9 +1,74 @@
 ---
 title: Fill handle options
-description: Fill handle options.
+description: Look up the options of useDataGridFill, the FillArgs that onFill receives, and the SeriesDescriptor that a custom detectSeries returns.
 type: reference
+aliases: ["fill options", "onFill args", "series descriptor", "autofill options"]
 ---
 
-{/* docs-stub */}
+`useDataGridFill` adds the fill handle and the fill down and fill right commands. It takes one options object and returns `UseDataGridFillResult`, `{ plugin }`. Pass `plugin` in the `plugins` prop of the grid. [Fill handle](/docs/clipboard-undo/fill-handle) explains the behavior.
 
-This page is being written.
+This sample sets all three options:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridFill,
+  type FillArgs,
+  type SeriesDescriptor,
+} from "@/components/data-grid-fill/data-grid-fill";
+
+type Row = { id: string; name: string };
+
+const data: Row[] = Array.from({ length: 200 }, (_, i) => ({
+  id: String(i),
+  name: String(i),
+}));
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const everySecond = (values: readonly string[]): SeriesDescriptor | null =>
+  values.length < 2 ? null : { extrapolate: (index) => `${index * 2}` };
+
+export function FillGrid() {
+  const { plugin } = useDataGridFill({
+    disabled: false,
+    onFill: ({ target, preventDefault }: FillArgs) => {
+      if (target.height > 100) preventDefault();
+    },
+    detectSeries: everySecond,
+  });
+  return <DataGrid defaultData={data} columns={columns} plugins={[plugin]} />;
+}
+```
+
+The grid cancels a fill over more than 100 rows. When a source column has two or more cells, a fill down gives each new cell twice its distance from the first source cell. A two-cell source gives `4` and `6`.
+
+## UseDataGridFillOptions [#usedatagridfilloptions]
+
+Every option is optional.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx" name="UseDataGridFillOptions" />
+
+## FillArgs [#fillargs]
+
+`onFill` receives one `FillArgs` object. It runs on the release of a drag and on both keyboard commands, before the grid writes. A keyboard command on a selection of one row (Ctrl/Cmd+D) or one column (Ctrl/Cmd+R) fills nothing and does not call it. A cancelled drag does not call it.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-fill-handle.ts" name="FillArgs" />
+
+`source` and `target` are rectangles in view index. `target` covers the new cells only. For <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>, `source` is the top row of the selection and `target` is the rest of it. For <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>, `source` is the left column.
+
+`values` holds one text per cell of `target`, before validation. It includes the cells that the grid skips: read-only cells and, in scroll mode, rows that are not loaded yet.
+
+## SeriesDescriptor [#seriesdescriptor]
+
+A `detectSeries` function returns a `SeriesDescriptor`, or `null` to copy the source cells.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-fill/detect-series.ts" name="SeriesDescriptor" />
+
+`detectSeries` receives the source cell texts along the fill axis, in source order. A vertical fill calls it once per source column. A horizontal fill calls it once per source row. If you hold <kbd>Alt</kbd> (<kbd>Option</kbd> on Mac) at the release of a drag, the fill copies and calls no detector. The `index` that `extrapolate` receives is `0` for the first source cell. A fill up or left passes negative indexes. The add-on exports the built-in detector as `detectSeries`, so a custom detector can fall back to it.
+
+## Related
+
+- [Fill handle](/docs/clipboard-undo/fill-handle): the drag, the series rules, and the keyboard commands.
+- [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options): the history that records a fill.

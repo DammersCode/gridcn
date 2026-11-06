@@ -1,9 +1,76 @@
 ---
 title: Undo and redo options
-description: Undo and redo options.
+description: Look up the options and the result of useDataGridHistory and useDataGridState, the hooks of the data-grid-history add-on.
 type: reference
+aliases: ["history options", "record sources", "dataset key", "undo capacity"]
 ---
 
-{/* docs-stub */}
+The `data-grid-history` add-on has two hooks. `useDataGridHistory` adds a history to a grid whose data you own. `useDataGridState` owns the data array and the history together. Both options objects are optional. [Undo and redo](/docs/clipboard-undo/undo-redo) explains the behavior.
 
-This page is being written.
+This sample sets all three options of `useDataGridHistory`:
+
+```tsx
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function HistoryGrid({ rows }: { rows: Row[] }) {
+  const [data, setData] = useState<readonly Row[]>(rows);
+  const history = useDataGridHistory<Row>({
+    capacity: 50,
+    datasetKey: "2026",
+    recordSources: ["edit", "paste", "fill"],
+  });
+  return (
+    <DataGrid
+      data={data}
+      columns={columns}
+      onDataChange={setData}
+      plugins={[history.plugin]}
+    />
+  );
+}
+```
+
+The stack keeps the last 50 entries. Only edits, pastes, and fills go on it.
+
+## UseDataGridHistoryOptions [#usedatagridhistoryoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
+
+The `recordSources` example in the table leaves out `replace`. To record streams too, pass the default list of the second bullet below plus `"stream"`.
+
+- `capacity` defaults to `100`. It counts entries, not operations. A change of `capacity` between renders starts an empty history.
+- `recordSources` defaults to `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app`. The default leaves out `stream`, `history`, and `rollback`.
+- The history never records `history` or `rollback`, whatever the list says.
+- A change of `datasetKey` between renders clears both stacks. The first render clears nothing.
+
+## UseDataGridHistoryResult [#usedatagridhistoryresult]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryResult" />
+
+## UseDataGridStateOptions [#usedatagridstateoptions]
+
+`useDataGridState(defaultRows, options)` takes the starting rows as its first argument.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateOptions" />
+
+`getRowId` defaults to the `id` field of a row. `capacity` and `datasetKey` work as they do for `useDataGridHistory`.
+
+## UseDataGridStateResult [#usedatagridstateresult]
+
+Spread the result onto the grid: `<DataGrid {...grid} columns={columns} />`. The `history` member is not a grid prop. It holds the controls for your own buttons.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateResult" />
+
+## Related
+
+- [Undo and redo](/docs/clipboard-undo/undo-redo): how the history works and how to wire it.
+- [Undo for code changes](/docs/clipboard-undo/undo-code-changes): `record`, the change sources, and `datasetKey` in use.
+- [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options): the options of the add-on whose fills the history records.

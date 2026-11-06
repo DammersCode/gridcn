@@ -1,9 +1,147 @@
 ---
 title: Import options
-description: Import options.
+description: Look up importDefaults, importLimits, the props of the import button and dialog, and the functions and hook for a custom import UI.
 type: reference
+aliases: ["csv import options", "default skip columns", "import file size limit", "zip bomb"]
 ---
 
-{/* docs-stub */}
+The `data-grid-io` add-on reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` and `DataGridImportDialog` take two optional objects: `importDefaults` sets where the dialog starts, and `importLimits` bounds the file. [Import](/docs/import-export/import) explains the dialog.
 
-This page is being written.
+This sample reads CSV files with semicolons, skips the `internal_id` column, and rejects a file over 5 MiB or over 10,000 rows, header row included. Render it under the grid provider:
+
+```tsx
+import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
+
+type Row = { id: string; name: string };
+
+export function ImportRows({ onRows }: { onRows: (rows: Row[]) => void }) {
+  return (
+    <DataGridImportButton<Row>
+      createRow={() => ({ id: crypto.randomUUID(), name: "" })}
+      onImport={onRows}
+      importDefaults={{
+        defaultDelimiter: ";",
+        defaultSkipColumns: ["internal_id"],
+      }}
+      importLimits={{ maxFileBytes: 5 * 1024 * 1024, maxRows: 10_000 }}
+    />
+  );
+}
+```
+
+## ImportDefaults [#importdefaults]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/match-import-column.ts" name="ImportDefaults" />
+
+`defaultHeaderRow` defaults to `true`. Without `importDefaults`, the header row toggle is on, CSV files get a detected delimiter, and each column matches by header text.
+
+The user can change every default in the open dialog.
+
+- With `defaultDelimiter` set, the dialog reads CSV files with that delimiter and does not detect one.
+- With `autoDetectDelimiter` set to `false` and no `defaultDelimiter`, the dialog uses a comma.
+- `mapColumn` wins over `defaultSkipColumns`. If a promise from `mapColumn` rejects, the dialog drops every answer of `mapColumn` and uses the built-in match with `defaultSkipColumns`.
+
+## ImportLimits [#importlimits]
+
+`parseImportFile` rejects a file over any limit. It never cuts the file. An omitted field takes its value from `DEFAULT_IMPORT_LIMITS`, which the add-on exports.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/parse-import-file.ts" name="ImportLimits" />
+
+`maxFileBytes` defaults to 50 MiB, which is `50 * 1024 * 1024` bytes. `maxDecompressedBytes` defaults to 256 MiB.
+
+An XLSX part has a cap of `min(maxDecompressedBytes, maxCells * 10 + 1 MiB)` bytes after unpacking.
+
+## DataGridImportButtonProps [#datagridimportbuttonprops]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/import-button.tsx" name="DataGridImportButtonProps" />
+
+## DataGridImportDialogProps [#datagridimportdialogprops]
+
+If you control the open state yourself, use the dialog.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/import-dialog.tsx" name="DataGridImportDialogProps" />
+
+## Functions [#functions]
+
+| Function | Returns | What it does |
+| --- | --- | --- |
+| `parseImportFile(file, options?, signal?)` | `Promise<ParsedImportFile>` | Reads a file into a grid of strings. The header row stays in `rows[0]`. |
+| `matchImportColumns(headers, columns)` | `(string \| null)[]` | Matches each header to a grid column id by header text, then by column id. When two headers match one column, the first header keeps it and the later header gives `null`. |
+| `applyImportOptions(headers, columns, options?)` | `(string \| null)[]` | Matches, then applies `defaultSkipColumns` and a synchronous `mapColumn`. |
+| `buildImportedRows(options)` | `BuildImportedRowsResult` or a promise | Builds one row per data row and checks every cell. |
+
+### parseImportFile [#parseimportfile]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/parse-import-file.ts" name="ParseImportFileOptions" />
+
+The function rejects with an `Error`. The add-on sets these messages. Another parser error keeps the message of the parser:
+
+| Message | Cause |
+| --- | --- |
+| `file-too-large` | The file is over `maxFileBytes`. |
+| `import-too-many-cells` | The rows, columns, or cells are over a cap. |
+| `part-too-large` | A part of an XLSX file unpacks over the part cap. |
+| `unsupported-excel-format` | The file has an Excel name but is neither XLSX nor BIFF8 XLS. |
+| `unsupported-file-type` | The name is not `.csv`, `.tsv`, `.xlsx`, or `.xls`, and the MIME type is not `text/csv` or `text/tab-separated-values`. |
+| `unknown sheet "<name>"` | The workbook has no sheet named `sheetName`. |
+| `unreadable-zip`, `unreadable-xls` | The file has damage. |
+
+If `signal` aborts before the file read ends, the parse rejects with an `AbortError`. A later abort does not stop the parse.
+
+The function resolves to a `ParsedImportFile`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/parse-import-file.ts" name="ParsedImportFile" />
+
+### buildImportedRows [#buildimportedrows]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/build-imported-rows.ts" name="BuildImportedRowsOptions" />
+
+The result lists each cleared cell:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/build-imported-rows.ts" name="BuildImportedRowsResult" />
+
+The function returns the result itself for 5,000 data rows or fewer with synchronous validators and a synchronous `createRow`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
+
+`mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries.
+
+## useDataGridImportPreview [#usedatagridimportpreview]
+
+The hook runs the file, header, and mapping steps of the dialog and leaves the UI to you.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/use-data-grid-import.ts" name="UseDataGridImportPreviewOptions" />
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-io/use-data-grid-import.ts" name="UseDataGridImportPreviewResult" />
+
+`preview` is an `ImportFileState`. `loadFile(file, gridColumns)` takes the grid columns as `ImportTargetColumn` entries: `{ id, header, headerText? }`. `error` is an `ImportErrorKey`, a key into `labels.io`. To build the rows, pass `importRows` as `dataRows`, `preview.mapping` as `mapping`, and `columns` and `cellTypes` from the read state, and your `createRow`, to `buildImportedRows`. `isParsing` is `true` while a file loads.
+
+`setMapping(importColumnIndex, gridColumnId)` sets one menu, and `null` skips the column. It does not check for a grid column that another source column already holds. `setHasHeaderRow`, `setDelimiter`, and `setSheetName` are the calls for the header toggle, the delimiter menu, and the sheet picker of your UI. `previewRows` holds at most `IMPORT_PREVIEW_ROW_COUNT` rows, which is `10`.
+
+## Dropzone [#dropzone]
+
+`data-grid-io` installs the `dropzone` item. Import `Dropzone`, `DropzoneEmptyState`, and `DropzoneContent` from `@/components/dropzone/dropzone`.
+
+{/* props: DropzoneProps */}
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `accept` | `DropzoneAccept` | every file | Maps MIME types to extensions, such as `{ "text/csv": [".csv"] }`. |
+| `maxFiles` | `number` | unlimited | Sets the most files per drop or pick. `1` turns off multiple files. |
+| `maxSize` | `number` | none | Sets the largest file, in bytes. |
+| `minSize` | `number` | none | Sets the smallest file, in bytes. |
+| `disabled` | `boolean` | `false` | Ignores drops, clicks, and keys. |
+| `compact` | `boolean` | `false` | Shows the zone as one row. |
+| `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Receives the accepted files and the rejections after a drop or a pick. |
+| `onError` | `(error: Error) => void` | none | Receives an error that `onDrop` throws. |
+| `src` | `File[]` | none | Holds the files to show. `DropzoneEmptyState` hides while it holds a file, and `DropzoneContent` lists them. |
+| `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Replaces the default content. |
+| `className` | `string` | none | Merges after the built-in classes. |
+| `aria-label` | `string` | none | Names the drop surface. |
+
+A `DropzoneRejection` is `{ file, reasons }`. Each reason is `accept`, `maxSize`, `minSize`, or `maxFiles`. `filterFiles(files, options)` applies the same rules and returns a `FilterFilesResult`: `accepted` holds the accepted files, and `rejections` holds the rejections. `matchesAccept(file, accept)` tests one file. `DropzoneEmptyState` takes a `title` and a `description`. `DropzoneContent` shows its `children` in place of the file list.
+
+The root carries `data-drag-active` during a drag and `data-disabled` while `disabled` is `true`.
+
+## Related
+
+- [Import](/docs/import-export/import): the dialog, the Excel rules, and the limits in use.
+- [Export options](/docs/add-options/import-export/export-options): the options of the matching export.
+- [Validation](/docs/editing-cells/validation): the `validate` check that clears a cell on import.

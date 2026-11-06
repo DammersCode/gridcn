@@ -1,9 +1,62 @@
 ---
 title: useDebounce
-description: useDebounce.
+description: Delay a value with useDebounce until it stops changing, for example before the value feeds a request.
 type: reference
+aliases: ["delay a value", "throttle value", "wait for typing"]
 ---
 
-{/* docs-stub */}
+Typing fires a change on every key. `useDebounce` returns a copy of a value that follows the value only after the value stays the same for a wait. The hook does not depend on the grid.
 
-This page is being written.
+<InstallCommand item="use-debounce" />
+
+The item installs to `components/gridcn/use-debounce.ts`. The same file holds [`useDebouncedInput`](/docs/types-hooks/use-debounced-input).
+
+## useDebounce [#usedebounce]
+
+```ts fragment="signature"
+function useDebounce<T>(value: T, delayMs?: number): T;
+```
+
+Debounce a state value before it feeds a request:
+
+```tsx
+import { useState } from "react";
+import { useDebounce } from "@/components/gridcn/use-debounce";
+
+export function SearchBox() {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+  return (
+    <>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} />
+      <p>Searching for {debouncedQuery}</p>
+    </>
+  );
+}
+```
+
+The input shows each keystroke at once. The line below it changes 300 ms after the last keystroke.
+
+## Arguments [#arguments]
+
+| Argument | Type | Default |
+| --- | --- | --- |
+| `value` | `T` | Required |
+| `delayMs` | `number` | `300` |
+
+## Behavior [#behavior]
+
+- The first render returns `value`.
+- Each change of `value` or `delayMs` restarts the wait.
+- An unmount cancels a pending update.
+- With a `delayMs` of `0` or less, the hook returns `value` itself and sets no timer.
+
+## inputDebounceMs [#inputdebouncems]
+
+The grid waits for typing in its own text inputs: the toolbar search, the filter value inputs, the set filter search, and find and replace. The wait is the `inputDebounceMs` prop of the provider, in ms. The default is `200`. A value of `0` applies each keystroke at once. The `debounceMs` prop of `DataGridSearch` wins over it for that search box. The wait is the same in client and server mode.
+
+## Related
+
+- [useDebouncedInput](/docs/types-hooks/use-debounced-input): commit the text of an input after the typing pauses.
+- [Server rows example: wait for typing to pause](/docs/server-data-examples/server-rows-example#wait-for-typing-to-pause): a wait inside `fetchRows`.
+- [Quick search](/docs/sort-filter-search/quick-search): the toolbar search that waits for typing to pause.
