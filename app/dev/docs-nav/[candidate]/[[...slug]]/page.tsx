@@ -85,7 +85,6 @@ export default async function Page({ params }: { params: Promise<{ candidate: st
         ].filter((c) => c.to)
       : [];
   const children = childrenOf(c, page);
-  const index = pages.findIndex((p) => p.url === url);
   const toc = Array.from({ length: H2_PLAN[page.type] ?? 3 }, (_, i) => ({ title: `Section ${i + 1}`, url: `#section-${i + 1}`, depth: 2 }));
   return (
     <DocsPage toc={toc}>
