@@ -1,10 +1,147 @@
 ---
 title: Export
-description: Export.
+description: Download the rows of the grid as a CSV or XLSX file, or print them as a paged table, from a toolbar button or from code.
 type: feature
 aliases: ["csv export", "excel export", "xlsx download", "csv injection", "formula injection"]
 ---
 
-{/* docs-stub */}
+Export writes the rows of the grid to a CSV or XLSX file. `DataGridExportButton` adds a toolbar button for it. `exportGrid` does the same from code. Both write each cell as the text that its cell type's `toText` gives. If `processCellForClipboard` is unset, copy gives the same text. `printGrid` prints the rows as a paged table. The demo prints the current view:
 
-This page is being written.
+<ComponentPreview name="data-grid-print-demo" />
+
+<InstallCommand item="data-grid-io" manual manualSlot={<ManualInstall item="data-grid-io" />} />
+
+The add-on depends on `hucre` (pinned to 1.1.0) for XLSX and on `papaparse` for CSV import. `papaparse` loads with the add-on. The grid loads `hucre` on the first XLSX or XLS read or write.
+
+## Download a file [#export]
+
+Place `DataGridExportButton` inside the provider, usually in the [toolbar](/docs/sort-filter-search/toolbar) (the `data-grid-toolbar` item):
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { DataGridExportButton } from "@/components/data-grid-io/data-grid-io";
+import { columns, orders } from "./orders";
+
+export function OrdersGrid() {
+  return (
+    <DataGridProvider defaultData={orders} columns={columns}>
+      <DataGridToolbar>
+        <DataGridExportButton options={{ fileName: "orders" }} />
+      </DataGridToolbar>
+      <DataGridRoot>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+The button opens a menu with XLSX and CSV. With one format, such as `formats={["csv"]}`, a click exports at once. The `options` prop passes every `exportGrid` option except `format`. `onError(error, format)` receives the error and the format of a failed export. Without it, a failure logs a warning in development only.
+
+To start an export from your own control, call `exportGrid` from `useDataGridExport()`:
+
+```tsx
+"use client";
+
+import { useDataGridExport } from "@/components/data-grid-io/data-grid-io";
+
+export function ExportAllButton() {
+  const { exportGrid } = useDataGridExport();
+  return (
+    <button onClick={() => exportGrid({ format: "csv", scope: "all" })}>
+      Export all rows
+    </button>
+  );
+}
+```
+
+## Choose the rows
+
+`scope` picks the rows:
+
+- `view` (default) writes the rows of the current view, in sort order and after the filters. Quick search does not narrow the view, so it does not narrow the export.
+- `all` writes every row of `data` in data order, whatever the sort and the filters.
+- `selection` writes the rows that a cell range or a checked row marker covers, in view order. With `keepCheckedRows`, one checked row limits the export to the checked rows.
+
+Every scope writes all visible columns in view order. Hidden columns stay out. A cell range that covers part of a row still writes the whole row. `includeHeaders: false` drops the header row. `maxRows` keeps the first rows only and does not count the header row. When it cuts rows, the console warns in development.
+
+## Write a CSV file
+
+A CSV file holds UTF-8 text with a byte order mark. Excel reads UTF-8 from a file that starts with that mark. Set `csvBom: false` for a reader that fails on the mark. `csvDelimiter` sets the separator (comma by default). The writer quotes a field that holds the delimiter, a quote, or a line break. Lines end with CRLF.
+
+A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
+
+<Callout type="warn">
+  `sanitizeFormulas: false` writes the raw text. A spreadsheet runs a cell that starts with `=` as a formula. Set it only for a program that expects the exact text.
+</Callout>
+
+`rowsToCsv` sanitizes the same way. Pass `false` as its third argument for raw fields. `sanitizeFormulaCell(value)` from `data-grid` does the same for your own writers. Copy and cut stay raw. The grid prop `sanitizeClipboardFormulas` changes that (see [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing)).
+
+## Write an XLSX file
+
+An XLSX file holds one compressed sheet. Every cell is a text cell with its `toText` string, so Excel shows a number column as text. A string never runs as a formula there.
+
+`workbookName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
+
+- an empty name or a name over 31 characters
+- a name with `[`, `]`, `:`, `*`, `?`, `/`, or `\`
+- a name that starts or ends with an apostrophe
+- `History`, in any case
+
+The writer cuts a cell text over 32,767 characters.
+
+`buildXlsx(state, options)` returns the workbook as a `Blob` and starts no download. Use it to upload the file:
+
+```tsx
+import { buildXlsx } from "@/components/data-grid-io/data-grid-io";
+import { useDataGridStoreApi } from "@/components/data-grid/data-grid-sdk";
+
+export function useUploadWorkbook() {
+  const storeApi = useDataGridStoreApi();
+  return async () => {
+    const blob = await buildXlsx(storeApi.getState(), { scope: "all" });
+    await fetch("/api/reports", { method: "POST", body: blob });
+  };
+}
+```
+
+## Print
+
+`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar.
+
+Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A call while a print frame is open replaces that frame. A lazy grid prints its loaded rows only. Print does nothing during server rendering.
+
+- `title` prints as a heading and sets the document title.
+- `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
+- `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.
+- `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. A cut table ends with a note such as "Printed 10000 of 25000 rows".
+- A cell text over 32,767 characters is cut, as in XLSX.
+- `DataGridPrintButton` passes its `options` prop to `printGrid`.
+
+## Server mode
+
+Export has a gap in client pagination and in every server mode. It writes only the rows that the grid holds in `data`, and it never asks the server for more.
+
+- Client pagination and server pagination write the current page. The `all` scope also writes that page only.
+- Scroll mode writes the loaded rows. Every scope skips unloaded rows, so load the range first.
+- With your own API (`onDataChange` write-through), export writes the rows that `data` holds, and rows that the app has not loaded stay out.
+- With `sortMode="server"`, the `view` scope keeps the order of `data`. With `filterMode="server"`, it applies no filter.
+- With controlled `sortState` and `filterState`, export follows the view like a local grid.
+- Print covers the rows in `data` by design: it prints the loaded rows, in the order and with the filters above.
+
+To export a full result in a server mode, fetch the rows from your server and write the file there. See [Server pagination](/docs/server-pagination) for the page requests. With client pagination, build the file from your full array, for example with `rowsToCsv`.
+
+## Related
+
+- [Export options](/docs/add-options/import-export/export-options): every `exportGrid`, `buildXlsx`, and `printGrid` option.
+- [Import](/docs/import-export/import): the dialog that reads CSV and Excel files into rows.
+- [Clipboard](/docs/clipboard-undo/clipboard): the copy text that export reuses.

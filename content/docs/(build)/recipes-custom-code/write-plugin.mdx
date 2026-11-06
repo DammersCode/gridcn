@@ -1,10 +1,116 @@
 ---
 title: Write a plugin
-description: Write a plugin.
+description: Write a plugin that paints a tinted band over one column and follows scroll, resize, and pinned columns.
 type: task
 aliases: ["write a plugin", "highlight plugin"]
 ---
 
-{/* docs-stub */}
+Write a plugin to paint on the grid, observe data changes, or add a command. This task builds a plugin that tints one column. A plugin object holds the parts it needs, and `name` is the only required part.
 
-This page is being written.
+## Before you start
+
+- Mount a grid with `columns` and `data`.
+- Know that a plugin object attaches to one grid. Create one object per grid.
+- Pick the part. `Overlay` paints, `rowBands` adds rows, and `onDataChange` observes writes. `commands` adds commands, and `keymap` binds keys to them. The grid renders `Mount` inside the grid root.
+
+## Steps
+
+1. Write a component that takes the overlay `ctx` and returns the band. The grid renders it after the selection fills and before the active-cell ring.
+2. Build a rect in view coordinates. Use `ctx.clampRowStart` and `ctx.clampRowEnd` for the rows. The rect is `{ x, y, width, height }`, where `x` is a visible column index and `y` is a view index.
+3. Call `ctx.clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount)`. If the rect lies outside the rendered rows, it returns `null`.
+4. If `hasAnyPin(ctx.pinTrack)` is true, call `ctx.splitRectByPinZones`. It returns one segment for each pin zone that the rect crosses, up to three, and a pinned segment carries a `pinStyle`. Spread it, and set `zIndex: GRID_LAYER.pinnedOverlaySegment`, so the band paints above the pinned cells.
+5. Place every segment by grid lines: `rect.x + colOffset` for columns and `rect.y - windowStart + 1` for rows. Set `position: "relative"`. Cells have a position, so a static band paints below them.
+6. Read the column from React context and not from a closure. A new `Overlay` function remounts the overlay and logs a warning in development.
+7. Return `{ name, Overlay }` from a factory and pass the result in `plugins`.
+
+## Paint a column
+
+The sample below does all seven steps. Create the plugin once per grid with `useState`:
+
+```tsx
+"use client";
+
+import { createContext, useContext, useState } from "react";
+import {
+  DataGrid,
+  type DataGridPlugin,
+  type GridRect,
+  type OverlayPluginCtx,
+} from "@/components/data-grid/data-grid";
+import { GRID_LAYER, hasAnyPin } from "@/components/data-grid/data-grid-sdk";
+import { columns, orders } from "./orders";
+
+const HighlightedColumn = createContext<number | null>(null);
+
+type BandProps = { column: number; ctx: OverlayPluginCtx };
+
+function ColumnBand({ column, ctx }: BandProps) {
+  const { clampRowStart, clampRowEnd, colCount } = ctx;
+  const { colOffset, windowStart } = ctx;
+  const rect: GridRect = {
+    x: column,
+    y: clampRowStart,
+    width: 1,
+    height: clampRowEnd - clampRowStart,
+  };
+  const clamped = ctx.clampRectToWindow(
+    rect,
+    clampRowStart,
+    clampRowEnd,
+    colCount,
+  );
+  if (!clamped) return null;
+  const segments = hasAnyPin(ctx.pinTrack)
+    ? ctx.splitRectByPinZones(clamped, ctx.pinTrack)
+    : [{ rect: clamped, pinStyle: undefined }];
+  return segments.map(({ rect: part, pinStyle }, index) => (
+    <div
+      key={index}
+      aria-hidden="true"
+      className="pointer-events-none bg-primary/10"
+      style={{
+        position: "relative",
+        gridColumnStart: part.x + colOffset,
+        gridColumnEnd: part.x + part.width + colOffset,
+        gridRowStart: part.y - windowStart + 1,
+        gridRowEnd: part.y + part.height - windowStart + 1,
+        ...pinStyle,
+        ...(pinStyle ? { zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
+      }}
+    />
+  ));
+}
+
+function ColumnOverlay(ctx: OverlayPluginCtx) {
+  const column = useContext(HighlightedColumn);
+  return column === null ? null : <ColumnBand column={column} ctx={ctx} />;
+}
+
+function createColumnHighlight(): DataGridPlugin {
+  return { name: "column-highlight", Overlay: ColumnOverlay };
+}
+
+export function OrdersGrid() {
+  const [column, setColumn] = useState<number | null>(null);
+  const [plugin] = useState(createColumnHighlight);
+  return (
+    <HighlightedColumn.Provider value={column}>
+      <button onClick={() => setColumn(1)}>Highlight the second column</button>
+      <DataGrid defaultData={orders} columns={columns} plugins={[plugin]} />
+    </HighlightedColumn.Provider>
+  );
+}
+```
+
+## Result
+
+A click on the button tints the second column across the rendered rows. The band lives in the scrolling canvas, so it moves with the cells. It splits at pinned columns. In an unpinned column the active-cell ring stays above it. In a pinned column the segment `zIndex` puts the band above the ring, so keep the band translucent.
+
+An inline `plugins={[plugin]}` array is safe while the plugin object keeps its identity. A new object with the same `name` and a changed member makes the grid resolve the plugins again.
+
+## Related
+
+- [Plugin overlays](/docs/plugins/plugin-overlays): every `ctx` field and the coordinate rules.
+- [Plugin shape](/docs/plugins/plugin-shape): the parts of a plugin object and what they do.
+- [Plugin events](/docs/plugins/plugin-events): observe data changes from a plugin.
+- [Plan a plugin](/docs/custom-code-path/plan-plugin): choose the parts before you write one.

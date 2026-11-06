@@ -1,31 +1,85 @@
 ---
-title: "Link multiple grids"
-description: Mount more than one grid on a page with no extra setup.
+title: Link multiple grids
+description: Mount several grids on one page, then link them so the active row in one grid sets the rows of another.
 icon: Columns2
 type: task
-aliases: ["sync grids", "linked grids"]
+aliases: ["sync grids", "linked grids", "master detail grids"]
 ---
 
-Each `<DataGridProvider>` mounts its own Zustand store instance (`createStore` in a `useState`
-factory). There is no module-level singleton, so multiple grids on one page work with no
-configuration:
+Without a `store` prop, every `DataGrid` and every `DataGridProvider` creates its own store. No module-level store exists, so several grids work on one page with no setup. Sort, filter, selection, edits, and focus stay apart. To link two grids, pass state through React: a callback of one grid sets state, and the other grid reads it.
+
+## Before you start
+
+- Give every row of every grid a stable `id`, or pass `getRowId`.
+- Give each grid a height. `className="h-[400px]"` is enough.
+
+## Steps
+
+1. Hold the shared value in state above both grids.
+2. Set it from a callback of the first grid. With no active cell, `onActiveCellChange` passes `null`.
+3. Derive the rows of the second grid from that state with `useMemo`.
+4. Pass the derived rows as `data` to the second grid. For a display-only grid, add `readOnly`.
+
+## Show the orders of the active customer
+
+The sample links a customer grid to an order grid:
 
 ```tsx
-<div className="grid grid-cols-2 gap-4">
-  <DataGridProvider {...gridA} columns={columnsA}>
-    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
-  </DataGridProvider>
-  <DataGridProvider {...gridB} columns={columnsB}>
-    <DataGridRoot><DataGridHeader /><DataGridBody /></DataGridRoot>
-  </DataGridProvider>
-</div>
+"use client";
+
+import { useMemo, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Customer = { id: string; name: string };
+type Order = { id: string; customerId: string; total: number };
+
+const customerColumns = defineColumns<Customer>()([
+  { id: "name", header: "Customer", accessorKey: "name", type: "text" },
+] as const);
+
+const orderColumns = defineColumns<Order>()([
+  { id: "id", header: "Order", accessorKey: "id", type: "text" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+] as const);
+
+type Props = { customers: Customer[]; orders: Order[] };
+
+export function CustomersAndOrders({ customers, orders }: Props) {
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const customerOrders = useMemo(
+    () => orders.filter((order) => order.customerId === customerId),
+    [orders, customerId],
+  );
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <DataGrid
+        className="h-[400px]"
+        defaultData={customers}
+        columns={customerColumns}
+        onActiveCellChange={(next) => setCustomerId(next?.rowId ?? null)}
+      />
+      <DataGrid
+        className="h-[400px]"
+        data={customerOrders}
+        columns={orderColumns}
+        readOnly
+      />
+    </div>
+  );
+}
 ```
 
-<Callout type="warn" title="data-grid-url-state needs a distinct prefix per grid">
-  Without a distinct prefix, two grids syncing to the URL collide on the same `sort`, `filter`,
-  `join`, and `q` keys. See [URL state](/docs/sort-filter-search/url-state#prefix).
+## Result
+
+The order grid shows the orders of the customer in the active cell. It shows no rows while no cell is active. Each grid keeps its own sort, filter, and selection.
+
+<Callout type="warn" title="Give each grid a URL prefix">
+  Two grids that use `data-grid-url-state` use the same keys, such as `sort`, `filter`, and `q`, so their values collide. Set a different `prefix` on each grid. See [URL state](/docs/sort-filter-search/url-state#prefix).
 </Callout>
 
 ## Related
 
-- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts#multiple-grids): which grid answers a key pressed outside every grid.
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts#multiple-grids): which grid owns a page-wide shortcut.
+- [Selection and cell events](/docs/events-state/selection-cell-events): the `onActiveCellChange` event.
+- [Selection model](/docs/concepts/selection-model): what a grid keeps in its own selection.

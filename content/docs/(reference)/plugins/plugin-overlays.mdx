@@ -1,9 +1,74 @@
 ---
 title: Plugin overlays
-description: Plugin overlays.
+description: Learn how a plugin paints into the overlay layer and the row bands, which context values it receives, and which coordinates it uses.
 type: concept
+aliases: ["draw over cells", "pin rows to the edge", "paint over cells", "overlay context", "highlight a range"]
 ---
 
-{/* docs-stub */}
+A plugin paints in two places. The `Overlay` member paints above the cells, inside the scrolling canvas. The `rowBands` member adds sticky rows under the header or at the bottom edge.
 
-This page is being written.
+## Overlays
+
+The overlay layer is a stack of elements above the cells. The core paints its own layers into it, and the `Overlay` of each plugin joins the stack.
+
+`DataGridOverlays` renders the layers in this order, with the top-most layer last:
+
+1. The selection range fills: the current range, then the stacked ranges.
+2. The column bands and row bands from header and marker selection.
+3. The `Overlay` of every plugin, in array order.
+4. The touch selection handles.
+5. The active-cell ring.
+
+A plugin paints before the ring. In an unpinned column the ring stays above plugin content. A pinned segment with `zIndex: GRID_LAYER.pinnedOverlaySegment` paints above the ring of a pinned active cell, so keep pinned content translucent.
+
+An `Overlay` is a React component. A state change inside it re-renders the overlay only, not the rows.
+
+The grid adds no wrapper around an `Overlay`. Give every element it renders `pointer-events-none` and `aria-hidden="true"`. Otherwise the element takes the clicks of the cells under it, and a screen reader reads it. Put pointer work in `Mount`.
+
+### What ctx provides [#what-ctx-provides]
+
+The grid renders every `Overlay` with the `OverlayPluginCtx` values as its props, so the component reads them as `function MyOverlay(ctx: OverlayPluginCtx)`. The values let a plugin clamp a rectangle to the rendered rows, split it at pinned columns, and place it on the grid lines:
+
+- `windowStart` is the grid line origin of the rows canvas. It trails the first rendered row by up to 288 rows. Place a rectangle with `rect.y - windowStart + 1`.
+- `clampRowStart` and `clampRowEnd` are the rendered row span, from the start to the end, with the end excluded. Clamp painted rectangles to this span only.
+- `colCount` is the number of visible columns. It counts real column indexes, not the scrolled column window.
+- `colOffset` is the offset to add to the `x` of every rectangle. When a row marker column takes the first track, it is `2`. Otherwise it is `1`.
+- `pinTrack` holds the pin and track data per column. The grid always passes it. With a pinned column, `hasAnyPin(pinTrack)` from `@/components/data-grid/data-grid-sdk` returns `true`.
+- `selectionPointer` names the input that wrote the current selection. A touch selection shows handles at the range corners.
+- `clampRectToWindow(rect, rowStart, rowEnd, colCount)` clamps a rectangle to the row range and to the columns. It returns `null` for a rectangle outside the range.
+- `splitRectByPinZones(rect, pinTrack)` splits a rectangle into up to three segments: pinned left, unpinned, and pinned right.
+
+Call `clampRectToWindow` first. When `hasAnyPin(pinTrack)` returns `true` and the rectangle can cross a pinned column, call `splitRectByPinZones` on the result. A pinned segment carries a `pinStyle`. Spread it into the element style. Set `position: "relative"`, because cells have a position and a static band paints below them. Give pinned segments `zIndex: GRID_LAYER.pinnedOverlaySegment`, so they paint above pinned cells.
+
+`DataGridOverlays` is the layer that `DataGridBody` renders. Its props type is `DataGridOverlaysProps`. A plugin does not render it.
+
+### Coordinate space [#coordinate-space-view-index-not-rowid]
+
+Every rectangle that an overlay paints uses view indexes. A view index is a position in the current sorted and filtered order. `GridSelection.current.range` uses the same space. A rectangle does not use an index into your `data` array, and it does not use a row id.
+
+Two grids, or a grid and a remote peer, can disagree about sort and filter. A view index from one side is then wrong on the other. An overlay that takes coordinates from outside the grid maps a row id to a view index before it paints. [Show presence](/docs/rows-live-data/show-presence#coordinates-rowid-native-or-view-index) shows that mapping.
+
+## Row bands
+
+The `rowBands` member adds rows to the sticky top band under the header, to the sticky bottom band, or to both. It holds three members:
+
+- `top` and `bottom` are arrays of rows. They are separate from `data`, and they are not indexes into it. A missing or empty array adds no band on that side.
+- `render(ctx)` paints the rows of one band. The root calls it as a plain function while it renders. A band that needs state renders a component inside the node it returns.
+
+When several plugins add rows to one band, the root renders one segment per plugin, in array order. Each call receives a `RowBandRenderCtx`:
+
+- `position` is `"top"` or `"bottom"`.
+- `rows` holds the rows of this plugin for this band.
+- `rowOffset` counts the rows that earlier plugins put in this band. A top band stacks from the header down. A bottom band stacks from top to bottom.
+- `ariaRowIndexBase` is the `aria-rowindex` of the first row of the segment. The order is the header rows, the top band, the data rows, and the bottom band.
+- `rowHeight`, `renderedColumns`, `layout`, `template`, and `headerHeight` are the layout values of the root. They line a segment up with the cell grid. `headerHeight` covers the whole header block.
+
+The rows of the bands count toward `aria-rowcount` and toward the sticky height of the root. Bands render during server rendering.
+
+## Related
+
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Plugin contract](/docs/plugins/plugin-contract)
+- [Write a plugin](/docs/recipes-custom-code/write-plugin)
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows)
+- [Show presence](/docs/rows-live-data/show-presence)

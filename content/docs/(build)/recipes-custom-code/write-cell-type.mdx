@@ -1,6 +1,6 @@
 ---
-title: "Write a cell type"
-description: Pick the lightest way to change how a column shows and edits its values.
+title: Write a cell type
+description: Pick the lightest way to change how a column shows and edits values, then write a custom cell type with its own display, editor, and text round trip.
 icon: Shapes
 type: task
 aliases: ["custom cell type"]
@@ -8,18 +8,25 @@ aliases: ["custom cell type"]
 
 Most column needs end before a custom cell type. Take the first step that fits.
 
-## Format the display
+## Format the display [#format-the-display]
 
-A `number` column formats its value with `options.format` (any `Intl.NumberFormat` options) and `options.locale`. Copy, export, sort, and the editor keep the raw number:
+A `number` column formats its value with `options.format`, which takes any `Intl.NumberFormat` options, and with `options.locale`. Copy, export, sort, and the editor keep the raw number:
 
 ```tsx
-const columns = defineColumns<Product>()([
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Product = { id: string; price: number; margin: number };
+
+export const columns = defineColumns<Product>()([
   {
     id: "price",
     header: "Price",
     accessorKey: "price",
     type: "number",
-    options: { format: { style: "currency", currency: "EUR" }, locale: "de-DE" },
+    options: {
+      format: { style: "currency", currency: "EUR" },
+      locale: "de-DE",
+    },
   },
   {
     id: "margin",
@@ -31,20 +38,143 @@ const columns = defineColumns<Product>()([
 ] as const);
 ```
 
-## Use a built-in type
+## Use a built-in type [#use-a-built-in-type]
 
 - `url` shows a safe link. `options.label` maps the URL to the shown text.
 - `longText` stores multi-line text and edits it in a popover.
 - `select`, `date`, and `checkbox` cover choices, dates, and booleans.
 
-See [Editing & cell types](/docs/editing-cells) for every built-in type and its options.
+[Built-in cell types](/docs/editing-cells/built-cell-types) lists every type and its options.
 
-## Write a cell type
+## Write a cell type [#write-a-cell-type]
 
-Write your own type when the stored value, the editor, or the text round-trip differs from every built-in. A type is `{ Cell, Editor, toText, fromText, clearValue, isEmpty, compare?, align? }`. Pass it to the grid through `cellTypes`, keyed by the name a column uses in `type`:
+If the stored value, the editor, or the text round trip differs from every built-in, write your own type. The sample builds a `money` type that stores a plain `number | null`, shows a formatted amount, and reads a pasted `$1,234.56` as `1234.56`.
+
+1. Declare the key in `GridCellTypes`, so `defineColumns` types the column value and options.
+2. Write `toText` for copy and export. Keep it plain and parseable.
+3. Write `toDisplayText` for the formatted text. Print, column autosize, and the set values of the header filter use it, and use `toText` without it. When the numbers of a selection come from one column, the status bar formats its sum, average, minimum, and maximum with it. `Cell` decides what the cell itself shows.
+4. Write `fromText` for paste and typing. Make sure that it never throws. For text it cannot parse, return `clearValue()`.
+5. Write `Cell` and `Editor`. Start the editor from `useCellEditor`. It owns the draft and the focus, commits on Enter and on blur, and cancels on Escape.
+6. Register the type in `cellTypes` under the name that a column uses in `type`.
+
+The sample does all six steps:
 
 ```tsx
-<DataGrid cellTypes={{ rating: ratingCellType }} data={data} columns={columns} />
+"use client";
+
+import {
+  DataGrid,
+  defineCellType,
+  defineColumns,
+  useCellEditor,
+  type CellEditorProps,
+  type CellRenderProps,
+} from "@/components/data-grid/data-grid";
+import { Input } from "@/components/ui/input";
+
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    money: { value: number | null; options: { currency: string } };
+  }
+}
+
+type Options = { currency: string };
+
+const formatters = new Map<string, Intl.NumberFormat>();
+
+function format(value: number | null, options?: Options): string {
+  if (value === null) return "";
+  const currency = options?.currency ?? "USD";
+  let formatter = formatters.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", { style: "currency", currency });
+    formatters.set(currency, formatter);
+  }
+  return formatter.format(value);
+}
+
+function parse(text: string): number | null {
+  const kept = text.replace(/[^0-9.,-]/g, "");
+  const hasPoint = kept.includes(".");
+  const plain = hasPoint ? kept.replace(/,/g, "") : kept.replace(",", ".");
+  const amount = Number(plain);
+  return plain === "" || Number.isNaN(amount) ? null : amount;
+}
+
+type Value = number | null;
+
+function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
+  return (
+    <span className="block truncate tabular-nums">
+      {format(value, options)}
+    </span>
+  );
+}
+
+function Editor(props: CellEditorProps<unknown, Value, Options>) {
+  const { ref, ...bindings } = useCellEditor(props, {
+    toDraft: (value) => (value === null ? "" : String(value)),
+    toValue: parse,
+  });
+  return <Input ref={ref} {...bindings} className="h-full text-end" />;
+}
+
+const moneyCellType = defineCellType("money", {
+  Cell,
+  Editor,
+  toText: (value) => (value === null ? "" : String(value)),
+  toDisplayText: format,
+  fromText: parse,
+  clearValue: () => null,
+  isEmpty: (value) => value === null,
+  compare: (a, b) => (a ?? 0) - (b ?? 0),
+  align: "right",
+});
+
+type Product = { id: string; name: string; price: number | null };
+
+const columns = defineColumns<Product>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text" },
+  {
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
+    type: "money",
+    options: { currency: "EUR" },
+  },
+] as const);
+
+export function Products({ products }: { products: Product[] }) {
+  return (
+    <DataGrid
+      defaultData={products}
+      columns={columns}
+      cellTypes={{ money: moneyCellType }}
+    />
+  );
+}
 ```
 
-[Build your own cell type](/docs/recipes-custom-code) has the full contract, typed columns through `GridCellTypes`, and a worked `currency` example. [Editing & cell types](/docs/editing-cells) explains how editing and commits work across the grid.
+The `cellTypes` prop merges over the built-ins, so the `text` column keeps working. A key that names a built-in replaces it, and a key set to `null` removes the type. An inline `cellTypes` object is safe: when an entry changes identity, the grid resolves the types again. Define each cell type outside the component, so its identity stays stable. A column whose `type` has no registry entry renders as `text` and drops its edits. The console warns in development.
+
+The sample keeps these rules:
+
+- It stores a serializable primitive, a number, and not a class instance.
+- It caches the `Intl.NumberFormat` by currency, so scrolling does not build a new formatter for every cell.
+- It pins the locale to `"en-US"`. A default locale can differ between server and browser, which causes a hydration mismatch.
+- It treats only `null` as empty, because `0` is a real amount.
+
+## Result
+
+The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234.56` stores `1234.56`, and a copy gives `1234.56`. Without a point, the parser reads a comma as the decimal separator, so `1,5` stores `1.5`. Adapt `parse` to the number format of your users.
+
+## Test the type [#testing-your-cell-type]
+
+`toText`, `fromText`, `isEmpty`, and `compare` are plain functions. Test them without rendering: `fromText("$1,234.56")` gives `1234.56`, and `fromText("not a price")` gives `null`. Render the editor once to test that Enter commits and Escape cancels.
+
+## Related
+
+- [Cell type model](/docs/concepts/cell-type-model): how the grid uses each member of a cell type.
+- [Cell type contract](/docs/contracts/cell-type-contract): every member, option, and editor rule.
+- [Built-in cell types](/docs/editing-cells/built-cell-types): the types that ship with the grid.
+- [Plan a cell type](/docs/custom-code-path/plan-cell-type): choose the members before you write one.
