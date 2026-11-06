@@ -112,7 +112,7 @@ consumer can import. Keep the surface to the public API.
 - A hook or utility that only mounts a layer a component already exposes is internal: define it
   next to the component, keep it off the barrel.
 - Test: grep `content/docs` for the name. If the docs never tell the reader to call it, do not
-  export it. Existing barrel exports are grandfathered; do not add new ones.
+  export it. Existing barrel exports are grandfathered; do not add new ones. `scripts/verify-barrel-exports.mjs` (run by `pnpm lint`) enforces this; its baseline `scripts/barrel-exports-baseline.json` lists the grandfathered names that the docs never mention.
 
 ## Styling (shadcn compatibility)
 

@@ -756,10 +756,16 @@ export function computeViewIndex(
 export type ViewWindow = { page: number; pageSize: number } | null;
 
 const FULL_VIEW = new WeakMap<readonly number[], number[]>();
+const PAGE_START = new WeakMap<readonly number[], number>();
 
 /** The whole sorted and filtered list behind a paged `viewIndex`; a view without a window is its own full list. */
 export function fullViewOf(viewIndex: readonly number[]): number[] {
   return FULL_VIEW.get(viewIndex) ?? (viewIndex as number[]);
+}
+
+/** Where a paged `viewIndex` starts in its full list; 0 for a view without a window. */
+export function pageStartOf(viewIndex: readonly number[]): number {
+  return PAGE_START.get(viewIndex) ?? 0;
 }
 
 /** The last page that holds rows (at least 1) for `total` rows. */
@@ -784,6 +790,7 @@ export function windowView(full: number[], window: ViewWindow, prev?: readonly n
   const slice = full.slice(start, start + size);
   if (prev && FULL_VIEW.get(prev) === full && sameElements(slice, prev)) return prev as number[];
   FULL_VIEW.set(slice, full);
+  PAGE_START.set(slice, start);
   return slice;
 }
 
@@ -870,24 +877,28 @@ export function computeSearchMatches(
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
   }
   const dataAccessor = textAccessorFor(columns, data, cellTypes);
-  // viewRow is always < viewIndex.length (findSearchMatches iterates 0..viewIndex.length)
+  // A paged grid searches its whole view: `searchMatches` rows are full-view rows, and the highlight lookups below are page rows.
+  const searched = fullViewOf(viewIndex);
+  const pageStart = pageStartOf(viewIndex);
+  // viewRow is always < searched.length (findSearchMatches iterates 0..searched.length)
   const readSearchText = searchTextReader(dataAccessor);
   const viewAccessor: CellAccessor = {
-    getText: (viewRow, columnId) => dataAccessor.getText(viewIndex[viewRow]!, columnId),
-    getSearchText: (viewRow, columnId) => readSearchText(viewIndex[viewRow]!, columnId),
-    getValue: (viewRow, columnId) => dataAccessor.getValue?.(viewIndex[viewRow]!, columnId),
+    getText: (viewRow, columnId) => dataAccessor.getText(searched[viewRow]!, columnId),
+    getSearchText: (viewRow, columnId) => readSearchText(searched[viewRow]!, columnId),
+    getValue: (viewRow, columnId) => dataAccessor.getValue?.(searched[viewRow]!, columnId),
     filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
   };
   const searchMatches = findSearchMatches(
-    viewIndex.length,
+    searched.length,
     viewAccessor,
     searchText,
     visibleColumns.map((c) => c.id),
     MAX_SEARCH_MATCHES,
     searchOptions,
   );
-  const searchMatchSet = new Set(searchMatches.map((m) => searchMatchKey(m.row, m.columnId)));
-  const searchMatchRows = buildSearchMatchRows(searchMatches, visibleColumns);
+  const onPage = searched === viewIndex ? searchMatches : searchMatches.filter((m) => m.row >= pageStart && m.row < pageStart + viewIndex.length).map((m) => ({ ...m, row: m.row - pageStart }));
+  const searchMatchSet = new Set(onPage.map((m) => searchMatchKey(m.row, m.columnId)));
+  const searchMatchRows = buildSearchMatchRows(onPage, visibleColumns);
   return { searchMatches, searchMatchSet, searchMatchRows, searchMatchesCapped: searchMatches.length >= MAX_SEARCH_MATCHES };
 }
 

@@ -27,6 +27,9 @@ import {
   useDataGridInputDebounce,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
+  effectivePage,
+  fullViewOf,
+  pageStartOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridSearch}. */
@@ -124,7 +127,15 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
       const match = searchMatches[wrapped]!; // wrapped is modulo'd into [0, searchMatches.length)
       const col = columns.findIndex((c) => c.id === match.columnId);
       if (col === -1) return;
-      const coord = { col, row: match.row };
+      const paged = storeApi.getState().pageSize;
+      let row = match.row;
+      if (paged !== null) {
+        const page = Math.floor(match.row / paged) + 1;
+        if (effectivePage(storeApi.getState().page, fullViewOf(storeApi.getState().viewIndex).length, paged) !== page) actions.setPage(page);
+        if (storeApi.getState().page !== page) return;
+        row = match.row - pageStartOf(storeApi.getState().viewIndex);
+      }
+      const coord = { col, row };
       actions.setActiveCellAt(coord);
       scrollToCell(coord);
     },

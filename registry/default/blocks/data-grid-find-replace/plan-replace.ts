@@ -1,5 +1,5 @@
 import { type AnyColumnDef, type CellPatch, type CellRef, type SearchOptions } from "@/registry/default/blocks/data-grid/data-grid";
-import { createTextMatcher, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { createTextMatcher, fullViewOf, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest find or replacement text; longer input is cut. */
 export const MAX_REPLACE_INPUT_LENGTH = 1_000;
@@ -173,8 +173,9 @@ export function planReplace(
     return true;
   };
 
-  const { viewIndex, data } = state;
+  const { data } = state;
   const onlySelected = scope === "selection";
+  const viewIndex = onlySelected ? state.viewIndex : fullViewOf(state.viewIndex);
   for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) {
     const dataIndex = viewIndex[viewRow]!;
     const row = data[dataIndex];

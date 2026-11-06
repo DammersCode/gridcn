@@ -123,7 +123,6 @@ function PushControls({ remote, live }: { remote: Remote; live: boolean }): Reac
 
 function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
-    getRowId: (row) => row.id,
     defaultPageSize: 25,
     defaultSpec: BY_SCORE,
     prefetchNextPage: true,
@@ -165,7 +164,6 @@ function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { rev
 function ScrollGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     defaultSpec: BY_SCORE,
     revalidateInterval: revalidate ? 10_000 : undefined,
     reshapeDelay,

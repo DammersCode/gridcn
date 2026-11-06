@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DataChange, SaveAck } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** What `refreshAfterSave` sees when it decides: the saves that settled since the last refresh. */
 export type SaveRefreshReport = {
@@ -11,6 +12,10 @@ export type SaveRefreshReport = {
   rejected: number;
   /** Saves whose `onSave` threw or whose promise rejected. */
   failed: number;
+  /** The changes of those saves, oldest first, at most 100, for a policy that decides per change. */
+  changes: readonly DataChange<unknown>[];
+  /** Saves still in flight when the decision runs; above 0 only when the 10 second wait forced it. */
+  pending: number;
 };
 
 /**
@@ -40,12 +45,12 @@ export const SAVE_REFRESH_MAX_WAIT_MS = 10_000;
  * Wraps the caller's `onSave` so the hook refreshes after saves settle by the caller's policy. Returns `undefined` without an
  * `onSave`, so spreading `gridProps` never overrides a provider `onSave` of your own.
  */
-export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void): ((change: DataChange<TData>) => void | Promise<SaveAck<TData>>) | undefined {
+export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void, setSaveCheckListener?: (listener: (() => void) | null) => void): ((change: DataChange<TData>) => void | Promise<SaveAck<TData>>) | undefined {
   const live = useRef({ options, refresh });
   useLayoutEffect(() => {
     live.current = { options, refresh };
   });
-  const state = useRef({ inflight: 0, report: { saved: 0, rejected: 0, failed: 0 } as SaveRefreshReport, scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
+  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
@@ -63,16 +68,19 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
     if (!current.mounted) return;
     const policy = live.current.options.refreshAfterSave ?? "settled";
     if (policy === false) {
-      current.report = { saved: 0, rejected: 0, failed: 0 };
+      current.counts = { saved: 0, rejected: 0, failed: 0 };
+      current.changes = [];
       return;
     }
     if (policy !== "each" && current.inflight > 0 && !force) return;
-    if (current.report.saved + current.report.rejected === 0) {
-      current.report = { saved: 0, rejected: 0, failed: 0 };
+    if (current.counts.saved + current.counts.rejected === 0) {
+      current.counts = { saved: 0, rejected: 0, failed: 0 };
+      current.changes = [];
       return;
     }
-    const report = current.report;
-    current.report = { saved: 0, rejected: 0, failed: 0 };
+    const report: SaveRefreshReport = { ...current.counts, changes: current.changes, pending: current.inflight };
+    current.counts = { saved: 0, rejected: 0, failed: 0 };
+    current.changes = [];
     if (typeof policy === "function") {
       let wanted = false;
       try {
@@ -86,9 +94,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   }, []);
 
   const settle = useCallback(
-    (kind: keyof SaveRefreshReport) => {
+    (kind: "saved" | "rejected" | "failed", change: DataChange<TData>) => {
       const current = state.current;
-      current.report[kind] += 1;
+      current.counts[kind] += 1;
+      if (current.changes.length < 100) current.changes.push(change);
       if (current.scheduled) return;
       current.scheduled = true;
       setTimeout(() => decide(), 0); // after the grid has settled the row, so the refresh sees it as saved
@@ -97,15 +106,30 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   );
 
   const hasSave = options.onSave !== undefined;
+  const calls = useRef({ ran: 0, seen: 0, warned: false });
+  useEffect(() => {
+    if (!hasSave || !setSaveCheckListener || !isDev()) return;
+    setSaveCheckListener(() => {
+      const counts = calls.current;
+      counts.seen += 1;
+      setTimeout(() => {
+        if (counts.ran >= counts.seen || counts.warned) return;
+        counts.warned = true;
+        console.warn("[data-grid-server] a save started, but the onSave you gave the hook did not run: an onSave prop on DataGridProvider after {...gridProps} replaced it, so refreshAfterSave is off. Pass onSave to the hook, or call refresh() yourself");
+      }, 0);
+    });
+    return () => setSaveCheckListener(null);
+  }, [hasSave, setSaveCheckListener]);
   const onSave = useCallback(
     (change: DataChange<TData>): void | Promise<SaveAck<TData>> => {
       const run = live.current.options.onSave;
       if (!run) return undefined;
+      calls.current.ran += 1;
       let result: void | Promise<SaveAck<TData>>;
       try {
         result = run(change);
       } catch (error) {
-        settle("failed");
+        settle("failed", change);
         throw error;
       }
       if (!isThenable(result)) return result;
@@ -114,12 +138,12 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       return Promise.resolve(result).then(
         (ack) => {
           state.current.inflight -= 1;
-          settle(ack && (ack.rejected?.length ?? 0) > 0 ? "rejected" : "saved");
+          settle(ack && (ack.rejected?.length ?? 0) > 0 ? "rejected" : "saved", change);
           return ack;
         },
         (error: unknown) => {
           state.current.inflight -= 1;
-          settle("failed");
+          settle("failed", change);
           throw error;
         },
       );

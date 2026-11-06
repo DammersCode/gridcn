@@ -15,7 +15,7 @@ function setup(extra: Record<string, unknown> = {}) {
       {children}
     </DataGridProvider>
   );
-  return renderHook(() => ({ pager: useDataGridPager(), api: useDataGridApi() }), { wrapper });
+  return renderHook(() => ({ pager: useDataGridPager().pager, api: useDataGridApi() }), { wrapper });
 }
 
 describe("useDataGridPager", () => {
@@ -47,7 +47,7 @@ describe("useDataGridPager, edge cases", () => {
         {children}
       </DataGridProvider>
     );
-    const { result } = renderHook(() => ({ pager: useDataGridPager(), requested: useDataGridSelector<unknown, number>((s) => s.page) }), { wrapper });
+    const { result } = renderHook(() => ({ pager: useDataGridPager().pager, requested: useDataGridSelector<unknown, number>((s) => s.page) }), { wrapper });
     expect(result.current.requested).toBe(5);
   });
 

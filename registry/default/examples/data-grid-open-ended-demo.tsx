@@ -59,7 +59,6 @@ function InfiniteScroll(): ReactNode {
   const server = useDataGridServerRows<Row, string>({
     mode: "scroll",
     blockSize: 50,
-    getRowId: (row) => row.id,
     fetchRows: async ({ cursor, start, end, signal }) => fetchAfter(cursor, end - start, signal),
   });
   const { data, getRowId, onDataChange, onRenderedRowsChange, plugins } = server.providerProps;
@@ -82,7 +81,6 @@ function InfiniteScroll(): ReactNode {
 function KeysetPages(): ReactNode {
   const server = useDataGridServerRows<Row, string>({
     pageSizeOptions: [10],
-    getRowId: (row) => row.id,
     fetchRows: async ({ cursor, pageSize, signal }) => fetchAfter(cursor, pageSize, signal),
   });
   const { data, getRowId, onDataChange, plugins } = server.providerProps;

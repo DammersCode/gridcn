@@ -220,6 +220,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initFilterMode = resolveFilterMode(init);
   const initPageSize = init.pageSize ?? init.defaultPageSize ?? null;
   const initPage = init.page ?? init.defaultPage ?? 1;
+  if (init.totalRowCount !== undefined && init.sortMode === undefined && init.filterMode === undefined && init.onSortChange === undefined && init.onFilterChange === undefined && init.sortState === undefined && init.filterState === undefined) {
+    queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
+  }
   const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
@@ -308,6 +311,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       viewIndex,
       ...clearStaleRows(dataWrite),
       ...followView(s2, viewIndex, s2.visibleColumns),
+      ...(page !== s2.page || pageSize !== s2.pageSize ? { activeCell: null } : {}),
       ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
     };
   };
@@ -947,6 +951,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             onPageChange: props.onPageChange,
             onPageSizeChange: props.onPageSizeChange,
             gateTimeoutMs: props.gateTimeoutMs,
+            onRowActionSkipped: props.onRowActionSkipped,
             onGateAborted: props.onGateAborted,
             onSave: props.onSave,
             onSaveRejected: props.onSaveRejected,

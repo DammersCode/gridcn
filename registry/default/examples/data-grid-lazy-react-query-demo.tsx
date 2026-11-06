@@ -62,7 +62,6 @@ function LazyReactQueryGrid(): ReactNode {
   const queryClient = useQueryClient();
   const server = useDataGridServerRows<LazyRow>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => ({
       rows: await queryClient.fetchQuery({
         queryKey: ["rows", start, end],

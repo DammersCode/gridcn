@@ -38,7 +38,6 @@ function createExportSource(remote: Remote) {
 export default function DataGridExportAllDemo(): ReactNode {
   const remote = useMemo(() => createRemoteServer(), []);
   const server = useDataGridServerRows<DemoRow>({
-    getRowId: (row) => row.id,
     defaultPageSize: 25,
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });

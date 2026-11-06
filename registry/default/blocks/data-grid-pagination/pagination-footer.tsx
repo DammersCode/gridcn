@@ -68,7 +68,7 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
 
 /** The bar of a grid that pages its view: the controls come from the enclosing `DataGridProvider`. */
 function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const controls = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
+  const { pager: controls } = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
   return <PaginationBarView {...props} controls={controls} />;
 }
 

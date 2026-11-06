@@ -475,7 +475,6 @@ async function fetchLazyRows(start: number, end: number, signal: AbortSignal, so
 function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal, spec }) => ({
       rows: await fetchLazyRows(start, end, signal, spec.sorts),
       totalRowCount: LAZY_TOTAL_COUNT,

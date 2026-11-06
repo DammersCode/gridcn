@@ -95,10 +95,10 @@ export type UseDataGridHistoryResult<TData> = {
   /**
    * Applies a programmatic change (the consumer-built operation batch) to the grid as one write AND
    * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
-   * records like any user gesture. No-op when the grid is not mounted yet or is read-only.
+   * records like any user gesture. Returns `true` when it wrote the change, `false` when it did nothing (the grid is not mounted yet, or every operation was an insert of a row `data` already holds).
    * `label` is an optional human-readable entry label.
    */
-  record: (change: DataChange<TData>, label?: string) => void;
+  record: (change: DataChange<TData>, label?: string) => boolean;
 };
 
 /**
@@ -206,11 +206,13 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const record = useCallback(
     (change: DataChange<TData>, label?: string) => {
       const api = apiRef.current;
-      if (!api) return;
-      if (isDev()) warnDuplicateInsert(api.store.getState(), change);
+      if (!api) return false;
+      const fresh = withoutPresentInserts(api.store.getState(), change);
+      if (fresh.ops.length === 0) return false;
       // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
-      api.actions.commitChange({ ...change, source: "app", ...(label !== undefined ? { label } : {}) });
+      api.actions.commitChange({ ...fresh, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
+      return true;
     },
     [history],
   );
@@ -291,10 +293,12 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   };
 }
 
-function warnDuplicateInsert<TData>(state: { data: readonly unknown[]; getRowId: (row: unknown, index: number) => string }, change: DataChange<TData>) {
-  const inserted = change.ops.filter((op) => op.type === "insert");
-  if (inserted.length === 0) return;
+/** Drops an insert whose row id `data` already holds (the caller applied it first), so `record` never writes a row twice; warns once in development. */
+function withoutPresentInserts<TData>(state: { data: readonly unknown[]; getRowId: (row: unknown, index: number) => string }, change: DataChange<TData>): DataChange<TData> {
+  if (!change.ops.some((op) => op.type === "insert")) return change;
   const present = new Set(state.data.map((row, index) => (row === undefined ? "" : state.getRowId(row, index))));
-  const twice = inserted.find((op) => present.has(op.rowId));
-  if (twice) console.warn(`[data-grid-history] record() inserts row "${twice.rowId}", which data already holds. record() writes the change itself: do not apply it to your own array first.`);
+  const ops = change.ops.filter((op) => op.type !== "insert" || !present.has(op.rowId));
+  if (ops.length === change.ops.length) return change;
+  if (isDev()) console.warn("[data-grid-history] record() skipped an insert of a row that data already holds. record() writes the change itself, so the call is safe, but you do not need to apply it to your own array first.");
+  return { ...change, ops };
 }
