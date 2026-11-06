@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
 import { warnDev } from "../store/commit";
+import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
@@ -164,11 +165,6 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   },
   clearValue: () => null,
   isEmpty: (value) => value == null,
-  compare: (a, b) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
-    return a - b;
-  },
+  compare: compareNumbers,
   align: "right",
 };

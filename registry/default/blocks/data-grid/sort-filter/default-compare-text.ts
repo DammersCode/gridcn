@@ -1,5 +1,5 @@
 /** Module-default collator, used when a call site doesn't supply its own (e.g. to amortize one instance across a whole sort). */
-const defaultCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+export const defaultCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 /**
  * Default text comparator: numeric-aware localeCompare, case-insensitive.
