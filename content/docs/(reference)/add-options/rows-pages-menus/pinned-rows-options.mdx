@@ -1,9 +1,102 @@
 ---
 title: Pinned rows options
-description: Pinned rows options.
+description: Look up the options of useDataGridPinnedRows, the reducers and options of useDataGridAggregate, and the props of DataGridAggregateReporter.
 type: reference
+aliases: ["totals row options", "aggregate options", "totals band"]
 ---
 
-{/* docs-stub */}
+`useDataGridPinnedRows` returns a plugin that pins rows above or below the data rows. `useDataGridAggregate` reduces columns into a row for a totals band. `DataGridAggregateReporter` carries that row out of the provider. The rules for pinned rows are on [Pinned rows](/docs/rows-pages-menus/pinned-rows).
 
-This page is being written.
+## useDataGridPinnedRows [#usedatagridpinnedrowsoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
+
+The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while `topRows` and `bottomRows` keep theirs. Memoize the arrays, or the grid resolves its plugins again on every render.
+
+## useDataGridAggregate [#usedatagridaggregateoptions]
+
+`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object, which is a valid pinned row. If the view index, the data, the scope, or the identity of `specs` changes, it recomputes. Define `specs` at module scope, or memoize it.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="UseDataGridAggregateOptions" />
+
+## Reducers [#reducers]
+
+A reducer has the type `AggregateReducer`: a name or a function.
+
+| Reducer | Result |
+| --- | --- |
+| `"sum"`, `"avg"`, `"min"`, `"max"` | The result is a number for number values. The reducer skips `null` and `undefined` values and does not check the other values. With no value left, the result is `undefined`. |
+| `"count"` | The number of values that are not `null` or `undefined` |
+| `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
+
+The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The hook ignores a key of `specs` that matches no column id, and development builds warn once. With client pagination or pages mode, the grid holds one page, so the aggregate covers that page, also with `scope: "all"`. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
+
+## DataGridAggregateReporter [#datagridaggregatereporterprops]
+
+The `plugins` prop lives above the store, so a component above the provider cannot read the aggregate. The reporter sits inside the provider and calls `onChange` with the row. It renders nothing.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="DataGridAggregateReporterProps" />
+
+`onChange` can change identity on every render. After the row changes, the reporter calls the newest one.
+
+## Example
+
+This sample pins a sum of `price` to the bottom of the grid:
+
+```tsx
+import { useCallback, useMemo, useState } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridAggregateReporter,
+  useDataGridPinnedRows,
+  type AggregateSpecs,
+} from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+
+type Row = { id: string; item: string; price: number };
+
+const rows: Row[] = [
+  { id: "1", item: "Pen", price: 2 },
+  { id: "2", item: "Ink", price: 8 },
+];
+const columns = defineColumns<Row>()([
+  { id: "item", header: "Item", accessorKey: "item" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+const specs: AggregateSpecs<Row> = { price: "sum" };
+
+export function PricesGrid() {
+  const [totals, setTotals] = useState<Record<string, unknown>>({
+    id: "total",
+    item: "Total",
+  });
+  const onChange = useCallback((row: Record<string, unknown>) => {
+    setTotals((prev) => ({ ...prev, ...row }));
+  }, []);
+  const bottomRows = useMemo(() => [totals], [totals]);
+  const { plugin } = useDataGridPinnedRows({ bottomRows });
+
+  return (
+    <DataGridProvider defaultData={rows} columns={columns} plugins={[plugin]}>
+      <DataGridAggregateReporter specs={specs} onChange={onChange} />
+      <DataGridRoot className="h-80">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+The bottom band shows "Total" and 10. A filter that hides the first row changes the band to 8, because `scope` defaults to `"view"`.
+
+## Related
+
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): the display-only rules, the geometry, and the server limits.
+- [Client pagination](/docs/rows-pages-menus/client-pagination): why a totals band covers one page.
+- [Plugin shape](/docs/plugins/plugin-shape): how a plugin enters the grid.

@@ -1,10 +1,138 @@
 ---
 title: Server rows options
-description: Server rows options.
+description: Look up the options, request, answer, and result of useDataGridServerRows in pages mode and scroll mode, and the options of a server pager.
 type: reference
-aliases: ["blocksize", "usedatagridserverrows", "server rows options"]
+aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request spec"]
 ---
 
-{/* docs-stub */}
+`useDataGridServerRows` owns the sort, filter, search text, and rows of one server source. You write `fetchRows`. The hook calls it, aborts a request that a newer one replaces, and keeps the last good rows on screen. `mode` picks how rows reach the grid. The steps and the contract are on [Server rows contract](/docs/contracts/server-rows-contract).
 
-This page is being written.
+## Pages mode [#server-mode]
+
+The default mode fetches one page for each state. If the sort, the filter, the search text, or the page size changes, the grid returns to page 1.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsOptions" />
+
+The hook keeps `page` between 1 and the last page of 10,000,000 rows at the current page size. A `page` that is not a positive integer becomes 1. At mount, it waits one timer tick before the first request, so a spec that your URL state restores replaces that request before it leaves. If `onError` or `onLoaded` throws, the hook logs the error and carries on.
+
+### Result
+
+Both modes return the request state as `DataSourceState`: `status`, `loading`, `error`, `retry`, and `refresh`.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsResult" />
+
+Spread `gridProps` onto `DataGrid`. For a composed layout, spread `providerProps` onto `DataGridProvider` and `rootProps` onto `DataGridRoot`.
+
+`providerProps` holds:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsProviderProps" />
+
+`rootProps` holds:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsRootProps" />
+
+### Pager options [#pager-options]
+
+`pager` comes from `useDataGridPagination` in its server shape. If you fetch rows without `useDataGridServerRows`, call that hook yourself. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
+
+If `page` is outside the page range, the hook calls `onPageChange` once with the clamped page. It skips this while `totalRowCount` is `0`, so a deep link survives until the first count arrives. If you pass no `onPageSizeChange`, a page-size change does nothing, and development builds log a warning. `DataGridPaginationControls` is the result. See [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options#result).
+
+### Without a total [#without-a-total]
+
+A server that sends no count answers `totalRowCount: null` and `hasMore`. The pager then reports `totalRowCount: null`:
+
+- The footer shows "Page 3" in place of a range.
+- Next stays enabled while `hasNextPage` is `true`, and Last stays disabled.
+- The page count is the current page, plus 1 while `hasNextPage` is `true`.
+- The hook lifts a page below 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
+
+## Scroll mode [#scroll-mode]
+
+Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source.
+
+### Scroll options [#usedatagridserverrowsscrolloptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
+
+### Scroll result [#usedatagridserverrowsscrollresult]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollResult" />
+
+In scroll mode, `providerProps` holds:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollProviderProps" />
+
+## Request [#serverrowsrequest]
+
+`fetchRows` receives the same request in both modes. Pages mode adds the page address.
+
+Both modes send a `ServerRowsRequest`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/read-answer.ts" name="ServerRowsRequest" />
+
+Pages mode sends a `ServerRowsPageRequest`, which adds:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/read-answer.ts" name="ServerRowsPageRequest" />
+
+`spec` holds `sorts`, `filters`, and `searchText`. Treat it as untrusted input in your backend.
+
+## Answer [#serverrowsanswer]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/read-answer.ts" name="ServerRowsAnswer" />
+
+The hook checks every answer before it uses it:
+
+- An answer without a `rows` array fails the request and sets `error`.
+- The hook drops rows beyond `end - start`, and development builds warn.
+- A `totalRowCount` that is not a non-negative integer counts as unknown. A count above 10,000,000 clamps to 10,000,000.
+- A repeated row id keeps its first row, and development builds warn once. In random access, the later copy leaves an empty slot that shows as a skeleton row. Pages mode and a sequential source drop the later copy, so the page holds one row fewer. Make the sort total, with the row id as the last sort key.
+- An answer with `hasNextPage`, or with `total` and no `totalRowCount`, warns in development. The hook reads only `totalRowCount` and `hasMore`.
+
+## Example
+
+This sample loads orders by page from an API:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    defaultPageSize: 25,
+    fetchRows: async ({ start, end, spec, signal }) => {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({ start, end, spec }),
+        signal,
+      });
+      const { rows, total } = await response.json();
+      return { rows, totalRowCount: total };
+    },
+  });
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+Your API reads `start` and `end` as the row range and returns the rows with the count of the filtered result.
+
+## Related
+
+- [Server rows contract](/docs/contracts/server-rows-contract): what the grid sends and what your backend returns.
+- [Load rows by page](/docs/server-pagination/load-rows-page): the task for pages mode.
+- [Scroll mode](/docs/scroll-mode): the task path for scroll mode.
+- [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options): the pager and the footer.

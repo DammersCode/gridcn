@@ -1,9 +1,121 @@
 ---
 title: Shortcut remapping options
-description: Shortcut remapping options.
+description: Look up the keymap and commands props, the binding string syntax, and the props of the shortcuts dialog, the ? shortcut, and BindingChips.
 type: reference
+aliases: ["key binding syntax", "custom commands", "keybindings dialog props"]
 ---
 
-{/* docs-stub */}
+The `keymap` and `commands` props of `DataGridProvider` set the key bindings of a grid. The `data-grid-keybindings` add-on shows them. The steps and the behavior are on [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping).
 
-This page is being written.
+## Binding strings [#binding-strings]
+
+A binding is a string of modifiers and one key, joined with `+`, for example `"mod+shift+ArrowUp"`. A `keymap` entry maps an action to an array of bindings.
+
+| Modifier | Matches |
+| --- | --- |
+| `mod` | <kbd>Cmd</kbd> on macOS, iOS, and iPadOS. <kbd>Ctrl</kbd> elsewhere. |
+| `ctrl` | The physical <kbd>Ctrl</kbd> key on every platform. |
+| `shift` | <kbd>Shift</kbd> |
+| `alt` | <kbd>Alt</kbd> or <kbd>Option</kbd> |
+
+The key is a letter, a digit, a function key `F1` to `F24`, a named key, or a printable character. The typed named keys are `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, and `Delete`. Other stable key names, such as `Insert` or `MediaPlayPause`, bind the same way, in exact case. Write a letter in lowercase, and it matches in either case. Write the space bar as a literal space. The last `+` separates the key, so the plus key cannot bind.
+
+The modifiers of the key event must equal the modifiers of the binding. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`. A binding with an unknown modifier or key name warns in the browser console in development.
+
+## Keymap
+
+`keymap` has the type `Keymap`, a partial map from action to `KeyBinding[]`. The grid merges it over `DEFAULT_KEYMAP`.
+
+- An action you leave out keeps its default bindings.
+- An action with an array replaces the default bindings.
+- An action with an empty array has no binding.
+- A defined `typeToReplace` entry, even an empty one, turns off the implicit printable-key trigger.
+
+## Custom commands
+
+A `keymap` name runs the entry of the same name in `commands`. An entry named like a built-in action replaces the built-in.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="GridCommand" />
+
+`run` and `when` receive this context:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="GridCommandCtx" />
+
+## DataGridKeybindingsDialog [#datagridkeybindingsdialogprops]
+
+The dialog lists the effective keymap, so it shows your overrides. Mount it inside `DataGridProvider`.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-dialog.tsx" name="DataGridKeybindingsDialogProps" />
+
+## DataGridKeybindingsShortcut [#datagridkeybindingsshortcutprops]
+
+When the user presses <kbd>?</kbd> with the grid focused and no cell editor open, the component calls `onOpen`. It claims the key, so it shadows type-to-edit and any `keymap` binding on <kbd>?</kbd>. Mount it inside `DataGridRoot`. Outside the root, it throws.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx" name="DataGridKeybindingsShortcutProps" />
+
+## BindingChips
+
+`BindingChips` takes a `binding` string and renders one keycap for each token. On the server it renders word names. On macOS, iOS, and iPadOS it switches to glyphs after hydration.
+
+## Dialog helpers
+
+The dialog groups its rows with exported helpers. Use them to build your own shortcut list.
+
+- `KEYBINDING_CATEGORIES` holds the categories in display order.
+- `KeybindingCategory` is the category type. It equals the `group` of a custom command.
+- `categoryForAction(action)` returns the category of an action, or `other` for an action without one.
+- `ACTION_CATEGORY` maps each built-in action to its category. An action absent from the map belongs to `other`.
+- `categoryLabel(category, labels)` returns the text from `labels.keybindings.categories`.
+- `labelForAction(action, labels)` returns the text from `labels.keybindings.actions`. For an action without a label, it returns the action name in words.
+
+`labels` is the `DataGridLabels` object.
+
+## Example
+
+This sample opens the dialog on <kbd>?</kbd> and adds a second select-all binding:
+
+```tsx
+import { useState } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridKeybindingsDialog,
+  DataGridKeybindingsShortcut,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function ShortcutsGrid() {
+  const [open, setOpen] = useState(false);
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      keymap={{ selectAll: ["mod+a", "mod+shift+a"] }}
+    >
+      <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
+      <DataGridRoot className="h-80">
+        <DataGridHeader />
+        <DataGridBody />
+        <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
+## Related
+
+- [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): how to change, add, and remove bindings.
+- [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts): the default bindings.
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): the opt-in layer outside the grid.

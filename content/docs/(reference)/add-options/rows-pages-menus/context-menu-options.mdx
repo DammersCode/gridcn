@@ -1,9 +1,135 @@
 ---
 title: Context menu options
-description: Context menu options.
+description: Look up the props of DataGridContextMenu and DataGridHeaderDropdown, the item ids, and the context each menu resolver receives.
 type: reference
+aliases: ["right-click menu", "header menu items", "menu ids", "custom menu items"]
 ---
 
-{/* docs-stub */}
+`DataGridContextMenu` wraps the grid and opens a menu on right-click and on long-press. `DataGridHeaderDropdown` is the column menu behind the header chevron. A resolver prop returns the complete item list of a menu. The install steps and the behavior are on [Context menu](/docs/rows-pages-menus/context-menu).
 
-This page is being written.
+## DataGridContextMenu [#datagridcontextmenuprops]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
+
+A resolver runs while the menu renders. Do not call hooks in it. Read hook values in the component that renders the menu, and close over them.
+
+## DataGridHeaderDropdown
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/header-dropdown.tsx" name="DataGridHeaderDropdownProps" />
+
+Pass the render context of `renderHeaderMenu` with a spread. Inside a `DataGridContextMenu`, the dropdown uses the `getHeaderMenuItems` of the wrapper. Its own `getHeaderMenuItems` replaces that resolver for this dropdown.
+
+## Resolver context
+
+Each resolver receives a context and the built-in items as `defaults`.
+
+### CellMenuItemsCtx [#cellmenuitemsctx]
+
+`getCellMenuItems` receives this context:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/menu-items.tsx" name="CellMenuItemsCtx" />
+
+### HeaderMenuItemsCtx [#headermenuitemsctx]
+
+`getHeaderMenuItems` receives this context:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/menu-items.tsx" name="HeaderMenuItemsCtx" />
+
+## Menu item [#gridmenuitemspec]
+
+A menu item is an item or a separator. A separator is `{ id, separator: true }`. An item has these fields:
+
+{/* props: GridMenuItemSpec */}
+
+| Field | Type | Default |
+| --- | --- | --- |
+| `id` | `string` | required |
+| `label` | `string` | required |
+| `icon` | `ReactNode` | none |
+| `shortcut` | `string` | none |
+| `disabled` | `boolean` | `false` |
+| `destructive` | `boolean` | `false` |
+| `tooltip` | `string` | none |
+| `onClick` | `() => void` | none |
+
+`shortcut` is a keymap binding. The menu shows it as keycaps. `tooltip` shows on a disabled item.
+
+## Built-in item ids [#item-ids]
+
+A resolver keeps or drops a built-in item by its id. Separator ids start with `sep-`.
+
+| Menu | Ids, in order |
+| --- | --- |
+| Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+
+These ids appear only under a condition:
+
+| Ids | Present |
+| --- | --- |
+| `fill-down`, `fill-right` | On a touch selection, with the fill add-on |
+| `insert-row-above`, `insert-row-below` | With the `createRow` prop |
+| `duplicate-rows` | With the `duplicateRow` prop |
+| `sort-asc`, `sort-desc`, `sep-sort` | On a sortable column |
+| `clear-sort` | On a sorted column |
+| `unpin` | On a pinned column |
+| `sep-autosize`, `autosize`, `autosize-all` | When the grid and the column allow resizing |
+
+A column that cannot pin gets disabled `pin-left`, `pin-right`, and `unpin` items.
+
+## Example
+
+This sample keeps Copy and Delete in the cell menu and one sort item in both header menus:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridContextMenu,
+  DataGridHeaderDropdown,
+} from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+const KEEP_CELL = ["copy", "delete-rows"];
+
+export function TrimmedMenus() {
+  return (
+    <DataGridProvider defaultData={rows} columns={columns}>
+      <DataGridContextMenu
+        getCellMenuItems={(_ctx, defaults) =>
+          defaults.filter((item) => KEEP_CELL.includes(item.id))
+        }
+        getHeaderMenuItems={(_ctx, defaults) =>
+          defaults.filter((item) => item.id === "sort-asc")
+        }
+      >
+        <DataGridRoot
+          className="h-80"
+          renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+        >
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridContextMenu>
+    </DataGridProvider>
+  );
+}
+```
+
+The header dropdown inherits `getHeaderMenuItems` from the wrapper. The ids `copy` and `delete-rows` always exist. Outside `DataGridProvider`, the menu throws.
+
+## Related
+
+- [Context menu](/docs/rows-pages-menus/context-menu): the menus, the surfaces, and the touch gesture.
+- [Row operations](/docs/rows-pages-menus/row-operations): the operations behind the row items.
+- [Labels](/docs/components-props/labels): the text of every item.

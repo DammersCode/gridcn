@@ -1,10 +1,88 @@
 ---
 title: Client pagination options
-description: Client pagination options.
+description: Look up the options and result of useDataGridPagination, the props of DataGridPaginationBar, and the parts you compose into a custom footer.
 type: reference
-aliases: ["page size options"]
+aliases: ["page size options", "pager props", "footer parts"]
 ---
 
-{/* docs-stub */}
+`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. `DataGridPaginationBar` renders the footer from the pager. The behavior, the page-local sort and filter, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
 
-This page is being written.
+## Client options [#client-mode]
+
+An options object with `data` selects client mode. The hook slices `data` into pages.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
+
+`pageSizeOptions` defaults to `[10, 25, 50, 100]`. Without `defaultPageSize`, the first size of `pageSizeOptions` applies. The page and the page size stay uncontrolled until you pass `page` or `pageSize`. A page-size change moves to the page that holds the first row of the current page.
+
+## Result [#result]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationResult" />
+
+`pageData` is `undefined` in server mode. The pager has one shape in both modes:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
+
+## Server options
+
+An options object without `data` selects server mode. Its options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options).
+
+## DataGridPaginationBar [#datagridpaginationbarprops]
+
+Spread the `pager` onto the bar. The bar reads no grid state, so it works inside or outside `DataGridProvider`. The `labels` prop of the grid does not reach the bar. Pass the bar its own `labels`.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
+
+The root element carries the `data-grid-pagination` attribute. `labels` merges into the `labels.pagination` defaults.
+
+## Footer parts [#parts]
+
+Without `children`, the bar renders the range, the page-size select, and the first, previous, pages, next, and last controls. Pass `children` to arrange the parts yourself. Every part reads the pager from the bar. A part outside a bar throws.
+
+| Part | Renders |
+| --- | --- |
+| `DataGridPaginationRange` | The range label, the empty label, or "Page 3" when the count is `null` |
+| `DataGridPaginationPageSize` | The rows-per-page select |
+| `DataGridPaginationFirst` | A button to page 1, disabled on page 1 |
+| `DataGridPaginationPrev` | A button to the previous page, disabled on page 1 |
+| `DataGridPaginationPages` | The numbered buttons, `windowSize` at a time (default 5). The props type is `DataGridPaginationPagesProps`. |
+| `DataGridPaginationNext` | A button to the next page, disabled without a next page |
+| `DataGridPaginationLast` | A button to the last page, disabled on the last page and while the count is unknown |
+
+This sample builds a compact footer:
+
+```tsx
+import {
+  DataGridPaginationBar,
+  DataGridPaginationNext,
+  DataGridPaginationPrev,
+  DataGridPaginationRange,
+  useDataGridPagination,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+export function CompactPager({ rows }: { rows: { id: string }[] }) {
+  const { pageData, pager } = useDataGridPagination({
+    data: rows,
+    defaultPageSize: 25,
+  });
+  return (
+    <>
+      <p>{pageData?.length} rows on this page</p>
+      <DataGridPaginationBar {...pager}>
+        <DataGridPaginationRange />
+        <div className="flex items-center gap-1">
+          <DataGridPaginationPrev />
+          <DataGridPaginationNext />
+        </div>
+      </DataGridPaginationBar>
+    </>
+  );
+}
+```
+
+## Related
+
+- [Client pagination](/docs/rows-pages-menus/client-pagination): how a paged local array behaves.
+- [Server rows options](/docs/add-options/server/server-rows-options): the options of `useDataGridServerRows`.
+- [Load rows by page](/docs/server-pagination/load-rows-page): server pages with a pager.
+- [Labels](/docs/components-props/labels): the text of the footer.

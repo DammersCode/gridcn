@@ -1,9 +1,84 @@
 ---
 title: Status bar options
-description: Status bar options.
+description: Look up the props of DataGridStatusBar, the result of useDataGridSelectionStats, and the limits that bound the aggregate walk.
 type: reference
+aliases: ["aggregates prop", "selection sum", "cell count"]
 ---
 
-{/* docs-stub */}
+`DataGridStatusBar` shows the count, sum, average, minimum, and maximum of the selected cells. `useDataGridSelectionStats` returns the same numbers without markup. Both read committed values and change no cell value. Which cells and values count is on [Status bar](/docs/selection-shortcuts/status-bar).
 
-This page is being written.
+## DataGridStatusBar [#datagridstatusbarprops]
+
+Mount the bar inside `DataGridProvider`, next to `DataGridRoot`.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-status-bar/status-bar.tsx" name="DataGridStatusBarProps" />
+
+`StatusBarAggregate` is `"count" | "sum" | "avg" | "min" | "max"`. The bar renders the aggregates in the order of `aggregates`. A value that is `null` does not render. The aggregates show once the selection holds 2 cells. The bar also renders for hidden checked rows and the select-all banner. If the walk hits the cell cap, each value takes a `≈` prefix.
+
+The bar is a polite live region with `role="status"`. After a computation ends, its text changes.
+
+## useDataGridSelectionStats [#usedatagridselectionstats]
+
+The hook takes no arguments and returns `SelectionStats`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-status-bar/compute-selection-stats.ts" name="SelectionStats" />
+
+`sum` uses Neumaier summation, so `0.1 + 0.2` gives `0.3`. A cell whose raw value is a finite `number` is numeric.
+
+## Limits
+
+| Limit | Value | Effect |
+| --- | --- | --- |
+| Immediate walk | 5,000 cells | A selection of this area or less computes at once. |
+| Settle delay | 150 ms | A larger selection computes after the selection stops changing. |
+| `MAX_STATUS_CELLS` | 200,000 cells | The walk stops here. `approximate` is `true`. |
+
+When `approximate` is `true`, the bar sets a `title` that names the cap.
+
+## Example
+
+This sample shows the sum and the average only, with two decimals:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+
+type Row = { id: string; price: number };
+
+const rows: Row[] = [
+  { id: "1", price: 2 },
+  { id: "2", price: 8 },
+];
+const columns = defineColumns<Row>()([
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+
+export function PricesGrid() {
+  return (
+    <DataGridProvider defaultData={rows} columns={columns}>
+      <DataGridRoot className="h-80">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridStatusBar
+        aggregates={["sum", "avg"]}
+        formatValue={(value) => value.toFixed(2)}
+      />
+    </DataGridProvider>
+  );
+}
+```
+
+Select both prices. The bar shows "Sum 10.00" and "Avg 5.00".
+
+## Related
+
+- [Status bar](/docs/selection-shortcuts/status-bar): which cells and values count, and how the bar formats them.
+- [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options): a fixed totals band.
+- [Selection model](/docs/concepts/selection-model): the selection channels the bar reads.

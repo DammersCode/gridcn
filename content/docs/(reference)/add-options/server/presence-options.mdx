@@ -1,9 +1,120 @@
 ---
 title: Presence options
-description: Presence options.
+description: Look up the options and result of useDataGridPresence, the three highlight shapes, and the guards that tell the shapes apart.
 type: reference
+aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 ---
 
-{/* docs-stub */}
+`useDataGridPresence` returns a plugin that paints the selections of remote users into the grid, and the functions that set the highlights. Call it once for each grid, above `DataGridProvider`. A second call creates a second store that no plugin reads. The steps are on [Show presence](/docs/rows-live-data/show-presence).
 
-This page is being written.
+## Options [#usedatagridpresenceoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/use-data-grid-presence.ts" name="UseDataGridPresenceOptions" />
+
+`maxRects` defaults to `MAX_RESOLVED_RECTS`, which is 1024. It caps the rectangles that one `RowIdRangePresenceHighlight` entry paints, one for each contiguous fragment. The overlay drops the excess. It calls `onExcessRects` each time it resolves the entries again: after each `setPresenceHighlights` call and after a sort, filter, data, or column change. Development builds also warn once for each entry.
+
+`onExcessRects` runs while the overlay renders. Do not set React state in it directly. Log the excess, or defer a state update to an effect or a microtask.
+
+## Result [#usedatagridpresenceresult]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/use-data-grid-presence.ts" name="UseDataGridPresenceResult" />
+
+`setPresenceHighlights` replaces the whole list, so each call carries the full set of entries. `removePresenceHighlight(id)` removes the entry with that `id`. If no entry matches, it does nothing. `clearPresenceHighlights()` removes every entry.
+
+`setPresenceHighlights` drops malformed entries:
+
+- A value that is no object.
+- A cell entry without a non-empty `columnId`.
+- A range entry with empty `rowIds` or `columnIds`, or with a `columnIds` that holds a non-string.
+- A view entry without a finite `x`, `y`, `width`, and `height`.
+
+Development builds warn once for each dropped entry.
+
+All three functions re-render the overlay layer. They re-render no row and no cell. To read the highlights in another component, pass `storeApi` (type `PresenceStoreApi`) to `useDataGridPresenceHighlights(storeApi)`. That hook re-renders only its caller.
+
+## Highlight shapes [#highlight-shapes]
+
+A highlight entry has one of three shapes. Every shape needs a unique `id`, a `color`, and takes an optional `label`.
+
+| Shape | Coordinates | Resolved against |
+| --- | --- | --- |
+| `RowIdPresenceHighlight` | `rowId`, `columnId` | The row ids and column ids of the receiving grid |
+| `RowIdRangePresenceHighlight` | `rowIds`, `columnIds` | The row ids and column ids of the receiving grid |
+| `PresenceHighlight` | `range` | Nothing: the view indices paint as given. A receiver with another sort or filter paints wrong cells. |
+
+### Single cell [#rowidpresencehighlight]
+
+A single cell is a `RowIdPresenceHighlight`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/presence-store.ts" name="RowIdPresenceHighlight" />
+
+### Row-id range [#rowidrangepresencehighlight]
+
+A row-id range is a `RowIdRangePresenceHighlight`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/presence-store.ts" name="RowIdRangePresenceHighlight" />
+
+### View range [#presencehighlight]
+
+A view range is a `PresenceHighlight`:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/presence-store.ts" name="PresenceHighlight" />
+
+The overlay drops a row that a filter hides. For a single cell with a hidden or unknown column, it drops the entry and warns once in development. For a range, it drops the missing columns and warns once. A range with no resolved row or no resolved column paints nothing. A filter that splits a range paints one rect per contiguous fragment. An entry that carries both `rowId` and `rowIds` paints as a single cell.
+
+`color` takes any CSS color or token. An invalid color or an undefined token paints as `var(--color-primary)`. The chip text is black on light colors and white on dark ones. Set `--presence-label-foreground` for one fixed chip text color.
+
+## Guards [#guards]
+
+`isRowIdPresenceHighlight(entry)` and `isRowIdRangePresenceHighlight(entry)` narrow a `PresenceHighlightEntry` to the cell form and the range form. A `rowId` must be a non-empty string. `rowIds` must be an array of strings.
+
+## Example
+
+This sample paints one remote cell and one remote range:
+
+```tsx
+import { useEffect } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
+
+type Row = { id: string; name: string; city: string };
+
+const rows: Row[] = [
+  { id: "r1", name: "Ada", city: "London" },
+  { id: "r2", name: "Alan", city: "Wilmslow" },
+];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "city", header: "City", accessorKey: "city" },
+]);
+
+export function PresenceGrid() {
+  const { plugin, setPresenceHighlights } = useDataGridPresence();
+
+  useEffect(() => {
+    setPresenceHighlights([
+      {
+        id: "u1",
+        color: "var(--color-primary)",
+        label: "Ada",
+        rowId: "r1",
+        columnId: "name",
+      },
+      {
+        id: "u2",
+        color: "var(--color-destructive)",
+        rowIds: ["r1", "r2"],
+        columnIds: ["city"],
+      },
+    ]);
+  }, [setPresenceHighlights]);
+
+  return <DataGrid defaultData={rows} columns={columns} plugins={[plugin]} />;
+}
+```
+
+## Related
+
+- [Show presence](/docs/rows-live-data/show-presence): wiring, row ids, and rendering.
+- [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection): send your own selection to peers.
+- [Selection and cell events](/docs/events-state/selection-cell-events): the payload of `onSelectionChange`.
