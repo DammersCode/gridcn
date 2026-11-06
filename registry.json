@@ -2396,7 +2396,7 @@
          "name": "data-grid-open-ended-demo",
          "type": "registry:example",
          "title": "Data Grid Open-Ended Demo",
-         "description": "A server that sends a cursor and no row count: infinite scroll with useDataGridServerRows({ mode: \"scroll\" }), and keyset pages with useDataGridPagination({ hasNextPage }).",
+         "description": "A server that sends a cursor and no row count: infinite scroll and a pager over a keyset API, both through useDataGridServerRows.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -3010,6 +3010,76 @@
                "path": "registry/default/examples/data-grid-lazy-react-query-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-lazy-react-query-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-cursor-react-query-demo",
+         "type": "registry:example",
+         "title": "Data Grid Cursor React Query Demo",
+         "description": "A cursor source without a row count through useInfiniteQuery: infinite scroll and a pager that follows the cursor chain.",
+         "author": "gridcn",
+         "dependencies": [
+            "@tanstack/react-query@^5.103.2"
+         ],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-cursor-react-query-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-cursor-react-query-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-cursor-swr-demo",
+         "type": "registry:example",
+         "title": "Data Grid Cursor SWR Demo",
+         "description": "A cursor source without a row count through useSWRInfinite: infinite scroll and a pager that follows the cursor chain.",
+         "author": "gridcn",
+         "dependencies": [
+            "swr@^2.5.1"
+         ],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-pagination",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-cursor-swr-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-cursor-swr-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/fake-remote-server.ts",
+               "type": "registry:example",
+               "target": "components/fake-remote-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
             }
          ],
          "categories": [
