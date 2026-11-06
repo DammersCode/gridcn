@@ -1,4 +1,4 @@
-import type { ColumnLayout, FilterNode, FilterOperator, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ColumnLayout, BuiltInFilterOperator, FilterNode, FilterOperator, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
@@ -54,10 +54,10 @@ const OPERATORS = [
   "isBetween",
   "isAnyOf",
   "isNoneOf",
-] as const satisfies readonly FilterOperator[];
+] as const satisfies readonly BuiltInFilterOperator[];
 
-/** Fails to compile when a `FilterOperator` is missing from `OPERATORS`, which would drop saved filters silently. */
-const operatorsAreExhaustive: Exclude<FilterOperator, (typeof OPERATORS)[number]> extends never ? true : never = true;
+/** Fails to compile when a built-in operator is missing from `OPERATORS`, which would drop saved filters silently. */
+const operatorsAreExhaustive: Exclude<BuiltInFilterOperator, (typeof OPERATORS)[number]> extends never ? true : never = true;
 void operatorsAreExhaustive;
 
 const FILTER_OPERATORS: ReadonlySet<string> = new Set(OPERATORS);
