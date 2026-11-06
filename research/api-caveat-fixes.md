@@ -53,3 +53,10 @@ The hook already composes: its `onDataChange` option runs after the merge (pages
 ### F16 (partly done)
 - Done: `labels` is compared by content (`sameLabels`); the i18n callout becomes a sentence.
 - Kept: the two class-name function warnings (cost is real), `topRows`/`bottomRows` stability (rows are arbitrary objects, so a structural compare costs more than the render it saves), `fetchOptions` cache key (the cache is keyed by the function on purpose). Their callouts stay, shortened where possible.
+
+### F19 (done)
+Default off (a gate waits as before). `gateTimeoutMs` aborts the signal, cancels the action, and frees the next action; `onGateAborted` reports timeout, changed, superseded, and reset, so silent drops have a hook. Capability: unchanged unless the caller opts in. The "never settles blocks every later delete" callout becomes a sentence naming the opt-in fix.
+
+### F15 (done, reviewed)
+- Design: `onSave` + `refreshAfterSave` (`"settled"` default | `"each"` | `false` | function of `{saved, rejected, failed}`); `refresh()` always available; `gridProps.onSave` exists only when the hook got one. A reviewer (Opus) challenged it; changes taken: a void-returning `onSave` never refreshes (the grid cannot know when the server has it), a 10 s max wait so one stuck save cannot starve the refresh, no refresh when every save failed (outage), cursor scroll sources skip a refresh beyond the revalidate bound, docs fixed.
+- Left for later (reviewer should-fix): drive "settled" from the guard's `onSavesSettled` signal (async `resolveSaveConflict` can outlive the timer), merge with the structural-settle refresh in counted scroll mode, a richer policy report (`pending`, per-change results), a dev warning when `{...gridProps}` is followed by an own `onSave`.

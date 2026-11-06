@@ -997,6 +997,8 @@
         "createRow",
         "duplicateRow",
         "onBeforeDeleteRows",
+        "gateTimeoutMs",
+        "onGateAborted",
         "enableRowReorder"
       ],
       "cells": {
@@ -1128,6 +1130,7 @@
         "onDataChange",
         "readOnly",
         "onSave",
+        "refreshAfterSave",
         "onSaveRejected",
         "resolveSaveConflict"
       ],
@@ -1849,6 +1852,7 @@
         "fetchRows",
         "mode",
         "blockSize",
+        "source",
         "overscan",
         "spec",
         "defaultSpec",

@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataChange } from "@/registry/default/blocks/data-grid/data-grid";
-import { useSaveRefresh, type SaveRefreshOptions } from "./save-refresh";
+import { SAVE_REFRESH_MAX_WAIT_MS, useSaveRefresh, type SaveRefreshOptions } from "./save-refresh";
 
 type Row = { id: string };
 const change = {} as DataChange<Row>;
@@ -44,11 +44,9 @@ describe("useSaveRefresh", () => {
     expect(m.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("joins synchronous saves of one tick into one refresh", async () => {
-    const m = mount({ onSave: () => {} });
-    m.save();
-    m.save();
-    m.save();
+  it("joins saves that settle in one tick into one refresh", async () => {
+    const m = mount({ onSave: async () => {} });
+    await Promise.all([m.save(), m.save(), m.save()]);
     await flush();
     expect(m.refresh).toHaveBeenCalledTimes(1);
   });
@@ -78,10 +76,28 @@ describe("useSaveRefresh", () => {
     expect(m.refresh).not.toHaveBeenCalled();
   });
 
-  it("a rejected promise counts as failed, still refreshes by default, and rethrows to the grid", async () => {
+  it("a rejected promise rethrows to the grid and, with no save answered, skips the refresh", async () => {
     const m = mount({ onSave: () => Promise.reject(new Error("down")) });
     await expect(m.save()).rejects.toThrow("down");
     await flush();
+    expect(m.refresh).not.toHaveBeenCalled();
+  });
+
+  it("a handler that returns nothing never refreshes", async () => {
+    const m = mount({ onSave: () => {} });
+    m.save();
+    await flush();
+    expect(m.refresh).not.toHaveBeenCalled();
+  });
+
+  it("a save that never settles delays the refresh by at most the max wait", async () => {
+    let first = true;
+    const m = mount({ onSave: () => (first ? ((first = false), new Promise<void>(() => {})) : Promise.resolve()) });
+    void m.save();
+    await m.save();
+    await flush();
+    expect(m.refresh).not.toHaveBeenCalled();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(SAVE_REFRESH_MAX_WAIT_MS)));
     expect(m.refresh).toHaveBeenCalledTimes(1);
   });
 

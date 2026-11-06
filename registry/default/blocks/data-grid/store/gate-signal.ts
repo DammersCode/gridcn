@@ -47,20 +47,28 @@ export type GateTracker = {
   /** Marks the run done; a no-op when it was aborted or already settled. */
   settle(run: GateRun): void;
   /** Aborts a run and takes it out of the pending set. */
-  abortRun(run: GateRun): void;
+  abortRun(run: GateRun, reason?: GateAbortReason): void;
   /** Aborts every live run, or only the runs of the named gates. */
   abort(names?: readonly GateName[]): void;
   /** Marks `name` pending for work the grid does not run itself (the import dialog); returns the release. */
   track(name: GateName): () => void;
 };
 
+/** Why a gate run stopped before its result applied: it ran longer than `gateTimeoutMs`, the rows or mode it asked about changed, a newer run replaced it, or the grid reset or unmounted. */
+export type GateAbortReason = "timeout" | "changed" | "superseded" | "reset";
+
 export type GateTrackerHost = {
+  /** Read on every hold; `undefined` or a non-positive number turns the timeout off. */
+  timeoutMs?: () => number | undefined;
+  /** Called once per run that is aborted while pending. */
+  aborted?: (name: GateName, reason: GateAbortReason) => void;
   publish: (pending: ReadonlySet<GateName>) => void;
   subscribe: (listener: (now: DataGridStoreState, prev: DataGridStoreState) => void) => () => void;
 };
 
 export function createGateTracker(host: GateTrackerHost): GateTracker {
   const live = new Set<GateRun>();
+  const timers = new Map<GateRun, ReturnType<typeof setTimeout>>();
   const watchedRuns = new Set<GateRun>();
   const counts = new Map<GateName, number>();
   let unwatch: (() => void) | null = null;
@@ -82,6 +90,11 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
 
   const release = (run: GateRun): void => {
     if (!live.delete(run)) return;
+    const timer = timers.get(run);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timers.delete(run);
+    }
     if (run.watch) {
       watched--;
       watchedRuns.delete(run);
@@ -98,7 +111,7 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
     if (unwatch) return;
     unwatch = host.subscribe((now, prev) => {
       for (const run of Array.from(watchedRuns)) {
-        if (run.watch?.(now, prev)) tracker.abortRun(run);
+        if (run.watch?.(now, prev)) tracker.abortRun(run, "changed");
       }
     });
   };
@@ -116,14 +129,18 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
         watchStore();
       }
       if (count === 0) publish();
+      const timeoutMs = host.timeoutMs?.();
+      if (typeof timeoutMs === "number" && timeoutMs > 0 && run.name !== "import") timers.set(run, setTimeout(() => tracker.abortRun(run, "timeout"), timeoutMs));
     },
     settle: release,
-    abortRun(run) {
+    abortRun(run, reason = "superseded") {
+      const pending = live.has(run);
       run.cancel();
       release(run);
+      if (pending) host.aborted?.(run.name, reason);
     },
     abort(names) {
-      for (const run of Array.from(live)) if (!names || names.includes(run.name)) tracker.abortRun(run);
+      for (const run of Array.from(live)) if (!names || names.includes(run.name)) tracker.abortRun(run, "reset");
     },
     track(name) {
       const run = new GateRun(name);

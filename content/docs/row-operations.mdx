@@ -67,9 +67,7 @@ const confirmDelete = ({ rowIds, hiddenCount }: { rowIds: readonly string[]; hid
 
 While a promise is pending, a second delete does nothing. When the promise resolves, the grid reads its state again. It drops a `true` result if `readOnly` turned on, or if the row set or the checks changed. A callback that throws or rejects cancels the delete and warns in development.
 
-<Callout type="warn">
-  Settle the promise on every path, including a dismissed dialog. A promise that never settles blocks every later delete.
-</Callout>
+Settle the promise on every path, including a dismissed dialog. A promise that never settles blocks every later delete until `gateTimeoutMs` aborts it. <NewBadge />
 
  Clearing cell contents with Delete is not a row delete and does not call the callback. Undo restores a confirmed delete.
 

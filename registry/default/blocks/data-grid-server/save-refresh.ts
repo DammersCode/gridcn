@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import type { DataChange, SaveAck } from "@/registry/default/blocks/data-grid/data-grid";
 
 /** What `refreshAfterSave` sees when it decides: the saves that settled since the last refresh. */
@@ -15,8 +15,10 @@ export type SaveRefreshReport = {
 
 /**
  * When the hook fetches again after `onSave` settles.
- * - `"settled"`: once, after every save in flight has settled. A burst of saves costs one request.
+ * - `"settled"`: once, after every save in flight has settled (or after 10 seconds, so one stuck save cannot stop the refresh). A burst of saves costs one request.
  * - `"each"`: after every save that settles.
+ *
+ * Only a promise from `onSave` counts as a save: a handler that returns nothing has not told the grid when the server has the change, so it never triggers a refresh (call `refresh()` yourself). A refresh needs at least one save the server answered; saves that all threw skip it.
  * - `false`: never. Call `refresh()` yourself.
  * - a function: once after every save in flight has settled, when it returns `true`.
  */
@@ -31,14 +33,19 @@ export type SaveRefreshOptions<TData> = {
 
 const isThenable = (value: unknown): value is PromiseLike<unknown> => typeof (value as PromiseLike<unknown> | null)?.then === "function";
 
+/** Longest wait for saves in flight before the `"settled"` policies decide anyway, so one save that never settles cannot stop every later refresh. */
+export const SAVE_REFRESH_MAX_WAIT_MS = 10_000;
+
 /**
  * Wraps the caller's `onSave` so the hook refreshes after saves settle by the caller's policy. Returns `undefined` without an
  * `onSave`, so spreading `gridProps` never overrides a provider `onSave` of your own.
  */
 export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void): ((change: DataChange<TData>) => void | Promise<SaveAck<TData>>) | undefined {
   const live = useRef({ options, refresh });
-  live.current = { options, refresh };
-  const state = useRef({ inflight: 0, report: { saved: 0, rejected: 0, failed: 0 } as SaveRefreshReport, scheduled: false, mounted: true });
+  useLayoutEffect(() => {
+    live.current = { options, refresh };
+  });
+  const state = useRef({ inflight: 0, report: { saved: 0, rejected: 0, failed: 0 } as SaveRefreshReport, scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
@@ -46,16 +53,24 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
     };
   }, []);
 
-  const decide = useCallback(() => {
+  const decide = useCallback((force = false) => {
     const current = state.current;
     current.scheduled = false;
+    if (current.maxWait !== null && (force || current.inflight === 0)) {
+      clearTimeout(current.maxWait);
+      current.maxWait = null;
+    }
     if (!current.mounted) return;
     const policy = live.current.options.refreshAfterSave ?? "settled";
     if (policy === false) {
       current.report = { saved: 0, rejected: 0, failed: 0 };
       return;
     }
-    if (policy !== "each" && current.inflight > 0) return;
+    if (policy !== "each" && current.inflight > 0 && !force) return;
+    if (current.report.saved + current.report.rejected === 0) {
+      current.report = { saved: 0, rejected: 0, failed: 0 };
+      return;
+    }
     const report = current.report;
     current.report = { saved: 0, rejected: 0, failed: 0 };
     if (typeof policy === "function") {
@@ -76,7 +91,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       current.report[kind] += 1;
       if (current.scheduled) return;
       current.scheduled = true;
-      setTimeout(decide, 0); // after the grid has settled the row, so the refresh sees it as saved
+      setTimeout(() => decide(), 0); // after the grid has settled the row, so the refresh sees it as saved
     },
     [decide],
   );
@@ -93,11 +108,9 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
         settle("failed");
         throw error;
       }
-      if (!isThenable(result)) {
-        settle("saved");
-        return result;
-      }
+      if (!isThenable(result)) return result;
       state.current.inflight += 1;
+      if (state.current.maxWait === null) state.current.maxWait = setTimeout(() => decide(true), SAVE_REFRESH_MAX_WAIT_MS);
       return Promise.resolve(result).then(
         (ack) => {
           state.current.inflight -= 1;
@@ -111,7 +124,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
         },
       );
     },
-    [settle],
+    [settle, decide],
   );
   return hasSave ? onSave : undefined;
 }

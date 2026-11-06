@@ -168,7 +168,25 @@ refused. The grid marks the rows `saving`, reverts only the refused ones, and ca
 />
 ```
 
-Pass `onSave` to `useDataGridServerRows` instead, and `gridProps` carries it. The hook then fetches the rows again after the saves settle, so the grid shows the server's truth <NewBadge />:```tsxconst server = useDataGridServerRows<Order>({  fetchRows,  onSave: async (change) => ({ rejected: await api.saveOrders(change.ops) }),});````refreshAfterSave` sets when the refresh runs:| Value | Refresh ||---|---|| `"settled"` (default) | Once, after every save in flight has settled. Parallel saves cost one request. || `"each"` | After every save that settles. || `false` | Never. Call `server.refresh()` yourself. || `(report) => boolean` | Once, after every save in flight has settled, when it returns `true`. `report` holds `saved`, `rejected`, and `failed` counts. |`server.refresh()` stays available in every case. A rejected or failed save counts as settled.
+Pass `onSave` to `useDataGridServerRows` instead, and `gridProps` carries it. The hook then fetches the rows again after the saves settle, so the grid shows the server's truth:
+
+```tsx
+const server = useDataGridServerRows<Order>({
+  fetchRows,
+  onSave: async (change) => ({ rejected: await api.saveOrders(change.ops) }),
+});
+```
+
+`refreshAfterSave` <NewBadge /> sets when the refresh runs:
+
+| Value | Refresh |
+|---|---|
+| `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. Parallel saves cost one request. |
+| `"each"` | After every save that settles. |
+| `false` | Never. Call `server.refresh()` yourself. |
+| `(report) => boolean` | Once, after every save in flight has settled, when it returns `true`. `report` holds `saved`, `rejected`, and `failed` counts. |
+
+Only a promise counts as a save: an `onSave` that returns nothing never triggers a refresh, because the grid cannot tell when the server has the change. A refresh needs at least one save the server answered, so an outage does not trigger one. `server.refresh()` stays available in every case.
 `onSave` never receives the revert (`source: "rollback"`) or a server push (`source: "stream"`). See
 [Server round-trip](/docs/recipes/data-fetching/server-round-trip#strategy-c-acknowledge-each-change)
 and [TanStack Query](/docs/recipes/data-fetching/tanstack-query).
@@ -181,6 +199,8 @@ until your API answers. The grid drops the result of a gate, with no error, when
 - the grid is `readOnly`,
 - the target row is no longer in `data`, for example after a refetch removed it,
 - the sort or filter spec changes during a pending paste.
+
+`gateTimeoutMs` <NewBadge /> aborts a gate whose promise has not settled after that many milliseconds: its signal aborts, the action is cancelled, and the next action may start. It is off by default. `onGateAborted({ gate, reason })` reports every gate the grid stopped waiting for, with the reason `"timeout"`, `"changed"`, `"superseded"`, or `"reset"`, so a dropped result is no longer silent.
 
 Every gate gets an `AbortSignal`: pass it to `fetch`, and the request stops when a newer run
 replaces it or the grid unmounts. `useDataGridGatePending()` reports the gates that wait for a

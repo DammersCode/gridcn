@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `gateTimeoutMs` aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise has not settled in time, and `onGateAborted({ gate, reason })` reports every gate the grid stopped waiting for (`"timeout"`, `"changed"`, `"superseded"`, `"reset"`). Both are off by default; a gate still waits for its promise.
 - The grid compares the `labels` prop by content, so a literal object of strings no longer needs `useMemo`. A label that is a function still counts as changed when its identity changes.
 - `useDataGridServerRows` takes `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your handler and refreshes by the policy: `"settled"` (default, once after every save in flight), `"each"`, `false`, or a function of the saved, rejected, and failed counts. `refresh()` stays available.
 - `history.record` warns in development when an inserted row is already in `data` (the change was applied twice).

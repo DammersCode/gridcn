@@ -976,7 +976,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, streamUpdateRow],
   );
 
-  const onSave = useSaveRefresh(options, refresh);
+  const refreshAfterSave = useCallback(() => {
+    if (canRevalidate()) refresh();
+  }, [canRevalidate, refresh]);
+  const onSave = useSaveRefresh(options, refreshAfterSave);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({

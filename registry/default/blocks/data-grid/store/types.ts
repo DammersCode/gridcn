@@ -38,8 +38,8 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
-import type { GateContext, GateName, GateTracker } from "./gate-signal";
-export type { GateContext, GateName } from "./gate-signal";
+import type { GateAbortReason, GateContext, GateName, GateTracker } from "./gate-signal";
+export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
 import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveResolution } from "./write-ack";
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
@@ -202,6 +202,17 @@ export type DataGridSyncProps<TData = unknown> = {
    * prop (such as `DataGridSearch debounceMs`) wins. Default 200.
    */
   inputDebounceMs?: number;
+  /**
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
+   * has not settled after this many ms: its `signal` aborts, the action is cancelled, and the next action may start. Default: off
+   * (a gate waits for its promise).
+   */
+  gateTimeoutMs?: number;
+  /**
+   * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
+   * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), or `"reset"`.
+   */
+  onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
   /**
    * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With

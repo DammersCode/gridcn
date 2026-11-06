@@ -269,6 +269,17 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
   const gates = createGateTracker({
+    timeoutMs: () => store.getState().gateTimeoutMs,
+    aborted: (gate, reason) => {
+      const onGateAborted = store.getState().onGateAborted;
+      if (onGateAborted) {
+        try {
+          onGateAborted({ gate, reason });
+        } catch (error) {
+          warnDev(`onGateAborted threw: ${String(error)}`);
+        }
+      }
+    },
     publish: (gatesPending) => store.setState({ gatesPending }),
     subscribe: (listener) => store.subscribe(listener),
   });
@@ -906,6 +917,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
             inputDebounceMs: props.inputDebounceMs,
+            gateTimeoutMs: props.gateTimeoutMs,
+            onGateAborted: props.onGateAborted,
             onSave: props.onSave,
             onSaveRejected: props.onSaveRejected,
             resolveSaveConflict: props.resolveSaveConflict,

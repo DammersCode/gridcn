@@ -113,6 +113,8 @@ const CONFIG_KEYS = [
   "announceResults",
   "onBeforeDeleteRows",
   "inputDebounceMs",
+  "gateTimeoutMs",
+  "onGateAborted",
   "onSave",
   "onSaveRejected",
   "resolveSaveConflict",
