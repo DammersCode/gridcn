@@ -60,7 +60,8 @@ const OPERATORS = [
 const operatorsAreExhaustive: Exclude<BuiltInFilterOperator, (typeof OPERATORS)[number]> extends never ? true : never = true;
 void operatorsAreExhaustive;
 
-const FILTER_OPERATORS: ReadonlySet<string> = new Set(OPERATORS);
+const FILTER_OPERATOR_IDS: ReadonlySet<string> = new Set(OPERATORS);
+const CUSTOM_OPERATOR_ID = /^[A-Za-z][\w.-]{0,63}$/;
 
 export function emptyViewState(): DataGridViewState {
   return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
@@ -185,6 +186,10 @@ function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: n
     }
     return { ok: true, value: [...raw] };
   }
+  if (!FILTER_OPERATOR_IDS.has(operator)) {
+    if (raw === undefined) return { ok: true, value: undefined };
+    if (Array.isArray(raw)) return raw.length <= MAX_LIST_ENTRIES && raw.every(text) ? { ok: true, value: [...raw] } : { ok: false };
+  }
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 
@@ -210,7 +215,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
       continue;
     }
     const { columnId, operator } = entry;
-    const value = typeof operator === "string" && FILTER_OPERATORS.has(operator) ? sanitizeFilterValue(operator, entry.value, tally) : ({ ok: false } as const);
+    const value = typeof operator === "string" && CUSTOM_OPERATOR_ID.test(operator) ? sanitizeFilterValue(operator, entry.value, tally) : ({ ok: false } as const);
     if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
       tally.dropped++;
       continue;

@@ -71,6 +71,15 @@ describe("sanitizeViewState", () => {
     expect(result.dropped).toBe(6);
   });
 
+  it("keeps a registered custom operator id with a text or list value", () => {
+    const result = sanitizeViewState(
+      { ...state, filters: [{ columnId: "name", operator: "inRegion", value: "EU" }, { columnId: "name", operator: "inAny", value: ["a", "b"] }, { columnId: "name", operator: "inRegion", value: { a: 1 } }] },
+      columns,
+    );
+    expect(result.state.filters).toEqual([{ columnId: "name", operator: "inRegion", value: "EU" }, { columnId: "name", operator: "inAny", value: ["a", "b"] }]);
+    expect(result.dropped).toBe(1);
+  });
+
   it("drops sorts and filters on columns that opt out", () => {
     const result = sanitizeViewState(
       { ...state, sorts: [{ columnId: "secret", direction: "asc" }], filters: [{ columnId: "secret", operator: "equals", value: "x" }] },
