@@ -2,7 +2,7 @@
 title: Import
 description: Read a CSV or Excel file into grid rows with a dialog that maps the file's columns to grid columns and checks every cell.
 type: feature
-aliases: ["csv import", "excel import", "csv upload"]
+aliases: ["csv import", "xlsx import", "csv upload"]
 ---
 
 Import reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` opens a dialog where the user picks a file, maps its columns, and checks a preview. The dialog runs every cell through the `fromText` of its column's cell type, as a paste does, and hands the rows to your `onImport`. It never writes rows to the grid itself.

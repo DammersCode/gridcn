@@ -984,7 +984,7 @@
    "words": 900,
    "aliases": [
     "copy paste",
-    "paste from excel",
+    "paste from a spreadsheet",
     "usedatagridclipboard"
    ],
    "codeLines": 30,
@@ -2145,7 +2145,7 @@
    "words": 900,
    "aliases": [
     "csv export",
-    "excel export",
+    "xlsx export",
     "xlsx download",
     "csv injection",
     "formula injection"
@@ -2182,7 +2182,7 @@
    "words": 1000,
    "aliases": [
     "csv import",
-    "excel import",
+    "xlsx import",
     "csv upload"
    ],
    "codeLines": 0,
