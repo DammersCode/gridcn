@@ -804,8 +804,11 @@ export type DataGridApi<TData> = {
   setSelection(next: SelectionState | null): void;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
-  /** The row id of every view row, in view order; an unloaded row (a lazy hole) gets its placeholder id, like `useDataGridRowIds`. */
-  getViewRowIds(): readonly string[];
+  /**
+   * The row id of every view row, in view order. An unloaded row (a hole of a lazy source) gets its placeholder id, like
+   * `useDataGridRowIds`; `{ loaded: true }` leaves the placeholders out.
+   */
+  getViewRowIds(options?: { loaded?: boolean }): readonly string[];
 };
 
 /**

@@ -99,7 +99,7 @@ function PushControls({ remote, live }: { remote: Remote; live: boolean }): Reac
   useEffect(() => {
     if (!live) return;
     const timer = setInterval(() => {
-      const ids = api.getViewRowIds().filter((id) => !id.startsWith("__")).slice(0, 8);
+      const ids = api.getViewRowIds({ loaded: true }).slice(0, 8);
       api.actions.updateRows(remote.bumpScores(ids.slice(0, 3)));
     }, 500);
     return () => clearInterval(timer);

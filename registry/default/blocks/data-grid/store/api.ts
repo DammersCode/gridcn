@@ -87,12 +87,15 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
       const dataRowIndex = s.viewIndex[viewRowIndex];
       return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     },
-    getViewRowIds() {
+    getViewRowIds(options) {
       const s = read();
-      return s.viewIndex.map((dataRowIndex) => {
+      const ids: string[] = [];
+      for (const dataRowIndex of s.viewIndex) {
         const row = s.data[dataRowIndex];
-        return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
-      });
+        if (row !== undefined) ids.push(s.getRowId(row, dataRowIndex));
+        else if (!options?.loaded) ids.push(holeRowId(dataRowIndex));
+      }
+      return ids;
     },
   };
 }

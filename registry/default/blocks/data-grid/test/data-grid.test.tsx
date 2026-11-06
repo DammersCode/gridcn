@@ -1665,6 +1665,7 @@ describe("DataGridApi (imperative handle)", () => {
     act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     // name-asc: Alice(0) view 0, Bob(1) view 1, Charlie(2) view 2 — data order is Charlie first
     expect(ref.current!.getViewRowIds()).toEqual(["0", "1", "2"]);
+    expect(ref.current!.getViewRowIds({ loaded: true })).toEqual(["0", "1", "2"]);
     expect(ref.current!.getRow(0)?.id).toBe("0");
     expect(ref.current!.getRow(2)?.id).toBe("2");
     expect(ref.current!.getRow(99)).toBeUndefined();

@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `isPlaceholderRowId(id)` (from `data-grid`) tells the placeholder id of an unloaded row from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only, so no caller matches an id prefix.
 - `getRowId` is optional in `useDataGridServerRows` (both modes). It defaults to the row's `id` field, the same default as `DataGridProvider`, so the hook and the grid agree; a row without a string or number `id` throws.
 - `totalRowCount` makes `sortMode` and `filterMode` default to `"server"`: a window of a result cannot be sorted or filtered locally without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window in the browser. A grid without `totalRowCount` keeps the `"client"` default.
 - `parseServerSpec(body, { columns, limits })` in `data-grid-server` turns an untrusted request body into a bounded, typed `ServerSpec` or throws a `ServerSpecError` with the path of the bad part. It checks column ids, per-column operators and value shapes, tree depth, group and row counts, and value lengths. The ORM recipes call it instead of a hand-written check.

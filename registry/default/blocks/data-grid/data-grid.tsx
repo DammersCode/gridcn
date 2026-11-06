@@ -118,6 +118,7 @@ export {
 } from "./keyboard/global-shortcuts";
 export { isMacPlatform, formatShortcut } from "./keyboard";
 export { serverSpecKey, type RowRange, type ServerSpec } from "./server-spec";
+export { isPlaceholderRowId } from "./store/compute";
 
 export {
   cellTypes,

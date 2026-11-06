@@ -95,6 +95,11 @@ export function holeRowId(dataRowIndex: number): string {
   return `${HOLE_ROW_ID_PREFIX}${dataRowIndex}`;
 }
 
+/** Whether `rowId` is the placeholder id of an unloaded row (a hole of a lazy source). */
+export function isPlaceholderRowId(rowId: string): boolean {
+  return holeRowIndex(rowId) >= 0;
+}
+
 /** The data index a {@link holeRowId} placeholder encodes, or -1 when `rowId` is not a placeholder. */
 export function holeRowIndex(rowId: string): number {
   if (!rowId.startsWith(HOLE_ROW_ID_PREFIX)) return -1;

@@ -25,3 +25,7 @@ Decision: B. `sortMode="client"` / `filterMode="client"` still sort or filter a 
 
 ### F8 (done)
 `getRowId` defaults to `defaultGetRowId` (the core default) in both hook modes; a custom function still wins. A row with no id throws, which is stricter than the audit's dev warning and matches the core. Nothing removed.
+
+### F12 (partly done)
+- Done: `isPlaceholderRowId`, `getViewRowIds({ loaded: true })`; the server demo no longer matches a `"__"` prefix. The default of `getViewRowIds()` is unchanged (placeholders included), so every old caller keeps working.
+- Open: the "reason on silent skips" half of F12 belongs to F14 (see below).

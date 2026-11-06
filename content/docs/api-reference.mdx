@@ -49,8 +49,8 @@ gridRef.current?.actions.selectCell({ rowId: order.id, columnId: "symbol" });
 - `getSelection`, `getRow`, and `getViewRowIds` are snapshots at call time. They never
   re-render the calling component.
 - `getViewRowIds` returns one entry per view row, in view order, so entry `i` is always view
-  row `i`. An unloaded row of a scroll-mode grid gives its placeholder id (`__lazy-unloaded-<index>`),
-  the same id `useDataGridRowIds` returns.
+  row `i`. An unloaded row of a scroll-mode grid gives its placeholder id, the same id `useDataGridRowIds` returns.
+  `getViewRowIds({ loaded: true })` leaves the placeholders out. `isPlaceholderRowId(id)` tells a placeholder from a real id. <NewBadge />
 - `setSelection` applies a whole selection (a range, a range stack, row and column channels)
   in stable `CellRef` terms, or clears the selection with `null`. It emits like a gesture:
   `onSelectionChange` fires when the result differs from the grid's current value. Selecting a
