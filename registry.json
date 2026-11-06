@@ -1460,6 +1460,11 @@
                "target": "components/data-grid-server/refresh-guard.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid-server/parse-server-spec.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/parse-server-spec.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-server/read-answer.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/read-answer.ts"

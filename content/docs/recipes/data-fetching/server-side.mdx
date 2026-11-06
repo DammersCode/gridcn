@@ -57,8 +57,8 @@ new order.
 
 The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
 indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
-response holds the matching rows. The tree is untrusted input. Check its depth, size, and column
-names before you build a query (the [ORM recipes](/docs/examples/data/orm) show the check).
+response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` (from `data-grid-server`) before
+you build a query: it checks the depth, the size, the column ids, the operators, and the value shapes (the [ORM recipes](/docs/examples/data/orm) call it).
 
 The header filter popover and the `isAnyOf` input of the filter menu list the values of the
 loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See

@@ -84,7 +84,7 @@ A score push marks the row with `data-row-stale` when the sort reads the score c
 ## Notes
 
 - `filters` is the filter tree: rows and groups, with no separate join. The top level combines with "and", and a group carries its own `join`.
-- The request is untrusted. Before you build a query, check that the tree is at most 2 groups deep, holds at most 16 groups and 64 rows, names only allowed columns, and uses `"and"` or `"or"` as every `join`. Cap the request body size too. The [ORM recipes](/docs/examples/data/orm) show the check.
+- The request is untrusted. Pass it through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query: it throws a `ServerSpecError` for an unknown column or operator, a tree deeper than 2 groups or larger than 16 groups and 64 rows, and over-long values. Cap the request body size too. The [ORM recipes](/docs/examples/data/orm) call it.
 - Keep a query cache in front of the API by calling it inside `fetchRows`, for example `queryClient.fetchQuery({ queryKey: ["rows", spec, page, pageSize], queryFn: () => api.orders(...) })`.
 - To make the state shareable, wrap the grid in [DataGridUrlState](/docs/addons/url-state): the view state moves to the URL.
 - Checks that survive pages and "select all matching" need `totalRowCount` and `keepCheckedRows`, which `gridProps` already carries. See [Selection over a server result](/docs/selection-keyboard#selection-over-a-server-result).
