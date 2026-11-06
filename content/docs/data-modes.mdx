@@ -103,7 +103,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"No swap from a client id to the server-assigned id after create."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Counts and total</th>
@@ -209,11 +209,11 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Undo warns over rows not loaded yet."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The local undo stack never learns whether the server accepted the write."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row create, duplicate and delete</th>
@@ -510,10 +510,6 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **FS**: n/a: Search highlights loaded rows and never filters.
 - **API**: n/a: Search writes no data.
 
-### Row ids
-
-- **API**: Gap: No swap from a client id to the server-assigned id after create.
-
 ### Row grouping
 
 - **L**: Gap: Row grouping is not available.
@@ -545,11 +541,6 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **PC**: n/a: Print covers loaded rows by design.
 - **PS**: n/a: Print covers loaded rows by design.
 - **Z**: n/a: Print covers loaded rows by design.
-
-### Undo and redo
-
-- **Z**: Gap: Undo warns over rows not loaded yet.
-- **API**: Gap: The local undo stack never learns whether the server accepted the write.
 
 ### Pushes into a server-ordered view
 
