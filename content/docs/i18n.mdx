@@ -183,6 +183,7 @@ function OrdersGrid() {
 ```
 
 The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function (such as `pasteBlocked`) counts as changed unless it keeps its identity: wrap it, or build the object with `useMemo` keyed on your active locale.
+
 ## RTL layout
 
 `labels` translates strings. It does not flip layout. `direction` flips layout. It does not
