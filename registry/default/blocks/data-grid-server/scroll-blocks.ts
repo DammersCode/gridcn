@@ -21,6 +21,11 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   /** Identifies a row. Default: the row's `id` field (a string or number), the same default as `DataGridProvider`. */
   getRowId?: (row: TData, index: number) => string;
   /**
+   * How the source is fetched. `"indexed"` fetches any block by position and needs a `totalRowCount` in every answer (a development
+   * warning names an answer without one). `"cursor"` fetches the blocks in order. Default: the first answer picks it, by the rule of `fetchRows`.
+   */
+  source?: "indexed" | "cursor";
+  /**
    * Resolves rows `[start, end)` of the result. The first answer picks the fetch order:
    * - `totalRowCount` and no `nextCursor`: random access. The grid sizes its rows from the count, and a changed count starts the blocks over.
    * - `nextCursor` (with or without a count), or neither: sequential. The grid shows the loaded rows plus one block of skeletons, and
@@ -498,13 +503,17 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const core = getCore();
       const read = readAnswer<TData, unknown>(answer, range, warn, live.current.options.getRowId);
       if (core.kind === "unknown") {
-        core.kind = startsSequence(read) ? "sequence" : "random";
+        const declared = live.current.options.source;
+        core.kind = declared === "cursor" ? "sequence" : declared === "indexed" ? "random" : startsSequence(read) ? "sequence" : "random";
         const passed: unknown = live.current.options.maxLoadedRows;
         if (core.kind === "sequence" && typeof passed === "number" && Number.isFinite(passed)) warn("sequential-cap", "maxLoadedRows has no effect on a sequential source: a cursor chain cannot fetch an arbitrary block again, so every loaded row stays");
       }
       if (core.kind === "sequence") {
         landSequence(range, read, sentCursor, guard);
         return;
+      }
+      if (live.current.options.source === "indexed" && typeof read.totalRowCount !== "number") {
+        warn("indexed-count", 'source is "indexed" but fetchRows answered without a totalRowCount; the rows end at this block. Answer the count with every block');
       }
       const first = !core.ready;
       const nextCount = typeof read.totalRowCount === "number" ? read.totalRowCount : (core.count ?? range.start + read.rows.length);

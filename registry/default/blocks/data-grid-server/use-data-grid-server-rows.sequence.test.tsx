@@ -486,3 +486,22 @@ describe("scroll mode, sequential: refresh in place", () => {
     expect(result.current.gridProps).toBe(before.gridProps);
   });
 });
+
+describe("scroll mode, declared source", () => {
+  it('source "cursor" is sequential even when the first answer carries a count', async () => {
+    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: rowsOf(start, end - start), totalRowCount: 500, hasMore: true }));
+    const { result } = mount(fetchRows, { source: "cursor" });
+    await settled(result);
+    expect(result.current.gridProps.data).toHaveLength(20);
+    expect(result.current.unloadedCount).toBe(10);
+  });
+
+  it('source "indexed" warns about an answer without a count, and the rows end at the block', async () => {
+    const warn = spyWarn();
+    const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: rowsOf(start, end - start), hasMore: true }));
+    const { result } = mount(fetchRows, { source: "indexed" });
+    await settled(result);
+    expect(warningsAbout(warn, "totalRowCount")).toHaveLength(1);
+    expect(result.current.gridProps.data).toHaveLength(10);
+  });
+});

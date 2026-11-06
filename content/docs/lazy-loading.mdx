@@ -121,10 +121,7 @@ Behavior the grid applies by itself:
 - `revalidateInterval` <NewBadge /> calls `refresh()` on a timer. The clock restarts on every refresh and on a spec change. A tick that finds a request in flight waits and then runs once, so ticks never stack. The timer stops while the page is hidden. A failed tick does not stop the timer. A revalidation does not clear the undo stack.
 - `reshape()` <NewBadge /> asks the server to place pushed rows again. It runs one `refresh()` on the next frame, or after `reshapeDelay` when you set it. Calls in one frame join.
 
-<Callout type="warn">
-  An answer without `totalRowCount` ends the source at the rows of the first block, unless it carries
-  `nextCursor` or `hasMore`. Answer the count with every block.
-</Callout>
+The first answer picks the fetch order. An answer with `totalRowCount` and no `nextCursor` makes the source random access. An answer without a count, or with `nextCursor`, makes it sequential; `hasMore` then defaults to a full block. Set `source: "indexed"` or `source: "cursor"` to fix the order yourself. An `"indexed"` source that answers without a count warns in development and ends at that block. <NewBadge />
 
 `onRenderedRowsChange` is a core `DataGridProvider` or `DataGrid` prop (see
 [Virtualization](/docs/virtualization)). Scroll mode is the first consumer of it, but the prop is generic and
