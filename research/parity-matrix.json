@@ -291,6 +291,7 @@
         "enableRowSelection",
         "keepCheckedRows",
         "keepHiddenCheckedRows",
+        "rememberCheckedRows",
         "selection",
         "defaultSelection",
         "onSelectionChange",
