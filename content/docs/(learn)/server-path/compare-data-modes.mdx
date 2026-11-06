@@ -1,9 +1,89 @@
 ---
 title: Compare data modes
-description: Compare data modes.
+description: Pick the data mode that fits your rows, from a local array to server pages or scroll mode, and see what each mode needs from your API.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [render your first grid](/docs/learning-path/render-your-first-grid) from a local array. This step is the first of the server path. It ends with one choice: the data mode of your grid.
 
-This page is being written.
+A data mode is one way the grid gets its rows. Ask these questions in order and stop at the first yes:
+
+1. Can the browser hold every row, and can one request load them? Use a local array.
+2. Does the user jump to numbered pages? Use pages mode (server pagination).
+3. Otherwise, use scroll mode (scroll rows). If the row count passes the [row limit](/docs/performance/row-limits), use pages mode instead.
+
+## Match the mode to your API [#match-the-mode]
+
+| Mode | Use it when | You write |
+| --- | --- | --- |
+| Local array | The browser holds every row. | `data` or `defaultData` |
+| Client pagination | The rows are in memory and the user wants numbered pages. | `useDataGridPagination` |
+| Pages mode | Your API returns one page for each request. | `fetchRows` with `page` and `pageSize` |
+| Scroll mode, random access | Your API reads rows by offset and returns the row count. | `fetchRows` with `start` and `end` |
+| Scroll mode, sequential source | Your API returns a next cursor and no row count. | `fetchRows` with `cursor` |
+
+With a local array, the grid sorts, filters, and searches `data` itself. With a server mode, your API does that work and the grid shows the answer. The server hook sets `sortMode="server"` and `filterMode="server"` for you.
+
+The browser limits how many rows one grid scrolls. See [Row limits](/docs/performance/row-limits). A result above that limit needs pages mode, because a scroll mode source with a row count shows every row in one list.
+
+Scroll mode picks random access or a sequential source from the first answer. An answer with `totalRowCount` and no `nextCursor` gives random access. Any other first answer gives a sequential source.
+
+## See the difference in code [#see-the-difference]
+
+A local array needs no hook. A server mode needs `useDataGridServerRows`, and only `mode` and the answer differ:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function LocalOrders({ rows }: { rows: Order[] }) {
+  return <DataGrid defaultData={rows} columns={columns} />;
+}
+
+export function ServerOrders() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => {
+      const query = `offset=${start}&limit=${end - start}`;
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+Without `mode`, the hook runs in pages mode and needs a pager. With `mode: "scroll"`, leave the pager out. The hook fixes its mode for its whole life. To switch, put the hook and the grid in one component, and remount that component with a `key`.
+
+## Result
+
+You know which mode fits your rows. For pages mode, go on to the next step. For scroll mode, read [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling), then continue with [Plan server saves](/docs/server-path/plan-server-saves). The matrix on [Data mode support](/docs/data-modes/data-mode-support) shows how each feature behaves in each mode.
+
+Next: [Load server rows](/docs/server-path/load-server-rows).
+
+## Related
+
+- [Data mode support](/docs/data-modes/data-mode-support)
+- [Client pagination](/docs/rows-pages-menus/client-pagination)
+- [Load rows by page](/docs/server-pagination/load-rows-page)
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
+- [Load without row count](/docs/scroll-mode/load-without-row-count)

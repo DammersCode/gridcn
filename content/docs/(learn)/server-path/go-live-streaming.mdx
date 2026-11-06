@@ -1,9 +1,91 @@
 ---
 title: Go live with streaming
-description: Go live with streaming.
+description: Push live values from a WebSocket into the grid by row id with updateCells, without a refetch and without sending the push back to your server.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [handle failures](/docs/server-path/handle-failures). Your server can push new values while the user watches the grid. `updateCells` writes them into the rows that the grid holds. It needs no refetch.
 
-This page is being written.
+## Write pushed values [#write-pushed-values]
+
+1. Keep a `ref` to the grid. A socket handler runs after the grid mounted, so it reaches the actions through the ref.
+2. Open the socket in an effect. Close it in the cleanup.
+3. Map each message to patches. A patch names a row by its row id, and a column by its column id.
+4. Call `actions.updateCells` once for each message.
+
+This grid applies price pushes to the rows it loaded:
+
+```tsx
+"use client";
+
+import { useEffect, useRef } from "react";
+import { DataGrid, type DataGridApi } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import { columns, type Quote } from "./quotes";
+import { loadPage } from "./api";
+
+type PriceMessage = { symbol: string; price: number }[];
+
+export function QuotesGrid() {
+  const gridRef = useRef<DataGridApi<Quote>>(null);
+  const server = useDataGridServerRows<Quote>({
+    getRowId: (row) => row.symbol,
+    fetchRows: loadPage,
+  });
+
+  useEffect(() => {
+    const socket = new WebSocket("wss://example.com/prices");
+    socket.onmessage = (event) => {
+      const message: PriceMessage = JSON.parse(event.data);
+      gridRef.current?.actions.updateCells(
+        message.map(({ symbol, price }) => ({
+          rowId: symbol,
+          columnId: "price",
+          value: price,
+        })),
+      );
+    };
+    return () => socket.close();
+  }, []);
+
+  return (
+    <>
+      <DataGrid
+        ref={gridRef}
+        {...server.gridProps}
+        columns={columns}
+        className="h-96"
+      />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+One call is one batch. The grid applies all patches together and calls `onDataChange` once. Rows without a patch do not render again.
+
+## What the grid skips [#what-the-grid-skips]
+
+`updateCells` returns a verdict. `applied` counts the cells it wrote. `skipped` lists a patch that the grid checked and left out, with a reason. A patch for a row that the grid has not loaded gets the reason `"unknown-row"`. A `readOnly` grid writes no cell and returns an empty `skipped` list.
+
+A batch has the source `"stream"`. `onSave` never receives that source, so a pushed value does not go back to your server. Pass `{ source: "edit" }` to a call to send it to `onSave`.
+
+The grid does not sort server rows, so a pushed value never moves its row. Your next fetch returns the server order.
+
+## Result
+
+When the socket sends a price, the cell in that row changes. The row keeps its position, the selection stays, and the grid sends no request.
+
+Where next: the [custom code path](/docs/custom-code-path), the [task finder](/docs/terms-help/task-finder), or [Stream updates](/docs/rows-live-data/stream-updates) for undo of pushed values.
+
+## Related
+
+- [Stream updates](/docs/rows-live-data/stream-updates)
+- [Show presence](/docs/rows-live-data/show-presence)
+- [Change server rows](/docs/rows-live-data/change-server-rows)
+- [Data mode support](/docs/data-modes/data-mode-support)

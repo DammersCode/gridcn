@@ -1,9 +1,74 @@
 ---
 title: Plan server saves
-description: Plan server saves.
+description: Choose how onSave answers your server, from a full revert to a refetch, a per-row refusal, or an error on one cell, and wire the first save.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [load server rows](/docs/server-path/load-server-rows). An edit already appears in the grid before your server hears about it. `onSave` sends the edit to your server and tells the grid what the server answered. This step picks the answer.
 
-This page is being written.
+## Choose the answer [#choose-the-answer]
+
+Find the first line that matches your server:
+
+| If your server | Then `onSave` | Task |
+| --- | --- | --- |
+| Accepts or refuses a whole change | Returns the request promise. A rejection reverts the change. | [Save and revert](/docs/save-server/save-revert) |
+| Recomputes values after a write | Waits for the request, then refreshes the rows. | [Save and revert](/docs/save-server/save-revert#strategy-b-refetch-on-settle) |
+| Refuses some rows of a change | Resolves with `{ rejected }`. The grid reverts only those rows. | [Handle refused saves](/docs/save-server/handle-refused-saves) |
+| Rejects one field that the user can fix | Resolves normally and calls `setCellErrors`. | [Show errors on cells](/docs/save-server/show-errors-cells) |
+
+An `onSave` that returns no promise and does not throw cannot revert. The grid tracks a save only while its promise is pending. A thrown error counts as a refusal of the whole change.
+
+## Wire the first save [#wire-the-first-save]
+
+This grid sends each change to an API and refreshes the page after the server accepts it. If the request fails, the thrown error reverts the change:
+
+```tsx
+"use client";
+
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import { columns, type Order } from "./orders";
+import { loadPage } from "./api";
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: loadPage,
+  });
+
+  async function onSave(change: DataChange<Order>) {
+    const response = await fetch("/api/orders/changes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(change.ops),
+    });
+    if (!response.ok) throw new Error("Save refused");
+    setTimeout(server.refresh);
+  }
+
+  return <DataGrid {...server.gridProps} columns={columns} onSave={onSave} />;
+}
+```
+
+`change.ops` holds one operation (`ops`) for each touched row. Key each request by `rowId`, because a sort or a filter moves the [view index](/docs/concepts/state-view-index).
+
+While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`. `setTimeout` runs the refresh after the status clears, so the refresh brings in the server values.
+
+`onSave` never receives the revert, which has the source `"rollback"`. It never receives a server push, which has the source `"stream"`.
+
+## Result
+
+An edit shows at once. A refused save reverts the edit. An accepted save stays, and the refresh brings in the values that the server computed.
+
+Next: [Handle failures](/docs/server-path/handle-failures).
+
+## Related
+
+- [Save edits](/docs/save-server/save-edits)
+- [Save and revert](/docs/save-server/save-revert)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Show errors on cells](/docs/save-server/show-errors-cells)
+- [Data change events](/docs/events-state/data-change-events)

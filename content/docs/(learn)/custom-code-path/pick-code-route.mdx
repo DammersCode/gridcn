@@ -1,9 +1,93 @@
 ---
 title: Pick a code route
-description: Pick a code route.
+description: Choose the lightest way to change the grid with your own code, from a column option to a custom cell type or a plugin.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [render your first grid](/docs/learning-path/render-your-first-grid) with `columns` and `data`. This step is the first of the custom code path. It ends with one choice: the route that fits your change.
 
-This page is being written.
+Take the first row that fits. A lighter route leaves less code for you to keep.
+
+## Choose a route [#choose-a-route]
+
+| If you need to | Route | Guide |
+| --- | --- | --- |
+| Format numbers, dates, or link text | The `type` and `options` of a column | [Built-in cell types](/docs/editing-cells/built-cell-types) |
+| Draw other content in a cell and keep the editor, the sort, and the copy | `renderCell` on the column | [Display override](/docs/editing-cells/display-override) |
+| Store a new kind of value, or edit it in a new way | A custom cell type in `cellTypes` | [Plan a cell type](/docs/custom-code-path/plan-cell-type) |
+| React to every change in your app | The `onDataChange` prop of the grid | [Data change events](/docs/events-state/data-change-events) |
+| Paint over the grid, add rows above or below the data, observe every change in a reusable object, or add a command | A plugin in `plugins` | [Plan a plugin](/docs/custom-code-path/plan-plugin) |
+| Call a grid operation from your own button or panel | The `actions` of the grid | [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) |
+
+When a cell is in edit mode, the editor of its cell type replaces the content that `renderCell` draws. A row that has not loaded yet shows a skeleton, and `renderCell` does not run for it.
+
+## See the hook-in points [#hook-in-points]
+
+Each route attaches at one place. This grid uses `renderCell`, a plugin, and the actions:
+
+```tsx
+"use client";
+
+import { useRef, useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+import { createAuditPlugin } from "./audit-plugin";
+
+type Player = { id: string; name: string; score: number | null };
+
+const columns = defineColumns<Player>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    renderCell: ({ value }) => <progress max={100} value={value ?? 0} />,
+  },
+]);
+
+function resetFirstScore(grid: DataGridApi<Player> | null, players: Player[]) {
+  const first = players[0];
+  if (!first) return;
+  grid?.actions.updateCells([{ rowId: first.id, columnId: "score", value: 0 }]);
+}
+
+export function Players({ players }: { players: Player[] }) {
+  const gridRef = useRef<DataGridApi<Player>>(null);
+  const [plugin] = useState(createAuditPlugin);
+
+  return (
+    <>
+      <button onClick={() => resetFirstScore(gridRef.current, players)}>
+        Reset the first score
+      </button>
+      <DataGrid
+        ref={gridRef}
+        defaultData={players}
+        columns={columns}
+        getRowId={(row) => row.id}
+        plugins={[plugin]}
+      />
+    </>
+  );
+}
+```
+
+A custom cell type attaches through the `cellTypes` prop in the same way. A plugin object attaches to one grid, so create one object for each grid. [Plan a plugin](/docs/custom-code-path/plan-plugin) writes `createAuditPlugin`.
+
+## Result
+
+You know which route fits your change.
+
+Next: [Plan a cell type](/docs/custom-code-path/plan-cell-type), or skip to [Plan a plugin](/docs/custom-code-path/plan-plugin). If your route is a column option, `renderCell`, or the actions, follow its guide in the table and skip to the [task finder](/docs/terms-help/task-finder).
+
+## Related
+
+- [Display override](/docs/editing-cells/display-override)
+- [Cell type model](/docs/concepts/cell-type-model)
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Write a cell type](/docs/recipes-custom-code/write-cell-type)
+- [Write a plugin](/docs/recipes-custom-code/write-plugin)

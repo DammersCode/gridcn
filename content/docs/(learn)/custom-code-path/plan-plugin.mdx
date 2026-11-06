@@ -1,9 +1,90 @@
 ---
 title: Plan a plugin
-description: Plan a plugin.
+description: Choose the parts of a plugin, give it a name and one owner grid, and write the first plugin as a factory that observes data changes.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [pick a code route](/docs/custom-code-path/pick-code-route) and choose a plugin. A plugin is a plain object in the `plugins` prop. It changes the grid without a change to the grid source. This step picks its parts and writes a first plugin.
 
-This page is being written.
+## Choose the parts [#choose-the-parts]
+
+A plugin needs only a `name`. Add the parts that your change needs:
+
+| If you need to | Add |
+| --- | --- |
+| Paint over the cells | `Overlay` |
+| Add rows above or below the data | `rowBands` |
+| Observe every data change | `onDataChange` |
+| Add a command, and bind keys to it | `commands` and `keymap` |
+| Run pointer work, listeners, or timers inside the grid root | `Mount` |
+
+Keep an `Overlay` paint-only. Put pointer work, listeners, and timers in `Mount`. A `Mount` component takes no props and reads the grid through `useDataGridApi`.
+
+## Fix the rules before you write [#rules]
+
+- Give the plugin a `name` that no other plugin of the grid uses. The grid ignores a second plugin with the same name, and development mode warns.
+- Create one plugin object for each grid. A second grid drops an object that another grid holds, and warns in development.
+- Keep the identity of the object. Create it once with `useState` or `useMemo`. An `Overlay` or `Mount` component that changes identity remounts.
+- Order the array on purpose. The array order is the paint order, the observer order, and the precedence for a command conflict.
+
+## Write the first plugin [#write-the-first-plugin]
+
+An observer receives every change. That includes the revert of a refused save and a server push. This factory reports the row ids of user edits only:
+
+```ts
+import type { DataGridPlugin } from "@/components/data-grid/data-grid";
+
+export function createAuditPlugin(): DataGridPlugin {
+  return {
+    name: "audit",
+    onDataChange: (_next, change) => {
+      if (change.source !== "edit") return;
+      console.log(change.ops.map((op) => op.rowId));
+    },
+  };
+}
+```
+
+Pass the result in `plugins`, once for each grid:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { createAuditPlugin } from "./audit-plugin";
+
+type Person = { id: string; name: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function PeopleGrid({ rows }: { rows: Person[] }) {
+  const [plugin] = useState(createAuditPlugin);
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      getRowId={(row) => row.id}
+      plugins={[plugin]}
+    />
+  );
+}
+```
+
+An observer reads the grid through `ctx.api`, its third argument. `api.store` offers `getState` and `subscribe` and no `setState`. Write through `api.actions`.
+
+## Result
+
+The console lists the row ids after each cell edit. A paste, a fill, an undo, a revert, and a server push log nothing, because each has another `source`.
+
+Where next: [Write a plugin](/docs/recipes-custom-code/write-plugin) for an overlay that follows scroll and pinned columns, the [plugin contract](/docs/plugins/plugin-contract), or the [task finder](/docs/terms-help/task-finder).
+
+## Related
+
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Plugin events](/docs/plugins/plugin-events)
+- [Plugin overlays](/docs/plugins/plugin-overlays)
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)
+- [Write a plugin](/docs/recipes-custom-code/write-plugin)

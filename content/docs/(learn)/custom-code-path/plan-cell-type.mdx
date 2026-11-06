@@ -1,9 +1,87 @@
 ---
 title: Plan a cell type
-description: Plan a cell type.
+description: Decide the stored value, the text form, the empty value, and the editor of a custom cell type, then write the type as one typed object.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [pick a code route](/docs/custom-code-path/pick-code-route) and choose a custom cell type. One cell type object serves the display, the editor, the clipboard, the sort, the search, and the filter. A wrong choice reaches every feature, so decide before you write.
 
-This page is being written.
+## Decide five things [#decide-five-things]
+
+1. **The stored value.** Store a serializable primitive, such as a number or an ISO date string. Do not store a class instance.
+2. **The text form.** `toText` turns the value into plain text. `fromText` parses typed, pasted, and imported text back. `toText` must round-trip through `fromText`. `fromText` never throws, and it returns `clearValue()` for text it cannot parse.
+3. **The empty value.** `isEmpty` says which values count as empty. Here `0` is a real rating, so `isEmpty` returns `true` for `null` only.
+4. **The display.** `Cell` draws the value. If print, column autosize, and the header filter need formatted text, add `toDisplayText`.
+5. **The editor.** Build a text editor on `useCellEditor`. It owns the draft, the focus, and the commit on Enter and on blur.
+
+A cell type needs six members: `Cell`, `Editor`, `toText`, `fromText`, `clearValue`, and `isEmpty`. Every other member is optional. If the default sort does not fit your value, add `compare`.
+
+## Write the plan as a type [#write-the-plan]
+
+This type stores a rating from 0 to the `max` option, or `null`:
+
+```tsx
+"use client";
+
+import {
+  defineCellType,
+  useCellEditor,
+  type CellEditorProps,
+  type CellRenderProps,
+} from "@/components/data-grid/data-grid";
+import { Input } from "@/components/ui/input";
+
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    rating: { value: number | null; options: { max: number } };
+  }
+}
+
+type Value = number | null;
+type Options = { max: number };
+
+function parseRating(text: string, options?: Options): Value {
+  const rating = Math.round(Number(text));
+  const max = options?.max ?? 5;
+  const invalid = text.trim() === "" || Number.isNaN(rating);
+  return invalid || rating < 0 || rating > max ? null : rating;
+}
+
+function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
+  if (value === null) return null;
+  return <span>{`${value} / ${options?.max ?? 5}`}</span>;
+}
+
+function Editor(props: CellEditorProps<unknown, Value, Options>) {
+  const { ref, ...bindings } = useCellEditor(props, {
+    toDraft: (value) => (value === null ? "" : String(value)),
+    toValue: (draft) => parseRating(draft, props.options),
+  });
+  return <Input ref={ref} {...bindings} className="h-full text-end" />;
+}
+
+export const ratingCellType = defineCellType("rating", {
+  Cell,
+  Editor,
+  toText: (value) => (value === null ? "" : String(value)),
+  fromText: parseRating,
+  clearValue: () => null,
+  isEmpty: (value) => value === null,
+  align: "right",
+});
+```
+
+Register the type under the name that a column uses in `type`, with `cellTypes={{ rating: ratingCellType }}`. A column then sets `type: "rating"` and `options: { max: 10 }`.
+
+## Result
+
+You hold a typed plan with every required member filled. With `max: 10`, a paste of `7` stores `7`, a paste of `abc` stores `null`, and a copy gives the plain number.
+
+Next: [Plan a plugin](/docs/custom-code-path/plan-plugin), or write the type in [Write a cell type](/docs/recipes-custom-code/write-cell-type).
+
+## Related
+
+- [Cell type model](/docs/concepts/cell-type-model)
+- [CellType contract](/docs/contracts/cell-type-contract)
+- [Write a cell type](/docs/recipes-custom-code/write-cell-type)
+- [Built-in cell types](/docs/editing-cells/built-cell-types)

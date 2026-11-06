@@ -1,9 +1,86 @@
 ---
 title: Load server rows
-description: Load server rows.
+description: Fetch one page of rows from your API with useDataGridServerRows and show it with a pager, so the grid never holds the whole result.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [compare the data modes](/docs/server-path/compare-data-modes) and pick pages mode. Install the server add-on. It brings the pager with it:
 
-This page is being written.
+<InstallCommand item="data-grid-server" />
+
+`useDataGridServerRows` calls your `fetchRows` function once for each page. The grid shows the rows you return. This step wires one page of rows and a pager.
+
+## Fetch a page [#fetch-a-page]
+
+1. Pass `getRowId` and `fetchRows` to `useDataGridServerRows`.
+2. In `fetchRows`, send `page`, `pageSize`, and `spec` to your API.
+3. Resolve with `rows` and `totalRowCount`.
+4. Spread `server.gridProps` onto `DataGrid` and `server.pager` onto the pager.
+
+This grid loads orders from an API:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, page, pageSize, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...spec, page, pageSize }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+## What your API receives and returns [#api-contract]
+
+- `spec` holds the sort, the filters, and the search text. Treat it as untrusted input.
+- `start` and `end` give the same page as a row range. `end - start` is `pageSize`.
+- After a change of the page, the page size, or the spec, the hook aborts `signal`.
+- `rows` holds at most `pageSize` rows. The hook drops the extra rows and warns in development.
+- `totalRowCount` is the size of the whole result. The pager reads it.
+
+Give every row a unique id in `getRowId`. A repeated id keeps its first row only.
+
+## Result
+
+The grid shows 10 rows, because the default page size is the first of `pageSizeOptions`. The pager shows the page and the row count. A click on Next fetches the next page. A change of the sort, the filter, or the search text goes back to page 1.
+
+Next: [Plan server saves](/docs/server-path/plan-server-saves).
+
+## Related
+
+- [Load rows by page](/docs/server-pagination/load-rows-page)
+- [Query server rows](/docs/data-modes/query-server-rows)
+- [Server rows options](/docs/add-options/server/server-rows-options)
+- [Server rows contract](/docs/contracts/server-rows-contract)
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)

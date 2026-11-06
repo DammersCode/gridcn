@@ -1,9 +1,85 @@
 ---
 title: Handle failures
-description: Handle failures.
+description: Report a failed load, let the user retry it, and tell the user when your server refuses a save, so a network error never leaves the grid blank.
 type: step
 ---
 
-{/* docs-stub */}
+Before you start, [plan server saves](/docs/server-path/plan-server-saves). Your server can fail in two places. A load can fail, and a save can fail. Each has its own callback, and neither needs a custom screen.
 
-This page is being written.
+## Report both failures [#report-both-failures]
+
+1. Pass `onError` to `useDataGridServerRows`. It runs once for each failed load.
+2. Pass `onSaveRejected` to the grid. It runs once for each refused save, after the grid reverted the change.
+3. Leave out `errorState`. The built-in error state shows the failure and a Retry button.
+
+This grid reports both failures:
+
+```tsx
+"use client";
+
+import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import { columns, type Order } from "./orders";
+import { loadPage, sendChange, notify } from "./api";
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: loadPage,
+    onError: (error) =>
+      notify(error instanceof Error ? error.message : "Could not load rows"),
+  });
+
+  async function onSave(change: DataChange<Order>) {
+    await sendChange(change);
+  }
+
+  return (
+    <>
+      <DataGrid
+        {...server.gridProps}
+        columns={columns}
+        onSave={onSave}
+        onSaveRejected={({ rejected }) =>
+          notify(rejected[0]?.message ?? "Save refused")
+        }
+      />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+## A failed load [#a-failed-load]
+
+A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure. The grid keeps the last good rows on screen. With rows, the error state is a slim bar under the header. Without rows, it is a message in the body. The built-in state never renders the error itself.
+
+The user presses Retry, or your code calls `server.retry()`. It repeats the failed request and does nothing without an error. A new request clears the error. A request that the hook aborts, for example after a page change, is not a failure and does not call `onError`.
+
+`server.status` is `"error"`, `"loading"`, or `"ready"`, and `"error"` wins. Read it to build your own banner.
+
+In scroll mode, a failed block stays unloaded. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).
+
+## A refused save [#a-refused-save]
+
+If the `onSave` promise rejects, the grid reverts the whole change. `rejected` then holds one entry for each reverted row, and `message` is the message of a thrown `Error`. A reason that is not an `Error` leaves `message` out. If `onSave` resolves with `{ rejected }`, the grid reverts only those rows. In that case `error` is `null`. A `readOnly` grid does not revert a refused save, and `onSaveRejected` still runs.
+
+To paint a server message on one cell and keep the row, see [Show errors on cells](/docs/save-server/show-errors-cells).
+
+## Result
+
+When the API is down, the grid keeps its rows, shows the error bar with Retry, and calls `onError`. When your server refuses a save, the edit reverts and `onSaveRejected` runs.
+
+Next: [Go live with streaming](/docs/server-path/go-live-streaming).
+
+## Related
+
+- [Recover from load errors](/docs/scroll-mode/recover-load-errors)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Show errors on cells](/docs/save-server/show-errors-cells)
+- [Server rows example](/docs/server-data-examples/server-rows-example)
