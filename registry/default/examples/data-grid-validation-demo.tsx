@@ -54,7 +54,7 @@ const emailSchema = {
   },
 };
 
-/** Coercing schema: "42.9" commits as the rounded integer 42, not the raw text. */
+/** Coercing schema: "42.9" commits as the rounded integer 43, not the raw text. */
 const roundedPriceSchema = {
   "~standard": {
     version: 1,
@@ -174,14 +174,14 @@ function initialRows(): ValidationRow[] {
 const getRowId = (row: ValidationRow) => row.id;
 
 const RULES = [
-  ["Age", "must be 18 or older (sync function)"],
-  ["Email", "must contain an @ (sync Standard Schema)"],
-  ["SKU", "must be unique — SKU-001 and SKU-002 are taken; the check takes ~800ms (async Standard Schema)"],
-  ["Price", "must be a number — decimals commit as the rounded integer (transforming schema)"],
-  ["Notes", "max 12 characters, SOFT (onInvalid: 'warn') — the value commits and the cell stays flagged; a short re-commit clears it"],
-  ["Zod Score", "integer 0–100 — zod: z.number().int().min(0).max(100)"],
-  ["Joi Code", "uppercase letters, digits, or dashes — joi: .pattern(/^[A-Z0-9-]+$/)"],
-  ["Valibot Tag", "at least 3 characters — valibot: v.pipe(v.string(), v.minLength(3))"],
+  ["Age", "18 or older. Also fires a toast.", "Blocking"],
+  ["Email", "Must contain an @.", "Blocking"],
+  ["SKU", "SKU-001 and SKU-002 are taken. The check takes about 800 ms and the input is read-only meanwhile.", "Blocking"],
+  ["Price", "Must be a number. A decimal commits rounded: 42.9 becomes 43.", "Blocking"],
+  ["Notes", "At most 12 characters.", "Soft"],
+  ["Zod Score", "Integer from 0 to 100.", "Blocking"],
+  ["Joi Code", "Uppercase letters, digits, or dashes.", "Blocking"],
+  ["Valibot Tag", "At least 3 characters.", "Blocking"],
 ] as const;
 
 /**
@@ -189,7 +189,7 @@ const RULES = [
  * (Email sync, SKU async with a visible pending state, Price coercing), a soft onInvalid rule
  * (Notes), and one column per major library that implements Standard Schema natively — Zod
  * (Score), Joi (Code), Valibot (Tag). The rules are listed above the grid so the reader breaks
- * them by typing and sees each library's own error message; pasting a column of mixed
+ * them by typing and sees the error message; pasting a column of mixed
  * valid/invalid ages shows the bulk path (valid cells commit, invalid ones drop).
  */
 export default function DataGridValidationDemo(): ReactNode {
@@ -197,20 +197,45 @@ export default function DataGridValidationDemo(): ReactNode {
 
   return (
     <div className="w-full flex flex-col gap-3">
-      <ul className="grid gap-x-6 gap-y-1 text-sm text-muted-foreground sm:grid-cols-2">
-        {RULES.map(([column, rule]) => (
-          <li key={column}>
-            <span className="font-medium text-foreground">{column}</span> {rule}
-          </li>
-        ))}
+      <table className="w-full text-left text-sm">
+        <thead className="text-muted-foreground">
+          <tr>
+            <th className="py-1 pe-4 font-medium">Column</th>
+            <th className="py-1 pe-4 font-medium">Rule</th>
+            <th className="py-1 font-medium">Kind</th>
+          </tr>
+        </thead>
+        <tbody>
+          {RULES.map(([column, rule, kind]) => (
+            <tr key={column} className="border-t border-border align-top">
+              <td className="py-1 pe-4 font-medium whitespace-nowrap">{column}</td>
+              <td className="py-1 pe-4 text-muted-foreground">{rule}</td>
+              <td className="py-1 whitespace-nowrap">{kind}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
+        <li>
+          <span className="font-medium text-foreground">Every message:</span> hover the cell to read
+          it, also while the editor is open (the browser shows it as a native tooltip).
+        </li>
+        <li>
+          <span className="font-medium text-foreground">Blocking rule:</span> Enter, Tab, or a click
+          on another cell keeps the editor open, and the value does not commit. The message also
+          shows in a line next to the cell. Escape cancels the edit and restores the old value.
+        </li>
+        <li>
+          <span className="font-medium text-foreground">Soft rule (Notes):</span> the value commits
+          and the editor closes. The cell stays flagged. If you edit it again, the line shows next to
+          the cell. A valid value clears the flag.
+        </li>
+        <li>
+          <span className="font-medium text-foreground">Paste:</span> copy a column of ages (some
+          under 18) and paste it onto Age. Valid cells commit and invalid cells drop. Notes drops
+          its invalid cells on paste too.
+        </li>
       </ul>
-  <p className="text-sm text-muted-foreground">
-    Type a value that breaks a rule and press Enter: the editor stays open with the message
-    under the cell, and the Age rule also fires a toast (from inside its own validate
-    function). Or copy a column of ages (some under 18) from any spreadsheet and paste it onto
-    Age: valid cells commit, invalid ones drop. Notes is the opposite: onInvalid: "warn" commits
-    the value anyway and flags the cell (hover it for the message).
-  </p>
       <div className="h-80 overflow-hidden rounded-md border border-border">
         <DataGrid
           data={grid.data}
