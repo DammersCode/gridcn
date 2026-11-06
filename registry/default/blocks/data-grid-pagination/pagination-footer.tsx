@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
-import { pageWindow } from "./pagination-math";
+import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
 import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
@@ -31,7 +31,11 @@ function usePaginationBarContext(part: string): PaginationBarContextValue {
 }
 
 /** Props for {@link DataGridPaginationBar}. */
-export type DataGridPaginationBarProps = Partial<DataGridPaginationControls> & {
+type BarControls = Omit<DataGridPaginationControls, "pageSizeOptions">;
+
+export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControls]?: never }) & {
+  /** Page sizes the select offers. Default: the controls' own list (10, 25, 50, 100 inside a provider). */
+  pageSizeOptions?: readonly number[];
   className?: string;
   /**
    * i18n override for this footer's strings, deep-merge semantics like core's `labels` prop
@@ -59,7 +63,7 @@ export type DataGridPaginationBarProps = Partial<DataGridPaginationControls> & {
  * which mode it's rendering for.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  return props.page === undefined ? <ProviderPaginationBar {...props} /> : <PaginationBarView {...props} controls={props as DataGridPaginationControls} />;
+  return props.page === undefined ? <ProviderPaginationBar {...props} /> : <PaginationBarView {...props} controls={{ ...(props as BarControls), pageSizeOptions: props.pageSizeOptions ?? DEFAULT_PAGE_SIZES }} />;
 }
 
 /** The bar of a grid that pages its view: the controls come from the enclosing `DataGridProvider`. */

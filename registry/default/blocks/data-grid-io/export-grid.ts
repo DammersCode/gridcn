@@ -48,7 +48,7 @@ export type ExportShapeOptions<TData = unknown> = {
 /** Options for {@link buildCsv}. */
 export type BuildCsvOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
-  scope?: "view" | "all" | "selection";
+  scope?: "view" | "page" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** CSV field delimiter; default ','. */
@@ -68,7 +68,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv' (default). */
   format?: "xlsx" | "csv";
   /** 'view' (default) exports the current sort/filter order; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
-  scope?: "view" | "all" | "selection";
+  scope?: "view" | "page" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** CSV field delimiter; default ','. Ignored for xlsx. */
@@ -136,13 +136,15 @@ export type BuildExportRowsOptions = {
  * (current sort/filter order), `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
-export function exportDataIndices(state: DataGridReadState, scope: "view" | "all" | "selection"): number[] {
+export function exportDataIndices(state: DataGridReadState, scope: "view" | "page" | "all" | "selection"): number[] {
   const scoped =
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
         ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows }).map((viewRow) => state.viewIndex[viewRow]!)
-        : fullViewOf(state.viewIndex);
+        : scope === "page"
+          ? state.viewIndex
+          : fullViewOf(state.viewIndex);
   // lazy grids keep `data` sparse: skip holes before any accessor runs
   return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);
 }
@@ -154,7 +156,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "all
  * row-shaped export always matches its header row. Hole rows (unloaded indices of a lazy grid's
  * sparse `data`) are skipped in every scope. `options.maxRows` caps the number of rows built.
  */
-export function buildExportRows(state: DataGridReadState, scope: "view" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
+export function buildExportRows(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
   const { text = "export", maxRows } = options;
   const dataIndices = exportDataIndices(state, scope);
   return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), text) as string[][];
@@ -174,7 +176,7 @@ function buildRowsAt<TData>(
 type ExportColumn = DataGridReadState["visibleColumns"][number];
 
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
-function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
+function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", maxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
   const columns = resolveExportColumns(state, shape.columns);
   const dataIndices = exportDataIndices(state, scope);
   if (maxRows !== undefined && dataIndices.length > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
@@ -203,7 +205,7 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 /** Options for {@link buildXlsx}. */
 export type BuildXlsxOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
-  scope?: "view" | "all" | "selection";
+  scope?: "view" | "page" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
@@ -258,7 +260,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
 }
 
-function loadedResult(state: DataGridReadState, scope: "view" | "all" | "selection", maxRows: number | undefined): ExportResult {
+function loadedResult(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", maxRows: number | undefined): ExportResult {
   const total = exportDataIndices(state, scope).length;
   return { rowCount: maxRows === undefined ? total : Math.min(total, maxRows), truncated: maxRows !== undefined && total > maxRows };
 }

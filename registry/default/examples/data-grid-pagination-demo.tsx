@@ -15,7 +15,7 @@ const columns = defineColumns<DemoRow>()([
 
 /**
  * Client paging: `defaultPageSize` pages the view of a 240-row dataset. The grid keeps every row, so a header click sorts all 240,
- * the filter menu and the search narrow all 240, and the footer counts the rows that remain. A filter change goes back to page 1.
+ * the filter menu narrows all 240, and the footer counts the rows that remain. Quick search marks matches on the current page. A filter change goes back to page 1.
  * The footer sits inside the provider and reads the pager from it.
  */
 export default function DataGridPaginationDemo(): ReactNode {

@@ -27,7 +27,7 @@ export function useDataGridPager(options: UseDataGridPagerOptions = {}): DataGri
   const page = effectivePage(requestedPage, total, pageSize);
 
   useEffect(() => {
-    if (configuredSize !== null && page !== requestedPage) actions.setPage(page);
+    if (configuredSize !== null && total > 0 && page !== requestedPage) actions.setPage(page);
   }, [actions, configuredSize, page, requestedPage]);
 
   return useMemo<DataGridPaginationControls>(() => {

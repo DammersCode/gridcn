@@ -58,6 +58,7 @@ import {
   resolveFilterMode,
   selectCellOf,
   viewWindowOf,
+  windowView,
   effectivePage,
   fullViewOf,
   rowIdAtViewRow,
@@ -296,7 +297,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const dataWrite = createDataWriteContext(rowIndexCache, gates);
 
   const rebuildPageView = (s2: DataGridStoreState, page: number, pageSize: number | null): Partial<DataGridStoreState> => {
-    const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, pageSize === null ? null : { page, pageSize });
+    const window = pageSize === null ? null : { page, pageSize };
+    const viewIndex = s2.viewStale
+      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, window)
+      : windowView(fullViewOf(s2.viewIndex), window, s2.viewIndex);
     resetDeferredRows(dataWrite);
     return {
       page,
@@ -1002,7 +1006,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextSearchText = props.searchText ?? s.searchText;
           const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState);
           const nextPageSize = props.pageSize ?? s.pageSize;
-          const nextPage = props.page ?? (filterSpecChanged && props.page === undefined ? 1 : s.page);
+          const nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
+          if (filterSpecChanged && s.pageSize !== null && s.page !== 1) queueMicrotask(() => s.onPageChange?.(1));
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
           const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
           // Our own onDataChange array fed back is an echo; skipping its view rebuild saves ~56 ms at 100k sorted rows.
@@ -1694,6 +1699,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setPageSize(pageSize) {
         const s = get();
+        if (pageSize === null) {
+          if (s.pageSize === null || s.pageSizeControlled) return;
+          set((s2) => rebuildPageView(s2, 1, null));
+          return;
+        }
         if (!Number.isFinite(pageSize) || pageSize < 1) return;
         const size = Math.floor(pageSize);
         if (size === s.pageSize) return;

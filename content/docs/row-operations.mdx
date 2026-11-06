@@ -216,7 +216,7 @@ function MyToolbar() {
 - `deleteRowsById(rowIds, options?)` deletes the rows with the given ids in one batch, for example the ids
   from `getRowIds()`. An id that matches no row is skipped. With `{ source: "stream" }` <NewBadge />, the delete is a push from the server: it skips `onBeforeDeleteRows` and `onSave`, and it takes at most 100,000 ids. See [Streaming updates](/docs/streaming-updates#server-sorted-and-filtered-views).
 
-`insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, and `deleteRowsById` return `{ ok: true }` once the action ran or an async gate started. When they do nothing, they return `{ ok: false, reason }` <NewBadge />:
+`insertRow`, `insertRows` <NewBadge />, `duplicateRows`, `deleteRows`, and `deleteRowsById` return `{ ok: true }` once the action ran or an async gate started. When they do nothing, they return `{ ok: false, reason }`:
 
 | `reason` | Meaning |
 |---|---|

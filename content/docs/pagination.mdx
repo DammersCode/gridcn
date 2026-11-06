@@ -45,6 +45,7 @@ way, so neither exists for rendering performance, and using this add-on with laz
     - A pinned totals band and a streaming `updateCells` batch cover every row, not one page.
     - A page change keeps the checked rows, the cell range, and the active cell that stay on screen, and drops the rest.
     - Quick search marks the matches on the current page. Use the filter menu to search every page.
+    - `exportGrid`, `printGrid`, and `useDataGridAggregate` cover every page; pass `scope: "page"` for the shown page only. `actions.setPageSize(null)` shows every row again.
     - The page is `defaultPage` (seed) or `page` with `onPageChange` (controlled). `pageSize` with `onPageSizeChange` controls the size. A page past the last one shows the last. `useDataGridPager()` returns the same controls for a footer of your own.
 
     `useDataGridPagination({ data })` still slices an array into pages for a list outside the grid, with `pageData` and `pager`.

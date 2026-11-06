@@ -73,18 +73,18 @@ Low value, touches the context-menu resolver contract; only worth doing together
 ### F14 (not done)
 One shared `{ ok: false, reason }` result for every mode-dependent row action touches a dozen actions, their menu and shortcut gating, and the return types. Not started; spec below.
 
-## Not done: the pagination wave (F1, F4, F5, F18) and F14
+## The pagination wave (F1, F4, F5, F18) and F14: done
 
-These need one coherent change; none of it is started in code. Spec for the next session:
+**F1, paginate the view.** `DataGridProvider` takes `pageSize` / `defaultPageSize`, `page` / `defaultPage`, `onPageChange`, `onPageSizeChange`; `actions.setPage` / `setPageSize`. The store keeps the full sorted and filtered list; `viewIndex` holds the shown page and `fullViewOf(viewIndex)` returns the full list (a module `WeakMap`, so the 9 view-building call sites changed by one argument). A filter change goes back to page 1 and calls `onPageChange(1)`; a page past the end shows the last. `reorderRows`, inserts, and deletes treat a page like an active sort. The pager comes from `useDataGridPager()`; `<DataGridPaginationBar />` with no props reads it. Aggregates (`useDataGridAggregate`, scope view) and `exportGrid` (scope view) read the full view.
+- Capabilities kept: controlled page and size, size options, the pure math, `useDataGridPagination({ data })` for a list outside the grid (client-only now), server paging through `useDataGridServerPager` / `useDataGridServerRows`, a bar spread with `{...pager}` outside the provider.
+- Known limit (a sentence in `pagination.mdx`, no callout): quick search marks matches on the current page only; the filter menu searches every page. Cross-page match navigation needs matches over the full view plus a page jump.
+- The four client-pagination callouts are gone (merge step, page-local sort/filter/search, selection drops, streaming skips); selection across a page change keeps what stays on screen, one bullet.
 
-**F1, paginate the view.** Provider props `page`, `pageSize` (controlled pair with `onPageChange` / `onPageSizeChange`, plus `defaultPage`, `defaultPageSize`). The store keeps the full sorted and filtered list and exposes the `[page*size, +size)` window as `viewIndex`; a module-level `WeakMap` maps a windowed array to its full list (`fullViewOf`) so the 9 `computeViewIndex` / `incrementalViewIndex` call sites (`create-store.ts` 1037, 1636, 1652, 1670; `data-write.ts` 238, 241, 273; init at 678) change by one argument. A filter or search change resets to page 1; the page clamps when the total shrinks. `reorderRows`, `insertRow` positions and `moveRows` treat an active window like an active sort. A hook `useDataGridPager()` inside the provider returns `DataGridPaginationControls` from the store (total from `fullViewOf(viewIndex).length`), and `DataGridPaginationBar` reads it when spread no props. Open design question: quick search computes matches over `viewIndex`, so with a window it sees the current page only; the fix is to compute matches over the full list and jump the page on "next match".
-Capabilities to keep: controlled page, page size options, the pager math (`pagination-math`), `pageData`-style slicing for people who paginate themselves (`useDataGridPagination({ data })` stays until the provider path ships, then is removed with a **Breaking** entry).
+**F5, F4.** `useDataGridPagination` lost the `"data" in options` union: server mode is `useDataGridServerPager` (returns `{ pager }`). Without `onPageSizeChange` the bar hides the page-size select instead of dropping the change with a warning. `useDataGridUrlPagination` returns the pair `DataGridProvider` and `useDataGridServerPager` both accept; page reset on filter change is automatic for the provider path and in `useDataGridServerRows`. Type names `UseDataGridPaginationClientOptions` / `UseDataGridPaginationServerOptions` stay, because `scripts/verify-parity.mjs` (not mine to touch) reads them; the docs session can rename them with that script.
 
-**F5 and F4.** Split `useDataGridPagination` server mode into `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, ... })` returning `{ pager }`; point every server doc at `useDataGridServerRows`; give `useDataGridUrlPagination` the same controlled pair (it has it). Call sites: 7 demos, 4 recipe pages, 3 skills.
+**F18.** `hasNextPage` is `hasMore` on the pager and the server pager options. The `totalRowCount` `undefined` / `null` table is not added to the glossary (the existing "row count" row covers `null`).
 
-**F18.** `DataGridPaginationControls.hasNextPage` becomes `hasMore` (pager spread onto `DataGridPaginationBar`, `useDataGridServerRows` passes `hasMore`); document the `totalRowCount` `undefined` / `null` table once in `GLOSSARY.md`.
-
-**F14.** A `RowActionResult = { ok: true } | { ok: false; reason }` returned by `deleteRows`, `insertRow`, `duplicateRows`, `reorderRows`, `moveRows`; reasons: `"readOnly" | "unloaded-rows" | "view-active" | "gate-pending" | "no-factory"`. Menu items and shortcuts show disabled for the same reasons. Land the reasons first (return values only), then the gating.
+**F14.** `insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, `deleteRowsById` return `RowActionResult` (`{ ok: true }` or `{ ok: false, reason }`, seven reasons) instead of nothing. Not done: disabled menu items for the same reasons (the menu already hides items without `createRow`/`duplicateRow`), and `reorderRows` / `moveRowsBy` keep their boolean. The return type widens from `void`, so no caller breaks.
 
 ## Opus review of the whole diff: findings taken
 - A cell click without `keepCheckedRows` now releases remembered ids and "all matching" (`releaseRemembered`); test added.
@@ -93,3 +93,11 @@ Capabilities to keep: controlled page, page size options, the pager math (`pagin
 - `gateTimeoutMs` ignores non-finite values, clamps to the timer maximum, and takes a per-gate map (`number | Partial<Record<GateName, number>>`); Escape reports `"cancelled"`.
 - `IMPORT_CANCELLED_MESSAGE` stays exported (callers tell a cancel from a failure by it); the changelog no longer lists it as removed.
 - Not taken: a one-time dev warning when the F3 default applies and no `onSortChange` is handled; cycle guard in `sameLabels` (labels are plain data); row index cache in the dev-only `record` check.
+
+## Opus review of the pagination wave: findings taken
+- The pager no longer clamps at total 0 (a deep link survives an async load).
+- A page change re-slices the stored full view unless the view is stale (no re-sort for a page click).
+- A filter set through props reports `onPageChange(1)` (after the write).
+- Capability opt-outs: `scope: "page"` on `exportGrid`, `printGrid`, `useDataGridAggregate`; `setPageSize(null)` turns paging off.
+- The bar props are a union (all controls or none), so `page` without handlers no longer type-checks.
+- Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (still blocked, now with a warning that names the page; row order inside a page is not stable against the full list); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).

@@ -1005,8 +1005,8 @@ export type DataGridActions = {
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
-  /** Shows `pageSize` rows per page and keeps the first row of the page on screen. Calls `onPageSizeChange`. */
-  setPageSize(pageSize: number): void;
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with a number (not for `null`). */
+  setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
   clearSaveStatus(): void;
@@ -1307,6 +1307,12 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, the gate said no, or no row matched. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
+
+/** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
+export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
+
 /**
  * Everything `computeViewIndex`/`computeSearchMatches`/`computeVisibleColumns` read on a
  * `_syncProps` sync, captured by reference. All fields `===`-equal to the previous sync's means
@@ -1314,12 +1320,6 @@ export type DataGridStore = DataGridStoreState;
  * can skip recomputing them and reuse the previous references (a controlled parent re-rendering
  * for unrelated reasons — e.g. its own local state — shouldn't pay full buildViewIndex cost).
  */
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, the gate said no, or no row matched. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
-
-/** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
-export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
-
 export type SyncInputs = {
   data: readonly unknown[];
   columns: readonly AnyColumnDef[];
