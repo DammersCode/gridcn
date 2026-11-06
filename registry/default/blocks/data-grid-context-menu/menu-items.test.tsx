@@ -138,6 +138,14 @@ describe("useDefaultCellMenuItems", () => {
       }
     });
 
+    it("names the Cmd key in the tooltip on macOS", () => {
+      const platform = vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+      let cell: GridMenuItemSpec[] = [];
+      renderProbe({ clipboardFailed: true, onSpecs: (c) => { cell = c; } });
+      platform.mockRestore();
+      expect(item(cell, "copy")?.tooltip).toBe("clipboard access failed — use ⌘+C or ⌘+X");
+    });
+
     it("keeps Cut and Copy enabled while no write failed", () => {
       let cell: GridMenuItemSpec[] = [];
       renderProbe({ onSpecs: (c) => { cell = c; } });

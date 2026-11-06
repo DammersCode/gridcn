@@ -492,7 +492,7 @@ export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: read
     const sourceIndex = uniqueAscending[i]!; // i in-bounds by loop condition
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
-    copies.set(sourceIndex, duplicateRow(sourceRow, sourceIndex + 1, gate));
+    copies.set(sourceIndex, duplicateRow(sourceRow, sourceIndex + 1 + i, gate));
   }
   return copies.size > 0 ? copies : null;
 }
@@ -522,10 +522,15 @@ export function computeDuplicateBatch(
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
     const insertAt = sourceIndex + 1;
+<<<<<<< HEAD
     const copy = copies.get(sourceIndex);
     if (copy === undefined) continue;
+=======
+    const finalIndex = insertAt + i;
+    const copy = duplicateRow(sourceRow, finalIndex);
+>>>>>>> refs/heads/claude/pensive-grothendieck-5b6ed2
     nextData.splice(insertAt, 0, copy);
-    opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, insertAt), row: copy, index: insertAt });
+    opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, finalIndex), row: copy, index: finalIndex });
   }
   const ops = uniqueAscending.map((index) => opsByIndex.get(index)).filter((op): op is DataOp<unknown> => op != null);
   return { nextData, ops };

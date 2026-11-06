@@ -75,7 +75,13 @@ export function useColumnResize(args: {
         document.removeEventListener("pointerup", handleEnd);
         document.removeEventListener("pointercancel", handleEnd);
         target.removeEventListener("lostpointercapture", handleEnd);
+        window.removeEventListener("blur", handleBlur);
         cleanupRef.current = null;
+      };
+      const handleBlur = () => {
+        dragRef.current = null;
+        setIsResizing(false);
+        cleanup();
       };
       const handleEnd = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
@@ -90,6 +96,7 @@ export function useColumnResize(args: {
       document.addEventListener("pointerup", handleEnd);
       document.addEventListener("pointercancel", handleEnd);
       target.addEventListener("lostpointercapture", handleEnd);
+      window.addEventListener("blur", handleBlur);
       cleanupRef.current = cleanup;
     },
     [clamp, column.id],
