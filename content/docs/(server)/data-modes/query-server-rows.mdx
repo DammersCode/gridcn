@@ -1,10 +1,105 @@
 ---
 title: Query server rows
-description: Query server rows.
+description: Send the sort, filter, and search text of the grid to your server, and show the rows that come back.
 type: task
 aliases: ["server side sorting", "server sort", "server filter", "server search", "searchtext", "sortmode"]
 ---
 
-{/* docs-stub */}
+When your server owns the result, it must also sort, filter, and search it. The grid tracks what the user chose, which is the spec: `sorts`, `filters`, and `searchText`. `useDataGridServerRows` sends the spec to your `fetchRows` function with every request. The rows you return are the rows the grid shows.
 
-This page is being written.
+<ComponentPreview name="data-grid-server-filter-demo" />
+
+## Send the spec
+
+1. Read `spec` in `fetchRows` and send it to your API.
+2. Apply the spec on the server.
+3. Answer with the matching rows in order and the row count of the result.
+4. Set `headerClickBehavior="sort"`, so a header click sorts.
+
+This grid sends the spec as JSON:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...spec, start, end }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return (
+    <DataGrid
+      {...server.gridProps}
+      columns={columns}
+      headerClickBehavior="sort"
+      className="h-96"
+    />
+  );
+}
+```
+
+The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Check the column ids and the size of the filter tree before you build a query. See [ORM examples](/docs/server-data-examples/orm-examples).
+
+Pages mode takes the same spec. A spec change there goes back to page 1 and fetches again. In scroll mode it starts the blocks over.
+
+## Sort on the server [#sorting-a-scroll-grid]
+
+The grid shows the sort cycle, `aria-sort`, the sort indicator, and `DataGridSortList`. It calls `onSortChange` and never reorders `data`. The order of your answer is the displayed order.
+
+In scroll mode, a sort change drops the loaded rows, because fetched blocks hold the old order. The hook fetches block 0 again with the new spec.
+
+A header click sorts only with `headerClickBehavior="sort"`. The default, `"select"`, selects the column and never changes the spec.
+
+Make the order total, for example by adding the row id as the last sort key. The hook keeps the first row of a repeated row id. In random access, scroll mode leaves the later copy as a skeleton row. A sequential source and pages mode drop it.
+
+## Filter on the server [#filtering-a-scroll-grid]
+
+The grid tracks the filter spec: the filter menu, the header filters, and `data-filtered`. It calls `onFilterChange` and never removes a row from `data`. The view keeps one row per index, so the range that `onRenderedRowsChange` reports maps to data indices.
+
+- **A filter change discards the loaded rows.** In scroll mode, fetched blocks hold rows of the old spec. The hook starts over at block 0 and takes the new row count from the answer.
+- **A newer spec wins.** The hook aborts the requests of the old spec and ignores their answers.
+- **The header filter lists values from your server.** Pass `fetchFilterValues` to list every value of a column, not only the loaded ones. See [Server values](/docs/sort-filter-search/header-filter#server-values).
+
+## Search on the server
+
+The quick-search box highlights and navigates matches in the rows the grid holds. It never narrows the rows. The hook puts the text in `spec.searchText`. Your server can narrow the rows by it, and the box then highlights the rows that come back.
+
+## Control the spec [#controlled-mode-server-side-sortfilter]
+
+The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over.
+
+`serverSpecKey(spec)` returns the spec as a string without the generated filter ids. Use it as a query key or an effect dependency. `ServerSpec` and `serverSpecKey` import from the `data-grid` barrel.
+
+<Callout type="warn" title="Client sort and filter cannot see unloaded rows">
+  A client sort or filter works on the rows in `data`. It cannot reason about rows the grid never fetched. When a client sort or filter changes while `data` holds unloaded rows, the grid warns once in development. Set `sortMode="server"` and `filterMode="server"`, or use the hook.
+</Callout>
+
+## Related
+
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Sorting](/docs/sort-filter-search/sorting#server-mode): the sort props
+- [Filtering](/docs/sort-filter-search/filtering#server-mode): the filter props
+- [URL state](/docs/sort-filter-search/url-state#server-mode): restore the spec from a link
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): the scroll mode

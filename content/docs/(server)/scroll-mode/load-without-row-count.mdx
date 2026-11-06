@@ -1,9 +1,82 @@
 ---
 title: Load without row count
-description: Load without row count.
+description: Load a keyset or "has more" API in scroll mode when the server sends a next cursor and no row count.
 type: task
+aliases: ["cursor paging", "keyset paging", "unknown total", "next token"]
 ---
 
-{/* docs-stub */}
+A keyset API gives a next cursor and no row count. Scroll mode loads such a source one block at a time, and each request carries the cursor of the block before it. The grid shows the loaded rows plus one block of skeleton rows, so the scroll height grows in steps.
 
-This page is being written.
+<ComponentPreview name="data-grid-open-ended-demo" />
+
+## Load a cursor chain [#a-source-with-no-total]
+
+1. Pass the cursor type as the second type argument of `useDataGridServerRows`.
+2. Send `cursor` to your API. The first call gets `cursor: undefined`.
+3. Resolve `fetchRows` with `{ rows, nextCursor }`. Return `nextCursor: null` after the last row.
+
+This grid loads orders after a cursor:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order, string>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ cursor, start, end, signal }) => {
+      const query = new URLSearchParams({ limit: String(end - start) });
+      if (cursor !== undefined) query.set("after", cursor);
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const page = await response.json();
+      return { rows: page.items, nextCursor: page.next ?? null };
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+}
+```
+
+A first answer with `nextCursor`, or with neither `totalRowCount` nor `nextCursor`, starts a sequential source. `fetchRows` returns at most `end - start` rows. The hook keeps the first `end - start` rows of a longer answer.
+
+## When the source ends
+
+- `nextCursor: null` ends the source. Any other value means more rows exist and comes back as `cursor`. A value of `0` counts as a cursor.
+- An API with a "has more" flag and no cursor answers `{ rows, hasMore }`. The request still asks for `[start, end)`, and `start` follows the rows received so far. `hasMore: false` ends the source.
+- Without a cursor and without the flag, a block that comes back full means more rows exist.
+- A `totalRowCount` that comes with a cursor caps the skeleton rows. When the loaded rows reach it, the source ends.
+- An empty block ends the source. A cursor that repeats the one the request sent, or one that came back before, ends the source with a warning in development.
+- The source stops at 10,000,000 loaded rows.
+
+At the end the skeleton rows go away and `totalRowCount` holds the final row count.
+
+## How the source advances
+
+When the rendered rows come within `overscan` rows of the loaded end, the next block starts. `overscan` is 30 by default. One block loads at a time.
+
+- A failed block sets `error`, calls `onError`, and stops the source. `retry()` repeats the block, and so does the next report of the rendered rows.
+- A change of the sort, filter, or search text drops the loaded rows and the cursor. The source starts again at block 0.
+- `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land.
+- `evict` does nothing, because a sequential source cannot refetch an arbitrary range. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
+
+## Select rows without a row count
+
+Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows. It never means every matching row. `server.gridProps` carries `totalRowCount: null` until the source ends, and `keepCheckedRows`, so the grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Select server rows](/docs/rows-live-data/select-server-rows).
+
+## Related
+
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): the source with a row count
+- [Recover from load errors](/docs/scroll-mode/recover-load-errors): a block that fails
+- [Server rows options](/docs/add-options/server/server-rows-options): `nextCursor` and `hasMore`
+- [Load rows by page](/docs/server-pagination/load-rows-page): paging without a total

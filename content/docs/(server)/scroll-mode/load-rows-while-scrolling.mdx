@@ -1,10 +1,99 @@
 ---
 title: Load rows while scrolling
-description: Load rows while scrolling.
+description: Fetch rows in blocks as the user scrolls, so a grid shows a large server result without loading all of it first.
 type: task
 aliases: ["infinite scroll", "load more", "lazy loading rows"]
 ---
 
-{/* docs-stub */}
+Scroll mode fetches the rows the user scrolls into. The grid shows one continuous list. `useDataGridServerRows` calls your `fetchRows` function once for each block of rows that is not loaded yet.
 
-This page is being written.
+<InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
+
+Use scroll mode for one continuous result. Scroll mode and pagination on one grid are not supported. For numbered pages, see [Load rows by page](/docs/server-pagination/load-rows-page). The hook fixes `mode` for its whole life, and a changed `mode` warns once in development. To switch between pages and scroll mode, remount the grid with a `key`.
+
+## Fetch blocks [#usage]
+
+1. Call `useDataGridServerRows` with `mode: "scroll"`, `getRowId`, and `fetchRows`.
+2. Resolve `fetchRows` with the rows `[start, end)` and the row count of the whole result.
+3. Spread `server.gridProps` onto `DataGrid`.
+
+This grid loads orders from an API:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => {
+      const query = new URLSearchParams({
+        offset: String(start),
+        limit: String(end - start),
+      });
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+}
+```
+
+The hook reads the row count from the first answer, so the grid needs no separate endpoint for the row count. If your backend counts with another call, make that call inside `fetchRows` and return both results.
+
+## How blocks load
+
+The first request is always block 0, the rows `[0, blockSize)`. The first answer picks the fetch order. An answer with `totalRowCount` and no `nextCursor` gives random access: the hook knows the row count, so it can fetch any block in any order. This page describes random access. Other answers give a sequential source. See [Load without row count](/docs/scroll-mode/load-without-row-count).
+
+- The hook sizes `data` to the row count. Every row without data renders as a skeleton row.
+- When the rendered rows move, the hook adds `overscan` rows on each side and rounds the span out to `blockSize` rows. It requests each missing block with one request.
+- A scroll never requests a loaded or in-flight block again. Loaded blocks load again after `refresh()`, after a row operation, and after a changed row count. Adjacent loaded blocks merge.
+- A request holds `spec`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` in random access.
+- A spec change, a changed row count, or a `refresh()` replaces the requests in flight and aborts their `signal`. An unmount aborts them too.
+- A spec change drops the loaded rows and fetches block 0 again. A changed `totalRowCount` in any answer drops them too.
+- A short answer marks only its rows as loaded and warns in development. The next report of the rendered rows requests the rest.
+- A burst of landing blocks costs about one update of `data` per frame.
+
+`blockSize` is 50 and `overscan` is 30 by default. When your server caches a page by its own size, set `blockSize` to that size. Each request then matches one cache entry.
+
+## Skeleton rows
+
+`data` is a sparse array with the length of the row count. Loaded indices hold rows. Unloaded indices are holes, and each hole renders skeleton cells with a `data-skeleton` attribute. To restyle them with CSS, see [Style contract](/docs/contracts/style-contract).
+
+- The function forms of column `readOnly`, `getRowClassName`, `getCellClassName`, and column `cellClassName` skip holes. They never receive an `undefined` row.
+- `getRowId` runs on loaded rows only. A hole gets the id `__lazy-unloaded-<index>`, which names a position and not a record.
+- A skeleton cell opens no editor, and the grid skips a write to an unloaded row.
+
+## Edit loaded rows [#editing-loaded-rows]
+
+`gridProps.onDataChange` merges each edit, insert, and delete into the loaded rows. Put your own handler in the `onDataChange` option of the hook. A handler that overrides the spread drops the merge. Send changes to your backend from `onSave`.
+
+An evicted row loses an edit that you did not persist. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
+
+## Show the request state
+
+`server.rootProps` carries `loading`, `error`, and `onRetry`. `loading` is `true` while a block request runs. Before the first block lands, the grid has no rows and fills the body with skeleton rows. Once rows exist, the root shows a slim progress bar under the header, and the unloaded rows keep their skeleton cells. The skeleton cells mark the rows of each block, and `loading` only adds the bar.
+
+For a composed layout, spread `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. `server.gridProps` is both parts together.
+
+## Related
+
+- [Server rows options](/docs/add-options/server/server-rows-options): every option and result field
+- [Recover from load errors](/docs/scroll-mode/recover-load-errors): a block that fails
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): refresh and evict loaded rows
+- [Query server rows](/docs/data-modes/query-server-rows): sort, filter, and search on the server
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer

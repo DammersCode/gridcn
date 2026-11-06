@@ -1,62 +1,218 @@
 ---
 title: "Fetch with a cache"
-description: Wire onDataChange to useQuery and useMutation with an optimistic cache update.
+description: Put a fetch cache such as TanStack Query or SWR between the grid and your API, for a plain array, pages, or scroll blocks.
 icon: DatabaseZap
 type: task
 aliases: ["react query", "swr", "tanstack query"]
 ---
 
-<Callout type="idea" title="Grid-side parts are the contract. TanStack Query parts are illustrative">
-  gridcn does not install `@tanstack/react-query`. The snippet is written against its stable
-  public API (`useQuery`/`useMutation`/`onMutate`/`onError`), the same illustrative-snippet
-  convention as the Standard Schema example in
-  [Editing & cell types](/docs/editing-cells/validation#validation). See also
-  [Lazy loading: data fetching & failure recovery](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query)
-  for the same rule applied to scroll mode.
-</Callout>
+The grid does not care where its rows come from. A fetch library plugs into one place in each data mode. Its cache then serves repeat requests. gridcn installs no fetch library, so add `@tanstack/react-query` or `swr` to your app first. TanStack Query also needs a `QueryClientProvider` above the grid.
 
-`useQuery` fetches the rows, and one `useMutation` handles every operation from `onDataChange`, keyed
-off the same `queryKey` so its cache and the grid stay in sync:
+## Cache a whole array
+
+`useQuery` fetches the rows. One `useMutation` handles every change from `onDataChange` and updates the same `queryKey`:
 
 ```tsx
 "use client";
 
-function OrdersGrid() {
-  const queryClient = useQueryClient();
-  const ordersQuery = useQuery({ queryKey: ["orders"], queryFn: api.orders.list });
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  DataGrid,
+  applyChange,
+  defineColumns,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
+type Order = { id: string; customer: string };
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
 
-  const mutation = useMutation({
-    mutationFn: (change: DataChange<Order>) => Promise.all(opsToRequests(change.ops)),
+export function OrdersGrid() {
+  const queryClient = useQueryClient();
+  const orders = useQuery<Order[]>({
+    queryKey: ["orders"],
+    queryFn: () => fetch("/api/orders").then((response) => response.json()),
+  });
+  const save = useMutation({
+    mutationFn: async (change: DataChange<Order>) => {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        body: JSON.stringify(change.ops),
+      });
+      if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+    },
     onMutate: async (change) => {
       await queryClient.cancelQueries({ queryKey: ["orders"] });
       const previous = queryClient.getQueryData<Order[]>(["orders"]);
-      queryClient.setQueryData<Order[]>(["orders"], (rows) => applyChange(rows ?? [], change, (row) => row.id));
+      queryClient.setQueryData<Order[]>(["orders"], (rows = []) =>
+        applyChange(rows, change, (row) => row.id),
+      );
       return { previous };
     },
     onError: (_error, _change, context) => {
-      if (context?.previous) queryClient.setQueryData(["orders"], context.previous);
-      toast.error("Could not save your change. It has been reverted.");
+      const { previous } = context ?? {};
+      if (previous) queryClient.setQueryData(["orders"], previous);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
-
   return (
     <DataGrid
-      data={ordersQuery.data ?? []}
+      data={orders.data ?? []}
       columns={columns}
-      onDataChange={(_next, change) => mutation.mutate(change)}
+      getRowId={(row) => row.id}
+      onDataChange={(_next, change) => save.mutate(change)}
     />
   );
 }
 ```
 
-`applyChange` is the core's operation engine, exported from the `data-grid` barrel. It applies the
-whole batch in one pass: row-id-based updates and deletes, inserts at their snapshot positions,
-missing row ids skipped. The `onMutate`/`onError` pair is the same optimistic-vs-rollback shape
-as [Strategy A](/docs/save-server/save-revert#strategy-a-optimistic-roll-back-on-failure), expressed through TanStack Query's
-cache.
+`applyChange` applies a whole batch in one pass: updates and deletes by row id, inserts at their snapshot positions. It skips missing row ids. The `onMutate` and `onError` pair is the optimistic shape of [Save and revert](/docs/save-server/save-revert).
 
-For a socket or poll that pushes new values many times per second, write them with `updateCells`
-instead of a new `data` array. See [Streaming updates](/docs/rows-live-data/stream-updates).
+A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
+
+## Cache scroll blocks [#wiring-a-fetchcache-library-react-query]
+
+1. Call `queryClient.fetchQuery` inside `fetchRows`.
+2. Key the query by `serverSpecKey(spec)`, `start`, and `end`.
+3. Resolve `queryFn` with `{ rows, totalRowCount }`.
+
+`fetchRows` is a plain function that returns a promise. A cache pays off for blocks that the grid unloads and the user scrolls back to, such as a row range you evict yourself.
+
+### Key each block [#the-seam]
+
+Make each block one query. Include the spec in the key, so a new sort never reads old blocks:
+
+```tsx
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  DataGrid,
+  defineColumns,
+  serverSpecKey,
+} from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const queryClient = useQueryClient();
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: ({ spec, start, end }) =>
+      queryClient.fetchQuery({
+        queryKey: ["orders", serverSpecKey(spec), start, end],
+        staleTime: 60_000,
+        queryFn: async ({ signal: querySignal }) => {
+          const response = await fetch("/api/orders/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...spec, start, end }),
+            signal: querySignal,
+          });
+          const answer = await response.json();
+          return { rows: answer.rows, totalRowCount: answer.total };
+        },
+      }),
+  });
+  return <DataGrid {...server.gridProps} columns={columns} />;
+}
+```
+
+`staleTime` sets how long a cached block counts as fresh. An evicted block that scrolls back within that time reads from the cache, and the network stays quiet. Evict whole blocks, in multiples of `blockSize`, so the refetch asks for the same `start` and `end` as the cached query.
+
+`queryFn` uses the `signal` of TanStack Query, not the `signal` of the request. A spec change aborts the request `signal`, but the fetch runs on and fills the cache. The hook ignores its late answer.
+
+`server.refresh()` calls `fetchRows` again. In random access, the result has a row count. There the hook also refreshes by itself after a row operation and after the last pending insert or delete save settles. Those refreshes go through `fetchQuery` too, so they get the cached blocks while those are fresh. Call `queryClient.invalidateQueries({ queryKey: ["orders"] })` in `onSave` before its promise settles, and before a manual `refresh()`. The refreshes then reach the server.
+
+With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `preload` keeps each block, loaded or failed, until a `useSWR` call with the same key reads it. It has no `staleTime` and no invalidation, so `refresh()` and `retry()` get the same answer again, and every fetched block stays in memory. For scroll mode, prefer a cache with `staleTime` and invalidation.
+
+## Cache pages [#the-wiring]
+
+With `useDataGridServerRows` in pages mode, call `queryClient.fetchQuery` inside `fetchRows` as in [Cache scroll blocks](#wiring-a-fetchcache-library-react-query). Key the query by `serverSpecKey(spec)`, `page`, and `pageSize`.
+
+With `useDataGridPagination` and your own fetch, use the page and the page size as the query key. `keepPreviousData` keeps the old page on screen while the next one loads:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+  useDataGridPagination,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+type Order = { id: string; customer: string };
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const query = useQuery<{ rows: Order[]; total: number }>({
+    queryKey: ["orders", page, pageSize],
+    queryFn: async () => {
+      const search = `page=${page}&pageSize=${pageSize}`;
+      const response = await fetch(`/api/orders?${search}`);
+      return response.json();
+    },
+    placeholderData: keepPreviousData,
+  });
+  const { pager } = useDataGridPagination({
+    page,
+    pageSize,
+    totalRowCount: query.data?.total ?? 0,
+    onPageChange: setPage,
+    onPageSizeChange: (next) => {
+      setPageSize(next);
+      setPage(1);
+    },
+  });
+  return (
+    <>
+      <DataGrid
+        data={query.data?.rows ?? []}
+        columns={columns}
+        getRowId={(row) => row.id}
+      />
+      <DataGridPaginationBar {...pager} />
+    </>
+  );
+}
+```
+
+When your server applies the sort, filter, and search text, add them to the key.
+
+With SWR, replace `useQuery` with `useSWR`. The fetcher receives the key itself, so the key is a tuple:
+
+```tsx fragment="replaces useQuery in the sample above"
+const { data } = useSWR<{ rows: Order[]; total: number }>(
+  ["orders", page, pageSize],
+  ([, current, size]) =>
+    fetch(`/api/orders?page=${current}&pageSize=${size}`).then((r) => r.json()),
+  { keepPreviousData: true },
+);
+```
+
+A `useSWR` call revalidates on window focus and on reconnect by default. Set `revalidateOnFocus: false` and `revalidateOnReconnect: false` to stop them.
+
+### Write edits through [#the-edit-story]
+
+Edits are server state. Write each change through to the API in `onDataChange`. Then call `queryClient.invalidateQueries({ queryKey: ["orders"] })`, so the refetch shows what the server holds. With SWR, call the `mutate` that `useSWR` returns. It revalidates the current key, and every `useSWR` call with that key shows the result.
+
+## Related
+
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Query server rows](/docs/data-modes/query-server-rows): the spec that belongs in the key
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): scroll mode
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): evict loaded rows
+- [Save and revert](/docs/save-server/save-revert): optimistic saves and rollback

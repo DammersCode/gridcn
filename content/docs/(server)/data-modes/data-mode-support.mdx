@@ -1,9 +1,511 @@
 ---
 title: Data mode support
-description: Data mode support.
+description: Look up which grid features work in each data mode, and where a known gap remains.
+icon: Table
 type: reference
 ---
 
-{/* docs-stub */}
+{/* Generated from research/parity-matrix.json by scripts/verify-parity.mjs. Do not edit. */}
 
-This page is being written.
+A grid feature can behave differently on a local array, on server pages and on scrolled server rows. The table below sets every feature against every data mode. A gap cell is a known gap, and the notes below the table describe it.
+
+## Data modes
+
+- **L**: Local array. `data` holds every row in memory.
+- **PC**: Client pagination. `useDataGridPagination` slices `data` into pages.
+- **PS**: Server pagination. The server returns one page per request.
+- **Z**: Scroll rows. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
+- **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
+- **SS**: Server sort. `sortMode="server"`: the grid never reorders `data`.
+- **FS**: Server filter. `filterMode="server"`: the grid never filters `data`.
+- **API**: Own API. `onDataChange` writes through to the app's backend.
+
+## Matrix
+
+<ParityLegend statuses={["supported","gap","n/a"]} />
+
+<div className="max-w-full overflow-x-auto">
+{/* lint-ok: generated matrix */}
+<table className="min-w-max overflow-visible">
+  <thead>
+    <tr>
+      <th scope="col" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-muted">Feature</th>
+      <th scope="col" title={"Local array"} aria-label={"Local array (L)"} className="text-center">L</th>
+      <th scope="col" title={"Client pagination"} aria-label={"Client pagination (PC)"} className="text-center">PC</th>
+      <th scope="col" title={"Server pagination"} aria-label={"Server pagination (PS)"} className="text-center">PS</th>
+      <th scope="col" title={"Scroll rows"} aria-label={"Scroll rows (Z)"} className="text-center">Z</th>
+      <th scope="col" title={"Controlled state"} aria-label={"Controlled state (C)"} className="text-center">C</th>
+      <th scope="col" title={"Server sort"} aria-label={"Server sort (SS)"} className="text-center">SS</th>
+      <th scope="col" title={"Server filter"} aria-label={"Server filter (FS)"} className="text-center">FS</th>
+      <th scope="col" title={"Own API"} aria-label={"Own API (API)"} className="text-center">API</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Sort</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Filter mode concerns filters only."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Filter (flat and groups)</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Filter set values</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Set values are read-only input of the filter; writes through onDataChange or onSave never read them."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Quick search</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Search highlights loaded rows and never filters."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Search writes no data."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row check and ranges</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row ids</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"No swap from a client id to the server-assigned id after create."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Counts and total</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row grouping</th>
+      <td className="text-center"><ParityCell status="gap" note={"Row grouping is not available."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Row grouping is not available."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Grouping has no controlled state."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover the current page or warn; no server totals."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Aggregates cover loaded rows or warn; no server totals."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Column pin, hide, order and size</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Clipboard copy and paste</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Fill</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Import</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Rows that onImport appends to data conflict with the row count that the server reports. Send the rows to the server and load the rows again."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Import hands the built rows to onImport and reads no sort, filter, page, or server state; the app decides where they land."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Export</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports the rows of the current page only."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Exports loaded rows only."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Print</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Undo and redo</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Undo warns over rows not loaded yet."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"A refused undo or redo keeps its stack entry."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row create, duplicate and delete</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Validation</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Edit commit and write-through</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Streaming updates</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">URL state</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"URL state drives the controlled props itself."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"A deep-linked set-filter list keeps at most as many values as the static choices of the column, and at least 64. The grid drops the values past that bound, and an isNoneOf list past it drops the whole filter."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Screen reader announcements</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Presence</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Loading and error state</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Find and replace</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Loaded rows only; no server scope."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Scroll row fetching</th>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The consumer supplies each page."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Not a sort concern."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Not a filter concern."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Not a write concern."} /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pagination</th>
+      <td className="text-center"><ParityCell status="n/a" note={"No pages."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Scroll rows and pagination are exclusive."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Keys, labels and cell types</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Unknown total and cursor paging</th>
+      <td className="text-center"><ParityCell status="n/a" note={"The array holds every row."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The length of data is the total."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">One server data source (`useDataGridServerRows`)</th>
+      <td className="text-center"><ParityCell status="n/a" note={"A local array needs no fetch."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Client pagination slices data."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Error state and retry</th>
+      <td className="text-center"><ParityCell status="n/a" note={"No request can fail."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"No request can fail."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Debounced text inputs</th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The inputs write no data."} /></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+## Notes
+
+### Sort
+
+**FS**: n/a: Filter mode concerns filters only.
+
+### Filter set values
+
+**API**: n/a: Set values are read-only input of the filter. Writes through onDataChange or onSave never read them.
+
+### Quick search
+
+- The grid's search highlights and navigates loaded rows and never narrows them. `useDataGridServerRows` sends the text as `spec.searchText`, so your server can narrow the result.
+- **FS**: n/a: Search highlights loaded rows and never filters.
+- **API**: n/a: Search writes no data.
+
+### Row ids
+
+**API**: Gap: No swap from a client id to the server-assigned id after create.
+
+### Row grouping
+
+- **L, PC**: Gap: Row grouping is not available.
+- **PS, Z, SS, FS, API**: Gap: Server grouping is not defined.
+- **C**: n/a: Grouping has no controlled state.
+
+### Pinned rows and aggregates
+
+- **PS**: Gap: Aggregates cover the current page or warn. No server totals.
+- **Z**: Gap: Aggregates cover loaded rows or warn. No server totals.
+
+### Column pin, hide, order and size
+
+Mode-neutral. Autosize measures loaded rows only on scroll data and on one page.
+
+### Fill
+
+Fill skips rows not loaded yet and warns.
+
+### Import
+
+- **PC, PS, C, SS, FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state. The app decides where they land.
+- **Z**: Gap: Rows that `onImport` appends to `data` conflict with the row count that the server reports. Send the rows to the server and load the rows again.
+
+### Export
+
+- **PC**: Gap: Exports the rows of the current page only.
+- **PS, Z, SS, FS, API**: Gap: Exports loaded rows only.
+
+### Print
+
+**PC, PS, Z**: n/a: Print covers loaded rows by design.
+
+### Undo and redo
+
+- **Z**: Gap: Undo warns over rows not loaded yet.
+- **API**: Gap: A refused undo or redo keeps its stack entry.
+
+### URL state
+
+- **C**: n/a: URL state drives the controlled props itself.
+- **FS**: Gap: A deep-linked set-filter list keeps at most as many values as the static `choices` of the column, and at least 64. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter.
+
+### Presence
+
+Mode-neutral by design.
+
+### Find and replace
+
+**PS, Z**: Gap: Loaded rows only. No server scope.
+
+### Scroll row fetching
+
+- **L, PC**: n/a: Rows are in memory.
+- **PS**: n/a: The consumer supplies each page.
+- **SS**: n/a: Not a sort concern.
+- **FS**: n/a: Not a filter concern.
+- **API**: n/a: Not a write concern.
+
+### Pagination
+
+- **L**: n/a: No pages.
+- **Z**: n/a: Scroll rows and pagination are exclusive.
+
+### Keys, labels and cell types
+
+Mode-neutral.
+
+### Unknown total and cursor paging
+
+- Pages mode pages without a total through `hasMore`. It sends no cursor. Cursor paging is sequential scroll mode.
+- **L**: n/a: The array holds every row.
+- **PC**: n/a: The length of `data` is the total.
+
+### One server data source (`useDataGridServerRows`)
+
+- **L**: n/a: A local array needs no fetch.
+- **PC**: n/a: Client pagination slices `data`.
+
+### Error state and retry
+
+**L, PC**: n/a: No request can fail.
+
+### Debounced text inputs
+
+**API**: n/a: The inputs write no data.
+
+## Related
+
+- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Scroll mode](/docs/scroll-mode): load rows as the user scrolls
+- [Server pagination](/docs/server-pagination): load rows by page

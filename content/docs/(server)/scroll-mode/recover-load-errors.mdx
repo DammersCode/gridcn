@@ -1,9 +1,96 @@
 ---
 title: Recover from load errors
-description: Recover from load errors.
+description: Show a failed block to the user, report the error, and retry the block after the cause is fixed.
 type: task
+aliases: ["retry failed fetch", "block failed"]
 ---
 
-{/* docs-stub */}
+A scroll-mode grid loads many blocks. One block can fail while the others load. The grid keeps the loaded rows, shows an error state, and lets the user retry the failed block.
 
-This page is being written.
+## Report and retry errors [#errors]
+
+1. Pass `onError` to `useDataGridServerRows` to report each failure.
+2. When your own code needs the failure, read `server.error` or `server.status`.
+3. Call `server.retry()`, or let the user press Retry in the error bar.
+
+This grid reports a failure and replaces the content of the error bar:
+
+```tsx
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => {
+      const query = `offset=${start}&limit=${end - start}`;
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+    onError: (error) => console.error("Could not load rows", error),
+  });
+
+  return (
+    <DataGrid
+      {...server.gridProps}
+      columns={columns}
+      className="h-96"
+      errorState={({ retry }) => (
+        <div className="flex items-center gap-2 text-sm">
+          <span>Could not load rows.</span>
+          <Button type="button" size="sm" onClick={retry}>
+            Retry
+          </Button>
+        </div>
+      )}
+    />
+  );
+}
+```
+
+Leave out `errorState` to keep the built-in error state. With rows, it is a bar under the header. Without rows, it is a message in the body. Both show `labels.grid.errorState` and a Retry button with the text of `labels.grid.errorRetry`.
+
+## What a failed block does
+
+- The block stays unloaded. A failed block after block 0 renders as skeleton rows. The grid never marks a failed block as loaded.
+- `onError(error)` fires once for each failed attempt, and `error` holds the failure. `status` is `"error"` while `error` holds a failure.
+- A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure.
+- The next report of the rendered rows that covers the block requests it again. Scroll away and back to trigger it.
+- Until block 0 lands, the hook requests no other block. This holds on mount and after a spec change, so scrolling cannot request block 0 again. Call `retry()` or `refresh()` to load it.
+- A request that the hook aborts (a spec change, a changed row count, `refresh()`, or an unmount) is no failure, and `onError` does not fire for it. A spec change, a changed row count, and `refresh()` also clear `error`.
+- A throw inside `onError` or `onLoaded` does not break the hook. The hook logs it to the console.
+
+## When a block fails for good [#when-a-block-fails-permanently]
+
+The hook cannot tell a transient failure from a permanent one, because `fetchRows` is opaque to it. An expired token or a removed route fails again on every scroll back to the block. The same events fire as for a transient failure.
+
+The error bar shows each failure, so the user sees that the block keeps failing. After you fix the cause, the user presses Retry. `server.retry()` repeats the failed blocks only. Blocks that already loaded stay loaded, and `retry()` does nothing without an error.
+
+A sequential source stops at a failed block. `retry()` repeats that block, and so does the next report of the rendered rows.
+
+## Know when rows land
+
+`onLoaded(range)` is the success counterpart of `onError`. When a block resolves, it fires with the row range that the hook wrote. A short answer fires with the smaller row range. A zero-row answer fires nothing.
+
+The grid shows the rows on the next frame. `getLoadedRanges()` includes the row range at once.
+
+## Related
+
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): how blocks load
+- [Load without row count](/docs/scroll-mode/load-without-row-count): the cursor chain
+- [Server rows options](/docs/add-options/server/server-rows-options): `onError`, `onLoaded`, and `retry`
+- [Handle failures](/docs/server-path/handle-failures): the step on the server path
+- [Scroll mode example](/docs/server-data-examples/scroll-mode-example): try a failed and a permanently failing block

@@ -1,9 +1,93 @@
 ---
 title: Keep pages in URL
-description: Keep pages in URL.
+description: Store the page and the page size of a server-paged grid in the URL, so a reload or a shared link opens the same page.
 type: task
+aliases: ["page in url", "deep link page", "page query param"]
 ---
 
-{/* docs-stub */}
+A server-paged grid holds its page in memory. A reload shows page 1 again. `useDataGridUrlPagination` keeps `page` and `pageSize` in the URL and hands back the controlled pair that `useDataGridServerRows` accepts in pages mode.
 
-This page is being written.
+Install `data-grid-url-state` and `data-grid-server`, and wrap your app in a `NuqsAdapter`. See [URL state](/docs/sort-filter-search/url-state#usage).
+
+<InstallCommand item="data-grid-url-state" manual manualSlot={<ManualInstall item="data-grid-url-state" />} />
+
+<InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
+
+## Sync the page with the URL
+
+1. Call `useDataGridUrlPagination` before the server hook.
+2. Spread its result into `useDataGridServerRows`.
+3. Render the pager from `server.pager`.
+
+This grid reads its page from the URL and fetches that page:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import {
+  useDataGridUrlPagination,
+} from "@/components/data-grid-url-state/data-grid-url-state";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const url = useDataGridUrlPagination();
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    fetchRows: async ({ start, end, signal }) => {
+      const query = `offset=${start}&limit=${end - start}`;
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+    ...url,
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+Open `?page=3&pageSize=50` and the grid fetches rows `[100, 150)`.
+
+## What the URL holds
+
+- `page` is 1-based and leaves the URL at page 1.
+- When `pageSize` equals `defaultPageSize` (25 by default), it leaves the URL.
+- A bad `page` falls back to 1. A bad `pageSize`, or one outside `pageSizeOptions`, falls back to `defaultPageSize`. A link cannot force an unbounded fetch.
+- Every write uses `history: "replace"`. Paging adds no browser history entries.
+- `prefix` namespaces the keys, so two grids on one page keep separate pages.
+
+## Pages that reset
+
+A change of the page size resets `page` to 1. A change of the sort, filter, or search text resets it to 1 as well, because the pages hold other rows after the change.
+
+A link to a page past the last page requests that page first. When the row count arrives, the pager moves to the last page and writes it to the URL.
+
+With your own fetch and `useDataGridPagination` in place of `useDataGridServerRows`, the URL hook cannot see your filters. Call `url.onPageChange(1)` where you handle a filter change. Pass `totalRowCount` to `useDataGridUrlPagination` to clamp a page past the last page.
+
+## Restore the sort, filter, and search
+
+To keep the sort, filter, and search in the URL too, compose the grid with `DataGridProvider` and `DataGridRoot`. Mount `<DataGridUrlState>` inside the provider. The first request then carries the restored spec and the restored page together. A restored spec does not cause a second request. See [URL state](/docs/sort-filter-search/url-state#server-mode).
+
+## Related
+
+- [Load rows by page](/docs/server-pagination/load-rows-page): the pages mode of the hook
+- [URL state](/docs/sort-filter-search/url-state#pagination): the full list of URL rules
+- [URL state options](/docs/add-options/sort-filter-search/url-state-options): `useDataGridUrlPagination` options
+- [Server rows options](/docs/add-options/server/server-rows-options): `page`, `pageSize`, and `onPageChange`
