@@ -159,6 +159,43 @@ function refusedRows(ops: DataOp<Order>[], results: PromiseSettledResult<unknown
 
 Strategy C does not roll back a change of `change.ops` that the server accepted, which Strategy A does when one request of a batch fails.
 
+## Save conflicts
+
+<NewBadge />
+
+A save conflict is a refused save for which the server sent its current row (`current` in the rejection). By default the grid takes the server's row. `resolveSaveConflict` lets your app decide. The sample keeps the user's price and takes every other field from the server:
+
+```tsx
+<DataGridProvider
+  data={data}
+  onDataChange={setData}
+  onSave={onSave}
+  resolveSaveConflict={({ rowId, mine, theirs, change }) => {
+    const op = change.ops.find((candidate) => candidate.rowId === rowId);
+    if (op?.type === "update" && op.cells?.every((cell) => cell.columnId === "price")) {
+      return { row: { ...theirs, price: mine.price } };
+    }
+    return "theirs";
+  }}
+  {...grid}
+/>
+```
+
+- The grid calls `resolveSaveConflict` once for each refused row that has a usable `current` and still exists in `data`. A refused insert or delete is not a conflict, because the revert removes or restores the row.
+- The context holds `rowId`, `mine` (the row in the grid), `theirs` (the server's row), `change` (the refused change), `message` (the text of the rejection), and `signal`.
+- `"theirs"` or no answer takes the server's row, as part of the `"rollback"` change.
+- `"mine"` keeps the row in the grid. `{ row }` saves a merged row. Both commit one `"merge"` change on top of the server's row. The `"merge"` change reaches `onSave`, so your app saves again with the version it now knows. History does not record it.
+- The types are `SaveConflictContext<TData>` (the argument) and `SaveResolution<TData>` (the answer).
+- A merged row must have the id `rowId`. If it has another id, the grid takes the server's row and warns once in development. Any other answer than `"theirs"`, `"mine"`, or `{ row }` takes the server's row.
+- `"mine"` commits the whole row, so it overwrites fields that another user changed on the server. Use `{ row }` to merge field by field.
+- A refused `"merge"` change that carries `current` calls the resolver again, with the merge change as `change`. Answer `"theirs"` to stop the loop.
+- If the resolver throws or its promise rejects, the grid takes the server's row and logs the error.
+- A resolver can return a promise. The row stays `saving` until the promise settles. If a newer write to the row starts, or the grid unmounts, `signal` aborts and the grid ignores the answer. The usual revert of the cell applies.
+- When several writes to one row are in flight, only the latest write can start a conflict. The grid reverts every other refused write cell by cell and drops its `current`. The grid does not call the resolver while a newer write to the row is pending.
+- On a `readOnly` grid, the grid does not call the resolver and does not revert.
+- `onSaveRejected` runs after the resolution and lists every refusal. A resolved conflict still counts as a refusal of the first write.
+- A change that took server content has `serverRowIds`. It lists the ids of the rows that came from `current` or from the resolver. `data-grid-history` removes older undo steps for these rows.
+
 ## The failure path
 
 A rejected write is common: a 422 with field-level errors is the typical shape from a REST or

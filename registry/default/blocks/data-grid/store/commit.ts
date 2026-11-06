@@ -5,6 +5,7 @@ import { isStandardSchema, runValidateSync, type ValidateResult } from "../valid
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
+import type { GateContext } from "./gate-signal";
 import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
 export function warnDev(message: string): void {
@@ -32,30 +33,20 @@ export function checkUnresolvableColumnTypes(
   }
 }
 
-/** Fires `warnDev` at most once per session — for guardrails whose cause (a mistaken prop combo) doesn't change across re-renders, so repeating it every render would just be noise. */
-let warnedBothDataProps = false;
-let warnedExternalStoreSyncProps = false;
+/** Per-grid set of the guardrail warnings already shown; a guardrail whose cause does not change across re-renders warns once per grid, not once per render. */
+export type GuardrailWarnings = Set<string>;
 
 /** `data` + `defaultData` are mutually exclusive (React value/defaultValue semantics); `data` wins. */
-export function warnBothDataPropsOnce(): void {
-  if (warnedBothDataProps || !isDev()) return;
-  warnedBothDataProps = true;
+export function warnBothDataPropsOnce(warned: GuardrailWarnings): void {
+  if (warned.has("both data props") || !isDev()) return;
+  warned.add("both data props");
   warnDev("both `data` and `defaultData` were provided; `data` wins (controlled) and `defaultData` is ignored");
 }
 
-let warnedBothSelectionProps = false;
-
-/** `selection` + `defaultSelection` are mutually exclusive (React value/defaultValue semantics); `selection` wins. */
-export function warnBothSelectionPropsOnce(): void {
-  if (warnedBothSelectionProps || !isDev()) return;
-  warnedBothSelectionProps = true;
-  warnDev("both `selection` and `defaultSelection` were provided; `selection` wins (controlled) and `defaultSelection` is ignored");
-}
-
 /** `store` next to a sync prop is a type error for typed callers; this catches a cast/untyped one. */
-export function warnExternalStoreSyncPropsOnce(): void {
-  if (warnedExternalStoreSyncProps || !isDev()) return;
-  warnedExternalStoreSyncProps = true;
+export function warnExternalStoreSyncPropsOnce(warned: GuardrailWarnings): void {
+  if (warned.has("external store sync props") || !isDev()) return;
+  warned.add("external store sync props");
   warnDev("<DataGridProvider store={…}> ignores the sync props next to it; pass them to useDataGridStoreProps instead");
 }
 
@@ -116,11 +107,12 @@ export function checkDevGuardrails(
   props: InternalSyncProps,
   prevColumns: readonly AnyColumnDef[] | undefined,
   prevData: readonly unknown[] | undefined,
+  warned: GuardrailWarnings = new Set(),
 ): void {
   if (!isDev()) return;
 
   if (props.data !== undefined && props.defaultData !== undefined) {
-    warnBothDataPropsOnce();
+    warnBothDataPropsOnce(warned);
   }
 
   if (prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
@@ -491,7 +483,7 @@ export function computeDeleteBatch(
  * Calls `duplicateRow` once per source row (descending, like {@link computeDuplicateBatch}) and keys
  * each result, a copy or a promise of one, by its source data index. `null` when nothing resolves.
  */
-export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: readonly number[]): Map<number, unknown> | null {
+export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: readonly number[], gate: GateContext): Map<number, unknown> | null {
   const duplicateRow = s.duplicateRow;
   const uniqueAscending = Array.from(new Set(dataRowIndexes)).sort((a, b) => a - b);
   if (!duplicateRow || uniqueAscending.length === 0) return null;
@@ -500,7 +492,7 @@ export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: read
     const sourceIndex = uniqueAscending[i]!; // i in-bounds by loop condition
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
-    copies.set(sourceIndex, duplicateRow(sourceRow, sourceIndex + 1));
+    copies.set(sourceIndex, duplicateRow(sourceRow, sourceIndex + 1, gate));
   }
   return copies.size > 0 ? copies : null;
 }
@@ -516,7 +508,7 @@ export function startDuplicateCopies(s: DataGridStoreState, dataRowIndexes: read
 export function computeDuplicateBatch(
   s: DataGridStoreState,
   dataRowIndexes: readonly number[],
-  copies?: ReadonlyMap<number, unknown>,
+  copies: ReadonlyMap<number, unknown>,
 ): { nextData: readonly unknown[]; ops: DataOp<unknown>[] } | null {
   const duplicateRow = s.duplicateRow;
   if (!duplicateRow) return null;
@@ -530,7 +522,7 @@ export function computeDuplicateBatch(
     const sourceRow = s.data[sourceIndex];
     if (sourceRow === undefined) continue;
     const insertAt = sourceIndex + 1;
-    const copy = copies ? copies.get(sourceIndex) : duplicateRow(sourceRow, insertAt);
+    const copy = copies.get(sourceIndex);
     if (copy === undefined) continue;
     nextData.splice(insertAt, 0, copy);
     opsByIndex.set(sourceIndex, { type: "insert", rowId: s.getRowId(copy, insertAt), row: copy, index: insertAt });

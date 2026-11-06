@@ -356,49 +356,57 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/lazy-loading.mdx"
+            "content/docs/lazy-loading.mdx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ids.parity.test.tsx"
+            "tests/parity/row-ids.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
         "API": {
-          "status": "gap",
-          "track": "E",
-          "note": "No swap from a client id to the server-assigned id after create."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
+          ]
         }
       }
     },
@@ -639,7 +647,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/clipboard.mdx"
+            "content/docs/clipboard.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
         "PC": {
@@ -682,7 +691,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "tests/parity/clipboard.parity.test.tsx"
+            "tests/parity/clipboard.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
       }
@@ -893,48 +903,57 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/addons/undo-redo.mdx"
+            "content/docs/addons/undo-redo.mdx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "Z": {
-          "status": "gap",
-          "track": "W6",
-          "note": "Undo warns over rows not loaded yet."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx",
+            "content/docs/addons/undo-redo.mdx"
+          ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/undo-redo.parity.test.tsx"
+            "tests/parity/undo-redo.parity.test.tsx",
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
           ]
         },
         "API": {
-          "status": "gap",
-          "track": "K",
-          "note": "The local undo stack never learns whether the server accepted the write."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
+          ]
         }
       }
     },
@@ -951,7 +970,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
         "PC": {
@@ -994,7 +1014,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/row-operations.mdx"
+            "content/docs/row-operations.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
       }
@@ -1009,32 +1030,38 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts"
+            "registry/default/blocks/data-grid/interaction/use-async-validate.test.ts",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/validation.parity.test.tsx",
-            "tests/parity/lazy-holes.parity.test.tsx"
+            "tests/parity/lazy-holes.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/validation.parity.test.tsx"
+            "tests/parity/validation.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         },
         "SS": {
@@ -1052,7 +1079,9 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/examples/validation/server-errors.mdx"
+            "content/docs/examples/validation/server-errors.mdx",
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         }
       }
@@ -1066,57 +1095,66 @@
         "onDataChange",
         "readOnly",
         "onSave",
-        "onSaveRejected"
+        "onSaveRejected",
+        "resolveSaveConflict"
       ],
       "cells": {
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/events-state.mdx"
+            "content/docs/events-state.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx"
+            "tests/parity/write-through.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/write-through.parity.test.tsx"
+            "tests/parity/write-through.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/recipes/data-fetching/server-round-trip.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
-            "content/docs/recipes/data-fetching/server-round-trip.mdx"
+            "content/docs/recipes/data-fetching/server-round-trip.mdx",
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         }
       }

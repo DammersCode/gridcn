@@ -207,6 +207,12 @@ export type DataGridGridLabels = {
   resultsCountLoaded: (count: number) => string;
   /** Polite live-region announcement when the view turns stale: a push changed a value that the sort or filter reads (at most once per 30 seconds). */
   viewStale: string;
+  /** Live-region text after a save refused rows; `count` is the number of refused rows. */
+  saveRejected: (count: number) => string;
+  /** Live-region text when an undo or redo step needs rows that a lazy source has not loaded yet. */
+  historyRowsNotLoaded: string;
+  /** Live-region text when an undo or redo step is skipped because its rows no longer exist. */
+  historyRowsGone: string;
 };
 
 /** Import/export add-on strings (`data-grid-io`): export dropdown + import dialog. */
@@ -557,6 +563,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
     resultsCount: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"}`,
     resultsCountLoaded: (count) => `${count.toLocaleString("en-US")} loaded ${count === 1 ? "row" : "rows"}`,
     viewStale: "Some rows changed and may no longer match the sort or filter.",
+    saveRejected: (count) => `${count.toLocaleString("en-US")} ${count === 1 ? "row" : "rows"} not saved`,
+    historyRowsNotLoaded: "Undo or redo needs rows that are not loaded yet",
+    historyRowsGone: "Undo or redo skipped: the rows no longer exist",
   },
   io: {
     exportButtonAriaLabel: "Export",

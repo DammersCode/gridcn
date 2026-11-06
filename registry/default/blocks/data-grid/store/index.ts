@@ -89,8 +89,11 @@ export {
   useDataGridSelectedRows,
   useDataGridRowSaveStatus,
   useDataGridPendingSaveCount,
+  useDataGridGatePending,
+  useDataGridMarkGatePending,
   useDataGridInputDebounce,
   useDataGridAllRowsSelected,
 } from "./hooks";
 export type { DataGridSelectedRows } from "./selected-rows";
-export type { RowSaveStatus, SaveAck, SaveRejectedContext, SaveRejection } from "./write-ack";
+export type { GateContext, GateName } from "./gate-signal";
+export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";

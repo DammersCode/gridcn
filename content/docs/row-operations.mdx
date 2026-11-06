@@ -20,15 +20,15 @@ drop](/docs/examples/rows/drag-reorder) · [Action buttons](/docs/examples/rows/
 
 | Prop | Enables | Without it |
 |---|---|---|
-| `createRow: (index: number) => TData \| Promise<TData>` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning. The context menu hides the two Insert items |
-| `duplicateRow: (row: TData, index: number) => TData \| Promise<TData>` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning. The context menu hides Duplicate |
+| `createRow: (index: number, ctx: { signal: AbortSignal }) => TData \| Promise<TData>` | Insert row above/below | `insertRow` is a silent no-op with a dev-only warning. The context menu hides the two Insert items |
+| `duplicateRow: (row: TData, index: number, ctx: { signal: AbortSignal }) => TData \| Promise<TData>` | Duplicate row(s) | `duplicateRows` is a silent no-op with a dev-only warning. The context menu hides Duplicate |
 | (none) | Delete row(s) | Always available |
 
 `duplicateRow` receives the source row and the data index the copy lands at, and must give the
 copy a distinct id (a spread copy with a fresh `id`), so a duplicate never collides with its
 source row's React key. `createRow` receives the data-space insertion index.
 Both factories <NewBadge /> may return a promise. The grid holds the operation until every row settles, then writes one change.
-A pending promise blocks a second insert or duplicate. A rejection cancels the operation. The grid drops a late result when it went `readOnly` or when the row it aimed at is gone. Row operations apply
+A pending promise blocks a second insert or duplicate. A rejection cancels the operation. `ctx.signal` <NewBadge /> aborts when the grid turns `readOnly`, the row the operation aimed at is gone, or the grid unmounts. The grid drops an aborted result. The grid drops a late result when it went `readOnly` or when the row it aimed at is gone. Row operations apply
 while an edit session is open: the operation lands and the open edit re-anchors to its row's new view
 position, keeping the typed draft while the row stays in the rendered rows. An operation that
 removes the edited row cancels the session, drops the draft, and fires `onEditEnd` with
@@ -36,7 +36,7 @@ removes the edited row cancels the session, drops the draft, and fires `onEditEn
 
 ## Confirm a delete
 
-`onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, and `hiddenCount`, the number of hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
+`onBeforeDeleteRows` runs before every delete the grid starts: the Delete rows shortcut, the context menu item, `actions.deleteRows`, and `actions.deleteRowsById`. It gets `rowIds`, the ids of the rows that go, `hiddenCount`, the number of hidden checked rows that stay, and `signal` <NewBadge />, an `AbortSignal` that aborts when the grid turns `readOnly`, the rows or the checked rows change, or the grid unmounts. Return `false`, or a promise of `false`, to cancel. Without the prop a delete runs at once.
 
 The demo confirms every delete:
 
@@ -331,3 +331,49 @@ The built-in checkboxes carry the translatable `labels.markers.*` aria-labels. A
 with interactive content must supply its own accessible name on that content.
 
 <ComponentPreview name="data-grid-custom-markers-demo" />
+
+## Server-assigned ids
+
+<NewBadge />
+
+A row that the user creates has an id from the client. The server often assigns its own id when it saves the row. `actions.replaceRowId(oldId, row)` swaps the client id for the server id. `row` is the row as the server holds it, and `getRowId(row)` gives the new id.
+
+The sample inserts a row with a client id, creates it on the server in `onSave`, then swaps the id:
+
+```tsx
+const gridRef = useRef<DataGridApi<Order> | null>(null);
+
+const onSave = async (change: DataChange<Order>) => {
+  const inserts = change.ops.filter((op) => op.type === "insert");
+  const created = await Promise.all(inserts.map((op) => api.orders.create(op.row)));
+  gridRef.current?.actions.replaceRowIds(inserts.map((op, i) => ({ oldId: op.rowId, row: created[i] })));
+};
+
+<DataGrid
+  ref={gridRef}
+  data={data}
+  onDataChange={setData}
+  onSave={onSave}
+  createRow={() => ({ id: crypto.randomUUID(), name: "", price: 0 })}
+  getRowId={(row) => row.id}
+  columns={columns}
+/>
+```
+
+- The row keeps its place in the data and in the view. The grid does not sort the view again. If a sort or filter input of the row changed, the view turns stale, as it does after `updateCells`.
+- `onDataChange` fires once with `source: "id-swap"` and an `update` operation (`rowId` is the old id). A controlled `data` follows when you store the change. `onSave` does not receive an `"id-swap"` change, and history does not record it.
+- The active cell, the cell selection, and the open edit session stay on the same cell of the swapped row.
+- The state that is keyed by the row id follows the new id in the same step. This covers checked rows that a filter hides, cell errors, and the save status. Flashes of the row end. A `validateRow` that is still running is cancelled, and `validateRow` runs again for the swapped row.
+- `actions.replaceRowIds(swaps)` swaps many rows in one write and one `onDataChange`. Use it after a batch create: each `replaceRowId` call costs one pass over `data`.
+- A swap that keeps the id (the server accepts your client id) replaces the row and changes nothing else.
+- A swap that changes an id stops the gates that wait on row positions: an open delete confirmation, a pending `createRow` or `duplicateRow`, and `onEditStart` on that row get an aborted `signal`.
+- A save that is still in flight for the old id settles against the new id. An acknowledgement that names either id works. A refusal of such a save reverts cell by cell. A whole-row `update` cannot restore a snapshot with the old id, so the grid skips that revert.
+- `data-grid-history` rewrites its undo and redo steps. Each operation on the old id gets the new id. If a snapshot of the row is not a plain object, the grid drops the step.
+
+`replaceRowId` does nothing when the grid is `readOnly`. It also does nothing, and warns once per grid in development, in these cases:
+
+- No row has the id `oldId`.
+- Another row already has the new id.
+- `getRowId` throws for `row`.
+
+In a paginated or lazy grid, the row must be in `data`. A row on another page, or a row that the grid evicted, cannot swap. In that case your app swaps the id in its own cache, and the next fetch returns the row with the new id. Under server sort or server filter, the row keeps its position until your app refreshes.

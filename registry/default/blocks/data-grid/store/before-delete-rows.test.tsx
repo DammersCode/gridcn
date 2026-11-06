@@ -61,7 +61,7 @@ describe("onBeforeDeleteRows", () => {
     act(() => [0, 1, 3].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRows(m.state().selection.rows.toArray()));
-    expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 2 });
+    expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 2, signal: expect.any(AbortSignal) });
     expect(m.dataIds()).toEqual(["a", "b", "c", "e"]);
   });
 
@@ -196,7 +196,7 @@ describe("onBeforeDeleteRows", () => {
     act(() => [0, 1].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRowsById(["a"]));
-    expect(gate).toHaveBeenCalledWith({ rowIds: ["a"], hiddenCount: 1 });
+    expect(gate).toHaveBeenCalledWith({ rowIds: ["a"], hiddenCount: 1, signal: expect.any(AbortSignal) });
   });
 
   it("warns once per instance for repeated throws", () => {

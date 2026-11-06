@@ -40,6 +40,7 @@ mirror the change there.
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
+| gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names; the root carries `data-gate-pending`. | gate busy, gate loading |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
 | stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | dirty row, outdated row |
@@ -106,5 +107,7 @@ mirror the change there.
 | override | A prop or callback that replaces default behavior. | escape hatch |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
+| save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |
+| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | rekey, rename id |
 | save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |

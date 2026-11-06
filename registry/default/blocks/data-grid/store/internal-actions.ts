@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
+import type { GateTracker } from "./gate-signal";
 import type { DataGridActions, DataGridInternalActions, DataGridStoreState } from "./types";
 
 /**
@@ -15,6 +16,11 @@ const mergedActionsByStore = new WeakMap<StoreApi<DataGridStoreState>, DataGridI
 /** Records the store's internal-actions table (called once at store creation). */
 export function registerInternalActions(store: StoreApi<DataGridStoreState>, actions: DataGridInternalActions): void {
   internalActionsByStore.set(store, actions);
+}
+
+/** The async-gate tracker of a real grid store; `undefined` for any other object (a test double). */
+export function gateTrackerOf(store: object): GateTracker | undefined {
+  return internalActionsByStore.get(store as StoreApi<DataGridStoreState>)?._gates();
 }
 
 /**

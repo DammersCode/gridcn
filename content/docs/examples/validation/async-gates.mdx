@@ -22,6 +22,7 @@ the gesture until the promise settles, then writes once.
 | `createRow` | the insert, until every row settles | blocks a second insert | cancels the insert |
 | `duplicateRow` | the duplicate, until every copy settles | blocks a second duplicate | cancels the duplicate |
 | `validateRow` | nothing. The write commits first | is replaced by a newer verdict for the same row | adds no error |
+| `onBeforeDeleteRows` | the delete | blocks a second delete | cancels the delete |
 | `mapColumn` and the import `createRow` | the import dialog | n/a | see [Import & export](/docs/addons/import-export) |
 
 A synchronous result writes in the same call.
@@ -34,12 +35,73 @@ The grid reads its state again after the promise settles. It drops the result wh
 - the row the gesture aimed at is gone,
 - a sort or filter changed during a paste.
 
-The grid drops these results without an error, also when a refetch removed the row. A gate gets no `AbortSignal`. Show a busy state
-while a gate is pending, because the grid blocks a second gesture of the same kind until the
-promise settles.
+The grid drops these results without an error, also when a refetch removed the row. The grid
+blocks a second gesture of the same kind until the promise settles.
 
 A row that moved keeps its gesture: the grid follows the row id, not the old view position.
 `onEditStart` also drops the result when the user moved to another cell.
+
+## Cancel a request with the signal
+
+<NewBadge />
+
+Every gate receives an `AbortSignal` as its last argument. The signal aborts in three cases:
+
+- A newer run of the same gate replaces the run. For example, the user moves to another cell
+  before `onEditStart` settles.
+- The grid unmounts.
+- The result can no longer apply. For example, the grid turned `readOnly`, or the row is gone.
+
+Pass the signal to `fetch`, and the request stops when the signal aborts:
+
+```tsx
+<DataGridProvider
+  processPaste={async ({ cells, signal }) => {
+    const response = await fetch("/api/normalize", {
+      method: "POST",
+      body: JSON.stringify(cells),
+      signal,
+    });
+    return response.ok ? response.json() : false;
+  }}
+  {...grid}
+  columns={columns}
+/>
+```
+
+An aborted gate result is dropped. A rejection after an abort adds no warning, so an `AbortError`
+from `fetch` needs no `catch`.
+
+| Gate | Signal position |
+|---|---|
+| `processPaste` | `({ cells, target, signal })` |
+| `validateRow` | `(row, rowId, { signal })` |
+| `onEditStart` | `(cell, { signal })` |
+| `createRow` | `(index, { signal })` |
+| `duplicateRow` | `(row, index, { signal })` |
+| `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
+| `mapColumn` | `(header, index, { signal })` |
+
+A gate that ignores the extra argument keeps working.
+
+## Show the pending state
+
+<NewBadge />
+
+`useDataGridGatePending()` returns the set of gate names whose promise has not settled. Call it
+inside the provider:
+
+```tsx
+function PendingLabel() {
+  const pending = useDataGridGatePending();
+  return pending.has("processPaste") ? <span>Normalizing the paste</span> : null;
+}
+```
+
+The set is empty while no gate runs. The grid root also sets `data-gate-pending`
+while a gate runs. It does not set `aria-busy`, because the live region sits inside the root and a busy root can mute announcements. The attribute value lists the gate names, separated by spaces, for example
+`data-gate-pending="processPaste validateRow"`. Style the busy grid with CSS on
+`[data-gate-pending]`.
 
 ## Client and server modes
 

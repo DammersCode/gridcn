@@ -181,8 +181,10 @@ until your API answers. The grid drops the result of a gate, with no error, when
 - the target row is no longer in `data`, for example after a refetch removed it,
 - the sort or filter spec changes during a pending paste.
 
-A gate gets no `AbortSignal`. Show a busy state while a gate is pending. The grid ignores a
-second paste, edit start, or insert until the first one settles.
+Every gate gets an `AbortSignal`: pass it to `fetch`, and the request stops when a newer run
+replaces it or the grid unmounts. `useDataGridGatePending()` reports the gates that wait for a
+promise. The grid ignores a second paste, edit start, or insert until the first one settles. See
+[Async gates](/docs/examples/validation/async-gates#cancel-a-request-with-the-signal).
 
 `validateRow` runs after the write commits, and its verdict sets the row errors.
 

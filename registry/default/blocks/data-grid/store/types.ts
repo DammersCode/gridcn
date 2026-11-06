@@ -38,8 +38,10 @@ import type { ExtendDirection, SelectLineOptions } from "../selection";
 import type { ColRange } from "../selection/selected-col-ranges-for-row";
 import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
-import type { RowSaveStatus, SaveAck, SaveRejectedContext } from "./write-ack";
-export type { RowSaveStatus, SaveAck, SaveRejectedContext, SaveRejection } from "./write-ack";
+import type { GateContext, GateName, GateTracker } from "./gate-signal";
+export type { GateContext, GateName } from "./gate-signal";
+import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveResolution } from "./write-ack";
+export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -123,17 +125,27 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   onSaveRejected?: (ctx: SaveRejectedContext<TData>) => void;
   /**
+   * Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`).
+   * Return `"theirs"` (or nothing) to take the server's row, `"mine"` to keep the row in the grid, or
+   * `{ row }` for a merged row. `"mine"` and `{ row }` commit one `"merge"` change on top of the server's row, which
+   * `onSave` receives. A promise keeps the row `saving` until it settles; see {@link SaveConflictContext}.
+   */
+  resolveSaveConflict?: (ctx: SaveConflictContext<TData>) => SaveResolution<TData> | PromiseLike<SaveResolution<TData>>;
+  /**
    * Row-level cross-field validation, run once per touched row after a write gesture commits
-   * (edit, paste, fill, delete-contents, updateCells/updateRows) — the row already has ALL of the
+   * (edit, paste, fill, delete-contents, updateCells/updateRows, and every `commitChange` except a `"stream"`
+   * change, where it validates the inserted and updated rows, so an import, an undo and a rollback validate too) — the row already has ALL of the
    * gesture's cells applied, so the verdict is independent of column order inside a paste. Return
    * `columnId -> message` to surface errors (they land in `cellErrors`, same display as server
-   * errors), `null` when the row is fine. Values still commit either way. Not run on row
-   * insert/duplicate/delete or on consumer `data` replacement. A promise does not hold the write:
+   * errors), `null` when the row is fine. Values still commit either way. Not run on
+   * `insertRow`/`duplicateRows`/delete or on consumer `data` replacement. A promise does not hold the write:
    * its verdict merges into `cellErrors` when it settles. A newer verdict for the same row
    * supersedes a pending one, and a verdict for a row that is gone is dropped. A
-   * rejection adds no error.
+   * rejection adds no error. `signal` aborts when a newer run for the same row supersedes this one,
+   * when the row is gone, and when the grid unmounts; an aborted verdict is dropped. An id swap
+   * (`replaceRowId`) cancels a pending verdict of the row and runs `validateRow` again for the swapped row.
    */
-  validateRow?: (row: TData, rowId: string) => Record<string, string> | null | Promise<Record<string, string> | null>;
+  validateRow?: (row: TData, rowId: string, ctx: GateContext) => Record<string, string> | null | Promise<Record<string, string> | null>;
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
@@ -153,9 +165,10 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
-   * paste. The cell cap applies to the settled grid.
+   * paste. The cell cap applies to the settled grid. `signal` aborts when the grid goes read-only,
+   * an edit starts, the target row is gone, or the grid unmounts; an aborted result is dropped.
    */
-  processPaste?: (ctx: { cells: string[][]; target: ViewCoord }) => string[][] | false | Promise<string[][] | false>;
+  processPaste?: (ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>;
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
@@ -204,9 +217,11 @@ export type DataGridSyncProps<TData = unknown> = {
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
    * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
-   * A pending promise blocks a second delete. A throw or a rejection cancels.
+   * A pending promise blocks a second delete. A throw or a rejection cancels. `signal` aborts when
+   * the grid goes read-only, the rows or the checked rows change, or the grid unmounts; an aborted
+   * result is dropped.
    */
-  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number }) => boolean | Promise<boolean>;
+  onBeforeDeleteRows?: (ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean | Promise<boolean>;
   /**
    * Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list
    * per search. Columns with `options.choices` keep their declared list. Without it, both lists come
@@ -241,18 +256,20 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Builds a new row for `insertRow` (`index` is the data index at request time); absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it).
    * A promise holds the insert until every row settles; a pending promise blocks a second insert
-   * and a rejection cancels it.
+   * and a rejection cancels it. `signal` aborts when the grid goes read-only, the row the insert
+   * was anchored to is gone, or the grid unmounts; an aborted result is dropped.
    */
-  createRow?: (index: number) => TData | Promise<TData>;
+  createRow?: (index: number, ctx: GateContext) => TData | Promise<TData>;
   /**
    * Builds a duplicated row's identity for `duplicateRows`: given the
    * source row and its new data index, returns the row to insert (with a distinct id, e.g. a fresh
    * UUID, so the copy's `getRowId()` never collides with its source's React key). Absent makes
    * `duplicateRows` a dev-warning no-op — mirrors `createRow`/`insertRow`. A promise holds the
    * duplicate until every copy settles; a pending promise blocks a second duplicate and a
-   * rejection cancels it.
+   * rejection cancels it. `signal` aborts when the grid goes read-only, every source row is gone,
+   * or the grid unmounts; an aborted result is dropped.
    */
-  duplicateRow?: (row: TData, index: number) => TData | Promise<TData>;
+  duplicateRow?: (row: TData, index: number, ctx: GateContext) => TData | Promise<TData>;
   /**
    * Consumer-defined keyboard commands keyed by name — the dispatch target of keymap bindings
    * that name no built-in action (see {@link GridCommand}). A name that shadows a built-in action
@@ -397,8 +414,10 @@ export type DataGridSyncProps<TData = unknown> = {
     * edit session, so the veto never applies to them. A promise holds the editor: it opens when
     * the promise settles, unless the promise is `false`, the user moved to another cell, or the
     * grid went read-only. A pending promise ignores a second edit start, so keys typed meanwhile add no text. A rejection cancels.
+    * `signal` aborts when the cursor moves to another cell, the edit is cancelled (Escape), the grid
+    * goes read-only, or the grid unmounts; an aborted result is dropped.
     */
-   onEditStart?: (cell: ViewCellRef) => boolean | void | Promise<boolean | void>;
+   onEditStart?: (cell: ViewCellRef, ctx: GateContext) => boolean | void | Promise<boolean | void>;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),
@@ -700,6 +719,8 @@ export type DataGridStoreState = Omit<
   saveStatus: ReadonlyMap<string, RowSaveStatus>;
   /** Acknowledged changes whose promise has not settled. */
   pendingSaveCount: number;
+  /** The gates whose promise has not settled; the same empty set while none is pending. */
+  gatesPending: ReadonlySet<GateName>;
   /** `data` is a window of a larger result of this size (`null`: unknown); `undefined` when `data` is the whole result. */
   totalRowCount: number | null | undefined;
   enableColumnSelection: boolean;
@@ -942,6 +963,19 @@ export type DataGridActions = {
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
   clearSaveStatus(): void;
+  /**
+   * Swaps a row's id for the one the server assigned. `row` is the server's row; `getRowId(row)` is the new id.
+   * One write: the row keeps its data position and view position, `onDataChange` fires once with `source: "id-swap"`
+   * (`onSave` does not see it, history does not record it), and every state keyed by the old id follows: the open
+   * edit, cell errors, checked rows a filter hides, flashes, save status, saves still in flight and undo entries.
+   * No-op on a `readOnly` grid; a development warning for an unknown `oldId` or a new id another row holds. `validateRow` runs again for the swapped row; flashes of the row end.
+   */
+  replaceRowId(oldId: string, row: unknown): void;
+  /**
+   * `replaceRowId` for many rows in one write: one `onDataChange` with one `"id-swap"` change, one pass over `data`. Use it
+   * after a batch create. A swap that fails its checks is skipped with a development warning; the others apply.
+   */
+  replaceRowIds(swaps: readonly { oldId: string; row: unknown }[]): void;
   /** Clears the cell range and the column channel and keeps the checked rows. */
   clearCellSelection(): void;
   /**
@@ -1187,6 +1221,8 @@ export type DataGridInternalActions = {
   _armWrites(): void;
   /** Marks the grid unmounted: a late save acknowledgement does nothing. */
   _disposeWrites(): void;
+  /** @internal The grid's async-gate tracker: pending state and abort for every consumer hook that may return a promise. */
+  _gates(): GateTracker;
   /**
    * @internal The provider subscribes after its `onActiveCellChange` wiring: fires `onEditEnd`
    * `cancel` when a session ends outside commit/cancel (remap, stale-anchor discard, direct store
@@ -1216,9 +1252,9 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
-export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale";
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale" | "saveRejected" | "historyBlocked";
 
-/** `count` is the moved rows, the checked rows, or the view's loaded rows, by `kind`; `partial` marks a result count that leaves out unloaded rows, or a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused). */
+/** `count` is the moved rows, the checked rows, the view's loaded rows, or the rows a save refused, the rows a blocked history step names, by `kind`; `partial` marks a result count that leaves out unloaded rows, a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused), or a `historyBlocked` step whose rows are not loaded yet (absent: the rows are gone). */
 export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
 
 /** Full store shape: interaction state + the stable actions object. */

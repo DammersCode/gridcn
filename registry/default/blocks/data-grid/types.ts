@@ -213,13 +213,17 @@ export type DataChange<TData> = {
    * `"replace"` tags a find-and-replace batch (an `updateCells` call the `data-grid-find-replace` add-on makes); `useDataGridHistory` records it.
    * `"history"` tags an undo or redo; `"rollback"` tags `useDataGridHistory().rollback`, which reverts a
    * change whose save failed, and a refusal returned from `onSave` reverts through it as well. Neither is recorded.
-   * `onSave` never receives a `"rollback"` or a `"stream"` change.
+   * `"merge"` tags the change `resolveSaveConflict` commits on top of the server's row; `onSave` receives it, history does not record it.
+   * `"id-swap"` tags `replaceRowId`, which swaps a row's id for the server's.
+   * `onSave` never receives a `"rollback"`, a `"stream"` or an `"id-swap"` change.
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "stream" | "replace" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
-  /** On a `source: "rollback"` change: the change this one reverts. */
+  /** On a `source: "rollback"` or `"merge"` change: the change this one reverts. */
   reverts?: DataChange<TData>;
+  /** Ids of rows whose content this change took from the server's `SaveRejection.current` or a conflict resolution; older undo entries for them are stale. */
+  serverRowIds?: readonly string[];
 };
 
 export type CellRenderProps<TData, TValue, TOptions = unknown> = {

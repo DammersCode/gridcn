@@ -1,3 +1,4 @@
+import type { GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import { isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
@@ -21,9 +22,10 @@ export type ImportDefaults = {
   /**
    * Override the initial mapping per source column; return undefined to fall back to the
    * built-in matcher, null to skip. Wins over `defaultSkipColumns`. A promise holds the mapping
-   * until it settles; a rejection falls back to the built-in matcher.
+   * until it settles; a rejection falls back to the built-in matcher. `signal` aborts when a newer
+   * parse of the dialog supersedes this one or the dialog unmounts; an aborted mapping is dropped.
    */
-  mapColumn?: (header: string, index: number) => string | null | undefined | Promise<string | null | undefined>;
+  mapColumn?: (header: string, index: number, ctx: GateContext) => string | null | undefined | Promise<string | null | undefined>;
 };
 
 /** Column display header for matching: `headerText`, else the string `header`, else the id. */
@@ -78,15 +80,16 @@ export function applyImportOptions(
 export function resolveImportMapping(
   importHeaders: readonly string[],
   gridColumns: readonly ImportTargetColumn[],
-  options: Pick<ImportDefaults, "defaultSkipColumns" | "mapColumn"> = {},
+  options: Pick<ImportDefaults, "defaultSkipColumns" | "mapColumn"> & { signal?: AbortSignal } = {},
 ): (string | null)[] | Promise<(string | null)[]> {
   const { defaultSkipColumns, mapColumn } = options;
+  const gateCtx: GateContext = { signal: options.signal ?? new AbortController().signal };
   const matched = matchImportColumns(importHeaders, gridColumns);
   const overridden = matched.map((gridColumnId, index) => {
     const header = importHeaders[index] ?? "";
     return defaultSkipColumns && isDefaultSkipped(header, index, defaultSkipColumns) ? null : gridColumnId;
   });
-  const overrides = matched.map((_, index) => mapColumn?.(importHeaders[index] ?? "", index));
+  const overrides = matched.map((_, index) => mapColumn?.(importHeaders[index] ?? "", index, gateCtx));
   const combine = (resolved: readonly (string | null | undefined)[]) => overridden.map((kept, index) => (resolved[index] === undefined ? kept : resolved[index]!));
   return overrides.some((override) => isThenable(override)) ? Promise.all(overrides).then(combine) : combine(overrides as (string | null | undefined)[]);
 }

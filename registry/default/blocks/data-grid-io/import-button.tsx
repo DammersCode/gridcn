@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Upload } from "lucide-react";
-import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import { Button } from "@/components/ui/button";
 import { DataGridImportDialog, type ImportDefaults } from "./import-dialog";
 import type { ImportLimits } from "./parse-import-file";
@@ -13,7 +13,7 @@ export type { ImportDefaults };
 export type DataGridImportButtonProps<TData> = {
   className?: string;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
-  createRow: (index: number) => TData | Promise<TData>;
+  createRow: (index: number, ctx: GateContext) => TData | Promise<TData>;
   /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). */
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */

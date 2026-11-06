@@ -133,6 +133,9 @@ const de: DeepPartialLabels = {
     resultsCountLoaded: (count) => `${count} geladene ${count === 1 ? "Zeile" : "Zeilen"}`,
     allMatchingChecked: "Alle passenden Zeilen ausgewählt",
     viewStale: "Einige Zeilen haben sich geändert und passen vielleicht nicht mehr zur Sortierung oder zum Filter.",
+    saveRejected: (count) => `${count} ${count === 1 ? "Zeile" : "Zeilen"} nicht gespeichert`,
+    historyRowsNotLoaded: "Rückgängig braucht Zeilen, die noch nicht geladen sind",
+    historyRowsGone: "Rückgängig übersprungen: Die Zeilen existieren nicht mehr",
   },
   // sort, filterOperators, keybindings, markers, and io follow the same pattern.
 };
@@ -146,6 +149,8 @@ const de: DeepPartialLabels = {
   "Move up"). This is not English text that silently leaks through untranslated forever. Add
   entries as you notice gaps.
 </Callout>
+
+The `grid` group also holds the labels for a refused save (`saveRejected`, a function of the row count) and for an undo or redo that cannot run (`historyRowsNotLoaded` and `historyRowsGone`). <NewBadge />
 
 ## Wiring a real i18n library
 

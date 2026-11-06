@@ -203,6 +203,10 @@ array, and you decide how to apply it: replace all data, append it, or run it th
 through `actions.commitChange` as one `source: "import"` change with an explicit `delete` and
 `insert` operations batch, so the replace lands on the undo stack as a single entry.
 
+A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so
+imported rows show the same cross-field errors as edited rows. You need no extra validation call after
+the commit. See [Cross-field rules](/docs/editing-cell-types#cross-field-rules-validaterow).
+
 ### Excel files
 
 The import reads the file content, not the extension, to find the format. It accepts two Excel
@@ -297,7 +301,9 @@ delimiter, or the header-row toggle by hand once the dialog is open.
 `defaultSkipColumns` names a source column by its header text (case-insensitive) or its 0-based
 index. `mapColumn` runs after the built-in header matcher and wins over `defaultSkipColumns`.
 Return a grid column id from `mapColumn` to map the column. Return `null` to skip it. Return
-`undefined` to keep the matcher's answer.
+`undefined` to keep the matcher's answer. `mapColumn` receives `(header, index, { signal })`, and the
+`createRow` prop receives `(index, { signal })`. The `signal` <NewBadge /> aborts when a newer parse of the dialog
+replaces the run or the dialog unmounts. The dialog drops an aborted result.
 
 `mapColumn` <NewBadge /> and `createRow` may return a promise. The dialog waits for the promise. If
 `mapColumn` rejects, the dialog uses the built-in matcher. If a `createRow` promise rejects, the

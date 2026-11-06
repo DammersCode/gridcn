@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
-import { useDataGridActions, useDataGridAllColumns, useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
+import { columnLabelText, isDev, useDataGridMarkGatePending, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +46,7 @@ export type DataGridImportDialogProps<TData> = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
-  createRow: (index: number) => TData | Promise<TData>;
+  createRow: (index: number, ctx: GateContext) => TData | Promise<TData>;
   /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. */
   onImport: (rows: TData[]) => void | Promise<void>;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
@@ -78,6 +78,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const headerRowId = useId();
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows } =
     useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits });
+  useDataGridMarkGatePending("import", isParsing || isValidating);
   // Base UI's SelectValue shows the raw value until the popup mounts its items, unless the root gets `items`
   const delimiterItems = DELIMITER_OPTIONS.map((option) => ({ value: option.value, label: labels.io[option.labelKey] }));
   const mappingItems = [{ value: SKIP_VALUE, label: labels.io.skipColumn }, ...allColumns.map((column) => ({ value: column.id, label: columnLabelText(column) }))];

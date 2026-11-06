@@ -22,10 +22,29 @@ export type SaveAck<TData = unknown> = void | { rejected?: readonly SaveRejectio
 export type SaveRejectedContext<TData> = {
   /** The change `onSave` received. */
   change: DataChange<TData>;
+  /** After an id swap (`replaceRowId`) the entries carry the new ids, while `change` keeps the ids it had. */
   rejected: readonly SaveRejection<TData>[];
   /** The rejection reason of the `onSave` promise; `null` when it resolved with `{ rejected }`. */
   error: unknown;
 };
+
+/** What `resolveSaveConflict` receives for one refused row that has a usable `current`. */
+export type SaveConflictContext<TData> = {
+  rowId: string;
+  /** The row in the grid now. */
+  mine: TData;
+  /** The server's row (`SaveRejection.current`). */
+  theirs: TData;
+  /** The refused change `onSave` received. */
+  change: DataChange<TData>;
+  /** `SaveRejection.message`. */
+  message?: string;
+  /** Aborts when a newer write to the row starts or the grid unmounts; an answer after that is ignored. */
+  signal: AbortSignal;
+};
+
+/** The answer of `resolveSaveConflict`: take the server's row, keep the grid's row, or save a merged row. */
+export type SaveResolution<TData> = "theirs" | "mine" | { row: TData } | void;
 
 /** Status of a row with an acknowledged write: pending, or refused and reverted. */
 export type RowSaveStatus = "saving" | "failed";

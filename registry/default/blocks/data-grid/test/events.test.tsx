@@ -58,7 +58,7 @@ describe("onEditStart", () => {
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
     expect(result.current.editing).toBeNull();
   });
 
@@ -68,7 +68,7 @@ describe("onEditStart", () => {
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 });
+    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
     expect(result.current.editing).not.toBeNull();
   });
 

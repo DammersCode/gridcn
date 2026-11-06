@@ -6,8 +6,11 @@
  * install time (scripts/fix-registry-imports.mjs).
  */
 
+import { useCallback } from "react";
 import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
+import { nextAnnouncement } from "./store/announcements";
+import type { LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
 import type { DataGridStoreWrapper } from "./types";
@@ -95,6 +98,7 @@ export {
   useDataGridSelectionPointer,
   useDataGridInstanceId,
   useDataGridInputDebounce,
+  useDataGridMarkGatePending,
   useDataGridIsColumnFiltered,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
@@ -110,6 +114,15 @@ export {
  */
 export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
+}
+
+/** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */
+export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: number, partial?: boolean) => void {
+  const store = useDataGridStoreApiRaw();
+  return useCallback(
+    (kind, count, partial) => store.setState((s) => ({ liveAnnouncement: nextAnnouncement(s.liveAnnouncement, kind, count, partial) })),
+    [store],
+  );
 }
 export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";

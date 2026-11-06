@@ -208,14 +208,29 @@ export type HistoryOptions = {
  * applied gesture, and `undo`/`redo` to get the change to apply back to data.
  */
 export type History<TData> = {
-  /** Records a change; discards any redo branch. Changes with source "history" or "rollback" are ignored. */
+  /** Records a change; discards any redo branch. Changes with source "history", "rollback", "merge" or "id-swap" are ignored. */
   push(change: DataChange<TData>): void;
-  /** Removes a recorded change (matched by identity) from both stacks; true when it was found. Use it to drop a change whose save failed. */
+  /** Removes a recorded change (matched by identity) from both stacks; true when it was found. Pass the change `undo()` or `redo()` returned to remove its entry. */
   discard(change: DataChange<TData>): boolean;
   /** Returns the inverted top-of-undo-stack change to apply, or null if nothing to undo. */
   undo(): DataChange<TData> | null;
   /** Returns the original change, re-tagged source "history", to re-apply; or null if nothing to redo. */
   redo(): DataChange<TData> | null;
+  /**
+   * Puts the entry behind a change that `undo()` or `redo()` returned back where it was, because the
+   * change was not applied or was refused. False when the entry cannot return (a newer change moved on).
+   */
+  restore(change: DataChange<TData>): boolean;
+  /**
+   * Gives a row a new id in every entry: `ops` on `oldId` get `newId`, and each snapshot of the row takes
+   * the fields that differ between `oldRow` and `newRow`. An entry with a snapshot that is not a plain
+   * object goes. True when any entry changed.
+   */
+  replaceRowId(oldId: string, newId: string, oldRow: TData, newRow: TData): boolean;
+  /** {@link History.replaceRowId} for many rows in one pass over the entries. */
+  replaceRowIds(swaps: readonly { oldId: string; newId: string; oldRow: TData; newRow: TData }[]): boolean;
+  /** Removes the `ops` on `rowIds` from every entry; an entry left without `ops` goes. True when any entry changed. */
+  dropRows(rowIds: Iterable<string>): boolean;
   /** Whether `undo()` would return a change. */
   readonly canUndo: boolean;
   /** Whether `redo()` would return a change. */
@@ -226,36 +241,140 @@ export type History<TData> = {
   readonly size: number;
 };
 
+type Applied<TData> = { entry: DataChange<TData>; direction: "undo" | "redo" };
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/** The fields to copy from `oldRow` to `newRow`: changed or added keys, and removed keys. */
+function rowPatch(oldRow: unknown, newRow: unknown): { set: [string, unknown][]; unset: string[] } | null {
+  if (!isPlainObject(oldRow) || !isPlainObject(newRow)) return null;
+  const set: [string, unknown][] = [];
+  const unset: string[] = [];
+  for (const key of Object.keys(newRow)) {
+    if (!(key in oldRow) || !Object.is(oldRow[key], newRow[key])) set.push([key, newRow[key]]);
+  }
+  for (const key of Object.keys(oldRow)) if (!(key in newRow)) unset.push(key);
+  return { set, unset };
+}
+
 /** Creates a row-id-based undo/redo history. */
 export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> {
   const capacity = opts.capacity ?? 100;
   let undoStack: DataChange<TData>[] = [];
   let redoStack: DataChange<TData>[] = [];
+  const applied = new WeakMap<DataChange<TData>, Applied<TData>>();
+  // a rewritten entry stays findable by the change object the consumer holds
+  const origin = new WeakMap<DataChange<TData>, DataChange<TData>>();
+  const rootOf = (entry: DataChange<TData>) => origin.get(entry) ?? entry;
+
+  const rewrite = (map: (entry: DataChange<TData>) => DataChange<TData> | null): boolean => {
+    let changed = false;
+    const mapStack = (stack: DataChange<TData>[]) => {
+      const next: DataChange<TData>[] = [];
+      for (const entry of stack) {
+        const mapped = map(entry);
+        if (mapped !== entry) {
+          changed = true;
+          if (mapped) origin.set(mapped, rootOf(entry));
+        }
+        if (mapped) next.push(mapped);
+      }
+      return next;
+    };
+    undoStack = mapStack(undoStack);
+    redoStack = mapStack(redoStack);
+    return changed;
+  };
 
   return {
     push(change) {
-      if (change.source === "history" || change.source === "rollback") return;
+      if (change.source === "history" || change.source === "rollback" || change.source === "merge" || change.source === "id-swap") return;
       undoStack.push(change);
       if (undoStack.length > capacity) undoStack.shift();
       redoStack = [];
     },
     discard(change) {
+      const target = rootOf(applied.get(change)?.entry ?? change);
       const before = undoStack.length + redoStack.length;
-      undoStack = undoStack.filter((entry) => entry !== change);
-      redoStack = redoStack.filter((entry) => entry !== change);
+      undoStack = undoStack.filter((entry) => rootOf(entry) !== target);
+      redoStack = redoStack.filter((entry) => rootOf(entry) !== target);
       return undoStack.length + redoStack.length !== before;
     },
     undo() {
-      const change = undoStack.pop();
-      if (!change) return null;
-      redoStack.push(change);
-      return invertChange(change);
+      const entry = undoStack.pop();
+      if (!entry) return null;
+      redoStack.push(entry);
+      const inverted = invertChange(entry);
+      applied.set(inverted, { entry, direction: "undo" });
+      return inverted;
     },
     redo() {
-      const change = redoStack.pop();
-      if (!change) return null;
-      undoStack.push(change);
-      return { ...change, source: "history" };
+      const entry = redoStack.pop();
+      if (!entry) return null;
+      undoStack.push(entry);
+      const replay: DataChange<TData> = { ...entry, source: "history" };
+      applied.set(replay, { entry, direction: "redo" });
+      return replay;
+    },
+    restore(change) {
+      const record = applied.get(change);
+      if (!record) return false;
+      applied.delete(change);
+      const from = record.direction === "undo" ? redoStack : undoStack;
+      const at = from.findIndex((entry) => rootOf(entry) === rootOf(record.entry));
+      if (at < 0) return false;
+      const [entry] = from.splice(at, 1);
+      // a redo branch cannot sit under a newer undo entry
+      if (record.direction === "redo" && at < from.length) return false;
+      if (record.direction === "undo") {
+        undoStack.push(entry!);
+        if (undoStack.length > capacity) undoStack.shift();
+      } else redoStack.push(entry!);
+      return true;
+    },
+    replaceRowId(oldId, newId, oldRow, newRow) {
+      return this.replaceRowIds([{ oldId, newId, oldRow, newRow }]);
+    },
+    replaceRowIds(swaps) {
+      const bySource = new Map(swaps.map((swap) => [swap.oldId, { newId: swap.newId, patch: rowPatch(swap.oldRow, swap.newRow) }] as const));
+      const patchRow = (row: TData, patch: ReturnType<typeof rowPatch>): TData | null => {
+        if (!patch || !isPlainObject(row)) return null;
+        const next: Record<string, unknown> = { ...row };
+        for (const key of patch.unset) delete next[key];
+        for (const [key, value] of patch.set) next[key] = value;
+        return next as TData;
+      };
+      const rewriteOp = (op: DataOp<TData>): DataOp<TData> | null => {
+        const swap = bySource.get(op.rowId);
+        if (!swap) return op;
+        const row = patchRow(op.row, swap.patch);
+        if (!row) return null;
+        if (op.type !== "update") return { ...op, rowId: swap.newId, row };
+        const prev = patchRow(op.prev, swap.patch);
+        return prev ? { ...op, rowId: swap.newId, row, prev } : null;
+      };
+      return rewrite((entry) => {
+        if (!entry.ops.some((op) => bySource.has(op.rowId))) return entry;
+        const ops: DataOp<TData>[] = [];
+        for (const op of entry.ops) {
+          const mapped = rewriteOp(op);
+          if (!mapped) return null;
+          ops.push(mapped);
+        }
+        return { ...entry, ops };
+      });
+    },
+    dropRows(rowIds) {
+      const ids = new Set(rowIds);
+      return rewrite((entry) => {
+        const ops = entry.ops.filter((op) => !ids.has(op.rowId));
+        if (ops.length === entry.ops.length) return entry;
+        return ops.length === 0 ? null : { ...entry, ops };
+      });
     },
     get canUndo() {
       return undoStack.length > 0;
