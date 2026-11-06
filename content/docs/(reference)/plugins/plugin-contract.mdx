@@ -1,9 +1,103 @@
 ---
 title: Plugin contract
-description: Plugin contract.
+description: Look up the members of DataGridPlugin, the context types they receive, and the rules for names, order, conflicts, and global shortcut flags.
 type: reference
+aliases: ["DataGridPlugin type", "plugin interface", "plugin api"]
 ---
 
-{/* docs-stub */}
+A plugin is a plain object of type `DataGridPlugin<TData>`. The `plugins` prop of `DataGridProvider` and `DataGrid` takes a `readonly DataGridPlugin[]`. Import the plugin types from `@/components/data-grid/data-grid`.
 
-This page is being written.
+| Member | Type | Role |
+| --- | --- | --- |
+| [`name`](#name) | `string` | The identity of the plugin and the React key of its components. |
+| [`Overlay`](#overlay) | `ComponentType<OverlayPluginCtx>` | Paints into the overlay layer. |
+| [`rowBands`](#rowbands) | `PluginRowBands` | Adds rows to the top band, the bottom band, or both. |
+| [`onDataChange`](#ondatachange) | `(next, change, ctx) => void` | Observes every data change. |
+| [`commands`](#commands) | `Record<string, GridCommand<TData>>` | Adds named commands. |
+| [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin. |
+| [`Mount`](#mount) | `ComponentType` | Runs engine work inside `DataGridRoot`. |
+
+A plugin needs only `name`. [Plugin shape](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
+
+## Members
+
+### name [#name]
+
+`name` must be unique per grid. When two plugins share a name, the grid ignores the later one and warns in development.
+
+### Overlay [#overlay]
+
+`Overlay` is a component. The grid renders it with the values of `OverlayPluginCtx` as props, after the range layers and before the active-cell ring. See [Plugin overlays](/docs/plugins/plugin-overlays).
+
+### rowBands [#rowbands]
+
+`rowBands` is a `PluginRowBands` object:
+
+{/* props: PluginRowBands */}
+| Member | Type | Meaning |
+| --- | --- | --- |
+| `top` | `readonly unknown[]` | The rows above the first data row. Omit it for no top band. |
+| `bottom` | `readonly unknown[]` | The rows below the last data row. Omit it for no bottom band. |
+| `render` | `(ctx: RowBandRenderCtx) => ReactNode` | Paints the rows of one band. The root calls it as a plain function while it renders. |
+
+### onDataChange [#ondatachange]
+
+The grid calls `onDataChange(next, change, ctx)` after the store write, your `onDataChange` prop, and your `onSave` prop. Observers run in array order. An observer that throws logs a console warning, and the remaining observers still run. See [Plugin events](/docs/plugins/plugin-events).
+
+### commands [#commands]
+
+`commands` maps a command name to a `GridCommand`. The grid drops a command that has the name of a built-in action, except for the six pluggable actions. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts).
+
+### keymap [#keymap]
+
+`keymap` binds keys to commands of the same plugin. The grid drops an entry whose name is not a built-in action or has no command in the plugin. It also drops a binding that the default keymap or your `keymap` prop already gives to the same action. The kept bindings replace the bindings of that action. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
+
+### Mount [#mount]
+
+`Mount` is a component without props. `DataGridRoot` renders it after its children. Read the grid through `useDataGridApi`.
+
+## Context types
+
+| Type | Members |
+| --- | --- |
+| `DataGridPluginCtx<TData>` | `api`: the `DataGridApi` of the grid that the change belongs to. |
+| `RowBandRenderCtx` | `position`, `rows`, `rowOffset`, `renderedColumns`, `layout`, `rowHeight`, `template`, `headerHeight`, `ariaRowIndexBase`. |
+| `OverlayPluginCtx` | `windowStart`, `clampRowStart`, `clampRowEnd`, `colCount`, `colOffset`, `pinTrack`, `selectionPointer`, `splitRectByPinZones`, `clampRectToWindow`. |
+
+[Plugin overlays](/docs/plugins/plugin-overlays) explains each value of `RowBandRenderCtx` and `OverlayPluginCtx`.
+
+## Resolution rules
+
+| Situation | Result |
+| --- | --- |
+| Two plugins share a `name` | The grid keeps the first and ignores the later one. |
+| The same plugin object sits in a second grid | The second grid drops it, keeps the rest of its list, and warns in development. |
+| The array has the same length, the same `name` per entry, and identical members | The grid resolves nothing again. |
+| An `Overlay` or `Mount` gets a new identity under the same `name` | The component remounts and loses its state. Development mode warns. |
+| Several plugins add to one band | The root renders one segment per plugin, in array order. |
+
+## Global shortcut flags [#global-shortcut-flags]
+
+`DataGridGlobalShortcuts` enables an action through a `true` flag of the same name. The flags form `GlobalShortcutsConfig`, which is the type `DataGridGlobalShortcutsProps`. `GlobalShortcutAction` is `GridAction`. A plugin that backs a `GridAction` offers its flag by augmenting `DataGridGlobalShortcutActions`. The history add-on does this for `undo` and `redo`, and the fill add-on for `fillDown` and `fillRight`.
+
+Put this block in a file that has an import or an export:
+
+```ts fragment="module augmentation of an installed item"
+export {};
+
+declare module "@/components/data-grid/keyboard/global-shortcuts" {
+  interface DataGridGlobalShortcutActions {
+    openFind: true;
+  }
+}
+```
+
+[Global shortcuts](/docs/selection-shortcuts/global-shortcuts) lists the flags that the core offers.
+
+## Related
+
+- [Plugin shape](/docs/plugins/plugin-shape)
+- [Plugin events](/docs/plugins/plugin-events)
+- [Plugin overlays](/docs/plugins/plugin-overlays)
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)
+- [Exported types](/docs/types-hooks/exported-types#plugins)

@@ -67,6 +67,8 @@ The editor holds its draft. `onChange(value)` stashes the draft in the grid, and
 Declare the value and options of a custom type through `GridCellTypes`, so that `defineColumns` narrows them:
 
 ```ts fragment="module augmentation"
+export {};
+
 declare module "@/components/data-grid/types" {
   interface GridCellTypes {
     currency: { value: number | null; options: { currency: string } };

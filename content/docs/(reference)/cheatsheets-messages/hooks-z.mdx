@@ -1,10 +1,103 @@
 ---
 title: Hooks A to Z
-description: Hooks A to Z.
+description: Find a gridcn hook by name, see what it returns or does, and open the page that explains it.
 type: cheatsheet
 aliases: ["hooks"]
 ---
 
-{/* docs-stub */}
+Each table lists the hooks of one source. Every row links to the page that explains the hook.
 
-This page is being written.
+## Store hooks
+
+Call these inside a `DataGridProvider`. Import them from `@/components/data-grid/data-grid`.
+
+| Hook | Purpose | Page |
+| --- | --- | --- |
+| `createDataGridSelector` | Builds a typed hook that reads any slice of the store. | [Store hooks](/docs/types-hooks/store-hooks#createdatagridselector) |
+| `useDataGridActions` | Returns the stable actions object. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridactions) |
+| `useDataGridActiveCell` | Returns the active cell as a `ViewCoord`. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridactivecell) |
+| `useDataGridActiveColumn` | Returns the view column of the active cell. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridactivecolumn) |
+| `useDataGridAllColumns` | Returns every column, hidden ones included. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridallcolumns) |
+| `useDataGridApi` | Returns the imperative handle. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridapi) |
+| `useDataGridCellEditingError` | Returns the live validation error of the cell in edit. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcelleditingerror) |
+| `useDataGridCellErrors` | Returns the map of server errors. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcellerrors) |
+| `useDataGridCellState` | Returns the state of one cell. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcellstate) |
+| `useDataGridCellTypes` | Returns the resolved cell type registry. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcelltypes) |
+| `useDataGridClipboard` | Returns `copy`, `cut`, and `pasteFromClipboard`. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridclipboard) |
+| `useDataGridColumnWidth` | Returns the width override of a column. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcolumnwidth) |
+| `useDataGridColumnWidths` | Returns the width overrides of a list of columns. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridcolumnwidths) |
+| `useDataGridEditing` | Returns the edit in progress. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridediting) |
+| `useDataGridFilterState` | Returns the filter tree. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridfilterstate) |
+| `useDataGridGetSelectionValues` | Returns a callback that reads the values of the main range. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridgetselectionvalues) |
+| `useDataGridHiddenCheckedCount` | Returns the count of checked rows that a filter hides. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridhiddencheckedcount) |
+| `useDataGridIsColumnHidden` | Returns whether a column is hidden. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridiscolumnhidden) |
+| `useDataGridKeymap` | Returns the effective keymap. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridkeymap) |
+| `useDataGridLabels` | Returns the merged labels. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
+| `useDataGridPendingSaveCount` | Returns the count of pending saves. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridpendingsavecount) |
+| `useDataGridReadOnly` | Returns the `readOnly` flag. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridreadonly) |
+| `useDataGridRow` | Returns the row at a view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrow) |
+| `useDataGridRowCellState` | Returns the state of the cells of one row. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrowcellstate) |
+| `useDataGridRowId` | Returns the row id at a view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrowid) |
+| `useDataGridRowIds` | Returns the row ids for a list of view indexes. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrowids) |
+| `useDataGridRowIdToViewRow` | Returns a map from row id to view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrowidtoviewrow) |
+| `useDataGridRowSaveStatus` | Returns the save status of a row. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridrowsavestatus) |
+| `useDataGridScrollToCell` | Returns a function that scrolls to a `CellRef`. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridscrolltocell) |
+| `useDataGridScrollToCellAt` | Returns a function that scrolls to a `ViewCoord`. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridscrolltocellat) |
+| `useDataGridSearchText` | Returns the quick-search text. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridsearchtext) |
+| `useDataGridSelectedRows` | Returns the checked rows for a bulk action. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridselectedrows) |
+| `useDataGridSelection` | Returns the selection in view indexes. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridselection) |
+| `useDataGridSortState` | Returns the active sorts. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridsortstate) |
+| `useDataGridStoreProps` | Creates the store outside the provider. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridstoreprops) |
+| `useDataGridViewIndex` | Returns the view index array. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridviewindex) |
+| `useDataGridViewStale` | Returns whether rows keep an old view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridviewstale) |
+| `useDataGridVisibleColumns` | Returns the visible columns. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridvisiblecolumns) |
+
+## SDK hook
+
+Import it from `@/components/data-grid/data-grid-sdk`.
+
+| Hook | Purpose | Page |
+| --- | --- | --- |
+| `useDataGridStoreApi` | Returns the read-only store view for `exportGrid` and the import helpers. | [Export options](/docs/add-options/import-export/export-options) |
+
+## Cell editor hooks
+
+| Hook | Purpose | Page |
+| --- | --- | --- |
+| `useCellEditor` | Gives a text editor its draft state and key bindings. | [Cell type contract](/docs/contracts/cell-type-contract) |
+| `useCommitGuard` | Guards a one-shot commit against Enter then blur. | [Cell type contract](/docs/contracts/cell-type-contract) |
+| `useSeedFocus` | Focuses an editor input with the caret at the end. | [Cell type contract](/docs/contracts/cell-type-contract) |
+
+## Add-on hooks
+
+| Hook | Purpose | Page |
+| --- | --- | --- |
+| `useDataGridAggregate` | Computes an aggregate for a pinned row. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
+| `useDataGridExport` | Exports the grid to a file. | [Export options](/docs/add-options/import-export/export-options) |
+| `useDataGridFill` | Mounts the fill handle plugin. | [Fill handle](/docs/clipboard-undo/fill-handle) |
+| `useDataGridFindReplace` | Mounts find and replace. | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `useDataGridHistory` | Mounts undo and redo on a state you own. | [Undo and redo](/docs/clipboard-undo/undo-redo) |
+| `useDataGridImportPreview` | Parses a file into a preview. | [Import options](/docs/add-options/import-export/import-options) |
+| `useDataGridPagination` | Returns the pager props. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `useDataGridPinnedRows` | Mounts pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| `useDataGridPresence` | Shows the cells that other users select. | [Show presence](/docs/rows-live-data/show-presence) |
+| `useDataGridPresenceHighlights` | Returns the current highlights from the `storeApi` of `useDataGridPresence`. | [Presence options](/docs/add-options/server/presence-options) |
+| `useDataGridPrint` | Prints the grid. | [Export options](/docs/add-options/import-export/export-options) |
+| `useDataGridSelectionStats` | Returns statistics of the selection. | [Status bar](/docs/selection-shortcuts/status-bar) |
+| `useDataGridServerRows` | Fetches rows from your backend. | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `useDataGridState` | Holds the data and the history together. | [Undo and redo](/docs/clipboard-undo/undo-redo) |
+| `useDataGridUrlPagination` | Keeps `page` and `pageSize` in the URL. | [Keep pages in the URL](/docs/server-pagination/keep-pages-url) |
+| `useDataGridUrlState` | Keeps the sort, filter, and search in the URL. | [URL state](/docs/sort-filter-search/url-state) |
+
+## Utility hooks
+
+| Hook | Purpose | Page |
+| --- | --- | --- |
+| `useDebounce` | Delays a value until it stops changing. | [useDebounce](/docs/types-hooks/use-debounce) |
+| `useDebouncedInput` | Debounces the commit of a text input. | [useDebouncedInput](/docs/types-hooks/use-debounced-input) |
+
+## Related
+
+- [Store hooks](/docs/types-hooks/store-hooks)
+- [State and view index](/docs/concepts/state-view-index)
+- [Options A to Z](/docs/cheatsheets-messages/options-z)

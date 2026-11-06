@@ -38,3 +38,4 @@ DataGridOverlaysProps.rowCount # props of the core overlay layer; no plugin rend
 DataGridPinnedRowProps.bandIndex # internal band render context
 DataGridPinnedRowProps.gridRowStart # internal band render context
 DataGridPinnedRowProps.ariaRowIndex # internal band render context
+DataGridSortIndicatorProps # props of DataGridSortIndicator: columnId and sortState, shown in the column headers example

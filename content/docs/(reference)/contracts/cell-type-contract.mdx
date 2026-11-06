@@ -172,6 +172,8 @@ A column whose `type` resolves to nothing renders as `text`. The grid drops its 
 `GridCellTypes` maps each type key to its value type and options type. Augment it for every custom key that a `defineColumns` column names. A plain `ColumnDef` takes any `type` string. `CellTypeKey`, `CellValueOf<K>`, and `CellOptionsOf<K>` read the map. This sample adds a `currency` key:
 
 ```ts
+export {};
+
 declare module "@/components/data-grid/types" {
   interface GridCellTypes {
     currency: { value: number | null; options: { currency: string } };

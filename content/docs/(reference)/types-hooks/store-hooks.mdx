@@ -1,9 +1,155 @@
 ---
 title: Store hooks
-description: Store hooks.
+description: Look up each hook that reads grid state or reaches the grid from code, with its return value and the page that uses it.
 type: reference
+aliases: ["selector hooks", "state hooks", "use data grid hooks"]
 ---
 
-{/* docs-stub */}
+Store hooks read the state of one grid. Inside a `DataGridProvider` they work. Outside it, they throw. Two items differ: `useDataGridStoreProps` runs outside the provider and creates the store, and `createDataGridSelector` is a factory that you call once at module scope. Import them from `@/components/data-grid/data-grid`. A hook that reads state subscribes to its own slice, so a component re-renders only when that slice changes.
 
-This page is being written.
+| Group | Hooks |
+| --- | --- |
+| [Handle and actions](#handle) | `useDataGridActions`, `useDataGridApi`, `useDataGridStoreProps`, `useDataGridScrollToCell`, `useDataGridScrollToCellAt`, `useDataGridClipboard` |
+| [Rows and addresses](#rows) | `useDataGridViewIndex`, `useDataGridViewStale`, `useDataGridRow`, `useDataGridRowId`, `useDataGridRowIds`, `useDataGridRowIdToViewRow` |
+| [Cells and editing](#cells) | `useDataGridReadOnly`, `useDataGridActiveCell`, `useDataGridActiveColumn`, `useDataGridEditing`, `useDataGridCellEditingError`, `useDataGridCellState`, `useDataGridRowCellState`, `useDataGridCellTypes` |
+| [Selection](#selection) | `useDataGridSelection`, `useDataGridGetSelectionValues`, `useDataGridSelectedRows`, `useDataGridHiddenCheckedCount` |
+| [Columns](#columns) | `useDataGridVisibleColumns`, `useDataGridAllColumns`, `useDataGridIsColumnHidden`, `useDataGridColumnWidth`, `useDataGridColumnWidths` |
+| [Sort, filter, and search](#query) | `useDataGridSortState`, `useDataGridFilterState`, `useDataGridSearchText` |
+| [Labels, keys, and saves](#misc) | `useDataGridLabels`, `useDataGridKeymap`, `useDataGridCellErrors`, `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount` |
+| [Typed selector](#createdatagridselector) | `createDataGridSelector` |
+
+## Handle and actions [#handle]
+
+Hooks that reach the grid from code.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridactions"></a>`useDataGridActions` | `DataGridActions` | The actions object. Its identity never changes, so the hook never re-renders. |
+| <a id="usedatagridapi"></a>`useDataGridApi` | `DataGridApi<TData>` | The imperative handle. Pass a `ref` to hand it out. Its identity is stable for the grid's lifetime. |
+| <a id="usedatagridstoreprops"></a>`useDataGridStoreProps` | `{ store, actions }` | Creates the store outside the provider. Feed `store` to `DataGridProvider`. |
+| <a id="usedatagridscrolltocell"></a>`useDataGridScrollToCell` | `(ref: CellRef) => void` | Scrolls a cell into view. It does nothing before `DataGridRoot` mounts, and warns in development for a ref that does not resolve. |
+| <a id="usedatagridscrolltocellat"></a>`useDataGridScrollToCellAt` | `(coord: ViewCoord) => void` | The same scroll for a view coordinate. |
+| <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, or `"empty"`. The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
+
+## Rows and addresses [#rows]
+
+Hooks that read rows. [State and view index](/docs/concepts/state-view-index) explains the addresses.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridviewindex"></a>`useDataGridViewIndex` | `number[]` | The `viewIndex` array: the data index of the row at each view index. |
+| <a id="usedatagridviewstale"></a>`useDataGridViewStale` | `boolean` | `true` while rows keep an old view index after a write. `actions.reconcileView()` clears it. |
+| <a id="usedatagridrow"></a>`useDataGridRow` | `TData \| undefined` | The row at a view index. Pass `TData` as a type argument. It re-renders only when that row changes. |
+| <a id="usedatagridrowid"></a>`useDataGridRowId` | `string \| undefined` | The row id at a view index. A row that scroll mode has not loaded returns a placeholder id. An index outside the view returns `undefined`. |
+| <a id="usedatagridrowids"></a>`useDataGridRowIds` | `(string \| undefined)[]` | The row ids for a list of view indexes, in one subscription. |
+| <a id="usedatagridrowidtoviewrow"></a>`useDataGridRowIdToViewRow` | `ReadonlyMap<string, number>` | A map from row id to view index. The map keeps its identity across writes that move no row. |
+
+## Cells and editing [#cells]
+
+Hooks that read the active cell and the edit session.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridreadonly"></a>`useDataGridReadOnly` | `boolean` | The `readOnly` flag of the provider. It is correct on the first render, also on the server. |
+| <a id="usedatagridactivecell"></a>`useDataGridActiveCell` | `ViewCoord \| null` | The active cell, or `null`. |
+| <a id="usedatagridactivecolumn"></a>`useDataGridActiveColumn` | `number \| null` | The view column of the active cell. Vertical moves do not re-render the subscriber. |
+| <a id="usedatagridediting"></a>`useDataGridEditing` | The open edit or `null` | The edit in progress, with its row id and column id. |
+| <a id="usedatagridcelleditingerror"></a>`useDataGridCellEditingError` | `string \| null` | The live validation error of the cell at a `ViewCoord` while that cell is in edit. Every other cell gets `null`. |
+| <a id="usedatagridcellstate"></a>`useDataGridCellState` | `DataGridCellState` | One subscription for one cell: `isActive`, `isSelected`, `isEditing`, `initialText`, `editSession`, `isSearchMatch`, and `cellError`. |
+| <a id="usedatagridrowcellstate"></a>`useDataGridRowCellState` | `DataGridRowCellState` | One subscription for one view row. It covers the active and editing columns of the row, its `saveStatus`, and its search match, error, and flashing columns. |
+| <a id="usedatagridcelltypes"></a>`useDataGridCellTypes` | `Record<string, CellType>` | The resolved cell type registry: your `cellTypes` prop or the built-ins. |
+
+Show the active cell and the read-only flag in a status line:
+
+```tsx
+import {
+  useDataGridActiveCell,
+  useDataGridReadOnly,
+} from "@/components/data-grid/data-grid";
+
+export function CellStatus() {
+  const cell = useDataGridActiveCell();
+  const readOnly = useDataGridReadOnly();
+  return (
+    <span>
+      {cell ? `Row ${cell.row + 1}, column ${cell.col + 1}` : "No active cell"}
+      {readOnly ? " (read only)" : ""}
+    </span>
+  );
+}
+```
+
+## Selection [#selection]
+
+Hooks that read the selection. [Selection model](/docs/concepts/selection-model) explains the channels.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridselection"></a>`useDataGridSelection` | `GridSelection` | The selection in view indexes. |
+| <a id="usedatagridgetselectionvalues"></a>`useDataGridGetSelectionValues` | `() => unknown[][]` | A stable callback. Each call reads the values of the main range at call time, or `[]` without a range. |
+| <a id="usedatagridselectedrows"></a>`useDataGridSelectedRows` | `DataGridSelectedRows` | The checked rows as a value for a bulk action. Mode `"ids"` holds `ids`. Mode `"allMatching"` holds `excludedIds`. See [Select server rows](/docs/rows-live-data/select-server-rows). |
+| <a id="usedatagridhiddencheckedcount"></a>`useDataGridHiddenCheckedCount` | `number` | The count of checked rows that a filter hides and `keepHiddenCheckedRows` remembers. It is `0` after `selectAllMatching()`. |
+
+## Columns [#columns]
+
+Hooks that read column state. [Column visibility](/docs/columns/column-visibility) uses them.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridvisiblecolumns"></a>`useDataGridVisibleColumns` | `readonly ColumnDef<TData>[]` | The visible columns in display order: pinned left, unpinned, pinned right. |
+| <a id="usedatagridallcolumns"></a>`useDataGridAllColumns` | `readonly ColumnDef<TData>[]` | Every column, hidden ones included, in column order. |
+| <a id="usedatagridiscolumnhidden"></a>`useDataGridIsColumnHidden` | `boolean` | Whether a column id is hidden. |
+| <a id="usedatagridcolumnwidth"></a>`useDataGridColumnWidth` | `number \| undefined` | The width override of a column in pixels, or `undefined`. |
+| <a id="usedatagridcolumnwidths"></a>`useDataGridColumnWidths` | `(number \| undefined)[]` | The width overrides of a list of column ids, in one subscription. |
+
+## Sort, filter, and search [#query]
+
+Hooks that read the spec. [Server rows contract](/docs/contracts/server-rows-contract) sends it to a backend.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridsortstate"></a>`useDataGridSortState` | `SortSpec[]` | The active sorts. |
+| <a id="usedatagridfilterstate"></a>`useDataGridFilterState` | `FilterNode[]` | The active filter tree. |
+| <a id="usedatagridsearchtext"></a>`useDataGridSearchText` | `string` | The quick-search text. |
+
+## Labels, keys, and saves [#misc]
+
+Hooks for text, keys, and server results.
+
+| Hook | Returns | Meaning |
+| --- | --- | --- |
+| <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. |
+| <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. |
+| <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of server errors, keyed `"rowId:columnId"`. A cell renders its own error through `useDataGridCellState`. |
+| <a id="usedatagridrowsavestatus"></a>`useDataGridRowSaveStatus` | `RowSaveStatus \| undefined` | `"saving"` while the `onSave` promise of the row is pending, `"failed"` after a refusal, else `undefined`. |
+| <a id="usedatagridpendingsavecount"></a>`useDataGridPendingSaveCount` | `number` | The count of `onSave` promises that have not settled. |
+
+## createDataGridSelector [#createdatagridselector]
+
+`createDataGridSelector<TData>()` returns a hook that reads any slice of the store. Create the hook once at module scope. The selector receives the store state with `data` typed as `readonly TData[]`. The hook takes `(selector, eq?)`. `eq` defaults to `Object.is` and decides when the component re-renders.
+
+Sum a column in a component below the provider:
+
+```tsx
+import { createDataGridSelector } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; total: number };
+
+const useOrderSelector = createDataGridSelector<Order>();
+
+export function TotalBadge() {
+  const total = useOrderSelector((state) =>
+    state.data.reduce((sum, row) => sum + (row?.total ?? 0), 0),
+  );
+  return <span>{total}</span>;
+}
+```
+
+The state holds fields that are not part of the public API. When a hook above fits, use it instead.
+
+## Related
+
+- [State and view index](/docs/concepts/state-view-index)
+- [Hooks A to Z](/docs/cheatsheets-messages/hooks-z)
+- [Data grid props](/docs/components-props/data-grid-props#imperative-handle)
+- [Exported types](/docs/types-hooks/exported-types)
