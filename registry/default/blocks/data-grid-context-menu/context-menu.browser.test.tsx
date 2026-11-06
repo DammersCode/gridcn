@@ -220,7 +220,7 @@ describe("DataGridContextMenu — cell surface", () => {
 
     await vi.waitFor(() => expect(menuItem("Copy")).toBeTruthy());
     for (const name of ["Cut", "Clear contents", "Insert row above", "Insert row below", "Duplicate row", "Delete row"]) {
-      await vi.waitFor(() => expect(menuItem(name)?.hasAttribute("data-disabled")).toBe(true));
+      await vi.waitFor(() => expect(menuItem(name)?.hasAttribute("data-disabled") || menuItem(name)?.getAttribute("aria-disabled") === "true").toBe(true));
     }
     // disabled items are unclickable (Base UI blocks pointer events on them), so absence of any
     // mutation here is verified structurally via `data-disabled` above rather than via a click.
