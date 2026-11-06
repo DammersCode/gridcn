@@ -1,9 +1,47 @@
 ---
 title: Troubleshoot server data
-description: Troubleshoot server data.
+description: Find the cause of missing rows, a wrong page count, lost edits, or a lost selection in a grid that loads rows from your server, and fix it.
 type: task
+aliases: ["server rows not loading", "wrong page count", "server grid problem"]
 ---
 
-{/* docs-stub */}
+Find your symptom, read the cause, and apply the fix. In a development build, the grid logs a warning for several of these causes. The warning starts with `[data-grid-server]`, `[data-grid-pagination]`, or `[data-grid]`. Read the browser console first.
 
-This page is being written.
+## Rows are wrong or missing [#rows]
+
+- **A header click selects the column and does not sort.** `headerClickBehavior` is `"select"` by default. Set `headerClickBehavior="sort"`.
+- **The grid sorts or filters the rows again.** Without `useDataGridServerRows`, the grid sorts and filters its `data`. Set `sortMode="server"` and `filterMode="server"` to stop it. The hook sets both.
+- **`status` is `"error"` and the grid shows the last good rows.** `fetchRows` rejected, threw, or resolved without a `rows` array. Make `fetchRows` resolve with `{ rows, totalRowCount }`. After you fix the cause, call `server.retry()` or select Retry in the error bar.
+- **A page shows fewer rows than `pageSize`.** The answer repeats a row id. The hook keeps the first row of an id and drops the later copies. Make the sort total, for example with the row id as the last sort key.
+- **Rows at the end of an answer do not show.** The answer holds more than `end - start` rows. The hook uses the first `end - start` rows. Make your server honor the limit.
+- **A slow answer replaces a newer page.** This happens only with your own fetch. Drop the answer of a replaced request, as the `stale` flag does on [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch). The hook drops it for you. Pass `signal` to `fetch` so that the hook can also cancel the request.
+
+## The pager and the count [#pager]
+
+- **The footer shows "Page 3" in place of a range, and Last stays disabled.** The count is unknown. The first answer omitted `totalRowCount`, sent `null`, or sent a value that is not a non-negative integer. Send the count of the filtered result.
+- **The count stays unknown although the server sends `total`.** The hook reads `totalRowCount` and `hasMore` only. Rename them to `totalRowCount` and `hasMore`. Development builds warn.
+- **The count stops at 10,000,000.** The hook clamps a larger count to that value.
+- **The page goes back to page 1.** Nothing needs a fix. The pages hold other rows after a change from the page-size select, the sort, the filter, or the search text. The hook resets the page.
+- **The page-size select does nothing.** With `useDataGridPagination` in its server shape, pass `onPageSizeChange`. Development builds warn without it.
+
+## Edits and saves [#saves]
+
+- **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`. The hook's merge keeps the edit in its rows, and a spread override drops the merge. Pass your handler as the `onDataChange` option of the hook.
+- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Put `...server.gridProps.plugins` first. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
+- **A failed save does not revert the edit.** Your `onSave` returns no promise, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
+- **A row stays marked `failed`.** The mark clears at the next save of the row or with `actions.clearSaveStatus()`.
+
+## Selection [#selection]
+
+Checked rows vanish on a page change, or select all matching does nothing. Both need `keepCheckedRows` and `totalRowCount`. The hook passes both. With your own fetch, pass both to the grid. If one is missing, `actions.selectAllMatching()` warns in development builds.
+
+## The hook setup [#setup]
+
+A warning says that the mode changed. The hook cannot switch `mode` after mount. A change makes React report a changed hook order. To switch between pages and scroll, remount the component with a new `key`.
+
+## Related
+
+- [Server rows options](/docs/add-options/server/server-rows-options): the request, the answer, and the checks
+- [Server rows contract](/docs/contracts/server-rows-contract): what the grid sends and what your backend returns
+- [Load rows by page](/docs/server-pagination/load-rows-page): the pages mode step by step
+- [Save edits](/docs/save-server/save-edits): `onSave` and the save status

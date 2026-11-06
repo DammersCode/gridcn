@@ -412,13 +412,13 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/server-pagination/load-rows-page.mdx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/server-pagination/load-rows-page.mdx"
+            "tests/parity/counts.parity.test.tsx"
           ]
         },
         "PS": {
@@ -1528,7 +1528,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/server-pagination/load-rows-page.mdx"
+            "content/docs/(build)/rows-pages-menus/client-pagination.mdx"
           ]
         },
         "PS": {

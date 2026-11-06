@@ -9,7 +9,7 @@ Scroll mode fetches the rows the user scrolls into. The grid shows one continuou
 
 <InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
 
-Use scroll mode for one continuous result. Scroll mode and pagination on one grid are not supported. For numbered pages, see [Load rows by page](/docs/server-pagination/load-rows-page). The hook fixes `mode` for its whole life, and a changed `mode` warns once in development. To switch between pages and scroll mode, remount the grid with a `key`.
+Use scroll mode for one continuous result. Scroll mode and pagination on one grid are not supported. For numbered pages, see [Load rows by page](/docs/server-pagination/load-rows-page). The hook cannot switch `mode` after mount. A changed `mode` warns once in development, and React reports a changed hook order. To switch between pages and scroll mode, remount the grid with a `key`.
 
 ## Fetch blocks [#usage]
 

@@ -1,10 +1,180 @@
 ---
 title: Load rows by page
-description: Load rows by page.
+description: Fetch one page of rows per request from your server, show a pager, and keep the page, the sort, the filter, and the row count in step.
 type: task
 aliases: ["server pagination", "server side pagination"]
 ---
 
-{/* docs-stub */}
+When your server returns one page of rows per request, use `useDataGridServerRows` in pages mode. The hook calls your `fetchRows` for the current page, shows the rows that come back, and returns a `pager` for the footer. If the whole array lives in the browser, see [Client pagination](/docs/rows-pages-menus/client-pagination).
 
-This page is being written.
+<InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
+
+## Fetch a page [#fetch-a-page]
+
+1. Read `start`, `end`, and `spec` (the sort, the filters, and the search text) in `fetchRows`, and send them to your API.
+2. Answer with the rows of that page and the row count of the whole result.
+3. Spread `server.gridProps` onto the grid.
+4. Spread `server.pager` onto `DataGridPaginationBar`.
+
+This grid loads 25 orders per page:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    getRowId: (row) => row.id,
+    defaultPageSize: 25,
+    fetchRows: async ({ start, end, spec, signal }) => {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start, end, spec }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+On page 3 at 25 rows per page, `start` is 50 and `end` is 75. The request also carries `page` and `pageSize`. Pass `signal` to `fetch`. The hook aborts a request that a newer page, size, or spec replaces.
+
+The hook sets `sortMode="server"` and `filterMode="server"`, so the grid never sorts or filters the page itself. Your server applies `spec`. See [Query server rows](/docs/data-modes/query-server-rows). The options are on [Server rows options](/docs/add-options/server/server-rows-options#server-mode).
+
+## Control the page [#control-the-page]
+
+The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. `pageSizeOptions` sets the sizes of the footer select, which are 10, 25, 50, and 100 by default.
+
+To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. The hook sends a page below 1 as page 1. [Keep pages in URL](/docs/server-pagination/keep-pages-url) uses this pair.
+
+## When the page resets [#when-the-page-resets]
+
+- A change from the page-size select goes back to page 1.
+- A change of the sort, filter, or search text goes back to page 1 as well, because the pages hold other rows after the change.
+- A spec that URL state restores before the first answer keeps the page of the link.
+
+If the count shrinks below the page, the pager calls `onPageChange` once with the last page. A count of `0` leaves the page unchanged.
+
+## Show the count [#show-the-count]
+
+`totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid with `keepCheckedRows`, so checked rows survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
+
+If your server sends no count, answer `{ rows, hasMore }` and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists.
+
+## Fetch the pages yourself [#own-fetch]
+
+If you fetch with your own code, call `useDataGridPagination` in its server shape. It keeps no page state. You control `page` and `pageSize`, and you set `filterMode="server"` with a controlled `filterState`, so the grid does not filter the fetched page again.
+
+If the page, the page size, or the filters change, this grid fetches again:
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type FilterNode,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+  useDataGridPagination,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [filters, setFilters] = useState<FilterNode[]>([]);
+  const [rows, setRows] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    let stale = false;
+    fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page, pageSize, filters }),
+    })
+      .then((response) => response.json())
+      .then((answer) => {
+        if (stale) return;
+        setRows(answer.rows);
+        setTotal(answer.total);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [page, pageSize, filters]);
+
+  const { pager } = useDataGridPagination({
+    page,
+    pageSize,
+    totalRowCount: total,
+    onPageChange: setPage,
+    onPageSizeChange: (size) => {
+      setPageSize(size);
+      setPage(1);
+    },
+  });
+
+  return (
+    <>
+      <DataGrid
+        data={rows}
+        onDataChange={(next) => setRows([...next])}
+        columns={columns}
+        getRowId={(row) => row.id}
+        filterMode="server"
+        filterState={filters}
+        onFilterChange={(next) => {
+          setFilters(next);
+          setPage(1);
+        }}
+        totalRowCount={total}
+        keepCheckedRows
+        className="h-96"
+      />
+      <DataGridPaginationBar {...pager} />
+    </>
+  );
+}
+```
+
+Pass `keepCheckedRows` with `totalRowCount` to keep checked rows across pages. With a cursor API, keep the cursor of each page in your own state. If the page size, sort, or filter changes, reset the chain. The `stale` flag drops the answer of a replaced request, so a slow page 2 cannot overwrite page 3. If you pass no `onPageSizeChange`, a page-size change does nothing, and development builds log a warning.
+
+## Related
+
+- [Client pagination](/docs/rows-pages-menus/client-pagination): the same footer on a local array
+- [Server rows options](/docs/add-options/server/server-rows-options#server-mode): every option and the answer checks
+- [Keep pages in URL](/docs/server-pagination/keep-pages-url): the page in the address bar
+- [Server pagination example](/docs/server-data-examples/server-pagination-example): pages with a fetch cache
+- [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data): wrong counts and missing rows

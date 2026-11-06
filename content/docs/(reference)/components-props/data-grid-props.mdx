@@ -25,7 +25,7 @@ aliases: ["getrowid", "row id", "props"]
 
 Without `store`, `columns` is the only required prop. `data` and `defaultData` are both optional. With neither, the grid has no rows.
 
-- `data` makes the grid controlled. The grid shows the array that you pass. Every edit reaches your state through `onDataChange`, and the grid shows it after you pass the new array. A new array with the same rows on each render logs a development warning.
+- `data` makes the grid controlled. The grid shows the array that you pass. Every edit reaches your state through `onDataChange`. If you do not store the edit, the grid drops it the next time it reads your `data`. A new array with the same rows on each render logs a development warning.
 - `defaultData` seeds the grid once. The grid owns the rows afterwards, and a later change to the prop has no effect.
 
 Pass one of them. If you pass both, `data` wins and a development build warns once.
