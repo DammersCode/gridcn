@@ -284,7 +284,7 @@ export type CellClickCtx<TData, TValue> = {
 
 /**
  * Fired on a plain click on any non-skeleton, non-pinned-row cell — attached to the cell's own
- * existing DOM click handler (no new subscription; see events-state.mdx). Fires alongside
+ * existing DOM click handler (no new subscription). Fires alongside
  * whatever the click already does (select the cell, toggle a checkbox) — it's a pure
  * notification, never a veto point (contrast the `data-grid-fill` add-on's `onFill` veto).
  */
@@ -478,7 +478,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;
-  /** Plain-text header for clipboard/export when `header` is a ReactNode. */
+  /** Plain-text header when `header` is a ReactNode: names the column in export, import matching, autosize, menus, and assistive technology. */
   headerText?: string;
   accessorKey?: AccessorKeyOf<TData>;
   /**
@@ -563,11 +563,11 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortCompare?: (a: TData, b: TData) => number;
   /** Initial visibility; toggle at runtime through `setColumnHidden` or the columns menu. */
   hidden?: boolean;
-  /** Disables the resize handle for this column; default true. */
+  /** `false` disables the resize handle for this column; default true. */
   resizable?: boolean;
-  /** Disables drag-to-reorder for this column; default true. */
+  /** `false` disables drag-to-reorder for this column; default true. */
   reorderable?: boolean;
-  /** Disables pin/unpin for this column; default true. */
+  /** `false` disables pin/unpin for this column; default true. */
   pinnable?: boolean;
   /**
    * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
@@ -905,7 +905,7 @@ export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
  * ```
  * This gives custom types the same `options`/value inference as built-ins
  * through `defineColumns` and `TypedColumnDef`. The installed `cell-types.ts`'s
- * `cellTypes` object checks its five built-ins against a literal
+ * `cellTypes` object checks its seven built-ins against a literal
  * `BuiltinCellTypeKey` union, decoupled from this interface, so augmenting it
  * with a new key never breaks that file's compile.
  */

@@ -19,7 +19,7 @@ export { safeHref } from "./safe-href";
 /**
  * The seven built-in keys, deliberately DECOUPLED from `CellTypeKey` (which is
  * `keyof GridCellTypes` and grows with consumer augmentation). Keeping this
- * union literal means the `satisfies` below only ever checks these five
+ * union literal means the `satisfies` below only ever checks these seven
  * built-in entries — a consumer's `declare module` augmentation adds a key to
  * `GridCellTypes`/`CellTypeKey` without requiring the shipped `cellTypes`
  * object to provide an implementation for it.
