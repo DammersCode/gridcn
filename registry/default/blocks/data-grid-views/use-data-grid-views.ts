@@ -120,9 +120,10 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const searchOptions = useDataGridSelector((s) => s.searchOptions);
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
+  const cellTypes = useDataGridSelector((s) => s.cellTypes);
   const registeredOperators = useCallback(
-    (column: (typeof allColumns)[number]) => new Map([...resolveCustomFilterOperators(column, column.type ? storeApi.getState().cellTypes[column.type] : undefined)].map(([id, op]) => [id, op.input ?? "single"] as const)),
-    [storeApi],
+    (column: (typeof allColumns)[number]) => new Map([...resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined)].map(([id, op]) => [id, op.input ?? "single"] as const)),
+    [cellTypes],
   );
   const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable, operators: registeredOperators(c) }])), [allColumns, registeredOperators]);
   // opting a column out of sort or filter UI does not stop programmatic specs, so applying a saved view checks ids only

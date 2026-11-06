@@ -232,7 +232,7 @@ source row of a duplicate, and the anchor row of an insert. One hole cancels the
 writes nothing, calls no `onDataChange`, and warns once in development.
 
 Select-all in a scroll-mode grid checks the holes too. To delete rows you know, pass their ids to
-`deleteRowsById`. To delete every row of a filtered server result, call your own endpoint and run
+`deleteRowsById`. An id of a hole cancels that request too, so leave placeholder ids out of the list. To delete every row of a filtered server result, call your own endpoint and run
 `server.refresh()`.
 
 ## Row markers

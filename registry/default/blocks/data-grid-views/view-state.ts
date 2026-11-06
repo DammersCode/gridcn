@@ -189,7 +189,7 @@ function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: n
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 
-function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   const text = (v: unknown): v is string => typeof v === "string" && v.length <= MAX_TEXT_LENGTH;
   if (input === "none") return { ok: true, value: undefined };
   if (input === "single") return text(raw) ? { ok: true, value: raw } : { ok: false };
@@ -200,7 +200,6 @@ function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown, t
     return { ok: true, value: [...raw] };
   }
   if (raw === undefined) return { ok: true, value: undefined };
-  void tally;
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 
@@ -209,9 +208,9 @@ function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknow
   if (FILTER_OPERATOR_IDS.has(operator)) return sanitizeFilterValue(operator, raw, tally);
   if (operator.length === 0 || operator.length > MAX_OPERATOR_ID_LENGTH) return { ok: false };
   // a live-grid snapshot has no column map; a column map accepts only operators the column registers
-  if (!columns) return sanitizeCustomValue("any", raw, tally);
+  if (!columns) return sanitizeCustomValue("any", raw);
   const input = typeof columnId === "string" ? columns.get(columnId)?.operators?.get(operator) : undefined;
-  return input ? sanitizeCustomValue(input, raw, tally) : { ok: false };
+  return input ? sanitizeCustomValue(input, raw) : { ok: false };
 }
 
 function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: { dropped: number }): FilterNode[] {

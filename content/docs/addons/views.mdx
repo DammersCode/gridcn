@@ -113,7 +113,7 @@ Import is bounded and checked against the live columns:
 - Text over 100,000 characters is refused.
 - Anything but a gridcn view file is refused.
 - A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, is dropped. A sort or filter on a column that the file's own layout hides is dropped too. The status message reports how many entries were left out.
-- A built-in operator with a value of the wrong shape is dropped. An operator id that a column registers in `filterOperators` keeps a text or list value. An `isAnyOf` list is cut to 1,000 entries, and an `isNoneOf` list over 1,000 entries is dropped. The grid keeps at most 64 filters and 16 filter groups, and at most 50 views.
+- A built-in operator with a value of the wrong shape is dropped. An operator id that a column or its cell type registers in `filterOperators` keeps a value of the shape its `input` names: one text for `single`, two texts for `range`, a list of at most 1,000 texts for `list`, and no value for `none`. Any other value drops the filter. An `isAnyOf` list is cut to 1,000 entries, and an `isNoneOf` list over 1,000 entries is dropped. The grid keeps at most 64 filters and 16 filter groups, and at most 50 views.
 
 ## Use the hook
 
