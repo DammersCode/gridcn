@@ -142,19 +142,7 @@ of `<DataGridUrlState>`. The hook already syncs the URL, so a second sync instan
 needed. A framework router that exposes its own navigation event (for example
 `useSearchParams` changes) can call `applyFromUrl()` from that event instead of `popstate`.
 
-<Callout type="warn" title="A URL-applied sort is invisible in the default config">
-  `?sort=name:asc` reorders the rows, but the built-in sort indicator only renders in
-  `headerClickBehavior="sort"` mode, which is not the default. So in the default config a
-   deep-linked sort changes the row order with no visible arrow and no built-in UI to clear it
-   (the sort-list toolbar is a separate opt-in add-on). The sync works. The affordance is
-   missing. Make it visible and clearable:
-
-  ```tsx
-  <DataGridProvider headerClickBehavior="sort" {...grid} columns={columns}>
-  ```
-
-  or install `data-grid-sort-list` for a toolbar sort list.
-</Callout>
+A sort from the URL (`?sort=name:asc`) shows its arrow in the header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it, or install `data-grid-sort-list` for a toolbar sort list. <NewBadge />
 
 `DataGridUrlState` applies the URL's sort, filter, and search into the store on mount. A grid that declares `totalRowCount` (a scroll grid, a server page) holds the spec and never sorts or filters the partial `data`: fetch the rows for the restored spec. See [Filtering a scroll grid](/docs/lazy-loading#filtering-a-scroll-grid).
 

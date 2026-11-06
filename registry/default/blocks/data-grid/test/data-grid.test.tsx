@@ -424,8 +424,8 @@ describe("aria-sort under the default headerClickBehavior", () => {
     );
     expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
     expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
-    // the visual arrow stays gated on the click behavior — the default "select" renders no indicator
-    expect(document.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
+    // the arrow shows for an active sort only, whatever the click behavior says
+    expect(document.querySelectorAll(gridAttrSelector("sortIndicator"))).toHaveLength(1);
   });
 
   it("omits aria-sort entirely when the column is sortable: false", () => {
