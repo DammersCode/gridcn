@@ -95,5 +95,6 @@ export {
   useDataGridAllRowsSelected,
 } from "./hooks";
 export type { DataGridSelectedRows } from "./selected-rows";
-export type { GateContext, GateName } from "./gate-signal";
+export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
+export type { RowActionResult, RowActionSkipReason } from "./types";
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
