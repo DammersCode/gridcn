@@ -8,7 +8,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   MAX_DOCUMENT_LENGTH,
   MAX_VIEW_FILE_LENGTH,
@@ -120,9 +120,13 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const searchOptions = useDataGridSelector((s) => s.searchOptions);
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
-  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable }])), [allColumns]);
+  const registeredOperators = useCallback(
+    (column: (typeof allColumns)[number]) => new Map([...resolveCustomFilterOperators(column, column.type ? storeApi.getState().cellTypes[column.type] : undefined)].map(([id, op]) => [id, op.input ?? "single"] as const)),
+    [storeApi],
+  );
+  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable, operators: registeredOperators(c) }])), [allColumns, registeredOperators]);
   // opting a column out of sort or filter UI does not stop programmatic specs, so applying a saved view checks ids only
-  const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, {}])), [allColumns]);
+  const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { operators: registeredOperators(c) }])), [allColumns, registeredOperators]);
   const latest = useRef({ columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue });
   useLayoutEffect(() => {
     latest.current = { columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue };

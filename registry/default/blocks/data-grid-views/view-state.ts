@@ -1,4 +1,4 @@
-import type { ColumnLayout, BuiltInFilterOperator, FilterNode, FilterOperator, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ColumnLayout, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
@@ -34,7 +34,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
 /** The live columns a view is checked against; `undefined` accepts every id (structure only). */
-export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean }>;
+export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
 
@@ -61,7 +61,7 @@ const operatorsAreExhaustive: Exclude<BuiltInFilterOperator, (typeof OPERATORS)[
 void operatorsAreExhaustive;
 
 const FILTER_OPERATOR_IDS: ReadonlySet<string> = new Set(OPERATORS);
-const CUSTOM_OPERATOR_ID = /^[A-Za-z][\w.-]{0,63}$/;
+const MAX_OPERATOR_ID_LENGTH = 64;
 
 export function emptyViewState(): DataGridViewState {
   return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
@@ -186,11 +186,32 @@ function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: n
     }
     return { ok: true, value: [...raw] };
   }
-  if (!FILTER_OPERATOR_IDS.has(operator)) {
-    if (raw === undefined) return { ok: true, value: undefined };
-    if (Array.isArray(raw)) return raw.length <= MAX_LIST_ENTRIES && raw.every(text) ? { ok: true, value: [...raw] } : { ok: false };
-  }
   return text(raw) ? { ok: true, value: raw } : { ok: false };
+}
+
+function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+  const text = (v: unknown): v is string => typeof v === "string" && v.length <= MAX_TEXT_LENGTH;
+  if (input === "none") return { ok: true, value: undefined };
+  if (input === "single") return text(raw) ? { ok: true, value: raw } : { ok: false };
+  if (input === "range") return Array.isArray(raw) && raw.length === 2 && text(raw[0]) && text(raw[1]) ? { ok: true, value: [raw[0], raw[1]] } : { ok: false };
+  if (input === "list" || Array.isArray(raw)) {
+    if (!Array.isArray(raw) || !raw.every(text)) return { ok: false };
+    if (raw.length > MAX_LIST_ENTRIES) return { ok: false };
+    return { ok: true, value: [...raw] };
+  }
+  if (raw === undefined) return { ok: true, value: undefined };
+  void tally;
+  return text(raw) ? { ok: true, value: raw } : { ok: false };
+}
+
+function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+  if (typeof operator !== "string") return { ok: false };
+  if (FILTER_OPERATOR_IDS.has(operator)) return sanitizeFilterValue(operator, raw, tally);
+  if (operator.length === 0 || operator.length > MAX_OPERATOR_ID_LENGTH) return { ok: false };
+  // a live-grid snapshot has no column map; a column map accepts only operators the column registers
+  if (!columns) return sanitizeCustomValue("any", raw, tally);
+  const input = typeof columnId === "string" ? columns.get(columnId)?.operators?.get(operator) : undefined;
+  return input ? sanitizeCustomValue(input, raw, tally) : { ok: false };
 }
 
 function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: { dropped: number }): FilterNode[] {
@@ -215,7 +236,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
       continue;
     }
     const { columnId, operator } = entry;
-    const value = typeof operator === "string" && CUSTOM_OPERATOR_ID.test(operator) ? sanitizeFilterValue(operator, entry.value, tally) : ({ ok: false } as const);
+    const value = sanitizeOperatorValue(operator, columnId, entry.value, columns, tally);
     if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
       tally.dropped++;
       continue;

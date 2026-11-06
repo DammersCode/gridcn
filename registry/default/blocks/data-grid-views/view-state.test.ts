@@ -71,13 +71,31 @@ describe("sanitizeViewState", () => {
     expect(result.dropped).toBe(6);
   });
 
-  it("keeps a registered custom operator id with a text or list value", () => {
+  it("keeps a custom operator only when the column registers it, with a value of its input shape", () => {
+    const withOperators: ViewColumns = new Map([
+      ["name", { operators: new Map<string, "single" | "range" | "list" | "none">([["inRegion", "single"], ["inSpan", "range"], ["inAny", "list"], ["isSet", "none"]]) }],
+    ]);
     const result = sanitizeViewState(
-      { ...state, filters: [{ columnId: "name", operator: "inRegion", value: "EU" }, { columnId: "name", operator: "inAny", value: ["a", "b"] }, { columnId: "name", operator: "inRegion", value: { a: 1 } }] },
-      columns,
+      {
+        ...state,
+        filters: [
+          { columnId: "name", operator: "inRegion", value: "EU" },
+          { columnId: "name", operator: "inSpan", value: ["1", "2"] },
+          { columnId: "name", operator: "inAny", value: ["a", "b"] },
+          { columnId: "name", operator: "isSet" },
+          { columnId: "name", operator: "inRegion", value: ["EU"] },
+          { columnId: "name", operator: "inSpan", value: "1" },
+          { columnId: "name", operator: "dropAll", value: "x" },
+        ],
+      },
+      withOperators,
     );
-    expect(result.state.filters).toEqual([{ columnId: "name", operator: "inRegion", value: "EU" }, { columnId: "name", operator: "inAny", value: ["a", "b"] }]);
-    expect(result.dropped).toBe(1);
+    expect(result.state.filters).toEqual([
+      { columnId: "name", operator: "inRegion", value: "EU" },
+      { columnId: "name", operator: "inSpan", value: ["1", "2"] },
+      { columnId: "name", operator: "inAny", value: ["a", "b"] },
+      { columnId: "name", operator: "isSet" },
+    ]);
   });
 
   it("drops sorts and filters on columns that opt out", () => {
