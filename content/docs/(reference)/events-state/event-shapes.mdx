@@ -33,6 +33,8 @@ Every callback on these pages except `onFill` is a prop of `DataGrid` or `DataGr
 | Read or control the page and the page size | `onPageChange`, `onPageSizeChange` | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
 | Know why a row insert, duplicate, or delete did nothing | `onRowActionSkipped` | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | Know that the grid stopped waiting for a gate | `onGateAborted` | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
+| Pick the row that wins a save conflict <NewBadge /> | `resolveSaveConflict` | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| Load the values of a header filter from a server <NewBadge /> | `fetchFilterValues` | [Header filter](/docs/sort-filter-search/header-filter#server-values) |
 
 The grid has no copy event and no scroll-position callback. A paste reports through `onDataChange` with `source: "paste"`. `onRenderedRowsChange` reports the rendered rows. A new function identity for `onCellClick`, `onCellDoubleClick`, or `onCellContextMenu` re-renders no cell.
 
@@ -78,7 +80,7 @@ A gate runs before the grid acts and can stop the action:
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
-`onEditStart`, `onBeforeDeleteRows`, and `processPaste` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action.
+`onEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
 
 ## Callback timing and errors [#callback-errors]
 

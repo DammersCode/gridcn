@@ -307,7 +307,7 @@ export type DataGridSyncProps<TData = unknown> = {
   commands?: Record<string, GridCommand<TData>>;
   /**
    * Controlled multi-sort spec. Standard controlled-input
-   * semantics: omitted (undefined) keeps today's uncontrolled behavior — the store owns
+   * semantics: omitted (undefined) keeps the grid uncontrolled — the store owns
    * `sortState`. Provided (even `[]`) makes this prop the source of truth every `_syncProps` sync
    * writes into the store; `onSortChange` still fires on every user-driven change (header click,
    * `setSorts`) either way, but in controlled mode the displayed order only moves once the prop
@@ -536,7 +536,8 @@ export type PluginDataChangeObserver = (next: readonly unknown[], change: DataCh
 /**
  * The `plugins` sync prop resolved into what core consumes, written as ONE store field so the
  * config phase can keep its reference (and the merged `commands`/`keymap` that feed from it)
- * while the list is unchanged. `list` is the raw prop array (entry-identity compare baseline).
+ * while the list is unchanged. `list` holds the kept plugins: the prop array without plugins
+ * another grid holds and without later duplicate names (the prop array itself when it drops none).
  */
 export type ResolvedPlugins = {
   list: readonly DataGridPlugin[];
@@ -1010,7 +1011,7 @@ export type DataGridActions = {
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
-  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with a number (not for `null`). */
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row and does nothing while `pageSize` is controlled. Calls `onPageSizeChange` with a number (not for `null`). */
   setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
@@ -1183,7 +1184,8 @@ export type DataGridActions = {
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
    * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
-   * integer), or `"gate-pending"` (an earlier `createRow` promise has not settled).
+   * integer), `"gate-pending"` (an earlier `createRow` promise has not settled), or `"unloaded-rows"` (the
+   * target row is not loaded yet in scroll mode).
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
@@ -1229,10 +1231,11 @@ export type DataGridActions = {
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
    * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
    * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
-   * removed rows are pruned. No-op on a `readOnly` grid. A `source: "history"` or `"rollback"` change is a
+   * removed rows are pruned. No-op on a `readOnly` grid, except for a `source: "stream"` change. A `source: "history"` or `"rollback"` change is a
    * pass-through: the history stack ignores it, so an undo, redo, or rollback applied through this action
-   * records no second entry. Values are NOT revalidated - that is `updateCells`' job; build import
+   * records no second entry. Column `validate` does NOT run - that is `updateCells`' job; build import
    * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
+   * `validateRow` runs for every inserted and updated row, except in a `source: "stream"` change.
    */
   commitChange(change: DataChange<unknown>): void;
 };

@@ -22,7 +22,7 @@ export const GRID_ATTR = {
   resizing: "data-resizing",
   /** cell-types/checkbox.tsx: present (`""`) on a checkbox cell's box; a press inside it toggles on the first click. */
   checkboxBox: "data-grid-checkbox",
-  /** rows/marker-cell.tsx: present (`""`) on a rows-channel selected row's marker cell. */
+  /** rows/marker-cell.tsx: present (`""`) on the marker cell of a row that is checked or that a cell range covers. */
   selected: "data-row-selected",
   /** virtualization/use-row-hover.ts: present (`""`) on the body row under the pointer. */
   hovered: "data-hovered",

@@ -867,7 +867,7 @@ export type DataGridStoreWrapper = {
  * order is precedence and visual order. A plugin object attaches to ONE grid.
  */
 export type DataGridPlugin<TData = unknown> = {
-  /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored. */
+  /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored, with all its members. */
   name: string;
   /** A component rendered by `DataGridOverlays` with the overlay ctx (window clamp + pin-zone helpers). */
   Overlay?: ComponentType<OverlayPluginCtx>;
@@ -877,7 +877,7 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds built-in actions that THIS plugin also defines in `commands` (in practice the pluggable ones): an entry whose name is not a built-in action, or names a command the plugin does not define, is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already gives the same action is dropped, dev-warned. The kept bindings replace the action's default bindings. */
+  /** Binds the pluggable built-in actions that THIS plugin also defines in `commands`: an entry whose name is not a pluggable action, or names a command the plugin does not define, is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already gives the same action is dropped, dev-warned. The kept bindings replace the action's default bindings. */
   keymap?: Keymap;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;

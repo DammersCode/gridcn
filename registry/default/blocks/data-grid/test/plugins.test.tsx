@@ -103,6 +103,49 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![1]).toContain("two plugins named");
   });
 
+  it("two plugins with the same name: the later plugin's commands and keymap do not merge", () => {
+    const warn = vi.fn();
+    const first: DataGridPlugin = { name: "x", commands: { undo: { run: () => {} } } };
+    const second: DataGridPlugin = {
+      name: "x",
+      commands: { undo: { run: () => {} }, fillDown: { run: () => {} } },
+      keymap: { fillDown: ["mod+shift+d"] },
+      Mount: () => null,
+      onDataChange: () => {},
+      rowBands: { top: [0], render: () => null },
+    };
+    const resolved = resolvePluginsList([first, second], {}, warn);
+    expect(resolved.list).toEqual([first]);
+    expect(resolved.mounts).toHaveLength(0);
+    expect(resolved.observers).toHaveLength(0);
+    expect(resolved.bands.top).toHaveLength(0);
+    const commands = mergePluginCommands(resolved.list, null, warn)!;
+    expect(commands["undo"]).toBe(first.commands!["undo"]);
+    expect(commands["fillDown"]).toBeUndefined();
+    expect(mergePluginKeymaps(resolved.list, undefined, warn).fillDown).toEqual(DEFAULT_KEYMAP.fillDown);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("a grid with two plugins of the same name runs the first plugin's command only", () => {
+    const firstUndo = vi.fn();
+    const secondUndo = vi.fn();
+    const h = mountGrid([
+      { name: "x", commands: { undo: { run: firstUndo } } },
+      { name: "x", commands: { undo: { run: secondUndo } }, keymap: { undo: ["mod+shift+k"] } },
+    ]);
+    const state = h.store().getState();
+    expect(state.plugins.list).toHaveLength(1);
+    expect(state.keymap.undo).toEqual(DEFAULT_KEYMAP.undo);
+    state.commands!["undo"]!.run({} as never);
+    expect(firstUndo).toHaveBeenCalledTimes(1);
+    expect(secondUndo).not.toHaveBeenCalled();
+  });
+
+  it("a unique plugin list resolves to the prop array itself", () => {
+    const list = [{ name: "a" }, { name: "b" }];
+    expect(resolvePluginsList(list, {}, vi.fn()).list).toBe(list);
+  });
+
   it("two plugins with the same command name: the later plugin wins, dev-warns with both names", () => {
     const warn = vi.fn();
     const p1 = { name: "p1", commands: { save: { run: () => {} } } };
@@ -142,10 +185,9 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![1]).toContain("built-in");
   });
 
-  it("a plugin keymap entry naming a command the plugin does not own is dropped with a dev warn", () => {
+  it("a plugin keymap entry naming no pluggable action is dropped with a dev warn", () => {
     const warn = vi.fn();
-    // "selectAll" is a built-in action but the plugin defines no such command; "custom" is the
-    // plugin's own command but not a built-in action — both entries are unbindable.
+    // "custom" is the plugin's own command but not a built-in action.
     const plugin = {
       name: "p",
       commands: { custom: { run: () => {} } },
@@ -153,8 +195,25 @@ describe("plugin conflicts (decision 3 table)", () => {
     };
     const merged = mergePluginKeymaps([plugin], undefined, warn);
     expect(merged.selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
-    expect(warn).toHaveBeenCalledTimes(2);
-    expect(warn.mock.calls.every((c) => (c[0] as string).startsWith("keymap-unknown"))).toBe(true);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unpluggable:p:selectAll", "keymap-unpluggable:p:custom"]);
+    expect(warn.mock.calls[1]![1]).toContain("not a pluggable built-in action");
+  });
+
+  it("a plugin keymap entry naming a pluggable action the plugin defines no command for is dropped with a dev warn", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { undo: { run: () => {} } }, keymap: { redo: ["mod+shift+r"] } };
+    const merged = mergePluginKeymaps([plugin], undefined, warn);
+    expect(merged.redo).toEqual(DEFAULT_KEYMAP.redo);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unknown:p:redo"]);
+    expect(warn.mock.calls[0]![1]).toContain("defines no such command");
+  });
+
+  it("a plugin that names a non-pluggable built-in in commands and keymap keeps the built-in's default bindings", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { selectAll: { run: () => {} } }, keymap: { selectAll: ["mod+shift+k"] } };
+    expect(mergePluginCommands([plugin], null, warn)).toBeNull();
+    expect(mergePluginKeymaps([plugin], undefined, warn).selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["cmd-builtin:p:selectAll", "keymap-unpluggable:p:selectAll"]);
   });
 
   it("a plugin binding equal to a DEFAULT_KEYMAP binding is dropped with a dev warn; the default keeps working", () => {

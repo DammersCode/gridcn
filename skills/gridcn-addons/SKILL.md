@@ -148,7 +148,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
     grids; the second grid drops it and keeps the rest of its list.
   - `two plugins named "X"; the later one is ignored — the name is the plugin's React key and its
     identity` — a duplicate `name` in one `plugins` array.
-  - `plugin "A" and "B" both define command "C"; the later plugin wins` — a command-name conflict
+  - `plugins "A" and "B" both define command "C"; the later plugin wins` — a command-name conflict
     between two plugins.
   - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or
     for a sparse (scroll mode) `data` array, rather than throwing.

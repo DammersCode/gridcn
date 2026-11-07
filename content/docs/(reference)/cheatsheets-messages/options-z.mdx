@@ -19,6 +19,7 @@ Options of the sort, filter, search, saved views, and URL add-ons.
 | `operatorsForColumn` | `DataGridFilterMenu` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#operatorsforcolumn) |
 | `column`, `index` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
 | `scope`, `replaceAllLimit` | `useDataGridFindReplace`, `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
+| `showScope`, `onReplace` | `useDataGridFindReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
 | `matchCase`, `wholeCell`, `only`, `skip` | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
 | `storage`, `storageKey`, `value`, `defaultValue`, `onValueChange`, `enableDefaultView`, `onError` | `useDataGridViews`, `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
 | `className`, `labels` | `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
@@ -50,21 +51,30 @@ Options of the file add-ons.
 | Options | Used by | Page |
 | --- | --- | --- |
 | `formats`, `options`, `onError` | `DataGridExportButton` | [Export options](/docs/add-options/import-export/export-options) |
-| `format`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, `fileName`, `workbookName`, `maxRows` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options) |
-| `createRow`, `onImport`, `importDefaults`, `importLimits` | `DataGridImportButton` | [Import options](/docs/add-options/import-export/import-options) |
-| `columnFallback`, `defaults`, `limits` | `useDataGridImportPreview` | [Import options](/docs/add-options/import-export/import-options) |
+| `format`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, `fileName`, `workbookName`, `maxRows` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
+| `columns`, `formatCell`, `output` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#shape-output) |
+| `source`, `maxBytes`, `signal`, `onProgress` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
+| `scope`, `title`, `includeHeaders`, `pageSize`, `orientation`, `maxRows` | `printGrid` | [Export options](/docs/add-options/import-export/export-options#printgridoptions) |
+| `createRow`, `onImport`, `importDefaults`, `importLimits` | `DataGridImportButton` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
+| `onImportError`, `parseFile`, `accept`, `csvEncoding`, `processImportRows`, `processCellFromText`, `file` | `DataGridImportButton` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
+| `columnFallback`, `defaults`, `limits`, `parseFile`, `csvEncoding` | `useDataGridImportPreview` | [Import options](/docs/add-options/import-export/import-options#usedatagridimportpreview) |
 
 ## Rows, pages, and menus
 
 Options of the pagination, pinned rows, and menu add-ons.
 
+{/* props: UseDataGridPagerOptions, DataGridServerAggregateReporterProps, UseDataGridAggregateOptions */}
+
 | Options | Used by | Page |
 | --- | --- | --- |
 | `data`, `defaultPageSize`, `pageSize`, `pageSizeOptions`, `defaultPage`, `page`, `onPageChange`, `onPageSizeChange` | `useDataGridPagination` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
 | `page`, `pageSize`, `totalRowCount`, `hasMore`, `onPageChange`, `pageSizeOptions`, `onPageSizeChange` | `useDataGridServerPager` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| `pageSizeOptions` | `useDataGridPager` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options#grid-pager) |
 | `className`, `labels`, `windowSize`, `children` | `DataGridPaginationBar` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
 | `getCellMenuItems`, `getHeaderMenuItems` | `DataGridContextMenu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
-| `topRows`, `bottomRows` | `useDataGridPinnedRows` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
+| `topRows`, `bottomRows`, `status` | `useDataGridPinnedRows` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridpinnedrowsoptions) |
+| `fetchAggregates`, `columnIds`, `debounceMs`, `onError` | `useDataGridServerAggregate`, `DataGridServerAggregateReporter` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions) |
+| `onChange` | `DataGridServerAggregateReporter` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions) |
 | `scope` | `useDataGridAggregate` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
 
 ## Selection and shortcuts

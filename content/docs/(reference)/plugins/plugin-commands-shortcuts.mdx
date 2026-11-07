@@ -13,7 +13,7 @@ A plugin adds named commands with its `commands` member and binds keys to them w
 | Two plugins define the same command name | The later plugin wins. A development warning names both plugins. |
 | Your `commands` prop defines a name that a plugin defines | Your command wins, with no warning. |
 | A plugin command has the name of a built-in action | The grid drops the command and warns in development. The six pluggable actions are the exception. |
-| A plugin `keymap` names an action that is not a built-in action, or one that the plugin has no command for | The grid drops the entry and warns in development. |
+| A plugin `keymap` names an action that is not one of the six pluggable actions, or one that the plugin has no command for | The grid drops the entry and warns in development. |
 | A plugin binds a key that the default keymap or your `keymap` already binds to the same action | The grid drops that binding and warns in development. |
 
 ## Commands and keymaps [#commands-and-keymaps]
@@ -52,7 +52,7 @@ The core has no binding for `openFindReplace` and `openFind`. The find and repla
 
 ## A plugin's own keymap entries [#a-plugins-own-keymap-entries]
 
-An entry in the `keymap` of a plugin needs two things. Its name must be a built-in action, and the plugin must define a command with that name. In practice, a plugin keymap binds the pluggable actions. Bind a command with a custom name through your own `keymap` prop.
+An entry in the `keymap` of a plugin needs two things. Its name must be one of the six [pluggable actions](#pluggable-built-ins), and the plugin must define a command with that name. Bind any other command through your own `keymap` prop.
 
 The grid drops a binding that the default keymap or your `keymap` already gives to the same action. The kept bindings replace the bindings of that action.
 

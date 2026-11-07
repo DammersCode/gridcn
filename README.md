@@ -112,7 +112,7 @@ Each add-on is a separate registry item that depends on the core `data-grid`. A 
 | `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/rows-pages-menus/pinned-rows) |
 | `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/rows-live-data/show-presence) |
 | `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/sort-filter-search/find-replace) |
-| `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import & export](https://gridcn.vercel.app/docs/import-export/export) |
+| `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import](https://gridcn.vercel.app/docs/import-export/import), [Export](https://gridcn.vercel.app/docs/import-export/export) |
 | `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/sort-filter-search/url-state) |
 | `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Load rows while scrolling](https://gridcn.vercel.app/docs/scroll-mode/load-rows-while-scrolling) |
 | `data-grid-pagination` | Composable pagination footer (`DataGridPaginationBar` plus parts) | [Client pagination](https://gridcn.vercel.app/docs/rows-pages-menus/client-pagination), [server pagination](https://gridcn.vercel.app/docs/server-pagination/load-rows-page) |

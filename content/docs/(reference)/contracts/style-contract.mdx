@@ -54,7 +54,7 @@ These are the classes that the grid renders and the place where you override the
 | Grid root, `[role="grid"]` | `relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` or `DataGrid` |
 | Header cell | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none`, plus the column line | `headerClassName` on the column |
 | Data cell <NewBadge /> | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none`, plus the column line | `getCellClassName`, then `cellClassName` on the column. Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A non-portalled `z-index` inside a custom cell stays inside that cell |
-| Row | `group/row data-hovered:bg-muted/50` | `getRowClassName`. Pinned and marker cells stay opaque and do not show a row background |
+| Row | `group/row data-hovered:bg-muted/50 data-[save-status=saving]:text-muted-foreground data-[save-status=failed]:bg-destructive/10` | `getRowClassName`. Pinned and marker cells stay opaque and do not show a row background |
 | Marker cell | `group flex items-center border-b border-border bg-background`, plus the column line | `renderMarker` replaces the content |
 | Marker header | `flex items-center justify-center border-b border-border bg-muted`, plus the column line | None |
 | Selection overlay | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`, or a plugin `Overlay` |
@@ -79,7 +79,8 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 |---|---|---|
 | `data-active` | Cell | The active cell |
 | `data-editing` | Cell | The cell is in edit mode |
-| `data-pinned` | Cell, header, overlay | `"left"` or `"right"`, the pin side |
+| `data-pinned` | Cell, header | `"left"` or `"right"`, the pin side |
+| `data-pinned` | Overlay | An empty value. The overlay segment sits in a pinned zone |
 | `data-readonly` | Cell | The cell is not editable: the grid or its column is `readOnly`, or the column has no `accessorKey` and no `setValue`. Pinned-row cells carry it, and a column can set `readOnly: false` to remove it |
 | `data-type` | Cell | The cell type key. `text` is the key of a column with no type |
 | `data-search-match` | Cell | The cell matches the quick search |
@@ -92,7 +93,7 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 | `data-resizing` | Header | The user drags the resize handle |
 | `data-dragging` | Header, marker cell | The element is the source of a reorder drag |
 | `aria-sort` | Header | `ascending`, `descending`, or `none` |
-| `data-row-selected` | Marker cell | The row is in the row channel |
+| `data-row-selected` | Marker cell | The row is checked, or a cell range covers it. For checked rows only, style the marker through the `isRowChannelSelected` value of `renderMarker` |
 | `data-hovered` | Row | The row under the pointer. The mark stays on its row during a scroll. When the scroll stops, it moves |
 | `data-save-status` | Row | `saving` while a save is pending, `failed` after a refusal |
 | `data-grid-row-index` | Row | The view index of the row |

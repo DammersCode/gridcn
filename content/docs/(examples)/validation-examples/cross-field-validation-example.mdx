@@ -43,7 +43,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 - Return an object of `columnId` to message to flag cells. Return `null` when the row is fine.
 - A flag uses the display of a server error: ring, tint, tooltip, and `aria-invalid`.
 - The value still commits. A later write that makes the row consistent clears the flag, also when it writes a different column than the flagged one.
-- `validateRow` does not run on row insert, duplicate, or delete. It does not run after you replace the `data` array.
+- `validateRow` does not run on `insertRows`, `duplicateRows`, or a delete. It does not run after you replace the `data` array. It runs for the rows that `actions.commitChange` inserts, such as an import or an undo.
 - `validateRow` can return a promise. See [Async gates example](/docs/validation-examples/async-gates-example).
 
 ## Related

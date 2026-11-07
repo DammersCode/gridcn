@@ -70,7 +70,7 @@ export type DataGridImportDialogProps<TData> = {
   onImport: (rows: TData[], ctx: ImportContext) => void | Promise<void>;
   /** Called once when `onImport` rejects, with the rejection. The dialog stays open. */
   onImportError?: (error: unknown) => void;
-  /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit for today's behavior unchanged. */
+  /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit to keep the built-in detection. */
   importDefaults?: ImportDefaults;
   /** Size, row, column, cell, and unpacked-size bounds for the file; omitted fields use `DEFAULT_IMPORT_LIMITS`. `maxFileBytes` also sets the drop zone's `maxSize`. */
   importLimits?: ImportLimits;

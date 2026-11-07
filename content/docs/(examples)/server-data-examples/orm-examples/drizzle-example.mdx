@@ -113,6 +113,7 @@ The grid posts the spec and the range to the route. `fetchRows` returns the JSON
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
+  type UseDataGridServerRowsOptions,
 } from "@/components/data-grid-server/data-grid-server";
 
 type User = { id: number; name: string };
@@ -121,16 +122,21 @@ const columns = defineColumns<User>()([
   { id: "name", header: "Name", accessorKey: "name" },
 ]);
 
+const fetchRows: UseDataGridServerRowsOptions<User>["fetchRows"] = async ({
+  spec,
+  start,
+  end,
+  signal,
+}) => {
+  const body = JSON.stringify({ spec, start, end });
+  const init = { method: "POST", body, signal };
+  const response = await fetch("/api/grid", init);
+  if (!response.ok) throw new Error("Request failed");
+  return response.json();
+};
+
 export function UsersGrid() {
-  const server = useDataGridServerRows<User>({
-    fetchRows: async ({ spec, start, end, signal }) => {
-      const body = JSON.stringify({ spec, start, end });
-      const init = { method: "POST", body, signal };
-      const response = await fetch("/api/grid", init);
-      if (!response.ok) throw new Error("Request failed");
-      return response.json();
-    },
-  });
+  const server = useDataGridServerRows<User>({ fetchRows });
   return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```

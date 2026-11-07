@@ -101,8 +101,9 @@ export function warnPluginComponentRemounts(
 
 /**
  * Builds the resolved plugin members from the claimed list (duplicate `name`s dev-warn and the
- * later plugin is ignored; members keep array order). Runs only when the list actually changes, so
- * the conflict warnings below do not re-fire on every render of an unchanged inline array.
+ * later plugin is ignored: `list` drops it, so the command and keymap merges skip it too; members
+ * keep array order). Runs only when the list actually changes, so the conflict warnings below do
+ * not re-fire on every render of an unchanged inline array.
  */
 export function resolvePlugins(list: readonly DataGridPlugin[], warn: PluginWarnOnce): ResolvedPlugins {
   if (list.length === 0) return EMPTY_PLUGINS;
@@ -133,7 +134,7 @@ export function resolvePlugins(list: readonly DataGridPlugin[], warn: PluginWarn
       if (bottom && bottom.length > 0) bands.bottom.push({ name: plugin.name, rows: bottom, render });
     }
   }
-  return { list, overlays, bands, mounts, observers };
+  return { list: unique.length === list.length ? list : unique, overlays, bands, mounts, observers };
 }
 
 /**
@@ -173,8 +174,8 @@ export function mergePluginCommands(
 }
 
 /**
- * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order; an entry naming a
- * command the plugin does not define, or naming no built-in action, is dropped, dev-warned; a
+ * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order; an entry naming no
+ * pluggable action, or a command the plugin does not define, is dropped, dev-warned; a
  * binding the default keymap or the consumer's `keymap` already gives the same action is dropped,
  * dev-warned; the kept bindings replace that action's bindings) <- the
  * consumer's `keymap` (always last, and wins).
@@ -188,8 +189,14 @@ export function mergePluginKeymaps(
   for (const plugin of plugins) {
     if (!plugin.keymap) continue;
     for (const [name, bindings] of Object.entries(plugin.keymap)) {
-      const pluginOwnsIt = Boolean(plugin.commands) && name in (plugin.commands as Record<string, GridCommand<unknown>>);
-      if (!(BUILTIN_ACTIONS as readonly string[]).includes(name) || !pluginOwnsIt) {
+      if (!PLUGGABLE_ACTIONS.includes(name)) {
+        warn(
+          `keymap-unpluggable:${plugin.name}:${name}`,
+          `plugin "${plugin.name}"'s keymap binds "${name}", which is not a pluggable built-in action; the entry is dropped — a plugin keymap binds only undo, redo, fillDown, fillRight, openFindReplace, and openFind (bind other commands through the consumer's keymap)`,
+        );
+        continue;
+      }
+      if (!plugin.commands || !(name in plugin.commands)) {
         warn(
           `keymap-unknown:${plugin.name}:${name}`,
           `plugin "${plugin.name}"'s keymap binds "${name}" but the plugin defines no such command; the entry is dropped — a plugin keymap binds the plugin's own commands only`,

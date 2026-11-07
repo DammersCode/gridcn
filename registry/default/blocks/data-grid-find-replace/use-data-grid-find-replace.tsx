@@ -7,7 +7,7 @@ import type { PanelOptions } from "./find-replace-panel";
 import type { ReplaceOptions } from "./plan-replace";
 
 export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "replaceAllLimit"> & {
-  /** Shows "Searches loaded rows only" in the panel. Default: on while the grid has a `totalRowCount` or a server `sortMode` or `filterMode`; set `true` for client pages, which hold one page of the rows. */
+  /** Shows "Searches loaded rows only" in the panel. Default: on while the grid has a `totalRowCount` or a server `sortMode` or `filterMode`; set `true` for a grid that `useDataGridPagination` feeds one page of the rows. */
   showScope?: boolean;
   /**
    * Runs after the plan is built and before it is written. Return the plan to write (it may add, drop, or
