@@ -62,7 +62,7 @@ A request that fails reverts the whole change. After the revert, `onSaveRejected
 
 - It runs once per change, after `onDataChange`.
 - <NewBadge /> A row with a save in flight carries `aria-busy="true"`. A refused save reads through the live region, for example "2 rows not saved" (`labels.grid.saveRejected`).
-- The `source` of a change names its origin. The origins are an edit, a paste, a fill, a delete, a row operation, and an import. They also include a find and replace, a programmatic `record()`, and an undo or redo.
+- The `source` of a change names its origin. The origins are an edit, a paste, a fill, a delete, a row operation, a conflict merge (`source: "merge"`), and an import. They also include a find and replace, a programmatic `record()`, and an undo or redo.
 - `onSave` never receives a change with `source: "rollback"` or `source: "stream"`. A revert and a server push do not go back to the server.
 - A `readOnly` grid writes nothing for a cell edit, so `onSave` does not run.
 - A function that returns a promise sets the status of the rows. If the function returns nothing and does not throw, the grid sets no status and cannot refuse the change. A synchronous throw refuses the change.

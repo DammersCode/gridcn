@@ -6,7 +6,7 @@ type: reference
 aliases: ["localization", "translation keys", "ui text"]
 ---
 
-`DataGridLabels` holds every user-facing string of the core and the add-ons, grouped by the surface that owns it. `DEFAULT_LABELS` holds the English defaults. The `labels` prop of `DataGrid` and `DataGridProvider` takes a `DeepPartialLabels` object that overrides some of them. The [Labels and i18n guide](/docs/theme-style-language/labels-i18n) shows how to wire a translation library and flip the layout to right to left.
+`DataGridLabels` holds the user-facing strings of the core and most add-ons, grouped by the surface that owns it. `DEFAULT_LABELS` holds the English defaults. The `labels` prop of `DataGrid` and `DataGridProvider` takes a `DeepPartialLabels` object that overrides some of them. The [Labels and i18n guide](/docs/theme-style-language/labels-i18n) shows how to wire a translation library and flip the layout to right to left.
 
 | Group | Surface |
 | --- | --- |
@@ -21,6 +21,8 @@ aliases: ["localization", "translation keys", "ui text"]
 | `pagination` | Pager |
 | `statusBar` | Status bar |
 | `findReplace` | Find and replace panel |
+
+`DataGridLabels` does not hold two add-on label sets. `DataGridViews` takes its own `labels` ([DataGridViewsLabels](/docs/add-options/sort-filter-search/saved-views-options#labels)). A lookup column takes `options.labels` ([lookup cell](/docs/editing-cells/lookup-cell)).
 
 A label is a string or a function. A function label receives the values that its text needs, such as a count or a page number, and returns the string. The type of each field names its arguments:
 

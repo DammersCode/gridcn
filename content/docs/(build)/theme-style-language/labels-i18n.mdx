@@ -3,10 +3,10 @@ title: Labels and i18n
 description: Translate every grid string with one typed labels object, wire it to your i18n library, and switch the grid to right-to-left layout.
 icon: Languages
 type: feature
-aliases: ["translation", "rtl", "right to left", "language"]
+aliases: ["translation", "rtl", "right to left", "language", "translate", "translate the ui", "localize"]
 ---
 
-Every user-facing string lives in one typed `DataGridLabels` object with English defaults. Pass a partial `labels` object to translate it. The `direction` prop flips the layout for right-to-left languages. The grid has no i18n dependency.
+Nearly every user-facing string lives in one typed `DataGridLabels` object with English defaults. Pass a partial `labels` object to translate it. Saved views and lookup columns take their own labels, listed under [Coverage by group](#coverage-by-group). The `direction` prop flips the layout for right-to-left languages. The grid has no i18n dependency.
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
@@ -76,6 +76,8 @@ function ClearFiltersButton() {
 | `pagination` | page buttons, page size, range text | `data-grid-pagination` |
 | `statusBar` | count, sum, average, minimum, maximum, selection text | `data-grid-status-bar` |
 | `findReplace` | panel fields, buttons, status lines | `data-grid-find-replace` |
+| `DataGridViews` `labels` | the saved views button and menu | `data-grid-views`, [options](/docs/add-options/sort-filter-search/saved-views-options#labels) |
+| `options.labels` of a lookup column | the lookup editor | `data-grid-lookup`, [lookup cell](/docs/editing-cells/lookup-cell) |
 
 [Labels reference](/docs/components-props/labels) lists every field of every group.
 
@@ -174,7 +176,7 @@ export function LocaleGrid({ locale }: { locale: keyof typeof TRANSLATIONS }) {
 }
 ```
 
-Without `direction`, the grid reads the direction it inherits from the page once, at mount. A grid inside `<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction. If the direction changes at run time, pass `direction` too.
+Without `direction`, the grid reads the direction it inherits from the page once, at mount. A grid inside `<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction. If the direction changes at run time, pass `direction` too. With server rendering, pass `direction`: the server HTML is left-to-right until the grid mounts. See [Server rendering](/docs/support-upgrades/server-rendering#hydration-rules).
 
 ### What mirrors [#what-mirrors]
 

@@ -41,6 +41,10 @@ const readerQueries: [string, string][] = [
   ["retry", "/docs/scroll-mode/recover-load-errors"],
   ["freeze header", "/docs/columns/column-headers-groups"],
   ["grid shows nothing", "/docs/terms-help/fix-install-problems"],
+  ["row numbers", "/docs/rows-pages-menus/row-markers"],
+  ["button column", "/docs/row-examples/row-actions-example"],
+  ["translate the ui", "/docs/theme-style-language/labels-i18n"],
+  ["report an issue", "/docs/support-upgrades/version-policy-changelog"],
 ];
 
 describe("docs search", () => {

@@ -36,12 +36,12 @@ export const FINDER = [
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
+    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", "/docs/row-examples/row-actions-example", "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
   },
   {
     id: "import-export-style",
     title: "Import, export, and style",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/performance/row-limits"],
+    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", "/docs/performance/row-limits"],
   },
 ];
 

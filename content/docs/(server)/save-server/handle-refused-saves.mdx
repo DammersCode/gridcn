@@ -94,16 +94,16 @@ An `update` operation carries `prev`, the row before the edit, and its edited `c
 
 ```ts
 import type {
-  DataChange,
+  DataOp,
   SaveRejection,
 } from "@/components/data-grid/data-grid";
 import type { Order } from "./orders";
 import { db } from "./db";
 
 export async function POST(request: Request) {
-  const change = (await request.json()) as DataChange<Order>;
+  const ops = (await request.json()) as DataOp<Order>[];
   const rejected: SaveRejection<Order>[] = [];
-  for (const op of change.ops) {
+  for (const op of ops) {
     if (op.type !== "update") continue;
     const stored = await db.orders.find(op.rowId);
     const before = op.prev as Record<string, unknown>;

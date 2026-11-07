@@ -29,6 +29,7 @@ import { api, type Order } from "./api";
 export function ImportOrders({ refresh }: { refresh: () => void }) {
   return (
     <DataGridImportButton<Order>
+      importLimits={{ maxRows: 5_000 }}
       createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
       onImport={async (rows, { signal }) => {
         await api.createOrders(rows, { signal });
