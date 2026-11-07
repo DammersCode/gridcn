@@ -23,7 +23,7 @@ The type check passes, and the grid works as before.
 
 ### Changed defaults [#changed-defaults]
 
-- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` stops client sorting and filtering. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
 - Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
@@ -97,8 +97,8 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 ### Pushes and row operations [#pushes]
 
 - A `source: "stream"` call of `updateCells` or `updateRows` skips a row whose save is in flight (reason `"saving"`). Push again after the save settles.
-- A `source: "stream"` call takes at most 100,000 patches. The rest skip with reason `"limit"`.
-- A `source: "stream"` batch writes into a `readOnly` grid and into read-only columns. Pass `source: "edit"` to keep the read-only checks.
+- A stream call takes at most 100,000 patches. The rest skip as `"limit"`.
+- A stream call of `updateCells`, `updateRows`, or `deleteRowsById` writes into a `readOnly` grid and read-only columns and rows. Pass `source: "edit"` to keep the read-only checks.
 - In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing if the target touches an unloaded row. Delete known rows with `deleteRowsById`.
 
 ## Pagination [#pagination]

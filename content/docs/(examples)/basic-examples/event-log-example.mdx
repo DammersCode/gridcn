@@ -1,0 +1,65 @@
+---
+title: "Event log example"
+description: Log the payload of every grid callback in a side panel while you click, edit, sort, filter, fill, scroll, and resize.
+icon: ScrollText
+type: example
+aliases: ["event inspector", "callback log", "event payloads"]
+---
+
+The grid reports each user action through a callback prop. In the demo, every callback writes its payload to the Event inspector panel, newest first. The panel keeps the last 20 entries.
+
+<ComponentPreview name="data-grid-events-demo" />
+
+<InstallCommand item="data-grid-events-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- A click, a double-click, and a right-click on a cell log `onCellClick`, `onCellDoubleClick`, and `onCellContextMenu`. A move of the active cell logs `onActiveCellChange`.
+- An edit logs `onEditStart`, then `onEditEnd`. A committed value logs `onDataChange` with the change.
+- A drag over cells logs `onSelectionChange`. The panel shows the first five rows of `details.getValues()`.
+- A header click logs `onSortChange`, because the demo sets `headerClickBehavior="sort"`. The filter menu logs `onFilterChange`.
+- A drag of the fill handle logs `onFill`, an option of `useDataGridFill`.
+- A scroll logs `onRenderedRowsChange`. A column resize logs `onColumnResizing` on each drag frame and `onColumnLayoutChange` on release. A pin or a hide from the header menu logs `onColumnLayoutChange`.
+- Simulate presence highlight calls `setPresenceHighlights` of `useDataGridPresence` and logs the highlights that it sets.
+
+Each callback appends one entry to a capped list:
+
+```tsx
+import { useCallback, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+type Entry = { event: string; payload: unknown };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+export function LoggedGrid() {
+  const [log, setLog] = useState<Entry[]>([]);
+  const record = useCallback((event: string, payload: unknown) => {
+    setLog((prev) => [{ event, payload }, ...prev].slice(0, 20));
+  }, []);
+
+  return (
+    <>
+      <DataGrid
+        defaultData={rows}
+        columns={columns}
+        headerClickBehavior="sort"
+        onDataChange={(_next, change) => record("onDataChange", change)}
+        onSortChange={(sorts) => record("onSortChange", sorts)}
+      />
+      <pre>{JSON.stringify(log, null, 2)}</pre>
+    </>
+  );
+}
+```
+
+## Related
+
+- [Event shapes](/docs/events-state/event-shapes): the call order and the error rules of every callback
+- [Data change events](/docs/events-state/data-change-events): the shape of `onDataChange`
+- [Selection and cell events](/docs/events-state/selection-cell-events): the click, selection, and active cell callbacks

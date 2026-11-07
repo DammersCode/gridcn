@@ -1,0 +1,51 @@
+---
+title: "Screen reader announcements example"
+description: Show the text that the grid live region reads after a check or a filter, with announceResults turned on.
+icon: Megaphone
+type: example
+aliases: ["live region demo", "announceResults example"]
+---
+
+The grid reads changes to a screen reader through one live region. In the demo, a line above the grid copies the last text of that region, so you can follow the announcements without a screen reader. The grid sets `announceResults`, so a filter also reads the row count.
+
+<ComponentPreview name="data-grid-announcements-demo" />
+
+<InstallCommand item="data-grid-announcements-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- A check or an uncheck with the row markers reads the number of checked rows, for example "3 rows checked".
+- A filter from the header filter reads the number of rows of the view, for example "42 rows". A filter that keeps the same rows stays quiet.
+- The region waits 500 ms after the last change, so a fast series of checks reads one count.
+- The live region carries the `data-grid-live-region` attribute. The demo watches it with a `MutationObserver` and hides its copy from screen readers with `aria-hidden`.
+
+The grid prop turns on the result counts:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+export function AnnouncedGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      rowMarkers="checkbox"
+      announceResults
+    />
+  );
+}
+```
+
+## Related
+
+- [Screen reader support](/docs/accessibility/screen-reader-support#live-regions): every change that the live region reads
+- [Live region messages](/docs/accessibility/live-region-messages): the stale view, refused save, and load result messages
+- [Checked rows](/docs/selection-shortcuts/checked-rows): the checked-row count

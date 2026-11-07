@@ -149,8 +149,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const api = apiRef.current;
       if (!api) return;
       const state = api.store.getState();
-      // a read-only grid never applied the change it would revert (writes are gated), so popping the
-      // entry would only lose it
+      // A read-only grid refuses the revert, so popping the entry would only lose it.
       if (state.readOnly) return;
       const change = direction === "undo" ? history.undo() : history.redo();
       if (!change) return;

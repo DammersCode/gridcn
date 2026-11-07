@@ -1,0 +1,78 @@
+---
+title: "Context menu items example"
+description: Keep only some built-in items in the cell menu and the header menu with the item resolvers of DataGridContextMenu.
+icon: ListFilter
+type: example
+aliases: ["trim menu items", "filter menu items", "getCellMenuItems"]
+---
+
+`DataGridContextMenu` builds each menu from a resolver. The resolver receives the built-in items as `defaults` and returns the list that the menu shows. In the demo, the cell menu keeps two row items, and the header menus keep one sort item.
+
+<ComponentPreview name="data-grid-context-menu-slots-demo" />
+
+<InstallCommand item="data-grid-context-menu-slots-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- A right-click on a cell shows Insert row below and Duplicate rows. `getCellMenuItems` keeps the items with the ids `insert-row-below` and `duplicate-rows`.
+- The `createRow` and `duplicateRow` props turn on the two kept items. Without them, the menu hides those items.
+- The header dropdown and a right-click on a header both show Sort ascending only. `getHeaderMenuItems` keeps the `sort-asc` item. The header resolver applies to both header surfaces.
+
+The resolvers filter `defaults` by id:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridContextMenu,
+  DataGridHeaderDropdown,
+} from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+
+const keptCellItems = new Set(["insert-row-below", "duplicate-rows"]);
+
+export function TrimmedMenuGrid() {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      createRow={() => ({ id: crypto.randomUUID(), name: "" })}
+      duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
+    >
+      <DataGridContextMenu
+        getCellMenuItems={(_ctx, defaults) =>
+          defaults.filter((item) => keptCellItems.has(item.id))
+        }
+        getHeaderMenuItems={(_ctx, defaults) =>
+          defaults.filter((item) => item.id === "sort-asc")
+        }
+      >
+        <DataGridRoot
+          renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
+        >
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridContextMenu>
+    </DataGridProvider>
+  );
+}
+```
+
+## Related
+
+- [Context menu](/docs/rows-pages-menus/context-menu#custom-menu-items): the resolver props and every built-in id
+- [Row operations example](/docs/row-examples/row-operations-example): the full row items of the menu
+- [Row actions example](/docs/row-examples/row-actions-example): row actions as buttons in a pinned column

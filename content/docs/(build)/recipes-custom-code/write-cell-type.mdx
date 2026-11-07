@@ -95,8 +95,10 @@ function format(value: number | null, options?: Options): string {
 
 function parse(text: string): number | null {
   const kept = text.replace(/[^0-9.,-]/g, "");
-  const hasPoint = kept.includes(".");
-  const plain = hasPoint ? kept.replace(/,/g, "") : kept.replace(",", ".");
+  const groupsThousands = kept.includes(".") || /,\d{3}(?!\d)/.test(kept);
+  const plain = groupsThousands
+    ? kept.replace(/,/g, "")
+    : kept.replace(",", ".");
   const amount = Number(plain);
   return plain === "" || Number.isNaN(amount) ? null : amount;
 }
@@ -166,7 +168,7 @@ The sample keeps these rules:
 
 ## Result
 
-The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234.56` stores `1234.56`, and a copy gives `1234.56`. Without a point, the parser reads a comma as the decimal separator, so `1,5` stores `1.5`. Adapt `parse` to the number format of your users.
+The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234.56` stores `1234.56`, and a copy gives `1234.56`. Without a point, a comma before exactly three digits groups thousands, so `$1,234` stores `1234`. Any other comma is the decimal separator, so `1,5` stores `1.5`. Adapt `parse` to the number format of your users.
 
 ## Test the type [#testing-your-cell-type]
 

@@ -44,7 +44,7 @@ export function TickerFeed({ quotes }: { quotes: Quote[] }) {
 
 One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again.
 
-A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit.
+A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRowsById` call takes at most 100,000 ids under the same rule.
 
 A hidden column takes patches like a visible one. The grid skips a patch for an unknown row or column, a row with a save in flight, or an unchanged value.
 

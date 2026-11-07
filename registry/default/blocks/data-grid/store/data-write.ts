@@ -1048,13 +1048,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       : markers.reorderRowsAnnouncement(plan.sources.length, plan.targets[0]! + 1, total);
   };
 
-  /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view and data indices coincide. */
+  /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, data indices equal full-view indices; a paged view offsets by the page start. */
   const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
     if (!plan) return false;
     const { data, getRowId } = s;
     const { newIndexOf } = plan;
     for (let i = 0; i < data.length; i++) {
-      // Indexed access sees sparse holes; a reorder would shift the lazy add-on's in-flight index bookkeeping.
+      // Indexed access sees sparse holes; a reorder would shift scroll mode's in-flight block bookkeeping.
       if (data[i] === undefined) {
         warnDev("reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first");
         return false;

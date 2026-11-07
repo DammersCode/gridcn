@@ -206,9 +206,9 @@ type ReshapeInput = {
 export type ReshapeTrigger = "stale" | "soon" | "urgent";
 
 /**
- * Schedules the refresh that places pushed rows again. With `reshapeDelay` the first trigger starts a timer and later triggers
- * join it, so a steady feed reshapes at most once per delay; without it only `"soon"` and `"urgent"` triggers run, on the next
- * frame. A reshape that falls due during a request or while the page is hidden waits and runs once.
+ * Schedules the refresh that places pushed rows again. With `reshapeDelay`, `"stale"` and `"soon"` triggers start or join one
+ * timer, so a steady feed reshapes at most once per delay; without it `"stale"` triggers do nothing and `"soon"` runs on the next
+ * frame. `"urgent"` always runs on the next frame. A reshape that falls due during a request or while the page is hidden waits and runs once.
  */
 export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: ReshapeInput) {
   const { delay, invalid, raised } = readReshapeDelay(raw);

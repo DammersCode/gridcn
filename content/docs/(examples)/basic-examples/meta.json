@@ -6,6 +6,8 @@
     "editable-grid-example",
     "cell-types-example",
     "custom-cell-type-example",
-    "print-example"
+    "print-example",
+    "event-log-example",
+    "screen-reader-announcements-example"
   ]
 }

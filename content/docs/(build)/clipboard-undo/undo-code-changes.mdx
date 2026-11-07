@@ -74,7 +74,7 @@ Every change carries a `source`. By default the history records these sources:
 | `replace` | A find and replace |
 | `app` | `record` |
 
-The history never records `history` (an undo or a redo) or `rollback`, whatever the list says. It skips `stream` by default, so a live feed of `updateCells` batches cannot fill the stack. If you pass no `source`, `updateCells` tags its batch `"stream"`. To make a batch undoable, pass `source: "edit"`. Render the component under the grid's provider, for example in a toolbar:
+The history never records `history` (an undo or a redo), `rollback`, `merge`, or `id-swap`, whatever the list says. It skips `stream` by default, so a live feed of `updateCells` batches cannot fill the stack. If you pass no `source`, `updateCells` tags its batch `"stream"`. To make a batch undoable, pass `source: "edit"`. Render the component under the grid's provider, for example in a toolbar:
 
 ```tsx
 import { useDataGridApi } from "@/components/data-grid/data-grid";

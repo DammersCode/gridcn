@@ -27,7 +27,7 @@ function clampedInteger(value: unknown, fallback: number, min: number, max: numb
   return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, Math.floor(value))) : fallback;
 }
 
-/** Reads the fetch limit options; a bad value falls back to its default and never throws. */
+/** Reads the fetch limit options and never throws: a non-number or a negative `maxLoadedRows` falls back to its default, and an out-of-range number clamps. */
 export function readFetchLimits(blockSize: number, options: FetchLimitOptions = {}): FetchLimits {
   const rows: unknown = options.maxLoadedRows;
   let maxLoadedRows = DEFAULT_MAX_LOADED_ROWS;

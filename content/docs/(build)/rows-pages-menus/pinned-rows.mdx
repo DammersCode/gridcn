@@ -147,7 +147,7 @@ function TotalsGrid() {
 A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. The aggregate ignores a spec key that matches no column id and warns once in development.
 
 <Callout type="warn" title="Keep the band arrays stable">
-  `useDataGridPinnedRows` returns a stable `plugin` only while `topRows` and `bottomRows` keep their identity. A fresh array on every render rebuilds the plugin on every render. Memoize the arrays, as the sample does.
+  `useDataGridPinnedRows` returns a stable `plugin` only while `topRows` and `bottomRows` keep their identity and `status` keeps its value. A fresh array on every render rebuilds the plugin on every render. Memoize the arrays, as the sample does.
 </Callout>
 
 ### Custom reducers [#custom-reducers]
@@ -177,6 +177,9 @@ For anything else, compute the band rows yourself in a `useMemo`, as the first s
 | --- | --- | --- |
 | `topRows` | `readonly unknown[]` | none |
 | `bottomRows` | `readonly unknown[]` | none |
+| `status` <NewBadge /> | `ServerAggregateStatus` | `"ready"` |
+
+`status` <NewBadge /> marks both bands while server values load, go stale, or fail. See [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#status).
 
 {/* props: UseDataGridAggregateOptions */}
 
@@ -198,7 +201,7 @@ The `aria-rowindex` order is: header rows, pinned-top rows, data rows, pinned-bo
 
 ## Server mode
 
-Aggregates reduce the rows that the grid holds in memory. Two server modes limit that scope:
+Aggregates reduce the rows that the grid holds in memory. Three data modes set that scope:
 
 - **Client pagination.** `defaultPageSize` pages the view of the whole array. `useDataGridAggregate` totals every row that the filter leaves, not one page. Pass `scope: "page"` to total the shown page only.
 - **Server pagination.** `data` is the current page, so `useDataGridAggregate` covers that page.

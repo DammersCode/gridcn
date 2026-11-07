@@ -392,7 +392,7 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
  * the value through DIFFERENT surfaces, so one override does not reach all of them:
  *
  * - display (the cell's rendered text) = `toDisplayText` when present, else `toText`.
- * - clipboard copy and export = `toText`, always.
+ * - clipboard copy and export = `toText` (export with `text: "display"` reads `toDisplayText ?? toText`).
  * - sort = `compare` when the column declares this type, else a numeric-aware locale collation of
  *   the RAW `String(value)` — not of `toText` output.
  * - quick search = `toSearchText` when the type declares it, else `toText`; a column without a
@@ -401,7 +401,7 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
  *   the ISO string).
  * - filter = the raw-value predicate (`filter.match`, or the column's own `filterMatch`), else the
  *   built-in text matcher over `String(rawValue)`.
- * - fill (series inference) works on the raw value, not on any text form.
+ * - fill = `toText` of the source cells, then the target column's `fromText`.
  */
 export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   Cell: FC<CellRenderProps<TData, TValue, TOptions>>;

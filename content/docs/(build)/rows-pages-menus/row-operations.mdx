@@ -6,7 +6,7 @@ aliases: ["add a row", "delete rows", "new row", "remove rows", "copy row", "pro
 icon: ListPlus
 ---
 
-Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRowsById` addresses view indexes, the positions the user sees. `deleteRowsById` takes row ids. Each one writes one change with `source: "row-operation"`.
+Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRowsById` addresses view indexes, the positions the user sees. `deleteRowsById` takes row ids. Each one writes one change with `source: "row-operation"`. A stream delete writes `source: "stream"` and skips `onBeforeDeleteRows`.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
@@ -102,7 +102,7 @@ The keys come from `DEFAULT_KEYMAP`. Remap or remove them through the `keymap` p
 
 ## Confirm a delete
 
-`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById` without `source: "stream"`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
 A bulk delete button <NewBadge /> calls `deleteRowsById`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
@@ -193,7 +193,7 @@ If the promise from `onSave` rejects, or resolves with a `rejected` entry for a 
 
 Two data modes change the scope of an operation:
 
-- **Client pagination.** `data` is the current page, so an operation changes the page slice. Merge each change into your full dataset by row id. See [Client pagination](/docs/rows-pages-menus/client-pagination).
+- **Client pagination.** `data` stays the whole array, and view indexes address the shown page. `onDataChange` receives the whole array. Store it as it is. See [Client pagination](/docs/rows-pages-menus/client-pagination).
 - **Scroll mode.** Unloaded rows are holes. If the target of a delete, duplicate, or insert touches a hole, the operation does nothing and returns `{ ok: false, reason: "unloaded-rows" }`. One hole cancels the whole request, so leave placeholder ids out. The grid calls no `onDataChange` and warns once in development. To delete rows that you know, pass their ids to `deleteRowsById`.
 
 ## Related

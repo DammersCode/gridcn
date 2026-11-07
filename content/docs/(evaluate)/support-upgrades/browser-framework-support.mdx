@@ -15,7 +15,7 @@ gridcn targets current Chromium, Firefox, and Safari, and React 19. Automated br
 | React | 19 | The store reads context with the `use()` API, which React 18 lacks. |
 | Tailwind CSS | 4 | The classes use Tailwind 4 syntax, such as the variant `data-checked:`. Tailwind 3 does not read it. |
 | TypeScript | 5.9 or later | CI type-checks the repository with TypeScript 5.9 and with TypeScript 7. No gate runs TypeScript 6. |
-| Next.js | 16, App Router | An install test builds and renders every demo in a fresh `create-next-app` project. |
+| Next.js | 16, App Router | An install test builds and renders the core demo and the demos of changed add-ons in a fresh `create-next-app` project. With `--all`, it covers every demo. |
 | Vite | React and Tailwind 4 | The install test has a Vite mode that builds a `shadcn create -t vite` app. |
 | Node.js | 20.18.1 or later | The floor of shadcn CLI 4.21, the version CI tests. A later CLI can raise it. Next.js 16 needs 20.9. CI runs Node.js 24. |
 

@@ -96,6 +96,20 @@ Every insert, duplicate, and delete reports one change with `source: "row-operat
 
 Because the operations name rows by id, history can undo a row operation after a sort or filter. History records `"row-operation"` changes by default.
 
+## Confirm a delete [#confirm-delete]
+
+<NewBadge />
+
+`onBeforeDeleteRows` runs before each delete that the grid starts. In this demo, it opens a dialog for the Delete rows shortcut and for the menu item:
+
+<ComponentPreview name="data-grid-delete-confirm-demo" />
+
+<InstallCommand item="data-grid-delete-confirm-demo" />
+
+- `rowMarkers="checkbox"` and `keepCheckedRows` make the delete act on the checked rows.
+- `onBeforeDeleteRows` returns a promise. Cancel resolves it with `false` and keeps the rows. Delete resolves it with `true`. A dismissed dialog resolves it with `false`.
+- The Cancel button gets the focus when the dialog opens.
+
 ## Related
 
 - [Row operations](/docs/rows-pages-menus/row-operations): the factory props, shortcuts, and code actions

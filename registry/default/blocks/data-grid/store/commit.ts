@@ -271,9 +271,11 @@ export function computeRowEditsBatch(
  * {@link computeRowEditsBatch}. Differences, all deliberate: rows are addressed by STABLE ROW ID
  * through the caller-supplied `rowIndex` map (never a view index, so a patch survives an active
  * sort), and every column is resolvable, not only visible ones (a streaming producer must be able
- * to write a column the user has hidden). Same skip rules otherwise: unknown row, unknown column,
- * readOnly cell, and `Object.is`-equal no-op writes are dropped; duplicate patches to one cell
- * dedupe last-write-wins with `prev` held at the pre-batch value.
+ * to write a column the user has hidden). Unknown rows, unknown columns, unloaded rows (`"hole"`),
+ * read-only cells, and `Object.is`-equal no-op writes are dropped. Under `source: "stream"` only a
+ * column with no `accessorKey` and no `setValue` counts as read-only, and a row whose save is in
+ * flight skips as `"saving"`. Duplicate patches to one cell dedupe last-write-wins with `prev` held
+ * at the pre-batch value.
  *
  * `skipValidation` bypasses the per-column `validate` a 200-cell tick would otherwise re-run for a
  * producer that already validated; otherwise a cell whose value fails validation is skipped,

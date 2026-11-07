@@ -1,5 +1,1 @@
 # Registered examples that no docs page embeds on purpose. One per line, reason after #.
-data-grid-delete-confirm-demo # Row operations already embeds its one demo; its Confirm a delete sample shows the same dialog
-data-grid-context-menu-slots-demo # Context menu already embeds its one demo; its Custom menu items samples show the same resolvers
-data-grid-announcements-demo # Live region messages is a reference page, which carries no demo; a screen reader is needed to observe them, and sr-announcements.browser.test.tsx covers the live region
-data-grid-events-demo # the events pages are reference pages, which carry no demo; they show the callback payloads in samples

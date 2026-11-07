@@ -37,6 +37,14 @@ export function run({ root = process.cwd(), strictRules = false } = {}) {
     if (!existsSync(join(root, "registry/default/examples", `${name}.tsx`))) failures.push(`registry-examples.tsx: ${name} has no file in registry/default/examples`);
     if (!used.has(name) && !internal.has(name)) failures.push(`demo ${name} is registered but no page embeds it (use it or list it in scripts/docs-demos-internal.txt)`);
   }
+  for (const name of internal) {
+    if (used.has(name)) failures.push(`scripts/docs-demos-internal.txt: ${name} is embedded on a page; remove it from the list`);
+    else if (!registered.has(name)) failures.push(`scripts/docs-demos-internal.txt: ${name} is not in components/registry-examples.tsx`);
+  }
+  const unreasoned = existsSync(join(root, "scripts/docs-demos-internal.txt"))
+    ? readLf(join(root, "scripts/docs-demos-internal.txt")).split("\n").filter((l) => l.trim() && !l.trim().startsWith("#") && !/#\s*\S/.test(l))
+    : [];
+  for (const line of unreasoned) failures.push(`scripts/docs-demos-internal.txt: ${line.trim()} needs a reason after #`);
   let multi = 0;
   for (const page of perPage) {
     if (page.count > 1 && page.type !== "example" && !/^demos:\s*compare/m.test(readLf(join(root, page.file)))) {

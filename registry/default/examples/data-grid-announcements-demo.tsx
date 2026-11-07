@@ -49,7 +49,7 @@ export default function DataGridAnnouncementsDemo(): ReactNode {
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="m-0 text-sm text-muted-foreground">
-        Check rows with the markers or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, or filter and sort a column.
+        Check rows with the markers or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, or filter a column.
         The line below shows the text a screen reader hears from the grid&apos;s live region.
       </p>
       <p className="m-0 min-h-6 rounded-md border px-2 py-1 text-sm" aria-hidden="true">
