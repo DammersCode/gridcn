@@ -115,7 +115,7 @@ export function pruneStaleRows(ctx: DataWriteContext, nextData: readonly unknown
   return removed;
 }
 
-/** The set of stale row ids as store state; keeps `previous` when nothing left. */
+/** The set of stale row ids as store state; keeps `previous` when no row left the set. */
 export function staleStateAfterPrune(ctx: DataWriteContext, previous: ReadonlySet<string>, removed: boolean): ReadonlySet<string> {
   if (!removed) return previous;
   return ctx.staleRows.size === 0 ? NO_STALE_ROWS : new Set(ctx.staleRows.keys());

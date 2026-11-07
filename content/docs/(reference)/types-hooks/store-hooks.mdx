@@ -25,7 +25,7 @@ Hooks that reach the grid from code.
 
 | Hook | Returns | Meaning |
 | --- | --- | --- |
-| <a id="usedatagridactions"></a>`useDataGridActions` | `DataGridActions` | The actions object. Its identity never changes, so the hook never re-renders. |
+| <a id="usedatagridactions"></a>`useDataGridActions` | `DataGridActions` | The actions object. Its identity never changes, so the hook never re-renders. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists each action. |
 | <a id="usedatagridapi"></a>`useDataGridApi` | `DataGridApi<TData>` | The imperative handle. Pass a `ref` to hand it out. Its identity is stable for the grid's lifetime. |
 | <a id="usedatagridstoreprops"></a>`useDataGridStoreProps` | `{ store, actions }` | Creates the store outside the provider. Feed `store` to `DataGridProvider`. |
 | <a id="usedatagridscrolltocell"></a>`useDataGridScrollToCell` | `(ref: CellRef) => void` | Scrolls a cell into view. It does nothing before `DataGridRoot` mounts, and warns in development for a ref that does not resolve. |

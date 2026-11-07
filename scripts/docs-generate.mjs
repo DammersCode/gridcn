@@ -1,5 +1,5 @@
 // Writes the generated docs pages: task finder, Terms, feature matrix, Add-ons A to Z,
-// keyboard shortcuts, Props A to Z, Events A to Z, and Messages.
+// keyboard shortcuts, Props A to Z, Events A to Z, Actions A to Z, and Messages.
 // Usage: node scripts/docs-generate.mjs [--check]   (--check fails when a page is stale)
 // The run fails when a glossary term, a keymap action, or a library message has no row.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -536,6 +536,106 @@ function eventsZ() {
   ].join("\n");
 }
 
+// ---------------------------------------------------------------- actions
+const ACTIONS_FILE = `${BLOCKS}/data-grid/store/types.ts`;
+
+// Actions whose JSDoc has no first sentence that reads well in a table cell.
+const ACTION_PURPOSE = {
+  setActiveCell: "Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`.",
+  extendSelection: "Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`.",
+  selectRow: "Selects the row at a view index, as a click on its row marker does.",
+  selectColumn: "Selects the column at a view column index, as a click on its header does.",
+  selectAll: "Runs one step of the select-all shortcut. The first call selects the filled block around the active cell, and a repeat selects every cell.",
+  setRowSelected: "Checks or unchecks one row by view index. It sets the state and never toggles.",
+  checkRowRange: "Checks or unchecks the rows from the anchor row to a target view index.",
+  setAllRowsSelected: "Checks or unchecks every row of the view, as the header checkbox does.",
+  setPageSize: "Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row.",
+  cancelEditing: "Discards the open edit. It writes nothing.",
+  pushRange: "Adds a new range at a `CellRef`, as a Ctrl or Cmd click does.",
+  updateRows: "Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`.",
+  replaceRowIds: "Swaps the ids of many rows in one write, with one `onDataChange`.",
+  setPage: "Shows a page of the view. Pages start at 1. Calls `onPageChange`.",
+  clearCellErrors: "Clears the cell errors of `targets`. Without `targets`, it clears every cell error.",
+  clearSaveStatus: "Drops the `\"failed\"` mark of each row whose save the server refused. A row that is still `\"saving\"` keeps its mark.",
+  clearSelection: "Clears the cell ranges, the column selection, and the checked rows.",
+  clearCellSelection: "Clears the cell ranges and the column selection, and keeps the checked rows.",
+  replaceRowId: "Swaps the id of a row for the id that the server assigned, in one write.",
+  setSelection: "Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection.",
+  setColumnWidth: "Writes a column width while a resize drag moves. Fires `onColumnResizing`.",
+  commitColumnWidth: "Sets a column width and fires `onColumnLayoutChange` once, as a resize release does.",
+  autosizeColumns: "Sizes columns to their content over the whole view and returns the measured widths.",
+  resetColumnWidth: "Drops the width override of a column, so the column gets its `width` from the definition again.",
+  setColumnOrder: "Moves a column, or a column group, before or after another column.",
+  setColumnPin: "Pins a column with `\"left\"` or `\"right\"`, or unpins it with `null`.",
+  setColumnHidden: "Shows or hides a column.",
+  setColumnLayout: "Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value.",
+  toggleSort: "Steps the sort of a column to the next direction or to no sort, as a header click does. `additive` keeps the other sorts.",
+  setSorts: "Replaces the active sorts.",
+  setFilters: "Replaces the filter tree.",
+  setSearch: "Sets the quick-search text. With `options`, it also sets the search options.",
+  startEditing: "Opens an editor at a `CellRef`, with optional first text.",
+  commitCellEdit: "Validates and commits the open edit. A refused value keeps the editor open. A commit moves the active cell by `movement`.",
+  commitCellValue: "Validates and writes a value at a `CellRef` without an edit session, as a checkbox does.",
+  setCellErrors: "Merges server errors into the cell errors. It is not a data change.",
+  flashCells: "Plays the fade pulse on the given cells. It is not a data change.",
+  deleteSelection: "Clears every editable cell of the selection to its empty value, as one change.",
+  applyCellUpdates: "Writes values at view coordinates as one change with the given `source`, and selects the touched cells.",
+  updateCells: "Writes cell patches by row id in one write, without a view rebuild. Default `source` is `\"stream\"`.",
+  insertRow: "Inserts one row from `createRow` above or below a view index.",
+  insertRows: "Inserts `count` rows from `createRow` above or below a view index, as one change.",
+  deleteRows: "Deletes the rows at the given view indexes, as one change.",
+  deleteRowsById: "Deletes the rows with the given ids, as one change. The grid skips an id that matches no row.",
+  duplicateRows: "Duplicates the rows at the given view indexes through `duplicateRow`, as one change.",
+  reorderRows: "Moves rows as one block to a view index. Returns whether rows moved.",
+  moveRowsBy: "Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved.",
+  commitChange: "Applies a whole `DataChange` in one write and fires `onDataChange` once.",
+};
+
+/** name -> JSDoc text of every member of `DataGridActions`, in source order. */
+function actionDocs() {
+  const text = read(ACTIONS_FILE);
+  const start = text.indexOf("export type DataGridActions = {");
+  const body = text.slice(start, text.indexOf("\n};", start));
+  const docs = new Map();
+  for (const name of members(ACTIONS_FILE, "DataGridActions")) {
+    const m = new RegExp(`/\\*\\*((?:(?!\\*/)[\\s\\S])*?)\\*/\\s*${name}\\(`).exec(body);
+    docs.set(name, m ? m[1].replace(/^\s*\*\s?/gm, "") : "");
+  }
+  return docs;
+}
+
+const isInternal = (doc) => /@internal\b/.test(doc);
+
+function actionsZ() {
+  const docs = actionDocs();
+  const rows = [];
+  for (const [name, doc] of [...docs].sort((a, b) => a[0].localeCompare(b[0]))) {
+    if (isInternal(doc)) continue;
+    const target = ACTION_PAGES[name];
+    if (!target) {
+      problems.push(`actions: no page for DataGridActions.${name} in ACTION_PAGES`);
+      continue;
+    }
+    const base = name.endsWith("At") && docs.has(name.slice(0, -2)) ? name.slice(0, -2) : null;
+    const fromDoc = doc ? tidy(sentence(doc.replace(/\{@link\s+(?:\w+\.)?(\w+)\}/g, "`$1`"))) : "";
+    const text = cell(ACTION_PURPOSE[name] ?? (base ? `Takes a \`ViewCoord\` in place of the \`CellRef\` of \`${base}\`.` : fromDoc));
+    if (!text || text === ".") problems.push(`actions: no purpose for DataGridActions.${name}`);
+    checkCell(`actions: ${name}`, text);
+    rows.push([code(name), text, link(target, titleOf(target.split("#")[0]))]);
+  }
+  for (const name of Object.keys(ACTION_PAGES)) if (!docs.has(name) || isInternal(docs.get(name))) problems.push(`actions: ACTION_PAGES names ${name}, which is no public action`);
+  for (const name of Object.keys(ACTION_PURPOSE)) if (!docs.has(name)) problems.push(`actions: ACTION_PURPOSE names ${name}, which is no action`);
+  return [
+    frontmatter({ title: "Actions A to Z", description: "Find a store action by name, read what it does, and open the page that explains its feature.", type: "cheatsheet", icon: "SquareFunction", aliases: ["store actions", "api.actions", "useDataGridActions"] }),
+    MARKER,
+    "",
+    "Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actions` return the same object. An action with a `CellRef` takes a row id and a column id. A variant that ends in `At` takes a `ViewCoord`, a position in view indexes.",
+    "",
+    table(["Action", "Purpose", "Page"], rows),
+    related(["/docs/types-hooks/store-hooks#usedatagridactions", "the hook that returns the actions"], ["/docs/concepts/state-view-index", "row ids and view indexes"], ["/docs/cheatsheets-messages/hooks-z", "hooks by name"]),
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- messages
 const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|throw new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
 
@@ -613,6 +713,7 @@ const OUTPUTS = [
   ["content/docs/(reference)/cheatsheets-messages/keyboard-shortcuts.mdx", keyboardShortcuts],
   ["content/docs/(reference)/cheatsheets-messages/props-z.mdx", propsZ],
   ["content/docs/(reference)/cheatsheets-messages/events-z.mdx", eventsZ],
+  ["content/docs/(reference)/cheatsheets-messages/actions-z.mdx", actionsZ],
   ["content/docs/(reference)/cheatsheets-messages/messages.mdx", messages],
   ["content/docs/(learn)/terms-help/terms.mdx", terms],
 ];

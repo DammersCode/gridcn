@@ -78,8 +78,8 @@ export function viewRowOfDataIndex(viewIndex: readonly number[], dataRowIndex: n
 /**
  * Resolves a stable {@link CellRef} against the CURRENT view: `rowId` to a data index through the
  * cache's single-id scan, that index to a view row through the {@link viewRowOfDataIndex} inverse,
- * and `columnId` to a visible-column index. `null` when the row is no longer in `data` or the
- * column is hidden — the caller dev-warns.
+ * and `columnId` to a visible-column index. `null` when the row is no longer in `data`, the
+ * filter hides it, or the column is hidden — the caller dev-warns.
  */
 export function resolveCellRef(s: DataGridStoreState, cache: RowIndexCache, ref: CellRef): ViewCoord | null {
   const dataRowIndex = cache.resolveOne(s.data, s.getRowId, ref.rowId);

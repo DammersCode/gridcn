@@ -26,7 +26,7 @@ import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
+/** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it marks; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
 export const FLASH_ANIMATION = "grid-cell-flash var(--grid-flash-duration, 1.2s) ease-out";
 /** One-shot pulse: a background fading to the cell's own background, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the visual of every `flashCells` call (the fill handle, or app code). */
 export const FLASH_KEYFRAMES =

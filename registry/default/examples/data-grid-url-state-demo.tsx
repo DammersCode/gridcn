@@ -17,7 +17,7 @@ import {
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
 import { DataGridUrlState, useDataGridUrlPagination } from "@/registry/default/blocks/data-grid-url-state/data-grid-url-state";
-import { useDataGridServerPager, DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
+import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
@@ -46,10 +46,7 @@ const columns = defineColumns<DemoRow>()([
 /** nuqs's app-router adapter reads `useSearchParams()`, which Next.js requires inside Suspense during static prerendering. */
 function DataGridUrlStateDemoInner(): ReactNode {
   const rows = useMemo(() => generateDemoRows(60), []);
-  // server mode simulates a real fetch: this add-on has nothing to do with the fetch itself, only the page/pageSize wiring.
-  const url = useDataGridUrlPagination({ prefix: "demo", defaultPageSize: 10 });
-  const { pager } = useDataGridServerPager({ totalRowCount: rows.length, ...url });
-  const pageRows = rows.slice((pager.page - 1) * pager.pageSize, pager.page * pager.pageSize);
+  const url = useDataGridUrlPagination({ prefix: "demo", defaultPageSize: 10, totalRowCount: rows.length });
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -59,7 +56,7 @@ function DataGridUrlStateDemoInner(): ReactNode {
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         {/* headerClickBehavior="sort" so the URL-synced sortState is actually reachable in this demo */}
-        <DataGridProvider data={pageRows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
+        <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort" {...url}>
           <DataGridUrlState prefix="demo" layout={["order", "hidden", "widths", "pins"]} />
           <DataGridToolbar>
             <DataGridSearch />
@@ -73,8 +70,8 @@ function DataGridUrlStateDemoInner(): ReactNode {
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
+          <DataGridPaginationBar pageSizeOptions={url.pageSizeOptions} />
         </DataGridProvider>
-        <DataGridPaginationBar {...pager} />
       </div>
     </div>
   );

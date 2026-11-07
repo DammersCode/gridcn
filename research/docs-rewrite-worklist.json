@@ -4705,6 +4705,38 @@
    "batch": "G"
   },
   {
+   "slug": "cheat-actions",
+   "title": "Actions A to Z",
+   "type": "cheatsheet",
+   "words": 1300,
+   "aliases": [
+    "store actions",
+    "api.actions",
+    "useDataGridActions"
+   ],
+   "codeLines": 0,
+   "area": "Reference",
+   "group": "Cheatsheets and messages",
+   "subgroup": "",
+   "landing": false,
+   "url": "/docs/cheatsheets-messages/actions-z",
+   "urlSource": "derived",
+   "wave": 3,
+   "owner": "generator",
+   "action": "new",
+   "sources": [
+    "types-hooks"
+   ],
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "no",
+   "code": "no",
+   "generated": true,
+   "parity": [],
+   "parityOwnerOf": [],
+   "batch": "G"
+  },
+  {
    "slug": "hooks-az",
    "title": "Hooks A to Z",
    "type": "cheatsheet",

@@ -17,15 +17,16 @@ export type ColumnResizeHandlers = {
 
 /**
  * Pointer-capture column resize: drag the handle to live-update the column's
- * width via `setColumnWidth`, clamped to `[minWidth ?? 32, maxWidth ?? Infinity]`; ends on
- * `lostpointercapture` (not `pointerup` — pointerup can be missed on alt-tab). Double-click sizes this column to its content over the whole view via the store's
+ * width via `setColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
+ * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag without a
+ * commit. Double-click sizes this column to its content over the whole view via the store's
  * `autosizeColumns` action (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
   column: AnyColumnDef;
   currentWidth: number;
   setColumnWidth: (id: string, width: number) => void;
-  /** Fires once at drag-release/autosize — the `onColumnLayoutChange` commit point (not per drag frame). */
+  /** Fires once at drag release — the `onColumnLayoutChange` commit point (not per drag frame). */
   commitColumnWidth: (id: string, width: number) => void;
   /** The store's `autosizeColumns` action; double-click calls it for this column. */
   autosizeColumns: (options?: AutosizeOptions) => void;

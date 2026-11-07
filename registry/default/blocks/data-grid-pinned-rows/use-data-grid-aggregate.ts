@@ -86,9 +86,10 @@ function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs
 
 /**
  * Filter-aware aggregation for pinned totals/summary rows: reduces `specs` over the
- * grid's own state and returns a plain `{ [columnId]: value }` object — the same shape
- * `useDataGridPinnedRows`'s `topRows`/`bottomRows` expect, since pinned cells resolve values through
- * each column's `accessorKey`/`accessorFn` exactly like data rows. The object carries no row id, so
+ * grid's own state and returns a plain `{ [columnId]: value }` object, usable as a
+ * `useDataGridPinnedRows` `topRows`/`bottomRows` entry. Pinned cells read it through each column's
+ * `accessorKey`/`accessorFn` like a data row, so a total shows only where `accessorKey` equals the
+ * column id; remap it for other columns. The object carries no row id, so
  * a pinned band gives it a band id when `getRowId` cannot resolve one. Values are resolved through
  * `getCellValue`, so `accessorFn` columns aggregate correctly, not just plain fields. Defaults to
  * `scope: "view"`, every row the sort and filter leave across all pages; `"page"` reduces over the

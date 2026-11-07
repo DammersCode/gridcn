@@ -34,7 +34,7 @@ The result is a `ServerAggregateResult`:
 
 ## useDataGridAggregate [#usedatagridaggregateoptions]
 
-`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object, which is a valid pinned row. If the view index, the data, the scope, or the identity of `specs` changes, it recomputes. Define `specs` at module scope, or memoize it.
+`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object. If each totals column has an `accessorKey` equal to its `id`, the object works as a pinned row. If the view index, the data, the scope, or the identity of `specs` changes, it recomputes. Define `specs` at module scope, or memoize it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="UseDataGridAggregateOptions" />
 
@@ -48,7 +48,7 @@ A reducer has the type `AggregateReducer`: a name or a function.
 | `"count"` | The number of values that are not `null` or `undefined` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 
-The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
+The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The result <NewBadge /> uses column ids as keys. A pinned row reads it through `accessorKey` or `accessorFn`, so it shows a total only in a column whose `accessorKey` equals its `id`. See [Computing a totals row](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row). The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
 
 `scope: "page"` <NewBadge /> covers the shown page only. With server pagination, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
 

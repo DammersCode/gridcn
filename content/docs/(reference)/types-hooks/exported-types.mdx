@@ -63,7 +63,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `FilterOperatorInput` | `"none" \| "single" \| "range" \| "list"` | The value shape that a filter operator takes. |
 | `FilterValue` | `{ label, count? }` | One value that `fetchFilterValues` offers to a set filter. |
 | `SearchOptions` | `{ matchCase?, wholeCell? }` | The options of the quick search. |
-| `SearchMatch` | `{ row, columnId }` | One quick-search hit in view index. |
+| `SearchMatch` | `{ row, columnId }` | One quick-search hit in view index. On a paged grid, `row` counts the whole sorted and filtered view, not the shown page. |
 | `CellTypeFilter` | `{ operators?, match?, valueInput? }` | The filter capabilities of a cell type. |
 | `CellTypeValueInput` | `"text" \| "number" \| "date" \| "boolean" \| "choices"` | The built-in widget of a filter value. |
 | `FilterValueInputProps` | `{ column, operator, value, onValueChange }` | The props of a custom `valueInput` component. |
@@ -88,7 +88,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | Type | Shape | Meaning |
 | --- | --- | --- |
 | `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, startEditing, stopEditing, getSelection, setSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
-| `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. |
+| `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists its methods. |
 | `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
 | `DataGridReadState` | The state that `store.getState()` returns | The argument of `exportGrid` and `printGrid`. |
 

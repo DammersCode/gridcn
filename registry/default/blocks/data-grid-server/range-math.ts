@@ -13,7 +13,7 @@ function rangesAdjacentOrOverlapping(a: RowRange, b: RowRange): boolean {
 /**
  * Expands `range` by `overscan` rows on each side, then rounds outward so both edges land on a
  * `blockSize` boundary — small scrolls request the same batch repeatedly instead of a slightly
- * different range every tick (spec: "round ranges up so tiny scrolls don't spam requests").
+ * different range every tick.
  * Clamps to `[0, total]`.
  */
 export function expandRange(range: RowRange, opts: { overscan: number; blockSize: number; total?: number }): RowRange {

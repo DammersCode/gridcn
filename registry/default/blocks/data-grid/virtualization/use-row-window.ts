@@ -64,7 +64,7 @@ function computeWindow(
   const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
   const clientHeight = Math.max(0, rawClientHeight - bottomInset);
   // Velocity overscan biases the LEADING edge only (the direction of travel) — the trailing edge
-  // a fling is scrolling away from keeps the floor, matching the spec's asymmetric-buffer design.
+  // a fling is scrolling away from keeps the floor.
   // -1 row: the base `overscan` already covers one row of gap, so sub-row jitter (e.g. a 1px
   // scroll-position correction) contributes zero extra — only velocity beyond that baseline counts.
   // Cap: sized in px, not "viewport count" — a small viewport (e.g. the blank-detector's 360px/10-row
@@ -115,7 +115,7 @@ function computeWindow(
  * change that shrinks the grid below a committed window.
  */
 export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: UseRowWindowOptions): RowWindow {
-  // The canvas transform tracks every scroll pixel (checklist step 4), so overscan only needs to
+  // The canvas transform tracks every scroll pixel, so overscan only needs to
   // cover the gap between a scroll tick and the next window recompute — 1 row is enough.
   const { rowCount, rowHeight, dataRowTop, bottomInset = 0, overscan = 1 } = opts;
   const resolvedOpts = { rowCount, rowHeight, dataRowTop, bottomInset, overscan };
@@ -158,9 +158,8 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
     windowRef.current = rowWindow;
   });
 
-  // One estimator per hook instance (task 1: state lives in the hook, not the shared element
-  // store, since the store is per-element and multiple row-window consumers could theoretically
-  // want independent overscan tuning). Fed exclusively from the listener/heal paths below
+  // One estimator per hook instance: state lives in the hook, not the shared element store,
+  // since the store is per-element and several row-window consumers can tune overscan apart. Fed exclusively from the listener/heal paths below
   // (the actual per-tick observation points), so a snapshot's delta is never counted twice.
   const velocityRef = useRef<VelocityEstimator>(createVelocityEstimator());
 

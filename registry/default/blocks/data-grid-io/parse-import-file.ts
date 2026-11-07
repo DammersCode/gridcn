@@ -8,7 +8,7 @@ export type CsvDelimiter = "," | ";" | "\t";
  * Default bounds for every import. Unbounded parsing is a memory/CPU DoS vector: a tiny xlsx with
  * two far-apart cells expands to millions of cells. File size is checked before the file is read;
  * the row, column, and cell caps are checked against the real cell extent before any conversion
- * (xlsx/xls) or right after the parse (CSV). A file over a cap is rejected, never truncated.
+ * (xlsx/xls) or by a scan before the parse (CSV). A file over a cap is rejected, never truncated.
  */
 export const DEFAULT_IMPORT_LIMITS = {
   /** Maximum file size in bytes; default 50 MB. */

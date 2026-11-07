@@ -8,7 +8,7 @@ useDataGridRowWriteStatus # renamed in 2.0, named on the Migrate to 2.0 page
 useDataGridPendingWriteCount # renamed in 2.0, named on the Migrate to 2.0 page
 # Internal exports that docs name for another reason. A "page.mdx: names" line allows them on that page only.
 selectRow selectColumn # keymap action names
-selectCell extendTo pushRange # store actions on api.actions
+selectCell extendTo pushRange extendSelection # store actions on api.actions
 formatValue # DataGridStatusBar prop
 clampRectToWindow splitRectByPinZones # members of OverlayPluginCtx
 MAX_COPY_CELLS MAX_PASTE_CELLS # named in the truncation warnings

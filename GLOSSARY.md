@@ -15,7 +15,7 @@ mirror the change there.
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | row-op |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | |
 | row id | The stable id from `getRowId`. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
-| view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
+| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | view space, display index |
 | data index | A row's position in your `data` array. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |

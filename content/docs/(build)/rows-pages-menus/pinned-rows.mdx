@@ -83,7 +83,9 @@ function TotalsGrid({ rows }: { rows: Row[] }) {
 
 This total covers every row of `rows` and ignores the active filter. To total the rows that the view shows, use the aggregate hook.
 
-`useDataGridAggregate(specs)` reduces the columns that `specs` names over the rows of the view. It returns a `{ [columnId]: value }` object. That shape is a valid pinned row, because pinned cells read their values through `accessorKey` or `accessorFn`, like data rows do.
+`useDataGridAggregate(specs)` reduces the columns that `specs` names over the rows of the view. It returns a `{ [columnId]: value }` object. When each totals column has an `accessorKey` equal to its `id`, use that object as a pinned row, as in the sample below.
+
+A pinned cell <NewBadge /> reads the totals object through `accessorKey` or `accessorFn`, as a cell of a data row reads its row. When the `accessorKey` of a column differs from its `id`, copy the total to the `accessorKey` in `onChange`, for example `{ ...row, qty: row.quantity }`. An `accessorFn` receives the totals object in place of a data row, so the cell shows its result for that object, often empty or `NaN`. For the totals object, make the function return the total.
 
 A hook that reads the grid store must run below the provider, and the `plugins` prop lives on the provider. `DataGridAggregateReporter` bridges the two. It renders nothing, and it reports the result through `onChange` into state of the parent:
 

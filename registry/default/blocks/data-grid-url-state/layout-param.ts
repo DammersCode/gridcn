@@ -79,8 +79,9 @@ function parsePairs<V>(raw: string, parseValue: (value: string) => V | null): [s
 }
 
 /**
- * Inverse of {@link serializeLayoutPart}. Returns only the given part, or `{}` when the param is
- * empty, longer than {@link MAX_URL_LAYOUT_PARAM_LENGTH}, or holds nothing valid. Reads at most
+ * Inverse of {@link serializeLayoutPart}. Returns only the given part: `{}` when the param is
+ * empty or longer than {@link MAX_URL_LAYOUT_PARAM_LENGTH}, an empty part (such as `{ order: [] }`)
+ * when it holds nothing valid. Reads at most
  * {@link MAX_URL_LAYOUT_COLUMNS} segments; undecodable, empty, and repeated ids and malformed values
  * are dropped (the first segment of an id wins). Never throws.
  *

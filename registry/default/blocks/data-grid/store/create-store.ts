@@ -836,7 +836,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       emitAfterWrites(dataWrite, () => s.onSortChange?.(sorts));
     };
     // Resolved at creation so the server render has the band heights, `aria-rowcount`, and the
-    // merged keymap/commands (spec: resolution); the config phase re-resolves on change only.
+    // merged keymap/commands; the config phase re-resolves on change only.
     const initPlugins = resolvePluginsList(init.plugins, api, pluginWarnOnce);
     const initKeymap = mergePluginKeymaps(initPlugins.list, init.keymap, pluginWarnOnce);
     const initCommands = mergePluginCommands(initPlugins.list, init.commands, pluginWarnOnce);

@@ -51,7 +51,7 @@ A tab component that unmounts a closed panel unmounts the grid too. The grid the
 
 Virtualization decides what renders. It fetches nothing. If the page cannot load every row, use [scroll mode](/docs/scroll-mode/load-rows-while-scrolling). It fetches blocks of rows as they come into view and shows skeleton rows until they arrive.
 
-`onRenderedRowsChange` receives `{ start, end }`, the row range of the rendered rows with `end` excluded. The grid calls it after the row range changes, and once on mount. A scroll that stays inside the overscan does not call it again. The row range counts view indices, the positions in the sorted and filtered list. While no client sort or filter is active, view indices equal data indices.
+`onRenderedRowsChange` receives `{ start, end }`, the row range of the rendered rows with `end` excluded. The grid calls it after the row range changes, and once on mount. A scroll that stays inside the overscan does not call it again. The row range counts view indices, the positions in the sorted and filtered list. On a paged grid, a view index counts the rows of the shown page. While no client sort, filter, or paging is active, view indices equal data indices.
 
 The `overscan` option of scroll mode sets the extra rows that the hook fetches. It does not change the rows that the grid mounts.
 

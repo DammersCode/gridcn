@@ -5,8 +5,8 @@ import { formatIssues, isStandardSchema, type CellValidate } from "../validation
 
 /**
  * Intercepts a cell-type editor's `commit(movement)` to support an async Standard Schema
- * `validate` — the ONLY place this repo awaits validation (spec: "async branch lives at the
- * editor-commit layer, NOT inside a store action"). `commitCellEdit`/`computeCommit` stay fully
+ * `validate` — the ONLY place this repo awaits validation: the async branch lives at the
+ * editor-commit layer, never inside a store action. `commitCellEdit`/`computeCommit` stay fully
  * synchronous; a schema whose `~standard.validate` resolves synchronously (the function form, or a
  * sync schema) is forwarded to `commitCellEdit` immediately with ZERO behavior change.
  *

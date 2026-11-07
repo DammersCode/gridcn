@@ -685,8 +685,9 @@ export type UpdateCellsSkip = {
  * that did not land and why, so a streaming producer can observe its feed being silently dropped.
  *
  * `pending` is `true` when the batch is HELD for async validation — the verdict then reports
- * nothing about its outcome, and a held batch that is later superseded (a newer `updateCells`, or
- * a row-moving operation) is dropped silently by design; track supersession on your own feed.
+ * nothing about its outcome, and a held batch that is later superseded (a newer held batch, or most
+ * other writes and view rebuilds; a plain deferred `updateCells` keeps it) is dropped silently by
+ * design; track supersession on your own feed.
  */
 export type UpdateCellsVerdict = {
   /** Cell writes applied (0 when nothing applied or the batch is `pending`). */
@@ -820,7 +821,7 @@ export type DataGridStoreState = Omit<
     * Transient "highlight-what-changed" keys (row id plus column id) currently flashing,
     * auto-cleared per key after `flashCells`'s duration (default 1400 ms — the 1.2 s fade pulse
     * finishes before the key lifts, so the cell never visibly snaps back). NOT a data change: no
-    * `DataChange`, no history entry. Always {@link EMPTY_FLASHING_CELLS} identity when empty.
+    * `DataChange`, no history entry.
     */
    flashingCells: ReadonlySet<string>;
     /** The `plugins` sync prop resolved (see {@link ResolvedPlugins}); always defined — an absent list resolves to empty members, so overlays/bands/mounts/observers never read undefined. */
@@ -995,7 +996,7 @@ export type DataGridActions = {
   selectAll(): void;
   /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
   setRowSelected(index: number, checked: boolean): void;
-  /** Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
+  /** @internal Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
   armRowDragAnchor(index: number): void;
   /**
    * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
@@ -1124,7 +1125,7 @@ export type DataGridActions = {
   /** View-index variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
   commitCellValueAt(coord: ViewCoord, value: unknown): void;
   /**
-   * Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
+   * @internal Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
    * nonce) without touching `editing`/`data` — used by the async Standard Schema commit path (see
    * cell.tsx/use-async-validate.ts): an async `validate` resolves AFTER `commitCellEdit` would
    * have run, so the editor-commit layer calls this directly instead of going through the

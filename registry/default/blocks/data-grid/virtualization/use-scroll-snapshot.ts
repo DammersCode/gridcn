@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useState, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import { normalizeScrollLeft } from "./direction";
 
-/** Live scroll geometry of a scroll element, shared by row- and (future) column-virtualization hooks. */
+/** Live scroll geometry of a scroll element, shared by the row- and column-virtualization hooks. */
 export type ScrollSnapshot = {
   scrollTop: number;
   scrollLeft: number;
@@ -139,8 +139,8 @@ export function getElementStore(element: HTMLElement): ElementStore {
   let scrollLeftWritten = "";
   let offsetsKnown = false;
 
-  // Row/column window listeners enqueue here instead of flushing individually (task: one commit
-  // per tick) — drained by a single flushSync/batch right after notify() finishes this tick.
+  // Row/column window listeners enqueue here instead of flushing individually, so a tick makes one
+  // commit — drained by a single flushSync/batch right after notify() finishes this tick.
   let pendingFlushes: Set<() => void> | null = null;
 
   const requestFlush = (fn: () => void) => {
@@ -198,7 +198,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
 
   // `forceSync`: the scrollend/debounce settle commit is not itself `isScrolling`, but it still
   // fires from a real event/timer callback (never render) — safe, and required, to flush sync
-  // (task 2: gates the async-commit blanking window on the final settle).
+  // (it closes the async-commit blanking window on the final settle).
   //
   // Read-once, write-once per tick: the old
   // version read geometry for the viewport-var write, then read it AGAIN for the snapshot — the
@@ -230,7 +230,7 @@ export function getElementStore(element: HTMLElement): ElementStore {
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
       // The scrollend-fallback commit fires from a real timer callback (never render), so a
-      // synchronous flush here is safe and closes the async-commit blanking window (task 2).
+      // synchronous flush here is safe and closes the async-commit blanking window.
       commit(false, true);
     }, ISSCROLLING_DEBOUNCE_MS);
     commit(true);

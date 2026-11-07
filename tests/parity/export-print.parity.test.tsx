@@ -42,7 +42,7 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     expect(names.length).toBe(mode === "PS" ? 4 : 6);
   });
 
-  it("print text uses the display form of the same rows", async () => {
+  it("the display text export covers the same rows", async () => {
     const grid = await mountMode(mode);
     const display = buildExportRows(grid.state(), "view", { text: "display" });
     expect(display).toHaveLength(grid.fullViewIds().length);

@@ -86,7 +86,7 @@ A gate runs before the grid acts and can stop the action:
 
 <NewBadge />
 
-A callback runs synchronously, after the grid writes the change. Inside the callback, the store holds the new state. With a controlled value prop, the grid writes nothing, and the callback receives the next value.
+A callback runs synchronously, after the grid writes the change. Inside the callback, the store holds the new state. One exception: when a filter prop resets a paged grid to page 1, `onPageChange(1)` runs in a microtask after the sync. With a controlled value prop, the grid writes nothing, and the callback receives the next value.
 
 These callbacks rethrow: `onSortChange`, `onFilterChange`, `onSearchTextChange`, `onPageChange`, `onPageSizeChange`, `onColumnLayoutChange`, `onColumnResizing`, `onValidationError`, and `onEditEnd`. If one of them throws, these rules apply:
 

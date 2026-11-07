@@ -1330,11 +1330,11 @@
       "cells": {
         "L": {
           "status": "n/a",
-          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
         },
         "PC": {
           "status": "n/a",
-          "reason": "The client sorts and filters itself, so a push never leaves a row in the wrong place."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
         },
         "PS": {
           "status": "supported",
@@ -1391,7 +1391,8 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.test.tsx"
+            "registry/default/blocks/data-grid-url-state/use-data-grid-url-pagination.test.tsx",
+            "registry/default/examples/data-grid-url-state-demo.browser.test.tsx"
           ]
         },
         "PS": {

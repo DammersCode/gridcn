@@ -12,7 +12,7 @@ export type UseDataGridUrlPaginationOptions = {
   prefix?: string;
   /** `pageSize` this many is omitted from the URL. Also the fallback for an invalid URL value. Default 25. */
   defaultPageSize?: number;
-  /** When given, a `pageSize` URL value outside this list falls back to `defaultPageSize` instead of being trusted. */
+  /** A `pageSize` URL value outside this list (default: the pager sizes 10, 25, 50, 100) falls back to `defaultPageSize`. */
   pageSizeOptions?: readonly number[];
   /** The dataset's row count; when a number, an out-of-range deep-linked `page` is clamped to the last page and the clamped value is written back to the URL. A 0 count (data loading) suspends both until a positive total arrives. */
   totalRowCount?: number | null;

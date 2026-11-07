@@ -157,7 +157,7 @@ export function useColumnWindow(
   scrollRef: RefObject<HTMLElement | null>,
   opts: UseColumnWindowOptions,
 ): { indices: number[] } {
-  // The horizontal scroll var tracks every pixel like the row canvas (checklist step 4), so the
+  // The horizontal scroll var tracks every pixel like the row canvas, so the
   // window only needs to cover the gap to the next recompute — 1 column of overscan is enough.
   const { widths, pins, overscan = 1, markerWidth = 0, contentWidth = 0 } = opts;
   const resolvedOpts = { widths, pins, overscan, markerWidth, contentWidth };
@@ -202,7 +202,7 @@ export function useColumnWindow(
     indicesRef.current = indices;
   });
 
-  // Own estimator instance (task 1: state lives per-hook, not in the shared element store).
+  // Own estimator instance: state lives per hook, not in the shared element store.
   // Same feed discipline as useRowWindow: only the listener/heal paths below update it.
   const velocityRef = useRef<VelocityEstimator>(createVelocityEstimator());
 
