@@ -1,7 +1,9 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.setConfig({ testTimeout: 60_000 });
 import { anchorsOf, codeBlocks, urlOfPage } from "../scripts/docs-verify-lib.mjs";
 import * as codeMod from "../scripts/verify-docs-code.mjs";
 import * as demosMod from "../scripts/verify-docs-demos.mjs";

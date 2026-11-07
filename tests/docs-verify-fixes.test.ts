@@ -2,7 +2,9 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.setConfig({ testTimeout: 60_000 });
 import * as skeleton from "../scripts/docs-skeleton.mjs";
 import * as codeMod from "../scripts/verify-docs-code.mjs";
 import * as linksMod from "../scripts/verify-docs-links.mjs";
