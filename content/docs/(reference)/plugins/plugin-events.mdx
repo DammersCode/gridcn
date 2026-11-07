@@ -6,7 +6,7 @@ type: concept
 aliases: ["data change observer", "observe edits", "react to data changes", "plugin onDataChange"]
 ---
 
-A plugin observes data with its `onDataChange` member. The grid calls it for every change it applies. The `source` field of the change names the origin: `"edit"`, `"paste"`, `"fill"`, `"delete"`, `"row-operation"`, `"import"`, `"history"` (undo and redo), `"rollback"`, `"stream"`, `"replace"`, or `"app"`.
+A plugin observes data with its `onDataChange` member. The grid calls it for every change it applies. The `source` field of the change names the origin. Its values are `"edit"`, `"paste"`, `"fill"`, `"delete"`, `"row-operation"`, `"import"`, and `"history"` (undo and redo). The other values are `"rollback"`, `"merge"`, `"id-swap"`, `"stream"`, `"replace"`, and `"app"`.
 
 ## Observing data changes
 
@@ -14,10 +14,10 @@ One change reaches its listeners in this order:
 
 1. The store write lands.
 2. Your own `onDataChange` prop runs.
-3. Your `onSave` prop runs. It never receives a change with the source `"rollback"` or `"stream"`.
+3. Your `onSave` prop runs. It never receives a change with the source `"rollback"`, `"stream"`, or `"id-swap"`.
 4. Each plugin observer runs, in array order.
 
-Observers receive every source, also `"rollback"` and `"stream"`. When an observer reacts to user edits only, filter on `change.source`.
+Observers receive every source, also `"rollback"`, `"merge"`, `"id-swap"`, and `"stream"`. When an observer reacts to user edits only, filter on `change.source`.
 
 An observer receives `(next, change, ctx)`:
 

@@ -21,11 +21,11 @@ Set `totalRowCount` to the size of the whole result, or `null` when the size is 
 | `totalRowCount` | The size of the result. A negative or non-finite number counts as `null`. | none |
 | `keepCheckedRows` | When the user selects a cell, the checked rows stay. Row operations then act on the checked rows only. | `false` |
 
-With both props:
+With `totalRowCount` set:
 
 - A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode and `totalRowCount` turns on `rememberCheckedRows` for you. Pass `keepCheckedRows` too to act only on the checked rows.
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
-- Without both props, `selectAllMatching()` does nothing and warns in development. With `enableRowSelection={false}`, it does nothing.
+- `selectAllMatching()` needs `totalRowCount`, and `rememberCheckedRows` not set to `false`. Without them, it does nothing and warns in development. Without `keepCheckedRows`, the next cell click ends "all matching". With `enableRowSelection={false}`, it does nothing.
 
 ## Read the selection as a value [#read-the-selection-as-a-value]
 

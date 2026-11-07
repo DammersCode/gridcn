@@ -35,7 +35,7 @@ The grid reads more tokens, such as `muted-foreground` and `accent`. [Theme toke
 
 ## Dark mode
 
-The grid has no dark mode setting. Its colors are tokens, so the `.dark` values of your theme apply. These surfaces also use the Tailwind `dark:` variant, so your project needs the dark variant that `shadcn init` adds to your CSS:
+The grid has no dark mode setting. Its colors are tokens, so the `.dark` values of your theme apply. To turn dark mode on, add the `dark` class to the `<html>` element. With `attribute="class"`, `next-themes` sets that class. These surfaces also use the Tailwind `dark:` variant, so your project needs the dark variant that `shadcn init` adds to your CSS:
 
 - An unchecked checkbox cell fills with `input/30` in dark mode.
 - An invalid cell tints with `destructive` at 15% and rings at 40% in dark mode. In light mode it tints at 10% and rings at 20%.

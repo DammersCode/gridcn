@@ -3,7 +3,7 @@ title: Recover from load errors
 icon: RotateCcw
 description: Show a failed block to the user, report the error, and retry the block after the cause is fixed.
 type: task
-aliases: ["retry failed fetch", "block failed"]
+aliases: ["retry failed fetch", "block failed", "rate limit", "429"]
 ---
 
 A scroll-mode grid loads many blocks. One block can fail while the others load. The grid keeps the loaded rows, shows an error state, and lets the user retry the failed block.
@@ -92,7 +92,7 @@ A sequential source stops at a failed block. `retry()` repeats that block, and s
 
 The hook does not retry on its own. To ride out a short outage, retry inside `fetchRows`. Wait longer after each attempt. If `signal` aborts, stop. A request with a `cursor` repeats the same cursor, so a sequential source keeps its place.
 
-This loader retries a server error twice and sends the cursor of a sequential source. It also sends `limit`, because the hook drops rows past `end - start` and the next cursor moves past them:
+This loader retries a timeout (408), a rate limit (429), and a server error (500 and above) twice. It sends the cursor of a sequential source. It also sends `limit`, because the hook drops rows past `end - start` and the next cursor moves past them:
 
 ```ts
 import type {
@@ -101,21 +101,32 @@ import type {
 
 const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener("abort", () => {
+    const onAbort = () => {
       clearTimeout(timer);
       reject(signal.reason);
-    }, { once: true });
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", onAbort, { once: true });
   });
+
+const isRetryable = (status: number) =>
+  status === 408 || status === 429 || status >= 500;
+
 
 async function fetchWithRetry(url: string, signal: AbortSignal) {
   for (let attempt = 1; ; attempt++) {
     const response = await fetch(url, { signal });
     if (response.ok) return response;
-    if (response.status < 500 || attempt === 3) {
+    if (!isRetryable(response.status) || attempt === 3) {
       throw new Error(`Request failed with ${response.status}`);
     }
-    await wait(500 * 2 ** attempt, signal);
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    const delay =
+      retryAfter > 0 ? Math.min(retryAfter, 30) * 1000 : 500 * 2 ** attempt;
+    await wait(delay, signal);
   }
 }
 
@@ -129,7 +140,7 @@ export async function loadOrders(request: ServerRowsRequest<string>) {
 }
 ```
 
-Pass it as `fetchRows` to `useDataGridServerRows<Order, string>({ mode: "scroll", fetchRows: loadOrders })`. A status below 500 fails at once, because a second attempt gets the same answer. The last failure reaches `onError` and the error bar.
+Pass it as `fetchRows` to `useDataGridServerRows<Order, string>({ mode: "scroll", fetchRows: loadOrders })`. A retry waits as long as the `Retry-After` header asks, at most 30 seconds. Any other status fails at once, because a second attempt gets the same answer. The last failure reaches `onError` and the error bar.
 
 ## Know when rows land
 

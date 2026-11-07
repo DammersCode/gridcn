@@ -123,7 +123,7 @@ Pass it as `storage`. A thrown error from `save` shows in the popover with a Ret
 - Import refuses text over 100,000 characters, and anything but a gridcn view file.
 - A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. The status message reports how many entries it left out.
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filterOperators` keeps a value of the shape its `input` names. Any other shape drops the filter.
-- A list is cut to 1,000 entries. A view keeps at most 64 filters and 16 filter groups. The document keeps at most 50 views.
+- A list is cut to 1,000 entries. A view keeps at most 16 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
 
@@ -144,6 +144,8 @@ A view stores the grid state only, so it works in every data mode:
 - **Controlled state.** Your props receive the change callbacks.
 
 A view saves no page number. A view that changes the sort or the filters sends server rows back to page 1. A view that changes only the layout keeps the page.
+
+A view can hold up to 16 sorts and a search text of 500 characters. <NewBadge /> The `parseServerSpec` defaults allow 8 sorts and 200 characters, so raise `maxSorts` and `maxSearchLength`. See [Match the limits to the grid](/docs/contracts/server-rows-contract#match-limits).
 
 ## Related
 

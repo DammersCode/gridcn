@@ -6,7 +6,7 @@ type: task
 aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "onwriterejected"]
 ---
 
-Release 2.0 renames the save APIs, replaces the `data-grid-lazy` add-on with `data-grid-server`, and changes some defaults of selection, filters, and pushes. Follow these steps to move a grid from 1.3.0 to 2.0. Until 2.0 has a tag, the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists these changes under Unreleased.
+Release 2.0 renames the save APIs, replaces the `data-grid-lazy` add-on with `data-grid-server`, and changes some defaults of selection, filters, and pushes. Until 2.0 has a tag, the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists these changes under Unreleased.
 
 Before you start, upgrade to 1.3.0 and commit your work. For an older version, first apply the **Breaking:** entries up to 1.3.0.
 
@@ -99,11 +99,11 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Pagination [#pagination]
 
-- `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`.
-- For server pages, call `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }`.
+- `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
+- For server pages, call `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`.
 - `total` is `totalRowCount`, and `null` marks an unknown size. That covers the server options, `pager`, and `useDataGridUrlPagination`.
 - 2.0 drops `reconcilePage`. A server page outside the range calls `onPageChange` once with the clamped page.
-- To page the grid view, set `pageSize` on the provider in place of passing `pageData`.
+- To page the grid view, set `pageSize` on the provider instead of `pageData`.
 
 ## Filters [#filters]
 

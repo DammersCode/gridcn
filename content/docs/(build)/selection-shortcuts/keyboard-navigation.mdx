@@ -7,7 +7,7 @@ aliases: ["arrow keys", "tab key", "keyboard shortcuts in the grid", "default ke
 demos: none
 ---
 
-The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid.
+The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. <kbd>Tab</kbd> moves focus into the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid.
 
 ## Keyboard map [#keyboard-map]
 
@@ -27,6 +27,7 @@ The table lists the default bindings, generated from `DEFAULT_KEYMAP`:
 - <kbd>Enter</kbd>, <kbd>F2</kbd>, and <kbd>Space</kbd> start an edit. On a checkbox cell they toggle the value. A read-only grid does not edit.
 - A printable key on the active cell starts an edit seeded with that character. A checkbox cell ignores it.
 - <kbd>Alt</kbd>+<kbd>Enter</kbd> opens the link of a link cell in a new tab.
+- <kbd>Shift</kbd>+<kbd>F10</kbd> <NewBadge /> opens the [cell menu](/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items) of the active cell on Windows and Linux. It needs `DataGridContextMenu`.
 
 ## Undo and redo outside the grid [#undo-and-redo-outside-the-grid]
 

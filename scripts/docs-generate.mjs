@@ -526,6 +526,18 @@ function scanMessageSites(rows) {
   }
 }
 
+const normalizeMessage = (s) => s.replace(/[`\\]/g, "").replace(/\s+/g, " ");
+
+/** The literal runs of a row's text that the source must hold: placeholders, numbers, and the prefix are filled in at run time. */
+function messageLiterals(m) {
+  if (m.find.includes("${")) return [];
+  const body = m.text.replace(/^\[[\w-]+\] |^gridcn: /, "").replace(/ \.\.\.$/, "");
+  return normalizeMessage(body)
+    .split(/<[^>]*>|\d[\d,]*| — |: /)
+    .map((c) => c.replace(/^[\s"]+|[\s"]+$/g, ""))
+    .filter((c) => c.length >= 12);
+}
+
 function messages() {
   const sections = [];
   const sources = new Map();
@@ -536,6 +548,7 @@ function messages() {
         const text = sources.get(m.file) ?? read(m.file);
         sources.set(m.file, text);
         if (!text.includes(m.find)) problems.push(`messages: "${m.find}" not found in ${m.file}`);
+        for (const chunk of messageLiterals(m)) if (!normalizeMessage(text).includes(chunk)) problems.push(`messages: "${chunk}" of the row text not found in ${m.file}`);
       }
       return [code(m.text), cell(m.fix), m.page ? link(m.page) : ""];
     });

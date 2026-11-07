@@ -93,7 +93,7 @@ A press that starts on a button, link, form control, `role="button"` element, or
 
 ## Column groups [#column-groups]
 
-`columnGroups` on `DataGridProvider` puts a shared header above columns. It names the columns by id, and the `columns` array stays flat. Groups nest:
+`columnGroups` on `DataGrid` or `DataGridProvider` puts a shared header above columns. It names the columns by id, and the `columns` array stays flat. Groups nest:
 
 ```tsx
 import { DataGrid, type ColumnGroupDef } from "@/components/data-grid/data-grid";
@@ -110,6 +110,7 @@ const columnGroups: ColumnGroupDef[] = [
   },
 ];
 
+// rows and columns hold the name, email, role, joined, and age columns
 <DataGrid defaultData={rows} columns={columns} columnGroups={columnGroups} />;
 ```
 

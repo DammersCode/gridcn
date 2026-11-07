@@ -119,6 +119,7 @@ Each add-on is a separate registry item that depends on the core `data-grid`. A 
 | `data-grid-lookup` | Lookup cell: remote options with search as you type, value and label stored together | [Lookup cell](https://gridcn.vercel.app/docs/editing-cells/lookup-cell) |
 | `data-grid-views` | Saved views of sort, filters, search, and column layout | [Saved views](https://gridcn.vercel.app/docs/sort-filter-search/saved-views) |
 | `use-debounce` | The `useDebounce` and `useDebouncedInput` hooks that the toolbar, find and replace, and lookup use | [useDebounce](https://gridcn.vercel.app/docs/types-hooks/use-debounce) |
+| `is-composing-key` | `isComposingKey(event)`: tells a key of an IME composition from a plain key, for Enter and Escape handlers | [isComposingKey](https://gridcn.vercel.app/docs/types-hooks/is-composing-key) |
 | `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
 
 ## Agent skills
