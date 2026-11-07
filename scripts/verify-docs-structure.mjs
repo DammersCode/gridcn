@@ -21,7 +21,20 @@ export function aliasesOf(front) {
 
 // The YAML parser of the docs build (fumadocs-core), so a page that breaks the build fails here first.
 const lucideIcons = createRequire(import.meta.url)("lucide-react").icons;
-const yaml = createRequire(createRequire(import.meta.url).resolve("fumadocs-core/package.json"))("yaml");
+const fumadocsRequire = createRequire(createRequire(import.meta.url).resolve("fumadocs-core/package.json"));
+const yaml = fumadocsRequire("yaml");
+const mdxProcessor = (await import(pathToFileURL(createRequire(createRequire(import.meta.url).resolve("fumadocs-mdx/package.json")).resolve("@mdx-js/mdx")).href)).createProcessor();
+
+/** Prose expressions (`{name}`) outside code evaluate at render and crash the build; only comments are allowed. */
+function proseExpressions(body) {
+  const found = [];
+  const walkNode = (node) => {
+    if ((node.type === "mdxTextExpression" || node.type === "mdxFlowExpression") && !/^\s*\/\*[\s\S]*\*\/\s*$/.test(node.value)) found.push(node.value);
+    for (const child of node.children ?? []) walkNode(child);
+  };
+  walkNode(mdxProcessor.parse(body));
+  return found;
+}
 
 export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist, base = "origin/release/2.0" } = {}) {
   const contentDir = join(root, "content/docs");
@@ -58,6 +71,11 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       yaml.parse(front);
     } catch (error) {
       failures.push(`${here}: the frontmatter is not valid YAML (quote a value that holds ": "): ${error.message.split("\n")[0]}`);
+    }
+    try {
+      for (const expression of proseExpressions(body)) failures.push(`${here}: the prose holds the MDX expression {${expression}}; put it in code ticks`);
+    } catch (error) {
+      failures.push(`${here}: the MDX does not parse: ${String(error.message).split("\n")[0]}`);
     }
     const type = frontField(front, "type");
     const isLanding = type === "landing" || (file.endsWith("index.mdx") && !type);

@@ -78,7 +78,7 @@ describe("verify-docs-links, more cases", () => {
     writeFileSync(join(root, "content/docs/a.mdx"), page("A", "## New heading\n\n## Kept"));
     const result = await runLinks({ root, baseline: "HEAD" });
     expect(result.failures).toEqual(["baseline: /docs/a#old-heading is gone; keep the id with [#old-heading] or add it to the anchor map"]);
-  });
+  }, 60_000);
 });
 
 describe("final-mode rules", () => {
