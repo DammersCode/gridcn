@@ -8,7 +8,7 @@ import "@/app/global.css";
 
 const ROWS = 480_000;
 // Firefox places a sticky box at most 2^29 app units (about 8.9M px) from its containing block.
-const MAX_STICKY_OFFSET_PX = 4_000_000;
+const MAX_STICKY_OFFSET_PX = 1_000_000;
 
 const columns = [{ id: "name", header: "Name", accessorKey: "name" as const, type: "text" as const, width: 200 }];
 
@@ -39,6 +39,24 @@ describe("sticky viewport range", () => {
     grid.scrollTop = 0;
     await settle();
     expect(Math.abs(stickyViewport().getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
+  });
+
+  it("keeps the header at the top of the scrollport across repeated big jumps", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(ROWS)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const header = document.querySelector<HTMLElement>("[data-grid-header-layer]")!;
+    for (const fraction of [0.8, 0.05, 0.95, 0.4, 1, 0, 0.6]) {
+      grid.scrollTop = Math.round((grid.scrollHeight - grid.clientHeight) * fraction);
+      await settle();
+      const stickyOffset = stickyViewport().getBoundingClientRect().top - stickyViewport().parentElement!.getBoundingClientRect().top;
+      expect(Math.abs(stickyOffset)).toBeLessThanOrEqual(MAX_STICKY_OFFSET_PX);
+      expect(Math.abs(header.getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
+    }
   });
 
   it("clamps the scroll range when the rows shrink below the track top", async () => {

@@ -34,8 +34,8 @@ export const INITIAL_SNAPSHOT: ScrollSnapshot = {
 
 /** Debounced isScrolling reset, re-armed every scroll tick — the safety net when `scrollend` doesn't fire (Safari has no support; jsdom declares the IDL attribute but never dispatches it). */
 const ISSCROLLING_DEBOUNCE_MS = 150;
-/** Largest distance (px) between the sticky track's top and the scroll position. */
-const STICKY_TRACK_RANGE_PX = 4_000_000;
+/** Largest distance (px) between the sticky track's top and the scroll position; Gecko keeps its sticky range and offset arithmetic small this way. */
+const STICKY_TRACK_RANGE_PX = 1_000_000;
 
 /** Raw scroll-element geometry, all six properties read once. */
 type ScrollGeometry = {
