@@ -57,7 +57,7 @@ describe("screen-reader announcements (live region)", () => {
     )!;
     await userEvent.click(cell);
     // Escape clears the cell range — while the active cell's own range covers the row, the row
-    // reads as checked (the marker shows the any-channel union), so toggleRow would uncheck it.
+    // reads as checked (the marker shows the rows-or-range union), so toggleRow would uncheck it.
     grid.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     grid.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
 

@@ -89,11 +89,11 @@ One call is one batch. The grid applies all patches together and calls `onDataCh
 
 A batch has the source `"stream"`. `onSave` never receives that source, so a pushed value does not go back to your server. Pass `{ source: "edit" }` to a call to send it to `onSave`.
 
-The grid does not sort server rows, so a pushed value never moves its row. Your next fetch returns the server order.
+The grid does not sort server rows, so a pushed value never moves its row. Your next fetch returns the server order. If the push changes a column that your server sorts or filters by, the row turns stale. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 ## Result
 
-When the socket sends a price, the cell in that row changes. The row keeps its position, the selection stays, and the grid sends no request.
+When the socket sends a price, the cell in that row changes. The row keeps its position and the selection stays. A push into a column outside your server sort and filter sends no request.
 
 Where next: the [custom code path](/docs/custom-code-path/pick-code-route), the [task finder](/docs/terms-help/task-finder), or [Stream updates](/docs/rows-live-data/stream-updates) for undo of pushed values.
 

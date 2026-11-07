@@ -66,8 +66,9 @@ export type AutosizeMeasureContext = {
 export type DataGridSyncProps<TData = unknown> = {
   /**
    * Controlled row array (React `value` semantics): the app owns it, and every mutation
-   * (edit/paste/fill/delete/row-ops) only ever reaches it through `onDataChange` — the grid's own
-   * display doesn't change until the next render supplies a new `data`. Mutually exclusive with
+   * (edit/paste/fill/delete/row-ops) shows at once and reaches it only through `onDataChange`. An
+   * unstored change lasts until the next sync of `data` (a new `data` array, or a change of another
+   * view input such as `columns` or `sortState`) replaces it. Mutually exclusive with
    * `defaultData`; when both are given, `data` wins (dev-mode warns once). Omit `data` and pass
    * `defaultData` instead for the uncontrolled mode.
    */
@@ -650,8 +651,8 @@ export type UpdateCellsOptions = {
    *   re-testing filter membership, and binary-searching it back in under the same comparator chain
    *   a full sort uses. Cost scales with the batch size, not the row count: measured 0.3 / 0.9 /
    *   7.6 ms for 1 / 20 / 256 patched rows at 100k. Batches over
-   *   {@link INCREMENTAL_PATCH_LIMIT} rows, a same-tick sort/filter change, or a column with its own
-   *   comparator fall back to the full O(n log n) rebuild.
+   *   {@link INCREMENTAL_PATCH_LIMIT} rows or a same-tick sort/filter change fall back to the full
+   *   O(n log n) rebuild; a column with its own comparator keeps the incremental path.
    * - `"never"` — updates in place and never marks the view stale. The caller asserts that no
    *   touched column feeds the sort or filter.
    */
@@ -1142,7 +1143,8 @@ export type DataGridActions = {
   clearCellErrors(targets?: readonly CellErrorTarget[]): void;
   /**
    * Puts the given cells into a transient ~1.2 s fade pulse (the
-   * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
+   * "highlight-what-changed" effect the fill handle plays on the cells it just wrote; paste and
+   * pushes do not flash, so app code calls this for them).
    * A cell already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
    * `durationMs` sets how long the key stays (default 1400).
    * NOT a data change — no `DataChange`, no history, no selection movement.

@@ -3,9 +3,9 @@ import { useState, type ComponentType, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
+import { fullViewOf } from "@/registry/default/blocks/data-grid/store/compute";
 import type { ColumnDef, DataChange, FilterNode, SortSpec } from "@/registry/default/blocks/data-grid/types";
 import type { SaveAck } from "@/registry/default/blocks/data-grid/store/write-ack";
-import { useDataGridPagination } from "@/registry/default/blocks/data-grid-pagination/use-data-grid-pagination";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 
 export type ModeId = "L" | "PC" | "PS" | "Z" | "C" | "SS" | "FS" | "API";
@@ -40,8 +40,10 @@ export type Mounted = {
   mode: ModeId;
   store: () => StoreApi<DataGridStoreState>;
   state: () => DataGridStoreState;
-  /** Row ids in view order. */
+  /** Row ids in view order; the shown page of a paged grid. */
   viewIds: () => string[];
+  /** Row ids of the whole view, every page of a paged grid. */
+  fullViewIds: () => string[];
   dataIds: () => string[];
   /** Every `onDataChange` change, in order. */
   changes: DataChange<Row>[];
@@ -58,7 +60,7 @@ export type Mounted = {
   replaceData: (rows: readonly Row[]) => void;
   /** Merges provider props after mount, the way a parent re-render does. */
   setProps: (next: Record<string, unknown>) => void;
-  /** Moves the pager of the client-pagination mode to a 1-based page. */
+  /** Moves the provider pager of the client-pagination mode to a 1-based page. */
   goToPage: (page: number) => void;
   /** Requests the rows `start` to `end` of a lazy mode; a no-op elsewhere. */
   load: (start: number, end: number) => Promise<void>;
@@ -147,7 +149,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
           </DataGridProvider>
         );
       case "PC":
-        return <PagedClient all={all} extra={shared} record={record} />;
+        return <Controlled window={all} extra={{ defaultPageSize: PAGE, ...shared }} />;
       case "PS":
         return <Controlled window={all.slice(0, PAGE)} extra={{ totalRowCount: all.length, ...shared }} />;
       case "Z":
@@ -189,31 +191,6 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     }
   }
 
-  function PagedClient({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
-    const [full, setFull] = useState<readonly Row[]>(rows);
-    const { pageData, pager } = useDataGridPagination({ data: full, defaultPageSize: PAGE });
-    pageSetter = pager.onPageChange;
-    const offset = (pager.page - 1) * PAGE;
-    const page = pageData ?? [];
-    held = page;
-    return (
-      <DataGridProvider
-        columns={columns}
-        getRowId={getRowId}
-        {...baseProps}
-        data={page}
-        totalRowCount={full.length}
-        onDataChange={(next: readonly Row[], change: DataChange<Row>) => {
-          rec(next, change);
-          setFull((prev) => [...prev.slice(0, offset), ...next, ...prev.slice(offset + PAGE)]);
-        }}
-        {...extra}
-      >
-        <Probe />
-      </DataGridProvider>
-    );
-  }
-
   function Lazy({ all: rows, extra, record: rec }: { all: Row[]; extra?: Record<string, unknown>; record: typeof record }) {
     const [served, setServed] = useState<readonly Row[]>(rows);
     const server = useDataGridServerRows<Row>({
@@ -249,7 +226,6 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
 
   let dataReplacer: (rows: readonly Row[]) => void = () => {};
   let propsSetter: (next: Record<string, unknown>) => void = () => {};
-  let pageSetter: (page: number) => void = () => {};
   let sortSetter: (next: SortSpec[]) => void = () => {};
   let filterSetter: (next: FilterNode[]) => void = () => {};
 
@@ -261,17 +237,17 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     });
   };
 
+  const idsOf = (viewIndex: readonly number[]) => {
+    const data = api!.getState().data;
+    return viewIndex.map((dataIndex) => (data[dataIndex] as Row | undefined)?.id ?? "");
+  };
+
   const mounted: Mounted = {
     mode,
     store: () => api!,
     state: () => api!.getState(),
-    viewIds: () => {
-      const s = api!.getState();
-      return s.viewIndex.map((dataIndex) => {
-        const row = s.data[dataIndex] as Row | undefined;
-        return row ? row.id : "";
-      });
-    },
+    viewIds: () => idsOf(api!.getState().viewIndex),
+    fullViewIds: () => idsOf(fullViewOf(api!.getState().viewIndex)),
     dataIds: () => api!.getState().data.map((row) => (row as Row | undefined)?.id ?? ""),
     changes,
     saves,
@@ -292,7 +268,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
     },
     replaceData: (rows) => act(() => dataReplacer(rows)),
     setProps: (next) => act(() => propsSetter(next)),
-    goToPage: (page) => act(() => pageSetter(page)),
+    goToPage: (page) => act(() => api!.getState().actions.setPage(page)),
     load: async (start, end) => {
       if (mode !== "Z") return;
       act(() => loadRows(start, end));

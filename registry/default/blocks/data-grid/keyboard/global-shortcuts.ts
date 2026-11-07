@@ -50,7 +50,7 @@ export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly G
   return flagEnabled.length > 0 ? flagEnabled : [...DEFAULT_GLOBAL_ACTIONS];
 }
 
-/** Minimal event shape for {@link resolveGlobalShortcut} — the matcher's `KeymapEvent` plus the two DOM flags the gate needs. */
+/** Minimal event shape for {@link resolveGlobalShortcut} — the matcher's `KeymapEvent` plus `isComposing`, `keyCode`, and `defaultPrevented`. */
 export type GlobalShortcutEvent = {
   key: string;
   ctrlKey: boolean;

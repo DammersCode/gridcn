@@ -54,7 +54,7 @@ export type DataGridMarkerCellProps = {
 export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, renderMarker, isReorderDragging } = props;
   const actions = useDataGridActions();
-  // chrome (wrapper tint/data-row-selected) keeps the any-channel union; the built-in checkbox shows the checked rows only
+  // chrome (wrapper tint/data-row-selected) keeps the rows-or-range union; the built-in checkbox shows the checked rows only
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
   // the renderer gets the channels apart: row selection vs cell selection (see MarkerCellRenderCtx)
   const isRowChannelSelected = useDataGridIsRowChannelSelected(viewRowIndex);

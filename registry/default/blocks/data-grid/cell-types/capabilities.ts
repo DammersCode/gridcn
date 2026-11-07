@@ -16,7 +16,7 @@ export const TEXT_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = [
   "notEmpty",
 ];
 
-/** Set-membership operators for types with a bounded set of distinct values. */
+/** Set-membership operators (`isAnyOf`, `isNoneOf`). */
 export const SET_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = ["isAnyOf", "isNoneOf"];
 
 /** Comparison operators added only for orderable types (gt/lt only for number/date). */

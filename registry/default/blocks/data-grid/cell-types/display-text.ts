@@ -1,7 +1,7 @@
 import type { CellType } from "../types";
 import { toSafeText } from "./safe-text";
 
-/** Generic display-text resolution: any {@link CellType} may define `toDisplayText` for a formatted read view; falls back to `toText`. Clipboard/export always call `toText` directly, never this. */
+/** Generic display-text resolution: any {@link CellType} may define `toDisplayText` for a formatted read view; falls back to `toText`. Clipboard and CSV/XLSX export call `toText`; print and `buildExportRows({ text: "display" })` read this. */
 export function displayText<TValue, TOptions>(
   cellType: Pick<CellType<unknown, TValue, TOptions>, "toText" | "toDisplayText">,
   value: TValue,

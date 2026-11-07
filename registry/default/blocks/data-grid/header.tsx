@@ -26,7 +26,7 @@ const LAYER_SELECTOR = "[data-grid-header-layer]";
 
 /** Props for {@link DataGridHeader}. */
 export type DataGridHeaderProps = {
-  /** Merged onto the header layer element (the sticky `role="row"` layer, not the individual cells). */
+  /** Merged onto the header layer element (the sticky header layer: `role="row"`, or `role="rowgroup"` with column groups; not the individual cells). */
   className?: string;
   /** Per-column header cell slot — see {@link HeaderCellRenderer}. The marker column's header cell and the reorder drop indicator are untouched. */
   renderHeaderCell?: HeaderCellRenderer;

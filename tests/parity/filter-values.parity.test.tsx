@@ -9,13 +9,13 @@ describe.each(ALL_MODES)("set values in mode %s", (mode) => {
 
   it("lists the values of the rows the grid holds", async () => {
     const grid = await mountMode(mode);
-    expect(names(grid)).toHaveLength(mode === "PC" || mode === "PS" ? 4 : 6);
+    expect(names(grid)).toHaveLength(mode === "PS" ? 4 : 6);
   });
 
   it("narrows by the other columns' client filters and ignores a server filter", async () => {
     const grid = await mountMode(mode);
     grid.setFilters([...gt1] as never);
-    const held = mode === "PC" || mode === "PS" ? 4 : 6;
+    const held = mode === "PS" ? 4 : 6;
     const narrowed = mode === "FS" ? held : held - 2;
     expect(names(grid)).toHaveLength(narrowed);
   });

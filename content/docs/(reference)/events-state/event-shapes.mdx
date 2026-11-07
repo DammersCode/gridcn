@@ -60,7 +60,7 @@ Omit the value prop and the grid owns the state. The callback still fires.
 Three update rules apply:
 
 - You answer first: `sortState`, `filterState`, and `searchText`. With the value prop, the grid writes nothing, and the callback receives the next value. When you pass the new value, the view changes. Without the value prop, the grid writes the change, then fires the callback.
-- `data`: the grid applies the change at once and reports it. The next render replaces the rows with the `data` you pass, so pass `next` back.
+- `data`: the grid applies the change at once and reports it. The next time the grid reads your `data`, it replaces its rows with that array, so pass `next` back.
 - The grid answers first: `selection` and `columnLayout`. The grid applies the gesture and fires the callback at once. A value you pass back that equals the fired value changes nothing. Any other value applies without firing the callback.
 
 For `columnLayout`, you control each part (`widths`, `order`, `pins`, `hidden`) on its own. An omitted part stays with the grid.

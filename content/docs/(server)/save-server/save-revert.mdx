@@ -9,6 +9,7 @@ aliases: ["optimistic update", "rollback", "roll back"]
 Send every edit to your API from `onSave`. The grid shows the edit at once. If the request fails, the grid reverts it. If the server recomputes values, refetch the rows after the save.
 
 The samples keep the rows in your own state, and `onDataChange` writes each change into it. The `DataChange` shape is on [Data change events](/docs/events-state/data-change-events).
+
 ## Load the rows [#initial-fetch]
 
 Fetch once, hold the rows in state, and pass the setter to `onDataChange`:

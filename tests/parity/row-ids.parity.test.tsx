@@ -3,7 +3,8 @@ import { ALL_MODES, mountMode } from "./modes";
 
 describe.each(ALL_MODES)("row ids in mode %s", (mode) => {
   it("the active cell and the checked rows follow their row id through a sort", async () => {
-    const grid = await mountMode(mode);
+    // One page holds every row, so the sort keeps r1 on the shown page.
+    const grid = await mountMode(mode, mode === "PC" ? { props: { defaultPageSize: 6 } } : {});
     const startView = grid.viewIds();
     const row = startView.indexOf("r1");
     grid.act(() => grid.state().actions.selectCellAt({ col: 1, row }));

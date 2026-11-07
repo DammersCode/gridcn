@@ -25,6 +25,22 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 | `invalid` | The column's `validate` rejected the value. |
 | `no-op` | The value equals the current value. |
 
+## Flash changed cells [#flash-cells]
+
+<NewBadge />
+
+The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass the applied patches to `actions.flashCells(cells, durationMs?)`. Each cell is a `CellRef` with `rowId` and `columnId`:
+
+```tsx fragment="inside the feed component"
+const verdict = actions.updateCells(patches);
+if (!verdict.pending) {
+  const skipped = new Set(verdict.skipped.map((skip) => skip.patchIndex));
+  actions.flashCells(patches.filter((_, index) => !skipped.has(index)));
+}
+```
+
+`flashCells` changes no data and adds no history entry. Flashing a cell again resets its timer. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
+
 ## Related
 
 - [Stream updates](/docs/rows-live-data/stream-updates): write patches

@@ -10,7 +10,7 @@ The grid does not care where its rows come from. A fetch library plugs into one 
 
 ## Cache a whole array
 
-`useQuery` fetches the rows. One `useMutation` handles every change from `onDataChange` and updates the same `queryKey`:
+`useQuery` fetches the rows. `onDataChange` writes each change into the same `queryKey`, and `onSave` sends it to the API through one `useMutation`:
 
 ```tsx
 "use client";
@@ -18,7 +18,6 @@ The grid does not care where its rows come from. A fetch library plugs into one 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DataGrid,
-  applyChange,
   defineColumns,
   type DataChange,
 } from "@/components/data-grid/data-grid";
@@ -41,18 +40,6 @@ export function OrdersGrid() {
       });
       if (!response.ok) throw new Error(`Save failed: ${response.status}`);
     },
-    onMutate: async (change) => {
-      await queryClient.cancelQueries({ queryKey: ["orders"] });
-      const previous = queryClient.getQueryData<Order[]>(["orders"]);
-      queryClient.setQueryData<Order[]>(["orders"], (rows = []) =>
-        applyChange(rows, change, (row) => row.id),
-      );
-      return { previous };
-    },
-    onError: (_error, _change, context) => {
-      const { previous } = context ?? {};
-      if (previous) queryClient.setQueryData(["orders"], previous);
-    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
   return (
@@ -60,13 +47,14 @@ export function OrdersGrid() {
       data={orders.data ?? []}
       columns={columns}
       getRowId={(row) => row.id}
-      onDataChange={(_next, change) => save.mutate(change)}
+      onDataChange={(next) => queryClient.setQueryData(["orders"], next)}
+      onSave={(change) => save.mutateAsync(change)}
     />
   );
 }
 ```
 
-`applyChange` applies a whole batch in one pass: updates and deletes by row id, inserts at their snapshot positions. It skips missing row ids. The `onMutate` and `onError` pair is the optimistic shape of [Revert or refetch after a save](/docs/save-server/save-revert).
+The grid shows each change at once, and `onDataChange` keeps the cache in step. If the request fails, the grid reverts the change and calls `onDataChange` again with the reverted rows. See [Revert or refetch after a save](/docs/save-server/save-revert).
 
 A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
 
@@ -206,7 +194,7 @@ A `useSWR` call revalidates on window focus and on reconnect by default. Set `re
 
 ### Write edits through [#the-edit-story]
 
-Edits are server state. Write each change through to the API in `onDataChange`. Then call `queryClient.invalidateQueries({ queryKey: ["orders"] })`, so the refetch shows what the server holds. With SWR, call the `mutate` that `useSWR` returns. It revalidates the current key, and every `useSWR` call with that key shows the result.
+Edits are server state. Send each change from `onSave`, and keep `onDataChange` for the cache write. Then call `queryClient.invalidateQueries({ queryKey: ["orders"] })`, so the refetch shows what the server holds. With SWR, call the `mutate` that `useSWR` returns. It revalidates the current key, and every `useSWR` call with that key shows the result.
 
 ## Related
 

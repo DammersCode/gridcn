@@ -532,6 +532,7 @@
         "PC": {
           "status": "supported",
           "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
             "content/docs/(build)/rows-pages-menus/pinned-rows.mdx"
           ]
         },
@@ -935,6 +936,7 @@
       "id": "print",
       "feature": "Print",
       "options": [],
+      "note": "Print covers the rows the grid holds: every page of a client-paged grid, the loaded page or blocks of a server grid.",
       "cells": {
         "L": {
           "status": "supported",
@@ -943,16 +945,24 @@
           ]
         },
         "PC": {
-          "status": "n/a",
-          "reason": "Print covers loaded rows by design."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "content/docs/(build)/rows-pages-menus/client-pagination.mdx"
+          ]
         },
         "PS": {
-          "status": "n/a",
-          "reason": "Print covers loaded rows by design."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/print-button.browser.test.tsx"
+          ]
         },
         "Z": {
-          "status": "n/a",
-          "reason": "Print covers loaded rows by design."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/export-print.parity.test.tsx"
+          ]
         },
         "C": {
           "status": "supported",
@@ -2466,6 +2476,8 @@
       "id": "lookup-cell",
       "feature": "Async lookup cell",
       "options": [],
+      "note": "Mode-neutral: the editor fetches options, not rows.",
+      "modeNeutral": true,
       "cells": {
         "L": {
           "status": "supported",
@@ -2523,8 +2535,7 @@
             "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
           ]
         }
-      },
-      "modeNeutral": true
+      }
     }
   ]
 }

@@ -23,20 +23,22 @@ import {
 
 type Quote = { symbol: string; price: number };
 
-export function TickerFeed({ quotes }: { quotes: Quote[] }) {
+export function TickerFeed({ url }: { url: string }) {
   const actions = useDataGridActions();
 
   useEffect(() => {
-    const id = setInterval(() => {
+    const socket = new WebSocket(url);
+    socket.onmessage = (event: MessageEvent<string>) => {
+      const quotes = JSON.parse(event.data) as Quote[];
       const patches: CellPatch[] = quotes.map((q) => ({
         rowId: q.symbol,
         columnId: "price",
         value: q.price,
       }));
       actions.updateCells(patches);
-    }, 250);
-    return () => clearInterval(id);
-  }, [actions, quotes]);
+    };
+    return () => socket.close();
+  }, [actions, url]);
 
   return null;
 }
@@ -46,7 +48,7 @@ One call is one batch. The grid applies all patches together and calls `onDataCh
 
 A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRowsById` call takes at most 100,000 ids under the same rule.
 
-A hidden column takes patches like a visible one. The grid skips a patch for an unknown row or column, a row with a save in flight, or an unchanged value.
+A hidden column takes patches like a visible one.
 
 A call with `source: "stream"` <NewBadge /> writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check.
 
@@ -123,7 +125,7 @@ A plain `updateCells` call that does not wait keeps the held batch, until the ro
 
 ## Read the verdict [#what-the-verdict-tells-you]
 
-`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons.
+`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons, such as an unknown row or an unchanged value. It also shows how to [flash the written cells](/docs/rows-live-data/read-push-verdict#flash-cells).
 
 ## Related
 

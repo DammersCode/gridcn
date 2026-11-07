@@ -16,9 +16,9 @@ describe.each(ALL_MODES)("row counts in mode %s", (mode) => {
 
   it("the view count shrinks with a client filter and stays whole under filterMode server", async () => {
     const grid = await mountMode(mode);
-    const before = grid.viewIds().length;
+    const before = grid.fullViewIds().length;
     grid.setFilters([...gt1] as never);
     const serverFiltered = mode === "FS";
-    expect(grid.viewIds().length).toBe(serverFiltered ? before : before - 2);
+    expect(grid.fullViewIds().length).toBe(serverFiltered ? before : before - 2);
   });
 });

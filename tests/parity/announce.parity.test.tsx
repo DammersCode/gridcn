@@ -12,7 +12,7 @@ describe.each(ALL_MODES)("result announcements in mode %s", (mode) => {
       expect(live).toBeNull();
       return;
     }
-    expect(live).toMatchObject({ kind: "results", count: mode === "PC" || mode === "PS" ? 2 : 4 });
+    expect(live).toMatchObject({ kind: "results", count: mode === "PS" ? 2 : 4 });
     expect(live?.partial).toBeUndefined();
   });
 

@@ -209,9 +209,9 @@ A grid feature can behave differently on a local array, on server pages and on s
     <tr>
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Print</th>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Print covers loaded rows by design."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -548,7 +548,7 @@ Fill skips rows not loaded yet and warns.
 
 ### Print
 
-**PC, PS, Z**: n/a: Print covers loaded rows by design.
+Print covers the rows the grid holds: every page of a client-paged grid, the loaded page or blocks of a server grid.
 
 ### Pushes into a server-ordered view
 
@@ -612,6 +612,10 @@ Mode-neutral.
 ### Debounced text inputs
 
 **API**: n/a: The inputs write no data.
+
+### Async lookup cell
+
+Mode-neutral: the editor fetches options, not rows.
 
 ## Related
 

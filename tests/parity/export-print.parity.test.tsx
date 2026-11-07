@@ -1,8 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildExportRows, exportGrid } from "@/registry/default/blocks/data-grid-io/export-grid";
-import { ALL_MODES, mountMode } from "./modes";
+import { printGrid, type PrintGridOptions } from "@/registry/default/blocks/data-grid-io/print-grid";
+import { ALL_MODES, mountMode, type Mounted } from "./modes";
 
 const firstColumn = (rows: string[][]) => rows.map((row) => row[0]);
+
+/** Prints into the hidden iframe without the print dialog and returns the printed first column. */
+function printedNames(grid: Mounted, options?: PrintGridOptions): string[] {
+  const append = document.body.append.bind(document.body);
+  const spy = vi.spyOn(document.body, "append").mockImplementation((...nodes) => {
+    append(...nodes);
+    for (const node of nodes) if (node instanceof HTMLIFrameElement && node.contentWindow) node.contentWindow.print = () => {};
+  });
+  try {
+    printGrid(grid.state(), options);
+  } finally {
+    spy.mockRestore();
+  }
+  const doc = document.querySelector("iframe")!.contentDocument!;
+  return [...doc.querySelectorAll("tbody > tr")].map((tr) => tr.querySelector("td")!.textContent!);
+}
 
 describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
   it("the view scope follows the displayed order and the mode's filter rules", async () => {
@@ -11,7 +28,6 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     grid.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }]);
     const names = firstColumn(buildExportRows(grid.state(), "view"));
     const expected: Record<string, string[]> = {
-      PC: ["Name 3", "Name 2"],
       PS: ["Name 3", "Name 2"],
       SS: ["Name 2", "Name 3", "Name 4", "Name 5"],
       FS: ["Name 5", "Name 4", "Name 3", "Name 2", "Name 1", "Name 0"],
@@ -23,14 +39,21 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     const grid = await mountMode(mode);
     const names = firstColumn(buildExportRows(grid.state(), "all"));
     expect(names).toEqual(grid.held().map((row) => row.name));
-    expect(names.length).toBe(mode === "PC" || mode === "PS" ? 4 : 6);
+    expect(names.length).toBe(mode === "PS" ? 4 : 6);
   });
 
   it("print text uses the display form of the same rows", async () => {
     const grid = await mountMode(mode);
     const display = buildExportRows(grid.state(), "view", { text: "display" });
-    expect(display).toHaveLength(grid.viewIds().length);
+    expect(display).toHaveLength(grid.fullViewIds().length);
     expect(display[0]).toHaveLength(2);
+  });
+
+  it("printGrid prints the rows of the view, every page of a paged grid", async () => {
+    const grid = await mountMode(mode);
+    grid.setSorts([{ columnId: "n", direction: "desc" }]);
+    expect(printedNames(grid)).toEqual(firstColumn(buildExportRows(grid.state(), "view")));
+    expect(printedNames(grid)).toEqual(grid.fullViewIds().map((id) => String(grid.cell(id, "name"))));
   });
 
   it("a source export hands the mode's current spec to the source and exports only the source rows", async () => {
@@ -65,7 +88,7 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     expect(ctx).toMatchObject({ fileName: "export.csv", format: "csv" });
     expect(lines[0]).toBe("N,Name");
     expect(lines).toHaveLength(result.rowCount + 1);
-    expect(lines.slice(1)).toEqual(grid.viewIds().map((id) => `#${String(grid.cell(id, "n"))},`));
+    expect(lines.slice(1)).toEqual(grid.fullViewIds().map((id) => `#${String(grid.cell(id, "n"))},`));
     expect(createUrl).not.toHaveBeenCalled();
   });
 
@@ -83,5 +106,17 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     const source = vi.fn(() => []);
     await expect(exportGrid(grid.state(), { source, columns: ["missing"] })).rejects.toBeInstanceOf(RangeError);
     expect(source).not.toHaveBeenCalled();
+  });
+});
+
+describe("export and print with client pagination", () => {
+  it("export and print cover every page; scope page writes the shown page only", async () => {
+    const grid = await mountMode("PC");
+    grid.goToPage(2);
+    const every = ["Name 0", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"];
+    expect(firstColumn(buildExportRows(grid.state(), "view"))).toEqual(every);
+    expect(printedNames(grid)).toEqual(every);
+    expect(firstColumn(buildExportRows(grid.state(), "page"))).toEqual(["Name 4", "Name 5"]);
+    expect(printedNames(grid, { scope: "page" })).toEqual(["Name 4", "Name 5"]);
   });
 });

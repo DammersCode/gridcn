@@ -9,7 +9,7 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
     const before = loaded(grid.dataIds());
     grid.act(() => grid.state().actions.insertRow(0, "below"));
     const after = loaded(grid.dataIds());
-    expect(after).toHaveLength(mode === "PC" ? before.length : before.length + 1); // the pager shows a fixed page of rows
+    expect(after).toHaveLength(before.length + 1);
     expect(after[1]).toMatch(/^new/);
     expect(grid.changes.at(-1)?.ops.map((op) => op.type)).toEqual(["insert"]);
   });

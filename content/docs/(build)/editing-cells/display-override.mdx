@@ -45,6 +45,40 @@ When the user edits the cell, the type's editor replaces your content. A row tha
 
 Render the value as React text. Never pass a cell value to `dangerouslySetInnerHTML`.
 
+## Show an image [#image]
+
+<NewBadge />
+
+Pass an image URL from the data through `safeHref` first. It returns `null` for every protocol except `http`, `https`, and `mailto`. This column shows a photo:
+
+```tsx
+import { DataGrid, defineColumns, safeHref } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; photo: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  {
+    id: "photo",
+    header: "Photo",
+    accessorKey: "photo",
+    renderCell: ({ value, row }) => {
+      const src = safeHref(value);
+      if (!src) return null;
+      return (
+        <img src={src} alt={row.name} className="size-6 rounded-full" />
+      );
+    },
+  },
+]);
+
+export function People({ people }: { people: Person[] }) {
+  return <DataGrid defaultData={people} columns={columns} />;
+}
+```
+
+The cell type stays `text`, so copy, paste, and export use the URL.
+
 ## Arguments [#render-arguments]
 
 `renderCell` receives one object:

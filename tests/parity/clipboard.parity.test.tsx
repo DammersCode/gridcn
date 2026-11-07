@@ -22,7 +22,7 @@ describe.each(ALL_MODES)("paste in mode %s", (mode) => {
     const top = grid.viewIds()[0]!;
     paste(grid, "500");
     expect(grid.cell(top, "n")).toBe(500);
-    expect(top).toBe({ SS: "r0", PC: "r3", PS: "r3" }[mode as "SS"] ?? "r5");
+    expect(top).toBe({ SS: "r0", PS: "r3" }[mode as "SS"] ?? "r5");
   });
 
   it("processPaste can veto the whole paste", async () => {

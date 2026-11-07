@@ -89,7 +89,7 @@ function NumberCell({ value, options }: CellRenderProps<unknown, number | null, 
 
 function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   const { value, options, pending } = props;
-  // seed with the same options the cell display formats with, so the draft matches what the cell showed
+  // seed with `toText` so `decimals` rounding matches; `format` stays display-only
   const { bindings, setDraft } = useCellEditorDraft(props, {
     toDraft: (draftValue) => numberCellType.toText(draftValue, options),
     toValue: (draft) => numberCellType.fromText(draft, options),

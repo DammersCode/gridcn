@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 /** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it just wrote; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
 export const FLASH_ANIMATION = "grid-cell-flash var(--grid-flash-duration, 1.2s) ease-out";
-/** One-shot pulse: a background fading to the cell's own background, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the exact visual the `flashCells` consumers (fill, paste, move) promise. */
+/** One-shot pulse: a background fading to the cell's own background, tinted by `--grid-flash-color` (default `--color-primary`) at `--grid-flash-intensity` (default 24%) — the visual of every `flashCells` call (the fill handle, or app code). */
 export const FLASH_KEYFRAMES =
   "@keyframes grid-cell-flash{0%{background-color:color-mix(in oklab, var(--grid-flash-color, var(--color-primary)) var(--grid-flash-intensity, 24%), var(--grid-flash-base, transparent))}}";
 
@@ -80,8 +80,8 @@ export type DataGridCellProps = {
   /** True when `row` is a hole in `data` (lazy loading) — renders a static shimmer block instead of cell content and skips every pointer/focus handler. */
   isSkeleton?: boolean;
   /**
-   * True while this cell is inside the transient `flashCells` write-pulse (a fill/paste/move just
-   * committed a new value here) — plays the one-shot fade pulse {@link FLASH_ANIMATION} (keyframes
+   * True while this cell is inside the transient `flashCells` pulse (a fill, or an app
+   * `flashCells` call, just marked it) — plays the one-shot fade pulse {@link FLASH_ANIMATION} (keyframes
    * injected once per grid by `DataGridBody`).
    */
   isFlashing?: boolean;

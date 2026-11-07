@@ -14,7 +14,7 @@ Before you start, [edit cells](/docs/learning-path/edit-cells) and install the u
 
 ## Pass data and onDataChange [#going-controlled]
 
-`data` puts the rows in your code. The grid does not change its display until your next render passes a different `data`. So every edit, paste, fill, and delete reaches your array only through `onDataChange`. Replace `people-grid.tsx` with this file:
+`data` puts the rows in your code. The grid shows an edit at once and calls `onDataChange` with the new array. Every edit, paste, fill, and delete reaches your array only through `onDataChange`. If you do not store the new array, the grid drops the edit the next time it reads your `data`. Replace `people-grid.tsx` with this file:
 
 ```tsx title="people-grid.tsx"
 "use client";

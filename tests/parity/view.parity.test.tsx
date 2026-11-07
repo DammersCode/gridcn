@@ -1,27 +1,48 @@
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { DataGridSearch } from "@/registry/default/blocks/data-grid-toolbar/search";
 import { mountMode } from "./modes";
 
 const gt1 = [{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as const;
 
+const gt0 = [{ filterId: "f", columnId: "n", operator: "gt", value: "0" }] as const;
+
 describe("sort, filter, and search with client pagination", () => {
-  it("sort orders the rows of the current page", async () => {
+  it("sort orders every page, not only the shown one", async () => {
     const grid = await mountMode("PC");
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
-    expect(grid.viewIds()).toEqual(["r3", "r2", "r1", "r0"]);
+    expect(grid.viewIds()).toEqual(["r5", "r4", "r3", "r2"]);
+    grid.goToPage(2);
+    expect(grid.viewIds()).toEqual(["r1", "r0"]);
   });
 
-  it("filter narrows the current page and leaves the other pages out of reach", async () => {
+  it("filter narrows every page and keeps the rows of the other pages in reach", async () => {
     const grid = await mountMode("PC");
-    grid.setFilters([...gt1] as never);
-    expect(grid.viewIds()).toEqual(["r2", "r3"]);
+    grid.goToPage(2);
+    grid.setFilters([...gt0] as never);
+    expect(grid.state().page).toBe(1);
+    expect(grid.fullViewIds()).toEqual(["r1", "r2", "r3", "r4", "r5"]);
+    expect(grid.viewIds()).toEqual(["r1", "r2", "r3", "r4"]);
+    grid.goToPage(2);
+    expect(grid.viewIds()).toEqual(["r5"]);
   });
 
-  it("search highlights matches on the current page only", async () => {
+  it("search counts the matches on every page and highlights the shown page", async () => {
     const grid = await mountMode("PC");
     grid.act(() => grid.state().actions.setSearch("Name 5"));
-    expect(grid.state().searchMatches?.length ?? 0).toBe(0);
-    grid.act(() => grid.state().actions.setSearch("Name 3"));
-    expect(grid.state().searchMatches?.length).toBe(1);
+    expect(grid.state().searchMatches).toHaveLength(1);
+    expect(grid.state().searchMatchSet.size).toBe(0);
+    grid.goToPage(2);
+    expect(grid.state().searchMatchSet.size).toBe(1);
+    expect(grid.viewIds()).toEqual(["r4", "r5"]);
+  });
+
+  it("next match jumps to the page of the match", async () => {
+    const grid = await mountMode("PC", { Child: () => <DataGridSearch /> });
+    grid.act(() => grid.state().actions.setSearch("Name 5"));
+    grid.act(() => fireEvent.click(screen.getByRole("button", { name: "Next match" })));
+    expect(grid.state().page).toBe(2);
+    expect(grid.viewIds()[grid.state().activeCell!.row]).toBe("r5");
   });
 });
 
