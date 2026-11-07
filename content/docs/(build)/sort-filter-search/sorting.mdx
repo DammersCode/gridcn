@@ -110,6 +110,10 @@ Each move announces the new place through a polite live region. Set the text wit
 
 If your server orders the rows, set `sortMode="server"`. The grid tracks the sort spec and never reorders `data`. The header cycle, `aria-sort`, the sort arrow, the sort list, and `onSortChange` all work as in client mode.
 
+<NewBadge />
+
+A grid with a `totalRowCount` prop defaults `sortMode` to `"server"`, because its `data` holds only part of the result. To sort the rows in `data` in the browser, set `sortMode="client"`.
+
 The request is the `SortSpec[]` that `onSortChange` receives. The answer is the rows, already in that order.
 
 `useDataGridServerRows` sets `sortMode`, `filterMode`, and the controlled sort for you. It passes each fetch the spec as `request.spec.sorts`. Make that order total, because the hook keeps only the first row of a repeated row id. See [Query server rows](/docs/data-modes/query-server-rows) for the full flow.

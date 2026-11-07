@@ -71,7 +71,6 @@ export function ScrollGrid() {
   const server = useDataGridServerRows<Row>({
     mode: "scroll",
     fetchRows,
-    getRowId: (row) => row.id,
   });
   const history = useDataGridHistory<Row>({
     datasetKey: JSON.stringify(server.spec),
@@ -89,7 +88,7 @@ export function ScrollGrid() {
 
 Three rules keep the combination safe:
 
-- Pass the plain `getRowId` to the hook and `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
+- Pass a custom `getRowId` to the hook, never to the grid, and pass `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
 - An entry whose rows left the loaded rows applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"` <NewBadge />. Load the rows, then undo again.
 - A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateInterval` refetches the same dataset, so it needs no `clear()`. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
 

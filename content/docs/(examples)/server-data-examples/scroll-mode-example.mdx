@@ -32,7 +32,6 @@ const columns = defineColumns<Person>()([
 export function PeopleGrid() {
   const server = useDataGridServerRows<Person>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/people?${query}`, { signal });
@@ -82,7 +81,6 @@ export function useCachedPeople() {
   const queryClient = useQueryClient();
   return useDataGridServerRows<Person>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ spec, start, end, signal }) => ({
       rows: await queryClient.fetchQuery({
         queryKey: ["people", serverSpecKey(spec), start, end],
@@ -128,7 +126,6 @@ async function loadPeople(range: {
 export function useSwrPeople() {
   return useDataGridServerRows<Person>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => ({
       rows: await preload(
         ["people", start, end] as [string, number, number],

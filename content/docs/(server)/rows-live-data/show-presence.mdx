@@ -87,7 +87,7 @@ export function usePeerSync(roomId: string) {
 
 Use this hook in place of the call in `MyGrid`. The sample gives each peer one entry with the peer id as its `id`. A peer with several ranges holds one entry per range. Give its entries ids such as `${peerId}:0`, and remove each one, or send the full list again with `setPresenceHighlights`.
 
-`removePresenceHighlight(id)` removes the entry with that `id`. If no entry matches, it does nothing. `clearPresenceHighlights()` removes every entry. The grid drops an entry with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`, and warns once in development for each one. It does not check `label`: see [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection).
+`removePresenceHighlight(id)` removes the entry with that `id`. If no entry matches, it does nothing. `clearPresenceHighlights()` removes every entry. The grid drops an entry with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`, and warns once in development for each one. It repairs a bad `label`: see [Presence options](/docs/add-options/server/presence-options).
 
 ## Send row ids, not view indices [#coordinates-rowid-native-or-view-index]
 

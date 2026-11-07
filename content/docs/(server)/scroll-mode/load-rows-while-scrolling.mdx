@@ -14,7 +14,7 @@ Use scroll mode for one continuous result. Scroll mode and pagination on one gri
 
 ## Fetch blocks [#usage]
 
-1. Call `useDataGridServerRows` with `mode: "scroll"`, `getRowId`, and `fetchRows`.
+1. Call `useDataGridServerRows` with `mode: "scroll"` and `fetchRows`.
 2. Resolve `fetchRows` with the rows `[start, end)` and the row count of the whole result.
 3. Spread `server.gridProps` onto `DataGrid`.
 
@@ -38,7 +38,6 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => {
       const query = new URLSearchParams({
         offset: String(start),

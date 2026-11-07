@@ -18,7 +18,7 @@ This grid imports `columns`, `Order`, `loadPage`, `sendChange`, and `notify` fro
 ```tsx
 "use client";
 
-import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { DataGrid } from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
 } from "@/components/data-grid-pagination/data-grid-pagination";
@@ -30,22 +30,17 @@ import { loadPage, sendChange, notify } from "./api";
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
-    getRowId: (row) => row.id,
     fetchRows: loadPage,
+    onSave: sendChange,
     onError: (error) =>
       notify(error instanceof Error ? error.message : "Could not load rows"),
   });
-
-  async function onSave(change: DataChange<Order>) {
-    await sendChange(change);
-  }
 
   return (
     <>
       <DataGrid
         {...server.gridProps}
         columns={columns}
-        onSave={onSave}
         onSaveRejected={({ rejected }) =>
           notify(rejected[0]?.message ?? "Save refused")
         }

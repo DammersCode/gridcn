@@ -3,7 +3,7 @@ title: Fix install problems
 icon: Wrench
 description: Fix a failed shadcn install, imports that do not resolve, a missing tooltip provider, and a grid that renders nothing or without styles.
 type: task
-aliases: ["grid shows nothing", "blank grid", "empty grid", "no rows", "nothing renders", "tooltip provider", "github registry"]
+aliases: ["grid shows nothing", "blank grid", "empty grid", "no rows", "nothing renders", "tooltip provider", "github registry", "monorepo", "pnpm workspace", "self-host registry"]
 ---
 
 Find your symptom below. The sections cover a failed install, a broken import, and a grid that does not render. The shadcn CLI copies gridcn source into your project. Most problems come from the CLI setup or your path mapping. To install gridcn, see [Install gridcn](/docs/learning-path/install-gridcn).
@@ -17,6 +17,32 @@ If the `@gridcn` namespace does not resolve, install from the GitHub registry pa
 The CLI resolves the ref with `git ls-remote` and reads the files from `raw.githubusercontent.com`. Without `git`, it uses the GitHub API.
 
 To pin a tag, branch, or commit, append `#<ref>` to the item name. The CLI fetches the registry dependencies of an item without the ref. So install each gridcn dependency of the add-on with the same ref first, the core before the others, then the add-on. See [Pinned installs](/docs/support-upgrades/version-policy-changelog#pinned-installs).
+
+### Mirror the registry [#mirror-the-registry]
+
+<NewBadge />
+
+A `registries` entry in `components.json` maps a namespace to a URL, and it wins over the hosted `@gridcn` registry. To serve gridcn from your own host:
+
+1. Copy the `public/r/*.json` files of a gridcn release to your host.
+2. In each file, replace the `DammersCode/gridcn/` prefix in `registryDependencies` with `@gridcn/`. Without this step, the CLI still fetches the gridcn dependencies of an add-on from GitHub.
+3. Add the namespace to `components.json`:
+
+```json title="components.json"
+{
+  "registries": {
+    "@gridcn": "https://registry.example.com/r/{name}.json"
+  }
+}
+```
+
+The URL must contain `{name}`. Plain names such as `popover` in `registryDependencies` still come from the shadcn registry.
+
+## Install in a monorepo [#monorepo]
+
+<NewBadge />
+
+Run the CLI for the app that renders the grid. Pass its folder with `-c`, for example `npx shadcn add @gridcn/data-grid -c apps/web`. The CLI reads the `components.json` of that folder. The gridcn files land under its `aliases.components`, and their imports use its `aliases`. If the shadcn primitives live in a shared package, point `aliases.ui` and `aliases.utils` at the import paths that the app resolves for that package.
 
 ## Fix imports that do not resolve [#non-default-aliases]
 

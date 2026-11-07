@@ -499,7 +499,7 @@ function eventsZ() {
 }
 
 // ---------------------------------------------------------------- messages
-const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|pluginWarnOnce|warn|throw new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
+const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|throw new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
 
 function walkSources(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

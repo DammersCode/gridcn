@@ -34,7 +34,7 @@ The callback receives the selection as a `SelectionState` and a `details` object
 
 The callback fires for a click, a range extend step, a row, column, or all selection, and a clear. If the selection equals the last known value, it does not fire. A sort that moves no selected row fires nothing. A value you pass in through `selection` does not fire it.
 
-In scroll mode, `rowIds` holds the placeholder id `__lazy-unloaded-<index>` for an unloaded row.
+In scroll mode, `rowIds` holds the placeholder id `__lazy-unloaded-<index>` for an unloaded row. Test an id with `isPlaceholderRowId(id)` <NewBadge /> from `data-grid`, not with the prefix.
 
 Dragging out a range fires the callback once per cell the pointer crosses. To read only the settled value, debounce your handler.
 

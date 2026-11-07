@@ -45,7 +45,6 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const url = useDataGridUrlPagination();
   const server = useDataGridServerRows<Order>({
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/orders?${query}`, { signal });

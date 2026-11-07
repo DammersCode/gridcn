@@ -4,7 +4,7 @@ icon: ShieldCheck
 description: Reject a cell value before it commits with a function or a schema, flag soft rules, and check whole rows.
 type: feature
 demos: none
-aliases: ["validate cell", "invalid value", "validaterow", "validate row", "schema", "zod", "required field", "error message in cell"]
+aliases: ["validate cell", "validate email", "invalid value", "validaterow", "validate row", "schema", "zod", "required field", "error message in cell"]
 ---
 
 A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema, and it runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, and import. `validateRow` checks a whole row after a write and flags cells without blocking the write. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example).
@@ -50,6 +50,34 @@ export function People({ people }: { people: Person[] }) {
   return <DataGrid defaultData={people} columns={columns} />;
 }
 ```
+
+### Validate an email [#validate-an-email]
+
+<NewBadge />
+
+This column rejects text that does not look like an email address. An empty cell passes, so the field stays optional:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Contact = { id: string; email: string };
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const columns = defineColumns<Contact>()([
+  {
+    id: "email",
+    header: "Email",
+    accessorKey: "email",
+    validate: (value) =>
+      typeof value === "string" && value !== "" && !EMAIL.test(value)
+        ? "Enter an email such as name@example.com"
+        : null,
+  },
+]);
+```
+
+A schema works too, for example `validate: z.email()` with Zod 4. Your server checks the address again, because the grid only checks the format.
 
 <Callout type="warn" title="A rejected edit stays open">
   The editor stays open on a rejected value and shows the message. The value never enters `data`.

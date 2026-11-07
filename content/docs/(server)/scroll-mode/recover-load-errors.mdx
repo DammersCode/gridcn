@@ -38,7 +38,6 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/orders?${query}`, { signal });
@@ -93,7 +92,7 @@ A sequential source stops at a failed block. `retry()` repeats that block, and s
 
 The hook does not retry on its own. To ride out a short outage, retry inside `fetchRows`. Wait longer after each attempt. If `signal` aborts, stop. A request with a `cursor` repeats the same cursor, so a sequential source keeps its place.
 
-This loader retries a server error twice and sends the cursor of a sequential source:
+This loader retries a server error twice and sends the cursor of a sequential source. It also sends `limit`, because the hook drops rows past `end - start` and the next cursor moves past them:
 
 ```ts
 import type {
@@ -121,9 +120,10 @@ async function fetchWithRetry(url: string, signal: AbortSignal) {
 }
 
 export async function loadOrders(request: ServerRowsRequest<string>) {
-  const { cursor, signal } = request;
-  const query = cursor ? `?after=${encodeURIComponent(cursor)}` : "";
-  const response = await fetchWithRetry(`/api/orders${query}`, signal);
+  const { start, end, cursor, signal } = request;
+  const query = new URLSearchParams({ limit: String(end - start) });
+  if (cursor) query.set("after", cursor);
+  const response = await fetchWithRetry(`/api/orders?${query}`, signal);
   const answer = await response.json();
   return { rows: answer.rows, nextCursor: answer.nextCursor };
 }

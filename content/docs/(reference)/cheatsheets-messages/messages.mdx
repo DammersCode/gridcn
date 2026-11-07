@@ -59,6 +59,7 @@ These warnings come from calls that change or read rows.
 | `[data-grid] onRowActionSkipped threw: <error>` | Catch the error inside `onRowActionSkipped`. The grid logs it and goes on. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | `[data-grid] reorderRows is a no-op while a sort or filter is active (the view order is owned by them)` | Clear the sort and the filter before you move rows. | [Row order](/docs/rows-pages-menus/row-order) |
 | `[data-grid] reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first` | Load the rows of the range first. | [Row order](/docs/rows-pages-menus/row-order) |
+| `[data-grid] <operation> is a no-op while its target rows are still unloaded (scroll mode): load the range first, or delete known ids with deleteRowsById` | Load the rows of the range first, or delete known ids with `deleteRowsById`. The action returns the reason `"unloaded-rows"`. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | `[data-grid] insertRows: count must be an integer (got <count>)` | Pass a whole number as `count`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `[data-grid] row insertion is a no-op because no createRow prop was provided` | Pass `createRow` to enable row insertion. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `[data-grid] duplicateRows is a no-op because no duplicateRow prop was provided` | Pass `duplicateRow` to enable row duplication. | [Row operations](/docs/rows-pages-menus/row-operations) |
@@ -78,12 +79,32 @@ These messages come from `onSave` and `onSaveRejected`.
 | `[data-grid] onSaveRejected threw:` | Fix the error in `onSaveRejected`. The grid prints the error after the text. This one is a console error. | [Data change events](/docs/events-state/data-change-events#onsaverejected) |
 | `[data-grid] resolveSaveConflict threw, so the server's row is taken:` | Fix the error in `resolveSaveConflict`. The grid prints the error after the text. This one is a console error. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | `[data-grid] resolveSaveConflict rejected, so the server's row is taken:` | Fix the promise that `resolveSaveConflict` returns. The grid prints the error after the text. This one is a console error. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| `[data-grid] resolveSaveConflict returned a row that does not have the id "<rowId>", so the server's row is taken` | Return `{ row }` with the id of the refused row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| `[data-grid] replaceRowId: no row has the id "<oldId>", or it is swapped twice, so that swap was skipped` | Pass the id of a row in `data`, and swap each id once. | [Save edits](/docs/save-server/save-edits#id-swap) |
+| `[data-grid] replaceRowId: getRowId threw for the new row, so that swap was skipped` | Fix `getRowId`, or pass a new row that has an id. | [Save edits](/docs/save-server/save-edits#id-swap) |
+| `[data-grid] replaceRowId: another row already has the id "<newId>", so that swap was skipped` | Give the new row an id that no other row has. | [Save edits](/docs/save-server/save-edits#id-swap) |
 | `[data-grid] the merge of a save conflict threw in a callback:` | Fix the callback that the merge calls, such as `onDataChange` or `onSave`. The grid prints the error after the text. This one is a console error. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | `[data-grid] the revert of a refused save failed:` | Fix the callback that the revert calls. The grid prints the error after the text. This one is a console error. | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | `[data-grid] a "stream" call takes at most <max> patches; the <n> after them skip with reason "limit". Send smaller batches` | Split the batch of `updateCells` or `updateRows` into calls of at most 100,000 patches. | [Stream updates](/docs/rows-live-data/stream-updates) |
 | `[data-grid] a "stream" call takes at most <max> patches or row ids; the <n> after them are skipped. Send smaller batches` | Split the list of `deleteRowsById` into calls of at most 100,000 ids. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `[data-grid] reorder: "immediate" on a server sort or filter marks the rows stale and asks useDataGridServerRows to place them again, but no such hook is mounted; refetch the rows yourself` | Use `useDataGridServerRows`, or refetch the rows yourself after a push. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `[data-grid] incremental view index diverged from the full rebuild; using the rebuild. Please report this with the sort/filter state.` | Report the sort and filter state as a bug. The grid uses the full rebuild. This one is a console error. | [State and view index](/docs/concepts/state-view-index) |
+
+## Gate warnings [#gate-warnings]
+
+These warnings come from gates that return a promise. The grid prints each one once per grid.
+
+| Message | What to do | Page |
+| --- | --- | --- |
+| `[data-grid] validateRow rejected, so the row gets no verdict: <error>` | Fix the error in `validateRow`, or catch it inside the function. | [Validation](/docs/editing-cells/validation) |
+| `[data-grid] onEditStart rejected, so the edit does not start: <error>` | Fix the error in `onEditStart`, or catch it inside the function. | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `[data-grid] createRow rejected, so the insert is cancelled: <error>` | Fix the error in `createRow`, or catch it inside the function. | [Row operations](/docs/rows-pages-menus/row-operations#enable-props) |
+| `[data-grid] duplicateRow rejected, so the duplicate is cancelled: <error>` | Fix the error in `duplicateRow`, or catch it inside the function. | [Row operations](/docs/rows-pages-menus/row-operations#enable-props) |
+| `[data-grid] onBeforeDeleteRows threw, so the delete is cancelled: <error>` | Fix the error in `onBeforeDeleteRows`. The action returns the reason `"gate-threw"`. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `[data-grid] onBeforeDeleteRows rejected, so the delete is cancelled: <error>` | Fix the promise that `onBeforeDeleteRows` returns, or resolve it with `false` to decline. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `[data-grid] a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle` | Make the promise of `createRow` settle, or set `gateTimeoutMs`. The action returns the reason `"gate-pending"`. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
+| `[data-grid] a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle` | Make the promise of `duplicateRow` settle, or set `gateTimeoutMs`. The action returns the reason `"gate-pending"`. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
+| `[data-grid] a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle` | Make the promise of `onBeforeDeleteRows` settle, or set `gateTimeoutMs`. The action returns the reason `"gate-pending"`. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
 
 ## Clipboard warnings [#clipboard-warnings]
 
@@ -187,6 +208,7 @@ Each add-on prints its own prefix.
 | `[data-grid-pinned-rows] useDataGridServerAggregate dropped the value of column "<id>": only text, finite numbers, booleans, and null are shown.` | Resolve only text, finite numbers, booleans, and `null` in `fetchAggregates`. | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `[data-grid-views] a callback threw` | Fix the error in `onValueChange` or `onError`. The grid prints the error after the text. This one is a console error. | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
 | `[data-grid-url-state] dropped <n> URL layout entries for removed columns` | You need no fix. The URL named columns that do not exist. | [URL state](/docs/sort-filter-search/url-state) |
+| `[data-grid-presence] setPresenceHighlights: kept the first <max> entries and dropped the rest` | Send at most 1000 entries. Drop the peers that are off screen on your server. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — not an object` | Send `PresenceHighlightEntry` objects. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped rowId-native entry "<id>" — rowId-native entries need a non-empty columnId` | Send a non-empty `columnId`. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — rowId-native range entries need string arrays rowIds and columnIds` | Send `rowIds` and `columnIds` as arrays of strings. | [Presence options](/docs/add-options/server/presence-options) |

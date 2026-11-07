@@ -14,11 +14,17 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 
 1. Reinstall the core and each add-on that you use, as [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) shows.
 2. If you used `data-grid-lazy`, install `data-grid-server` and move the grid to it. See [Server rows](#server-rows).
-3. Rename the identifiers in the tables below.
-4. Check each behavior change in the lists below.
-5. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
+3. After the move, delete the `components/data-grid-lazy/` folder. A reinstall does not remove it.
+4. Rename the identifiers in the tables below.
+5. Check each behavior change in the lists below, and the [changed defaults](#changed-defaults).
+6. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
 
 The type check passes, and the grid saves, loads, and checks rows as before.
+
+### Changed defaults [#changed-defaults]
+
+- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` and a client sort or filter stops sorting and filtering its rows. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change the stacking of a cell. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ## Save APIs [#save-apis]
 

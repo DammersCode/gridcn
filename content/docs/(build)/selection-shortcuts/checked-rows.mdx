@@ -10,6 +10,28 @@ A checked row is a row whose marker checkbox is on. Users check rows with the ma
 
 <ComponentPreview name="data-grid-checked-rows-demo" />
 
+## Show the checkboxes [#show-the-checkboxes]
+
+<NewBadge />
+
+The row checkboxes and the select-all checkbox in the header need `rowMarkers="checkbox"`. The default `rowMarkers` is `"none"`, which renders no marker column. The other checkbox modes are on [Row markers](/docs/rows-pages-menus/row-markers):
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function People({ people }: { people: Person[] }) {
+  return <DataGrid data={people} columns={columns} rowMarkers="checkbox" />;
+}
+```
+
+A click on the header checkbox checks every row. A second click unchecks them all.
+
 ## Check a span of rows [#checking-a-range-of-rows]
 
 The row that you checked or unchecked last is the anchor. A <kbd>Shift</kbd> step checks the rows from the anchor to the target row. Each <kbd>Shift</kbd> step replaces the previous one, so the span grows and shrinks. Rows outside the span keep their state.

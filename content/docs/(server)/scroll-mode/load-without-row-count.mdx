@@ -35,7 +35,6 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order, string>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ cursor, start, end, signal }) => {
       const query = new URLSearchParams({ limit: String(end - start) });
       if (cursor !== undefined) query.set("after", cursor);
@@ -49,7 +48,7 @@ export function OrdersGrid() {
 }
 ```
 
-A first answer with `nextCursor`, or with neither `totalRowCount` nor `nextCursor`, starts a sequential source. `fetchRows` returns at most `end - start` rows. The hook keeps the first `end - start` rows of a longer answer.
+A first answer with `nextCursor`, or with neither `totalRowCount` nor `nextCursor`, starts a sequential source. `fetchRows` returns at most `end - start` rows. The hook keeps the first `end - start` rows of a longer answer. In a cursor chain, the rows past `end - start` are lost, because the next cursor moves past them. So send `end - start` as the page size.
 
 ## When the source ends
 

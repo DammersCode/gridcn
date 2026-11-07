@@ -47,8 +47,7 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
           (peer): peer is PresenceHighlightEntry =>
             typeof peer === "object" &&
             peer !== null &&
-            peer.id !== userId &&
-            (peer.label === undefined || typeof peer.label === "string"),
+            peer.id !== userId,
         ),
       );
     };
@@ -104,9 +103,9 @@ In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded
 
 The sample sends the columns of the main range only. It sends only selections with a range. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
 
-`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order (`getViewRowIds()` on the grid ref). Send one entry per range. `getViewRowIds()` gives an unloaded row an id that starts with `__lazy-unloaded-`. Drop those ids.
+`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order (`getViewRowIds()` on the grid ref). Send one entry per range. `getViewRowIds()` gives an unloaded row a placeholder id. Drop the ids for which `isPlaceholderRowId(id)` from `data-grid` returns `true`.
 
-Treat every incoming message as untrusted input. The add-on drops entries with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`. It does not check `label`, so the sample drops an entry whose `label` is not a string. The add-on renders a string `label` as text.
+Treat every incoming message as untrusted input. The add-on drops malformed entries and repairs a bad `label` or `color`: [Presence options](/docs/add-options/server/presence-options) lists each rule. The add-on renders a `label` as text.
 
 ## Related
 

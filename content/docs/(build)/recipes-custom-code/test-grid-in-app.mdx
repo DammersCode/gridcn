@@ -1,0 +1,113 @@
+---
+title: Test a grid in your app
+description: Test a grid with Vitest and Testing Library in jsdom or in a real browser, query its ARIA roles, and drive it through the grid ref.
+icon: TestTube
+type: task
+aliases: ["unit test", "jsdom", "testing library", "test the grid", "vitest"]
+---
+
+The grid renders real DOM elements with ARIA roles, so Testing Library finds its rows and cells like any other element. This page shows the setup of the gridcn test suite. Vitest with jsdom tests the logic. Vitest browser mode with Playwright tests layout, scroll, and pointer gestures.
+
+## Before you start
+
+- Install `vitest`, `@testing-library/react`, and `jsdom` for the jsdom tests.
+- For the browser tests, also install `@vitest/browser-playwright` and `vitest-browser-react`.
+- Give every row an `id`, or pass `getRowId`, so the assertions can name rows.
+
+## Steps
+
+1. Run the jsdom tests with `environment: "jsdom"` in the Vitest config.
+2. Without Vitest globals, Testing Library does not clean up by itself. Call `cleanup` in an `afterEach` of a setup file. Otherwise a timer of the unmounted grid fires after jsdom is gone and throws.
+3. jsdom does no layout, so the scroll element has a height of 0 and the grid renders no data rows. Stub `HTMLElement.prototype.clientHeight` before the test, as the sample below does.
+4. Query the grid by its roles: `grid`, `row`, `columnheader`, and `gridcell`.
+5. For a test that needs real sizes, scroll, or pointer drags, run it in browser mode and import your app stylesheet.
+
+## Test in jsdom
+
+This test stubs the height, renders three rows, and reads the roles and the ref:
+
+```tsx
+import { createRef } from "react";
+import { afterEach, beforeAll, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import {
+  DataGrid,
+  defineColumns,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+const orders: Order[] = [
+  { id: "1", customer: "Ada" },
+  { id: "2", customer: "Grace" },
+  { id: "3", customer: "Linus" },
+];
+
+beforeAll(() => {
+  // jsdom has no layout: give every element a height of ten rows.
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+    configurable: true,
+    get: () => 360,
+  });
+});
+
+afterEach(cleanup);
+
+it("renders the orders", () => {
+  const api = createRef<DataGridApi<Order>>();
+  render(<DataGrid ref={api} data={orders} columns={columns} />);
+
+  const grid = screen.getByRole("grid");
+  expect(grid.getAttribute("aria-rowcount")).toBe("4");
+  expect(screen.getAllByRole("gridcell")[0]?.textContent).toBe("Ada");
+  expect(api.current?.getViewRowIds()).toEqual(["1", "2", "3"]);
+});
+```
+
+`aria-rowcount` counts the header row too. Each row carries `aria-rowindex`, and each cell carries `aria-colindex`, so a test can find a cell by its position. The grid renders only the rows near the viewport. Assert on `aria-rowcount` or on `getViewRowIds()` for the full count, never on the number of `row` elements.
+
+## Test in a real browser
+
+Layout, scroll, column widths, and pointer gestures need a browser. The gridcn suite runs these tests in Vitest browser mode with the Playwright provider and Chromium. Each test renders the grid in a box with a fixed height and imports the app stylesheet:
+
+```tsx
+import { expect, it } from "vitest";
+import { page } from "vitest/browser";
+import { render } from "vitest-browser-react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+// Import your app stylesheet here, so the grid has its real sizes.
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+it("renders in a bounded box", async () => {
+  await render(
+    <DataGrid
+      data={[{ id: "1", customer: "Ada" }]}
+      columns={columns}
+      className="h-[400px]"
+    />,
+  );
+  await expect.element(page.getByRole("grid")).toBeInTheDocument();
+});
+```
+
+`render` from `vitest-browser-react` returns a promise. Await it, and await `unmount()` too, or one test leaks state into the next.
+
+## Result
+
+The jsdom tests check data, events, and the grid ref without a browser. The browser tests check what the user sees and drags.
+
+## Related
+
+- [Screen reader support](/docs/accessibility/screen-reader-support)
+- [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage)
+- [DataGrid props](/docs/components-props/data-grid-props)

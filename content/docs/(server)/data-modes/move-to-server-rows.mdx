@@ -16,7 +16,7 @@ Before you start, pick pages mode or scroll mode on [Compare data modes](/docs/s
 
 1. Put the rows behind an API that takes the spec and a page or a row range. [Server rows contract](/docs/contracts/server-rows-contract) has the request and the answer.
 2. Remove `data`, `defaultData`, and `onDataChange` from the grid.
-3. Pass `getRowId` and `fetchRows` to `useDataGridServerRows`.
+3. Pass `fetchRows` to `useDataGridServerRows`. Move `getRowId` into the hook options too, unless the row id is in the `id` field.
 4. Move `onSave` into the hook options. Move your own `onDataChange` there too. A handler that you spread after `gridProps` replaces the handler of the hook.
 5. Spread `server.gridProps` onto `DataGrid`. Keep `columns` and your other props.
 
@@ -49,7 +49,6 @@ async function save(change: DataChange<Order>) {
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ spec, start, end, signal }) => {
       const response = await fetch("/api/orders/query", {
         method: "POST",

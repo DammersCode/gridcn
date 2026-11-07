@@ -37,7 +37,6 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ spec, start, end, signal }) => {
       const response = await fetch("/api/orders/query", {
         method: "POST",

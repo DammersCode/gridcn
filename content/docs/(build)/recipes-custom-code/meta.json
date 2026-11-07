@@ -7,6 +7,7 @@
     "open-detail-panel",
     "run-bulk-actions",
     "link-multiple-grids",
-    "remember-filters-layout"
+    "remember-filters-layout",
+    "test-grid-in-app"
   ]
 }

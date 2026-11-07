@@ -3,7 +3,7 @@ title: Quick search
 description: Add a search box that highlights matching cells, jumps between them, and never hides rows.
 icon: Search
 type: feature
-aliases: ["search box", "find in grid", "highlight matches"]
+aliases: ["search box", "find in grid", "highlight matches", "search all columns"]
 ---
 
 Users type a word and the grid highlights every cell that holds it. `DataGridSearch` is the input. It counts the matches, and it moves the active cell from match to match. Search never hides rows. A [filter](/docs/sort-filter-search/filtering) hides rows.
@@ -67,6 +67,8 @@ Search keeps at most 1,000 matches. Past that cap the counter reads the current 
 ## Navigate matches
 
 The counter shows `current/total`, and `0/0` when nothing matches. The next and previous buttons wrap around. A jump moves the active cell to the match and scrolls it into view. In a client grid that pages its view, the counter covers every page. The highlight marks the matches on the shown page. A jump to a match on another page changes the page. <NewBadge />
+
+Focus stays <NewBadge /> in the search field while Enter steps through the matches, so the next Enter goes to the next match. To move focus into the grid, call `api.focus()` on the grid ref.
 
 | Key | Action |
 |---|---|

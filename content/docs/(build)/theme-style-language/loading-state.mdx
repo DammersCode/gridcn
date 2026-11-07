@@ -3,7 +3,7 @@ title: Loading state
 icon: Loader
 description: Show a skeleton or a progress bar while data loads, replace it with your own display, and show a failed load with a retry button.
 type: feature
-aliases: ["loading spinner", "skeleton", "no rows message", "empty state"]
+aliases: ["loading spinner", "skeleton", "no rows message", "empty state", "no data message", "emptyState"]
 ---
 
 A grid with zero rows shows the empty state, which reads as a query without results. While a request runs, that message is wrong. Set `loading` and the grid shows that data is on the way. The flag is presentational. It does not fetch anything.
@@ -65,6 +65,24 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
 />
 ```
 
+## Empty state [#empty-state]
+
+<NewBadge />
+
+A grid with no rows in view shows the empty state. The text is `labels.grid.emptyState` ("No rows"). When a filter or the search hides every row, the text is `labels.grid.noResults` ("No results"). To change only the words, set those labels. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
+
+`emptyState` replaces the message. It takes a node, or a function that receives `{ reason }`. `reason` is `"filtered"` when a filter or the search leaves no row in view, and `"no-data"` otherwise:
+
+```tsx
+<DataGrid
+  data={rows}
+  columns={columns}
+  emptyState={({ reason }) =>
+    reason === "filtered" ? "No orders match the filter." : "No orders yet."
+  }
+/>
+```
+
 ## Error state [#error-state]
 
 A failed load needs its own message. Any `error` value except `undefined` and `null` shows it. With zero rows, the grid centers a message with a Retry button. With rows present, a slim alert bar appears under the header and the rows stay. The text comes from `labels.grid.errorState`, and the built-in display never shows the error value.
@@ -85,6 +103,7 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 | --- | --- | --- |
 | `loading` | `boolean` | `false` |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none |
+| `emptyState` <NewBadge /> | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` |
 | `error` | `unknown` | none |
 | `onRetry` | `() => void` | none |
 | `errorState` | `ReactNode \| ((ctx) => ReactNode)` | none |

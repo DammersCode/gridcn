@@ -164,7 +164,7 @@ While a pointer drags, a line <NewBadge /> shows where the row lands. A reorder 
 
 ## Server mode
 
-If your server filters the rows, set `filterMode="server"` <NewBadge />. The grid tracks `filterState`, shows the filter indicators, and calls `onFilterChange`. It never filters `data`.
+If your server filters the rows, set `filterMode="server"` <NewBadge />. The grid tracks `filterState`, shows the filter indicators, and calls `onFilterChange`. It never filters `data`. A grid with `totalRowCount` <NewBadge /> defaults to `"server"`. Set `filterMode="client"` to filter its `data` in the browser.
 
 The request is the `FilterNode[]` that `onFilterChange` receives. The answer is the rows that match. `useDataGridServerRows` sets `filterMode` for you and passes each fetch the list as `request.spec.filters`. See [Query server rows](/docs/data-modes/query-server-rows).
 

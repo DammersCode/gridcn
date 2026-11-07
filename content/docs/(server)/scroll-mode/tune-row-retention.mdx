@@ -45,7 +45,6 @@ export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
     blockSize: BLOCK_SIZE,
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/orders?${query}`, { signal });

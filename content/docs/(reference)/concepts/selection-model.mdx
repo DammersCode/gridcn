@@ -18,7 +18,7 @@ A plain header click clears the cell range and the row channel, then selects the
 
 A view index is a position in the current sorted and filtered order. A selection holds view indexes. When the view changes, the grid translates them to row ids and column ids.
 
-`useDataGridSelection()` reads the selection as a `GridSelection`. The row and column channels are `CompactSelectionLike` sets, and the exported `CompactSelection` class implements them. The type `SelectionConfig` describes the four props under Configurability.
+`useDataGridSelection()` reads the selection as a `GridSelection`. The row and column channels are `CompactSelectionLike` sets, and the exported `CompactSelection` class implements them. `runs()` <NewBadge /> returns the members as sorted `[start, end)` runs. It costs less than `toArray()` for a large selection, such as 100,000 checked rows. The type `SelectionConfig` describes the four props under Configurability.
 
 ## Selection follows records
 

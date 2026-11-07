@@ -14,7 +14,7 @@ Find the first line that matches your server:
 | If your server | Then `onSave` | Task |
 | --- | --- | --- |
 | Accepts or refuses a whole change | Returns the request promise. A rejection reverts the change. | [Revert or refetch after a save](/docs/save-server/save-revert) |
-| Recomputes values after a write | Waits for the request, then refreshes the rows. | [Revert or refetch after a save](/docs/save-server/save-revert#strategy-b-refetch-on-settle) |
+| Recomputes values after a write | Waits for the request. The hook then refreshes the rows. | [Revert or refetch after a save](/docs/save-server/save-revert#strategy-b-refetch-on-settle) |
 | Refuses some rows of a change | Resolves with `{ rejected }`. The grid reverts only those rows. | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | Rejects one field that the user can fix | Resolves normally and calls `setCellErrors`. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 
@@ -22,7 +22,7 @@ An `onSave` that returns no promise and does not throw cannot revert. The grid t
 
 ## Wire the first save [#wire-the-first-save]
 
-This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `api.ts`, both from [Load server rows](/docs/server-path/load-server-rows). It sends each change to an API and refreshes the page after the server accepts it. If the request fails, the thrown error reverts the change:
+This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `api.ts`, both from [Load server rows](/docs/server-path/load-server-rows). It sends each change to an API, and the hook fetches the page again after the saves settle. If the request fails, the thrown error reverts the change:
 
 ```tsx
 "use client";
@@ -34,29 +34,30 @@ import {
 import { columns, type Order } from "./orders";
 import { loadPage } from "./api";
 
+async function saveOrders(change: DataChange<Order>) {
+  const response = await fetch("/api/orders/changes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error("Save refused");
+}
+
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
-    getRowId: (row) => row.id,
     fetchRows: loadPage,
+    onSave: saveOrders,
   });
 
-  async function onSave(change: DataChange<Order>) {
-    const response = await fetch("/api/orders/changes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(change.ops),
-    });
-    if (!response.ok) throw new Error("Save refused");
-    setTimeout(server.refresh);
-  }
-
-  return <DataGrid {...server.gridProps} columns={columns} onSave={onSave} />;
+  return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```
 
 `change.ops` holds one operation (`ops`) for each touched row. Key each request by `rowId`, because a sort or a filter moves the [view index](/docs/concepts/state-view-index).
 
-While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`. `setTimeout` runs the refresh after the status clears, so the refresh brings in the server values.
+Pass `onSave` to the hook, not to `DataGrid`. While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`.
+
+The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
 
 `onSave` never receives the revert, which has the source `"rollback"`. It never receives a server push, which has the source `"stream"`.
 

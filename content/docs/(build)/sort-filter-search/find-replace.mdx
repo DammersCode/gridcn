@@ -134,7 +134,7 @@ A change of the find text, the replacement, or an option, a newer replace, or cl
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Replace | Replaces all matches. |
 | <kbd>Escape</kbd> | panel | Closes the panel and drops find text that is still waiting. |
 
-When the panel opened while the grid had focus, <kbd>Escape</kbd> returns focus to the grid. <kbd>Mod</kbd> is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. <kbd>Ctrl</kbd> in <kbd>Ctrl</kbd>+<kbd>H</kbd> is the physical Ctrl key on every platform, because <kbd>Cmd</kbd>+<kbd>H</kbd> hides the app on macOS. Outside the grid, <kbd>Mod</kbd>+<kbd>F</kbd> opens the browser's find bar. To change a key, bind `openFindReplace` or `openFind` in the grid's `keymap`.
+Focus stays <NewBadge /> in the panel field while Enter, Next, or Previous moves the active cell to a match. To move focus into the grid, call `api.focus()` on the grid ref. When the panel opened while the grid had focus, <kbd>Escape</kbd> returns focus to the grid. <kbd>Mod</kbd> is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. <kbd>Ctrl</kbd> in <kbd>Ctrl</kbd>+<kbd>H</kbd> is the physical Ctrl key on every platform, because <kbd>Cmd</kbd>+<kbd>H</kbd> hides the app on macOS. Outside the grid, <kbd>Mod</kbd>+<kbd>F</kbd> opens the browser's find bar. To change a key, bind `openFindReplace` or `openFind` in the grid's `keymap`.
 
 With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> with focus in the grid opens this panel, not the toolbar search.
 

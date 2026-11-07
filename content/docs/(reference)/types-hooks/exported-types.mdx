@@ -56,7 +56,8 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `SortSpec` | `{ columnId, direction }` | One sort. `direction` is `"asc"` or `"desc"`. |
 | `FilterSpec` | `{ filterId?, columnId, operator, value? }` | One filter row. `value` is a string, a pair, or a list, by operator. |
-| `FilterOperator` | A union of 15 operator names | For example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
+| `FilterOperator` | `BuiltInFilterOperator \| string` | A built-in operator, or the `id` of a custom operator. |
+| `BuiltInFilterOperator` <NewBadge /> | A union of 15 operator names | The built-in operators, for example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
 | `FilterNode` | `FilterSpec \| FilterGroup` | One entry of `filterState`. |
 | `FilterGroup` | `{ filterId?, join, filters }` | Filters that match together. `join` is a `FilterJoinOperator`, `"and"` or `"or"`. |
 | `FilterOperatorInput` | `"none" \| "single" \| "range" \| "list"` | The value shape that a filter operator takes. |

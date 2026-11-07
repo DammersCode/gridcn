@@ -104,7 +104,6 @@ export function OrdersGrid() {
   const queryClient = useQueryClient();
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: ({ spec, start, end }) =>
       queryClient.fetchQuery({
         queryKey: ["orders", serverSpecKey(spec), start, end],

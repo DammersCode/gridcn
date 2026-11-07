@@ -88,7 +88,6 @@ import { loadPage } from "./api";
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
-    getRowId: (row) => row.id,
     fetchRows: loadPage,
   });
 
