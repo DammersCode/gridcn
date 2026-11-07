@@ -59,7 +59,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them to the clipboard group. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
 
 <Callout type="warn" title="The ? shortcut claims a key">
-  With `DataGridKeybindingsShortcut` mounted and the grid focused, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
+  With `DataGridKeybindingsShortcut` mounted and the grid focused, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. A <kbd>?</kbd> typed into a text field that a cell or header renders stays with that field. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
 </Callout>
 
 ## Binding chips [#binding-chips]

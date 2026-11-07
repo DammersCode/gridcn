@@ -32,6 +32,7 @@ scan(["registry/default/blocks"], /\.tsx?$/, /\.isComposing\b/, "read IME state 
 scan(["registry/default/blocks"], /\.tsx?$/, /Math\.(?:min|max)\(\.\.\./, "reduce or loop instead of spreading into Math.min or Math.max; a large array throws RangeError");
 scan(["content/docs"], /\.mdx$/, /^\s*#+ .*<NewBadge/, "put <NewBadge /> on its own line under the heading");
 scan(["registry/default/examples", "components", "app"], /\.tsx?$/, /toLocale(?:Date|Time)?String\(\)|Intl\.(?:NumberFormat|DateTimeFormat)\((?:undefined)?\)/, "pin the locale so server and client render the same text");
+scan(["registry/default/examples"], /\.tsx?$/, /onDataChange=\{\(\s*(\w+)[^)]*\)\s*=>\s*\w+\(\[\.\.\.\1\]\)/, "store the array onDataChange hands over as given; a copy defeats the store's echo check");
 
 const examplesMap = readFileSync(join(root, "components", "registry-examples.tsx"), "utf8");
 for (const file of walk(join(root, "registry", "default", "examples"), /-demo\.tsx$/)) {

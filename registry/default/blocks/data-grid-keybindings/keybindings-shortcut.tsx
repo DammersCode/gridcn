@@ -2,11 +2,15 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useDataGridEditing } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import {
+  gridAttrSelector,
+  isComposingKey,
+  useDataGridContainer,
+} from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridKeybindingsShortcut}. */
 export type DataGridKeybindingsShortcutProps = {
-  /** Called when the grid container is focused, no editor is open, and the user presses `?` (shift+/). */
+  /** Called when the grid container is focused, no editor is open, and the user presses `?` (shift+/) outside a text field. */
   onOpen: () => void;
 };
 
@@ -17,7 +21,8 @@ export type DataGridKeybindingsShortcutProps = {
  * Excel/Notion reserve `?` for a shortcuts overlay only when it can't collide with typing into a
  * cell. `?` is a contested key: while this component is mounted and the grid has focus, it claims
  * `?` (it stops the native event before the grid's keymap and type-to-edit see it), shadowing
- * type-to-edit and any `keymap` binding on `?`.
+ * type-to-edit and any `keymap` binding on `?`. A `?` typed into an input, textarea, select, or
+ * contenteditable that a cell or header renders, or during an IME composition, stays with that field.
  */
 export function DataGridKeybindingsShortcut(props: DataGridKeybindingsShortcutProps): ReactNode {
   const { onOpen } = props;
@@ -30,6 +35,7 @@ export function DataGridKeybindingsShortcut(props: DataGridKeybindingsShortcutPr
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isComposingKey(event) || isTextEntryTarget(event)) return;
       event.preventDefault();
       // stop the native event before it reaches React's root-delegated onKeyDown, else the
       // grid's type-to-edit fallback (no keymap binding for "?") also fires and overwrites the cell
@@ -42,4 +48,14 @@ export function DataGridKeybindingsShortcut(props: DataGridKeybindingsShortcutPr
   }, [containerRef, editing, onOpen]);
 
   return null;
+}
+
+function isTextEntryTarget(event: KeyboardEvent): boolean {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || target === event.currentTarget) return false;
+  return (
+    /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
+    target.isContentEditable ||
+    target.closest(gridAttrSelector("cellEditor")) !== null
+  );
 }

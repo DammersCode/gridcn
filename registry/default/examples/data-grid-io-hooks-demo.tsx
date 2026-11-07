@@ -316,7 +316,7 @@ function ReplacePanel(props: { review: Review | null; reviewOn: boolean; setRevi
 
 /** Every export, import, and replace hook in one place: each switch turns one hook on, and the panel shows what the hook received or produced. */
 export default function DataGridIOHooksDemo(): ReactNode {
-  const [data, setData] = useState<Order[]>(INITIAL_ROWS);
+  const [data, setData] = useState<readonly Order[]>(INITIAL_ROWS);
   const [tab, setTab] = useState<Tab>("export");
   const [reviewOn, setReviewOn] = useState(false);
   const [skipName, setSkipName] = useState(false);
@@ -344,7 +344,7 @@ export default function DataGridIOHooksDemo(): ReactNode {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <DataGridProvider data={data} columns={columns} getRowId={(row) => row.id} onDataChange={(next) => setData([...next])} plugins={[findReplace.plugin]}>
+      <DataGridProvider data={data} columns={columns} getRowId={(row) => row.id} onDataChange={setData} plugins={[findReplace.plugin]}>
         <div className="flex h-[240px] min-w-0 flex-col overflow-hidden rounded-md border border-border">
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />

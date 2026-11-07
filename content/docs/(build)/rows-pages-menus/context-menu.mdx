@@ -82,7 +82,7 @@ The cell menu holds these items, in order:
 4. **Duplicate rows**. It needs `duplicateRow`.
 5. **Delete rows**, a destructive item. It runs `onBeforeDeleteRows` first.
 
-Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. If only hidden rows have checks, Duplicate and Delete turn off too. A turned-off row item shows the reason as its tooltip: `labels.contextMenu.rowActionReadOnly` or `labels.contextMenu.rowActionHiddenChecked`.
+Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. If only hidden rows have checks, Duplicate and Delete turn off too. The insert items stay on, because they insert next to the right-clicked row. A turned-off row item shows the reason as its tooltip: `labels.contextMenu.rowActionReadOnly` or `labels.contextMenu.rowActionHiddenChecked`.
 
 The shortcut of each item <NewBadge /> shows as a key hint. [Row operations](/docs/rows-pages-menus/row-operations) owns what each operation does.
 

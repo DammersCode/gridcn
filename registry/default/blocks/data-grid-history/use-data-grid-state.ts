@@ -42,8 +42,9 @@ export type UseDataGridStateResult<TData> = {
     /**
      * Applies a programmatic change (the consumer-built operation batch) to the grid AND registers it as
      * one undo entry — one `commitChange` write, recorded by the history plugin's observer.
+     * Returns the same result as `useDataGridHistory`'s `record`.
      */
-    record: (change: DataChange<TData>, label?: string) => void;
+    record: (change: DataChange<TData>, label?: string) => boolean;
     /** Reverts a change whose save failed; see `useDataGridHistory`'s `rollback`. */
     rollback: (change: DataChange<TData>) => void;
   };

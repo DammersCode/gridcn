@@ -25,10 +25,14 @@ const ROWS: Row[] = [
   { id: "r1", name: "Bob" },
 ];
 
-function Harness() {
+const columnsWithHeaderInput = defineColumns<Row>()([
+  { id: "name", header: <input aria-label="Header note" />, accessorKey: "name", type: "text", width: 140 },
+] as const);
+
+function Harness({ gridColumns = columns }: { gridColumns?: typeof columns | typeof columnsWithHeaderInput }) {
   const [open, setOpen] = useState(false);
   return (
-    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id}>
+    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id}>
       <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
       <DataGridRoot className="h-[300px]">
         <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
@@ -65,6 +69,30 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
     await expect.element(page.getByRole("dialog")).toBeInTheDocument();
     expect(gridCell("Alice").textContent).toContain("Alice");
     await expect.element(page.getByRole("gridcell", { name: "?" })).not.toBeInTheDocument();
+  });
+
+  it("leaves '?' typed into an input a header renders to that input", async () => {
+    await render(<Harness gridColumns={columnsWithHeaderInput} />);
+    const input = page.getByRole("textbox", { name: "Header note" });
+    await expect.element(input).toBeInTheDocument();
+
+    await userEvent.click(input);
+    await userEvent.keyboard("?");
+
+    await expect.element(input).toHaveValue("?");
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("ignores '?' during an IME composition", async () => {
+    await render(<Harness />);
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await userEvent.click(gridCell("Alice"));
+
+    const composing = new KeyboardEvent("keydown", { key: "?", shiftKey: true, isComposing: true, bubbles: true, cancelable: true });
+    document.activeElement!.dispatchEvent(composing);
+
+    expect(composing.defaultPrevented).toBe(false);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it("lists a known keymap binding (Undo: mod Z) and the native Copy shortcut", async () => {

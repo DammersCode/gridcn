@@ -34,7 +34,7 @@ const INITIAL: Order[] = [
  * keys and Enter or with a click. The third row stores a bare key, so it shows the key in muted text until you pick its company.
  */
 export default function DataGridLookupDemo(): ReactNode {
-  const [data, setData] = useState<Order[]>(INITIAL);
+  const [data, setData] = useState<readonly Order[]>(INITIAL);
   const columns = useMemo<readonly ColumnDef<Order, unknown>[]>(
     () => [
       { id: "item", header: "Item", accessorKey: "item", type: "text", width: 140, flex: 1 },
@@ -44,7 +44,7 @@ export default function DataGridLookupDemo(): ReactNode {
   );
   return (
     <div className="w-full h-[200px] overflow-hidden rounded-md border border-border">
-      <DataGridProvider data={data} onDataChange={(next) => setData([...next])} columns={columns} getRowId={(row) => row.id} cellTypes={{ lookup: lookupCellType }}>
+      <DataGridProvider data={data} onDataChange={setData} columns={columns} getRowId={(row) => row.id} cellTypes={{ lookup: lookupCellType }}>
         <DataGridRoot className="h-full rounded-none border-none">
           <DataGridHeader />
           <DataGridBody />

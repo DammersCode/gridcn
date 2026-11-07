@@ -235,7 +235,7 @@ describe("delete-rows after a sort", () => {
 });
 
 describe("row items with only hidden checked rows", () => {
-  it("disables Delete rows and Duplicate rows", async () => {
+  it("disables Delete rows and Duplicate rows with the reason, and keeps the insert items enabled without one", async () => {
     let cell: GridMenuItemSpec[] = [];
     function Hidden() {
       const actions = useDataGridActions();
@@ -243,7 +243,7 @@ describe("row items with only hidden checked rows", () => {
         actions.setRowSelected(0, true);
         actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Bob" }]);
       }, [actions]);
-      cell = useDefaultCellMenuItems({ row: 0, canInsertRow: false, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });
+      cell = useDefaultCellMenuItems({ row: 0, canInsertRow: true, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });
       return null;
     }
     render(
@@ -255,6 +255,12 @@ describe("row items with only hidden checked rows", () => {
     );
     await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
     expect(item(cell, "duplicate-rows")?.disabled).toBe(true);
+    expect(item(cell, "delete-rows")?.tooltip).toBe("Only hidden rows are checked");
+    expect(item(cell, "duplicate-rows")?.tooltip).toBe("Only hidden rows are checked");
+    for (const id of ["insert-row-above", "insert-row-below"]) {
+      expect(item(cell, id)?.disabled).toBeFalsy();
+      expect(item(cell, id)?.tooltip).toBeUndefined();
+    }
   });
 });
 

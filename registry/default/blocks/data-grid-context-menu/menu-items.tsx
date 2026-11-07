@@ -188,8 +188,8 @@ export function useDefaultCellMenuItems(args: {
   }
   if (canInsertRow) {
     specs.push(
-      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
-      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "below") },
+      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
+      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "below") },
     );
   }
   if (canDuplicateRow) {

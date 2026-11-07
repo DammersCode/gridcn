@@ -1,5 +1,5 @@
 import { act, cleanup, render, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGrid, type ColumnDef, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
@@ -148,6 +148,30 @@ describe("useDataGridState", () => {
 
     act(() => h.grid().history.redo());
     expect(h.data()[0]!.name).toBe("Zoe");
+  });
+
+  it("history.record returns the result of useDataGridHistory's record", () => {
+    const h = setup();
+    const prev = defaultRows[0]!;
+    const next = { ...prev, name: "Zoe" };
+    expectTypeOf(h.grid().history.record).returns.toEqualTypeOf<boolean>();
+
+    let applied: boolean | undefined;
+    act(() => {
+      applied = h.grid().history.record({
+        source: "app",
+        ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Zoe", prev: "Alice" }] }],
+      });
+    });
+    expect(applied).toBe(true);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let duplicateInsert: boolean | undefined;
+    act(() => {
+      duplicateInsert = h.grid().history.record({ source: "app", ops: [{ type: "insert", rowId: "b", row: defaultRows[1]!, index: 1 }] });
+    });
+    warn.mockRestore();
+    expect(duplicateInsert).toBe(false);
   });
 
   // An unstable getRowId defeats useDataGridRowIdToViewRow's memoization (O(n) Map rebuild on
