@@ -99,7 +99,7 @@ The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends on the core `data-grid`. A few also install the shadcn/ui components they use, `data-grid-pagination`, or `use-debounce`:
+Each add-on is a separate registry item that depends on the core `data-grid`. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
 
 | Item | Adds | Docs |
 | --- | --- | --- |
@@ -120,7 +120,7 @@ Each add-on is a separate registry item that depends on the core `data-grid`. A 
 | `data-grid-views` | Saved views of sort, filters, search, and column layout | [Saved views](https://gridcn.vercel.app/docs/sort-filter-search/saved-views) |
 | `use-debounce` | The `useDebounce` and `useDebouncedInput` hooks that the toolbar, find and replace, and lookup use | [useDebounce](https://gridcn.vercel.app/docs/types-hooks/use-debounce) |
 | `is-composing-key` | `isComposingKey(event)`: tells a key of an IME composition from a plain key, for Enter and Escape handlers | [isComposingKey](https://gridcn.vercel.app/docs/types-hooks/is-composing-key) |
-| `data-grid-status-bar` | Status bar: row count, selection summary, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
+| `data-grid-status-bar` | Status bar: row count, selection summary, the select-all-matching banner of a server grid, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
 
 ## Agent skills
 

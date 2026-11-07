@@ -158,7 +158,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       if (!warnedSparseData.current && hasHoles && isDev()) {
         warnedSparseData.current = true;
         console.warn(
-          "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes, so an undo that needs them is blocked and keeps its entry. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) on lazy.reset() or a dataset swap.",
+          "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes, so an undo that needs them is blocked and keeps its entry. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) when server.refresh() replaces the rows or the dataset changes.",
         );
       }
       if (missing.length === 0) {

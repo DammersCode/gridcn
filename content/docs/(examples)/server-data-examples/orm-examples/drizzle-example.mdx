@@ -123,7 +123,6 @@ const columns = defineColumns<User>()([
 
 export function UsersGrid() {
   const server = useDataGridServerRows<User>({
-    getRowId: (row) => String(row.id),
     fetchRows: async ({ spec, start, end, signal }) => {
       const body = JSON.stringify({ spec, start, end });
       const init = { method: "POST", body, signal };
@@ -156,7 +155,6 @@ import {
 
 const url = useDataGridUrlPagination();
 const server = useDataGridServerRows<User>({
-  getRowId: (row) => String(row.id),
   fetchRows, // the function of the client above
   ...url,
 });

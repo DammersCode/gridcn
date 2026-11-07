@@ -151,6 +151,8 @@ A `url` cell stores the URL as text and shows it as a link. The link opens in a 
 
 A `longText` cell stores multi-line text as it is. The cell shows one line: the first 500 characters, with line breaks as spaces. The editor is a popover with a textarea that opens over the cell.
 
+The built-in cell types do not wrap text. All rows have the same height, and a cell shows one line that ends with an ellipsis when the text is too long. To show more text, set `rowHeight` to a larger value and return an element with the `whitespace-normal` and `line-clamp-2` classes from `renderCell`. The full text stays in the `longText` editor. See [Density and small screens](/docs/theme-style-language/density-small-screens) and [Display override](/docs/editing-cells/display-override).
+
 <kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
 
 `maxLength` defaults to 100,000. The textarea enforces it while typing. The type's own `validate` rejects pasted, filled, or imported text over 100,000 characters. A column with a smaller `maxLength` needs its own `validate` to reject the same text on those paths.

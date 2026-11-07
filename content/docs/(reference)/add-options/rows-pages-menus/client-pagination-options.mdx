@@ -76,7 +76,7 @@ export function CompactPager({ rows }: { rows: { id: string }[] }) {
   });
   return (
     <>
-      <p>{pageData?.length} rows on this page</p>
+      <p>{pageData.length} rows on this page</p>
       <DataGridPaginationBar {...pager}>
         <DataGridPaginationRange />
         <div className="flex items-center gap-1">

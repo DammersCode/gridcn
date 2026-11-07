@@ -81,6 +81,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
 | `filterMatch` | `(value, filter) => boolean` | none | Replaces the text matcher for this column. |
 | `filterOperators` | `readonly (BuiltInFilterOperator \| CustomFilterOperator)[]` | from `type` | Operators that the filter menu offers. A custom operator is an object. See [Filtering](/docs/sort-filter-search/filtering#custom-operators). |
+| `filterCompare` | `(text, bound) => number` | none | Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order. See [Filtering](/docs/sort-filter-search/filtering). |
 | `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
 | `hidden` | `boolean` | none | `true` hides the column at start. `setColumnHidden` and the columns menu change it later. |
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |

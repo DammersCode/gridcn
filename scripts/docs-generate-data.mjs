@@ -95,7 +95,7 @@ export const FEATURES = {
   print: F(["/docs/import-export/export"], ["/docs/add-options/import-export/export-options"], "data-grid-io"),
   "undo-redo": F(["/docs/clipboard-undo/undo-redo"], ["/docs/add-options/clipboard-undo/undo-redo-options"], "data-grid-history"),
   "row-ops": F(["/docs/rows-pages-menus/row-operations"], ["/docs/events-state/data-change-events"]),
-  validation: F(["/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field"], ["/docs/events-state/edit-validation-events"]),
+  validation: F(["/docs/editing-cells/validation"], ["/docs/events-state/edit-validation-events"]),
   "write-through": F(["/docs/save-server/save-edits"], ["/docs/events-state/data-change-events"]),
   streaming: F(["/docs/rows-live-data/stream-updates"], ["/docs/types-hooks/store-hooks"]),
   "url-state": F(["/docs/sort-filter-search/url-state"], ["/docs/add-options/sort-filter-search/url-state-options"], "data-grid-url-state"),

@@ -48,9 +48,9 @@ On CI, the sort and the combined limits are twice as high. No test pins the moun
 
 <NewBadge />
 
-The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. A number column took 4 to 7 ms, 13 to 15 times faster than the comparator sort. A text column took 72 ms, 3 times faster. Your hardware changes these numbers.
+The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. A number column took 4 to 7 ms, 7.7 to 15 times faster than the comparator sort. A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least. The full run is in `research/perf-sort-1m.md`. Your hardware changes these numbers.
 
-Some columns still use the slower comparator sort. They are a column with `sortCompare`, a cell type with its own `compare`, and a number column with `NaN`, infinite values, or text. A view of fewer than 256 rows uses it too.
+Some columns still use the slower comparator sort. They are a column with `sortCompare` and a cell type with its own `compare`. A number column with `NaN`, infinite values, values above 1e300, or text uses it too. So does a text column with values that are not strings. A view of fewer than 256 rows uses it too.
 
 ## Logged output [#logged-output]
 

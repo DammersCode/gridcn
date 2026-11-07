@@ -16,19 +16,23 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 2. If you used `data-grid-lazy`, install `data-grid-server` and move the grid to it. See [Server rows](#server-rows).
 3. After the move, delete the `components/data-grid-lazy/` folder. A reinstall does not remove it.
 4. Rename the identifiers in the tables below.
-5. Check each behavior change in the lists below, and the [changed defaults](#changed-defaults).
+5. Check each behavior change below, and the [changed defaults](#changed-defaults).
 6. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
 
-The type check passes, and the grid saves, loads, and checks rows as before.
+The type check passes, and the grid works as before.
 
 ### Changed defaults [#changed-defaults]
 
-- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` and a client sort or filter stops sorting and filtering its rows. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
-- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change the stacking of a cell. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
+- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` stops sorting and filtering its rows on the client. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
 
 In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before the write, and a throw stopped it. In 2.0, a callback fires after the write. A throw keeps the write, and the grid rethrows it after the other [callbacks](/docs/events-state/event-shapes#callback-errors).
+
+### Labels [#labels]
+
+`labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function of the modifier key. Handle both forms where you read them.
 
 ## Save APIs [#save-apis]
 
@@ -88,7 +92,7 @@ export function OrdersGrid() {
 }
 ```
 
-Scroll mode starts a block request after `loadDelay` milliseconds (default 100). Pass `loadDelay: 0` for the 1.3 timing. It keeps at most `maxLoadedRows` rows (default 10,000). Pass `maxLoadedRows: Infinity` to keep every row.
+Scroll mode starts a block request after `loadDelay` milliseconds (default 100). Pass `loadDelay: 0` for the 1.3 timing. It keeps at most `maxLoadedRows` rows (default 10,000). `Infinity` keeps every row.
 
 ### Pushes and row operations [#pushes]
 
@@ -101,8 +105,8 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 - `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
 - For server pages, call `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`.
-- `total` is `totalRowCount`, and `null` marks an unknown size. That covers the server options, `pager`, and `useDataGridUrlPagination`.
-- 2.0 drops `reconcilePage`. A server page outside the range calls `onPageChange` once with the clamped page.
+- `total` is `totalRowCount` in the server options, `pager`, and `useDataGridUrlPagination`. `null` marks an unknown size.
+- `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
 - To page the grid view, set `pageSize` on the provider instead of `pageData`.
 
 ## Filters [#filters]
