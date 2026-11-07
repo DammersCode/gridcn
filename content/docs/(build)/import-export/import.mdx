@@ -14,7 +14,7 @@ Import reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` ope
 
 ## Import a file [#import]
 
-Render this component inside the grid's provider. It appends the rows as one undoable change:
+Render this component inside the grid's provider. `./orders` stands for your own module, and `Order` is your row type, here `{ id: string; customer: string; total: number }`. The component appends the rows as one undoable change:
 
 ```tsx
 "use client";

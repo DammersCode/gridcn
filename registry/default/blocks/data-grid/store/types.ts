@@ -323,7 +323,7 @@ export type DataGridSyncProps<TData = unknown> = {
   sortMode?: "client" | "server";
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
   defaultSortState?: SortSpec[];
-  /** Fires whenever the user (or `actions.toggleSort`/`setSorts`) would change the sort, controlled or not; see `sortState`. */
+  /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
@@ -336,13 +336,13 @@ export type DataGridSyncProps<TData = unknown> = {
   filterMode?: "client" | "server";
   /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
   defaultFilterState?: FilterNode[];
-  /** Fires whenever the user (or `actions.setFilters`) would change the filters, controlled or not; see `filterState`. */
+  /** Fires after the user (or `actions.setFilters`) changes the filters: uncontrolled, after the grid writes them; controlled, with the next filters. See `filterState`. */
   onFilterChange?: (next: FilterNode[]) => void;
   /** Controlled quick-search text; same controlled/uncontrolled semantics as `sortState`. */
   searchText?: string;
   /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`. */
   defaultSearchText?: string;
-  /** Fires whenever the user (or `actions.setSearch`) would change the search text, controlled or not; see `searchText`. */
+  /** Fires after the user (or `actions.setSearch`) changes the search text: uncontrolled, after the grid writes it; controlled, with the next text. See `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
    * Installed plugins (add-ons that reach into the grid): overlay layers, row bands, data-change

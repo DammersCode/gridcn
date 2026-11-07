@@ -14,6 +14,10 @@ aliases: ["nuqs", "share a link"]
 | [`useDataGridUrlState`](#usedatagridurlstate) | Hook behind the component | [URL state](/docs/sort-filter-search/url-state) |
 | [`useDataGridUrlPagination`](#usedatagridurlpagination) | Hook for `page` and `pageSize` | [URL state](/docs/sort-filter-search/url-state) |
 
+<Callout type="warn" title="Filter values and search text go into the URL">
+  If a filter or the search can hold personal data, leave URL state off for that grid. The browser history, server logs, and the `Referer` header of the next request keep the query. See [What leaves the browser](/docs/support-upgrades/security-policy#data-egress).
+</Callout>
+
 ## DataGridUrlState [#datagridurlstate]
 
 The component renders nothing. Mount it once inside `DataGridProvider`. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. Render it inside `DataGridProvider`:

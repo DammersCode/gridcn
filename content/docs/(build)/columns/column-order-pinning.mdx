@@ -35,7 +35,15 @@ Render the button inside `DataGridProvider`. `reorderable: false` on a column st
 
 ## Pin to the start or end [#pin-startend]
 
-`pin: "left"` pins a column to the start side, and `pin: "right"` pins it to the end side. In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state.
+`pin: "left"` pins a column to the start side, and `pin: "right"` pins it to the end side. This column stays at the start edge, so the first column is frozen:
+
+```tsx
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", pin: "left" },
+  { id: "email", header: "Email", accessorKey: "email" },
+]);
+```
+ In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state.
 
 The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
 

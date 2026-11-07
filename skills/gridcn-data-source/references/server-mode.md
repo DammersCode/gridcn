@@ -2,7 +2,7 @@
 
 Contents: [Scroll mode](#scroll-mode-data-grid-server) · [`data-grid-pagination` (server mode)](#data-grid-pagination-server-mode)
 
-Both variants share the same shape: hold the spec outside the grid's store, send it to the fetch, and set `sortMode="server"` so the grid never re-sorts the loaded slice client-side, and pass `filterState` as a stable empty array so it never re-filters it. Without them the grid sorts and filters locally.
+Both variants share the same shape: hold the spec outside the grid's store, send it to the fetch, and pass `totalRowCount` so `sortMode` and `filterMode` default to `"server"` and the grid never re-sorts or re-filters the loaded slice. Without a count, set `sortMode="server"` and `filterMode="server"` yourself. Without them the grid sorts and filters locally. `useDataGridServerRows` sets both in `gridProps`.
 
 ## Scroll mode (`data-grid-server`)
 
@@ -86,8 +86,10 @@ function OrdersGrid() {
       <DataGrid
         data={rows}
         columns={columns}
-        sortMode="server"
+        totalRowCount={total}
         onSortChange={onSortChange}
+        onFilterChange={onFilterOrSearchChange}
+        onSearchTextChange={onFilterOrSearchChange}
         headerClickBehavior="sort"
       />
       <DataGridPaginationBar {...pager} />
@@ -98,7 +100,7 @@ function OrdersGrid() {
 
 Rules:
 
-- The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The lazy-loading rules above apply unchanged: `sortMode="server"`, and `headerClickBehavior="sort"`.
+- The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The rules above apply unchanged: `totalRowCount` makes both modes `"server"`, and header clicks sort only with `headerClickBehavior="sort"`.
 - The `useEffect`'s `stale` flag is required in server mode: a page-2 response arriving after a page-3 request has already fired must not clobber page 3's rows.
 - The hook fires your `onPageChange` once with the clamped page when `totalRowCount` shrinks below the current page, and never while the count is 0. It never sets state itself.
 - With your own fetch state, a sort, filter, or search change must call `onPageChange(1)` by hand. A `DataGridProvider` with `pageSize` and `useDataGridServerRows` go back to page 1 by themselves.
@@ -125,5 +127,5 @@ empty group           -> matches every row (emit no predicate)
 ## No row count (cursor or "has more" APIs)
 
 - Scroll: `useDataGridServerRows({ mode: "scroll", fetchRows: ({ cursor, start, end, signal }) => ... })`. Send `end - start` as the page size: the rows past it are dropped and the next cursor skips them. Resolve `{ rows, nextCursor }`; `nextCursor: null` ends the source; any other value (including `0`) means more. Without a cursor, resolve `{ rows, hasMore }`; `hasMore: false` ends the source. The hook keeps the first `end - start` rows of a longer answer. Blocks load in order, one at a time. A spec change restarts at block 0 by itself; `refresh()` refetches from the first block and keeps rows with a pending save. `evict` does nothing.
-- Pagination: `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })`. `pager.totalRowCount` is `null`; keep one cursor per page in your state and drop them when the page size, sort, or filter changes.
+- Pagination: `useDataGridServerRows({ mode: "pages" })` keeps the cursor chain: resolve `{ rows, nextCursor }`, and each page request carries the `cursor` of the page before. Do not keep the chain in your own state. Only with your own fetch and `useDataGridServerPager({ page, pageSize, totalRowCount: null, hasMore, onPageChange })` keep one cursor per page in your state and drop them when the page size, sort, or filter changes. `pager.totalRowCount` is `null` there.
 - Select-all covers loaded rows and skeletons; send "all matching" bulk actions to your own endpoint.

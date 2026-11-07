@@ -3,7 +3,7 @@ title: Performance guidance
 icon: Lightbulb
 description: Keep a 100,000-row grid smooth. See what the grid does for you, which props to keep stable, and how to check scroll speed.
 type: concept
-aliases: ["slow scrolling", "laggy", "stutter", "dropped frames", "large dataset", "100k rows", "slow grid"]
+aliases: ["slow scrolling", "laggy", "stutter", "dropped frames", "large dataset", "100k rows", "slow grid", "huge data", "many rows", "100000 rows"]
 ---
 
 Why does a grid with 100,000 rows scroll smoothly, and what slows it down? The grid draws only the rows in view and skips work for rows that did not change. Your code keeps the second part working. A new `columns` array, `data` array, or class function on every render makes every row in view render again.

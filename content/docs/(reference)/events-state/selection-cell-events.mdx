@@ -40,6 +40,8 @@ Dragging out a range fires the callback once per cell the pointer crosses. To re
 
 The active cell is not part of `SelectionState`. Use `onActiveCellChange` for it.
 
+The callback <NewBadge /> runs after the grid writes the selection. If it throws, the grid prints `[data-grid] onSelectionChange threw:` as a console error, and its other updates still run. `onActiveCellChange` follows the same rule. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+
 ### Control the selection [#controlling-the-selection]
 
 Pass `selection` to control the state. A gesture writes to the grid and fires the callback at once. A new value replaces the selection without firing the callback. It must differ from the current selection and from the last fired value.

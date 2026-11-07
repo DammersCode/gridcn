@@ -31,6 +31,17 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 - **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Put `...server.gridProps.plugins` first. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
 - **A failed save does not revert the edit.** Your `onSave` returns no promise, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row or with `actions.clearSaveStatus()`.
+- **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row, and refuse the row with `current`. Then `resolveSaveConflict` picks the row that wins. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).
+- **A new row keeps its client id after the save.** Call `actions.replaceRowId(oldId, row)` with the server row. See [Save edits](/docs/save-server/save-edits#id-swap).
+
+## Scroll mode [#scroll-mode]
+
+<NewBadge />
+
+- **Rows show skeletons for a moment after a scroll.** A block starts after it stays in the wanted range for `loadDelay` milliseconds (default 100). Pass `loadDelay: 0` to start at once.
+- **Rows that you scrolled past load again.** `maxLoadedRows` (default 10,000) unloads the blocks that the user viewed longest ago. Raise it, or pass `Infinity`. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
+- **The scroll height grows in steps.** The source sends no row count, so the blocks load in order, one at a time. See [Load without row count](/docs/scroll-mode/load-without-row-count).
+- **One block fails while the others load.** The grid keeps the loaded rows and shows an error state. Call `server.retry()` after you fix the cause. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).
 
 ## Selection [#selection]
 
@@ -46,3 +57,4 @@ A warning says that the mode changed. The hook cannot switch `mode` after mount.
 - [Server rows contract](/docs/contracts/server-rows-contract): what the grid sends and what your backend returns
 - [Load rows by page](/docs/server-pagination/load-rows-page): the pages mode step by step
 - [Save edits](/docs/save-server/save-edits): `onSave` and the save status
+- [Recover from load errors](/docs/scroll-mode/recover-load-errors): retry a failed block in scroll mode

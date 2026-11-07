@@ -1,0 +1,82 @@
+---
+title: Adopt the grid in an existing table
+icon: TableProperties
+description: Replace one table of an existing app with the grid, keep your fetch and your state, and map each column to a ColumnDef.
+type: task
+aliases: ["existing table", "replace a table", "incremental adoption"]
+---
+
+The grid takes an array of rows and a list of column definitions. It has no table library underneath and no table instance to share. You replace one table at a time, and the other tables of the app keep running.
+
+## Before you start
+
+- Your project needs React 19, Tailwind CSS 4, and shadcn/ui set up with `npx shadcn init`. See [Install gridcn](/docs/learning-path/install-gridcn#prerequisites).
+- The core installs four npm packages: `zustand`, `use-sync-external-store`, `lucide-react`, and `@base-ui/react`. It adds no table library.
+- The CLI writes the grid to `components/data-grid/` and adds the shadcn/ui components that the grid uses. If a component file differs from yours, the CLI asks before it overwrites it.
+
+## Steps
+
+1. Run `npx shadcn add @gridcn/data-grid`.
+2. Keep the code that loads your rows. Pass the rows as `data` and your setter as `onDataChange`. If a row has no `id` field, pass `getRowId`.
+3. Map each column of the old table to a `ColumnDef`, as the table below shows.
+4. If your page holds the sort or the filters, pass them as `sortState` and `filterState` with `onSortChange` and `onFilterChange`. If your server sorts and filters, also set `sortMode="server"` and `filterMode="server"`.
+5. Give the grid a fixed height, for example `className="h-96"`.
+6. After the last page moves to the grid, delete the old table component.
+
+## Map the columns [#map-the-columns]
+
+| Old column setting | `ColumnDef` field |
+|---|---|
+| The field that the column shows | `accessorKey` |
+| A value that the column computes | `accessorFn: (row) => value` |
+| The heading | `header` |
+| A number, date, checkbox, or choice column | `type`: `"number"`, `"date"`, `"checkbox"`, or `"select"` with `choices` |
+| A custom cell render | `renderCell`. See [Display override](/docs/editing-cells/display-override). |
+| A fixed width | `width` in pixels |
+
+Every column needs a unique `id`. `defineColumns<Row>()` checks each `accessorKey` against your row type. This sample keeps the fetch and the sort state of the page:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type SortSpec,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+] as const);
+
+export function OrdersTable({ orders }: { orders: Order[] }) {
+  const [rows, setRows] = useState(orders);
+  const [sorts, setSorts] = useState<SortSpec[]>([]);
+  return (
+    <DataGrid
+      data={rows}
+      onDataChange={(next) => setRows([...next])}
+      columns={columns}
+      sortState={sorts}
+      onSortChange={setSorts}
+      className="h-96"
+    />
+  );
+}
+```
+
+## Result
+
+The new grid shows the same rows and columns as the old table, and your state still drives the sort. The other tables of the app run as before.
+
+## Related
+
+- [Define columns](/docs/learning-path/define-columns): the column settings step by step
+- [ColumnDef](/docs/components-props/column-def): every column field
+- [Event shapes](/docs/events-state/event-shapes#controlled-pairs): controlled props and their callbacks
+- [Load server rows](/docs/server-path/load-server-rows): move a server table to the grid
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn): reinstall the files after a release

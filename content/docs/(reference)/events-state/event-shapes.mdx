@@ -52,9 +52,9 @@ A controlled prop and its callback follow the React rule for `value` and `defaul
 
 Omit the value prop and the grid owns the state. The callback still fires.
 
-Two update rules apply:
+Three update rules apply:
 
-- You answer first: `sortState`, `filterState`, and `searchText`. The grid reports the change and waits. When you pass the new value, the view changes.
+- You answer first: `sortState`, `filterState`, and `searchText`. With the value prop, the grid writes nothing, and the callback receives the next value. When you pass the new value, the view changes. Without the value prop, the grid writes the change, then fires the callback.
 - `data`: the grid applies the change at once and reports it. The next render replaces the rows with the `data` you pass, so pass `next` back.
 - The grid answers first: `selection` and `columnLayout`. The grid applies the gesture and fires the callback at once. A value you pass back that equals the fired value changes nothing. Any other value applies without firing the callback.
 
@@ -76,6 +76,22 @@ A gate runs before the grid acts and can stop the action:
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
 `onEditStart`, `onBeforeDeleteRows`, and `processPaste` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action.
+
+## Callback timing and errors [#callback-errors]
+
+<NewBadge />
+
+A callback runs synchronously, after the grid writes the change. Inside the callback, the store holds the new state. With a controlled value prop, the grid writes nothing, and the callback receives the next value.
+
+These callbacks rethrow: `onSortChange`, `onFilterChange`, `onSearchTextChange`, `onPageChange`, `onPageSizeChange`, `onColumnLayoutChange`, `onColumnResizing`, `onValidationError`, and `onEditEnd`. If one of them throws, these rules apply:
+
+- The change stays written.
+- The other callbacks of the change still run. For example, a filter change resets a paged grid to page 1. A throwing `onFilterChange` still lets that `onPageChange` fire.
+- After they ran, the grid rethrows the first error to the caller, for example a click handler or your `setSorts` call.
+
+These callbacks log: `onSelectionChange`, `onActiveCellChange`, and the `onEditEnd` of an edit that a view change ends. If one of them throws, the grid prints `[data-grid] <callback> threw:` and the error as a console error. The grid's other updates still run.
+
+`onDataChange` and `onSave` follow the rules of [Data change events](/docs/events-state/data-change-events#ondatachange).
 
 ## Related
 

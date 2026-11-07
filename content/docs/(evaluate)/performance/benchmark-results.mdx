@@ -1,7 +1,7 @@
 ---
 title: Benchmark results
 icon: ChartBar
-description: See what the scroll suites measure and the thresholds each one enforces, so you know what a pass means and how to compare machines.
+description: See what the scroll and view rebuild tests measure, the thresholds each one enforces, and the measured sort speed.
 type: reference
 aliases: ["how fast", "performance numbers", "speed"]
 ---
@@ -26,6 +26,31 @@ The frame-rate suites mount `DataGrid` 600 px high and 1200 px wide with nine co
 | Mounted rows | Scrolls a fast burst, then waits. | The mounted row count returns to its idle size after the scroll settles. |
 
 The thresholds sit below a healthy run. They catch a collapse, not a small slowdown.
+
+## View rebuild thresholds [#view-rebuild]
+
+<NewBadge />
+
+A unit test builds the view of 100,000 rows in Node, with no rendering. It times each sort and filter step:
+
+| Step | Pass when |
+|---|---|
+| One `contains` text filter | Under 200 ms |
+| Three filters joined with `and` | Under 400 ms |
+| Three filters in an `or` group | Under 300 ms |
+| `isBetween` on a number and a date column | Under 400 ms |
+| A sort on three columns | Under 1,000 ms |
+| A filter and a sort together | Under 700 ms |
+
+On CI, the sort and the combined limits are twice as high. No test pins the mount time of the grid.
+
+## Sort speed [#sort-speed]
+
+<NewBadge />
+
+The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. A number column took 4 to 7 ms, 13 to 15 times faster than the comparator sort. A text column took 72 ms, 3 times faster. Your hardware changes these numbers.
+
+Some columns still use the slower comparator sort. They are a column with `sortCompare`, a cell type with its own `compare`, and a number column with `NaN`, infinite values, or text. A view of fewer than 256 rows uses it too.
 
 ## Logged output [#logged-output]
 

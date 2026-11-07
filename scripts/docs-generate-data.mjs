@@ -11,17 +11,17 @@ export const FINDER = [
   {
     id: "data-fetching",
     title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
+    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/server-path/handle-failures", ["/docs/save-server/handle-refused-saves#resolve-a-conflict", "Resolve an edit conflict between two users"], "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
   },
   {
     id: "sort-filter-search",
     title: "Sort, filter, and search",
-    pages: ["/docs/learning-path/sort-filter-rows", "/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views"],
+    pages: ["/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views"],
   },
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"], "/docs/recipes-custom-code/write-cell-type"],
   },
   {
     id: "ui-patterns",
@@ -36,12 +36,12 @@ export const FINDER = [
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", "/docs/row-examples/row-actions-example", "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
+    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
   },
   {
     id: "import-export-style",
-    title: "Import, export, and style",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", "/docs/performance/row-limits"],
+    title: "Files, style, accessibility, and speed",
+    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells by value"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"], "/docs/performance/row-limits"],
   },
 ];
 

@@ -26,6 +26,10 @@ The type check passes, and the grid saves, loads, and checks rows as before.
 - A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` and a client sort or filter stops sorting and filtering its rows. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
 - Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change the stacking of a cell. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
+### Callback timing [#callbacks]
+
+In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before the write, and a throw stopped it. In 2.0, a callback fires after the write. A throw keeps the write, and the grid rethrows it after the other [callbacks](/docs/events-state/event-shapes#callback-errors).
+
 ## Save APIs [#save-apis]
 
 | 1.3 | 2.0 |
@@ -48,7 +52,7 @@ The type check passes, and the grid saves, loads, and checks rows as before.
 | `batchSize`, `pageSize` | `blockSize` |
 | `reset()`, `isLoading` | `refresh()`, `loading` |
 | `LazyFetchContext` | `ServerRowsRequest` |
-| `Range` from `data-grid-lazy` | `RowRange` from `data-grid` |
+| `Range`, `ServerSpec`, `serverSpecKey` from `data-grid-lazy` | `RowRange`, `ServerSpec`, `serverSpecKey` from `data-grid` |
 | `spec.search` | `spec.searchText`, also in `defaultSpec` |
 | `maxFetchRows` | none. Each request covers one block. |
 

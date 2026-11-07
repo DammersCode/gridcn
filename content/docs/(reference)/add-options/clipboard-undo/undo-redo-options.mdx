@@ -49,7 +49,7 @@ The `recordSources` example in the table leaves out `replace`. To record streams
 
 - `capacity` defaults to `100`. It counts entries, not operations. A change of `capacity` between renders starts an empty history.
 - `recordSources` defaults to `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app`. The default leaves out `stream`, `history`, and `rollback`.
-- The history never records `history` or `rollback`, whatever the list says.
+- The history never records `history`, `rollback`, `merge`, or `id-swap`, whatever the list says.
 - A change of `datasetKey` between renders clears both stacks. The first render clears nothing.
 
 ## UseDataGridHistoryResult [#usedatagridhistoryresult]

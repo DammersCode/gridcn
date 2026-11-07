@@ -14,7 +14,7 @@ The `data-grid-presence` add-on paints the selections of other users on top of t
 
 ## Wire the plugin [#wiring-it-up]
 
-`useDataGridPresence()` returns a `plugin` and the setters. Call it once per grid, in your own component above `<DataGrid>`. The `plugins` prop lives on the grid, so the plugin must exist first. Every further call creates another store, and only the plugin that you pass to `plugins` paints.
+`useDataGridPresence()` returns a `plugin` and the setters. Call it once per grid, in your own component above the grid (`DataGrid` or `DataGridProvider`). The `plugins` prop lives on the grid, so the plugin must exist first. Every further call creates another store, and only the plugin that you pass to `plugins` paints.
 
 ```tsx
 "use client";

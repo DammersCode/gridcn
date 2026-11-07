@@ -99,6 +99,26 @@ The header filter popover and the `isAnyOf` input of the filter menu list the va
 loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See
 [Server values](/docs/sort-filter-search/header-filter#server-values).
 
+#### Custom operators [#custom-operators]
+
+<NewBadge />
+
+A [custom operator](/docs/sort-filter-search/filtering#custom-operators) reaches the spec as a filter with its `id` in `operator`. List the `id` with its value shape, then map it to your query, as this sample shows:
+
+```ts
+import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
+
+export function regionFilters(body: { spec: unknown }) {
+  const spec = parseServerSpec(body.spec, {
+    columns: { city: { customOperators: { inRegion: "single" } } },
+  });
+  // A group holds its own filters; walk it the same way.
+  return spec.filters.flatMap((node) =>
+    "operator" in node && node.operator === "inRegion" ? [node.value] : [],
+  );
+}
+```
+
 ### Search
 
 The quick-search box highlights and navigates matches in the loaded rows. It never narrows the
@@ -221,7 +241,7 @@ export function SavedOrders({ first, save, notify }: SavedProps) {
 ```
 
 `onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`). <NewBadge /> Pass `resolveSaveConflict` to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
-[Handle refused saves](/docs/save-server/handle-refused-saves#strategy-c-acknowledge-each-change)
+[Handle refused saves](/docs/save-server/handle-refused-saves#acknowledge-each-change)
 and [Fetch with a cache](/docs/data-modes/fetch-cache).
 
 ## Async gates

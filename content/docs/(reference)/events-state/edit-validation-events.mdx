@@ -71,6 +71,8 @@ If the edited cell leaves the view, the grid also clears the active cell. Other 
 
 A commit that moves the active cell fires `onActiveCellChange` and `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async Standard Schema, the editor stays open and `pending` is true until the schema settles.
 
+The callback <NewBadge /> runs after the grid writes the change. If it throws, the commit or the cancel stays, and the grid rethrows the error after the other callbacks ran. When a view change ends the edit, a throw goes to the console as `[data-grid] onEditEnd threw:` instead. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+
 ## onValidationError [#onvalidationerror]
 
 The callback fires after a paste, a fill, or an `updateCells` call settles. If validation refused no cell, it does not fire. The grid applies the accepted cells first, so their `onDataChange` fires before this event.

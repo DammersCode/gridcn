@@ -3,7 +3,7 @@ title: Checked rows
 icon: SquareCheck
 description: Let users check rows with markers, row spans, or keys, keep the checks across cell clicks and filters, and run row operations on them.
 type: feature
-aliases: ["checkbox selection", "select rows", "tick rows", "remembered checks"]
+aliases: ["checkbox selection", "select rows", "tick rows", "remembered checks", "selected rows", "checked row ids"]
 ---
 
 A checked row is a row whose marker checkbox is on. Users check rows with the marker checkbox, the row number, the header checkbox, or keys. A sort or a new `data` array rebuilds the view, and checked rows follow their records. Row operations such as Delete rows act on them. For a server grid, see [Select server rows](/docs/rows-live-data/select-server-rows).
@@ -103,6 +103,50 @@ With `keepCheckedRows`, a cell click, an arrow key, and a <kbd>Shift</kbd> or <k
 
 Under `keepCheckedRows`, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
 
+### Read the checked rows [#read-the-checked-rows]
+
+<NewBadge />
+
+`getSelection().rowIds` on the grid API returns the ids of the visible checked rows. `onSelectionChange` receives the same `rowIds` on each change. This sample reads the ids on a button click:
+
+```tsx
+"use client";
+
+import { useRef } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type DataGridApi,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  const gridRef = useRef<DataGridApi<Order> | null>(null);
+  const logChecked = () => {
+    console.log(gridRef.current?.getSelection().rowIds ?? []);
+  };
+  return (
+    <>
+      <button type="button" onClick={logChecked}>Log checked ids</button>
+      <DataGrid
+        ref={gridRef}
+        data={orders}
+        columns={columns}
+        rowMarkers="checkbox"
+        keepCheckedRows
+      />
+    </>
+  );
+}
+```
+
+`onSelectionChange` fires at each step of a drag. Read the ids in the click handler, and keep only a count in the callback. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds a bar with update, delete, and export buttons on these ids.
+
 ## Hidden checked rows
 
 A filter removes the checked rows it hides. Set `rememberCheckedRows` <NewBadge /> to remember them. The option works without `keepCheckedRows`. `keepHiddenCheckedRows` is a deprecated alias, and `rememberCheckedRows` wins when both are set. The grid checks a remembered row again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
@@ -144,8 +188,8 @@ Set `rememberCheckedRows` to `false` to turn the memory off. `useDataGridServerR
 
 ## Related
 
-- [DataGrid props](/docs/components-props/data-grid-props): every prop of the grid
 - [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the full keymap
 - [Row markers](/docs/rows-pages-menus/row-markers): the checkbox and number column
 - [Select server rows](/docs/rows-live-data/select-server-rows): checks across pages
+- [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions): update, delete, or export the checked rows
 - [Selection model](/docs/concepts/selection-model): how the channels relate

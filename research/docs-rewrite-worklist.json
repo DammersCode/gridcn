@@ -3273,6 +3273,36 @@
    "batch": "B12"
   },
   {
+   "slug": "adopt-existing-table",
+   "title": "Adopt the grid in an existing table",
+   "type": "task",
+   "words": 450,
+   "aliases": [
+    "existing table",
+    "replace a table",
+    "incremental adoption"
+   ],
+   "codeLines": 0,
+   "area": "Evaluate",
+   "group": "Support and upgrades",
+   "subgroup": "",
+   "landing": false,
+   "url": "/docs/support-upgrades/adopt-grid-existing-table",
+   "urlSource": "new",
+   "wave": 1,
+   "owner": "writer",
+   "action": "new",
+   "sources": [],
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "no",
+   "code": "sample",
+   "generated": false,
+   "parity": [],
+   "parityOwnerOf": [],
+   "batch": "B12"
+  },
+  {
    "slug": "license",
    "title": "License and credits",
    "type": "reference",

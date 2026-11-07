@@ -3,14 +3,12 @@ title: Handle refused saves
 description: Answer from onSave with the rows the server refused, so the grid reverts only those rows and keeps the rest.
 icon: ShieldAlert
 type: task
-aliases: ["conflict", "refused save", "partial save"]
+aliases: ["conflict", "refused save", "partial save", "two people", "edit conflict"]
 ---
 
 When a server refuses some rows of a change, return those rows from `onSave`. The grid marks the rows `saving` while the promise is pending. It reverts only the refused rows and keeps everything the server accepted.
 
-<ComponentPreview name="data-grid-write-ack-demo" />
-
-## Acknowledge each change [#strategy-c-acknowledge-each-change]
+## Acknowledge each change [#acknowledge-each-change]
 
 Send one request per operation, then return a rejection for each request that failed:
 
@@ -132,6 +130,10 @@ When a refusal carries `current`, the revert takes the server row. To decide per
 | `"theirs"` or nothing | The grid takes the server row. |
 | `"mine"` | The grid keeps its row. |
 | `{ row }` | The grid takes your merged row. |
+
+In this demo, the server refuses a save and sends its row. Pick one of the three answers:
+
+<ComponentPreview name="data-grid-save-conflict-demo" />
 
 `"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it, so the server sees the new write. History does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
 

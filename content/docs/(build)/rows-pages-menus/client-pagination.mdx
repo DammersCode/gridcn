@@ -51,6 +51,8 @@ The provider keeps the page and the page size in its own state. `defaultPage` an
 
 If the data shrinks, the grid shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 
+`onPageChange` <NewBadge /> and `onPageSizeChange` run after the grid writes the page or the size. If one throws, the change stays, and a size change still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+
 {/* props: UseDataGridPaginationClientOptions */}
 
 | Prop | Type | Default |

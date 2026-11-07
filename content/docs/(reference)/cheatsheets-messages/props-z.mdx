@@ -62,7 +62,7 @@ Props of DataGrid, DataGridProvider.
 | `processCellForClipboard` | Overrides a cell's clipboard-copy text. Falls back to the cell type's `toText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processCellFromClipboard` | Overrides parsing pasted text into a cell value. Falls back to the cell type's `fromText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `readOnly` | Disables editing and delete in the whole grid. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `readOnly` | Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: "stream"` push still writes. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `rememberCheckedRows` | Remembers a checked row by id when it leaves `data` and checks it again when it returns. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `rowMarkers` | Marker column mode. Default 'none'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |

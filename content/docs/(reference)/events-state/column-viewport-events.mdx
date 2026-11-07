@@ -40,6 +40,8 @@ It fires once per committed change. These changes commit:
 
 It never fires per drag frame. If the layout does not change, it does not fire.
 
+The callback <NewBadge /> runs after the grid writes the layout. If it throws, the layout stays, and the grid rethrows the error after the other callbacks of the change ran. `onColumnResizing` follows the same rule. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+
 ### Save and restore [#save-and-restore]
 
 `defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It drops unknown column ids and clamps widths. It drops pins on columns with `pinnable: false`. It appends columns that the saved `order` lacks. It moves the columns of a group next to each other again:

@@ -7,6 +7,7 @@
     "server-rendering",
     "upgrade-gridcn",
     "migrate-2-0",
+    "adopt-grid-existing-table",
     "security-policy",
     "license-credits"
   ]

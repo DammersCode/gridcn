@@ -616,7 +616,7 @@
   "translate-operations-into-api-calls": "/docs/save-server/save-revert#translate-operations-into-api-calls",
   "strategy-a-optimistic-roll-back-on-failure": "/docs/save-server/save-revert#strategy-a-optimistic-roll-back-on-failure",
   "strategy-b-refetch-on-settle": "/docs/save-server/save-revert#strategy-b-refetch-on-settle",
-  "strategy-c-acknowledge-each-change": "/docs/save-server/handle-refused-saves#strategy-c-acknowledge-each-change",
+  "strategy-c-acknowledge-each-change": "/docs/save-server/handle-refused-saves#acknowledge-each-change",
   "the-failure-path": "/docs/save-server/save-revert#the-failure-path"
  },
  "/docs/recipes/data-fetching/server-side": {

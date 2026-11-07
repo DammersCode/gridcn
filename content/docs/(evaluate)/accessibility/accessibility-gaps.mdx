@@ -8,6 +8,18 @@ aliases: ["known issues", "limitations", "wcag audit"]
 
 This page lists known gaps in accessibility and in the tests. Use the workaround column. Do not read the absence of a gap here as a conformance claim.
 
+## What your page adds [#what-your-page-adds]
+
+<NewBadge />
+
+The grid brings its roles, focus, and live regions. Your page adds these parts:
+
+- Wrap the grid in a `<section>` with an `aria-label`, so the grid has a name. See [Place the grid in a landmark](#landmark).
+- Place that section inside `<main>` or another landmark.
+- Check the colors of your theme with a contrast tool. See [Color contrast](#color-contrast).
+- Set `announceResults` to read the row count after a filter or a sort change.
+- Test the page with a screen reader. The repository records no manual pass.
+
 ## Known gaps [#known-gaps]
 
 | Gap | Effect | Workaround |

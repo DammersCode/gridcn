@@ -45,6 +45,11 @@ const readerQueries: [string, string][] = [
   ["button column", "/docs/row-examples/row-actions-example"],
   ["translate the ui", "/docs/theme-style-language/labels-i18n"],
   ["report an issue", "/docs/support-upgrades/version-policy-changelog"],
+  ["color cell by value", "/docs/theme-style-language/style-overrides"],
+  ["progress bar in a cell", "/docs/editing-cells/display-override"],
+  ["two people edit the same row", "/docs/save-server/handle-refused-saves"],
+  ["huge data", "/docs/performance/performance-guidance"],
+  ["read selected rows", "/docs/selection-shortcuts/checked-rows"],
 ];
 
 describe("docs search", () => {
