@@ -45,7 +45,7 @@ The stack keeps the last 50 entries. Only edits, pastes, and fills go on it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-history.ts" name="UseDataGridHistoryOptions" />
 
-The `recordSources` example in the table leaves out `replace`. To record streams too, pass the default list of the second bullet below plus `"stream"`.
+To record streams too, pass the default list of the second bullet below plus `"stream"`.
 
 - `capacity` defaults to `100`. It counts entries, not operations. A change of `capacity` between renders starts an empty history.
 - `recordSources` defaults to `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app`. The default leaves out `stream`, `history`, and `rollback`.

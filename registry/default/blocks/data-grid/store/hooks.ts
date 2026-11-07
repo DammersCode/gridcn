@@ -405,7 +405,7 @@ function selectRowIdToViewRow(s: DataGridStoreState): ReadonlyMap<string, number
   const map = new Map<string, number>();
   for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
     const rowId = rowIdAtViewRow(s, viewRow);
-    if (rowId !== undefined) map.set(rowId, viewRow);
+    if (rowId !== undefined && !map.has(rowId)) map.set(rowId, viewRow);
   }
   rowIdToViewRowCache.set(s.viewIndex, { version: s.rowIdentityVersion, getRowId: s.getRowId, map });
   return map;

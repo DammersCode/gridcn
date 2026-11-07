@@ -10,6 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - `onSortChange`, `onFilterChange`, `onPageChange`, `onPageSizeChange`, and `onSearchTextChange` fire after the grid writes the change, so the store holds the new value inside the callback; a controlled prop still gets the next value. A throw in one of them, in `onColumnLayoutChange`, `onColumnResizing`, `onValidationError`, or `onEditEnd`, no longer stops the write or the other callbacks of the change: the grid rethrows the first error after they ran. A throw in `onSelectionChange`, `onActiveCellChange`, or the `onEditEnd` of an edit that a view change ends goes to the console instead of skipping the grid's other updates.
+- `useDataGridRowIdToViewRow` maps a duplicate row id to the first row that carries it, like the rest of the grid. It mapped the id to the last row, so presence highlights landed on the wrong duplicate.
 - The sticky viewport track now follows the scroll position once it is more than 1,000,000 px away (was 4,000,000 px), which keeps the sticky offset small on tall grids. This hardens the grid against a Firefox-only header flicker on fast scrolls and big jumps that could not be reproduced, so the report stays open.
 - New demos `data-grid-save-conflict-demo` (`resolveSaveConflict` with `"theirs"`, `"mine"`, or a merged row), `data-grid-id-swap-demo` (`actions.replaceRowId` and the `"id-swap"` change), and `data-grid-row-action-results-demo` (a slow `onBeforeDeleteRows` under `gateTimeoutMs`, with `onRowActionSkipped` and each `RowActionResult` in a log).
 - New demos `data-grid-cursor-react-query-demo`, `data-grid-cursor-swr-demo`, `data-grid-export-all-demo`, `data-grid-io-hooks-demo`, `data-grid-views-demo`, `data-grid-server-totals-demo`, and `data-grid-lookup-demo`.
@@ -114,7 +115,6 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   // after
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    getRowId: (row) => row.id,
     fetchRows: async ({ start, end, signal, spec }) => {
       const answer = await api.orders({ start, end, spec, signal });
       return { rows: answer.rows, totalRowCount: answer.total };
@@ -175,7 +175,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - The inline error line of an editing cell is visible. The cell clipped it, so a rejected value showed only the red ring. The line now escapes the cell, widens to its text (up to 16rem), flips above the cell at the bottom edge of the grid, and anchors to the cell's end side at the side edges. An editing cell no longer clips its content, so a custom `Editor` wider than its cell spills over the neighbors.
 - Docs: the site has six areas (Learn, Build, Server, Evaluate, Reference, Examples), with a task finder, a terms page, and a messages page.
 - Docs: the Validation example compares blocking and soft rules per column and fixes the rounding example ("42.9" commits as 43).
-- Presence: `setPresenceHighlights` validates every peer entry. It ignores a payload that is not an array, keeps only known fields, drops entries with a missing, non-string, or oversized `id`, and keeps at most 1000 entries. A non-string `label` is removed and a label over 64 characters is truncated. A non-string `color` paints as `var(--color-primary)`. Before, an object `label` crashed the overlay.
+- Presence: `setPresenceHighlights` validates every peer entry. It clears every highlight for a payload that is not an array, keeps only known fields, drops entries with a missing, non-string, or oversized `id`, and keeps at most 1000 entries. A non-string `label` is removed and a label over 64 characters is truncated. A non-string `color` paints as `var(--color-primary)`. Before, an object `label` crashed the overlay.
 - The fill drag and the column resize drag end when the window loses focus; the fill drag ends without writing, and the resize keeps the width shown at that moment. The fill drag captures the scroll element, so it also survives auto-scroll past its source and ends on `lostpointercapture`.
 - Duplicating several rows reports each copy's insert `index` as its final position, and `duplicateRow` and `getRowId` receive that index. Redo and `applyChange` now keep the copies in the order the grid showed. Before, the indexes counted the rows before the whole batch, so redo placed later copies one row early.
 - **Breaking:** The clipboard failure tooltips of the context menu name the Cmd key on macOS. `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function that receives the modifier name.

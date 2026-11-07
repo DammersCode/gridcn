@@ -6,7 +6,7 @@ import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** What `refreshAfterSave` sees when it decides: the saves that settled since the last refresh. */
 export type SaveRefreshReport = {
-  /** Saves the server accepted (`onSave` returned nothing or a promise that resolved without `rejected`). */
+  /** Saves the server accepted (`onSave` returned a promise that resolved with nothing or without `rejected`). */
   saved: number;
   /** Saves that resolved with `{ rejected }`. */
   rejected: number;

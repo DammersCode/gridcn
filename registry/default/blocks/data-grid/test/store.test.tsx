@@ -291,6 +291,19 @@ describe("atomic hook re-render counts", () => {
   });
 
   describe("useDataGridRowIdToViewRow", () => {
+    it("maps a duplicate row id to the first row that carries it", () => {
+      const duplicated = [...rows(), { ...rows()[0]!, name: "Copy" }];
+      let seen: ReadonlyMap<string, number> | undefined;
+
+      function Probe() {
+        seen = useDataGridRowIdToViewRow();
+        return null;
+      }
+
+      render(<Probe />, { wrapper: makeWrapper(duplicated) });
+      expect(seen?.get(duplicated[0]!.id)).toBe(0);
+    });
+
     it("does not rebuild the map on an unrelated store change (selection)", () => {
       let computeCount = 0;
       let lastMap: ReadonlyMap<string, number> | undefined;
