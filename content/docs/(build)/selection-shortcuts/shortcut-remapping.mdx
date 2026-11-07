@@ -113,8 +113,8 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
       columns={columns}
       getRowId={(task) => task.id}
       keymap={{
-        // keep mod+a and add a second binding
-        selectAll: ["mod+a", "mod+shift+a"],
+        // keep mod+a and add a second binding that the browsers leave free
+        selectAll: ["mod+a", "F8"],
         // an empty list unbinds the action
         selectColumn: [],
       }}

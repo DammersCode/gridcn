@@ -70,7 +70,7 @@ export function FillMount(props: FillMountProps): ReactNode {
   }, [props.fillStore, handlers.onPointerDown]);
 
   // Escape mid-drag cancels the drag before the grid's own keydown handling; the grid's `cancel`
-  // action still clears the selection (both ran on the old core fillHandlers seam too).
+  // action still clears the selection.
   const cancelDragRef = useRef(handlers.cancelFillDrag);
   cancelDragRef.current = handlers.cancelFillDrag;
   useEffect(() => {

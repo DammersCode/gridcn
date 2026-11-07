@@ -93,6 +93,18 @@ describe("computeSelectionStats", () => {
     expect(stats.numericColumnId).toBe("amount");
   });
 
+  it("sums ten 0.1 cells to exactly 1", () => {
+    const stats = computeSelectionStats({
+      rects: [{ x: 0, y: 0, width: 1, height: 10 }],
+      rowCount: 10,
+      colCount: 1,
+      valueAt: () => 0.1,
+      isEmptyAt: () => false,
+      columnIdAt: () => "amount",
+    });
+    expect(stats.sum).toBe(1);
+  });
+
   it("names the single column all numeric cells came from", () => {
     const stats = computeSelectionStats(makeInput({ rects: [{ x: 0, y: 0, width: 1, height: 3 }] }));
     expect(stats.numeric).toBe(3);

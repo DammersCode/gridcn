@@ -1004,7 +1004,7 @@ export type DataGridActions = {
    * `commit` keeps the rows checked so far as the base of the new span. No-op when `enableRowSelection` is false.
    */
   checkRowRange(target: number, opts?: { commit?: boolean }): void;
-  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once. No-op when `enableRowSelection` is false. */
+  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
@@ -1214,8 +1214,7 @@ export type DataGridActions = {
    * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
    * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
    * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
-   * off, readOnly, an open edit session (the editor pins a view coordinate the move would
-   * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
+   * off, readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
    * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.

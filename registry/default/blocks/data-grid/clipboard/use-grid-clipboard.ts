@@ -20,7 +20,7 @@ import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGenerat
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
   rootRef: RefObject<HTMLElement | null>;
-  /** Prefix formula-like cells with `'` in the copied text/plain payload (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  /** Prefix formula-like cells with `'` in the copied text/plain payload and the HTML cell text (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
   sanitizeFormulas?: boolean;
 };
 
@@ -87,9 +87,8 @@ export const MAX_COPY_CELLS = 200_000;
  * Serializes an explicit, disjoint list of view rows against an explicit, disjoint list of view
  * columns — the shared engine for the "rows" (all visible columns) and "columns" (explicit column
  * indices) copy-scope branches. Column + cellType resolution happens once per selected column,
- * hoisted OUTSIDE the row loop, instead of `serializeRowSlice`'s per-(row,col) re-resolution — the
- * columns branch used to call `serializeRowSlice(s, viewRow, col, 1)` once per cell, re-reading
- * `visibleColumns`/`cellTypes` and allocating a throwaway 1-element array every time. Truncates at {@link MAX_COPY_CELLS}.
+ * hoisted OUTSIDE the row loop, instead of `serializeRowSlice`'s per-(row,col) re-resolution.
+ * Truncates at {@link MAX_COPY_CELLS}.
  */
 function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], cols: readonly number[]): string[][] {
   const resolved = cols.map((col) => {
@@ -221,7 +220,7 @@ export function truncatePasteGrid(cells: string[][], maxCells: number): string[]
 
 /**
  * Resolves the paste target: top-left of `current.range`, else the
- * lowest selected column at row 0, else the lowest selected row at col 0. `activeCell` alone isn't
+ * lowest selected column at row 0, else the lowest selected row at col 0, else the active cell. `activeCell` alone isn't
  * enough — selectRow/selectColumn (row-marker/header click) never set it, so a column- or
  * row-only selection needs its own fallback here rather than silently no-op'ing the paste.
  */

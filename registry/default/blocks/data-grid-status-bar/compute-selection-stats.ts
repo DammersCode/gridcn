@@ -61,7 +61,7 @@ export function computeSelectionStats(input: SelectionStatsInput): SelectionStat
   let count = 0;
   let numeric = 0;
   let sum = 0;
-  // Neumaier compensation term; the plain sum alone loses 0.1 + 0.2 = 0.30000000000000004.
+  // Neumaier compensation term; the plain sum of ten 0.1 values is 0.9999999999999999, the compensated one is 1.
   let compensation = 0;
   let min = Infinity;
   let max = -Infinity;

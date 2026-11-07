@@ -24,7 +24,7 @@ The marker column holds `gridcell` cells and a `columnheader` with a screen-read
 
 `aria-rowcount` and `aria-colcount` sit on the grid root. `aria-rowindex` sits on rows (1-based). `aria-colindex` sits on cells and column headers.
 
-`aria-rowcount` includes the header rows, both pinned-row bands, and every row of the view, rendered or not. A screen reader announces the true total. The rows follow this order:
+`aria-rowcount` includes the header rows, both pinned-row bands, and every row of the view, rendered or not. A paged grid counts only the shown page. The rows follow this order:
 
 | Position | Rows |
 |---|---|

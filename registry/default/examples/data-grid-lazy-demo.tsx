@@ -12,7 +12,7 @@ import {
 import { useDataGridServerRows, type ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 
 const TOTAL_COUNT = 100_000;
-/** A few hundred ms per fetch (spec: "simulated-latency in-memory API") — slow enough that skeleton rows are visibly on-screen during a fast scroll, fast enough the demo stays pleasant. */
+/** A few hundred ms per fetch — slow enough that skeleton rows are visibly on-screen during a fast scroll, fast enough the demo stays pleasant. */
 const SIMULATED_LATENCY_MS = 400;
 /** A low cap, so a few scrolls show the least recently viewed blocks unloading. */
 const MAX_LOADED_ROWS = 2_000;

@@ -62,8 +62,7 @@ function useSimulatedPresenceDriver(rows: readonly DemoRow[], setPresenceHighlig
       const tick = tickRef.current;
 
       // Ada (index 0) periodically selects a 2-row range overlapping Grace's cell — shows blend
-      // legibility when two highlights cover the same cell (spec: "one user periodically selects
-      // a range overlapping another").
+      // legibility when two highlights cover the same cell.
       const overlapTick = tick % 6 === 0;
 
       const rangeHighlights: PresenceHighlightEntry[] = SIMULATED_USERS.slice(0, 2).map((user, i) => {

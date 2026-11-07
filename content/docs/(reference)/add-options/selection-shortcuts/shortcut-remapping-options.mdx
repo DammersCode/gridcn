@@ -89,7 +89,7 @@ export function ShortcutsGrid() {
     <DataGridProvider
       defaultData={rows}
       columns={columns}
-      keymap={{ selectAll: ["mod+a", "mod+shift+a"] }}
+      keymap={{ selectAll: ["mod+a", "F8"] }}
     >
       <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
       <DataGridRoot className="h-80">

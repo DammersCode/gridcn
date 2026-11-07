@@ -6,7 +6,7 @@ type: feature
 aliases: ["hotkeys", "shortcuts outside the grid", "window keydown", "undo from toolbar"]
 ---
 
-The grid handles keys only while DOM focus is inside it. When focus sits on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> does not reach the grid. `DataGridGlobalShortcuts` mounts a window listener that keeps undo and redo active at every focus position. Flags add more actions.
+The grid handles keys only while DOM focus is inside it. When focus sits on a custom toolbar, a side panel, or `body`, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> does not reach the grid. `DataGridGlobalShortcuts` mounts a window listener that keeps undo and redo active at every focus position outside an editable element. Flags add more actions.
 
 <ComponentPreview name="data-grid-global-shortcuts-demo" />
 

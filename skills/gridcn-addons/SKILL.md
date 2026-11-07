@@ -111,6 +111,9 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Totals row**: the `plugin` is needed above the provider, but the aggregate is read inside it.
   Hold the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
   inside the provider, and pass `useMemo(() => [totals], [totals])` as `bottomRows`.
+- **Totals keys**: client and server totals come keyed by column id, but a pinned cell reads its row
+  through `accessorKey`. When a column's `accessorKey` differs from its `id`, remap the total in
+  `onChange` (`{ ...row, qty: row.quantity }`), or the cell stays empty.
 - **Undo/redo choice**: reach for `useDataGridState` only when you actually want history — it
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its

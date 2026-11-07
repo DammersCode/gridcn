@@ -14,7 +14,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | Action | Purpose | Page |
 | --- | --- | --- |
 | `applyCellUpdates` | Writes values at view coordinates as one change with the given `source`, and selects the touched cells. | [Data change events](/docs/events-state/data-change-events) |
-| `autosizeColumns` | Sizes columns to their content over the whole view and returns the measured widths. | [Column sizing](/docs/columns/column-sizing) |
+| `autosizeColumns` | Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page. | [Column sizing](/docs/columns/column-sizing) |
 | `cancelEditing` | Discards the open edit. It writes nothing. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `checkRowRange` | Checks or unchecks the rows from the anchor row to a target view index. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `clearCellErrors` | Clears the cell errors of `targets`. Without `targets`, it clears every cell error. | [Show errors on cells](/docs/save-server/show-errors-cells) |
@@ -45,14 +45,14 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `replaceRowIds` | Swaps the ids of many rows in one write, with one `onDataChange`. | [Save edits](/docs/save-server/save-edits) |
 | `resetColumnWidth` | Drops the width override of a column, so the column gets its `width` from the definition again. | [Column sizing](/docs/columns/column-sizing) |
 | `selectAll` | Runs one step of the select-all shortcut. The first call selects the filled block around the active cell, and a repeat selects every cell. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
-| `selectAllMatching` | Checks every row of the result, loaded or not. | [Select server rows](/docs/rows-live-data/select-server-rows) |
+| `selectAllMatching` | Checks every row of the result, loaded or not. Without `totalRowCount` and `rememberCheckedRows`, it does nothing. | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `selectCell` | Selects the cell named by the stable `CellRef` as a single-cell selection. | [Selection model](/docs/concepts/selection-model) |
 | `selectCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `selectCell`. | [Selection model](/docs/concepts/selection-model) |
 | `selectColumn` | Selects the column at a view column index, as a click on its header does. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `selectRow` | Selects the row at a view index, as a click on its row marker does. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `setActiveCell` | Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`. | [Selection model](/docs/concepts/selection-model) |
 | `setActiveCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `setActiveCell`. | [Selection model](/docs/concepts/selection-model) |
-| `setAllRowsSelected` | Checks or unchecks every row of the view, as the header checkbox does. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `setAllRowsSelected` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Column visibility](/docs/columns/column-visibility) |

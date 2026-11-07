@@ -249,8 +249,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
     for (const rect of selection.current.rangeStack) rangeRects.push(rect);
   }
 
-  // rows/columns channels (header/marker selection) render as full-band highlights — Excel-style
-  // visible feedback (user QA 2026-07-03); runs computed only inside the contiguous rendered span
+  // rows/columns channels (header/marker selection) render as full-band highlights; runs computed only inside the contiguous rendered span
   // (clampRowStart/End, not windowStart/rowCount) so a disjoint off-window active row can't stretch
   // or shift these bands past the real rendered bottom.
   const columnBands: GridRect[] = membershipRuns(selection.columns, 0, colCount).map((run) => ({

@@ -90,7 +90,7 @@ export type DataGridHeaderCellProps = {
 
 /**
  * One header cell: label + sort indicator, a resize handle at the inline-end edge, and the
- * drag-to-reorder press zone over the label. See {@link import("./use-column-reorder").useColumnReorder}
+ * drag-to-reorder press zone over the label. See {@link import("./columns/use-column-reorder").useColumnReorder}
  * for the full select-vs-reorder disambiguation rule this cell's two pointerdown handlers resolve.
  */
 export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {

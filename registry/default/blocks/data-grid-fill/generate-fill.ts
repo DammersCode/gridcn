@@ -6,7 +6,7 @@ export type FillDirection = "up" | "down" | "left" | "right";
 
 /** Options for {@link generateFill}. */
 export type GenerateFillOptions = {
-  /** Modifier held (Excel's Ctrl-drag) — forces modulo tiling even when a series is detected. */
+  /** Forces modulo tiling even when a series is detected; the fill handle sets it when Alt (Option) is held at release. */
   forceCopy?: boolean;
   /**
    * Series detector replacing the built-in `detectSeries` (arithmetic, zero-padded,

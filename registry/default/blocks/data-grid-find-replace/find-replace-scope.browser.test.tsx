@@ -48,7 +48,7 @@ describe("find and replace scope note", () => {
     expect(find.getAttribute("aria-describedby")).toBe(note.element().id);
   });
 
-  it("showScope forces it on for client pages and off for a counted grid", async () => {
+  it("showScope forces it on for a local grid and off for a counted grid", async () => {
     const forced = await render(<Harness showScope />);
     await open();
     await expect.element(page.getByText("Searches loaded rows only")).toBeInTheDocument();

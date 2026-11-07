@@ -61,7 +61,7 @@ export function useDataGridSelectionStats(): SelectionStats {
         }),
       );
     };
-    // ponytail: rect area is an upper bound on the union, so overlapping selections can defer to
+    // Rect area is an upper bound on the union, so overlapping selections can defer to
     // the timer with a small real walk; an exact union count would cost the walk itself.
     if (area <= IMMEDIATE_SELECTION_CELL_LIMIT) {
       compute();

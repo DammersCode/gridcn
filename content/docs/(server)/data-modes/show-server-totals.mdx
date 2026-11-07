@@ -134,6 +134,8 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 
 The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.
 
+The values come keyed by column id. A pinned cell reads its row through `accessorKey` or `accessorFn`. A total shows only where the `accessorKey` of the column equals its `id`. When they differ, copy the total to the `accessorKey` in `onChange`. [Pinned rows](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row) shows the same rule for client totals.
+
 <Callout type="warn">
   Call `totals.refresh()`, the `refresh` of the result that `onChange` stored, after your save lands. An edit does not request new totals, so the band keeps the totals of the last request.
 </Callout>

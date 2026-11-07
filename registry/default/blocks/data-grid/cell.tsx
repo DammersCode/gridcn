@@ -208,7 +208,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     if (!keepsFocusOutsideGrid(cellRef.current.ownerDocument)) cellRef.current.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 
-  // Pinned rows are not navigable in v1 (documented) — no selection/edit gestures, so no handlers.
+  // Pinned rows never join the selection or the edit session, so they get no handlers.
   // Skeleton cells (row is a hole, lazy loading) are click/dblclick-inert too: the
   // store's own edit/commit entry points (startEditing, applyCellUpdates, commitCellValue) already
   // no-op on an unresolvable row (resolveEditTarget/computeRowEditsBatch both bail on `row ===

@@ -29,8 +29,8 @@ export type UseDataGridUrlPaginationResult = {
 };
 
 /**
- * Syncs `page`/`pageSize` with the URL via nuqs, no dependency on `data-grid-pagination` or the
- * grid's store — it owns two URL-backed numbers and hands back the controlled pair that
+ * Syncs `page`/`pageSize` with the URL via nuqs, with no dependency on the grid's store (it
+ * reads only the page math of `data-grid-pagination`) — it owns two URL-backed numbers and hands back the controlled pair that
  * `DataGridProvider` and `useDataGridServerPager` both accept.
  *
  * Pass `totalRowCount` so an out-of-range deep-linked `page` clamps to the last page once `totalRowCount` is

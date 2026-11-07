@@ -42,19 +42,9 @@ export type DataGridRowProps = {
 };
 
 /**
- * A window shift moves EVERY surviving row's canvas slot by the shift amount — gridRowStart
- * (viewRowIndex - windowStart + 1) changes for all mounted rows, not just the ones that
- * entered/left — so `windowStart` was never a prop this component could shallow-compare away no
- * matter what body.tsx precomputed; it's a genuine per-tick input to every row's position.
- * Subgrid (`gridTemplateColumns: "subgrid"`, rows as direct grid children) also rules out
- * absolute-positioning — a positioning wrapper around the row breaks the subgrid column tracks.
- *
- * Fix: `windowStart` doesn't reach this component at all anymore. It renders `gridRowStart` only once,
- * at mount — body.tsx (which already re-renders every window tick regardless) collects each row's DOM
- * node via `rowRef` and writes `gridRowStart` straight into `style.gridRowStart` in a `useLayoutEffect`
- * that runs after every body render, entirely outside React's props/state for this component. That
- * keeps `DataGridRow`'s memo props limited to things that only change when the row's actual content
- * should re-render (viewRowIndex swap on identity reuse, column window, readOnly, etc).
+ * One data row, a direct subgrid child of the canvas (a positioning wrapper would break the subgrid
+ * column tracks). body.tsx writes `gridRowStart` imperatively from the trailing grid origin through
+ * `rowRef`, so the row's position stays out of its memo props.
  */
 export const DataGridRow = memo(function DataGridRow({
   viewRowIndex,

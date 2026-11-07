@@ -24,7 +24,7 @@ The hook takes no arguments and returns `SelectionStats`:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-status-bar/compute-selection-stats.ts" name="SelectionStats" />
 
-`sum` uses Neumaier summation, so `0.1 + 0.2` gives `0.3`. A cell whose raw value is a finite `number` is numeric.
+`sum` uses Neumaier summation to limit the rounding error of many additions. For example, ten cells of `0.1` sum to `1`, and a plain sum gives `0.9999999999999999`. A cell whose raw value is a finite `number` is numeric.
 
 ## Limits
 

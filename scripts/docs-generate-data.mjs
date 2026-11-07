@@ -31,12 +31,12 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/learning-path/select-paste", "/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", "/docs/cheatsheets-messages/keyboard-shortcuts"],
+    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", "/docs/cheatsheets-messages/keyboard-shortcuts"],
   },
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
+    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/types-hooks/store-hooks#usedatagridscrolltocell", "Scroll to a row from your own button"]],
   },
   {
     id: "import-export-style",

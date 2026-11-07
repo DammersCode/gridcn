@@ -30,7 +30,7 @@ export function People({ people }: { people: Person[] }) {
 }
 ```
 
-A click on the header checkbox checks every row. A second click unchecks them all.
+A click on the header checkbox checks every row of the view, which is the shown page on a paged grid. A second click unchecks them all.
 
 ## Check a span of rows [#checking-a-range-of-rows]
 
@@ -56,7 +56,7 @@ For example, click row 1, <kbd>Shift</kbd>+click row 5, and <kbd>Shift</kbd>+cli
 The marker checkboxes are not tab stops. These keys check rows instead:
 
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (`toggleRow`) checks or unchecks the active row. The other checked rows stay checked.
-- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) checks every row. When every row is checked, it unchecks them all. It does what the header checkbox does.
+- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) does what the header checkbox does. When every row is checked, it unchecks them all.
 - <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) checks only the active row. It follows the rules of a click on a number.
 
 After `selectRow` or `toggleRow`, these keys move the end of the span and the active row:
@@ -149,7 +149,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 ## Hidden checked rows
 
-A filter removes the checked rows it hides. Set `rememberCheckedRows` <NewBadge /> to remember them. The option works without `keepCheckedRows`. `keepHiddenCheckedRows` is a deprecated alias, and `rememberCheckedRows` wins when both are set. The grid checks a remembered row again when the filter lets it back in. A sort keeps both the visible and the hidden checks.
+A filter or a page change removes the checked rows it hides. Set `rememberCheckedRows` <NewBadge /> to remember them. The option works without `keepCheckedRows`. `keepHiddenCheckedRows` is a deprecated alias, and `rememberCheckedRows` wins when both are set. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
 
 Hidden checked rows stay out of every row operation, the controlled `selection`, and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing. The context menu disables its Delete rows and Duplicate row items.
 
@@ -184,7 +184,6 @@ Set `rememberCheckedRows` to `false` to turn the memory off. `useDataGridServerR
 | `announceResults` | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
-- A server-sorted or server-filtered grid without `totalRowCount` ignores `rememberCheckedRows`.
 - `announceResults` reads the row count of the view after a filter or sort change. See [Screen reader support](/docs/accessibility/screen-reader-support).
 - `onBeforeDeleteRows` runs before every row delete. A `false` result cancels the delete. See [Row operations](/docs/rows-pages-menus/row-operations).
 
