@@ -1,5 +1,6 @@
 {
   "title": "Clipboard and undo",
+  "icon": "Clipboard",
   "pages": [
     "clipboard",
     "fill-handle",

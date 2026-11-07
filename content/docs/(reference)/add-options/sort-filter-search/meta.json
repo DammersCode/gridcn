@@ -1,5 +1,6 @@
 {
   "title": "Sort, filter, and search",
+  "icon": "ScanSearch",
   "pages": [
     "find-replace-options",
     "saved-views-options",

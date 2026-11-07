@@ -1,5 +1,6 @@
 {
   "title": "Components and props",
+  "icon": "Component",
   "pages": [
     "data-grid-props",
     "data-grid-provider",

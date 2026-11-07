@@ -1,5 +1,6 @@
 {
   "title": "Try and automate",
+  "icon": "FlaskConical",
   "pages": [
     "playground-example",
     "use-agent-skills"

@@ -1,5 +1,6 @@
 {
   "title": "ORM examples",
+  "icon": "Database",
   "pages": [
     "drizzle-example",
     "prisma-example",

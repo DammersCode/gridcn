@@ -1,5 +1,6 @@
 {
   "title": "Editing cells",
+  "icon": "SquarePen",
   "pages": [
     "editable-columns",
     "built-cell-types",

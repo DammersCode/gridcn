@@ -1,5 +1,6 @@
 {
   "title": "Basic examples",
+  "icon": "Box",
   "pages": [
     "minimal-grid-example",
     "editable-grid-example",

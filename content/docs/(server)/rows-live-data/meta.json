@@ -1,5 +1,6 @@
 {
   "title": "Rows and live data",
+  "icon": "Activity",
   "pages": [
     "change-server-rows",
     "handle-row-action-results",

@@ -1,5 +1,7 @@
 {
   "title": "Data modes",
+
+  "icon": "Database",
   "pages": [
     "index",
     "data-mode-support",

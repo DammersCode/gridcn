@@ -1,5 +1,6 @@
 {
   "title": "Theme, style, and language",
+  "icon": "Palette",
   "pages": [
     "colors-radius",
     "style-overrides",

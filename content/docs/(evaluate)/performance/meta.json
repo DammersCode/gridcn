@@ -1,5 +1,6 @@
 {
   "title": "Performance",
+  "icon": "Gauge",
   "pages": [
     "benchmark-results",
     "run-benchmark",

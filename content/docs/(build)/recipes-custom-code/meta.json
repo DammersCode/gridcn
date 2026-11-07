@@ -1,5 +1,6 @@
 {
   "title": "Recipes and custom code",
+  "icon": "CodeXml",
   "pages": [
     "write-cell-type",
     "write-plugin",

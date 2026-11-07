@@ -1,5 +1,6 @@
 {
   "title": "Support and upgrades",
+  "icon": "PackageCheck",
   "pages": [
     "version-policy-changelog",
     "browser-framework-support",

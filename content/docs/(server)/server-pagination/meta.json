@@ -1,5 +1,6 @@
 {
   "title": "Server pagination",
+  "icon": "Files",
   "pages": [
     "load-rows-page",
     "tune-page-loading",

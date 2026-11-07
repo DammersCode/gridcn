@@ -1,5 +1,6 @@
 {
   "title": "Add-on options",
+  "icon": "SlidersHorizontal",
   "pages": [
     "clipboard-undo",
     "import-export",

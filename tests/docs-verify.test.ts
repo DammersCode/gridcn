@@ -257,6 +257,20 @@ describe("verify-docs-structure", () => {
     expect(failures).not.toContain("sizing.mdx");
   });
 
+  it("fails a sidebar page or folder without an icon and siblings that share one", () => {
+    const root = fixture({
+      "content/docs/meta.json": JSON.stringify({ pages: ["(build)"] }),
+      "content/docs/(build)/meta.json": JSON.stringify({ title: "Build", icon: "Hammer", root: true, pages: ["---Group---", "a", "b", "c", "folder", "index"] }),
+      "content/docs/(build)/a.mdx": page("A", "x", "icon: Pin\n"),
+      "content/docs/(build)/b.mdx": page("B", "x", "icon: Pin\n"),
+      "content/docs/(build)/c.mdx": page("C", "x"),
+      "content/docs/(build)/folder/meta.json": JSON.stringify({ title: "Folder", pages: ["d"] }),
+      "content/docs/(build)/folder/d.mdx": page("D", "x", "icon: Pin\n"),
+    });
+    const failures = (structureMod.sidebarIconFailures as (root: string) => string[])(root).map((f) => f.replace(/^.*?: /, ""));
+    expect(failures).toEqual(['icon "Pin" is also the icon of content/docs/(build)/a.mdx', "no icon (every sidebar entry needs one)", "no icon (every sidebar entry needs one)"]);
+  });
+
   it("reads aliases from both YAML forms", () => {
     expect(aliasesOf("aliases: [frozen, sticky]")).toEqual(["frozen", "sticky"]);
     expect(aliasesOf('aliases:\n  - "frozen"\n  - sticky\n')).toEqual(["frozen", "sticky"]);

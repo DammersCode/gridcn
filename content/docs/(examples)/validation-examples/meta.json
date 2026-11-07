@@ -1,5 +1,6 @@
 {
   "title": "Validation examples",
+  "icon": "ShieldCheck",
   "pages": [
     "validation-example",
     "async-validation-example",

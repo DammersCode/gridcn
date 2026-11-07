@@ -1,5 +1,6 @@
 {
   "title": "Rows, pages, and menus",
+  "icon": "Rows3",
   "pages": [
     "row-operations",
     "row-order",

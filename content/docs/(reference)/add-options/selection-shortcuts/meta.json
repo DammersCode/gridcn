@@ -1,5 +1,6 @@
 {
   "title": "Selection and shortcuts",
+  "icon": "MousePointerClick",
   "pages": [
     "shortcut-remapping-options",
     "status-bar-options"

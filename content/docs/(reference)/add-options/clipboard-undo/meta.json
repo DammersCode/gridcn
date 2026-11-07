@@ -1,5 +1,6 @@
 {
   "title": "Clipboard and undo",
+  "icon": "Clipboard",
   "pages": [
     "fill-handle-options",
     "undo-redo-options"

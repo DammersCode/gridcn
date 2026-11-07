@@ -5,6 +5,7 @@ import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { toAgentMarkdown, type LlmsMarkdownResolvers } from './llms-markdown';
 import { groupDefaultKeymap } from './default-keymap-groups';
 import { getTypeGenerator } from './type-generator';
+import { defaultIconFor } from './docs-icons';
 import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
 
 // See https://fumadocs.dev/docs/headless/source-api for more info
@@ -12,6 +13,19 @@ export const source = loader({
   baseUrl: docsRoute,
   source: docs.toFumadocsSource(),
   plugins: [
+    {
+      name: 'gridcn:default-icon',
+      transformPageTree: {
+        file(node, filePath) {
+          node.icon ??= defaultIconFor(filePath) as never;
+          return node;
+        },
+        folder(node, _dir, metaPath) {
+          node.icon ??= defaultIconFor(metaPath) as never;
+          return node;
+        },
+      },
+    },
     lucideIconsPlugin(),
     {
       name: 'gridcn:page-status',

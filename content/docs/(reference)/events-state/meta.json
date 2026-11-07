@@ -1,5 +1,6 @@
 {
   "title": "Events and state",
+  "icon": "Zap",
   "pages": [
     "event-shapes",
     "data-change-events",

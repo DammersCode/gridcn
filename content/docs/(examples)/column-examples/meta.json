@@ -1,5 +1,6 @@
 {
   "title": "Column examples",
+  "icon": "Columns3",
   "pages": [
     "pinned-columns-example",
     "column-order-example",

@@ -1,5 +1,6 @@
 {
   "title": "Custom code path",
+  "icon": "Code",
   "pages": [
     "pick-code-route",
     "plan-cell-type",

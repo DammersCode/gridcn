@@ -1,5 +1,6 @@
 {
   "title": "Import and export",
+  "icon": "ArrowDownUp",
   "pages": [
     "export-options",
     "import-options"

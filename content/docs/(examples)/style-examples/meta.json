@@ -1,5 +1,6 @@
 {
   "title": "Style examples",
+  "icon": "Palette",
   "pages": [
     "styling-example",
     "loading-state-example",

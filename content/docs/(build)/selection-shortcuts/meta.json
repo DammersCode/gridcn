@@ -1,5 +1,6 @@
 {
   "title": "Selection and shortcuts",
+  "icon": "MousePointerClick",
   "pages": [
     "pointer-selection",
     "checked-rows",

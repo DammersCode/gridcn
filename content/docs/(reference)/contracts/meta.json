@@ -1,5 +1,6 @@
 {
   "title": "Contracts",
+  "icon": "FileCheck",
   "pages": [
     "cell-type-contract",
     "server-rows-contract",

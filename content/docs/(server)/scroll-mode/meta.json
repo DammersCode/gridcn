@@ -1,5 +1,6 @@
 {
   "title": "Scroll mode",
+  "icon": "ScrollText",
   "pages": [
     "load-rows-while-scrolling",
     "load-without-row-count",

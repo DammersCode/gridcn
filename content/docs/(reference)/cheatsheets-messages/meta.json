@@ -1,5 +1,6 @@
 {
   "title": "Cheatsheets and messages",
+  "icon": "NotebookText",
   "pages": [
     "keyboard-shortcuts",
     "props-z",

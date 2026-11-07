@@ -20,6 +20,7 @@ export function aliasesOf(front) {
 }
 
 // The YAML parser of the docs build (fumadocs-core), so a page that breaks the build fails here first.
+const lucideIcons = createRequire(import.meta.url)("lucide-react").icons;
 const yaml = createRequire(createRequire(import.meta.url).resolve("fumadocs-core/package.json"))("yaml");
 
 export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist, base = "origin/release/2.0" } = {}) {
@@ -168,6 +169,53 @@ export function sectionSwitcherFailures(root) {
     if (!meta.icon) failures.push(`content/docs/${folder}/meta.json needs an "icon" (section switcher)`);
   }
   if (!/<DocsLayout[^>]*\btabs=\{/.test(readLf(layoutFile))) failures.push("app/docs/layout.tsx must pass `tabs` to DocsLayout (section switcher)");
+  return failures;
+}
+
+/** Every sidebar page and folder carries an icon, and siblings never share one. Hidden entries (separators, `...`, `!x`, a folder's own `index`) need none. */
+export function sidebarIconFailures(root) {
+  const contentDir = join(root, "content/docs");
+  const rootMeta = join(contentDir, "meta.json");
+  if (!existsSync(rootMeta)) return [];
+  const failures = [];
+  const readMeta = (dir) => {
+    try {
+      return JSON.parse(readLf(join(dir, "meta.json")));
+    } catch {
+      return {};
+    }
+  };
+  const visit = (dir, meta) => {
+    const seen = new Map();
+    for (const entry of meta.pages ?? []) {
+      if (/^(---|\.\.\.|!|\[)/.test(entry) || entry === "index") continue;
+      const path = join(dir, entry);
+      const page = `${path}.mdx`;
+      let icon;
+      let here;
+      let childMeta;
+      if (existsSync(page)) {
+        icon = frontField(splitFrontmatter(readLf(page)).front, "icon");
+        here = rel(root, page);
+      } else if (existsSync(join(path, "meta.json"))) {
+        childMeta = readMeta(path);
+        icon = childMeta.icon;
+        here = rel(root, join(path, "meta.json"));
+      } else continue;
+      if (!icon) failures.push(`${here}: no icon (every sidebar entry needs one)`);
+      else if (!lucideIcons[icon]) failures.push(`${here}: icon "${icon}" is not a lucide icon name`);
+      else if (seen.has(icon)) failures.push(`${here}: icon "${icon}" is also the icon of ${seen.get(icon)}`);
+      else seen.set(icon, here);
+      if (childMeta && !childMeta.root) visit(path, childMeta);
+    }
+  };
+  const visitRoot = (dir, meta) => {
+    for (const entry of meta.pages ?? []) {
+      const path = join(dir, entry);
+      if (existsSync(join(path, "meta.json"))) visit(path, readMeta(path));
+    }
+  };
+  visitRoot(contentDir, readMeta(contentDir));
   return failures;
 }
 

@@ -1,5 +1,6 @@
 {
   "title": "Server",
+  "icon": "Server",
   "pages": [
     "presence-options",
     "server-rows-options"

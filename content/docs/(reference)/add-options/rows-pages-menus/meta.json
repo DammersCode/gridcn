@@ -1,5 +1,6 @@
 {
   "title": "Rows, pages, and menus",
+  "icon": "Rows3",
   "pages": [
     "context-menu-options",
     "client-pagination-options",

@@ -1,5 +1,6 @@
 {
   "title": "Accessibility",
+  "icon": "Accessibility",
   "pages": [
     "screen-reader-support",
     "live-region-messages",

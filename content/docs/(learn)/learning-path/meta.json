@@ -1,5 +1,6 @@
 {
   "title": "Learning path",
+  "icon": "GraduationCap",
   "pages": [
     "install-gridcn",
     "render-your-first-grid",

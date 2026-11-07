@@ -1,5 +1,6 @@
 {
   "title": "Row examples",
+  "icon": "Rows3",
   "pages": [
     "pinned-rows-example",
     "row-operations-example",

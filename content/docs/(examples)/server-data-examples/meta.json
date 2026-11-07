@@ -1,5 +1,6 @@
 {
   "title": "Server and data examples",
+  "icon": "Server",
   "pages": [
     "server-rows-example",
     "large-data-example",

@@ -1,5 +1,6 @@
 {
   "title": "Server path",
+  "icon": "Waypoints",
   "pages": [
     "compare-data-modes",
     "load-server-rows",
