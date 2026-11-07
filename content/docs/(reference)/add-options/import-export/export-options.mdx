@@ -62,7 +62,7 @@ Without a `source` <NewBadge />, every scope covers the rows the grid holds. Tha
 
 ### Types [#types]
 
-- `BuildCsvOptions` are the options of `buildCsv`: the `ExportShapeOptions` plus `scope`, `includeHeaders`, and `csvDelimiter`.
+- `BuildCsvOptions` are the options of `buildCsv`: `columns`, `formatCell`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, and `maxRows`.
 - `ExportOutput` receives the finished `Blob` and `{ fileName, format, signal }`. Use it to send the file somewhere other than the download.
 - `ExportCellContext` is what `formatCell` receives: `value`, `text`, `row`, and `column`.
 - `FormatExportCell` is the `formatCell` function. It returns an `ExportCellValue`: a string, a number, a boolean, a `Date`, `null`, or `undefined`.

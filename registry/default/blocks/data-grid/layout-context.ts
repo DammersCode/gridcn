@@ -131,9 +131,9 @@ export type MarkerCellRenderCtx = {
   rowId: string;
   /** 0-based view row index (the marker column's own numbering space, minus one). */
   viewRowIndex: number;
-  /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Cell or column selection never flips it — mirrors `useDataGridIsRowChannelSelected`. */
+  /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Cell or column selection never flips it. */
   isRowChannelSelected: boolean;
-  /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isRowChannelSelected`, so a renderer can tell "this row is selected" apart from "cells in this row are selected" — mirrors `useDataGridIsRowCellSelected`. */
+  /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isRowChannelSelected`, so a renderer can tell "this row is selected" apart from "cells in this row are selected". */
   isCellSelected: boolean;
 };
 

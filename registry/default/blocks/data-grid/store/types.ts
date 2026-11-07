@@ -1077,6 +1077,8 @@ export type DataGridActions = {
    * request is a no-op recompute (dropping a left-pinned column onto the unpinned band does nothing).
    * No-op when the column's own `reorderable: false`, the grid-wide `enableColumnReorder` is false,
    * an id is unknown, or the drop keeps the order. Fires `onColumnLayoutChange` once on an actual move.
+   * `id` can be a column group id: the group's columns move as one block, and the move is a no-op
+   * when the target or any member has `reorderable: false`.
    */
   setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
   /** Pins/unpins a column (`null` = unpinned). No-op when the id is unknown, the column's `pinnable: false`, grid-wide `enableColumnPinning` is false, or the pin already matches. Fires `onColumnLayoutChange` once on a real change. */
@@ -1164,7 +1166,7 @@ export type DataGridActions = {
    *
    * Unlike `applyCellUpdates` it never moves the selection, the active cell, or the editing session,
    * so a live feed cannot pull the grid out from under a user mid-edit. Emits one batched
-   * `{source: "stream"}` `DataChange` through `onDataChange`, in both controlled and uncontrolled
+   * `DataChange` with `options.source` (default `"stream"`) through `onDataChange`, in both controlled and uncontrolled
    * mode. See {@link UpdateCellsOptions} for the sort/filter interaction.
    */
   updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
@@ -1211,7 +1213,7 @@ export type DataGridActions = {
    * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
    * off, readOnly, an open edit session (the editor pins a view coordinate the move would
    * invalidate), an active sort/filter (the view order is owned by the sort/filter, not the data),
-   * unloaded (lazy) rows (a reorder would shift the lazy add-on's index bookkeeping), and a drop
+   * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
    * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.
    */

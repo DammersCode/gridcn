@@ -624,7 +624,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     cancel: "Cancel",
     errorParseFailed: "Could not read this file.",
     errorNoRows: "No rows found in this file.",
-    errorUnsupportedFile: "Unsupported file type — choose a .csv, .xlsx, or .xls file.",
+    errorUnsupportedFile: "Unsupported file type — choose a .csv, .tsv, .xlsx, or .xls file.",
     errorUnsupportedExcelFormat: "This Excel format can't be imported — save the file as .xlsx and try again.",
     errorFileTooLarge: "This file is too large to import.",
     errorPartTooLarge: "A part of this file is too large to read safely. Save a smaller file, or ask the app owner to raise the import limit.",

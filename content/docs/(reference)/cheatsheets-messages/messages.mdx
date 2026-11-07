@@ -181,7 +181,7 @@ The grid throws these errors. Fix the cause in your code.
 | `Browser storage is not available` | `createLocalStorageViewsStorage` throws it on save when `localStorage` is blocked. The views stay in memory, `DataGridViews` shows the save error, and `onError` receives it. Pass your own `storage`. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 | `The saved views are in an unknown format` | `useDataGridViews` reports it through `error` and `onError` when `load` resolves a value it cannot read. Return the document that `save` received. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 | `unknown sheet "<name>"` | Pass the name of a sheet that the file has. | [Import options](/docs/add-options/import-export/import-options) |
-| `[data-grid-io] invalid xlsx sheet name: <name>` | Pass a `workbookName` that Excel accepts: at most 31 characters, none of `\ / ? * [ ] :`. | [Export options](/docs/add-options/import-export/export-options) |
+| `[data-grid-io] invalid xlsx sheet name: <name>` | Pass a `workbookName` of 1 to 31 characters, without an apostrophe at either end, other than `History`, and without `\ / ? * [ ] :`. | [Export options](/docs/add-options/import-export/export-options) |
 | `[data-grid-io] an export source batch must be an array` | Return an array of rows, or yield arrays of rows, from the export source. | [Export the whole result](/docs/import-export/export-whole-result) |
 | `[data-grid-io] an export source returned only empty batches` | End the source when it has no more rows. Do not yield endless empty batches. | [Export the whole result](/docs/import-export/export-whole-result) |
 | `[data-grid-io] an export source returned too many empty rows` | Return rows only. Remove `null` and `undefined` entries from the batches. | [Export the whole result](/docs/import-export/export-whole-result) |
@@ -269,7 +269,7 @@ These default labels tell the user about a failure. The `labels` prop replaces e
 | `Could not load values.` | Shows when `fetchFilterValues` fails in a header filter. | [Header filter](/docs/sort-filter-search/header-filter) |
 | `Could not read this file.` | Shows when the import cannot parse the file. | [Import](/docs/import-export/import) |
 | `No rows found in this file.` | Shows when the file has no data rows. | [Import](/docs/import-export/import) |
-| `Unsupported file type — choose a .csv, .xlsx, or .xls file.` | Choose a supported file. | [Import](/docs/import-export/import) |
+| `Unsupported file type — choose a .csv, .tsv, .xlsx, or .xls file.` | Choose a supported file. | [Import](/docs/import-export/import) |
 | `This Excel format can't be imported — save the file as .xlsx and try again.` | Save the file as .xlsx. | [Import](/docs/import-export/import) |
 | `A part of this file is too large to read safely. Save a smaller file, or ask the app owner to raise the import limit.` | Choose a smaller file, or raise `importLimits.maxDecompressedBytes` or `maxCells`. | [Import options](/docs/add-options/import-export/import-options) |
 | `This file is too large to import.` | Choose a smaller file, or raise `importLimits.maxFileBytes`. | [Import options](/docs/add-options/import-export/import-options) |

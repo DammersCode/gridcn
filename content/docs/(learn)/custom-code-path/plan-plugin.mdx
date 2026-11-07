@@ -16,7 +16,8 @@ A plugin needs only a `name`. Add the parts that your change needs:
 | Paint over the cells | `Overlay` |
 | Add rows above or below the data | `rowBands` |
 | Observe every data change | `onDataChange` |
-| Add a command, and bind keys to it | `commands` and `keymap` |
+| Back undo, redo, fill, or find with your own command | `commands` and `keymap` |
+| Add any other command | `commands`, then bind it in your `keymap` prop |
 | Run pointer work, listeners, or timers inside the grid root | `Mount` |
 
 Keep an `Overlay` paint-only. Put pointer work, listeners, and timers in `Mount`. A `Mount` component takes no props and reads the grid through `useDataGridApi`.

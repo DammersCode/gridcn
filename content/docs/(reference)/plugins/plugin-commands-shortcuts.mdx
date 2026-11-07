@@ -6,7 +6,7 @@ type: reference
 aliases: ["plugin hotkeys", "plugin commands", "hollow actions", "bind a key from a plugin"]
 ---
 
-A plugin adds named commands with its `commands` member and binds keys to them with its `keymap` member. The grid merges both with the default keymap and with your props. This table lists the outcome of each conflict:
+A plugin adds named commands with its `commands` member. Its `keymap` member binds keys to the commands for the six pluggable actions. The grid merges both with the default keymap and with your props. This table lists the outcome of each conflict:
 
 | Situation | Result |
 | --- | --- |
@@ -39,14 +39,14 @@ The `scope` member sets the dispatch time of a command. With `"grid"`, the defau
 
 Six built-in actions accept a plugin command. The core keeps the key binding of `undo`, `redo`, `fillDown`, and `fillRight`, and it calls `preventDefault` for them. Without a command of that name, the key does nothing, and the browser default stays blocked. A plugin or your `commands` prop gives the key a body. When the command's `when` returns `false`, the grid calls no `preventDefault`, and the browser default runs.
 
-| Action | Default keys | Backed by |
+| Action | Keys | Backed by |
 | --- | --- | --- |
 | `undo` | <kbd>Mod</kbd>+<kbd>Z</kbd> | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `redo` | <kbd>Mod</kbd>+<kbd>Y</kbd>, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `fillDown` | <kbd>Mod</kbd>+<kbd>D</kbd> | [Fill handle](/docs/clipboard-undo/fill-handle) |
 | `fillRight` | <kbd>Mod</kbd>+<kbd>R</kbd> | [Fill handle](/docs/clipboard-undo/fill-handle) |
-| `openFindReplace` | <kbd>Ctrl</kbd>+<kbd>H</kbd> | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `openFind` | <kbd>Mod</kbd>+<kbd>F</kbd> | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `openFindReplace` | <kbd>Ctrl</kbd>+<kbd>H</kbd> (find and replace add-on) | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `openFind` | <kbd>Mod</kbd>+<kbd>F</kbd> (find and replace add-on) | [Find and replace](/docs/sort-filter-search/find-replace) |
 
 The core has no binding for `openFindReplace` and `openFind`. The find and replace plugin binds them with its own `keymap`.
 

@@ -12,7 +12,7 @@ Write a plugin to paint on the grid, observe data changes, or add a command. Thi
 
 - Mount a grid with `columns` and `data`.
 - Know that a plugin object attaches to one grid. Create one object per grid.
-- Pick the part. `Overlay` paints, `rowBands` adds rows, and `onDataChange` observes writes. `commands` adds commands, and `keymap` binds keys to them. The grid renders `Mount` inside the grid root.
+- Pick the part. `Overlay` paints, `rowBands` adds rows, and `onDataChange` observes writes. `commands` adds commands. `keymap` binds keys only to a command of the plugin for one of the six pluggable actions. Bind any other command in your `keymap` prop. The grid renders `Mount` inside the grid root.
 
 ## Steps
 

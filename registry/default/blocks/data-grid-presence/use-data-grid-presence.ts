@@ -155,7 +155,7 @@ function createPresenceMount(store: PresenceStoreApi): ComponentType {
   return PresenceMount;
 }
 
-/** Read-back subscription (opt-in): re-renders ONLY the calling component on highlight changes — pass `storeApi` from {@link useDataGridPresence}'s return value. Mirrors core's old `useDataGridHighlights` for consumers building their own UI (e.g. an inspector panel) off the same state the grid paints. */
+/** Read-back subscription (opt-in): re-renders ONLY the calling component on highlight changes — pass `storeApi` from {@link useDataGridPresence}'s return value. Use it to build your own UI (e.g. an inspector panel) off the same state the grid paints. */
 export function useDataGridPresenceHighlights(storeApi: PresenceStoreApi): readonly PresenceHighlightEntry[] {
   return usePresenceHighlights(storeApi);
 }

@@ -58,19 +58,6 @@ When the user presses <kbd>?</kbd> with the grid focused and no cell editor open
 
 `BindingChips` takes a `binding` string and renders one keycap for each token. On the server it renders word names. On macOS, iOS, and iPadOS it switches to glyphs after hydration.
 
-## Dialog helpers
-
-The dialog groups its rows with exported helpers. Use them to build your own shortcut list.
-
-- `KEYBINDING_CATEGORIES` holds the categories in display order.
-- `KeybindingCategory` is the category type. It equals the `group` of a custom command.
-- `categoryForAction(action)` returns the category of an action, or `other` for an action without one.
-- `ACTION_CATEGORY` maps each built-in action to its category. An action absent from the map belongs to `other`.
-- `categoryLabel(category, labels)` returns the text from `labels.keybindings.categories`.
-- `labelForAction(action, labels)` returns the text from `labels.keybindings.actions`. For an action without a label, it returns the action name in words.
-
-`labels` is the `DataGridLabels` object.
-
 ## Example
 
 This sample opens the dialog on <kbd>?</kbd> and adds a second select-all binding:

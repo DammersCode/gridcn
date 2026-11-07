@@ -97,7 +97,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 
 `readOnly: true` blocks edits. A function receives the row. The grid-wide `readOnly` prop overrides every column.
 
-`renderCell` changes the display only. The cell type still handles editing, copy, and sorting. It receives `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
+`renderCell` changes the display only. The cell type still handles editing, copy, and sorting. It receives `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, and `isActive`. Read the column options from `column.options`.
 
 ## Validation [#validation]
 

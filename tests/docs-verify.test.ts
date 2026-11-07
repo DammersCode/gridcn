@@ -154,12 +154,30 @@ export type Pager = { size: number } & ToolbarOptions;
 describe("verify-docs-symbols", () => {
   it("fails a gridcn symbol that the source no longer has, and a broken AutoTypeTable", () => {
     const root = fixture({
-      "registry/default/blocks/x/a.ts": "export function useDataGridThing() {}\nexport interface ThingOptions { x: number }\n",
-      "content/docs/p.mdx": page("P", 'Call `useDataGridThing()` with `ThingOptions`, never `useDataGridOldThing`. Use `onMutate` freely.\n\n<AutoTypeTable path="registry/default/blocks/x/a.ts" name="ThingOptions" />\n<AutoTypeTable path="registry/default/blocks/x/a.ts" name="Nope" />\n'),
+      "registry/default/blocks/x/x.ts": "export function useDataGridThing() {}\nexport interface ThingOptions { x: number }\n",
+      "content/docs/p.mdx": page("P", 'Call `useDataGridThing()` with `ThingOptions`, never `useDataGridOldThing`. Use `onMutate` freely.\n\n<AutoTypeTable path="registry/default/blocks/x/x.ts" name="ThingOptions" />\n<AutoTypeTable path="registry/default/blocks/x/x.ts" name="Nope" />\n'),
       "scripts/docs-symbols-allow.txt": "onMutate # other library\n",
     });
     const result: Run = runSymbols({ root });
-    expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual(["AutoTypeTable name Nope is not defined in registry/default/blocks/x/a.ts", "`useDataGridOldThing` is not in the registry source"]);
+    expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual(["AutoTypeTable name Nope is not defined in registry/default/blocks/x/x.ts", "`useDataGridOldThing` is not in the registry source"]);
+  });
+
+  it("fails a name or an import that no public module exports, and honors a page-scoped allow", () => {
+    const sample = '```tsx\nimport { useX, hiddenHelper } from "@/components/x/x";\nimport { useX } from "@/components/x/internal";\n```\n';
+    const root = fixture({
+      "registry/default/blocks/x/x.ts": 'export { useX } from "./internal";\n',
+      "registry/default/blocks/x/internal.ts": "export function useX() {}\nexport function hiddenHelper() {}\nexport const HIDDEN_LIMIT = 1;\n",
+      "content/docs/p.mdx": page("P", `Call \`useX()\`, never \`hiddenHelper(state)\`.\n\n${sample}`),
+      "content/docs/old.mdx": page("Old", "The barrel drops `hiddenHelper` and `HIDDEN_LIMIT`.\n"),
+      "scripts/docs-symbols-allow.txt": "old.mdx: hiddenHelper # removed export\n",
+    });
+    const result: Run = runSymbols({ root });
+    expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual([
+      "`HIDDEN_LIMIT` is not exported from a public module",
+      "@/components/x/x does not export `hiddenHelper`",
+      "@/components/x/internal is not a public module",
+      "`hiddenHelper` is not exported from a public module",
+    ]);
   });
 });
 
