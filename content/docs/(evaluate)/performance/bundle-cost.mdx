@@ -1,0 +1,62 @@
+---
+title: Bundle size
+description: See what the core grid and each add-on add to your JavaScript bundle, which parts load on first use, and how to measure your own build.
+type: reference
+aliases: ["bundle cost", "bundle size", "gzip size", "kilobytes", "tree shaking"]
+---
+
+gridcn copies its source into your project, so your bundler builds the grid with your app. The size depends on what you import and on your bundler settings. This page lists what each part brings in. Measure your own build for exact numbers.
+
+| Part | What it adds to the bundle | When it loads |
+| --- | --- | --- |
+| Core (`data-grid`) | About 564 KB minified, 190 KB gzip, with React left out. See [Core](#core). | With the grid |
+| `data-grid-io` | `papaparse` for CSV import. The xlsx reader and writer of `hucre`. | `papaparse` with the add-on. `hucre` on the first xlsx or xls file. See [Parts that load on first use](#lazy-parts). |
+| `data-grid-toolbar`, `data-grid-sort-list` | `@dnd-kit/dom` and `@dnd-kit/react` for drag to reorder | With the filter menu or the sort list |
+| `data-grid-url-state` | `nuqs` | With the URL state hooks |
+| Other add-ons | Their own source and the shadcn/ui components they use. Their npm packages, such as `lucide-react` and `zustand`, are packages of the core too. | With the add-on |
+
+[Install gridcn](/docs/learning-path/install-gridcn#add-optional-pieces) lists the npm packages and the shadcn/ui components of every add-on.
+
+## Core [#core]
+
+A measurement of the core import (`data-grid.tsx`, esbuild, minified, React external) gave 564 KB, or 190 KB gzip. The numbers come from the mount speed work of November 2026. They change with each release.
+
+| Share | Minified size |
+| --- | --- |
+| gridcn code | 250 KB |
+| `@base-ui/react` | 156 KB |
+| `react-day-picker` | 40 KB |
+| `tailwind-merge` | 26 KB |
+| `date-fns` | 22 KB |
+
+The date picker and its packages are about 67 KB, or 22 KB gzip. They load with the grid, also in a grid without a `date` column.
+
+The shadcn/ui components of the core, such as `button`, `popover`, and `calendar`, are files in your project. If your app already uses them, the grid shares them and adds nothing for them.
+
+## Parts that load on first use [#lazy-parts]
+
+`data-grid-io` imports the xlsx reader and the xlsx writer with a dynamic `import()`. Your bundler puts each one in its own chunk. The browser fetches the chunk on the first xlsx or xls import, or on the first xlsx export. CSV import and export never fetch it.
+
+The rest of gridcn loads with the module that imports it. To defer a whole add-on, import the component that uses it with `React.lazy` or `next/dynamic`.
+
+## Measure your build [#measure]
+
+In a Next.js app, run `next build` before and after you add the grid. Compare the "First Load JS" of the route that renders it.
+
+To measure one import outside your app, bundle it with esbuild and gzip the result:
+
+```bash
+echo 'export * from "./components/data-grid/data-grid";' > grid-entry.ts
+npx esbuild grid-entry.ts --bundle --minify --format=esm \
+  --external:react --external:react-dom --outfile=grid-bundle.js
+gzip -c grid-bundle.js | wc -c
+```
+
+esbuild reads the `@/` alias from `tsconfig.json`. Add an add-on to the entry file to see what it adds to the core.
+
+## Related
+
+- [Install gridcn](/docs/learning-path/install-gridcn#add-optional-pieces): the npm packages of each add-on
+- [Performance guidance](/docs/performance/performance-guidance)
+- [Server rendering](/docs/support-upgrades/server-rendering): what the server sends
+- [Add-ons A to Z](/docs/fit-features/add-ons-a-z)

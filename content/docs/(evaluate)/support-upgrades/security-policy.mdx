@@ -56,6 +56,7 @@ Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, URL 
 - If a cell link uses a protocol other than `http:`, `https:`, or `mailto:`, such as `javascript:`, the cell renders plain text. A relative link and a link over 2,048 characters also render plain text.
 - A cell value that throws on conversion to text, such as an object without a prototype, shows as empty text.
 - A paste applies at most 200,000 cells. [Clipboard](/docs/clipboard-undo/clipboard#known-limitations) lists the caps.
+- A paste ignores clipboard HTML <NewBadge /> above 16,000,000 characters and reads the plain text. Above 51,200,000 characters of plain text, it writes nothing.
 - URL state reads a bounded number of filters and groups. [URL state](/docs/sort-filter-search/url-state) lists the bounds.
 - CSV export prefixes a formula-like cell with a single quote. Set `sanitizeFormulas: false` on `exportGrid` to turn this off.
 - XLSX export writes a string as a text cell, so no string runs as a formula. Numbers, booleans, and Dates land typed.

@@ -1,0 +1,71 @@
+---
+title: TypeScript generics
+description: See where the row type of a grid is inferred, which hooks take it as a type argument, and which interfaces you extend for custom names.
+type: reference
+aliases: ["generics", "type arguments", "module augmentation", "declare module", "tdata"]
+---
+
+The row type, `TData`, flows from your rows through the columns, the grid, and the hooks. TypeScript infers most of it. You pass a type argument where a hook cannot see your rows, and you extend an interface where you add a name of your own.
+
+| Task | API | Section |
+| --- | --- | --- |
+| Type the columns | `defineColumns<TData>()(columns)` | [Inferred types](#inferred) |
+| Type a server source | `useDataGridServerRows<TData, TCursor>` | [Inferred types](#inferred) |
+| Read rows inside the grid | `useDataGridRow<TData>`, `useDataGridApi<TData>` | [Store hooks](#store-hooks) |
+| Add a cell type or a keymap action | `GridCellTypes`, `GridActions` | [Augmentation](#augmentation) |
+
+## Inferred types [#inferred]
+
+| API | Where `TData` comes from |
+| --- | --- |
+| `defineColumns<TData>()(columns)` | You pass it. The second call checks each column literal: `accessorKey` must name a row field whose type matches the cell type. See [ColumnDef types](/docs/components-props/column-def#types). |
+| `DataGrid`, `DataGridProvider` | Inferred from `data` or `defaultData` and from `columns`. `getRowId`, `onDataChange`, and `onSave` receive `TData`. |
+| `useDataGridState(defaultRows)` | Inferred from `defaultRows`. See [Undo and redo](/docs/clipboard-undo/undo-redo). |
+| `useDataGridServerRows<TData, TCursor>` | You pass `TData`. `TCursor` is the cursor type of a sequential source and defaults to `never`. See [Load without row count](/docs/scroll-mode/load-without-row-count#a-source-with-no-total). |
+| `useDataGridAggregate<TData>(specs)` | Inferred from the aggregate specs, or passed. See [Pinned rows](/docs/rows-pages-menus/pinned-rows). |
+
+## Store hooks [#store-hooks]
+
+A hook that reads the store cannot see the row type of its provider. Pass the type argument yourself:
+
+| Hook | Returns |
+| --- | --- |
+| `useDataGridRow<TData>(viewIndex)` | `TData \| undefined` |
+| `useDataGridApi<TData>()` | `DataGridApi<TData>` |
+| `useDataGridVisibleColumns<TData>()`, `useDataGridAllColumns<TData>()` | `readonly ColumnDefOf<TData>[]` |
+| `createDataGridSelector<TData>()` | A hook whose selector reads `data` as `readonly TData[]` |
+
+Without the argument, the hooks return `unknown` rows. TypeScript does not compare the argument with the rows of the provider, so pass the same type that the grid has. [Store hooks](/docs/types-hooks/store-hooks) lists every hook.
+
+## Augmentation [#augmentation]
+
+Two interfaces in `@/components/data-grid/types` take names of your own:
+
+| Interface | Adds | Page |
+| --- | --- | --- |
+| `GridCellTypes` | A cell type key with its value type and its `options` type. `defineColumns` then infers both for a column of that type. | [Write a cell type](/docs/recipes-custom-code/write-cell-type#write-a-cell-type) |
+| `GridActions` | A keymap action name for the `keymap` and `commands` props | [Custom commands](/docs/selection-shortcuts/shortcut-remapping#custom-commands) |
+
+Put the block in a file that has a top-level `import` or `export`. Only in such a file does `declare module` extend the installed module:
+
+```ts fragment="module augmentation of an installed item"
+export {};
+
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    currency: { value: number | null; options: { currency: string } };
+  }
+  interface GridActions {
+    saveRow: true;
+  }
+}
+```
+
+The module name is the import path of the installed `types.ts`. If your `components.json` aliases differ, use your path. A plugin that offers a global shortcut extends `DataGridGlobalShortcutActions` the same way. See [Plugin API](/docs/plugins/plugin-contract#resolution-rules).
+
+## Related
+
+- [ColumnDef](/docs/components-props/column-def#types): the column types
+- [Store hooks](/docs/types-hooks/store-hooks)
+- [Exported types](/docs/types-hooks/exported-types)
+- [Define columns](/docs/learning-path/define-columns)

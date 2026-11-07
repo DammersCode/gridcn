@@ -114,6 +114,44 @@ The cell calls your `fetchOptions` in every data mode, because the options live 
 - `LookupFetchRequest` is the argument of `fetchOptions`: `query` and `signal`.
 - `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
 
+`defineColumns` <NewBadge /> checks a `lookup` column after you add the type to `GridCellTypes`. It then checks `accessorKey` against `LookupValue` and `options` against `LookupOptions`:
+
+```ts
+import { defineColumns } from "@/components/data-grid/data-grid";
+import type {
+  LookupOptions,
+  LookupValue,
+} from "@/components/data-grid-lookup/data-grid-lookup";
+
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    lookup: { value: LookupValue; options: LookupOptions };
+  }
+}
+
+type Order = { id: string; customer: LookupValue };
+
+const customerOptions: LookupOptions = {
+  fetchOptions: async ({ query, signal }) => {
+    const url = `/api/customers?q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, { signal });
+    return response.json();
+  },
+};
+
+export const columns = defineColumns<Order>()([
+  {
+    id: "customer",
+    header: "Customer",
+    accessorKey: "customer",
+    type: "lookup",
+    options: customerOptions,
+  },
+]);
+```
+
+[TypeScript generics](/docs/types-hooks/typescript-generics#augmentation) explains where the block goes.
+
 ## Related
 
 - [Built-in cell types](/docs/editing-cells/built-cell-types): the seven cell types that ship in the core.

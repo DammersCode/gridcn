@@ -86,6 +86,41 @@ const rejection = {
 
 If a newer write to the row is pending or has settled, the grid ignores `current`. If `getRowId(current)` throws or differs from `rowId`, the grid ignores `current` and warns once in development.
 
+## Detect a conflict on the server [#detect-a-conflict]
+
+<NewBadge />
+
+An `update` operation carries `prev`, the row before the edit, and its edited `cells`. When a stored field of an edited cell differs from `prev`, another user changed it: refuse the row with `current`. This handler assumes that each column id names a row field:
+
+```ts
+import type {
+  DataChange,
+  SaveRejection,
+} from "@/components/data-grid/data-grid";
+import type { Order } from "./orders";
+import { db } from "./db";
+
+export async function POST(request: Request) {
+  const change = (await request.json()) as DataChange<Order>;
+  const rejected: SaveRejection<Order>[] = [];
+  for (const op of change.ops) {
+    if (op.type !== "update") continue;
+    const stored = await db.orders.find(op.rowId);
+    const before = op.prev as Record<string, unknown>;
+    const fields =
+      op.cells?.map((cell) => cell.columnId) ?? Object.keys(before);
+    if (!stored || fields.some((field) => stored[field] !== before[field])) {
+      rejected.push({ rowId: op.rowId, current: stored ?? undefined });
+    } else {
+      await db.orders.update(op.rowId, op.row);
+    }
+  }
+  return Response.json({ rejected });
+}
+```
+
+Validate the body first, and run the check and the write in one transaction. On the client, `onSave` returns the parsed answer.
+
 ## Resolve a conflict [#resolve-a-conflict]
 
 <NewBadge />
@@ -118,8 +153,6 @@ A change that took server content has `DataChange.serverRowIds`. `useDataGridHis
 - The revert is one `onDataChange` call with `source: "rollback"`. The `reverts` field names the refused change. `onSave` never receives that call.
 - `onSaveRejected({ change, rejected, error })` runs once per refused change, after the revert. If the promise resolved with `{ rejected }`, `error` is `null`. Otherwise `error` is the rejection reason.
 - While the promise is pending, the row element carries `data-save-status="saving"`. After a refusal it carries `failed` until the next save of the row or `actions.clearSaveStatus()`.
-- `useDataGridRowSaveStatus(rowId)` and `useDataGridPendingSaveCount()` read the same state.
-- The revert of a cell edit clears the cell errors of the reverted cells.
 - When the revert writes, `useDataGridHistory` removes the refused change from its undo stack. The whole entry goes, so the rows that the server accepted lose their undo step.
 - On a `readOnly` grid, the grid skips the revert, warns once in development, and still calls `onSaveRejected`.
 - If you replace the data before the answer, a refused update of a row that left the data reverts nothing. A refused delete puts the row back into the new data. When that matters, reload the rows in `onSaveRejected`.

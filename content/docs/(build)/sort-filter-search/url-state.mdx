@@ -6,7 +6,15 @@ type: feature
 aliases: ["query string", "bookmark view", "share view", "persist sort and filter"]
 ---
 
-To keep the view in the URL, install `data-grid-url-state`, put a `NuqsAdapter` above the grid, and mount `<DataGridUrlState>` inside `<DataGridProvider>`. A reload or a shared link then restores the view. `data-grid-url-state` syncs the sort, filter, search, column layout, and pagination state of the grid with the URL through [nuqs](https://nuqs.dev). A reload or a shared link restores the view.
+`data-grid-url-state` syncs the sort, filter, search, column layout, and page of the grid with the URL through [nuqs](https://nuqs.dev). A reload or a shared link then restores the view. Install it, put a `NuqsAdapter` above the grid, and mount `<DataGridUrlState>` inside `<DataGridProvider>`.
+
+| To | Read |
+| --- | --- |
+| Rename the keys, or put two grids on one page | [Keys and prefix](#prefix) |
+| Bound what a link holds | [Behavior](#behavior) |
+| Keep the column layout or the page | [Column layout](#column-layout), [Pagination](#pagination) |
+| Restore the spec of a server grid | [Server mode](#server-mode) |
+| Add saved views | [With saved views](#with-saved-views) |
 
 <ComponentPreview name="data-grid-url-state-demo" />
 
@@ -98,7 +106,7 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes, so typing does not spam the history.
 - The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column. The grid also drops a layout entry for a removed column, with one warning that counts them.
 
-A hand-edited URL cannot express an unbounded view. The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups. An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, and 1,000 values for any other column. An `isNoneOf` list over the same bound drops the whole segment. The URL writes an empty list entry (the blank value) as a lone `%`. The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins. A URL beyond these limits gives fewer filters and sorts.
+A hand-edited URL cannot express an unbounded view. The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups. An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, and 1,000 values for any other column. An `isNoneOf` list over the same bound drops the whole segment. The URL writes an empty list entry (the blank value) as a lone `%`. The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins.
 
 A sort from the URL (`?sort=name:asc`) shows its arrow in the header whatever `headerClickBehavior` says. <NewBadge /> Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
 

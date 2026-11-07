@@ -1,0 +1,109 @@
+---
+title: Move from client rows to server rows
+description: Replace a local data array with useDataGridServerRows, and check each grid feature that changes when your server owns the rows.
+type: task
+aliases: ["migrate to server rows", "client to server", "switch to server data"]
+---
+
+A grid with a local `data` array sorts, filters, and copies every row in the browser. When the browser cannot hold the result, your server must own it. This page replaces `data` with `useDataGridServerRows` and lists each feature that changes. Each line links the page that owns the detail.
+
+Before you start, pick pages mode or scroll mode on [Compare data modes](/docs/server-path/compare-data-modes). Then install the server add-on:
+
+<InstallCommand item="data-grid-server" />
+
+## Replace the data [#replace-the-data]
+
+1. Put the rows behind an API that takes the spec and a page or a row range. [Server rows contract](/docs/contracts/server-rows-contract) has the request and the answer.
+2. Remove `data`, `defaultData`, and `onDataChange` from the grid.
+3. Pass `getRowId` and `fetchRows` to `useDataGridServerRows`.
+4. Move `onSave` into the hook options. Move your own `onDataChange` there too. A handler that you spread after `gridProps` replaces the handler of the hook.
+5. Spread `server.gridProps` onto `DataGrid`. Keep `columns` and your other props.
+
+This grid fetches blocks of orders in place of a local `data` array:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+async function save(change: DataChange<Order>) {
+  const response = await fetch("/api/orders/changes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error("Save refused");
+}
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+    onSave: save,
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+}
+```
+
+The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `keepCheckedRows` in `gridProps`.
+
+## Check what changes [#what-changes]
+
+| Feature | Local array | Server rows |
+| --- | --- | --- |
+| [Sort](/docs/data-modes/query-server-rows#sorting-a-scroll-grid) | The grid sorts `data`. `sortCompare` and the cell type compare the values. | Your server sorts. `sortCompare` does not run. |
+| [Filter](/docs/data-modes/query-server-rows#filtering-a-scroll-grid) | The grid runs `filterMatch` and the operators. | Your server filters. `filterMatch` does not run. Without `fetchFilterValues`, the header filter lists the values of the loaded rows. |
+| [Quick search](/docs/sort-filter-search/quick-search#server-mode) | Highlights matches in every row. | Puts the text in `spec.searchText`. The box highlights matches in the rows that come back. |
+| [Copy and paste](/docs/clipboard-undo/clipboard#server-mode) | Every row. | The rows that `data` holds. In scroll mode, a copy gives empty cells for rows that are not loaded, and a paste skips them. |
+| [Checked rows](/docs/rows-live-data/select-server-rows) | The checks cover `data`. | `actions.selectAllMatching()` checks the whole result. Send `useDataGridSelectedRows()` to your server. |
+| [Export](/docs/import-export/export-whole-result) | Writes every row. | Writes the rows the grid holds. Pass a `source` to write the whole result. |
+| [Totals](/docs/data-modes/show-server-totals) | `useDataGridAggregate` totals every row. | `DataGridServerAggregateReporter` asks your server for the totals. |
+| [Saves](/docs/save-server/save-edits#server-source) | `onSave` on the grid. | `onSave` in the hook options. The hook fetches again after the saves settle. |
+| [Undo and redo](/docs/save-server/undo-server-data) | Writes the old values to `data`. | An undo is one more change that `onSave` sends. |
+| [Row operations](/docs/rows-live-data/change-server-rows) | Change `data`. | Send each `insert`, `delete`, and `move` to your API. |
+
+## Check the server [#check-the-server]
+
+- Treat the request as untrusted input. Pass `body.spec` through `parseServerSpec`, and bound the page or the row range. See [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec).
+- Port each custom `sortCompare` and `filterMatch` to your query. The grid does not run them in server mode.
+- Make the order total, for example with the row id as the last sort key.
+- Answer with `totalRowCount`. A source without a count answers with `nextCursor` or `hasMore`. See [Load without row count](/docs/scroll-mode/load-without-row-count).
+
+## Test the move [#test-the-move]
+
+1. Sort and filter each column that you sorted or filtered before. Compare the order with the old client result.
+2. Scroll or page to the end. Check the row count and the last row.
+3. Edit, paste, and undo a cell. Check that the change reaches your API, and that a refusal reverts the cell. See [Handle refused saves](/docs/save-server/handle-refused-saves).
+4. Make a request fail. Check the error state and the Retry button. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).
+5. Check all matching rows, uncheck one, and send the selection to your server.
+6. Export the whole result through a `source`.
+
+Result: the grid shows the rows of your server, and each feature you use has a server path.
+
+## Related
+
+- [Compare data modes](/docs/server-path/compare-data-modes): pick the mode
+- [Data mode support](/docs/data-modes/data-mode-support): each feature in each mode
+- [Query server rows](/docs/data-modes/query-server-rows): the spec on the server
+- [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data): rows, counts, and saves that go wrong

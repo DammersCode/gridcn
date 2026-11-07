@@ -18,7 +18,7 @@ mirror the change there.
 | view index | A row's position in the sorted and filtered list the user sees. | view space, display index |
 | data index | A row's position in your `data` array. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
-| data mode | One way the grid gets its rows: local array, client pagination, server pagination, scroll rows, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
+| data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | hidden checked row | A checked row that the current filter hides. `keepHiddenCheckedRows` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
@@ -26,6 +26,7 @@ mirror the change there.
 | spec | What the user chose: sort, filter, and search text. `ServerSpec` (`{ sorts, filters, searchText }`) carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | response, payload |
 | block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
+| pages mode | `useDataGridServerRows` with `mode: "pages"`, the default: the server answers one page per request. The data modes matrix and the sidebar call it "Server pagination". | |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | visible window |

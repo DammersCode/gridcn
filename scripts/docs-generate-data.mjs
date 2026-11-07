@@ -11,7 +11,7 @@ export const FINDER = [
   {
     id: "data-fetching",
     title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/save-server/save-revert", "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
+    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", "/docs/save-server/save-revert", "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
   },
   {
     id: "sort-filter-search",
@@ -127,6 +127,7 @@ export const TERM_PAGES = {
   "controlled / uncontrolled": ["/docs/events-state/event-shapes#controlled-pairs", "`data` puts the state in your code. `defaultData` seeds the grid once."],
   spec: "/docs/contracts/server-rows-contract",
   block: ["/docs/scroll-mode/load-rows-while-scrolling", "The fixed-size slice of rows that scroll mode requests."],
+  "pages mode": ["/docs/server-pagination/load-rows-page", "The default mode of `useDataGridServerRows`: the server answers one page per request."],
   "scroll mode": ["/docs/scroll-mode/load-rows-while-scrolling", "The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need."],
   "sequential source": "/docs/scroll-mode/load-without-row-count",
   "row range": "/docs/contracts/server-rows-contract",

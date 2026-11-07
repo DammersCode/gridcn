@@ -82,6 +82,50 @@ The error bar shows each failure, so the user sees that the block keeps failing.
 
 A sequential source stops at a failed block. `retry()` repeats that block, and so does the next report of the rendered rows.
 
+## Retry after a delay [#retry-with-backoff]
+
+<NewBadge />
+
+The hook does not retry on its own. To ride out a short outage, retry inside `fetchRows`. Wait longer after each attempt. If `signal` aborts, stop. A request with a `cursor` repeats the same cursor, so a sequential source keeps its place.
+
+This loader retries a server error twice and sends the cursor of a sequential source:
+
+```ts
+import type {
+  ServerRowsRequest,
+} from "@/components/data-grid-server/data-grid-server";
+
+const wait = (ms: number, signal: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    }, { once: true });
+  });
+
+async function fetchWithRetry(url: string, signal: AbortSignal) {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(url, { signal });
+    if (response.ok) return response;
+    if (response.status < 500 || attempt === 3) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+    await wait(500 * 2 ** attempt, signal);
+  }
+}
+
+export async function loadOrders(request: ServerRowsRequest<string>) {
+  const { cursor, signal } = request;
+  const query = cursor ? `?after=${encodeURIComponent(cursor)}` : "";
+  const response = await fetchWithRetry(`/api/orders${query}`, signal);
+  const answer = await response.json();
+  return { rows: answer.rows, nextCursor: answer.nextCursor };
+}
+```
+
+Pass it as `fetchRows` to `useDataGridServerRows<Order, string>({ mode: "scroll", fetchRows: loadOrders })`. A status below 500 fails at once, because a second attempt gets the same answer. The last failure reaches `onError` and the error bar.
+
 ## Know when rows land
 
 `onLoaded(range)` is the success counterpart of `onError`. When a block resolves, it fires with the row range that the hook wrote. A short answer fires with the smaller row range. A zero-row answer fires nothing.

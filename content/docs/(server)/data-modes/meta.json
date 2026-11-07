@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "data-mode-support",
+    "move-to-server-rows",
     "fetch-cache",
     "query-server-rows",
     "show-server-totals",

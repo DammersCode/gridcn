@@ -7,7 +7,7 @@ aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedat
 demos: none
 ---
 
-Copy, cut, and paste work with no setup and no permission prompt. Copy and paste cap at 200,000 cells each. Copied formula-like text stays as it is until you set `sanitizeClipboardFormulas`. Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
+Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Copy and paste cap at 200,000 cells each, as [Known limitations](#known-limitations) lists. Copied formula-like text stays as it is until you set `sanitizeClipboardFormulas`. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
 
 ## Paste [#paste]
 
@@ -35,6 +35,23 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
 <Callout title="toText, not toDisplayText">
   The copied text of each cell comes from the `toText` of its cell type. Display formatting, such
   as a locale date string, stays out of the clipboard.
+</Callout>
+
+## Known limitations [#known-limitations]
+
+| Limit | Value | Above the limit |
+| --- | --- | --- |
+| Copied cells, `MAX_COPY_CELLS` | 200,000 | The copy writes only the rows that fit. |
+| Pasted cells, `MAX_PASTE_CELLS` | 200,000 | The paste applies only the first rows that fit. |
+| <NewBadge /> Pasted HTML | 16,000,000 characters, 80 for each pasted cell | The grid ignores the HTML and reads the plain text. |
+| <NewBadge /> Pasted plain text | 51,200,000 characters, 256 for each pasted cell | The paste writes nothing. |
+
+A truncated copy or paste warns in the browser console in development.
+
+<Callout type="warn" title="Real-world clipboard HTML is messy">
+  The HTML reader takes the first `<table>` of the payload and ignores merged-cell spans. Excel,
+  Sheets, and Numbers add inline styles that can hide this structure. If a paste does not
+  round-trip from one app, patch it with `processPaste` or `processCellFromClipboard`.
 </Callout>
 
 ## Formula sanitizing [#formula-sanitizing]
@@ -174,20 +191,6 @@ Copy and paste work on the rows that `data` holds, in the order the grid display
 A paste is one change with the source `"paste"`. The grid calls `onDataChange` and `onSave` with it, and `onSave` sends it to the server. If `onSave` resolves with `{ rejected }` or rejects, the grid reverts the refused cells through `onDataChange` with the source `"rollback"`.
 
 In scroll mode, a paste writes the loaded rows and skips rows that are not loaded. It adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode.
-
-## Known limitations [#known-limitations]
-
-<Callout type="warn" title="Copy and paste are capped at 200,000 cells">
-  A copy above `MAX_COPY_CELLS` (200,000 cells) writes only the rows that fit. A paste above
-  `MAX_PASTE_CELLS` (200,000 cells) applies only the first rows that fit. A truncated copy or
-  paste warns in the browser console in development.
-</Callout>
-
-<Callout type="warn" title="Real-world clipboard HTML is messy">
-  The HTML reader takes the first `<table>` of the payload and ignores merged-cell spans. Excel,
-  Sheets, and Numbers add inline styles that can hide this structure. If a paste does not
-  round-trip from one app, patch it with `processPaste` or `processCellFromClipboard`.
-</Callout>
 
 ## Related
 

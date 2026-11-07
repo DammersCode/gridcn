@@ -26,6 +26,7 @@ A term row links to the page that explains it.
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
 | spec | What the user chose: sort, filter, and search text. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| pages mode | The default mode of `useDataGridServerRows`: the server answers one page per request. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | scroll mode | The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. | [Server rows contract](/docs/contracts/server-rows-contract) |
@@ -222,6 +223,8 @@ A search word in this table opens the page that answers it.
 | `breaking changes` | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
 | `buildCsv` | [Shape the export file](/docs/import-export/shape-export-file) |
 | `bulk replace` | [Find and replace](/docs/sort-filter-search/find-replace) |
+| `bundle cost` | [Bundle size](/docs/performance/bundle-cost) |
+| `bundle size` | [Bundle size](/docs/performance/bundle-cost) |
 | `button bar` | [Toolbar](/docs/sort-filter-search/toolbar) |
 | `callbacks` | [Events A to Z](/docs/cheatsheets-messages/events-z) |
 | `cancel paste request` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
@@ -240,6 +243,7 @@ A search word in this table opens the page that answers it.
 | `checked rows across pages` | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `cjk enter key` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `client pagination` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `client to server` | [Move from client rows to server rows](/docs/data-modes/move-to-server-rows) |
 | `collaborator selection` | [Presence options](/docs/add-options/server/presence-options) |
 | `colspan` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `column actions` | [Context menu](/docs/rows-pages-menus/context-menu) |
@@ -300,6 +304,7 @@ A search word in this table opens the page that answers it.
 | `date picker` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `debounce text field` | [useDebouncedInput](/docs/types-hooks/use-debounced-input) |
 | `debounced input` | [useDebouncedInput](/docs/types-hooks/use-debounced-input) |
+| `declare module` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `deep link page` | [Keep pages in URL](/docs/server-pagination/keep-pages-url) |
 | `default keymap` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `default keys` | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
@@ -356,11 +361,13 @@ A search word in this table opens the page that answers it.
 | `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `gate timeout` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
 | `gateTimeoutMs` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
+| `generics` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `getrowid` | [DataGrid props](/docs/components-props/data-grid-props) |
 | `github registry` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `grid context` | [DataGridProvider](/docs/components-props/data-grid-provider) |
 | `grid rect` | [Exported types](/docs/types-hooks/exported-types) |
 | `grid shows nothing` | [Fix install problems](/docs/terms-help/fix-install-problems) |
+| `gzip size` | [Bundle size](/docs/performance/bundle-cost) |
 | `header cell` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `header menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
 | `header menu items` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
@@ -376,6 +383,8 @@ A search word in this table opens the page that answers it.
 | `hotkeys` | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 | `how fast` | [Benchmark results](/docs/performance/benchmark-results) |
 | `how styling works` | [Styling model](/docs/concepts/styling-model) |
+| `hydration` | [Server rendering and hydration](/docs/support-upgrades/server-rendering) |
+| `hydration mismatch` | [Server rendering and hydration](/docs/support-upgrades/server-rendering) |
 | `id from api` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `ime enter submits` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `import encoding` | [Control the import](/docs/import-export/control-import) |
@@ -395,6 +404,7 @@ A search word in this table opens the page that answers it.
 | `keyboard shortcuts in the grid` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `keyset pagination` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `keyset paging` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
+| `kilobytes` | [Bundle size](/docs/performance/bundle-cost) |
 | `known issues` | [Accessibility gaps](/docs/accessibility/accessibility-gaps) |
 | `laggy` | [Performance guidance](/docs/performance/performance-guidance) |
 | `language` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
@@ -414,8 +424,10 @@ A search word in this table opens the page that answers it.
 | `max rows` | [Row limits](/docs/performance/row-limits) |
 | `memory limit` | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
 | `menu ids` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
+| `migrate to server rows` | [Move from client rows to server rows](/docs/data-modes/move-to-server-rows) |
 | `migration` | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
 | `mobile` | [Density and small screens](/docs/theme-style-language/density-small-screens) |
+| `module augmentation` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `mouse selection` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `multi row action` | [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) |
 | `multi sort` | [Sorting](/docs/sort-filter-search/sorting) |
@@ -568,9 +580,11 @@ A search word in this table opens the page that answers it.
 | `send selection` | [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) |
 | `series descriptor` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `server aggregates` | [Show totals from a server](/docs/data-modes/show-server-totals) |
+| `server components` | [Server rendering and hydration](/docs/support-upgrades/server-rendering) |
 | `server error` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `server filter` | [Query server rows](/docs/data-modes/query-server-rows) |
 | `server grid problem` | [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data) |
+| `server html` | [Server rendering and hydration](/docs/support-upgrades/server-rendering) |
 | `server options` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `server pagination` | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | `server row operations` | [Change server rows](/docs/rows-live-data/change-server-rows) |
@@ -601,6 +615,7 @@ A search word in this table opens the page that answers it.
 | `speed` | [Benchmark results](/docs/performance/benchmark-results) |
 | `spreadsheet filter list` | [Header filter](/docs/sort-filter-search/header-filter) |
 | `spreadsheet paste` | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `ssr` | [Server rendering and hydration](/docs/support-upgrades/server-rendering) |
 | `stale index` | [State and view index](/docs/concepts/state-view-index) |
 | `stale row` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `state hooks` | [Store hooks](/docs/types-hooks/store-hooks) |
@@ -611,6 +626,7 @@ A search word in this table opens the page that answers it.
 | `sum of selected cells` | [Status bar](/docs/selection-shortcuts/status-bar) |
 | `summary row` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `supported browsers` | [Browser and framework support](/docs/support-upgrades/browser-framework-support) |
+| `switch to server data` | [Move from client rows to server rows](/docs/data-modes/move-to-server-rows) |
 | `swr` | [Fetch with a cache](/docs/data-modes/fetch-cache) |
 | `sync grids` | [Link multiple grids](/docs/recipes-custom-code/link-multiple-grids) |
 | `system requirements` | [Browser and framework support](/docs/support-upgrades/browser-framework-support) |
@@ -619,6 +635,7 @@ A search word in this table opens the page that answers it.
 | `tailwind` | [Install gridcn](/docs/learning-path/install-gridcn) |
 | `tanstack query` | [Fetch with a cache](/docs/data-modes/fetch-cache) |
 | `tap to select` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `tdata` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `test matrix` | [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage) |
 | `theme` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `theme the grid` | [Styling model](/docs/concepts/styling-model) |
@@ -635,7 +652,9 @@ A search word in this table opens the page that answers it.
 | `translation` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `translation keys` | [Labels](/docs/components-props/labels) |
 | `tree data` | [Feature matrix](/docs/fit-features/feature-matrix) |
+| `tree shaking` | [Bundle size](/docs/performance/bundle-cost) |
 | `tsv` | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `type arguments` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `type definitions` | [Exported types](/docs/types-hooks/exported-types) |
 | `typescript types` | [Exported types](/docs/types-hooks/exported-types) |
 | `ui text` | [Labels](/docs/components-props/labels) |

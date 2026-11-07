@@ -113,7 +113,7 @@ export function OrdersGrid() {
           const response = await fetch("/api/orders/query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...spec, start, end }),
+            body: JSON.stringify({ spec, start, end }),
             signal: querySignal,
           });
           const answer = await response.json();

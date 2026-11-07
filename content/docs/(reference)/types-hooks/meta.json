@@ -2,6 +2,7 @@
   "title": "Types and hooks",
   "pages": [
     "exported-types",
+    "typescript-generics",
     "store-hooks",
     "use-debounce",
     "use-debounced-input",

@@ -14,7 +14,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **L**: Local array. `data` holds every row in memory.
 - **PC**: Client pagination. `defaultPageSize` pages the view of the whole `data`.
 - **PS**: Server pagination. The server returns one page per request.
-- **Z**: Scroll rows. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
+- **Z**: Scroll mode. `useDataGridServerRows` in scroll mode fetches row blocks on scroll.
 - **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
 - **SS**: Server sort. `sortMode="server"`: the grid never reorders `data`.
 - **FS**: Server filter. `filterMode="server"`: the grid never filters `data`.
@@ -33,7 +33,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="col" title={"Local array"} aria-label={"Local array (L)"} className="text-center">L</th>
       <th scope="col" title={"Client pagination"} aria-label={"Client pagination (PC)"} className="text-center">PC</th>
       <th scope="col" title={"Server pagination"} aria-label={"Server pagination (PS)"} className="text-center">PS</th>
-      <th scope="col" title={"Scroll rows"} aria-label={"Scroll rows (Z)"} className="text-center">Z</th>
+      <th scope="col" title={"Scroll mode"} aria-label={"Scroll mode (Z)"} className="text-center">Z</th>
       <th scope="col" title={"Controlled state"} aria-label={"Controlled state (C)"} className="text-center">C</th>
       <th scope="col" title={"Server sort"} aria-label={"Server sort (SS)"} className="text-center">SS</th>
       <th scope="col" title={"Server filter"} aria-label={"Server filter (FS)"} className="text-center">FS</th>
@@ -420,7 +420,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"No pages."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"Scroll rows and pagination are exclusive."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Scroll mode and pagination are exclusive."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -572,7 +572,7 @@ Mode-neutral by design.
 ### Pagination
 
 - **L**: n/a: No pages.
-- **Z**: n/a: Scroll rows and pagination are exclusive.
+- **Z**: n/a: Scroll mode and pagination are exclusive.
 
 ### Keys, labels and cell types
 

@@ -19,7 +19,7 @@
     },
     {
       "id": "Z",
-      "label": "Scroll rows",
+      "label": "Scroll mode",
       "description": "`useDataGridServerRows` in scroll mode fetches row blocks on scroll.",
       "evidencePattern": "scroll"
     },
@@ -2094,7 +2094,7 @@
         },
         "Z": {
           "status": "n/a",
-          "reason": "Scroll rows and pagination are exclusive."
+          "reason": "Scroll mode and pagination are exclusive."
         },
         "C": {
           "status": "supported",

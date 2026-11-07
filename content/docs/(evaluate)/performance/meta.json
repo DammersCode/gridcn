@@ -4,6 +4,7 @@
     "benchmark-results",
     "run-benchmark",
     "performance-guidance",
+    "bundle-cost",
     "virtualization",
     "row-limits"
   ]

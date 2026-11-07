@@ -43,7 +43,7 @@ export function QuotesGrid() {
       const response = await fetch("/api/quotes/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...spec, page, pageSize }),
+        body: JSON.stringify({ spec, page, pageSize }),
         signal,
       });
       const answer = await response.json();

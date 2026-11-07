@@ -3,6 +3,7 @@
   "pages": [
     "version-policy-changelog",
     "browser-framework-support",
+    "server-rendering",
     "upgrade-gridcn",
     "security-policy",
     "license-credits"

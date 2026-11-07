@@ -41,7 +41,7 @@ export function OrdersGrid() {
       const response = await fetch("/api/orders/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...spec, start, end }),
+        body: JSON.stringify({ spec, start, end }),
         signal,
       });
       const answer = await response.json();
@@ -75,13 +75,21 @@ It drops every key it does not know and builds no query. It does not read `start
 ```ts
 import { parseServerSpec, ServerSpecError } from "@/components/data-grid-server/data-grid-server";
 
+// The blockSize of the hook: one request asks for at most one block.
+const MAX_ROWS = 50;
+
+const toIndex = (value: unknown) => {
+  const index = Math.floor(Number(value));
+  return Number.isSafeInteger(index) && index >= 0 ? index : 0;
+};
+
 export async function POST(request: Request) {
   const body = await request.json();
   try {
     const spec = parseServerSpec(body.spec, { columns: ["customer", "total"] });
     // map spec.sorts, spec.filters, and spec.searchText to your query layer
-    const start = Math.max(0, Math.floor(Number(body.start)) || 0);
-    const end = Math.min(Math.floor(Number(body.end)) || 0, start + 500);
+    const start = toIndex(body.start);
+    const end = Math.max(start, Math.min(toIndex(body.end), start + MAX_ROWS));
     return Response.json(await queryOrders(spec, start, end));
   } catch (error) {
     if (error instanceof ServerSpecError) {
