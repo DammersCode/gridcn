@@ -13,7 +13,7 @@ export const LLMS_TASKS: LlmsTask[] = [
   { intent: "Limit imported files (size, rows, columns)", slug: ["import-export", "import"], label: "Import" },
   { intent: "Add a custom cell type", slug: ["recipes-custom-code", "write-cell-type"], label: "Write a cell type" },
   { intent: "Paginate with bookmarkable pages", slug: ["server-pagination", "keep-pages-url"], label: "Keep pages in URL" },
-  { intent: "Find a callback or event", slug: ["events-state"], label: "Events and state" },
+  { intent: "Find a callback or event", slug: ["cheatsheets-messages", "events-z"], label: "Events A to Z" },
 ];
 
 export const SKILL_NAMES = ["gridcn-performance", "gridcn-custom-cell-type", "gridcn-data-source", "gridcn-addons", "gridcn-upgrade"];

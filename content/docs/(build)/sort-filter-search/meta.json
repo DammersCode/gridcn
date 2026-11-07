@@ -1,7 +1,6 @@
 {
   "title": "Sort, filter, and search",
   "pages": [
-    "index",
     "sorting",
     "filtering",
     "header-filter",

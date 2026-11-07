@@ -21,12 +21,12 @@ A term row links to the page that explains it.
 | view index | A row's position in the sorted and filtered list the user sees. | [State and view index](/docs/concepts/state-view-index) |
 | data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
-| data mode | One way the grid gets its rows, such as a local array or server pages. | [Data modes](/docs/data-modes) |
+| data mode | One way the grid gets its rows, such as a local array or server pages. | [Data mode guide](/docs/data-modes) |
 | commit | Check a value with `validate` and write it to the data. | [Validation](/docs/editing-cells/validation) |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
 | spec | What the user chose: sort, filter, and search text. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| block | The fixed-size slice of rows that scroll mode requests. | [Scroll mode](/docs/scroll-mode) |
-| scroll mode | The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need. | [Scroll mode](/docs/scroll-mode) |
+| block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| scroll mode | The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | row count | The size of the result. | [Load rows by page](/docs/server-pagination/load-rows-page) |
@@ -54,7 +54,7 @@ A term row links to the page that explains it.
 | overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
 | add-on | An optional registry item you install, such as `data-grid-fill`. | [Add-ons A to Z](/docs/fit-features/add-ons-a-z) |
 | core | The `data-grid` item. | [Install gridcn](/docs/learning-path/install-gridcn) |
-| plugin | A runtime `DataGridPlugin` object in the `plugins` prop. | [Plugins](/docs/plugins) |
+| plugin | A runtime `DataGridPlugin` object in the `plugins` prop. | [Plugin model](/docs/plugins/plugin-shape) |
 | row marker | The narrow column at the left edge that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | cell type | The kind of value a column holds, for example `text` or `number`. | [Cell type model](/docs/concepts/cell-type-model) |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | [ColumnDef](/docs/components-props/column-def#values) |
@@ -78,8 +78,8 @@ A term row links to the page that explains it.
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. | [Row order](/docs/rows-pages-menus/row-order) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). | [Server rows contract](/docs/contracts/server-rows-contract) |
 | value query | The text a `fetchFilterValues` request carries as `query`. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| server grid | A grid with `sortMode="server"` and `filterMode="server"`. | [Data modes](/docs/data-modes) |
-| result | Every row that matches the spec on the server. | [Data modes](/docs/data-modes) |
+| server grid | A grid with `sortMode="server"` and `filterMode="server"`. | [Data mode guide](/docs/data-modes) |
+| result | Every row that matches the spec on the server. | [Data mode guide](/docs/data-modes) |
 | clearContents | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | typeToReplace | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | moveUpKeepSelection | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
@@ -112,13 +112,13 @@ A word in this table names a term from the first table.
 | `view space` | view index | [State and view index](/docs/concepts/state-view-index) |
 | `display index` | view index | [State and view index](/docs/concepts/state-view-index) |
 | `ticked row` | checked row | [Checked rows](/docs/selection-shortcuts/checked-rows) |
-| `source kind` | data mode | [Data modes](/docs/data-modes) |
+| `source kind` | data mode | [Data mode guide](/docs/data-modes) |
 | `invisible check` | hidden checked row | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `filtered-out selection` | hidden checked row | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `bulk move` | block move | [Row order](/docs/rows-pages-menus/row-order) |
 | `response` | request, answer | [Server rows contract](/docs/contracts/server-rows-contract) |
 | `payload` | request, answer | [Server rows contract](/docs/contracts/server-rows-contract) |
-| `lazy mode` | scroll mode | [Scroll mode](/docs/scroll-mode) |
+| `lazy mode` | scroll mode | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | `infinite rows` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `open-ended source` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `visible window` | wanted range | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
@@ -127,8 +127,8 @@ A word in this table names a term from the first table.
 | `auto-refresh` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
 | `preload` | prefetch | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | `value search` | value query | [Server rows contract](/docs/contracts/server-rows-contract) |
-| `result set` | result | [Data modes](/docs/data-modes) |
-| `dataset` | result | [Data modes](/docs/data-modes) |
+| `result set` | result | [Data mode guide](/docs/data-modes) |
+| `dataset` | result | [Data mode guide](/docs/data-modes) |
 | `row total` | row count | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | `sliced data` | paged view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `page slice` | paged view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
@@ -294,7 +294,7 @@ A search word in this table opens the page that answers it.
 | `data-grid-views` | [Saved views](/docs/sort-filter-search/saved-views) |
 | `data-row-stale` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `DataGridHeader` | [DataGridProvider](/docs/components-props/data-grid-provider) |
-| `DataGridPlugin type` | [Plugin contract](/docs/plugins/plugin-contract) |
+| `DataGridPlugin type` | [Plugin API](/docs/plugins/plugin-contract) |
 | `DataGridViewsStorage` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options) |
 | `dataset key` | [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
 | `date picker` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
@@ -322,6 +322,7 @@ A search word in this table opens the page that answers it.
 | `edit activation` | [Editable columns](/docs/editing-cells/editable-columns) |
 | `edit form` | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
 | `editor rules` | [Cell type model](/docs/concepts/cell-type-model) |
+| `empty grid` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `error from api` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `error message` | [Messages](/docs/cheatsheets-messages/messages) |
 | `event list` | [Event shapes](/docs/events-state/event-shapes) |
@@ -336,7 +337,7 @@ A search word in this table opens the page that answers it.
 | `export server rows` | [Export the whole result](/docs/import-export/export-whole-result) |
 | `export source` | [Export the whole result](/docs/import-export/export-whole-result) |
 | `exportRows` | [Shape the export file](/docs/import-export/shape-export-file) |
-| `extension point` | [Plugin shape](/docs/plugins/plugin-shape) |
+| `extension point` | [Plugin model](/docs/plugins/plugin-shape) |
 | `fetchAggregates` | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | `fill options` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `filter by column` | [Header filter](/docs/sort-filter-search/header-filter) |
@@ -344,11 +345,13 @@ A search word in this table opens the page that answers it.
 | `filter menu props` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options) |
 | `filter operators` | [Filtering](/docs/sort-filter-search/filtering) |
 | `find in grid` | [Quick search](/docs/sort-filter-search/quick-search) |
+| `fixed header` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `footer parts` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
 | `foreign key column` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `formula injection` | [Export](/docs/import-export/export) |
 | `freeze columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
-| `freeze rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| `freeze header` | [Column headers and groups](/docs/columns/column-headers-groups) |
+| `freeze top row` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `frozen columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `gate timeout` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
@@ -425,7 +428,9 @@ A search word in this table opens the page that answers it.
 | `next cursor` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `next token` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `next.js app router` | [Install gridcn](/docs/learning-path/install-gridcn) |
+| `no rows` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `noResults announcement` | [Live region messages](/docs/accessibility/live-region-messages) |
+| `nothing renders` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `number cell` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `number format` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `nuqs` | [URL state options](/docs/add-options/sort-filter-search/url-state-options) |
@@ -442,7 +447,7 @@ A search word in this table opens the page that answers it.
 | `onsaverejected` | [Save edits](/docs/save-server/save-edits) |
 | `onvalidationerror` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `operatorsForColumn` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options) |
-| `optimistic update` | [Save and revert](/docs/save-server/save-revert) |
+| `optimistic update` | [Revert or refetch after a save](/docs/save-server/save-revert) |
 | `option names` | [Options A to Z](/docs/cheatsheets-messages/options-z) |
 | `overlay context` | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `override grid classes` | [Styling model](/docs/concepts/styling-model) |
@@ -465,14 +470,15 @@ A search word in this table opens the page that answers it.
 | `permissions` | [Lock cells by role](/docs/editing-cells/lock-cells-role) |
 | `persist sort and filter` | [URL state](/docs/sort-filter-search/url-state) |
 | `pin left` | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `pin rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `pin rows to the edge` | [Plugin overlays](/docs/plugins/plugin-overlays) |
-| `plugin api` | [Plugin contract](/docs/plugins/plugin-contract) |
+| `plugin api` | [Plugin API](/docs/plugins/plugin-contract) |
 | `plugin commands` | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `plugin hotkeys` | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
-| `plugin identity` | [Plugin shape](/docs/plugins/plugin-shape) |
-| `plugin interface` | [Plugin contract](/docs/plugins/plugin-contract) |
-| `plugin members` | [Plugin shape](/docs/plugins/plugin-shape) |
-| `plugin object type` | [Plugin shape](/docs/plugins/plugin-shape) |
+| `plugin identity` | [Plugin model](/docs/plugins/plugin-shape) |
+| `plugin interface` | [Plugin API](/docs/plugins/plugin-contract) |
+| `plugin members` | [Plugin model](/docs/plugins/plugin-shape) |
+| `plugin object type` | [Plugin model](/docs/plugins/plugin-shape) |
 | `plugin onDataChange` | [Plugin events](/docs/plugins/plugin-events) |
 | `prefetchNextPage` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `presence highlight` | [Presence options](/docs/add-options/server/presence-options) |
@@ -520,8 +526,8 @@ A search word in this table opens the page that answers it.
 | `revert edit` | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `right to left` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `right-click menu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
-| `roll back` | [Save and revert](/docs/save-server/save-revert) |
-| `rollback` | [Save and revert](/docs/save-server/save-revert) |
+| `roll back` | [Revert or refetch after a save](/docs/save-server/save-revert) |
+| `rollback` | [Revert or refetch after a save](/docs/save-server/save-revert) |
 | `rounded corners` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `row ceiling` | [Row limits](/docs/performance/row-limits) |
 | `row color` | [Style overrides](/docs/theme-style-language/style-overrides) |
@@ -599,6 +605,7 @@ A search word in this table opens the page that answers it.
 | `stale row` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `state hooks` | [Store hooks](/docs/types-hooks/store-hooks) |
 | `sticky columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `sticky header` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `sticky rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `stutter` | [Performance guidance](/docs/performance/performance-guidance) |
 | `sum of selected cells` | [Status bar](/docs/selection-shortcuts/status-bar) |

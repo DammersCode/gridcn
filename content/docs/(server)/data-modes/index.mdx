@@ -1,49 +1,21 @@
 ---
-title: Data modes
-description: Pick how the grid gets its rows, where sort, filter, and search run, and find the pages that wire each data mode to your API.
+title: Data mode guide
+description: Pick how the grid gets its rows, and decide whether the grid or your server applies the sort, filter, and search text.
 type: landing
 ---
 
-A data mode is one way the grid gets its rows. The mode also decides who applies the sort, the filter, and the search text. This area covers the pages that apply to every server mode.
-
-<Cards>
-  <Card
-    title="Data mode support"
-    description="Look up which grid features work in each data mode, and where a known gap remains."
-    href="/docs/data-modes/data-mode-support"
-  />
-  <Card
-    title="Query server rows"
-    description="Send the sort, filter, and search text of the grid to your server, and show the rows that come back."
-    href="/docs/data-modes/query-server-rows"
-  />
-  <Card
-    title="Fetch with a cache"
-    description="Put a fetch cache between the grid and your API, for a plain array, pages, or scroll blocks."
-    href="/docs/data-modes/fetch-cache"
-  />
-  <Card
-    title="Show totals from a server"
-    description="Pin a totals row that your server computes for the whole filtered result, in pages mode, scroll mode, and with your own API."
-    href="/docs/data-modes/show-server-totals"
-  />
-  <Card
-    title="Troubleshoot server data"
-    description="Find the cause of missing rows, a wrong page count, lost edits, or a lost selection, and fix it."
-    href="/docs/data-modes/troubleshoot-server-data"
-  />
-</Cards>
+A data mode is one way the grid gets its rows. The mode also decides who applies the sort, the filter, and the search text. Use the two tables below to pick both.
 
 ## Pick the strategy for your data [#pick-the-strategy-for-your-data]
 
 | Your data | Data mode | Start here |
 | --- | --- | --- |
 | The browser holds every row. | Local array | [Compare data modes](/docs/server-path/compare-data-modes) |
-| Your API returns one page for each request. | Pages mode | [Server pagination](/docs/server-pagination) |
-| Your API reads rows by offset and returns the row count. | Scroll mode, random access | [Scroll mode](/docs/scroll-mode) |
+| Your API returns one page for each request. | Pages mode | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| Your API reads rows by offset and returns the row count. | Scroll mode, random access | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | Your API returns a next cursor and no row count. | Scroll mode, sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 
-Live values add to any of these modes. See [Rows and live data](/docs/rows-live-data). One grid cannot use scroll mode and pagination together.
+Live values add to any of these modes. See [Stream updates](/docs/rows-live-data/stream-updates). One grid cannot use scroll mode and pagination together.
 
 ## Pick where the spec runs [#pick-where-the-spec-runs]
 

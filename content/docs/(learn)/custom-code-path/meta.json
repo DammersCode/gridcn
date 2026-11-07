@@ -1,7 +1,6 @@
 {
   "title": "Custom code path",
   "pages": [
-    "index",
     "pick-code-route",
     "plan-cell-type",
     "plan-plugin"

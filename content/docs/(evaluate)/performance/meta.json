@@ -1,7 +1,6 @@
 {
   "title": "Performance",
   "pages": [
-    "index",
     "benchmark-results",
     "run-benchmark",
     "performance-guidance",

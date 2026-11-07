@@ -29,7 +29,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 
 | Type | Answers | Words (target / hard) | Screens (hard) | H2 count | Template |
 |---|---|---|---|---|---|
-| Landing | Where do I go? | 80 to 350 / 400 | 3 | 0 to 6 | One-paragraph purpose; one line per child page; a task list or a path; no props table |
+| Landing | Which way fits me? | 80 to 350 / 400 | 3 | 1 to 6 | One-paragraph purpose; content that no child page has, such as a decision table; no card list of the children; no props table |
 | Feature | How does this work and how do I use it? | 400 to 1,200 / 1,500 | 8 | 2 to 8 | Problem paragraph; demo; install; behavior; server mode; props tables; Related |
 | Concept | Why does it work this way? | 300 to 1,000 / 1,200 | 6 | 2 to 5 | The question the reader has; the model in short sentences; consequences; Related. No props table |
 | Task | How do I do X? | 200 to 800 / 1,000 | 6 | 2 to 8 | Goal sentence; prerequisites that are not obvious; numbered steps; result; Related |
@@ -83,17 +83,18 @@ Every page has exactly one type. The type decides the budget and the template. A
   groups.
 - S5. At most 25 sidebar rows are visible at once on any page. The count is the groups of the area, plus the pages of the
   one open group, plus the pages of its open subgroups.
-- S6. Groups are collapsible folders. The group of the current page is open. Every other group is closed. A closed group
-  opens on its landing page, so no page hides behind a second click.
-- S7. Every group has a Landing page that is the group's first sidebar entry. The landing page lists each child with its
-  description, and the list is generated. A generated group of option pages may use subgroups without their own landing,
-  when its landing lists every page under its subgroup name. It may carry the group's overview text within the Landing budget.
+- S6. Groups are collapsible folders. The group of the current page is open. Every other group is closed. A click on a
+  closed group opens it and shows its pages. The `title` in the group's `meta.json` names the group, and its `pages` list
+  sets the order.
+- S7. A group has a Landing page only for content that no child page has: the docs home, or a decision guide such as the
+  data mode guide. A page that only lists the children repeats the sidebar, so the group has no index page. A kept Landing
+  page is the group's first sidebar entry, and its title differs from the group label.
 - S8. Split a page when it breaks P1, P2, or P5, or when two thirds of its inbound deep links go to one H2 cluster. Each
   new page gets the type that fits it.
 - S9. Merge a page into its parent when it breaks the lower bound of P2 or P11.
 - S10. A topic appears once in the sidebar. A page that belongs to two areas lives in one and is linked from the other.
   There are no duplicate entries.
-- S11. The order inside a group is: Landing, the shortest path to first use, common tasks, advanced behavior,
+- S11. The order inside a group is: the Landing page when the group has one, the shortest path to first use, common tasks, advanced behavior,
   troubleshooting. A group that teaches a skill follows the path order. A Reference group follows the product (the order of
   the options) or A to Z.
 - S12. A goal with an ordered route has a path group in the Learn or Start area: a group of 3 to 10 Step pages. The first
@@ -107,7 +108,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 - S15. A group has at least 2 pages.
 - S16. A new feature changes at most 3 hand-written places: its page, its Add-on options page, and its example page (when it
   has a demo).
-  A server mode adds one Server page and one row in the data modes matrix. Everything else is generated: the group landing lists (from page descriptions), the task finder entries (from the `finder`
+  A server mode adds one Server page and one row in the data modes matrix. Everything else is generated: the task finder entries (from the `finder`
   frontmatter line), the Terms alias table, the feature matrix, the cheatsheets, the sidebar, and the model index (A12).
 
 ## 4. Naming rules (N)
@@ -118,8 +119,8 @@ Every page has exactly one type. The type decides the budget and the template. A
 - N3. A label uses one name per concept, taken from `GLOSSARY.md` and `terms`. A concept with two names in the docs is a
   defect. A name a reader uses for the concept goes in the `aliases` list of the page (A11), not in the prose.
 - N4. A title is a noun phrase for Feature, Concept, Reference, Landing, and Cheatsheet pages. It is an imperative verb
-  phrase for Task and Step pages ("Save edits to a server"). A Landing page uses its group label as its title, and the
-  docs home may use its own title. An example page is the exception: its title is the task as a noun phrase plus
+  phrase for Task and Step pages ("Save edits to a server"). A page title never repeats the label of its group, so the
+  sidebar never shows one name twice ("Data modes" holds "Data mode guide"). An example page is the exception: its title is the task as a noun phrase plus
   "example" ("Pin rows example").
 - N5. A slug is fixed when the page is created. It is the first four words of the kebab-case title after the stop words
   (a, an, the, to, in, of, by, from, with, and, for, on, at) are removed. A camelCase word splits at its capitals
@@ -138,7 +139,7 @@ Every page has exactly one type. The type decides the budget and the template. A
 
 - A1. Every page has the on-page table of contents ("On this page"). It lists H2 and H3 only.
 - A2. Breadcrumbs appear only on pages at depth 3. Every page marks the current item in the sidebar (A10).
-- A3. The docs home is the landing of the Learning path group. It shows three entries, one per reader: start with a first
+- A3. The docs home is the first entry of the Learn area. It shows three entries, one per reader: start with a first
   grid (new to the grid), the server path (building on server data), and the Evaluate area (deciding whether to adopt).
   A link to the task finder sits next to them.
 - A4. One task finder page lists "I want to ..." tasks by intent, each one link, at most 40 entries, grouped in at most
@@ -168,7 +169,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   and the first version that has it. The keys are `kind`, `modes`, `stability`, and `since`. The feature matrix shows the same four
   columns (generated). The key `status` is not used, because `pnpm lint` rejects it in `content/docs`.
 
-- A15. The Evaluate landing holds an ordered adoption checklist that links fit and features, speed, accessibility, and support.
+- A15. The Evaluate area orders its groups as an adoption checklist: fit and features, speed, accessibility, and support.
 
 ## 6. Where a new page goes
 
@@ -178,7 +179,7 @@ new group before the cap (S2).
 
 | New thing | Hand-written places (S16) | Generated |
 |---|---|---|
-| Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, grouped by the Build group of its topic), an example page when it has a demo | Landing lists, task finder entry, feature matrix row, cheatsheet rows, model index, status line |
+| Add-on | A page in the group of its topic, its own Add-on options page (one per add-on, grouped by the Build group of its topic), an example page when it has a demo | Task finder entry, feature matrix row, cheatsheet rows, model index, status line |
 | Server feature | A page in the Server group of its mode, a row in the data modes matrix, a step link in the Server path when it changes the route | Feature matrix row |
 | Event or callback | A section in the matching Events page | Row in the events cheatsheet, anchor (N9) |
 | Cell type | A section in the built-in cell types page, an example page | Cheatsheet rows |
@@ -228,6 +229,7 @@ with two lines, and typed deprecation notices in the changelog.
 | Rule | Checked by |
 |---|---|
 | P1, P2, P4, P8, P11, P14, P15, P16 | `--check` |
+| S7 (a Landing page has an H2), N4 (a title repeats its group label) | `verify-docs-structure.mjs` |
 | P3, P5, P6, P7, P9, P10, P12 | Reviewer |
 | P13, N9, A13 | Planned machine checks (not scripted yet); reviewer until then |
 | S1, S2, S3, S4, S5, S7, S12, S13, S15 | `--candidate` |

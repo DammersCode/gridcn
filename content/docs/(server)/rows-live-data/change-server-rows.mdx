@@ -41,7 +41,7 @@ Without `createRow` or `duplicateRow`, the matching operation does nothing and w
 
 ## Send the operations [#send-the-operations]
 
-`opsToRequests` from [Save and revert](/docs/save-server/save-revert#translate-operations-into-api-calls) maps `insert` to a create request, `delete` to a remove request, and `update` to a patch. It sends all `move` operations of one change in one request, because the server must apply them as a batch.
+`opsToRequests` from [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls) maps `insert` to a create request, `delete` to a remove request, and `update` to a patch. It sends all `move` operations of one change in one request, because the server must apply them as a batch.
 
 If the server refuses an `insert`, the grid removes the row. If it refuses a `delete`, the grid brings the row back. See [Handle refused saves](/docs/save-server/handle-refused-saves).
 
@@ -96,6 +96,6 @@ When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do n
 
 - [Handle row action results](/docs/rows-live-data/handle-row-action-results)
 - [Row operations](/docs/rows-pages-menus/row-operations)
-- [Save and revert](/docs/save-server/save-revert)
+- [Revert or refetch after a save](/docs/save-server/save-revert)
 - [Handle refused saves](/docs/save-server/handle-refused-saves)
 - [Data change events](/docs/events-state/data-change-events)

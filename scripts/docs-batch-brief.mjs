@@ -8,7 +8,7 @@ import { readLf } from "./docs-verify-lib.mjs";
 
 const HARD = { landing: 400, feature: 1500, concept: 1200, task: 1000, step: 800, reference: 2000, example: 800, cheatsheet: 1200 };
 const TEMPLATE = {
-  landing: "Landing = one-paragraph purpose, one line per child page (the list is generated later; write the lead sentence only), a task list or a path when the group has one. 80 to 350 words, 0 to 6 H2. No props table.",
+  landing: "Landing = one-paragraph purpose, then content that no child page has, such as a decision table. No card list of the children: the sidebar lists them. 80 to 350 words, 1 to 6 H2. No props table.",
   feature: "Feature = problem paragraph, then one demo (only when the behavior is visual, interactive, or timing), `<InstallCommand>` when the page owns an add-on, behavior, `## Server mode` when the row has parity ids, props tables (marker above each), `## Related`. 400 to 1,200 words, 2 to 8 H2.",
   concept: "Concept = the question the reader has, the model in short sentences, consequences, `## Related`. No props table, no demo. 300 to 1,000 words, 2 to 5 H2.",
   task: "Task = one goal sentence, prerequisites that are not obvious, numbered steps (at most 12, target 7, one action each), the visible result, `## Related`. 200 to 800 words, 2 to 8 H2.",

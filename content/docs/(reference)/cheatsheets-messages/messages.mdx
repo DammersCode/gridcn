@@ -54,8 +54,8 @@ These warnings come from calls that change or read rows.
 
 | Message | What to do | Page |
 | --- | --- | --- |
-| `[data-grid] a client sort or filter changed while data holds unloaded rows. The client cannot sort or filter rows it has not fetched; use sortMode="server" and filterMode="server" and send the sort and filter to your backend.` | Set `sortMode` and `filterMode` to `"server"` and send the sort and filter to your backend. | [Scroll mode](/docs/scroll-mode) |
-| `[data-grid] totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows` | Handle `onSortChange` and `onFilterChange` and fetch rows for the spec, or set `sortMode="client"` and `filterMode="client"`. | [Data modes](/docs/data-modes) |
+| `[data-grid] a client sort or filter changed while data holds unloaded rows. The client cannot sort or filter rows it has not fetched; use sortMode="server" and filterMode="server" and send the sort and filter to your backend.` | Set `sortMode` and `filterMode` to `"server"` and send the sort and filter to your backend. | [Query server rows](/docs/data-modes/query-server-rows) |
+| `[data-grid] totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows` | Handle `onSortChange` and `onFilterChange` and fetch rows for the spec, or set `sortMode="client"` and `filterMode="client"`. | [Data mode guide](/docs/data-modes) |
 | `[data-grid] onRowActionSkipped threw: <error>` | Catch the error inside `onRowActionSkipped`. The grid logs it and goes on. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | `[data-grid] reorderRows is a no-op while a sort or filter is active (the view order is owned by them)` | Clear the sort and the filter before you move rows. | [Row order](/docs/rows-pages-menus/row-order) |
 | `[data-grid] reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first` | Load the rows of the range first. | [Row order](/docs/rows-pages-menus/row-order) |
@@ -113,8 +113,8 @@ These warnings come from the `plugins` prop. A plugin comes from an add-on hook.
 
 | Message | What to do | Page |
 | --- | --- | --- |
-| `[data-grid] plugin "<name>" is already attached to another grid; a plugin instance attaches to one grid — pass a fresh plugin object (the add-on hook's result) to each grid` | Call the add-on hook once per grid and pass each result to its own grid. | [Plugin contract](/docs/plugins/plugin-contract) |
-| `[data-grid] two plugins named "<name>"; the later one is ignored — the name is the plugin's React key and its identity` | Give each plugin its own `name`. | [Plugin shape](/docs/plugins/plugin-shape) |
+| `[data-grid] plugin "<name>" is already attached to another grid; a plugin instance attaches to one grid — pass a fresh plugin object (the add-on hook's result) to each grid` | Call the add-on hook once per grid and pass each result to its own grid. | [Plugin API](/docs/plugins/plugin-contract) |
+| `[data-grid] two plugins named "<name>"; the later one is ignored — the name is the plugin's React key and its identity` | Give each plugin its own `name`. | [Plugin model](/docs/plugins/plugin-shape) |
 | `[data-grid] plugin "<name>"'s Overlay component identity changed; the overlay remounts and loses its state` | Keep the `Overlay` component the same function between renders. | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `[data-grid] plugin "<name>"'s Mount component identity changed; the mount remounts and loses its state` | Keep the `Mount` component the same function between renders. | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `[data-grid] plugins "<first>" and "<second>" both define command "<name>"; the later plugin wins` | Rename one of the commands. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |

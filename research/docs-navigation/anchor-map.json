@@ -162,7 +162,7 @@
   "imperative-handle": "/docs/components-props/data-grid-props#imperative-handle",
   "datagridprovider": "/docs/components-props/data-grid-provider",
   "store-external-store-ownership": "/docs/components-props/data-grid-provider#store-external-store-ownership",
-  "plugins": "/docs/plugins",
+  "plugins": "/docs/plugins/plugin-shape",
   "hooks": "/docs/types-hooks/store-hooks",
   "columndeftdata-tvalue": "/docs/components-props/column-def",
   "celltypetdata-tvalue-toptions": "/docs/contracts/cell-type-contract#celltypetdata-tvalue-toptions",
@@ -172,7 +172,7 @@
   "datagridlabels": "/docs/components-props/labels#datagridlabels",
   "other-exported-types": "/docs/types-hooks/exported-types",
   "operation-engine": "/docs/contracts/operation-engine-contract#operation-engine",
-  "add-on-option-types": "/docs/add-options",
+  "add-on-option-types": "/docs/fit-features/add-ons-a-z",
   "datagridurlstateprops": "/docs/add-options/sort-filter-search/url-state-options#datagridurlstate",
   "usedatagridstateoptions": "/docs/add-options/clipboard-undo/undo-redo-options#usedatagridstateoptions",
   "usedatagridhistoryoptions": "/docs/add-options/clipboard-undo/undo-redo-options#usedatagridhistoryoptions",
@@ -578,7 +578,7 @@
   "identity": "/docs/plugins/plugin-shape#identity",
   "worked-example-highlight-a-column": "/docs/recipes-custom-code/write-plugin#paint-a-column",
   "ssr": "/docs/plugins/plugin-shape#ssr",
-  "related": "/docs/plugins#related"
+  "related": "/docs/plugins/plugin-shape#related"
  },
  "/docs/project-status": {
   "version": "/docs/support-upgrades/version-policy-changelog#version",

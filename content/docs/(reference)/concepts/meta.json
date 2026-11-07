@@ -1,7 +1,6 @@
 {
   "title": "Concepts",
   "pages": [
-    "index",
     "selection-model",
     "cell-type-model",
     "styling-model",

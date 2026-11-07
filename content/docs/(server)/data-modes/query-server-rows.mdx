@@ -60,7 +60,7 @@ export function OrdersGrid() {
 }
 ```
 
-The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and [ORM examples](/docs/server-data-examples/orm-examples).
+The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example).
 
 Pages mode takes the same spec. A spec change there goes back to page 1 and fetches again. In scroll mode it starts the blocks over.
 
@@ -68,7 +68,9 @@ Pages mode takes the same spec. A spec change there goes back to page 1 and fetc
 
 <NewBadge />
 
-`parseServerSpec(body, { columns, limits })` from `data-grid-server` turns an untrusted request body into a bounded, typed `ServerSpec`. It throws a `ServerSpecError` with the `path` of the bad part, for example `filters[2].value`. It checks the column ids and the operators of each column. It checks the value shapes, the depth of the filter tree, and the number of sorts, filters, and groups. It checks the length of every value. It drops every key it does not know and builds no query.
+`parseServerSpec(body, { columns, limits })` from `data-grid-server` turns an untrusted request body into a bounded, typed `ServerSpec`. It throws a `ServerSpecError` with the `path` of the bad part, for example `filters[2].value`. It checks the column ids and the operators of each column. It checks the value shapes, the depth of the filter tree, and the number of sorts, filters, and groups. It checks the length of every value.
+
+It drops every key it does not know and builds no query. It does not read `start` and `end`. Your server bounds them, as this sample does:
 
 ```ts
 import { parseServerSpec, ServerSpecError } from "@/components/data-grid-server/data-grid-server";
@@ -78,7 +80,9 @@ export async function POST(request: Request) {
   try {
     const spec = parseServerSpec(body.spec, { columns: ["customer", "total"] });
     // map spec.sorts, spec.filters, and spec.searchText to your query layer
-    return Response.json(await queryOrders(spec, body.start, body.end));
+    const start = Math.max(0, Math.floor(Number(body.start)) || 0);
+    const end = Math.min(Math.floor(Number(body.end)) || 0, start + 500);
+    return Response.json(await queryOrders(spec, start, end));
   } catch (error) {
     if (error instanceof ServerSpecError) {
       return Response.json({ error: error.message }, { status: 400 });

@@ -1,7 +1,6 @@
 {
   "title": "Plugins",
   "pages": [
-    "index",
     "plugin-contract",
     "plugin-commands-shortcuts",
     "plugin-shape",

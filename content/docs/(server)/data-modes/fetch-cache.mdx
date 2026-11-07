@@ -66,7 +66,7 @@ export function OrdersGrid() {
 }
 ```
 
-`applyChange` applies a whole batch in one pass: updates and deletes by row id, inserts at their snapshot positions. It skips missing row ids. The `onMutate` and `onError` pair is the optimistic shape of [Save and revert](/docs/save-server/save-revert).
+`applyChange` applies a whole batch in one pass: updates and deletes by row id, inserts at their snapshot positions. It skips missing row ids. The `onMutate` and `onError` pair is the optimistic shape of [Revert or refetch after a save](/docs/save-server/save-revert).
 
 A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
 
@@ -215,4 +215,4 @@ Edits are server state. Write each change through to the API in `onDataChange`. 
 - [Query server rows](/docs/data-modes/query-server-rows): the spec that belongs in the key
 - [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): scroll mode
 - [Tune row retention](/docs/scroll-mode/tune-row-retention): evict loaded rows
-- [Save and revert](/docs/save-server/save-revert): optimistic saves and rollback
+- [Revert or refetch after a save](/docs/save-server/save-revert): optimistic saves and rollback

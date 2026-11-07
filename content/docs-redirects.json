@@ -33,11 +33,11 @@
   },
   {
     "source": "/docs/addons/import-export",
-    "destination": "/docs/import-export"
+    "destination": "/docs/import-export/export"
   },
   {
     "source": "/docs/addons/import-export.md",
-    "destination": "/docs/import-export.md"
+    "destination": "/docs/import-export/export.md"
   },
   {
     "source": "/docs/addons",
@@ -121,11 +121,11 @@
   },
   {
     "source": "/docs/api-reference",
-    "destination": "/docs/components-props"
+    "destination": "/docs/components-props/data-grid-props"
   },
   {
     "source": "/docs/api-reference.md",
-    "destination": "/docs/components-props.md"
+    "destination": "/docs/components-props/data-grid-props.md"
   },
   {
     "source": "/docs/clipboard",
@@ -137,19 +137,19 @@
   },
   {
     "source": "/docs/custom-cell-types",
-    "destination": "/docs/recipes-custom-code"
+    "destination": "/docs/recipes-custom-code/write-cell-type"
   },
   {
     "source": "/docs/custom-cell-types.md",
-    "destination": "/docs/recipes-custom-code.md"
+    "destination": "/docs/recipes-custom-code/write-cell-type.md"
   },
   {
     "source": "/docs/editing-cell-types",
-    "destination": "/docs/editing-cells"
+    "destination": "/docs/editing-cells/editable-columns"
   },
   {
     "source": "/docs/editing-cell-types.md",
-    "destination": "/docs/editing-cells.md"
+    "destination": "/docs/editing-cells/editable-columns.md"
   },
   {
     "source": "/docs/examples/appearance/i18n-rtl",
@@ -161,11 +161,11 @@
   },
   {
     "source": "/docs/examples/appearance",
-    "destination": "/docs/style-examples"
+    "destination": "/docs/style-examples/styling-example"
   },
   {
     "source": "/docs/examples/appearance.md",
-    "destination": "/docs/style-examples.md"
+    "destination": "/docs/style-examples/styling-example.md"
   },
   {
     "source": "/docs/examples/appearance/loading-states",
@@ -225,11 +225,11 @@
   },
   {
     "source": "/docs/examples/columns",
-    "destination": "/docs/column-examples"
+    "destination": "/docs/column-examples/pinned-columns-example"
   },
   {
     "source": "/docs/examples/columns.md",
-    "destination": "/docs/column-examples.md"
+    "destination": "/docs/column-examples/pinned-columns-example.md"
   },
   {
     "source": "/docs/examples/columns/pinning",
@@ -241,11 +241,11 @@
   },
   {
     "source": "/docs/examples/data",
-    "destination": "/docs/server-data-examples"
+    "destination": "/docs/server-data-examples/server-rows-example"
   },
   {
     "source": "/docs/examples/data.md",
-    "destination": "/docs/server-data-examples.md"
+    "destination": "/docs/server-data-examples/server-rows-example.md"
   },
   {
     "source": "/docs/examples/data/large-data",
@@ -257,11 +257,11 @@
   },
   {
     "source": "/docs/examples/data/lazy",
-    "destination": "/docs/server-data-examples"
+    "destination": "/docs/server-data-examples/server-rows-example"
   },
   {
     "source": "/docs/examples/data/lazy.md",
-    "destination": "/docs/server-data-examples.md"
+    "destination": "/docs/server-data-examples/server-rows-example.md"
   },
   {
     "source": "/docs/examples/data/lazy/plain",
@@ -297,11 +297,11 @@
   },
   {
     "source": "/docs/examples/data/orm",
-    "destination": "/docs/server-data-examples"
+    "destination": "/docs/server-data-examples/server-rows-example"
   },
   {
     "source": "/docs/examples/data/orm.md",
-    "destination": "/docs/server-data-examples.md"
+    "destination": "/docs/server-data-examples/server-rows-example.md"
   },
   {
     "source": "/docs/examples/data/orm/prisma",
@@ -329,11 +329,11 @@
   },
   {
     "source": "/docs/examples/data/pagination",
-    "destination": "/docs/server-data-examples"
+    "destination": "/docs/server-data-examples/server-rows-example"
   },
   {
     "source": "/docs/examples/data/pagination.md",
-    "destination": "/docs/server-data-examples.md"
+    "destination": "/docs/server-data-examples/server-rows-example.md"
   },
   {
     "source": "/docs/examples/data/pagination/react-query",
@@ -385,11 +385,11 @@
   },
   {
     "source": "/docs/examples/foundations",
-    "destination": "/docs/basic-examples"
+    "destination": "/docs/basic-examples/minimal-grid-example"
   },
   {
     "source": "/docs/examples/foundations.md",
-    "destination": "/docs/basic-examples.md"
+    "destination": "/docs/basic-examples/minimal-grid-example.md"
   },
   {
     "source": "/docs/examples/foundations/minimal-grid",
@@ -417,11 +417,11 @@
   },
   {
     "source": "/docs/examples/rows",
-    "destination": "/docs/row-examples"
+    "destination": "/docs/row-examples/pinned-rows-example"
   },
   {
     "source": "/docs/examples/rows.md",
-    "destination": "/docs/row-examples.md"
+    "destination": "/docs/row-examples/pinned-rows-example.md"
   },
   {
     "source": "/docs/examples/rows/pinning",
@@ -481,11 +481,11 @@
   },
   {
     "source": "/docs/examples/validation",
-    "destination": "/docs/validation-examples"
+    "destination": "/docs/validation-examples/validation-example"
   },
   {
     "source": "/docs/examples/validation.md",
-    "destination": "/docs/validation-examples.md"
+    "destination": "/docs/validation-examples/validation-example.md"
   },
   {
     "source": "/docs/examples/validation/server-errors",
@@ -545,11 +545,11 @@
   },
   {
     "source": "/docs/lazy-loading",
-    "destination": "/docs/scroll-mode"
+    "destination": "/docs/scroll-mode/load-rows-while-scrolling"
   },
   {
     "source": "/docs/lazy-loading.md",
-    "destination": "/docs/scroll-mode.md"
+    "destination": "/docs/scroll-mode/load-rows-while-scrolling.md"
   },
   {
     "source": "/docs/license",
@@ -689,27 +689,27 @@
   },
   {
     "source": "/docs/row-operations",
-    "destination": "/docs/rows-pages-menus"
+    "destination": "/docs/rows-pages-menus/row-operations"
   },
   {
     "source": "/docs/row-operations.md",
-    "destination": "/docs/rows-pages-menus.md"
+    "destination": "/docs/rows-pages-menus/row-operations.md"
   },
   {
     "source": "/docs/selection-keyboard",
-    "destination": "/docs/selection-shortcuts"
+    "destination": "/docs/selection-shortcuts/pointer-selection"
   },
   {
     "source": "/docs/selection-keyboard.md",
-    "destination": "/docs/selection-shortcuts.md"
+    "destination": "/docs/selection-shortcuts/pointer-selection.md"
   },
   {
     "source": "/docs/sorting-filtering-search",
-    "destination": "/docs/sort-filter-search"
+    "destination": "/docs/sort-filter-search/sorting"
   },
   {
     "source": "/docs/sorting-filtering-search.md",
-    "destination": "/docs/sort-filter-search.md"
+    "destination": "/docs/sort-filter-search/sorting.md"
   },
   {
     "source": "/docs/streaming-updates",
@@ -721,11 +721,11 @@
   },
   {
     "source": "/docs/styling-theming",
-    "destination": "/docs/theme-style-language"
+    "destination": "/docs/theme-style-language/colors-radius"
   },
   {
     "source": "/docs/styling-theming.md",
-    "destination": "/docs/theme-style-language.md"
+    "destination": "/docs/theme-style-language/colors-radius.md"
   },
   {
     "source": "/docs/terms",
@@ -742,5 +742,341 @@
   {
     "source": "/docs/virtualization.md",
     "destination": "/docs/performance/virtualization.md"
+  },
+  {
+    "source": "/docs/clipboard-undo",
+    "destination": "/docs/clipboard-undo/clipboard"
+  },
+  {
+    "source": "/docs/clipboard-undo.md",
+    "destination": "/docs/clipboard-undo/clipboard.md"
+  },
+  {
+    "source": "/docs/columns",
+    "destination": "/docs/columns/column-sizing"
+  },
+  {
+    "source": "/docs/columns.md",
+    "destination": "/docs/columns/column-sizing.md"
+  },
+  {
+    "source": "/docs/editing-cells",
+    "destination": "/docs/editing-cells/editable-columns"
+  },
+  {
+    "source": "/docs/editing-cells.md",
+    "destination": "/docs/editing-cells/editable-columns.md"
+  },
+  {
+    "source": "/docs/import-export",
+    "destination": "/docs/import-export/export"
+  },
+  {
+    "source": "/docs/import-export.md",
+    "destination": "/docs/import-export/export.md"
+  },
+  {
+    "source": "/docs/recipes-custom-code",
+    "destination": "/docs/recipes-custom-code/write-cell-type"
+  },
+  {
+    "source": "/docs/recipes-custom-code.md",
+    "destination": "/docs/recipes-custom-code/write-cell-type.md"
+  },
+  {
+    "source": "/docs/rows-pages-menus",
+    "destination": "/docs/rows-pages-menus/row-operations"
+  },
+  {
+    "source": "/docs/rows-pages-menus.md",
+    "destination": "/docs/rows-pages-menus/row-operations.md"
+  },
+  {
+    "source": "/docs/selection-shortcuts",
+    "destination": "/docs/selection-shortcuts/pointer-selection"
+  },
+  {
+    "source": "/docs/selection-shortcuts.md",
+    "destination": "/docs/selection-shortcuts/pointer-selection.md"
+  },
+  {
+    "source": "/docs/sort-filter-search",
+    "destination": "/docs/sort-filter-search/sorting"
+  },
+  {
+    "source": "/docs/sort-filter-search.md",
+    "destination": "/docs/sort-filter-search/sorting.md"
+  },
+  {
+    "source": "/docs/theme-style-language",
+    "destination": "/docs/theme-style-language/colors-radius"
+  },
+  {
+    "source": "/docs/theme-style-language.md",
+    "destination": "/docs/theme-style-language/colors-radius.md"
+  },
+  {
+    "source": "/docs/accessibility",
+    "destination": "/docs/accessibility/screen-reader-support"
+  },
+  {
+    "source": "/docs/accessibility.md",
+    "destination": "/docs/accessibility/screen-reader-support.md"
+  },
+  {
+    "source": "/docs/fit-features",
+    "destination": "/docs/fit-features/feature-matrix"
+  },
+  {
+    "source": "/docs/fit-features.md",
+    "destination": "/docs/fit-features/feature-matrix.md"
+  },
+  {
+    "source": "/docs/performance",
+    "destination": "/docs/performance/benchmark-results"
+  },
+  {
+    "source": "/docs/performance.md",
+    "destination": "/docs/performance/benchmark-results.md"
+  },
+  {
+    "source": "/docs/support-upgrades",
+    "destination": "/docs/support-upgrades/version-policy-changelog"
+  },
+  {
+    "source": "/docs/support-upgrades.md",
+    "destination": "/docs/support-upgrades/version-policy-changelog.md"
+  },
+  {
+    "source": "/docs/basic-examples",
+    "destination": "/docs/basic-examples/minimal-grid-example"
+  },
+  {
+    "source": "/docs/basic-examples.md",
+    "destination": "/docs/basic-examples/minimal-grid-example.md"
+  },
+  {
+    "source": "/docs/column-examples",
+    "destination": "/docs/column-examples/pinned-columns-example"
+  },
+  {
+    "source": "/docs/column-examples.md",
+    "destination": "/docs/column-examples/pinned-columns-example.md"
+  },
+  {
+    "source": "/docs/row-examples",
+    "destination": "/docs/row-examples/pinned-rows-example"
+  },
+  {
+    "source": "/docs/row-examples.md",
+    "destination": "/docs/row-examples/pinned-rows-example.md"
+  },
+  {
+    "source": "/docs/server-data-examples",
+    "destination": "/docs/server-data-examples/server-rows-example"
+  },
+  {
+    "source": "/docs/server-data-examples.md",
+    "destination": "/docs/server-data-examples/server-rows-example.md"
+  },
+  {
+    "source": "/docs/server-data-examples/orm-examples",
+    "destination": "/docs/server-data-examples/orm-examples/drizzle-example"
+  },
+  {
+    "source": "/docs/server-data-examples/orm-examples.md",
+    "destination": "/docs/server-data-examples/orm-examples/drizzle-example.md"
+  },
+  {
+    "source": "/docs/style-examples",
+    "destination": "/docs/style-examples/styling-example"
+  },
+  {
+    "source": "/docs/style-examples.md",
+    "destination": "/docs/style-examples/styling-example.md"
+  },
+  {
+    "source": "/docs/validation-examples",
+    "destination": "/docs/validation-examples/validation-example"
+  },
+  {
+    "source": "/docs/validation-examples.md",
+    "destination": "/docs/validation-examples/validation-example.md"
+  },
+  {
+    "source": "/docs/custom-code-path",
+    "destination": "/docs/custom-code-path/pick-code-route"
+  },
+  {
+    "source": "/docs/custom-code-path.md",
+    "destination": "/docs/custom-code-path/pick-code-route.md"
+  },
+  {
+    "source": "/docs/server-path",
+    "destination": "/docs/server-path/compare-data-modes"
+  },
+  {
+    "source": "/docs/server-path.md",
+    "destination": "/docs/server-path/compare-data-modes.md"
+  },
+  {
+    "source": "/docs/terms-help",
+    "destination": "/docs/terms-help/task-finder"
+  },
+  {
+    "source": "/docs/terms-help.md",
+    "destination": "/docs/terms-help/task-finder.md"
+  },
+  {
+    "source": "/docs/try-automate",
+    "destination": "/docs/try-automate/playground-example"
+  },
+  {
+    "source": "/docs/try-automate.md",
+    "destination": "/docs/try-automate/playground-example.md"
+  },
+  {
+    "source": "/docs/add-options",
+    "destination": "/docs/fit-features/add-ons-a-z"
+  },
+  {
+    "source": "/docs/add-options.md",
+    "destination": "/docs/fit-features/add-ons-a-z.md"
+  },
+  {
+    "source": "/docs/add-options/clipboard-undo",
+    "destination": "/docs/add-options/clipboard-undo/fill-handle-options"
+  },
+  {
+    "source": "/docs/add-options/clipboard-undo.md",
+    "destination": "/docs/add-options/clipboard-undo/fill-handle-options.md"
+  },
+  {
+    "source": "/docs/add-options/import-export",
+    "destination": "/docs/add-options/import-export/import-options"
+  },
+  {
+    "source": "/docs/add-options/import-export.md",
+    "destination": "/docs/add-options/import-export/import-options.md"
+  },
+  {
+    "source": "/docs/add-options/rows-pages-menus",
+    "destination": "/docs/add-options/rows-pages-menus/context-menu-options"
+  },
+  {
+    "source": "/docs/add-options/rows-pages-menus.md",
+    "destination": "/docs/add-options/rows-pages-menus/context-menu-options.md"
+  },
+  {
+    "source": "/docs/add-options/selection-shortcuts",
+    "destination": "/docs/add-options/selection-shortcuts/shortcut-remapping-options"
+  },
+  {
+    "source": "/docs/add-options/selection-shortcuts.md",
+    "destination": "/docs/add-options/selection-shortcuts/shortcut-remapping-options.md"
+  },
+  {
+    "source": "/docs/add-options/server",
+    "destination": "/docs/add-options/server/server-rows-options"
+  },
+  {
+    "source": "/docs/add-options/server.md",
+    "destination": "/docs/add-options/server/server-rows-options.md"
+  },
+  {
+    "source": "/docs/add-options/sort-filter-search",
+    "destination": "/docs/add-options/sort-filter-search/toolbar-options"
+  },
+  {
+    "source": "/docs/add-options/sort-filter-search.md",
+    "destination": "/docs/add-options/sort-filter-search/toolbar-options.md"
+  },
+  {
+    "source": "/docs/cheatsheets-messages",
+    "destination": "/docs/cheatsheets-messages/keyboard-shortcuts"
+  },
+  {
+    "source": "/docs/cheatsheets-messages.md",
+    "destination": "/docs/cheatsheets-messages/keyboard-shortcuts.md"
+  },
+  {
+    "source": "/docs/components-props",
+    "destination": "/docs/components-props/data-grid-props"
+  },
+  {
+    "source": "/docs/components-props.md",
+    "destination": "/docs/components-props/data-grid-props.md"
+  },
+  {
+    "source": "/docs/concepts",
+    "destination": "/docs/concepts/selection-model"
+  },
+  {
+    "source": "/docs/concepts.md",
+    "destination": "/docs/concepts/selection-model.md"
+  },
+  {
+    "source": "/docs/contracts",
+    "destination": "/docs/contracts/cell-type-contract"
+  },
+  {
+    "source": "/docs/contracts.md",
+    "destination": "/docs/contracts/cell-type-contract.md"
+  },
+  {
+    "source": "/docs/events-state",
+    "destination": "/docs/events-state/event-shapes"
+  },
+  {
+    "source": "/docs/events-state.md",
+    "destination": "/docs/events-state/event-shapes.md"
+  },
+  {
+    "source": "/docs/plugins",
+    "destination": "/docs/plugins/plugin-shape"
+  },
+  {
+    "source": "/docs/plugins.md",
+    "destination": "/docs/plugins/plugin-shape.md"
+  },
+  {
+    "source": "/docs/types-hooks",
+    "destination": "/docs/types-hooks/exported-types"
+  },
+  {
+    "source": "/docs/types-hooks.md",
+    "destination": "/docs/types-hooks/exported-types.md"
+  },
+  {
+    "source": "/docs/rows-live-data",
+    "destination": "/docs/rows-live-data/change-server-rows"
+  },
+  {
+    "source": "/docs/rows-live-data.md",
+    "destination": "/docs/rows-live-data/change-server-rows.md"
+  },
+  {
+    "source": "/docs/save-server",
+    "destination": "/docs/save-server/save-edits"
+  },
+  {
+    "source": "/docs/save-server.md",
+    "destination": "/docs/save-server/save-edits.md"
+  },
+  {
+    "source": "/docs/scroll-mode",
+    "destination": "/docs/scroll-mode/load-rows-while-scrolling"
+  },
+  {
+    "source": "/docs/scroll-mode.md",
+    "destination": "/docs/scroll-mode/load-rows-while-scrolling.md"
+  },
+  {
+    "source": "/docs/server-pagination",
+    "destination": "/docs/server-pagination/load-rows-page"
+  },
+  {
+    "source": "/docs/server-pagination.md",
+    "destination": "/docs/server-pagination/load-rows-page.md"
   }
 ]

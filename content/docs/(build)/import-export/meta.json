@@ -1,7 +1,6 @@
 {
   "title": "Import and export",
   "pages": [
-    "index",
     "export",
     "import",
     "export-whole-result",

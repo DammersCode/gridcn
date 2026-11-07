@@ -1,7 +1,6 @@
 {
   "title": "Save to a server",
   "pages": [
-    "index",
     "save-edits",
     "save-revert",
     "handle-refused-saves",

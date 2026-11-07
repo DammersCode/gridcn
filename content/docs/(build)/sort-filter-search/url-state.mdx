@@ -6,7 +6,7 @@ type: feature
 aliases: ["query string", "bookmark view", "share view", "persist sort and filter"]
 ---
 
-`data-grid-url-state` syncs the sort, filter, search, column layout, and pagination state of the grid with the URL through [nuqs](https://nuqs.dev). A reload or a shared link restores the view.
+To keep the view in the URL, install `data-grid-url-state`, put a `NuqsAdapter` above the grid, and mount `<DataGridUrlState>` inside `<DataGridProvider>`. A reload or a shared link then restores the view. `data-grid-url-state` syncs the sort, filter, search, column layout, and pagination state of the grid with the URL through [nuqs](https://nuqs.dev). A reload or a shared link restores the view.
 
 <ComponentPreview name="data-grid-url-state-demo" />
 

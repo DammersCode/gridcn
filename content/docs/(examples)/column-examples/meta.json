@@ -1,7 +1,6 @@
 {
   "title": "Column examples",
   "pages": [
-    "index",
     "pinned-columns-example",
     "column-order-example",
     "header-filter-example",

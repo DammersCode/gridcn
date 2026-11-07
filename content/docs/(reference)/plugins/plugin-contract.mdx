@@ -1,5 +1,5 @@
 ---
-title: Plugin contract
+title: Plugin API
 description: Look up the members of DataGridPlugin, the context types they receive, and the rules for names, order, conflicts, and global shortcut flags.
 type: reference
 aliases: ["DataGridPlugin type", "plugin interface", "plugin api"]
@@ -17,7 +17,7 @@ A plugin is a plain object of type `DataGridPlugin<TData>`. The `plugins` prop o
 | [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin. |
 | [`Mount`](#mount) | `ComponentType` | Runs engine work inside `DataGridRoot`. |
 
-A plugin needs only `name`. [Plugin shape](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
+A plugin needs only `name`. [Plugin model](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
 
 ## Members
 
@@ -96,7 +96,7 @@ declare module "@/components/data-grid/keyboard/global-shortcuts" {
 
 ## Related
 
-- [Plugin shape](/docs/plugins/plugin-shape)
+- [Plugin model](/docs/plugins/plugin-shape)
 - [Plugin events](/docs/plugins/plugin-events)
 - [Plugin overlays](/docs/plugins/plugin-overlays)
 - [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)

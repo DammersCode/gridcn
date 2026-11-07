@@ -67,7 +67,8 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 - A source that returns more rows than `maxRows` is cut at `maxRows`.
 - A `maxRows` or `maxBytes` below 0 counts as 0.
 - A CSV cell that looks like a formula gets the same quote prefix as in a loaded export.
-- A CSV export writes the file batch by batch. An xlsx export holds all rows in memory until it writes the file.
+- A CSV or xlsx export holds the rows in memory until the source ends. The browser then builds one file and downloads it. Memory grows with the file size.
+- For a very large result, set `maxRows` and `maxBytes` to what the memory of your users' devices can hold. The defaults stop at 1,000,000 rows or 256 MiB of file text, whichever comes first. To export more, raise both together: 2,000,000 rows of 150 bytes make about 300 MB, which is above the default `maxBytes`. Past the memory of a browser, export on the server and link to the file.
 - An invalid `workbookName` rejects before the source runs.
 
 ## Related
@@ -75,4 +76,4 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 - [Export](/docs/import-export/export): the loaded export and print.
 - [Shape the export file](/docs/import-export/shape-export-file): `columns`, `formatCell`, and `output`.
 - [Export options](/docs/add-options/import-export/export-options): every option.
-- [Server pagination](/docs/server-pagination): the page requests that the source can reuse.
+- [Load rows by page](/docs/server-pagination/load-rows-page): the page requests that the source can reuse.

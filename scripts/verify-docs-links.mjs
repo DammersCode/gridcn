@@ -86,7 +86,10 @@ export function run({ root = process.cwd(), migration, redirectsFile, siteHosts 
       const verdict = resolve(target, here);
       if (verdict === "ok") continue;
       if (verdict === "redirect") {
-        if (!allowRedirect) failures.push(`${rel(root, file)}:${line}: ${target} only works through a redirect; link the new page`);
+        const message = `${rel(root, file)}:${line}: ${target} only works through a redirect; link the new page`;
+        // A registry source ships in the payloads, so its relink waits for the next registry change.
+        if (rel(root, file).startsWith("registry/")) warnings.push(message);
+        else if (!allowRedirect) failures.push(message);
         continue;
       }
       failures.push(`${rel(root, file)}:${line}: ${target} -> ${verdict}`);

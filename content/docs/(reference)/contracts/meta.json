@@ -1,7 +1,6 @@
 {
   "title": "Contracts",
   "pages": [
-    "index",
     "cell-type-contract",
     "server-rows-contract",
     "style-contract",

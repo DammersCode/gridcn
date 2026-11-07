@@ -184,8 +184,8 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 - Context menu: `/docs/rows-pages-menus/context-menu.md` · Keybindings: `/docs/selection-shortcuts/shortcut-remapping.md`
 - Find & replace: `/docs/sort-filter-search/find-replace.md`
 - Sort list: `/docs/sort-filter-search/sorting.md` · URL state: `/docs/sort-filter-search/url-state.md`
-- Import/export: `/docs/import-export.md` · Scroll loading: `/docs/scroll-mode.md`
-- Pagination: `/docs/server-pagination/load-rows-page.md` · Plugin seam: `/docs/plugins.md`
+- Import/export: `/docs/import-export/export.md` · Scroll loading: `/docs/scroll-mode/load-rows-while-scrolling.md`
+- Pagination: `/docs/server-pagination/load-rows-page.md` · Plugin seam: `/docs/plugins/plugin-shape.md`
 - Global shortcuts (undo/redo outside the grid): `/docs/selection-shortcuts/global-shortcuts.md`
 - Install & dependency table: `/docs/learning-path/install-gridcn.md`
 

@@ -1,7 +1,6 @@
 {
   "title": "Server",
   "pages": [
-    "index",
     "presence-options",
     "server-rows-options"
   ]

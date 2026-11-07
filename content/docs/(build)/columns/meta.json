@@ -1,7 +1,6 @@
 {
   "title": "Columns",
   "pages": [
-    "index",
     "column-sizing",
     "column-order-pinning",
     "column-headers-groups",

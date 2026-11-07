@@ -12,8 +12,8 @@ Find the first line that matches your server:
 
 | If your server | Then `onSave` | Task |
 | --- | --- | --- |
-| Accepts or refuses a whole change | Returns the request promise. A rejection reverts the change. | [Save and revert](/docs/save-server/save-revert) |
-| Recomputes values after a write | Waits for the request, then refreshes the rows. | [Save and revert](/docs/save-server/save-revert#strategy-b-refetch-on-settle) |
+| Accepts or refuses a whole change | Returns the request promise. A rejection reverts the change. | [Revert or refetch after a save](/docs/save-server/save-revert) |
+| Recomputes values after a write | Waits for the request, then refreshes the rows. | [Revert or refetch after a save](/docs/save-server/save-revert#strategy-b-refetch-on-settle) |
 | Refuses some rows of a change | Resolves with `{ rejected }`. The grid reverts only those rows. | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | Rejects one field that the user can fix | Resolves normally and calls `setCellErrors`. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 
@@ -68,7 +68,7 @@ Next: [Handle failures](/docs/server-path/handle-failures).
 ## Related
 
 - [Save edits](/docs/save-server/save-edits)
-- [Save and revert](/docs/save-server/save-revert)
+- [Revert or refetch after a save](/docs/save-server/save-revert)
 - [Handle refused saves](/docs/save-server/handle-refused-saves)
 - [Show errors on cells](/docs/save-server/show-errors-cells)
 - [Data change events](/docs/events-state/data-change-events)

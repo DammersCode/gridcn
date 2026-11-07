@@ -8,7 +8,7 @@ body:
     attributes:
       label: Page
       description: The URL of the docs page.
-      placeholder: https://gridcn.vercel.app/docs/columns
+      placeholder: https://gridcn.vercel.app/docs/columns/column-sizing
     validations:
       required: true
   - type: textarea

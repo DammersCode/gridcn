@@ -1,7 +1,6 @@
 {
   "title": "Rows and live data",
   "pages": [
-    "index",
     "change-server-rows",
     "handle-row-action-results",
     "select-server-rows",

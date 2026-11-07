@@ -8,7 +8,7 @@
    "a11y-keyboard",
    "a11y-known-gaps"
   ],
-  "target": "/docs/accessibility",
+  "target": "/docs/accessibility/screen-reader-support",
   "split": true
  },
  {
@@ -55,7 +55,7 @@
    "export",
    "import"
   ],
-  "target": "/docs/import-export",
+  "target": "/docs/import-export/export",
   "split": true
  },
  {
@@ -181,7 +181,7 @@
    "options-undo-redo",
    "options-url-state"
   ],
-  "target": "/docs/components-props",
+  "target": "/docs/components-props/data-grid-props",
   "split": true
  },
  {
@@ -203,7 +203,7 @@
    "column-headers",
    "column-visibility"
   ],
-  "target": "/docs/columns",
+  "target": "/docs/columns/column-sizing",
   "split": true
  },
  {
@@ -215,7 +215,7 @@
    "ref-celltype",
    "custom-cell-example"
   ],
-  "target": "/docs/recipes-custom-code",
+  "target": "/docs/recipes-custom-code/write-cell-type",
   "split": true
  },
  {
@@ -243,7 +243,7 @@
    "server-errors",
    "display-override"
   ],
-  "target": "/docs/editing-cells",
+  "target": "/docs/editing-cells/editable-columns",
   "split": true
  },
  {
@@ -261,7 +261,7 @@
    "events-model",
    "cheat-events"
   ],
-  "target": "/docs/events-state",
+  "target": "/docs/events-state/event-shapes",
   "split": true
  },
  {
@@ -279,7 +279,7 @@
   "slugs": [
    "ex-appearance-index"
   ],
-  "target": "/docs/style-examples",
+  "target": "/docs/style-examples/styling-example",
   "split": false
  },
  {
@@ -351,7 +351,7 @@
   "slugs": [
    "ex-columns-index"
   ],
-  "target": "/docs/column-examples",
+  "target": "/docs/column-examples/pinned-columns-example",
   "split": false
  },
  {
@@ -369,7 +369,7 @@
   "slugs": [
    "ex-data-index"
   ],
-  "target": "/docs/server-data-examples",
+  "target": "/docs/server-data-examples/server-rows-example",
   "split": false
  },
  {
@@ -388,7 +388,7 @@
    "ex-lazy",
    "ex-data-index"
   ],
-  "target": "/docs/server-data-examples",
+  "target": "/docs/server-data-examples/server-rows-example",
   "split": true
  },
  {
@@ -436,7 +436,7 @@
    "ex-orm-index",
    "ex-data-index"
   ],
-  "target": "/docs/server-data-examples",
+  "target": "/docs/server-data-examples/server-rows-example",
   "split": true
  },
  {
@@ -474,7 +474,7 @@
    "ex-pages",
    "ex-data-index"
   ],
-  "target": "/docs/server-data-examples",
+  "target": "/docs/server-data-examples/server-rows-example",
   "split": true
  },
  {
@@ -539,7 +539,7 @@
   "slugs": [
    "examples-index"
   ],
-  "target": "/docs/basic-examples",
+  "target": "/docs/basic-examples/minimal-grid-example",
   "split": false
  },
  {
@@ -575,7 +575,7 @@
   "slugs": [
    "ex-rows-index"
   ],
-  "target": "/docs/row-examples",
+  "target": "/docs/row-examples/pinned-rows-example",
   "split": false
  },
  {
@@ -647,7 +647,7 @@
   "slugs": [
    "ex-validation-index"
   ],
-  "target": "/docs/validation-examples",
+  "target": "/docs/validation-examples/validation-example",
   "split": false
  },
  {
@@ -742,7 +742,7 @@
    "server-troubleshooting",
    "options-server-rows"
   ],
-  "target": "/docs/scroll-mode",
+  "target": "/docs/scroll-mode/load-rows-while-scrolling",
   "split": true
  },
  {
@@ -774,7 +774,7 @@
    "row-limits",
    "keeping-fast"
   ],
-  "target": "/docs/performance",
+  "target": "/docs/performance/benchmark-results",
   "split": true
  },
  {
@@ -797,7 +797,7 @@
    "plugins-commands",
    "plugins-example"
   ],
-  "target": "/docs/plugins",
+  "target": "/docs/plugins/plugin-shape",
   "split": true
  },
  {
@@ -950,7 +950,7 @@
    "row-markers",
    "server-row-ops"
   ],
-  "target": "/docs/rows-pages-menus",
+  "target": "/docs/rows-pages-menus/row-operations",
   "split": true
  },
  {
@@ -965,7 +965,7 @@
    "server-selection",
    "cheat-shortcuts"
   ],
-  "target": "/docs/selection-shortcuts",
+  "target": "/docs/selection-shortcuts/pointer-selection",
   "split": true
  },
  {
@@ -978,7 +978,7 @@
    "quick-search",
    "server-sort-filter"
   ],
-  "target": "/docs/sort-filter-search",
+  "target": "/docs/sort-filter-search/sorting",
   "split": true
  },
  {
@@ -1003,7 +1003,7 @@
    "loading-state",
    "i18n"
   ],
-  "target": "/docs/theme-style-language",
+  "target": "/docs/theme-style-language/colors-radius",
   "split": true
  },
  {

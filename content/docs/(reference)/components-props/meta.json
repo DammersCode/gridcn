@@ -1,7 +1,6 @@
 {
   "title": "Components and props",
   "pages": [
-    "index",
     "data-grid-props",
     "data-grid-provider",
     "column-def",

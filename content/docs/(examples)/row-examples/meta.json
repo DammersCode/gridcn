@@ -1,7 +1,6 @@
 {
   "title": "Row examples",
   "pages": [
-    "index",
     "pinned-rows-example",
     "row-operations-example",
     "row-order-example",

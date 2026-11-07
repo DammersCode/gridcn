@@ -93,7 +93,7 @@ new order.
 The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
 indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
 response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` <NewBadge /> before
-you build a query. It checks the depth, the size, the column ids, the operators, and the value shapes (the [ORM examples](/docs/server-data-examples/orm-examples) call it). See [Query server rows](/docs/data-modes/query-server-rows#parse-the-spec).
+you build a query. It checks the depth, the size, the column ids, the operators, and the value shapes (the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example), call it). See [Query server rows](/docs/data-modes/query-server-rows#parse-the-spec).
 
 The header filter popover and the `isAnyOf` input of the filter menu list the values of the
 loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See
@@ -110,7 +110,7 @@ holds the matching rows, and the box then highlights them.
 
 Both modes of `useDataGridServerRows` take the same spec. They differ in how rows reach the grid.
 
-| | [Pages mode](/docs/add-options/server/server-rows-options#server-mode) | [Scroll mode](/docs/scroll-mode) |
+| | [Pages mode](/docs/add-options/server/server-rows-options#server-mode) | [Scroll mode](/docs/scroll-mode/load-rows-while-scrolling) |
 |---|---|---|
 | The grid shows | One page at a time | One continuous list of `totalRowCount` rows |
 | You send | `page`, `pageSize`, `start`, `end`, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
@@ -292,5 +292,5 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
 - [Data modes](/docs/data-modes): choose a strategy and a mode.
 - [Query server rows](/docs/data-modes/query-server-rows#controlled-mode-server-side-sortfilter): the spec props.
 - [Server rows options](/docs/add-options/server/server-rows-options#pager-options): the server pager.
-- [Scroll mode](/docs/scroll-mode): windows of rows.
-- [Server data examples](/docs/server-data-examples): the query code.
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): windows of rows.
+- [Server rows example](/docs/server-data-examples/server-rows-example): the query code.

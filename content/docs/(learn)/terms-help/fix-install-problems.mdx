@@ -2,7 +2,7 @@
 title: Fix install problems
 description: Fix a failed shadcn install, imports that do not resolve, a missing tooltip provider, and a grid that renders nothing or without styles.
 type: task
-aliases: ["grid shows nothing", "blank grid", "tooltip provider", "github registry"]
+aliases: ["grid shows nothing", "blank grid", "empty grid", "no rows", "nothing renders", "tooltip provider", "github registry"]
 ---
 
 Find your symptom below. The sections cover a failed install, a broken import, and a grid that does not render. The shadcn CLI copies gridcn source into your project. Most problems come from the CLI setup or your path mapping. To install gridcn, see [Install gridcn](/docs/learning-path/install-gridcn).
@@ -85,7 +85,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 ## Verify the install [#verify]
 
-Render the grid from [Render your first grid](/docs/learning-path/render-your-first-grid). Click a cell, type a value, and press <kbd>Enter</kbd>. The grid must render with styles. If it renders wrong, check these causes:
+Render the grid from [Render your first grid](/docs/learning-path/render-your-first-grid). Click a cell, type a value, and press <kbd>Enter</kbd>. The grid must render your rows with styles. If it does not, read the next section.
+
+## Fix an empty or unstyled grid [#blank-grid]
+
+If the grid renders nothing, shows no rows, or has no styles, check these causes:
 
 - The grid shows "No rows" although your rows exist. `defaultData` seeds the grid once and ignores later changes, so rows that arrive after the first render never show. Pass them in `data` with `onDataChange` instead.
 - The page throws "a row has no string or number `id` field". Add an `id` to each row, or pass `getRowId`.

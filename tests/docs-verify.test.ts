@@ -245,6 +245,18 @@ describe("verify-docs-structure", () => {
     expect(runStructure({ root, worklist: "list.json", base: "HEAD" }).failures.join("\n")).toContain('need a "Server mode" H2');
   });
 
+  it("fails a page titled like its folder and a landing that is only an intro plus cards", () => {
+    const root = fixture({
+      "content/docs/(build)/columns/meta.json": JSON.stringify({ title: "Columns", pages: ["index", "sizing"] }),
+      "content/docs/(build)/columns/index.mdx": page("Columns", '<Cards>\n  <Card title="Sizing" href="/docs/columns/sizing" />\n</Cards>', "type: landing\n"),
+      "content/docs/(build)/columns/sizing.mdx": page("Column sizing", "## Related\n\n- [a](/docs/columns/sizing)"),
+    });
+    const failures = runStructure({ root, base: "HEAD" }).failures.join("\n");
+    expect(failures).toContain('title "Columns" repeats the folder title');
+    expect(failures).toContain("a landing page holds content that no child page has");
+    expect(failures).not.toContain("sizing.mdx");
+  });
+
   it("reads aliases from both YAML forms", () => {
     expect(aliasesOf("aliases: [frozen, sticky]")).toEqual(["frozen", "sticky"]);
     expect(aliasesOf('aliases:\n  - "frozen"\n  - sticky\n')).toEqual(["frozen", "sticky"]);

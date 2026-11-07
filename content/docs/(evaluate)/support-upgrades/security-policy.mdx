@@ -58,7 +58,7 @@ Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, URL 
 - A paste applies at most 200,000 cells. [Clipboard](/docs/clipboard-undo/clipboard#known-limitations) lists the caps.
 - URL state reads a bounded number of filters and groups. [URL state](/docs/sort-filter-search/url-state) lists the bounds.
 - CSV export prefixes a formula-like cell with a single quote. Set `sanitizeFormulas: false` on `exportGrid` to turn this off.
-- XLSX export writes every cell as a text cell, so no cell runs as a formula.
+- XLSX export writes a string as a text cell, so no string runs as a formula. Numbers, booleans, and Dates land typed.
 - Copy and cut keep formula-like text as it is. Set the grid prop `sanitizeClipboardFormulas` to prefix it. [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing) has the details.
 - An import rejects a file that exceeds any bound: file size, rows, columns, cells, or decompressed size. It never truncates the file.
 

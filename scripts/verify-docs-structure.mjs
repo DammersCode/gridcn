@@ -98,6 +98,9 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       const heading = /^##\s+(.*)$/.exec(line);
       if (heading) h2.push({ title: heading[1].replace(/`/g, "").trim(), line: i });
     });
+    const folderMeta = join(file, "..", "meta.json");
+    if (title && existsSync(folderMeta) && JSON.parse(readLf(folderMeta)).title === title) failures.push(`${here}: title "${title}" repeats the folder title in the sidebar; name the page for what it holds`);
+    if (isLanding && !h2.length) failures.push(`${here}: a landing page holds content that no child page has (at least one H2); a folder without an index lists its children`);
     if (!isLanding) {
       const related = h2.find((h) => /^(related|next|where next)$/i.test(h.title));
       if (!related) {

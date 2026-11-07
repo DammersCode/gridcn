@@ -1,7 +1,6 @@
 {
   "title": "Scroll mode",
   "pages": [
-    "index",
     "load-rows-while-scrolling",
     "load-without-row-count",
     "recover-load-errors",

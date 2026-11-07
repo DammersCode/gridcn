@@ -18,6 +18,7 @@ Register the type and give the column its options:
 import {
   lookupCellType,
   type LookupOptions,
+  type LookupValue,
 } from "@/components/data-grid-lookup/data-grid-lookup";
 import { DataGrid, type ColumnDef } from "@/components/data-grid/data-grid";
 
@@ -29,7 +30,7 @@ const customerOptions: LookupOptions = {
   },
 };
 
-type Order = { id: string; customer: string | null };
+type Order = { id: string; customer: LookupValue };
 
 const columns: ColumnDef<Order, unknown>[] = [
   {

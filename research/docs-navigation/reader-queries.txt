@@ -2,7 +2,8 @@
 frozen columns | column-order-pin
 sticky columns | column-order-pin
 pin columns left | column-order-pin
-freeze rows | pinned-rows
+pin rows | pinned-rows
+freeze header | column-headers
 infinite scroll | scroll-usage
 lazy loading rows | scroll-usage
 load more rows | scroll-usage

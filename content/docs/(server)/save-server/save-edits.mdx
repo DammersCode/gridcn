@@ -160,11 +160,11 @@ After a batch create, call `actions.replaceRowIds([{ oldId, row }])`. It swaps m
 
 ## Server mode [#server-mode]
 
-`onSave` works the same on a local array, on a page, and on scroll rows. The grid sends no spec, page, or row count to `onSave`. Your server applies each operation by `rowId`.
+`onSave` works the same on a local array, on a page, and on scroll mode. The grid sends no spec, page, or row count to `onSave`. Your server applies each operation by `rowId`.
 
 ## Related
 
-- [Save and revert](/docs/save-server/save-revert): roll back, or fetch the rows again
+- [Revert or refetch after a save](/docs/save-server/save-revert): roll back, or fetch the rows again
 - [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the refused rows
 - [Show errors on cells](/docs/save-server/show-errors-cells)
 - [Data change events](/docs/events-state/data-change-events#onsave): the exact contract

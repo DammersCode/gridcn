@@ -1,11 +1,12 @@
 // Hand-kept inputs of scripts/docs-generate.mjs: which pages answer which task, feature, add-on, and term.
 // The generator fails when a listed page or anchor does not exist.
 
+// A finder entry is a page URL, or [url, text] when the task reads better than the page title.
 export const FINDER = [
   {
     id: "start",
     title: "Start a grid",
-    pages: ["/docs/learning-path/install-gridcn", "/docs/learning-path/render-your-first-grid", "/docs/learning-path/define-columns", "/docs/learning-path/edit-cells", "/docs/learning-path/style-grid"],
+    pages: ["/docs/learning-path/install-gridcn", "/docs/learning-path/render-your-first-grid", "/docs/learning-path/define-columns", "/docs/learning-path/edit-cells", "/docs/learning-path/style-grid", ["/docs/terms-help/fix-install-problems#blank-grid", "Fix an empty grid"]],
   },
   {
     id: "data-fetching",
@@ -30,17 +31,17 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/learning-path/select-paste", "/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows"],
+    pages: ["/docs/learning-path/select-paste", "/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", "/docs/cheatsheets-messages/keyboard-shortcuts"],
   },
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
+    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination"],
   },
   {
     id: "import-export-style",
     title: "Import, export, and style",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", "/docs/theme-style-language/labels-i18n", "/docs/performance/row-limits"],
+    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/performance/row-limits"],
   },
 ];
 
@@ -57,10 +58,10 @@ export const ADDONS = [
   { name: "data-grid-keybindings", adds: "A dialog that lists the effective keymap.", guides: [A("/docs/selection-shortcuts/shortcut-remapping", "Shortcut remapping")], options: [A("/docs/add-options/selection-shortcuts/shortcut-remapping-options", "Shortcut remapping options")] },
   { name: "data-grid-url-state", adds: "Sort, filter, search, pagination, and column layout in the URL.", guides: [A("/docs/sort-filter-search/url-state", "URL state")], options: [A("/docs/add-options/sort-filter-search/url-state-options", "URL state options")] },
   { name: "dropzone", adds: "A file dropzone that the import dialog uses.", guides: [A("/docs/import-export/import", "Import")], options: [A("/docs/add-options/import-export/import-options", "Import options")] },
-  { name: "data-grid-io", adds: "Import and export of xlsx and csv files, and print.", guides: [A("/docs/import-export", "Import and export")], options: [A("/docs/add-options/import-export/import-options", "Import options"), A("/docs/add-options/import-export/export-options", "Export options")] },
+  { name: "data-grid-io", adds: "Import and export of xlsx and csv files, and print.", guides: [A("/docs/import-export/import", "Import"), A("/docs/import-export/export", "Export")], options: [A("/docs/add-options/import-export/import-options", "Import options"), A("/docs/add-options/import-export/export-options", "Export options")] },
   { name: "use-debounce", adds: "The `useDebounce` and `useDebouncedInput` hooks.", guides: [A("/docs/types-hooks/use-debounce", "useDebounce"), A("/docs/types-hooks/use-debounced-input", "useDebouncedInput")], options: [] },
   { name: "is-composing-key", adds: "The `isComposingKey` function for keys that belong to an IME composition.", guides: [A("/docs/types-hooks/is-composing-key", "isComposingKey")], options: [] },
-  { name: "data-grid-server", adds: "`useDataGridServerRows`, one data source for server pages and scroll mode.", guides: [A("/docs/scroll-mode", "Scroll mode"), A("/docs/server-pagination", "Server pagination")], options: [A("/docs/add-options/server/server-rows-options", "Server rows options")] },
+  { name: "data-grid-server", adds: "`useDataGridServerRows`, one data source for server pages and scroll mode.", guides: [A("/docs/scroll-mode/load-rows-while-scrolling", "Load rows while scrolling"), A("/docs/server-pagination/load-rows-page", "Load rows by page")], options: [A("/docs/add-options/server/server-rows-options", "Server rows options")] },
   { name: "data-grid-pagination", adds: "`useDataGridPagination` and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
@@ -125,8 +126,8 @@ export const TERM_PAGES = {
   commit: "/docs/editing-cells/validation",
   "controlled / uncontrolled": ["/docs/events-state/event-shapes#controlled-pairs", "`data` puts the state in your code. `defaultData` seeds the grid once."],
   spec: "/docs/contracts/server-rows-contract",
-  block: ["/docs/scroll-mode", "The fixed-size slice of rows that scroll mode requests."],
-  "scroll mode": ["/docs/scroll-mode", "The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need."],
+  block: ["/docs/scroll-mode/load-rows-while-scrolling", "The fixed-size slice of rows that scroll mode requests."],
+  "scroll mode": ["/docs/scroll-mode/load-rows-while-scrolling", "The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need."],
   "sequential source": "/docs/scroll-mode/load-without-row-count",
   "row range": "/docs/contracts/server-rows-contract",
   "row count": "/docs/server-pagination/load-rows-page",
@@ -154,7 +155,7 @@ export const TERM_PAGES = {
   overscan: "/docs/performance/virtualization",
   "add-on": "/docs/fit-features/add-ons-a-z",
   core: "/docs/learning-path/install-gridcn",
-  plugin: "/docs/plugins",
+  plugin: "/docs/plugins/plugin-shape",
   "row marker": "/docs/rows-pages-menus/row-markers",
   "cell type": "/docs/concepts/cell-type-model",
   accessor: "/docs/components-props/column-def#values",

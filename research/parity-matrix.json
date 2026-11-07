@@ -81,7 +81,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/load-rows-while-scrolling.mdx"
           ]
         },
         "C": {
@@ -146,7 +146,7 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/sort-filter-search/index.mdx",
+            "content/docs/(build)/sort-filter-search/filtering.mdx",
             "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx"
           ]
         },
@@ -322,7 +322,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/rows-live-data/select-server-rows.mdx"
           ]
         },
         "C": {
@@ -361,7 +361,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/rows-pages-menus/index.mdx",
+            "content/docs/(build)/rows-pages-menus/row-operations.mdx",
             "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
@@ -382,7 +382,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/load-rows-while-scrolling.mdx",
             "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
@@ -443,7 +443,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx"
+            "content/docs/(server)/scroll-mode/load-without-row-count.mdx"
           ]
         },
         "C": {
@@ -595,49 +595,49 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/columns/index.mdx"
+            "content/docs/(build)/columns/column-order-pinning.mdx"
           ]
         }
       },
@@ -781,14 +781,14 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-io/import-server.browser.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/import-server-grid.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-io/import-server.browser.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/import-server-grid.mdx"
           ]
         },
         "C": {
@@ -827,7 +827,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         },
         "PS": {
@@ -835,7 +835,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         },
         "Z": {
@@ -843,7 +843,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         },
         "C": {
@@ -857,7 +857,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         },
         "FS": {
@@ -865,7 +865,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         },
         "API": {
@@ -873,7 +873,7 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         }
       }
@@ -1006,7 +1006,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/rows-pages-menus/index.mdx",
+            "content/docs/(build)/rows-pages-menus/row-operations.mdx",
             "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         },
@@ -1026,7 +1026,7 @@
           "status": "supported",
           "evidence": [
             "content/docs/(server)/rows-live-data/change-server-rows.mdx",
-            "content/docs/(build)/rows-pages-menus/index.mdx"
+            "content/docs/(build)/rows-pages-menus/row-operations.mdx"
           ]
         },
         "C": {
@@ -1050,7 +1050,7 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/rows-pages-menus/index.mdx",
+            "content/docs/(build)/rows-pages-menus/row-operations.mdx",
             "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
@@ -1568,7 +1568,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/recover-load-errors.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
           ]
         },
@@ -1667,56 +1667,56 @@
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         }
       }
@@ -1730,56 +1730,56 @@
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
             "tests/parity/io-hooks.parity.test.tsx",
-            "content/docs/(build)/import-export/index.mdx"
+            "content/docs/(build)/import-export/control-import.mdx"
           ]
         }
       }
@@ -2137,49 +2137,49 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         },
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/recipes-custom-code/index.mdx"
+            "content/docs/(build)/recipes-custom-code/write-plugin.mdx"
           ]
         }
       },
@@ -2264,7 +2264,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/index.mdx",
+            "content/docs/(server)/scroll-mode/load-rows-while-scrolling.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",

@@ -70,7 +70,7 @@ const coreTraits = [
     title: "Real DOM, real virtualization",
     description:
       "CSS Grid + subgrid, virtualized row rendering, smooth at 100k rows.",
-    href: "/docs/performance",
+    href: "/docs/performance/virtualization",
   },
   {
     icon: Keyboard,
@@ -84,7 +84,7 @@ const coreTraits = [
     title: "shadcn tokens only",
     description:
       "No bespoke palette, no extra CSS files — dark mode works the moment your theme does.",
-    href: "/docs/theme-style-language",
+    href: "/docs/theme-style-language/colors-radius",
   },
   {
     icon: Radio,
@@ -129,39 +129,39 @@ const addOns = [
   {
     icon: ArrowUpDown,
     title: "Sorting & filtering",
-    href: "/docs/sort-filter-search",
+    href: "/docs/sort-filter-search/sorting",
   },
   {
     icon: FileSpreadsheet,
     title: "Import & export",
-    href: "/docs/import-export",
+    href: "/docs/import-export/export",
   },
   { icon: Link2, title: "URL state", href: "/docs/sort-filter-search/url-state" },
   {
     icon: Blocks,
     title: "Context menu",
-    href: "/docs/columns",
+    href: "/docs/rows-pages-menus/context-menu",
   },
   {
     icon: MousePointer2,
     title: "Keybindings dialog",
-    href: "/docs/selection-shortcuts",
+    href: "/docs/selection-shortcuts/shortcut-remapping",
   },
   {
     icon: ArrowUpDown,
     title: "Toolbar & search",
-    href: "/docs/sort-filter-search",
+    href: "/docs/sort-filter-search/toolbar",
   },
   {
     icon: ArrowUpDown,
     title: "Sort list",
-    href: "/docs/sort-filter-search",
+    href: "/docs/sort-filter-search/sorting",
   },
   { icon: Pin, title: "Pinned rows", href: "/docs/rows-pages-menus/pinned-rows" },
   { icon: Users, title: "Multiplayer presence", href: "/docs/rows-live-data/show-presence" },
-  { icon: CloudDownload, title: "Lazy loading", href: "/docs/scroll-mode" },
+  { icon: CloudDownload, title: "Lazy loading", href: "/docs/scroll-mode/load-rows-while-scrolling" },
   { icon: ListOrdered, title: "Pagination", href: "/docs/server-pagination/load-rows-page" },
-  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cells" },
+  { icon: Pencil, title: "Cell editing types", href: "/docs/editing-cells/built-cell-types" },
 ];
 
 const agentSkills = [
@@ -353,7 +353,7 @@ export default function HomePage() {
           {perfStats.map(({ value, title, description }) => (
             <Link
               key={title}
-              href="/docs/performance"
+              href="/docs/performance/benchmark-results"
               className="border bg-card flex flex-col items-center gap-2 p-6 text-center transition-colors hover:border-primary/40"
             >
               <span className="text-3xl font-bold tracking-tight text-foreground">

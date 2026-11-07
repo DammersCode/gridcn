@@ -1,7 +1,6 @@
 {
   "title": "Clipboard and undo",
   "pages": [
-    "index",
     "clipboard",
     "fill-handle",
     "undo-redo",

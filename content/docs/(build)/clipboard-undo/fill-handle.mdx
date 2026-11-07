@@ -83,7 +83,7 @@ A fill is one change. The grid applies it, then calls `onDataChange` and `onSave
 
 `onSave` returns nothing or a promise. If the promise resolves with nothing, the server accepted the fill. If it resolves with `{ rejected }`, the server refused part of it. If it rejects, the server refused all of it. A refusal reverts the cells through `onDataChange` with source `"rollback"`. The rows show as saving while the promise is pending. If a rejection carries `current`, the row as the server holds it, the revert puts that row in place instead.
 
-In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Scroll mode](/docs/scroll-mode).
+In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling).
 
 [Data modes](/docs/data-modes) owns the detail for every mode.
 
@@ -169,5 +169,5 @@ const detectBoth = (values: readonly string[]) =>
 - [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options)
 - [Clipboard](/docs/clipboard-undo/clipboard)
 - [Data modes](/docs/data-modes)
-- [Scroll mode](/docs/scroll-mode)
+- [Scroll mode](/docs/scroll-mode/load-rows-while-scrolling)
 - [Data change events](/docs/events-state/data-change-events)

@@ -69,7 +69,7 @@ function checkCell(where, text) {
 // ---------------------------------------------------------------- task finder
 function taskFinder() {
   const out = [frontmatter({ title: "Task finder", description: "Find the page for the job you want to do: start a grid, load data, sort and filter, edit, and more.", type: "cheatsheet", icon: "ChefHat" }), MARKER, "", "Find the page for the job you want to do. Each link opens the page that does it.", ""];
-  for (const group of FINDER) out.push(`## ${group.title} [#${group.id}]`, "", ...group.pages.map((url) => `- ${link(url)}`), "");
+  for (const group of FINDER) out.push(`## ${group.title} [#${group.id}]`, "", ...group.pages.map((entry) => `- ${Array.isArray(entry) ? link(...entry) : link(entry)}`), "");
   out.push(related(["/docs/terms-help/terms", "the words these docs use"], ["/docs/fit-features/add-ons-a-z", "every add-on"], ["/docs/fit-features/feature-matrix", "features by data mode"]));
   return out.join("\n");
 }

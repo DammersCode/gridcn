@@ -19,7 +19,7 @@ const SCREEN_PREVIEW = 0.6;
 const EXCEPTIONS_FILE = "research/docs-navigation/exceptions.txt";
 
 const BUDGETS = {
-  landing: { target: [80, 350], hard: 400, screens: 3, h2: [0, 6] },
+  landing: { target: [80, 350], hard: 400, screens: 3, h2: [1, 6] },
   feature: { target: [400, 1200], hard: 1500, screens: 8, h2: [2, 8] },
   concept: { target: [300, 1000], hard: 1200, screens: 6, h2: [2, 5] },
   task: { target: [200, 800], hard: 1000, screens: 6, h2: [2, 8] },
@@ -245,8 +245,7 @@ function checkCandidate(file) {
       worstOpen = Math.max(worstOpen, g.pages.length + subRows + biggestClosedSub);
       if (!g.az && !g.pages.some((p) => p.type === "step")) checkGroupSize(g.name, g.pages, false);
       for (const x of g.subs) checkGroupSize(x.name, x.pages, true);
-      if (g.pages[0]?.type !== "landing") fail("S7", `group "${g.name}" in "${a.name}" has no landing first`);
-      for (const x of g.subs) if (!g.az && x.pages[0]?.type !== "landing") warn("S7", `subgroup "${x.name}" has no landing first`);
+      for (const x of [g, ...g.subs]) if (x.pages.slice(1).some((p) => p.type === "landing")) fail("S7", `group "${x.name}" in "${a.name}" has a landing that is not its first page`);
       if (g.subs.length && !/reference|recipes|examples/i.test(`${a.name} ${g.name}`)) fail("S4", `group "${g.name}" in "${a.name}" has a third level`);
       if (/^(architecture|advanced|misc|other|utilities)$/i.test(g.name)) fail("S13", `group "${g.name}"`);
       if (g.name.split(/\s+/).length > 4) warn("N1", `group label "${g.name}" has more than 4 words`);

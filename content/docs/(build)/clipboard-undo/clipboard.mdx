@@ -7,7 +7,19 @@ aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedat
 demos: none
 ---
 
-Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
+Copy, cut, and paste work with no setup and no permission prompt. Copy and paste cap at 200,000 cells each. Copied formula-like text stays as it is until you set `sanitizeClipboardFormulas`. Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
+
+## Paste [#paste]
+
+The grid reads the `text/html` payload first, for example from another gridcn grid, Excel, Sheets, or Numbers. If the payload has no table, it reads the `text/plain` payload with a quoted-TSV parser. The parser handles tabs, line breaks, and quotes inside quoted cells.
+
+- **Anchored expand.** An N×M block lands at the top-left of the selected range and overwrites that N×M region. The block stops at the last row and the last column.
+- **Single-row tiling.** If you paste one row into a taller selected range, the row repeats down every selected row.
+- **Value steps.** The `fromText` of each target cell type reads the pasted text. Then `validate` runs. A cell that fails stays unchanged, and `onValidationError` reports it with the source `"paste"`.
+- **Skipped cells.** Read-only cells keep their value. This covers a column's static `readOnly` and its per-row function form. A `readOnly` grid ignores the paste.
+- **One change.** A paste calls `onDataChange` once, with one batch of operations (`ops`) and the source `"paste"`. The selection then covers the written cells.
+
+A column with an async `validate` holds the paste until the schema answers. [Validation](/docs/editing-cells/validation#on-bulk-paths) owns that contract. For a large paste against a remote check, `processPaste` below validates the whole block in one request.
 
 ## Copy [#copy]
 
@@ -27,7 +39,7 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
 
 ## Formula sanitizing [#formula-sanitizing]
 
-If a pasted cell starts with `=`, `+`, `-`, `@`, TAB, or CR, a spreadsheet app runs it as a formula. To paste such cells as text, set `sanitizeClipboardFormulas` (default `false`):
+If a copied cell starts with `=`, `+`, `-`, `@`, TAB, or CR, a spreadsheet app that pastes it runs it as a formula. To copy such cells as text, set `sanitizeClipboardFormulas` (default `false`):
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -53,18 +65,6 @@ If the prop is on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a sin
 The context menu writes through the async Clipboard API. If the browser lacks or denies that API, the copy writes plain text only. A paste back from that copy keeps the quote.
 
 `DataGridProvider` takes the same prop. A custom copy UI built on `useDataGridClipboard` follows the prop, and its `sanitizeFormulas` option overrides it.
-
-## Paste [#paste]
-
-The grid reads the `text/html` payload first, for example from another gridcn grid, Excel, Sheets, or Numbers. If the payload has no table, it reads the `text/plain` payload with a quoted-TSV parser. The parser handles tabs, line breaks, and quotes inside quoted cells.
-
-- **Anchored expand.** An N×M block lands at the top-left of the selected range and overwrites that N×M region. The block stops at the last row and the last column.
-- **Single-row tiling.** If you paste one row into a taller selected range, the row repeats down every selected row.
-- **Value steps.** The `fromText` of each target cell type reads the pasted text. Then `validate` runs. A cell that fails stays unchanged, and `onValidationError` reports it with the source `"paste"`.
-- **Skipped cells.** Read-only cells keep their value. This covers a column's static `readOnly` and its per-row function form. A `readOnly` grid ignores the paste.
-- **One change.** A paste calls `onDataChange` once, with one batch of operations (`ops`) and the source `"paste"`. The selection then covers the written cells.
-
-A column with an async `validate` holds the paste until the schema answers. [Validation](/docs/editing-cells/validation#on-bulk-paths) owns that contract. For a large paste against a remote check, `processPaste` below validates the whole block in one request.
 
 ## Overrides [#overrides]
 

@@ -167,7 +167,7 @@ export function renderParityPage(matrix) {
     const body = notes.length === 1 ? [notes[0].replace(/^- /, "")] : notes;
     lines.push(`### ${jsxProse(row.feature)}`, "", ...body, "");
   }
-  lines.push("## Related", "", "- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer", "- [Scroll mode](/docs/scroll-mode): load rows as the user scrolls", "- [Server pagination](/docs/server-pagination): load rows by page", "");
+  lines.push("## Related", "", "- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer", "- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): load rows as the user scrolls", "- [Load rows by page](/docs/server-pagination/load-rows-page): load rows by page", "");
   return lines.join("\n");
 }
 

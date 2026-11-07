@@ -125,7 +125,19 @@ A `ColumnLayout` holds four parts:
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataGrid, type ColumnLayout } from "@/components/data-grid/data-grid";
+import {
+  DataGrid,
+  defineColumns,
+  type ColumnLayout,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; email: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@example.com" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "email", header: "Email", accessorKey: "email" },
+]);
 
 const LAYOUT_KEY = "my-grid-layout";
 
@@ -141,6 +153,7 @@ export function SavedLayoutGrid() {
     <DataGrid
       defaultData={rows}
       columns={columns}
+      className="h-80"
       columnLayout={layout}
       onColumnLayoutChange={(next) => {
         setLayout(next);

@@ -75,7 +75,7 @@ Applies to streaming on top of either:
 ## Reference
 
 - `references/server-mode.md` — server-mode wiring for scroll loading and pagination, side by side, and how to send a filter tree to an API.
-- Full docs: `https://gridcn.vercel.app/docs/scroll-mode.md`, `/docs/data-modes/fetch-cache.md`, `/docs/server-pagination/load-rows-page.md`, `/docs/rows-live-data/stream-updates.md`, `/docs/events-state.md`.
+- Full docs: `https://gridcn.vercel.app/docs/scroll-mode/load-rows-while-scrolling.md`, `/docs/data-modes/fetch-cache.md`, `/docs/server-pagination/load-rows-page.md`, `/docs/rows-live-data/stream-updates.md`, `/docs/events-state/event-shapes.md`.
 
 ## Do not
 

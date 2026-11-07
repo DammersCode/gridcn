@@ -1,7 +1,6 @@
 {
   "title": "Editing cells",
   "pages": [
-    "index",
     "editable-columns",
     "built-cell-types",
     "lookup-cell",

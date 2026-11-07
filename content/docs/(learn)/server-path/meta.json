@@ -1,7 +1,6 @@
 {
   "title": "Server path",
   "pages": [
-    "index",
     "compare-data-modes",
     "load-server-rows",
     "plan-server-saves",

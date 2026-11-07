@@ -1,7 +1,6 @@
 {
   "title": "Server and data examples",
   "pages": [
-    "index",
     "server-rows-example",
     "large-data-example",
     "scroll-mode-example",
