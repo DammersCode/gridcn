@@ -1,0 +1,32 @@
+---
+title: "Print example"
+description: Print the current view as a paged table, and pick the PDF page size for the print dialog.
+icon: Printer
+type: example
+aliases: ["print button", "pdf page size"]
+---
+
+`DataGridPrintButton` opens the browser print dialog with a plain table of the current view. In the demo, the Page size select passes `pageSize` to the button. To check the size, choose "Save as PDF" in the dialog.
+
+<ComponentPreview name="data-grid-print-demo" />
+
+<InstallCommand item="data-grid-print-demo" />
+
+The button passes its `options` prop to `printGrid`:
+
+```tsx
+import { DataGridPrintButton } from "@/components/data-grid-io/data-grid-io";
+
+export function PrintLetterButton() {
+  return (
+    <DataGridPrintButton options={{ pageSize: "Letter", title: "Orders" }} />
+  );
+}
+```
+
+Place the button inside `DataGridProvider`, usually in the toolbar. `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`. `title` prints as a heading and sets the document title.
+
+## Related
+
+- [Export](/docs/import-export/export#print): the print rules, the row limits, and server mode
+- [Export options](/docs/add-options/import-export/export-options): every `printGrid` option

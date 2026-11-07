@@ -1,6 +1,7 @@
 {
   "title": "Learn",
   "icon": "Sparkles",
+  "description": "Install, render a first grid, and follow a guided path",
   "root": true,
   "pages": [
     "../index",

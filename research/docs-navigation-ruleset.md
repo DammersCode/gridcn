@@ -142,10 +142,13 @@ Every page has exactly one type. The type decides the budget and the template. A
 - A3. The docs home is the first entry of the Learn area. It shows three entries, one per reader: start with a first
   grid (new to the grid), the server path (building on server data), and the Evaluate area (deciding whether to adopt).
   A link to the task finder sits next to them.
-- A4. One task finder page lists "I want to ..." tasks by intent, each one link, at most 40 entries, grouped in at most
-  8 intents. A page adds itself to the finder with a `finder` line in its frontmatter, and the page is generated.
-- A5. One feature matrix page lists every feature with core or add-on, client or server support, and links to its guide
-  and its reference.
+- A4. One task finder page lists "I want to ..." tasks by intent, each one link, at most 60 entries, grouped in at most
+  8 intents of at most 10 entries each. A reader scans one intent, not the page, so the cap sits on the intent; a
+  40-entry page cap dropped tasks that beginners search for (row markers, loading state, row buttons). `FINDER` in
+  `scripts/docs-generate-data.mjs` lists the entries, and `scripts/docs-generate.mjs` writes the page and fails on a
+  broken cap.
+- A5. One feature matrix page lists every feature with core or add-on, client or server support, the first release
+  with the feature, and links to its guide and its reference.
 - A6. Search stays on. Titles and descriptions are written for it (P8, N1).
 - A7. Prev and next links appear only in path groups. Topic groups use Related.
 - A8. A Step page shows "Step n of N" and the list of its path group, so the reader sees the whole route.

@@ -8,6 +8,10 @@ aliases: ["retry failed fetch", "block failed"]
 
 A scroll-mode grid loads many blocks. One block can fail while the others load. The grid keeps the loaded rows, shows an error state, and lets the user retry the failed block.
 
+The demo <NewBadge /> has two failure buttons. The first one fails the next request once. The second one fails every request until you press "Fix backend". Scroll to unloaded rows to start a request:
+
+<ComponentPreview name="data-grid-lazy-demo" />
+
 ## Report and retry errors [#errors]
 
 1. Pass `onError` to `useDataGridServerRows` to report each failure.

@@ -11,7 +11,7 @@ export const FINDER = [
   {
     id: "data-fetching",
     title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", "/docs/save-server/save-revert", "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
+    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/contracts/server-rows-contract", "/docs/server-path/handle-failures", "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
   },
   {
     id: "sort-filter-search",
@@ -21,7 +21,7 @@ export const FINDER = [
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: ["/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
   },
   {
     id: "ui-patterns",
@@ -69,6 +69,12 @@ export const ADDONS = [
   { name: "data-grid-lookup", adds: "The `lookup` cell type: a column whose options a server searches as the user types.", guides: [A("/docs/editing-cells/lookup-cell", "Lookup cell")], options: [A("/docs/editing-cells/lookup-cell#options", "Lookup options")] },
   { name: "data-grid-find-replace", adds: "A panel that finds text and replaces one match or all matches.", guides: [A("/docs/sort-filter-search/find-replace", "Find and replace")], options: [A("/docs/add-options/sort-filter-search/find-replace-options", "Find and replace options")] },
 ];
+
+/** The first CHANGELOG.md release of each feature that came after 1.0.0, the first tagged release; every other feature is 1.0.0. */
+export const FEATURE_SINCE = {
+  "1.2.0": ["find-replace"],
+  Unreleased: ["push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell"],
+};
 
 const F = (guide, reference, item) => ({ item, guide, reference });
 export const FEATURES = {

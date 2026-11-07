@@ -5,6 +5,7 @@
     "minimal-grid-example",
     "editable-grid-example",
     "cell-types-example",
-    "custom-cell-type-example"
+    "custom-cell-type-example",
+    "print-example"
   ]
 }

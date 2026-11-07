@@ -1,6 +1,7 @@
 {
   "title": "Build",
   "icon": "Hammer",
+  "description": "Add editing, columns, rows, search, styles, and files",
   "root": true,
   "pages": [
     "editing-cells",

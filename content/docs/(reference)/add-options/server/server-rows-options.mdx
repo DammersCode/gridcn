@@ -128,7 +128,7 @@ The hook checks every answer before it uses it:
 
 - An answer without a `rows` array fails the request and sets `error`.
 - The hook drops rows beyond `end - start`, and development builds warn.
-- A `totalRowCount` that is not a non-negative integer counts as unknown. A count above 10,000,000 clamps to 10,000,000.
+- A `totalRowCount` that is not a non-negative integer counts as unknown. A count above 10,000,000 clamps to 10,000,000. A browser scrolls fewer rows than that in scroll mode: see [Row limits](/docs/performance/row-limits).
 - A repeated row id keeps its first row, and development builds warn once. In random access, the later copy leaves an empty slot that shows as a skeleton row. Pages mode and a sequential source drop the later copy, so the page holds one row fewer. Make the sort total, with the row id as the last sort key.
 - An answer with `hasNextPage`, or with `total` and no `totalRowCount`, warns in development. The hook reads only `totalRowCount` and `hasMore`.
 

@@ -1,6 +1,7 @@
 {
   "title": "Evaluate",
   "icon": "Gauge",
+  "description": "Features, add-ons, performance, accessibility, and support",
   "root": true,
   "pages": [
     "fit-features",

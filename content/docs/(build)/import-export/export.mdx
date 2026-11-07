@@ -3,12 +3,12 @@ title: Export
 icon: Upload
 description: Download the rows of the grid as a CSV or XLSX file, or print them as a paged table, from a toolbar button or from code.
 type: feature
-aliases: ["csv export", "xlsx export", "xlsx download", "csv injection", "formula injection"]
+aliases: ["csv export", "xlsx export", "xlsx download", "csv injection", "formula injection", "print"]
 ---
 
-Export writes the rows of the grid to a CSV or XLSX file. `DataGridExportButton` adds a toolbar button for it. `exportGrid` does the same from code. Both write each cell as the text that its cell type's `toText` gives. If `processCellForClipboard` is unset, copy gives the same text. `printGrid` prints the rows as a paged table. The demo prints the current view:
+Export writes the rows of the grid to a CSV or XLSX file. `DataGridExportButton` adds a toolbar button for it. `exportGrid` does the same from code. Both write each cell as the text that its cell type's `toText` gives. If `processCellForClipboard` is unset, copy gives the same text. `printGrid` prints the rows as a paged table. In the demo, the toolbar button downloads the rows as XLSX or CSV:
 
-<ComponentPreview name="data-grid-print-demo" />
+<ComponentPreview name="data-grid-io-demo" />
 
 <InstallCommand item="data-grid-io" manual manualSlot={<ManualInstall item="data-grid-io" />} />
 
@@ -118,7 +118,7 @@ export function useUploadWorkbook() {
 
 ## Print
 
-`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar.
+`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker.
 
 Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A call while a print frame is open replaces that frame. Print does nothing during server rendering.
 

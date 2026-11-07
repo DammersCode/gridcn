@@ -1,6 +1,7 @@
 {
   "title": "Server",
   "icon": "Server",
+  "description": "Load, page, scroll, and save rows on your server",
   "root": true,
   "pages": [
     "data-modes",

@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, ADDONS, TERM_PAGES } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -68,6 +68,9 @@ function checkCell(where, text) {
 
 // ---------------------------------------------------------------- task finder
 function taskFinder() {
+  const entries = FINDER.reduce((sum, group) => sum + group.pages.length, 0);
+  if (FINDER.length > 8 || entries > 60) problems.push(`task finder: ${FINDER.length} intents and ${entries} entries; the caps are 8 and 60 (ruleset A4)`);
+  for (const group of FINDER) if (group.pages.length > 10) problems.push(`task finder: intent ${group.id} has ${group.pages.length} entries; the cap is 10 (ruleset A4)`);
   const out = [frontmatter({ title: "Task finder", description: "Find the page for the job you want to do: start a grid, load data, sort and filter, edit, and more.", type: "cheatsheet", icon: "ChefHat" }), MARKER, "", "Find the page for the job you want to do. Each link opens the page that does it.", ""];
   for (const group of FINDER) out.push(`## ${group.title} [#${group.id}]`, "", ...group.pages.map((entry) => `- ${Array.isArray(entry) ? link(...entry) : link(entry)}`), "");
   out.push(related(["/docs/terms-help/terms", "the words these docs use"], ["/docs/fit-features/add-ons-a-z", "every add-on"], ["/docs/fit-features/feature-matrix", "features by data mode"]));
@@ -182,7 +185,7 @@ function addOns() {
     frontmatter({ title: "Add-ons A to Z", description: "Look up every add-on in alphabetical order.", type: "cheatsheet", icon: "Puzzle", aliases: ["list of add-ons", "all add-ons"] }),
     MARKER,
     "",
-    "Each row is one registry item. The Needs column lists its `registryDependencies` from `registry.json`. An `@gridcn/` name is another gridcn item, and any other name is a shadcn component. Install a row with `npx shadcn add @gridcn/<item>`.",
+    "Each row is one registry item. The Needs column lists its `registryDependencies` from `registry.json`. An `@gridcn/` name is another gridcn item, and any other name is a shadcn component. Install a row with `npx shadcn add @gridcn/<item>`. A cell type add-on such as `data-grid-lookup` takes its options on the column, so its guide page lists them, as for the built-in cell types.",
     "",
     table(["Item", "Adds", "Needs", "Guide", "Options"], rows),
     related(["/docs/fit-features/feature-matrix", "features by data mode"], ["/docs/cheatsheets-messages/options-z", "options by name"], ["/docs/cheatsheets-messages/hooks-z", "hooks by name"]),
@@ -201,8 +204,24 @@ function modeText(row, ids) {
   return "Not verified";
 }
 
+const FIRST_TAGGED_RELEASE = "1.0.0";
+
+function sinceOf() {
+  const releases = new Set([...read("CHANGELOG.md").matchAll(/^## (\S+)/gm)].map((m) => m[1]));
+  const since = new Map();
+  for (const [release, ids] of Object.entries(FEATURE_SINCE)) {
+    if (!releases.has(release)) problems.push(`feature matrix: FEATURE_SINCE names ${release}, which is no CHANGELOG.md heading`);
+    for (const id of ids) {
+      if (!parity.features.some((f) => f.id === id)) problems.push(`feature matrix: FEATURE_SINCE lists unknown feature ${id}`);
+      since.set(id, release);
+    }
+  }
+  return since;
+}
+
 function featureMatrix() {
   const rows = [];
+  const since = sinceOf();
   for (const row of parity.features) {
     const f = FEATURES[row.id];
     if (!f) {
@@ -214,15 +233,18 @@ function featureMatrix() {
     const notBuilt = !f.item && statuses.length > 0 && statuses.every((s) => s === "gap");
     const kind = f.item ? "Add-on" : notBuilt ? "Not built" : "Core";
     const item = f.item ? code(f.item) : notBuilt ? "none" : code("data-grid");
-    rows.push([cell(row.feature), kind, item, modeText(row, CLIENT), modeText(row, SERVER), link(f.guide[0], f.guide[1]), link(f.reference[0], f.reference[1])]);
+    const release = notBuilt ? "none" : (since.get(row.id) ?? FIRST_TAGGED_RELEASE);
+    rows.push([cell(row.feature), kind, item, modeText(row, CLIENT), modeText(row, SERVER), release, link(f.guide[0], f.guide[1]), link(f.reference[0], f.reference[1])]);
   }
   return [
-    frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["row grouping", "tree data", "aggregation"] }),
+    frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["row grouping", "group rows", "tree data", "aggregation", "since version"] }),
     MARKER,
     "",
     "Core features ship in `data-grid`. An add-on feature needs the item in the Item column. Client covers a local array and client pagination. Server covers server pages, scroll mode, server sort, and server filter. A Gap cell is a known gap. A Partial cell has a gap in some of its modes. The [data mode support](/docs/data-modes/data-mode-support) page names each gap.",
     "",
-    table(["Feature", "Kind", "Item", "Client", "Server", "Guide", "Reference"], rows),
+    `Since names the first release with the feature. ${FIRST_TAGGED_RELEASE} is the first tagged release. Unreleased marks a feature that only an install without a ref has. The [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists each release.`,
+    "",
+    table(["Feature", "Kind", "Item", "Client", "Server", "Since", "Guide", "Reference"], rows),
     related(["/docs/data-modes/data-mode-support", "every feature against every data mode"], ["/docs/fit-features/add-ons-a-z", "every add-on"], ["/docs/data-modes", "choose where the rows come from"]),
   ].join("\n");
 }
@@ -258,6 +280,13 @@ function keyboardShortcuts() {
   const keyName = (part) => (part === " " ? "Space" : part === "mod" ? "Mod" : part.length === 1 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1));
   const chord = (binding) => (binding === " " ? "Space" : binding.endsWith("+ ") ? `${binding.slice(0, -2).split("+").map(keyName).join("+")}+Space` : binding.split("+").map(keyName).join("+"));
   const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace" };
+  const COMMON = ["moveDown", "extendDown", "selectAll", "edit", "commitDown", "cancel", "clearContents", "undo", "redo", "fillDown"];
+  const commonRows = COMMON.map((action) => {
+    if (!bindings.has(action)) problems.push(`keyboard shortcuts: common action ${action} is not in the keymap`);
+    return [cell(labels.get(action) ?? action), (bindings.get(action) ?? []).map((k) => code(chord(k))).join(", "), code(action)];
+  });
+  commonRows.splice(3, 0, ["Copy", code("Mod+C"), "none"], ["Paste", code("Mod+V"), "none"]);
+  const jumps = [];
   const sections = [];
   for (const [id, name] of categories) {
     const rows = [];
@@ -270,6 +299,7 @@ function keyboardShortcuts() {
     }
     if (id === "clipboardFill") for (const [label, key] of [["Copy", "Mod+C"], ["Cut", "Mod+X"], ["Paste", "Mod+V"]]) rows.push([label, code(key), "none", link("/docs/clipboard-undo/clipboard")]);
     if (rows.length === 0) continue;
+    jumps.push(`[${name}](#${id.toLowerCase()})`);
     sections.push(`## ${name} [#${id.toLowerCase()}]`, "", table(["Action", "Keys", "Keymap name", "Page"], rows));
   }
   return [
@@ -279,6 +309,13 @@ function keyboardShortcuts() {
     "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. Outside an edit, `Escape` clears the selection and the checked rows.",
     "",
     "On Windows and Linux, `Ctrl+Shift+E` opens DevTools in Firefox and Edge, so rebind `toggleAllRows` there. Some browsers reserve `Ctrl+H` for the history, so rebind `openFindReplace` there.",
+    "",
+    "## Common keys [#common-keys]",
+    "",
+    "These keys cover most daily work. The sections below list every action.",
+    "",
+    table(["Action", "Keys", "Keymap name"], commonRows),
+    `Every action by group: ${[...jumps, "[Other keys](#other-keys)"].join(", ")}.`,
     "",
     ...sections,
     "## Other keys [#other-keys]",

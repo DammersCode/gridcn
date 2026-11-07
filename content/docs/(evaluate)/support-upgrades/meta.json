@@ -6,6 +6,7 @@
     "browser-framework-support",
     "server-rendering",
     "upgrade-gridcn",
+    "migrate-2-0",
     "security-policy",
     "license-credits"
   ]

@@ -3,6 +3,7 @@ title: Load server rows
 icon: CloudDownload
 description: Fetch one page of rows from your API with useDataGridServerRows and show it with a pager, so the grid never holds the whole result.
 type: step
+aliases: ["fetch data from api", "load data from an api"]
 ---
 
 Before you start, [compare the data modes](/docs/server-path/compare-data-modes) and pick pages mode. Install the server add-on. It brings the pager with it:
@@ -13,7 +14,7 @@ Before you start, [compare the data modes](/docs/server-path/compare-data-modes)
 
 ## Fetch a page [#fetch-a-page]
 
-1. Pass `getRowId` and `fetchRows` to `useDataGridServerRows`.
+1. Pass `fetchRows` to `useDataGridServerRows`. If the row id is not in the `id` field, pass `getRowId` too.
 2. In `fetchRows`, send `page`, `pageSize`, and `spec` to your API.
 3. Resolve with `rows` and `totalRowCount`.
 4. Spread `server.gridProps` onto `DataGrid` and `server.pager` onto the pager.
@@ -108,7 +109,7 @@ export function OrdersGrid() {
 - `rows` holds at most `pageSize` rows. The hook drops the extra rows and warns in development.
 - `totalRowCount` is the size of the whole result. The pager reads it.
 
-Give every row a unique id in `getRowId`. A repeated id keeps its first row only.
+Give every row a unique id. `getRowId` defaults to the `id` field of the row. A repeated id keeps its first row only.
 
 ## Result
 

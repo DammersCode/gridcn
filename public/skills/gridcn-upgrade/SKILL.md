@@ -124,6 +124,7 @@ value, press Enter, confirm the grid renders styled) passes.
 ## Docs
 
 - Update procedure: `https://gridcn.vercel.app/docs/support-upgrades/upgrade-gridcn.md`
+- Breaking changes from 1.3.0 to 2.0 by area: `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md`
 - Version policy and changelog rules: `https://gridcn.vercel.app/docs/support-upgrades/version-policy-changelog.md`
 - Package table: `https://gridcn.vercel.app/docs/support-upgrades/license-credits.md`
 - Install commands: `https://gridcn.vercel.app/docs/learning-path/install-gridcn.md`

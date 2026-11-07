@@ -1,6 +1,7 @@
 {
   "title": "Examples",
   "icon": "Blocks",
+  "description": "Live demos with their source code",
   "root": true,
   "pages": [
     "basic-examples",

@@ -1,6 +1,7 @@
 {
   "title": "Reference",
   "icon": "BookOpen",
+  "description": "Props, events, types, hooks, and contracts",
   "root": true,
   "pages": [
     "components-props",
