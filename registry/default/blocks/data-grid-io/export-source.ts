@@ -1,7 +1,7 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { displayText, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it. */
+/** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it, CSV only a `formatCell` string. */
 export const MAX_CELL_TEXT = 32_767;
 
 /** What a `formatCell` hook returns. `null` and `undefined` make an empty cell. */

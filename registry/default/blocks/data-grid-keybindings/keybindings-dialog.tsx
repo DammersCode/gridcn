@@ -68,7 +68,7 @@ export type DataGridKeybindingsDialogProps = {
 
 /**
  * Lists every bound `GridAction` from the mounted grid's EFFECTIVE keymap (`DEFAULT_KEYMAP` merged
- * with the consumer's `keymap` prop via `useDataGridKeymap`) — never a hardcoded shortcut list, so
+ * with the plugins' keymaps, then the `keymap` prop, via `useDataGridKeymap`) — never a hardcoded shortcut list, so
  * consumer overrides/extensions show up automatically. Grouped by category, platform-aware `<kbd>`
  * chips (⌘ on mac, Ctrl elsewhere; Space/arrow glyphs). Copy/Cut/Paste are appended separately since
  * they're native browser clipboard events, not part of the keymap.

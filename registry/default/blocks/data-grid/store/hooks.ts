@@ -442,7 +442,7 @@ function isRowInRangeChannel(selection: GridSelection, viewRowIndex: number): bo
   return inRect(range) || rangeStack.some(inRect);
 }
 
-/** Whether the row at a given view row index is selected via any selection channel (selection state is view-index, so no viewIndex mapping here). */
+/** Whether the row at a given view row index is selected via the rows channel or a cell range; the columns channel does not count. Selection state is view-index, so no viewIndex mapping here. */
 export function useDataGridIsRowSelected(viewRowIndex: number): boolean {
   return useDataGridStore((s) => s.selection.rows.hasIndex(viewRowIndex) || isRowInRangeChannel(s.selection, viewRowIndex));
 }
@@ -715,7 +715,6 @@ export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }
 
-/** Half-open row range `[start, end)`. */
 /**
  * Select-all header-marker checkbox tri-state: 'checked' (every view row is checked), 'indeterminate'
  * (some), 'unchecked' (none). It reads the rows channel only: a cell range (Ctrl+A) is not a checked row.

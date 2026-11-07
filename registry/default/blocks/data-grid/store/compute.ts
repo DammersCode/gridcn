@@ -472,7 +472,7 @@ export function textAccessorFor(
   // A column opts into a custom row comparator through its own `sortCompare`, or through its
   // declared cell type's `compare` — only a DECLARED type opts in, because an undeclared column
   // falls back to "text", whose `localeCompare` is strictly worse than `defaultCompareText`
-  // (numeric-aware and case-insensitive) and throws outright on a non-string value. Without either
+  // (numeric-aware, ignores case and accents) and throws outright on a non-string value. Without either
   // comparator the whole accessor stays on the default text path (no allocation of `compare`).
   if (!cellTypes && !columns.some((c) => c.sortCompare)) return accessor;
 

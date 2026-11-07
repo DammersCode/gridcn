@@ -71,7 +71,7 @@ These props set the look and the states of the grid. When you compose the parts 
 | `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
 | `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
 | `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. |
-| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows". |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or the search hides every row. |
 | `loading` | `boolean` | `false` | Shows the loading skeleton or the loading bar. |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none | Replaces the built-in loading display. |
 | `error` | `unknown` | none | Any value except `undefined` and `null` shows the error state. |
@@ -103,7 +103,7 @@ Without `direction`, the grid reads the direction of the page once at mount. A g
 ### Empty, loading, and error states [#states]
 
 - `emptyState` shows for a view with no rows. Its `reason` is `"no-data"` for empty data. With rows that a filter hides, or with an active server filter or search, it is `"filtered"`. It never shows during `loading` or an `error`.
-- An `emptyState` of `null`, or a function that returns `null` or `undefined`, shows `labels.grid.emptyState`.
+- An `emptyState` of `null`, or a function that returns `null` or `undefined`, shows `labels.grid.emptyState` for `"no-data"` and `labels.grid.noResults` for `"filtered"`.
 - `loading` is a flag for display only. With no rows it shows a skeleton. With rows it keeps them and adds a thin bar under the header.
 - `error` with no rows shows a centered message. With rows it shows a bar under the header and keeps the rows. The message comes from `labels.grid.errorState`. The grid never renders the error value.
 - The Retry button needs `onRetry`. Without it, the button does not show.

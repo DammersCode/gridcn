@@ -2,7 +2,7 @@
 export const defaultCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 /**
- * Default text comparator: numeric-aware localeCompare, case-insensitive.
+ * Default text comparator: numeric-aware localeCompare that ignores case and accents.
  * Empty strings always sort last, regardless of direction (callers must not
  * negate this result wholesale).
  * `collator` lets a caller reuse one Intl.Collator across many comparisons.

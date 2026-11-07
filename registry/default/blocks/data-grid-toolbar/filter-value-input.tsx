@@ -177,7 +177,7 @@ function SetValueBody(props: { column: AnyColumnDef; selected: readonly string[]
   );
 }
 
-/** The `isAnyOf`/`isNoneOf` input for a column without `choices`: a popover list of the column's distinct values. Values outside the list stay in the selection. */
+/** The `isAnyOf`/`isNoneOf` input for a column without `choices`: a popover list of the column's distinct values, or of the `fetchFilterValues` answer. Values outside the list stay in the selection. */
 function SetValueInput(props: { column: AnyColumnDef; selected: readonly string[]; onValueChange: (value: string[]) => void; ariaLabel: string; summary: string }): ReactNode {
   const { ariaLabel, summary, ...body } = props;
   return (

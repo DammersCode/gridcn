@@ -9,6 +9,16 @@ describe("currencyCellType value pipeline", () => {
     expect(currencyCellType.fromText("EUR 42")).toBeCloseTo(42);
   });
 
+  it("fromText reads grouped and decimal separators of both styles", () => {
+    expect(currencyCellType.fromText("1.234,56 EUR")).toBeCloseTo(1234.56);
+    expect(currencyCellType.fromText("$1,234")).toBe(1234);
+    expect(currencyCellType.fromText("1,234,567")).toBe(1234567);
+    expect(currencyCellType.fromText("1,5")).toBeCloseTo(1.5);
+    expect(currencyCellType.fromText("1.234", { currency: "EUR", locale: "de-DE" })).toBe(1234);
+    expect(currencyCellType.fromText("1,234", { currency: "EUR", locale: "de-DE" })).toBeCloseTo(1.234);
+    expect(currencyCellType.fromText("1.234", { currency: "USD", locale: "en-US" })).toBeCloseTo(1.234);
+  });
+
   it("fromText trims whitespace", () => {
     expect(currencyCellType.fromText("  99.5  ")).toBeCloseTo(99.5);
   });

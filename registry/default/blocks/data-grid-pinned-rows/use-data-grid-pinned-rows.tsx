@@ -33,7 +33,7 @@ const EMPTY_ROWS: readonly never[] = [];
  */
 export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}): UseDataGridPinnedRowsResult {
   const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS, status = "ready" } = options;
-  // Stable identity keyed on the two row arrays' own references; a `plugins` array that churns this
+  // Stable identity keyed on the two row arrays' own references and `status`; a `plugins` array that churns this
   // member every render re-resolves the grid's plugins for no reason.
   const plugin = useMemo<DataGridPlugin<unknown>>(
     () => ({

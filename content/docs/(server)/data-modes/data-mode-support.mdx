@@ -130,9 +130,20 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="gap" note={"Server grouping is not defined."} /></td>
     </tr>
     <tr>
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates (server totals through useDataGridServerAggregate)</th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Pinned rows and aggregates</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Server totals (`useDataGridServerAggregate`)</th>
+      <td className="text-center"><ParityCell status="n/a" note={"A local array holds every row, so useDataGridAggregate totals it without a fetch."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"A client grid with defaultPageSize holds every row, so useDataGridAggregate totals it without a fetch."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -517,6 +528,11 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **L, PC**: Gap: Row grouping is not available.
 - **PS, Z, SS, FS, API**: Gap: Server grouping is not defined.
 - **C**: n/a: Grouping has no controlled state.
+
+### Server totals (`useDataGridServerAggregate`)
+
+- **L**: n/a: A local array holds every row, so `useDataGridAggregate` totals it without a fetch.
+- **PC**: n/a: A client grid with `defaultPageSize` holds every row, so `useDataGridAggregate` totals it without a fetch.
 
 ### Column pin, hide, order and size
 

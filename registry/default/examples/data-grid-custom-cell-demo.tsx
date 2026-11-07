@@ -47,14 +47,31 @@ function getCurrencyFormatter(locale: string, currency: string): Intl.NumberForm
   return formatter;
 }
 
+const decimalSeparators = new Map<string, string>();
+
+function decimalSeparatorOf(locale: string): string {
+  let separator = decimalSeparators.get(locale);
+  if (separator === undefined) {
+    separator = new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === "decimal")?.value ?? ".";
+    decimalSeparators.set(locale, separator);
+  }
+  return separator;
+}
+
 /**
- * Strips currency symbols/whitespace so pasted "$1,234.56" or "1.234,56 EUR" parse. Commas are
- * thousands separators when a "." also appears (US-style grouping) and dropped outright; a lone
- * comma is treated as the decimal separator (EU-style) and normalized to ".".
+ * Reads pasted "$1,234.56", "1.234,56 EUR", and "$1,234". With both "." and ",", the last one is the decimal
+ * separator. A single separator is the decimal one when it is the locale's, or when exactly three digits do
+ * not end the text after it; otherwise it groups thousands. A repeated separator always groups thousands.
  */
-function stripCurrencySymbols(text: string): string {
+function parseAmount(text: string, locale = "en-US"): number | null {
   const kept = text.replace(/[^0-9.,-]/g, "");
-  return kept.includes(".") ? kept.replace(/,/g, "") : kept.replace(",", ".");
+  if (kept === "") return null;
+  const separators = kept.match(/[.,]/g) ?? [];
+  let decimal: string | undefined;
+  if (new Set(separators).size === 2) decimal = kept[Math.max(kept.lastIndexOf("."), kept.lastIndexOf(","))];
+  else if (separators.length === 1 && (separators[0] === decimalSeparatorOf(locale) || !/[.,]\d{3}$/.test(kept))) decimal = separators[0];
+  const parsed = Number(kept.replace(/[.,]/g, (separator) => (separator === decimal ? "." : "")));
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function formatCurrencyDisplay(value: number | null, options?: CurrencyOptions): string {
@@ -81,19 +98,14 @@ function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyO
   return <Input ref={ref} {...bindings} className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none focus-visible:ring-0" />;
 }
 
-/** `currency`: number storage, cached locale-formatted display, symbol-stripping fromText (never throws). */
+/** `currency`: number storage, cached locale-formatted display, a locale-aware fromText that never throws. */
 export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
   Cell: CurrencyCell,
   Editor: CurrencyEditor,
   // toText is the canonical (unformatted) serialization used by copy/export/search
   toText: (value) => (value == null ? "" : String(value)),
   toDisplayText: (value, options) => formatCurrencyDisplay(value, options),
-  fromText: (text) => {
-    const stripped = stripCurrencySymbols(text.trim());
-    if (stripped === "") return null;
-    const parsed = Number(stripped);
-    return Number.isNaN(parsed) ? null : parsed;
-  },
+  fromText: (text, options) => parseAmount(text, options?.locale),
   clearValue: () => null,
   isEmpty: (value) => value == null,
   compare: (a, b) => {

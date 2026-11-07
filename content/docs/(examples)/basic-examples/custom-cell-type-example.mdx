@@ -14,7 +14,7 @@ A custom `currency` type stores a plain `number | null`, shows it through `Intl.
 ## What the demo shows [#whats-in-the-demo]
 
 - The `CellType` object sets `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText`, `clearValue`, `isEmpty`, `compare`, and `align`. `toText` returns the unformatted number for copy and export. `toDisplayText` returns the formatted text.
-- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number.
+- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number. With both `.` and `,`, the last one is the decimal separator, so `1.234,56 EUR` stores `1234.56`. A single separator that matches the decimal separator of the column `locale` is the decimal separator. Another single separator groups thousands when exactly three digits end the text after it, so `$1,234` stores `1234`. Otherwise it is the decimal separator.
 - `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It also supplies a commit that runs once, and the <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur bindings. The demo passes it a `toDraft` and a `toValue` function.
 - `Cell` and `Editor` receive the column `options` with the type `CurrencyOptions`, so reading `options.currency` needs no cast.
 - The demo keeps one `Intl.NumberFormat` for each locale and currency pair, so a cell reuses a formatter.

@@ -11,7 +11,7 @@ export const FINDER = [
   {
     id: "data-fetching",
     title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/server-path/handle-failures", ["/docs/save-server/handle-refused-saves#resolve-a-conflict", "Resolve an edit conflict between two users"], "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", "/docs/import-export/import-server-grid"],
+    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/server-path/handle-failures", ["/docs/save-server/handle-refused-saves#resolve-a-conflict", "Resolve an edit conflict between two users"], "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", ["/docs/rows-live-data/stream-updates", "Stream live updates into the grid"]],
   },
   {
     id: "sort-filter-search",
@@ -41,7 +41,7 @@ export const FINDER = [
   {
     id: "import-export-style",
     title: "Files, style, accessibility, and speed",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", ["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
+    pages: ["/docs/import-export/import", ["/docs/import-export/export", "Export or print the grid"],["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
   },
 ];
 
@@ -70,10 +70,13 @@ export const ADDONS = [
   { name: "data-grid-find-replace", adds: "A panel that finds text and replaces one match or all matches.", guides: [A("/docs/sort-filter-search/find-replace", "Find and replace")], options: [A("/docs/add-options/sort-filter-search/find-replace-options", "Find and replace options")] },
 ];
 
-/** The first CHANGELOG.md release of each feature that came after 1.0.0, the first tagged release; every other feature is 1.0.0. */
+/**
+ * The first CHANGELOG.md release of each feature that came after 1.0.0, the first tagged release; every other feature is 1.0.0.
+ * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
+ */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -87,6 +90,7 @@ export const FEATURES = {
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
   grouping: F(["/docs/data-modes/data-mode-support#row-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
   "pinned-rows": F(["/docs/rows-pages-menus/pinned-rows"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
+  "server-aggregate": F(["/docs/data-modes/show-server-totals"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   columns: F(["/docs/columns/column-order-pinning"], ["/docs/components-props/column-def"]),
   clipboard: F(["/docs/clipboard-undo/clipboard"], ["/docs/components-props/data-grid-props"]),
   fill: F(["/docs/clipboard-undo/fill-handle"], ["/docs/add-options/clipboard-undo/fill-handle-options"], "data-grid-fill"),

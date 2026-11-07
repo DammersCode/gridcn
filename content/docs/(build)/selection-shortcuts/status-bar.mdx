@@ -50,7 +50,7 @@ export function SalesGrid({ sales }: { sales: Sale[] }) {
 
 ## Which cells count [#which-cells-count]
 
-The bar aggregates the union of every selection channel: the primary range, the stacked <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click ranges, whole-row selections, and whole-column selections. A cell that sits in two channels counts once. Hidden columns and filtered-out rows are outside the view, so they never count. The unloaded rows of a source in scroll mode have no value and count as nothing. With client pagination, the grid holds one page, so the bar aggregates the cells of that page only.
+The bar aggregates the union of every selection channel: the primary range, the stacked <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click ranges, whole-row selections, and whole-column selections. A cell that sits in two channels counts once. Hidden columns and filtered-out rows are outside the view, so they never count. The unloaded rows of a source in scroll mode have no value and count as nothing. With client pagination, the grid keeps every row, but a selection covers the shown page only. So the bar aggregates the cells of that page.
 
 ## Which values count [#which-values-count]
 

@@ -50,7 +50,7 @@ A reducer has the type `AggregateReducer`: a name or a function.
 
 The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
 
-`scope: "page"` <NewBadge /> covers the shown page only. With pages mode, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
+`scope: "page"` <NewBadge /> covers the shown page only. With server pagination, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
 
 ## DataGridAggregateReporter [#datagridaggregatereporterprops]
 
@@ -124,5 +124,5 @@ The bottom band shows "Total" and 10. A filter that hides the first row changes 
 ## Related
 
 - [Pinned rows](/docs/rows-pages-menus/pinned-rows): the display-only rules, the geometry, and the server limits.
-- [Client pagination](/docs/rows-pages-menus/client-pagination): why a totals band covers one page.
+- [Client pagination](/docs/rows-pages-menus/client-pagination): totals cover every page, and `scope: "page"` totals the shown page.
 - [Plugin model](/docs/plugins/plugin-shape): how a plugin enters the grid.

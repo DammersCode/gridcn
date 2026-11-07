@@ -41,16 +41,10 @@ export type DataGridSearchProps = {
    */
   debounceMs?: number;
   /**
-   * "Feels native" bridge: mod+F (Ctrl+F / Cmd+F) with focus inside this grid or its
-   * toolbar focuses/selects this input instead of opening the browser's find bar. Native
-   * find-in-page can't work over virtualized rows (only the window's rendered rows exist in the
-   * DOM), and our search already scrolls to matches — this makes mod+F reach for it directly.
-   * Default `true` — when this component is mounted and focus is inside this grid, mod+F
-   * unambiguously means "search this grid"; with several grids on one page, mod+F always reaches
-   * the grid that holds focus, never a sibling grid's search. The listener is grid-scoped (never
-   * window/document globally): focus anywhere else on the page is completely untouched, so a page's own search UI
-   * or the browser's native find behave exactly as if this prop didn't exist. Pass `false` to
-   * disable and always defer to the browser's native find.
+   * Mod+F (Ctrl+F / Cmd+F) with focus inside this grid or its toolbar focuses or selects this input
+   * instead of opening the browser's find bar, which cannot reach virtualized rows. The listener sits
+   * on `document` and acts only when focus is in this grid or its toolbar, so a sibling grid and the
+   * rest of the page keep the browser's find. Default `true`; `false` always leaves Mod+F to the browser.
    */
   captureFindShortcut?: boolean;
 };

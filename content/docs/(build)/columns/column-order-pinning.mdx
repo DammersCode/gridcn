@@ -43,7 +43,8 @@ const columns = defineColumns<Person>()([
   { id: "email", header: "Email", accessorKey: "email" },
 ]);
 ```
- In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state.
+
+In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state.
 
 The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
 

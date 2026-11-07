@@ -78,7 +78,7 @@ export type DataGridImportDialogProps<TData> = {
   parseFile?: ParseFile;
   /** File types the drop zone accepts; default csv, tsv, xls, and xlsx. Pair it with `parseFile` for other types. */
   accept?: DropzoneAccept;
-  /** Decodes a CSV file with this `TextDecoder` label instead of UTF-8. Labels outside `IMPORT_CSV_ENCODINGS` throw a `RangeError`. */
+  /** Decodes a CSV file with this `TextDecoder` label instead of UTF-8. A label outside `IMPORT_CSV_ENCODINGS` shows `labels.io.errorParseFailed`. */
   csvEncoding?: string;
   /** Rewrites or drops the data rows before they are mapped. `false` cancels the import quietly. The result is checked against `importLimits`. */
   processImportRows?: ProcessImportRows;

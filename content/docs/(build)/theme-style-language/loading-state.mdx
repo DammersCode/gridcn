@@ -103,7 +103,7 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 | --- | --- | --- |
 | `loading` | `boolean` | `false` |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none |
-| `emptyState` <NewBadge /> | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` |
+| `emptyState` <NewBadge /> | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
 | `error` | `unknown` | none |
 | `onRetry` | `() => void` | none |
 | `errorState` | `ReactNode \| ((ctx) => ReactNode)` | none |

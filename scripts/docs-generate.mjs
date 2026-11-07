@@ -206,8 +206,32 @@ function modeText(row, ids) {
 
 const FIRST_TAGGED_RELEASE = "1.0.0";
 
+// CHANGELOG.md lists releases newest first, so a higher index is an older release.
+function changelogReleases() {
+  const parts = read("CHANGELOG.md").split(/^## (\S+).*$/m);
+  const releases = [];
+  for (let i = 1; i < parts.length; i += 2) releases.push({ name: parts[i], body: parts[i + 1] });
+  const firstNamed = new Map();
+  for (const [index, { body }] of [...releases.entries()].reverse()) {
+    for (const m of body.matchAll(/`([A-Za-z_$][\w$]*)/g)) if (!firstNamed.has(m[1])) firstNamed.set(m[1], index);
+  }
+  return { order: releases.map((r) => r.name), firstNamed };
+}
+
+/** Fails a row whose title names a symbol that CHANGELOG.md first names in a release after the row's Since. */
+function checkSinceAgainstChangelog(row, release, { order, firstNamed }) {
+  const symbols = new Set([...row.feature.matchAll(/`([A-Za-z_$][\w$]*)`|\b(use[A-Z]\w*|DataGrid[A-Z]\w*)\b/g)].map((m) => m[1] ?? m[2]));
+  const sinceIndex = order.indexOf(release);
+  for (const symbol of symbols) {
+    const named = firstNamed.get(symbol);
+    if (named !== undefined && sinceIndex !== -1 && named < sinceIndex) {
+      problems.push(`feature matrix: ${row.id} says Since ${release}, but its title names ${symbol}, which CHANGELOG.md first names under ${order[named]}; split the row or list it in FEATURE_SINCE`);
+    }
+  }
+}
+
 function sinceOf() {
-  const releases = new Set([...read("CHANGELOG.md").matchAll(/^## (\S+)/gm)].map((m) => m[1]));
+  const releases = new Set(changelogReleases().order);
   const since = new Map();
   for (const [release, ids] of Object.entries(FEATURE_SINCE)) {
     if (!releases.has(release)) problems.push(`feature matrix: FEATURE_SINCE names ${release}, which is no CHANGELOG.md heading`);
@@ -222,6 +246,7 @@ function sinceOf() {
 function featureMatrix() {
   const rows = [];
   const since = sinceOf();
+  const changelog = changelogReleases();
   for (const row of parity.features) {
     const f = FEATURES[row.id];
     if (!f) {
@@ -234,6 +259,7 @@ function featureMatrix() {
     const kind = f.item ? "Add-on" : notBuilt ? "Not built" : "Core";
     const item = f.item ? code(f.item) : notBuilt ? "none" : code("data-grid");
     const release = notBuilt ? "none" : (since.get(row.id) ?? FIRST_TAGGED_RELEASE);
+    if (!notBuilt) checkSinceAgainstChangelog(row, release, changelog);
     rows.push([cell(row.feature), kind, item, modeText(row, CLIENT), modeText(row, SERVER), release, link(f.guide[0], f.guide[1]), link(f.reference[0], f.reference[1])]);
   }
   return [

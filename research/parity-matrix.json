@@ -520,7 +520,7 @@
     },
     {
       "id": "pinned-rows",
-      "feature": "Pinned rows and aggregates (server totals through useDataGridServerAggregate)",
+      "feature": "Pinned rows and aggregates",
       "options": [],
       "cells": {
         "L": {
@@ -538,15 +538,13 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/pinned-rows.parity.test.tsx",
-            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+            "tests/parity/pinned-rows.parity.test.tsx"
           ]
         },
         "C": {
@@ -565,6 +563,61 @@
           "status": "supported",
           "evidence": [
             "tests/parity/pinned-rows.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "server-aggregate",
+      "feature": "Server totals (`useDataGridServerAggregate`)",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "A local array holds every row, so `useDataGridAggregate` totals it without a fetch."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "A client grid with `defaultPageSize` holds every row, so `useDataGridAggregate` totals it without a fetch."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pinned-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid-pinned-rows/test/server-aggregate.test.tsx"
           ]
         },
         "API": {

@@ -3,7 +3,7 @@ title: Store hooks
 icon: Store
 description: Look up each hook that reads grid state or reaches the grid from code, with its return value and the page that uses it.
 type: reference
-aliases: ["selector hooks", "state hooks", "use data grid hooks"]
+aliases: ["selector hooks", "state hooks", "use data grid hooks", "scroll to row", "scroll to cell"]
 ---
 
 Store hooks read the state of one grid. Inside a `DataGridProvider` they work. Outside it, they throw. Two items differ: `useDataGridStoreProps` runs outside the provider and creates the store, and `createDataGridSelector` is a factory that you call once at module scope. Import them from `@/components/data-grid/data-grid`. A hook that reads state subscribes to its own slice, so a component re-renders only when that slice changes.

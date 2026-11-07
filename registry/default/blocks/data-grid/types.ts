@@ -498,8 +498,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   /** Immutable write-back; defaults to spreading `accessorKey`. Required for writability when `accessorKey` is absent. */
   setValue?(row: TData, value: TValue): TData;
   /**
-   * Cell type registry key; default "text". A column without a `type` sorts with the numeric-aware,
-   * case-insensitive text compare instead of the `text` type's `compare`.
+   * Cell type registry key; default "text". A column without a `type` sorts with the numeric-aware
+   * text compare that ignores case and accents, instead of the `text` type's `compare`.
    */
   type?: string;
   options?: unknown;

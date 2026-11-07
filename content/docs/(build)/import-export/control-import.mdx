@@ -65,7 +65,7 @@ The `createRow` prop receives `(index, { signal })` with the same `signal`.
 
 ## Result
 
-`csvEncoding` takes one of these labels: `utf-8`, `utf-16le`, `utf-16be`, `iso-8859-1`, `iso-8859-2`, `iso-8859-15`, `windows-1250`, `windows-1251`, `windows-1252`, `windows-1253`, `windows-1254`, `windows-1257`, `shift_jis`, `euc-jp`, `euc-kr`, `gb18030`, and `big5`. The list is `IMPORT_CSV_ENCODINGS`. Any other label throws a `RangeError`.
+`csvEncoding` takes one of these labels: `utf-8`, `utf-16le`, `utf-16be`, `iso-8859-1`, `iso-8859-2`, `iso-8859-15`, `windows-1250`, `windows-1251`, `windows-1252`, `windows-1253`, `windows-1254`, `windows-1257`, `shift_jis`, `euc-jp`, `euc-kr`, `gb18030`, and `big5`. The list is `IMPORT_CSV_ENCODINGS`. With any other label, `parseImportFile` throws a `RangeError`, and the import dialog shows `labels.io.errorParseFailed`.
 
 `processImportRows` and `parseFile` must return arrays of strings. A result that has another shape, or more rows, columns, or cells than `importLimits` allows, stops the import and the dialog shows an error.
 
