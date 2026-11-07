@@ -157,7 +157,7 @@ export function OrderGrid() {
 | Member | Description |
 | --- | --- |
 | `actions` | The stable actions object. It is the same object as `useDataGridActions()`. |
-| `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. The state omits the event callbacks, such as `onDataChange` and `onSelectionChange` (`DataGridReadState`). |
+| `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. The state (`DataGridReadState`) omits most event callbacks, such as `onDataChange` and `onSelectionChange`. It keeps `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange`. |
 | `scrollTo()` | Takes a cell by `rowId` and `columnId` and scrolls it into view. A cell whose row left the data or the view, or whose column is hidden, does nothing, and a development build warns once. |
 | `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
 | `startEditing()` | Takes a cell and opens an editor there. It follows the rules of the keyboard edit gestures. |
@@ -165,7 +165,7 @@ export function OrderGrid() {
 | `getSelection()` | Returns the selection as a snapshot. |
 | `setSelection()` | Takes a `SelectionState` and applies it as a whole. `null` clears it. |
 | `getRow()` | Takes a view index and returns the row there, or `undefined`. |
-| `getViewRowIds()` <NewBadge /> | Returns the row id of every view row, in view order. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
+| `getViewRowIds()` <NewBadge /> | Returns the row id of every view row, in view order. With `pageSize`, it returns the rows of the shown page only. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
 
 - `startEditing` does nothing on a `readOnly` grid, on a read-only cell, and on a cell whose type has `activate`, such as a checkbox. `onEditStart` can still veto the edit.
 - `getSelection`, `getRow`, and `getViewRowIds` read at call time. They never re-render the caller.

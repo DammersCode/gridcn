@@ -1919,7 +1919,7 @@
         },
         "PS": {
           "status": "n/a",
-          "reason": "A page mode request is one per state; a newer page aborts the older one."
+          "reason": "A pages-mode request is one per state; a newer page aborts the older one."
         },
         "Z": {
           "status": "supported",

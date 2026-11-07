@@ -10,7 +10,7 @@ Each table lists the options of one add-on group. The "Used by" column names the
 
 ## Sort, filter, and search
 
-Options of the sort, filter, search, and URL add-ons.
+Options of the sort, filter, search, saved views, and URL add-ons.
 
 | Options | Used by | Page |
 | --- | --- | --- |
@@ -20,6 +20,8 @@ Options of the sort, filter, search, and URL add-ons.
 | `column`, `index` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
 | `scope`, `replaceAllLimit` | `useDataGridFindReplace`, `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
 | `matchCase`, `wholeCell`, `only`, `skip` | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
+| `storage`, `storageKey`, `value`, `defaultValue`, `onValueChange`, `enableDefaultView`, `onError` | `useDataGridViews`, `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
+| `className`, `labels` | `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
 | `prefix`, `layout` | `DataGridUrlState`, `useDataGridUrlState` | [URL state options](/docs/add-options/sort-filter-search/url-state-options#usedatagridurlstate) |
 | `prefix`, `defaultPageSize`, `pageSizeOptions`, `totalRowCount` | `useDataGridUrlPagination` | [URL state options](/docs/add-options/sort-filter-search/url-state-options#usedatagridurlpagination) |
 
@@ -31,7 +33,15 @@ Options of the fill handle and the history add-ons.
 | --- | --- | --- |
 | `disabled`, `onFill`, `detectSeries` | `useDataGridFill` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `getRowId`, `capacity`, `datasetKey` | `useDataGridState` | [Undo redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
-| `capacity`, `datasetKey`, `recordSources` | `useDataGridHistory` | [Undo redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
+| `capacity`, `datasetKey`, `recordSources`, `onSkip` | `useDataGridHistory` | [Undo redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
+
+## Editing cells
+
+Options of the lookup cell type. A `lookup` column takes them in its `options` field.
+
+| Options | Used by | Page |
+| --- | --- | --- |
+| `fetchOptions`, `debounceMs`, `minQueryLength`, `maxResults`, `unresolvedPaste`, `labels` | `lookup` cell type | [Lookup options](/docs/add-options/editing-cells/lookup-options#lookupoptions) |
 
 ## Import, export, and print
 
@@ -72,9 +82,10 @@ Options of the server rows and presence add-ons.
 
 | Options | Used by | Page |
 | --- | --- | --- |
-| `mode`, `getRowId`, `fetchRows`, `defaultSpec`, `spec`, `onSpecChange`, `onError`, `onLoaded`, `onDataChange` | `useDataGridServerRows` | [Server rows options](/docs/add-options/server/server-rows-options) |
-| `page`, `defaultPage`, `pageSize`, `defaultPageSize`, `pageSizeOptions`, `onPageChange`, `onPageSizeChange` | `useDataGridServerRows` pages mode | [Server rows options](/docs/add-options/server/server-rows-options) |
-| `blockSize`, `overscan` | `useDataGridServerRows` scroll mode | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `mode`, `getRowId`, `fetchRows`, `defaultSpec`, `spec`, `onSpecChange`, `onError`, `onLoaded`, `onDataChange`, `revalidateInterval`, `reshapeDelay` | `useDataGridServerRows` | [Server rows options](/docs/add-options/server/server-rows-options) |
+| `onSave`, `refreshAfterSave` | `useDataGridServerRows` | [Server rows options](/docs/add-options/server/server-rows-options#save-options) |
+| `page`, `defaultPage`, `pageSize`, `defaultPageSize`, `pageSizeOptions`, `onPageChange`, `onPageSizeChange`, `prefetchNextPage` | `useDataGridServerRows` pages mode | [Server rows options](/docs/add-options/server/server-rows-options#server-mode) |
+| `source`, `blockSize`, `overscan`, `loadDelay`, `maxConcurrentFetches`, `maxLoadedRows` | `useDataGridServerRows` scroll mode | [Server rows options](/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions) |
 | `maxRects`, `onExcessRects` | `useDataGridPresence` | [Presence options](/docs/add-options/server/presence-options) |
 
 ## Related

@@ -34,7 +34,7 @@ export type DataGridPinnedRowBandProps = {
  * layer). The top band sits directly under the header; the bottom band sits flush with the
  * viewport's bottom edge (`insetBlockEnd: 0`) — both stay "in place" while data rows scroll
  * underneath, which is what core's frozen-edge shadow (root.tsx) keys off of.
- * `useDataGridPinnedRows`'s `rowBands.renderBand` calls this once per non-empty band.
+ * `useDataGridPinnedRows`'s `rowBands.render` calls this once per non-empty band.
  */
 export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactNode {
   const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase, status = "ready" } = props;

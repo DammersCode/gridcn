@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The development warning for a dropped plugin `keymap` binding says that the binding repeats a key that the default keymap or your `keymap` already binds to the same action. It said that a plugin never takes a key the grid or the app uses, but the grid checks only the bindings of that action.
 - `DataGridKeybindingsShortcut` leaves a `?` typed into an input, textarea, select, or contenteditable that a cell or header renders to that field, and ignores `?` during an IME composition. It took the key and opened the dialog instead.
 - `onSortChange`, `onFilterChange`, `onPageChange`, `onPageSizeChange`, and `onSearchTextChange` fire after the grid writes the change, so the store holds the new value inside the callback; a controlled prop still gets the next value. A throw in one of them, in `onColumnLayoutChange`, `onColumnResizing`, `onValidationError`, or `onEditEnd`, no longer stops the write or the other callbacks of the change: the grid rethrows the first error after they ran. A throw in `onSelectionChange`, `onActiveCellChange`, or the `onEditEnd` of an edit that a view change ends goes to the console instead of skipping the grid's other updates.
 - `useDataGridRowIdToViewRow` maps a duplicate row id to the first row that carries it, like the rest of the grid. It mapped the id to the last row, so presence highlights landed on the wrong duplicate.

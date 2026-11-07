@@ -259,7 +259,7 @@ export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: Re
   );
 
   useEffect(() => {
-    if (invalid) live.current.warn("reshapeDelay", "reshapeDelay must be a number of milliseconds above 0, so pushes reshape without a delay");
+    if (invalid) live.current.warn("reshapeDelay", "reshapeDelay must be a number of milliseconds above 0, so the reshape delay is off");
     else if (raised) live.current.warn("reshapeDelay", `reshapeDelay below ${MIN_RESHAPE_DELAY} ms is raised to ${MIN_RESHAPE_DELAY} ms`);
   }, [invalid, raised]);
 

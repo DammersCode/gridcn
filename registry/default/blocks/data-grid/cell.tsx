@@ -170,8 +170,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         ? undefined
         : column.readOnly(row)
       : column.readOnly);
-  // Pinned top/bottom rows are readOnly by default — they're usually derived aggregates,
-  // not editable data — unless the column's own readOnly explicitly says otherwise.
+  // A pinned cell never edits (no handlers below); the column's readOnly sets only its data-readonly flag.
   const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
   const opaque = pinned || isPinnedRow;
 

@@ -144,7 +144,7 @@ These warnings come from the `plugins` prop. A plugin comes from an add-on hook.
 | `[data-grid] plugins "<first>" and "<second>" both define command "<name>"; the later plugin wins` | Rename one of the commands. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] plugin "<name>"'s command "<command>" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)` | Rename the command. Only the listed actions accept a plugin command. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] plugin "<name>"'s keymap binds "<command>" but the plugin defines no such command; the entry is dropped — a plugin keymap binds the plugin's own commands only` | Add the command to the plugin or remove the keymap entry. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
-| `[data-grid] plugin "<name>"'s binding for "<command>" uses a key the grid's default keymap or the consumer's keymap already owns; the colliding binding is dropped — a plugin never takes a key the grid or the app already uses` | Choose a key that no default or `keymap` binding uses. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
+| `[data-grid] plugin "<name>"'s binding for "<command>" repeats a key the grid's default keymap or the consumer's keymap already binds to "<command>"; the colliding binding is dropped` | Remove the key from the plugin `keymap`. The action already has that binding. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 
 ## Column group warnings [#column-group-warnings]
 
@@ -205,7 +205,7 @@ Each add-on prints its own prefix.
 | `[data-grid-server] maxLoadedRows has no effect on a sequential source: a cursor chain cannot fetch an arbitrary block again, so every loaded row stays` | Remove `maxLoadedRows`, or serve the source by position with a `totalRowCount`. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `[data-grid-server] source is "indexed" but fetchRows answered without a totalRowCount; the rows end at this block. Answer the count with every block` | Answer `totalRowCount` with every block, or set `source: "cursor"`. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `[data-grid-server] revalidateInterval must be a number of milliseconds above 0, so revalidation is off` | Pass a number of milliseconds of at least 1000 as `revalidateInterval`. | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
-| `[data-grid-server] reshapeDelay must be a number of milliseconds above 0, so pushes reshape without a delay` | Pass a number of milliseconds of at least 250 as `reshapeDelay`. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| `[data-grid-server] reshapeDelay must be a number of milliseconds above 0, so the reshape delay is off` | Pass a number of milliseconds of at least 250 as `reshapeDelay`. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `[data-grid-server] reshapeDelay below <min> ms is raised to <min> ms` | Pass at least 250 as `reshapeDelay`. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `[data-grid-server] refreshAfterSave threw` | Fix the function that you passed as `refreshAfterSave`. The grid prints the error after the text. This one is a console error. | [Save edits](/docs/save-server/save-edits#server-source) |
 | `[data-grid-history] onSkip threw:` | Fix the error in `onSkip`. The grid prints the error after the text. This one is a console error. | [Undo and redo](/docs/clipboard-undo/undo-redo#rows-not-loaded) |
@@ -259,8 +259,8 @@ These default labels tell the user about a failure. The `labels` prop replaces e
 | `Could not load rows.` | Shows when you pass the `error` prop. The Retry button runs `onRetry`. | [DataGrid props](/docs/components-props/data-grid-props#states) |
 | `Retry` | The button of the error state. | [DataGrid props](/docs/components-props/data-grid-props#states) |
 | `No rows` | Shows when the view has no rows. | [DataGrid props](/docs/components-props/data-grid-props#states) |
-| `clipboard access failed — use Ctrl+C or Ctrl+X` | Shows when the browser refuses the clipboard write. Press the keys instead. | [Clipboard](/docs/clipboard-undo/clipboard) |
-| `requires clipboard permission — use Ctrl+V` | Shows when the browser refuses the clipboard read. Press the keys instead. | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `clipboard access failed — use <modifier>+C or <modifier>+X` | Shows when the browser refuses the clipboard write. The modifier is Ctrl, or ⌘ on Apple platforms. Press the keys instead. | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `requires clipboard permission — use <modifier>+V` | Shows when the browser refuses the clipboard read. The modifier is Ctrl, or ⌘ on Apple platforms. Press the keys instead. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `Could not load values.` | Shows when `fetchFilterValues` fails in a header filter. | [Header filter](/docs/sort-filter-search/header-filter) |
 | `Could not read this file.` | Shows when the import cannot parse the file. | [Import](/docs/import-export/import) |
 | `No rows found in this file.` | Shows when the file has no data rows. | [Import](/docs/import-export/import) |

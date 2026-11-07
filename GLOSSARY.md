@@ -37,6 +37,7 @@ mirror the change there.
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
+| server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
 | paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | sliced data, page slice |

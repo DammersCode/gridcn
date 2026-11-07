@@ -13,7 +13,7 @@ import { displayText } from "./display-text";
 /** Rendered text is capped so one huge stored value cannot stall layout. */
 const LONG_TEXT_DISPLAY_LIMIT = 500;
 
-/** The editor textarea's `maxLength` and the type's default `validate` bound when a column sets no `maxLength` of its own. */
+/** The type's default `validate` bound, and the editor textarea's `maxLength` when a column sets no `maxLength` of its own. */
 export const LONG_TEXT_DEFAULT_MAX_LENGTH = 100_000;
 
 function LongTextCell({ value, options }: CellRenderProps<unknown, string, GridCellTypes["longText"]["options"]>) {

@@ -1,9 +1,10 @@
 /**
  * Add-on-facing SDK surface of the grid core: the internal seams first-party add-ons
  * (fill, io, pinned-rows, presence, context-menu, keybindings, history, lazy, pagination)
- * build on. Not the consumer API — consumer code imports from `./data-grid`, which is the
- * only barrel the docs teach. Add-on imports of this file are rewritten to relative paths at
- * install time (scripts/fix-registry-imports.mjs).
+ * build on, and the API for add-on and plugin authors. App code imports from `./data-grid`;
+ * the docs teach this file for plugin work and store reads (`useDataGridStoreApi`,
+ * `DataGridReadState`, `GRID_LAYER`, `hasAnyPin`, `createHistory`, `isComposingKey`). Add-on
+ * imports of this file are rewritten to relative paths at install time (scripts/fix-registry-imports.mjs).
  */
 
 import { useCallback } from "react";

@@ -50,7 +50,7 @@ The dialog lists the effective keymap, so it shows your overrides. Mount it insi
 
 ## DataGridKeybindingsShortcut [#datagridkeybindingsshortcutprops]
 
-When the user presses <kbd>?</kbd> with the grid focused and no cell editor open, the component calls `onOpen`. It claims the key, so it shadows type-to-edit and any `keymap` binding on <kbd>?</kbd>. Mount it inside `DataGridRoot`. Outside the root, it throws.
+When the user presses <kbd>?</kbd> with the grid focused and no cell editor open, the component calls `onOpen`. It claims the key, so it shadows type-to-edit and any `keymap` binding on <kbd>?</kbd>. If the <kbd>?</kbd> goes to a text field inside the grid or belongs to an IME composition, the component skips `onOpen` and leaves the key alone. Mount it inside `DataGridRoot`. Outside the root, it throws.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx" name="DataGridKeybindingsShortcutProps" />
 

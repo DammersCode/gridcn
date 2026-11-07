@@ -58,7 +58,7 @@ Hooks that read the active cell and the edit session.
 | <a id="usedatagridcelleditingerror"></a>`useDataGridCellEditingError` | `string \| null` | The live validation error of the cell at a `ViewCoord` while that cell is in edit. Every other cell gets `null`. |
 | <a id="usedatagridcellstate"></a>`useDataGridCellState` | `DataGridCellState` | One subscription for one cell: `isActive`, `isSelected`, `isEditing`, `initialText`, `editSession`, `isSearchMatch`, and `cellError`. |
 | <a id="usedatagridrowcellstate"></a>`useDataGridRowCellState` | `DataGridRowCellState` | One subscription for one view row. It covers the active and editing columns of the row, its `saveStatus`, and its search match, error, and flashing columns. |
-| <a id="usedatagridcelltypes"></a>`useDataGridCellTypes` | `Record<string, CellType>` | The resolved cell type registry: your `cellTypes` prop or the built-ins. |
+| <a id="usedatagridcelltypes"></a>`useDataGridCellTypes` | `Record<string, CellType>` | The resolved cell type registry: the built-in cell types merged with your `cellTypes` prop. A `null` entry removes a built-in type. |
 
 Show the active cell and the read-only flag in a status line:
 

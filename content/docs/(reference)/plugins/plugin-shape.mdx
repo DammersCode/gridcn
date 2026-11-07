@@ -84,7 +84,7 @@ Keep an `Overlay` paint-only. When a plugin needs pointer work, listeners, or ti
 An observer and a command receive `api`, the imperative handle of the grid. It reads every state value and writes only through actions:
 
 - `api.store` is a read-only view of the store. It has `getState()`, `getInitialState()`, and `subscribe()`. It has no `setState`.
-- `api.store.getState()` returns the live state objects, without the `on*` callbacks of your props and the internal slots. Never mutate them.
+- `api.store.getState()` returns the live state objects, without the internal slots and without most `on*` callbacks of your props. `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange` stay in the state. Never mutate the state objects.
 - `api.actions` holds the public actions. A plugin writes data only through them.
 
 A plugin that needs a value the context does not carry subscribes to the store with `api.store.subscribe((state, prev) => ...)`.

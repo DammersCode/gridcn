@@ -10,7 +10,7 @@ The grid has one `role="status"` live region. [Screen reader support](/docs/acce
 
 | Message | Label | Reads when |
 |---|---|---|
-| Stale view | `labels.grid.viewStale` | A push changes a value that the sort or filter reads. It reads once when the view turns stale, and at most once every 30 seconds, in every data mode. |
+| Stale view | `labels.grid.viewStale` | A write changes a value that the sort or filter reads: an edit, a paste, a fill, a clear, or a push. It reads once when the view turns stale, and at most once every 30 seconds, in every data mode. |
 | Refused save | `labels.grid.saveRejected` | The server refuses rows of a save. It reads the row count, for example "2 rows not saved". |
 | Undo or redo, rows not loaded | `labels.grid.historyRowsNotLoaded` | An undo or redo needs rows that are not loaded. |
 | Undo or redo, rows gone | `labels.grid.historyRowsGone` | An undo or redo needs rows that do not exist. |

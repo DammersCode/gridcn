@@ -27,9 +27,9 @@ const EMPTY_ROWS: readonly never[] = [];
  * Pinned top/bottom row bands, as a single hook. Row bands affect layout height and `aria-rowcount`,
  * so the grid resolves the band row counts synchronously at first render (root.tsx keeps all of
  * that arithmetic and calls this plugin's `rowBands.render` per band segment). Cells render via the
- * same `DataGridCell`/cell-type pipeline as data rows (same columns, alignment, formatting) but are
- * readOnly by default unless a column's own `readOnly` says otherwise, and aren't keyboard-navigable
- * in v1 (documented).
+ * same `DataGridCell`/cell-type pipeline as data rows (same columns, alignment, formatting) but
+ * never edit: they have no pointer, click, or double-click handlers and no tab stop, so they are not
+ * keyboard-navigable. A column's `readOnly: false` changes only their `data-readonly` attribute.
  */
 export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}): UseDataGridPinnedRowsResult {
   const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS, status = "ready" } = options;

@@ -431,6 +431,10 @@ const PURPOSE = {
   "DataGridSyncProps.onPageSizeChange": "Fires with the new page size after a change of the page size.",
   "DataGridSyncProps.onPageChange": "Fires with the new page after a page change, and with 1 after a filter change.",
   "DataGridSyncProps.onGateAborted": "Fires once for every async gate that the grid stopped waiting for, with its name and the reason.",
+  "DataGridSyncProps.sortMode": "Who sorts: `\"client\"` sorts `data`, `\"server\"` only tracks the sort. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
+  "DataGridSyncProps.filterMode": "Who filters: `\"client\"` filters `data`, `\"server\"` only tracks the filters. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
+  "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
+  "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
   "DataGridSyncProps.keepHiddenCheckedRows": "Deprecated alias of `rememberCheckedRows`. `rememberCheckedRows` wins when both are set.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",
 };
@@ -474,6 +478,14 @@ function propsZ() {
   ].join("\n");
 }
 
+// Callbacks that no events-state page has an anchor for, mapped to the page that explains them.
+const EVENT_PAGES = {
+  onGateAborted: "/docs/editing-cells/cancel-async-gates#gate-timeout",
+  onRowActionSkipped: "/docs/rows-live-data/handle-row-action-results#action-results",
+  onPageChange: "/docs/rows-pages-menus/client-pagination#client-mode",
+  onPageSizeChange: "/docs/rows-pages-menus/client-pagination#client-mode",
+};
+
 function eventsZ() {
   const index = tableIndex();
   const rows = [];
@@ -482,7 +494,7 @@ function eventsZ() {
       if (!isCallback(name)) continue;
       const { entry, target: tableTarget } = propRow(src, name, index);
       const eventPage = [...pages.keys()].find((u) => u.startsWith("/docs/events-state/") && pages.get(u).anchors.has(name.toLowerCase()));
-      const target = eventPage ? `${eventPage}#${name.toLowerCase()}` : tableTarget;
+      const target = EVENT_PAGES[name] ?? (eventPage ? `${eventPage}#${name.toLowerCase()}` : tableTarget);
       rows.push([name, [code(name), describe(src, name, entry), link(target, titleOf(target.split("#")[0]))]]);
     }
   }

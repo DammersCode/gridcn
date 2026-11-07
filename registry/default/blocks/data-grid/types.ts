@@ -572,8 +572,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    */
   filterCompare?: (text: string, bound: string) => number;
   /**
-   * Sort comparator over the whole data row (not the cell value), consulted before the column's
-   * cell-type `compare` and the default text compare. A non-zero result orders the pair; a zero,
+   * Sort comparator over the whole data row (not the cell value); it replaces the column's
+   * cell-type `compare`. A non-zero result orders the pair; a zero,
    * NaN, or thrown result defers that pair to the default text compare. `SortSpec` direction and
    * the empty-cell-last rule still apply.
    */
@@ -808,15 +808,17 @@ export type DataGridApi<TData> = {
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
   /**
-   * The row id of every view row, in view order. An unloaded row (a hole of a lazy source) gets its placeholder id, like
+   * The row id of every view row, in view order; with `pageSize`, the rows of the shown page only. An unloaded row (a hole of a lazy source) gets its placeholder id, like
    * `useDataGridRowIds`; `{ loaded: true }` leaves the placeholders out.
    */
   getViewRowIds(options?: { loaded?: boolean }): readonly string[];
 };
 
 /**
- * The store state as plugins and the `api.store` handle see it: every state field except the
- * consumer's `on*` event callbacks and the core's internal impl slots. State reads return the
+ * The store state as plugins and the `api.store` handle see it: every state field except most of
+ * the consumer's `on*` event callbacks and the core's internal impl slots. Seven callbacks stay:
+ * `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`,
+ * `onPageChange`, and `onPageSizeChange`. State reads return the
  * store's live objects (`data`, `selection`, `columns`) — they must not be mutated (no copy is
  * made; a copy per read would cost O(n) on the hot path).
  */
@@ -856,8 +858,8 @@ export type DataGridStoreWrapper = {
 
 /**
  * One entry of the `plugins` prop: an add-on that reaches into the grid. Members are optional;
- * `name` is the React key of the plugin's components and its identity — unique per grid (a dev
- * error when two plugins share a name). `Overlay` renders into the overlay layer (after the
+ * `name` is the React key of the plugin's components and its identity — unique per grid (when two
+ * plugins share a name, a dev warning fires and the later plugin is ignored). `Overlay` renders into the overlay layer (after the
  * built-in range layers, before the active-cell ring); `rowBands` contributes to the top/bottom
  * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
  * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
@@ -865,7 +867,7 @@ export type DataGridStoreWrapper = {
  * order is precedence and visual order. A plugin object attaches to ONE grid.
  */
 export type DataGridPlugin<TData = unknown> = {
-  /** Unique per grid: the React key of the plugin's components and its identity in the store. */
+  /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored. */
   name: string;
   /** A component rendered by `DataGridOverlays` with the overlay ctx (window clamp + pin-zone helpers). */
   Overlay?: ComponentType<OverlayPluginCtx>;
@@ -875,7 +877,7 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds THIS plugin's commands only: an entry naming a command the plugin does not define is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already uses is dropped, dev-warned. */
+  /** Binds built-in actions that THIS plugin also defines in `commands` (in practice the pluggable ones): an entry whose name is not a built-in action, or names a command the plugin does not define, is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already gives the same action is dropped, dev-warned. The kept bindings replace the action's default bindings. */
   keymap?: Keymap;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;

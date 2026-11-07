@@ -69,7 +69,7 @@ it("renders the orders", () => {
 });
 ```
 
-`aria-rowcount` counts the header row too. Each row carries `aria-rowindex`, and each cell carries `aria-colindex`, so a test can find a cell by its position. The grid renders only the rows near the viewport. Assert on `aria-rowcount` or on `getViewRowIds()` for the full count, never on the number of `row` elements.
+`aria-rowcount` counts the header row too. Each row carries `aria-rowindex`, and each cell carries `aria-colindex`, so a test can find a cell by its position. The grid renders only the rows near the viewport. Assert on `aria-rowcount` or on `getViewRowIds()` for the row count of the view, never on the number of `row` elements. With `pageSize`, both count the shown page only.
 
 ## Test in a real browser
 

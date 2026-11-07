@@ -100,7 +100,7 @@ export function warnPluginComponentRemounts(
 }
 
 /**
- * Builds the resolved plugin members from the claimed list (duplicate `name`s dev-error and the
+ * Builds the resolved plugin members from the claimed list (duplicate `name`s dev-warn and the
  * later plugin is ignored; members keep array order). Runs only when the list actually changes, so
  * the conflict warnings below do not re-fire on every render of an unchanged inline array.
  */
@@ -175,7 +175,8 @@ export function mergePluginCommands(
 /**
  * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order; an entry naming a
  * command the plugin does not define, or naming no built-in action, is dropped, dev-warned; a
- * binding the default keymap or the consumer's `keymap` already uses is dropped, dev-warned) <- the
+ * binding the default keymap or the consumer's `keymap` already gives the same action is dropped,
+ * dev-warned; the kept bindings replace that action's bindings) <- the
  * consumer's `keymap` (always last, and wins).
  */
 export function mergePluginKeymaps(
@@ -200,7 +201,7 @@ export function mergePluginKeymaps(
       if (kept.length < (bindings ?? []).length) {
         warn(
           `keymap-collide:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s binding for "${name}" uses a key the grid's default keymap or the consumer's keymap already owns; the colliding binding is dropped — a plugin never takes a key the grid or the app already uses`,
+          `plugin "${plugin.name}"'s binding for "${name}" repeats a key the grid's default keymap or the consumer's keymap already binds to "${name}"; the colliding binding is dropped`,
         );
       }
       if (kept.length > 0) merged[name as GridAction] = kept;
