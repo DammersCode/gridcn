@@ -49,6 +49,10 @@ If the server refuses an `insert`, the grid removes the row. If it refuses a `de
 
 The grid keeps the id that `createRow` returns until you swap it. After the server answers, call `actions.replaceRowId(oldId, row)` with the server row <NewBadge />. See [Save edits](/docs/save-server/save-edits#id-swap). Or let `createRow` return a promise that creates the row first. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
 
+In this demo, a new row gets a client id, and the mock server answers with its own id. The log shows the `"id-swap"` change:
+
+<ComponentPreview name="data-grid-id-swap-demo" />
+
 While a `createRow` promise is pending, the next insert does nothing. While a `duplicateRow` promise is pending, the next duplicate does nothing. If the anchor row left the grid or the grid turned `readOnly` before the promise resolves, the grid drops the operation.
 
 If the promise creates the row on the server, skip the `insert` operation in `onSave`, because the server already has the row.

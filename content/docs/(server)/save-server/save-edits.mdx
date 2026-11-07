@@ -164,7 +164,6 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 The row keeps its data position and its view position. One `onDataChange` call fires with `source: "id-swap"`. `onSave` does not receive it, and history does not record it. The state keyed by the row id follows the new id. That covers the open edit, the cell errors, the checked rows, the save status, the saves in flight, and the undo steps. Flashes of the row end, and `validateRow` runs again for the swapped row.
 
 After a batch create, call `actions.replaceRowIds([{ oldId, row }])`. It swaps many rows in one write and one `onDataChange`. A `readOnly` grid skips the swap. An unknown `oldId`, or a new id that another row holds, warns once in development.
-
 ## Server mode [#server-mode]
 
 `onSave` works the same on a local array, on a page, and on scroll mode. The grid sends no spec, page, or row count to `onSave`. Your server applies each operation by `rowId`.

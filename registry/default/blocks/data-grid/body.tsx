@@ -72,7 +72,7 @@ function warnHeightLimit(rowCount: number, rowHeight: number): void {
   const firefoxRows = roundDown(BROWSER_HEIGHT_LIMIT_WARN_PX);
   const chromiumRows = roundDown(CHROMIUM_HEIGHT_LIMIT_PX);
   console.warn(
-    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 17.9 million px in Firefox, 33.5 million px in Chromium). Firefox shows no scroll range above about ${firefoxRows.toLocaleString("en-US")} rows at this row height. Chromium cannot reach the rows past about ${chromiumRows.toLocaleString("en-US")}. See the virtualization docs page.`,
+    `gridcn: ${rowCount} rows at ${rowHeight}px need ${rowCount * rowHeight}px of scroll height, which is above the browser height limit (about 17.9 million px in Firefox, 33.5 million px in Chromium). Firefox shows no scroll range above about ${firefoxRows.toLocaleString("en-US")} rows at this row height. Chromium cannot reach the rows past about ${chromiumRows.toLocaleString("en-US")}. The Row limits page (https://gridcn.vercel.app/docs/performance/row-limits) lists the limits.`,
   );
 }
 

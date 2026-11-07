@@ -2752,6 +2752,69 @@
          ]
       },
       {
+         "name": "data-grid-save-conflict-demo",
+         "type": "registry:example",
+         "title": "Data Grid Save Conflict Demo",
+         "description": "A mock server refuses a save with its current row, and resolveSaveConflict returns theirs, mine, or a merged row; the log shows what each row becomes.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "button",
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-save-conflict-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-save-conflict-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-id-swap-demo",
+         "type": "registry:example",
+         "title": "Data Grid Id Swap Demo",
+         "description": "A new row starts with a client id; the mock server answers with its own id, and actions.replaceRowId swaps it in with one onDataChange of source id-swap.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "button",
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-id-swap-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-id-swap-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-row-action-results-demo",
+         "type": "registry:example",
+         "title": "Data Grid Row Action Results Demo",
+         "description": "A slow onBeforeDeleteRows gate under gateTimeoutMs: the log shows each RowActionResult, every onRowActionSkipped reason, and the aborted gate.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "button",
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-row-action-results-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-row-action-results-demo.tsx"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-pagination-demo",
          "type": "registry:example",
          "title": "Data Grid Pagination Demo",

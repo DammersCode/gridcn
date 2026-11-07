@@ -703,9 +703,7 @@
    "words": 900,
    "aliases": [
     "validate cell",
-    "invalid value",
-    "validaterow",
-    "validate row"
+    "invalid value"
    ],
    "codeLines": 40,
    "area": "Build",
@@ -728,6 +726,35 @@
    "parity": [
     "validation"
    ],
+   "parityOwnerOf": [],
+   "batch": "B02"
+  },
+  {
+   "slug": "validate-rows-cross-field",
+   "title": "Validate rows and async checks",
+   "type": "task",
+   "words": 900,
+   "aliases": [
+    "validaterow",
+    "validate row"
+   ],
+   "codeLines": 40,
+   "area": "Build",
+   "group": "Editing cells",
+   "subgroup": "",
+   "landing": false,
+   "url": "/docs/editing-cells/validate-rows-cross-field",
+   "urlSource": "derived",
+   "wave": 1,
+   "owner": "writer",
+   "action": "new",
+   "sources": [],
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "decide",
+   "code": "yes",
+   "generated": false,
+   "parity": [],
    "parityOwnerOf": [],
    "batch": "B02"
   },
@@ -4306,6 +4333,32 @@
    "batch": "B17"
   },
   {
+   "slug": "options-lookup",
+   "title": "Lookup options",
+   "type": "reference",
+   "words": 500,
+   "aliases": [],
+   "codeLines": 0,
+   "area": "Reference",
+   "group": "Add-on options",
+   "subgroup": "Editing cells",
+   "landing": false,
+   "url": "/docs/add-options/editing-cells/lookup-options",
+   "urlSource": "derived",
+   "wave": 1,
+   "owner": "writer",
+   "action": "new",
+   "sources": [],
+   "sourceFiles": [],
+   "carriedDemos": [],
+   "demo": "no",
+   "code": "table+sample",
+   "generated": false,
+   "parity": [],
+   "parityOwnerOf": [],
+   "batch": "B17"
+  },
+  {
    "slug": "options-keybindings",
    "title": "Shortcut remapping options",
    "type": "reference",
@@ -5758,8 +5811,8 @@
    "groups": [
     "Add-on options"
    ],
-   "pages": 7,
-   "words": 3300
+   "pages": 8,
+   "words": 3800
   },
   {
    "id": "B18",

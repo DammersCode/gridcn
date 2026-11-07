@@ -82,7 +82,7 @@ import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
-import { createDataWriteActions, createDataWriteContext, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
+import { createDataWriteActions, createDataWriteContext, emitAfterWrites, emitFromListener, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
 import { NO_STALE_ROWS, clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
@@ -816,7 +816,24 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       // must early-return instead of paying a one-time view recompute.
       lastSyncInputs = { ...lastSyncInputs, columns: normalized.columns, columnOrder: normalized.columnOrder, hiddenColumns: normalized.hiddenColumns };
       if (s.onColumnLayoutChange) layoutEchoQueue.push(snapshot);
-      s.onColumnLayoutChange?.(snapshot);
+      emitAfterWrites(dataWrite, () => s.onColumnLayoutChange?.(snapshot));
+    };
+    const commitSorts = (s: DataGridStoreState, sorts: DataGridStoreState["sortState"]): void => {
+      // Controlled: _syncProps writes the consumer's next `sortState` prop.
+      if (!s.sortControlled) {
+        set((s2) => {
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2));
+          resetDeferredRows(dataWrite);
+          return {
+            sortState: sorts,
+            viewIndex,
+            ...clearStaleRows(dataWrite),
+            ...followView(s2, viewIndex, s2.visibleColumns),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+          };
+        });
+      }
+      emitAfterWrites(dataWrite, () => s.onSortChange?.(sorts));
     };
     // Resolved at creation so the server render has the band heights, `aria-rowcount`, and the
     // merged keymap/commands (spec: resolution); the config phase re-resolves on change only.
@@ -1254,8 +1271,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _subscribeEditEnd() {
         return api.subscribe((state, prev) => {
-          if (prev.editing === null || state.editing !== null || prev.editing === selfReportedSession) return;
-          state.onEditEnd?.({ rowId: prev.editing.rowId, columnId: prev.editing.columnId, viewRowIndex: prev.editing.coord.row, viewColumnIndex: prev.editing.coord.col, result: "cancel" });
+          const ended = prev.editing;
+          const onEditEnd = state.onEditEnd;
+          if (ended === null || state.editing !== null || ended === selfReportedSession || !onEditEnd) return;
+          emitFromListener("onEditEnd", () => onEditEnd({ rowId: ended.rowId, columnId: ended.columnId, viewRowIndex: ended.coord.row, viewColumnIndex: ended.coord.col, result: "cancel" }));
         });
       },
       _subscribeSelection() {
@@ -1270,11 +1289,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // against the value it just read, and an applied controlled value re-derives equal and
           // stays silent (decisions 3 and 4).
           lastKnownSelection = derived;
-          if (state.onSelectionChange) {
-            selectionEchoQueue.push(derived);
-            if (selectionEchoQueue.length > 128) selectionEchoQueue.shift();
-          }
-          state.onSelectionChange?.(derived, makeSelectionChangeDetails(() => api.getState()));
+          const onSelectionChange = state.onSelectionChange;
+          if (!onSelectionChange) return;
+          selectionEchoQueue.push(derived);
+          if (selectionEchoQueue.length > 128) selectionEchoQueue.shift();
+          emitFromListener("onSelectionChange", () => onSelectionChange(derived, makeSelectionChangeDetails(() => api.getState())));
         });
       },
       _deriveSelection() {
@@ -1577,7 +1596,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!column) return;
         const next = clampColumnWidth(column, width);
         set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
-        get().onColumnResizing?.({ columnId: id, width: next });
+        const onColumnResizing = get().onColumnResizing;
+        if (onColumnResizing) emitAfterWrites(dataWrite, () => onColumnResizing({ columnId: id, width: next }));
       },
       commitColumnWidth(id, width) {
         const s = get();
@@ -1678,29 +1698,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           : direction === null
             ? []
             : [{ columnId, direction }];
-        s.onSortChange?.(sorts);
-        // Controlled: _syncProps writes the consumer's next `sortState` prop.
-        if (s.sortControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2));
-          resetDeferredRows(dataWrite);
-          return {
-            sortState: sorts,
-            viewIndex,
-            ...clearStaleRows(dataWrite),
-            ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
-          };
-        });
+        commitSorts(s, sorts);
       },
       setPage(page) {
         const s = get();
         if (s.pageSize === null || !Number.isFinite(page)) return;
         const next = Math.max(1, Math.floor(page));
         if (next === s.page) return;
-        s.onPageChange?.(next);
-        if (s.pageControlled) return;
-        set((s2) => rebuildPageView(s2, next, s2.pageSize));
+        if (!s.pageControlled) set((s2) => rebuildPageView(s2, next, s2.pageSize));
+        emitAfterWrites(dataWrite, () => s.onPageChange?.(next));
       },
       setPageSize(pageSize) {
         const s = get();
@@ -1714,65 +1720,57 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (size === s.pageSize) return;
         const firstRow = s.pageSize === null ? 0 : (effectivePage(s.page, fullViewOf(s.viewIndex).length, s.pageSize) - 1) * s.pageSize;
         const page = Math.floor(firstRow / size) + 1;
-        s.onPageSizeChange?.(size);
-        if (page !== s.page) s.onPageChange?.(page);
-        if (s.pageSizeControlled && s.pageControlled) return;
-        set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : page, s2.pageSizeControlled ? s2.pageSize : size));
+        if (!s.pageSizeControlled || !s.pageControlled) {
+          set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : page, s2.pageSizeControlled ? s2.pageSize : size));
+        }
+        emitAfterWrites(dataWrite, () => s.onPageSizeChange?.(size), () => {
+          if (page !== s.page) s.onPageChange?.(page);
+        });
       },
       setSorts(sorts) {
-        const s = get();
-        s.onSortChange?.(sorts);
-        if (s.sortControlled) return;
-        set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2));
-          resetDeferredRows(dataWrite);
-          return {
-            sortState: sorts,
-            viewIndex,
-            ...clearStaleRows(dataWrite),
-            ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
-          };
-        });
+        commitSorts(get(), sorts);
       },
       setFilters(filters) {
         const s = get();
         // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
         const withIds = withFilterIds(filters);
-        s.onFilterChange?.(withIds);
         const resetPage = s.pageSize !== null && s.page !== 1 && filterSpecKey(withIds) !== filterSpecKey(s.filterState);
-        if (resetPage) s.onPageChange?.(1);
-        if (s.filterControlled) return;
-        set((s2) => {
-          const page = resetPage && !s2.pageControlled ? 1 : s2.page;
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize });
-          resetDeferredRows(dataWrite);
-          return {
-            page,
-            filterState: withIds,
-            viewIndex,
-            ...clearStaleRows(dataWrite),
-            ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
-            ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
-          };
+        if (!s.filterControlled) {
+          set((s2) => {
+            const page = resetPage && !s2.pageControlled ? 1 : s2.page;
+            const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize });
+            resetDeferredRows(dataWrite);
+            return {
+              page,
+              filterState: withIds,
+              viewIndex,
+              ...clearStaleRows(dataWrite),
+              ...followView(s2, viewIndex, s2.visibleColumns),
+              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+              ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
+            };
+          });
+        }
+        emitAfterWrites(dataWrite, () => s.onFilterChange?.(withIds), () => {
+          if (resetPage) s.onPageChange?.(1);
         });
       },
       setSearch(text, options) {
         const s = get();
-        if (text !== s.searchText) s.onSearchTextChange?.(text);
         const searchOptions = options ? { ...s.searchOptions, ...options } : s.searchOptions;
         const optionsChanged = searchOptions.matchCase !== s.searchOptions.matchCase || searchOptions.wholeCell !== s.searchOptions.wholeCell;
-        if (s.searchControlled && !optionsChanged) return;
-        const nextText = s.searchControlled ? s.searchText : text;
-        // viewIndex is untouched: quick-search highlights + navigates, it never filters.
-        set((s2) => ({
-          searchText: nextText,
-          searchOptions,
-          ...(nextText !== s2.searchText && dataWrite.staleRows.size > 0 ? clearStaleRows(dataWrite) : {}),
-          ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
-          ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
-        }));
+        if (!s.searchControlled || optionsChanged) {
+          const nextText = s.searchControlled ? s.searchText : text;
+          // viewIndex is untouched: quick-search highlights + navigates, it never filters.
+          set((s2) => ({
+            searchText: nextText,
+            searchOptions,
+            ...(nextText !== s2.searchText && dataWrite.staleRows.size > 0 ? clearStaleRows(dataWrite) : {}),
+            ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
+            ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
+          }));
+        }
+        if (text !== s.searchText) emitAfterWrites(dataWrite, () => s.onSearchTextChange?.(text));
       },
       startEditing(ref, initialText) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
@@ -1806,16 +1804,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           set({ editingError: null });
           return;
         }
-        endEditSession(s.editing, () => set({ editing: null, editingError: null }));
-        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "cancel" });
+        const editing = s.editing;
+        endEditSession(editing, () => set({ editing: null, editingError: null }));
+        emitAfterWrites(dataWrite, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "cancel" }));
       },
       // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row operations.
       ...publicWriteActions,
       setEditingError(message) {
         const s = get();
         if (!s.editing) return;
+        const editing = s.editing;
         set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
-        s.onEditEnd?.({ rowId: s.editing.rowId, columnId: s.editing.columnId, viewRowIndex: s.editing.coord.row, viewColumnIndex: s.editing.coord.col, result: "rejected" });
+        emitAfterWrites(dataWrite, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" }));
       },
       setCellErrors(errors) {
         if (errors.length === 0) return;

@@ -250,6 +250,12 @@
   "debounced-text-inputs": "/docs/data-modes/data-mode-support#debounced-text-inputs",
   "related": "/docs/data-modes/data-mode-support#related"
  },
+ "/docs/editing-cells/validation": {
+  "async-schemas": "/docs/editing-cells/validate-rows-cross-field#async-schemas",
+  "on-bulk-paths": "/docs/editing-cells/validate-rows-cross-field#on-bulk-paths",
+  "cross-field-rules-validaterow": "/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow",
+  "schema-refine-rules": "/docs/editing-cells/validate-rows-cross-field#schema-refine-rules"
+ },
  "/docs/editing-cell-types": {
   "edit-activation": "/docs/editing-cells/editable-columns#edit-activation",
   "built-in-cell-types": "/docs/editing-cells/built-cell-types#built-in-cell-types",
@@ -261,9 +267,9 @@
   "validation": "/docs/editing-cells/validation#validation",
   "soft-rules-oninvalid": "/docs/editing-cells/validation#soft-rules-oninvalid",
   "transforms-are-committed": "/docs/editing-cells/validation#transforms-are-committed",
-  "async-schemas": "/docs/editing-cells/validation#async-schemas",
-  "on-bulk-paths": "/docs/editing-cells/validation#on-bulk-paths",
-  "cross-field-rules-validaterow": "/docs/editing-cells/validation#cross-field-rules-validaterow",
+  "async-schemas": "/docs/editing-cells/validate-rows-cross-field#async-schemas",
+  "on-bulk-paths": "/docs/editing-cells/validate-rows-cross-field#on-bulk-paths",
+  "cross-field-rules-validaterow": "/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow",
   "server-errors": "/docs/save-server/show-errors-cells#server-errors",
   "display-override-without-a-new-type": "/docs/editing-cells/display-override#display-override-without-a-new-type",
   "custom-cell-types": "/docs/recipes-custom-code/write-cell-type#write-a-cell-type"

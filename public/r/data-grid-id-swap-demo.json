@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-id-swap-demo",
+  "title": "Data Grid Id Swap Demo",
+  "author": "gridcn",
+  "description": "A new row starts with a client id; the mock server answers with its own id, and actions.replaceRowId swaps it in with one onDataChange of source id-swap.",
+  "registryDependencies": [
+    "button",
+    "DammersCode/gridcn/data-grid"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-id-swap-demo.tsx",
+      "content": "\"use client\";\n\nimport { useRef, useState, type ReactNode } from \"react\";\nimport { Button } from \"@/components/ui/button\";\nimport {\n  DataGridBody,\n  DataGridHeader,\n  DataGridProvider,\n  DataGridRoot,\n  defineColumns,\n  type DataChange,\n  type DataGridApi,\n} from \"@/registry/default/components/data-grid/data-grid\";\n\ntype Contact = { id: string; name: string; city: string };\n\nconst SAVE_LATENCY_MS = 900;\n\nconst columns = defineColumns<Contact>()([\n  { id: \"id\", header: \"ID\", accessorKey: \"id\", type: \"text\", width: 120, readOnly: true },\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 160, flex: 1 },\n  { id: \"city\", header: \"City\", accessorKey: \"city\", type: \"text\", width: 140, flex: 1 },\n] as const);\n\nconst initialRows: Contact[] = [\n  { id: \"srv-101\", name: \"Ada\", city: \"Berlin\" },\n  { id: \"srv-102\", name: \"Grace\", city: \"Hamburg\" },\n  { id: \"srv-103\", name: \"Linus\", city: \"Munich\" },\n];\n\n/** A mock server that stores a new row under an id of its own. */\nfunction createMockServer() {\n  let nextId = 104;\n  return async (row: Contact): Promise<Contact> => {\n    await new Promise((resolve) => setTimeout(resolve, SAVE_LATENCY_MS));\n    return { ...row, id: `srv-${nextId++}` };\n  };\n}\n\n/** A new row starts with a client id; after the server saves it, `actions.replaceRowId` swaps in the server id. */\nexport default function DataGridIdSwapDemo(): ReactNode {\n  const grid = useRef<DataGridApi<Contact> | null>(null);\n  const [createOnServer] = useState(createMockServer);\n  const clientId = useRef(0);\n  const latest = useRef<readonly Contact[]>(initialRows);\n  const [log, setLog] = useState<string[]>([]);\n  const record = (line: string) => setLog((prev) => [line, ...prev].slice(0, 6));\n\n  const onDataChange = (next: readonly Contact[], change: DataChange<Contact>) => {\n    latest.current = next;\n    const ids = change.ops.map((op) => op.rowId).join(\", \");\n    if (change.source === \"id-swap\") {\n      const swaps = change.ops.map((op) => `${op.rowId} → ${op.row.id}`).join(\", \");\n      record(`onDataChange source \"id-swap\": ${swaps}`);\n    } else record(`onDataChange source \"${change.source}\": ${ids}`);\n  };\n\n  const onSave = async (change: DataChange<Contact>): Promise<void> => {\n    for (const op of change.ops) {\n      if (op.type !== \"insert\") continue;\n      const saved = await createOnServer(op.row);\n      const current = latest.current.find((row) => row.id === op.rowId) ?? op.row;\n      grid.current?.actions.replaceRowId(op.rowId, { ...current, id: saved.id });\n    }\n  };\n\n  return (\n    <div className=\"flex w-full flex-col gap-2\">\n      <p className=\"m-0 text-sm text-muted-foreground\">Add a row. It starts with a client id. When the server answers, the grid swaps in the server id and keeps the row in place.</p>\n      <div className=\"flex items-center gap-2\">\n        <Button type=\"button\" size=\"xs\" variant=\"outline\" onClick={() => grid.current?.actions.insertRow(Math.max(0, latest.current.length - 1), \"below\")}>\n          Add row\n        </Button>\n      </div>\n      <DataGridProvider\n        ref={grid}\n        defaultData={initialRows}\n        columns={columns}\n        createRow={() => ({ id: `tmp-${++clientId.current}`, name: \"\", city: \"\" })}\n        onDataChange={onDataChange}\n        onSave={onSave}\n      >\n        <div className=\"[&_[data-save-status=saving]]:opacity-60\">\n          <DataGridRoot className=\"h-[260px]\">\n            <DataGridHeader />\n            <DataGridBody />\n          </DataGridRoot>\n        </div>\n      </DataGridProvider>\n      <ul role=\"log\" aria-label=\"Data changes\" className=\"m-0 flex min-h-16 list-none flex-col gap-1 rounded-md border border-border bg-muted p-2 text-xs text-muted-foreground\">\n        {log.length === 0 ? <li>No change yet.</li> : log.map((line, i) => <li key={i}>{line}</li>)}\n      </ul>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-id-swap-demo.tsx"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

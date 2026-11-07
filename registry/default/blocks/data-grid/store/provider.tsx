@@ -7,6 +7,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { apiHandleOf } from "./api";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnExternalStoreSyncPropsOnce, type GuardrailWarnings } from "./commit";
 import { holeRowId, rowIdAtViewRow } from "./compute";
+import { emitFromListener } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
 import { watchClientViewOverHoles } from "./hole-view-guard";
@@ -48,7 +49,9 @@ function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => v
     } else if (next === prev) {
       return;
     }
-    state.onActiveCellChange(next === null ? null : activeCellEvent(state, next));
+    const onActiveCellChange = state.onActiveCellChange;
+    const event = next === null ? null : activeCellEvent(state, next);
+    emitFromListener("onActiveCellChange", () => onActiveCellChange(event));
   });
 }
 

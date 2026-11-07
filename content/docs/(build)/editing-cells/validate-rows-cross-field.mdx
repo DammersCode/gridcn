@@ -1,0 +1,142 @@
+---
+title: Validate rows and async checks
+description: Check fields against each other with validateRow or a schema refine, and wait for an async schema on every write path.
+icon: ListChecks
+type: task
+demos: none
+aliases: ["validaterow", "validate row", "zod refine", "async validation", "cross field validation", "unique value check"]
+---
+
+A column's `validate` sees one value. This page covers two checks that go beyond it. `validateRow` compares the fields of a row. An async schema waits for a remote answer. Live grids are in the [cross-field example](/docs/validation-examples/cross-field-validation-example) and the [async example](/docs/validation-examples/async-validation-example).
+
+Before you start, set up column rules as [Validation](/docs/editing-cells/validation) describes. Check the same rules on your server, because validation runs in the browser only.
+
+## Check fields against each other [#cross-field-rules-validaterow]
+
+`validateRow` checks a row after a write gesture commits: an edit, a paste, a fill, a clear, `updateCells`, or `updateRows`. It runs once per touched row, with all cells of the gesture applied, so the verdict never depends on column order.
+
+To flag cells, return a `columnId` to message map. If the row is fine, return `null`. The flags use the same display as server errors: ring, tint, tooltip, and `aria-invalid`. The values still commit. Any later write that makes the row consistent clears the flags, whichever column it writes.
+
+This grid flags a discount above the price:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Line = { id: string; price: number; discount: number };
+
+const columns = defineColumns<Line>()([
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+  {
+    id: "discount",
+    header: "Discount",
+    accessorKey: "discount",
+    type: "number",
+  },
+]);
+
+const checkLine = (row: Line) =>
+  row.discount > row.price ? { discount: "Discount above price" } : null;
+
+export function Lines({ lines }: { lines: Line[] }) {
+  return (
+    <DataGrid defaultData={lines} columns={columns} validateRow={checkLine} />
+  );
+}
+```
+
+`validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
+
+`validateRow` <NewBadge /> also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
+
+`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
+
+`validateRow` receives `{ signal }` <NewBadge /> as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
+
+### Schema refine rules [#schema-refine-rules]
+
+<NewBadge />
+
+A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. In a paste or a fill, the `row` of a column `validate` holds only the earlier cells of the gesture. To use an object schema, parse the row and map each issue to its column:
+
+```ts
+import { z } from "zod";
+
+const LineSchema = z
+  .object({ price: z.number(), discount: z.number() })
+  .refine((line) => line.discount <= line.price, {
+    path: ["discount"],
+    message: "Discount above price",
+  });
+
+export function validateLine(row: unknown) {
+  const { success, error } = LineSchema.safeParse(row);
+  if (success) return null;
+  return Object.fromEntries(
+    error.issues.map((issue) => [issue.path.join("."), issue.message]),
+  );
+}
+```
+
+Pass `validateRow={validateLine}`. For an async `refine`, return the promise of `safeParseAsync`.
+
+## Wait for an async schema [#async-schemas]
+
+A Standard Schema can return a promise, for example for a uniqueness check. The function form is synchronous. The same column definition covers a single edit and every bulk path:
+
+```tsx
+import { z } from "zod";
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+async function isSkuFree(sku: string) {
+  const res = await fetch(`/api/sku/${encodeURIComponent(sku)}`);
+  return res.ok;
+}
+
+type Item = { id: string; sku: string };
+
+const columns = defineColumns<Item>()([
+  {
+    id: "sku",
+    header: "SKU",
+    accessorKey: "sku",
+    validate: z.string().refine(isSkuFree, "Already in use"),
+  },
+]);
+```
+
+In a single-cell edit, the editor stays open while the schema resolves. The built-in text and number inputs turn `readOnly`, never `disabled`, so <kbd>Escape</kbd> still cancels. If the schema resolves with issues, the message shows like a sync rejection and editing continues. If it succeeds, the grid commits `result.value` and then applies the pending move from <kbd>Enter</kbd>.
+
+<kbd>Escape</kbd>, a newer commit, an unmounted cell, or a restarted edit on the same cell invalidates the pending check. The grid drops its result silently.
+
+### On bulk paths [#on-bulk-paths]
+
+Paste, fill, and `updateCells` hold the batch while an async schema resolves:
+
+- The grid runs at most 32 validations at once. A paste of 10,000 cells makes 32 calls at a time.
+- Nothing changes until every verdict is in. The accepted cells then commit together as one change.
+- A rejected cell drops and the other cells still commit.
+- A second paste, a sort or filter change, a deleted target row, or an unmounted grid drops the held batch silently. Paste and fill each supersede only their own batch. Other writes also drop a held `updateCells` batch. [Stream updates](/docs/rows-live-data/stream-updates#what-does-not-change) lists them.
+
+Import validates each cell the same way. It writes an empty value for a rejected cell. See [Import](/docs/import-export/import).
+
+<Callout type="warn" title="A slow schema makes a slow batch">
+  A 200 ms call across 10,000 cells takes about 60 seconds, and the grid shows no progress. For a
+  large paste against a remote check, validate the block once with `processPaste` of
+  [Clipboard](/docs/clipboard-undo/clipboard).
+</Callout>
+
+`actions.updateCells(patches, { skipValidation: true })` skips `validate` for a trusted feed.
+
+## Props [#props]
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+|---|---|---|
+| `validateRow` | `(row, rowId, { signal }) => Record<string, string> \| null` or a promise of it | - |
+
+## Related
+
+- [Validation](/docs/editing-cells/validation): column `validate`, soft rules, and transforms.
+- [Edit and validation events](/docs/events-state/edit-validation-events): the event shapes.
+- [Show errors on cells](/docs/save-server/show-errors-cells): flag a cell after a server refusal.

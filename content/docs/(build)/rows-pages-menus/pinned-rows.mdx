@@ -56,6 +56,33 @@ A pinned row goes through the `getRowId` of the grid, so `ctx.rowId` in a pinned
 
 ## Computing a totals row [#computing-a-totals-row]
 
+The shortest totals row <NewBadge /> sums your data in a `useMemo`:
+
+```tsx
+import { useMemo } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridPinnedRows } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+
+type Row = { id: string; item: string; price: number };
+
+const columns = defineColumns<Row>()([
+  { id: "item", header: "Item", accessorKey: "item" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+
+function TotalsGrid({ rows }: { rows: Row[] }) {
+  const bottomRows = useMemo(() => {
+    const price = rows.reduce((sum, row) => sum + row.price, 0);
+    return [{ id: "total", item: "Total", price }];
+  }, [rows]);
+  const { plugin } = useDataGridPinnedRows({ bottomRows });
+
+  return <DataGrid data={rows} columns={columns} plugins={[plugin]} />;
+}
+```
+
+This total covers every row of `rows` and ignores the active filter. To total the rows that the view shows, use the aggregate hook.
+
 `useDataGridAggregate(specs)` reduces the columns that `specs` names over the rows of the view. It returns a `{ [columnId]: value }` object. That shape is a valid pinned row, because pinned cells read their values through `accessorKey` or `accessorFn`, like data rows do.
 
 A hook that reads the grid store must run below the provider, and the `plugins` prop lives on the provider. `DataGridAggregateReporter` bridges the two. It renders nothing, and it reports the result through `onChange` into state of the parent:
@@ -140,7 +167,7 @@ const specs: AggregateSpecs<Row> = {
 
 ### Manual computation [#manual-computation]
 
-For anything else, compute the band rows yourself from the data in a `useMemo`. Rows from your data array ignore the active filter. If the band must match the filtered view, reduce over `useDataGridViewIndex()`.
+For anything else, compute the band rows yourself in a `useMemo`, as the first sample does. If the band must match the filtered view, reduce over `useDataGridViewIndex()`.
 
 ## Options
 
@@ -155,9 +182,9 @@ For anything else, compute the band rows yourself from the data in a `useMemo`. 
 
 | Prop | Type | Default |
 | --- | --- | --- |
-| `scope` | `"view" \| "all"` | `"view"` |
+| `scope` | `"view" \| "page" \| "all"` | `"view"` |
 
-`scope: "view"` reduces over the rows that the filter and sort leave visible. `scope: "all"` reduces over all of `data`, filter ignored.
+`scope: "view"` reduces over the rows that the filter and sort leave visible. `scope: "page"` reduces over the shown page. `scope: "all"` reduces over all of `data`, filter ignored.
 
 ## Geometry [#geometry]
 

@@ -62,17 +62,15 @@ import { useDataGridActions } from "@/components/data-grid/data-grid";
 
 function RowTools() {
   const actions = useDataGridActions();
+  const editRows = () => {
+    actions.insertRow(2, "below");
+    actions.insertRows(0, 5, "above");
+    actions.duplicateRows([1, 2]);
+    actions.deleteRows([4]);
+  };
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        actions.insertRow(2, "below");
-        actions.insertRows(0, 5, "above");
-        actions.duplicateRows([1, 2]);
-        actions.deleteRows([4]);
-      }}
-    >
+    <button type="button" onClick={editRows}>
       Edit rows
     </button>
   );
@@ -103,6 +101,8 @@ The keys come from `DEFAULT_KEYMAP`. Remap or remove them through the `keymap` p
 ## Confirm a delete
 
 `onBeforeDeleteRows` runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal` <NewBadge />, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+
+A bulk delete button <NewBadge /> calls `deleteRowsById`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
 The grid ships no dialog. This sample resolves a promise from the buttons of a dialog:
 

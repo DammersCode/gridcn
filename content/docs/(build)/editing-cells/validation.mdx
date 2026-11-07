@@ -1,24 +1,24 @@
 ---
 title: Validation
 icon: ShieldCheck
-description: Reject a cell value before it commits with a function or a schema, flag soft rules, and check whole rows.
+description: Reject a cell value before it commits with a function or a schema, and flag soft rules.
 type: feature
 demos: none
-aliases: ["validate cell", "validate email", "invalid value", "validaterow", "validate row", "schema", "zod", "required field", "error message in cell"]
+aliases: ["validate cell", "validate email", "invalid value", "schema", "zod", "required field", "error message in cell"]
 ---
 
-A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema, and it runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, and import. `validateRow` checks a whole row after a write and flags cells without blocking the write. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example).
+A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema, and it runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, and import. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
 
 ## Validate a column [#validation]
 
 `validate` takes one of two forms:
 
-- A function `(value, row) => string | null`. Return a message to reject the value, or `null` to accept it. The function is your code, so side effects work.
+- A function `(value, row) => string | null`. Return a message to reject the value, or `null` to accept it.
 - Any [Standard Schema](https://standardschema.dev) for the value, such as Zod, Valibot, ArkType, or Joi. The grid detects a schema by its `"~standard"` key, so the schema needs no adapter.
 
 A schema message joins its issues with `"; "` and prefixes an issue path as `a.b: message`.
 
-A cell type can declare `validate` as a default for its columns. The column's own `validate` wins. Each of those paths resolves `column.validate ?? cellType.validate`. Undo and redo replay recorded changes and skip `validate`.
+A cell type can declare `validate` as a default for its columns. The column's own `validate` wins. Undo and redo replay recorded changes and skip `validate`.
 
 This grid uses both forms:
 
@@ -84,7 +84,7 @@ A schema works too, for example `validate: z.email()` with Zod 4. Your server ch
   A soft rule is the exception.
 </Callout>
 
-The message shows as an error line <NewBadge /> next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors. See [Blocking and soft rules](/docs/validation-examples/validation-example#blocking-and-soft-rules).
+The message shows as an error line <NewBadge /> next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
 
 If a validator throws or its promise rejects, the grid rejects the value and shows the error message. A throwing validator blocks the edit even on a soft column.
 
@@ -92,7 +92,7 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 By default a rejection blocks the commit. Set `onInvalid: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
-A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. In the function form, return `null` to skip the rule for a row. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
+A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
 
 This column flags a note over 12 characters:
 
@@ -121,7 +121,7 @@ export function Notes({ notes }: { notes: Note[] }) {
 
 ## Transforms [#transforms-are-committed]
 
-A schema can transform a value. On success the grid commits the schema output, not the raw input. A transforming schema changes what data your grid stores. Bulk paths commit the output too.
+A schema can transform a value. On success the grid commits the schema output, not the raw input. Bulk paths commit the output too.
 
 This column stores the trimmed text:
 
@@ -141,54 +141,6 @@ const columns = defineColumns<Contact>()([
 ]);
 ```
 
-## Async schemas [#async-schemas]
-
-A Standard Schema can return a promise, for example for a uniqueness check. The function form is synchronous. The same column definition covers a single edit and every bulk path:
-
-```tsx
-import { z } from "zod";
-import { defineColumns } from "@/components/data-grid/data-grid";
-
-async function isSkuFree(sku: string) {
-  const res = await fetch(`/api/sku/${encodeURIComponent(sku)}`);
-  return res.ok;
-}
-
-type Item = { id: string; sku: string };
-
-const columns = defineColumns<Item>()([
-  {
-    id: "sku",
-    header: "SKU",
-    accessorKey: "sku",
-    validate: z.string().refine(isSkuFree, "Already in use"),
-  },
-]);
-```
-
-In a single-cell edit, the editor stays open while the schema resolves. The built-in text and number inputs turn `readOnly`, never `disabled`, so <kbd>Escape</kbd> still cancels. If the schema resolves with issues, the message shows like a sync rejection and editing continues. If it succeeds, the grid commits `result.value` and then applies the pending move from <kbd>Enter</kbd>.
-
-<kbd>Escape</kbd>, a newer commit, an unmounted cell, or a restarted edit on the same cell invalidates the pending check. The grid drops its result silently.
-
-### On bulk paths [#on-bulk-paths]
-
-Paste, fill, and `updateCells` hold the batch while an async schema resolves:
-
-- The grid runs at most 32 validations at once. A paste of 10,000 cells makes 32 calls at a time.
-- Nothing changes until every verdict is in. The accepted cells then commit together as one change.
-- A rejected cell drops and the other cells still commit.
-- A second paste, a sort or filter change, a deleted target row, or an unmounted grid drops the held batch silently. Paste and fill each supersede only their own batch. Other writes also drop a held `updateCells` batch. [Stream updates](/docs/rows-live-data/stream-updates#what-does-not-change) lists them.
-
-Import validates each cell the same way. It writes an empty value for a rejected cell. See [Import](/docs/import-export/import).
-
-<Callout type="warn" title="A slow schema makes a slow batch">
-  A 200 ms network call across 10,000 cells takes about 60 seconds at 32 calls at a time, and the
-  grid shows no progress. For a large paste against a remote check, validate the whole block once
-  with the `processPaste` override of [Clipboard](/docs/clipboard-undo/clipboard).
-</Callout>
-
-`actions.updateCells(patches, { skipValidation: true })` skips `validate` for a trusted feed.
-
 ## Report rejected cells [#onvalidationerror]
 
 After a paste, a fill, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value.
@@ -200,53 +152,9 @@ After a paste, a fill, or an `updateCells` call settles with at least one reject
 | `source` | `"paste" \| "fill" \| "stream" \| "replace"` |
 | `rejected` | `GridBulkValidationError[]` |
 
-`"stream"` marks an `updateCells` or `updateRows` call, and `"replace"` a find-and-replace batch. Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`. See [Edit and validation events](/docs/events-state/edit-validation-events).
+`"stream"` marks an `updateCells` or `updateRows` call, and `"replace"` a find-and-replace batch. Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
 
-## Cross-field rules [#cross-field-rules-validaterow]
-
-`validateRow` checks a row after a write gesture commits: an edit, a paste, a fill, a clear, `updateCells`, or `updateRows`. It runs once per touched row, with all cells of the gesture applied, so the verdict never depends on column order.
-
-To flag cells, return a `columnId` to message map. If the row is fine, return `null`. The flags use the same display as server errors: ring, tint, tooltip, and `aria-invalid`. The values still commit. Any later write that makes the row consistent clears the flags, whichever column it writes.
-
-This grid flags a discount above the price:
-
-```tsx
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-
-type Line = { id: string; price: number; discount: number };
-
-const columns = defineColumns<Line>()([
-  { id: "price", header: "Price", accessorKey: "price", type: "number" },
-  {
-    id: "discount",
-    header: "Discount",
-    accessorKey: "discount",
-    type: "number",
-  },
-]);
-
-export function Lines({ lines }: { lines: Line[] }) {
-  return (
-    <DataGrid
-      defaultData={lines}
-      columns={columns}
-      validateRow={(row) =>
-        row.discount > row.price ? { discount: "Discount above price" } : null
-      }
-    />
-  );
-}
-```
-
-`validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
-
-`validateRow` <NewBadge /> also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
-
-`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
-
-`validateRow` receives `{ signal }` <NewBadge /> as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
-
-### Props [#props]
+## Props [#props]
 
 {/* props: ColumnDef */}
 
@@ -259,7 +167,6 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 | Prop | Type | Default |
 |---|---|---|
-| `validateRow` | `(row, rowId, { signal }) => Record<string, string> \| null` or a promise of it | - |
 | `onValidationError` | `(event) => void` | - |
 
 ## Server mode
@@ -270,8 +177,7 @@ A server can still refuse a value after it commits. Paint that refusal with `act
 
 ## Related
 
-- [Built-in cell types](/docs/editing-cells/built-cell-types): the empty value each type commits for unparseable text.
-- [Edit and validation events](/docs/events-state/edit-validation-events): `onValidationError`, `onEditEnd`, and the event shapes.
+- [Built-in cell types](/docs/editing-cells/built-cell-types): the empty value for unparseable text.
+- [Edit and validation events](/docs/events-state/edit-validation-events): the event shapes.
 - [Show errors on cells](/docs/save-server/show-errors-cells): flag a cell after a server refusal.
-- [Cross-field validation example](/docs/validation-examples/cross-field-validation-example): `validateRow` live.
-- [Async validation example](/docs/validation-examples/async-validation-example): schemas that resolve later.
+- [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field): `validateRow`, `refine` rules, and async schemas.

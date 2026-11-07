@@ -62,12 +62,13 @@ describe("docs-verify-lib", () => {
 });
 
 describe("verify-docs-links", () => {
-  it("reports a dead page, a dead anchor, and a link that only works through a redirect", async () => {
+  it("reports a dead page, a dead anchor, and a link that only works through a redirect, also in a registry file", async () => {
     const root = fixture({
       "content/docs/index.mdx": page("Home", "[ok](/docs/a#intro) [bad anchor](/docs/a#nope) [gone](/docs/gone) [old](/docs/old) [self](#missing)\n\n## Top"),
       "content/docs/a.mdx": page("A", "## Intro"),
       "next.config.mjs": 'export default { redirects: async () => [{ source: "/docs/old", destination: "/docs/a" }] };',
       "README.md": "See [docs](/docs/a#intro) and [x](/docs/zzz).",
+      "registry/default/examples/demo.tsx": "// See https://gridcn.vercel.app/docs/old for details.\nexport {};\n",
     });
     const result: Run = await runLinks({ root });
     expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual([
@@ -76,6 +77,7 @@ describe("verify-docs-links", () => {
       "/docs/old only works through a redirect; link the new page",
       "#missing -> anchor #missing missing on this page",
       "/docs/zzz -> no page /docs/zzz",
+      "https://gridcn.vercel.app/docs/old only works through a redirect; link the new page",
     ]);
   });
 
@@ -269,6 +271,15 @@ describe("verify-docs-structure", () => {
     });
     const failures = (structureMod.sidebarIconFailures as (root: string) => string[])(root).map((f) => f.replace(/^.*?: /, ""));
     expect(failures).toEqual(['icon "Pin" is also the icon of content/docs/(build)/a.mdx', "no icon (every sidebar entry needs one)", "no icon (every sidebar entry needs one)"]);
+  });
+
+  it("fails an MDX expression in prose and passes comments and expressions in code ticks", () => {
+    const root = fixture({
+      "content/docs/bad.mdx": page("Bad", "The label reads {name} here."),
+      "content/docs/good.mdx": page("Good", "{/* props: X */}\n\nThe label reads `{name}` here.\n\n```ts\nconst a = { name };\n```"),
+    });
+    const failures = runStructure({ root, base: "HEAD" }).failures.filter((f) => f.includes("MDX expression"));
+    expect(failures).toEqual([expect.stringMatching(/^content\/docs\/bad\.mdx.*\{name\}; put it in code ticks$/)]);
   });
 
   it("reads aliases from both YAML forms", () => {

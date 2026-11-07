@@ -16,6 +16,10 @@ An undo or redo reaches `onDataChange` and `onSave` with `source: "history"`. Yo
 
 If the server refuses a change, return the refusal from `onSave`. The grid reverts the change and, when the revert writes, removes its entry from the undo stack, so no dead <kbd>Ctrl</kbd>+<kbd>Z</kbd> step remains. The whole entry goes, so the rows that the server accepted lose their undo step. See [Handle refused saves](/docs/save-server/handle-refused-saves).
 
+In this demo, the mock server refuses a save and sends its current row. `resolveSaveConflict` takes the server row, keeps the grid row, or merges the two:
+
+<ComponentPreview name="data-grid-save-conflict-demo" />
+
 To revert a change yourself, call `rollback(change)` with the change that `onSave` received:
 
 ```tsx

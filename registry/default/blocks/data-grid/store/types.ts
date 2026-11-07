@@ -237,8 +237,9 @@ export type DataGridSyncProps<TData = unknown> = {
   totalRowCount?: number | null;
   /**
    * Announces the view's row count through the grid's live region after a filter, sort, or
-   * filter-group change. Skipped while `sortMode="server"` (the grid does not hold every row);
-   * a lazy source counts its loaded rows only. Default `false`.
+   * filter-group change. A server sort or filter commit stays quiet; the count is read when the load
+   * ends, and a changed numeric `totalRowCount` is read as the count. A client filter still announces
+   * under `sortMode="server"`. A lazy source counts its loaded rows only. Default `false`.
    */
   announceResults?: boolean;
   /**
@@ -1286,8 +1287,7 @@ export type DataGridInternalActions = {
    */
   _subscribeSelection(): () => void;
   /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
-  _deriveSelection(): SelectionState;
-  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
+  _deriveSelection(): SelectionState;  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
   _registerFocus(impl: (() => void) | null): void;

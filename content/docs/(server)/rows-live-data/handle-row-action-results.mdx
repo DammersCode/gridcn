@@ -8,6 +8,10 @@ aliases: ["RowActionResult", "gateTimeoutMs", "onGateAborted", "ok false", "gate
 
 `insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, and `deleteRowsById` can do nothing. They tell you why. A gate such as `onBeforeDeleteRows` can also wait forever. This page covers both. See [Change server rows](/docs/rows-live-data/change-server-rows) for the actions.
 
+In this demo, `onBeforeDeleteRows` asks a slow mock server, and `gateTimeoutMs` stops the wait after 2 seconds. The log shows each result, skip, and aborted gate:
+
+<ComponentPreview name="data-grid-row-action-results-demo" />
+
 ## Read the result of an action [#action-results]
 
 Each of the five row actions returns `{ ok: true }` once it ran or an async gate started. Otherwise it returns `{ ok: false, reason }`. The `reason` names the cause:

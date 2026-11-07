@@ -616,7 +616,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         {operatorHasValue(filter.operator, custom) ? (
           <DataGridFilterValueInput column={column} operator={filter.operator} value={filter.value} onValueChange={(value) => ctx.onUpdate(filterId, { value })} />
         ) : (
-          <div className="h-8 w-full rounded border bg-transparent" />
+          <div className="h-8 w-full rounded-md border bg-transparent" />
         )}
       </div>
       <Button type="button" variant="outline" size="icon" className="size-8 shrink-0 max-sm:col-start-3 max-sm:row-start-1" aria-label={labels.toolbar.removeFilterAriaLabel} onClick={() => ctx.onRemove(filterId)}>

@@ -140,6 +140,23 @@ When two actions share a key combination, the most specific binding wins. On a t
 
 The type-to-replace trigger (`typeToReplace`) has no default binding. Any unbound printable key on the active cell starts an edit seeded with the typed character. A `keymap` entry for `typeToReplace` takes the action over. `["F3"]` starts a plain edit on <kbd>F3</kbd> only. `["a"]` seeds the edit with `a`. `[]` disables it.
 
+### Reserved chords [#reserved-chords]
+
+<NewBadge />
+
+The OS or the browser owns some key combinations. A binding on one of them never fires, or the browser acts on the key too. Do not bind these chords:
+
+| Chord | Owner |
+| --- | --- |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. If a user types a character such as `@` on a German layout, a `ctrl+alt` or `mod+alt` binding fires. |
+| <kbd>Cmd</kbd>+<kbd>Space</kbd> | macOS Spotlight. |
+| <kbd>Ctrl</kbd>+<kbd>Option</kbd> with any key | VoiceOver on macOS, while it runs. For example, <kbd>Ctrl</kbd>+<kbd>Option</kbd>+<kbd>Space</kbd> activates an item. |
+| `mod` with <kbd>+</kbd>, <kbd>-</kbd>, or <kbd>=</kbd> | Browser zoom. The page cannot stop it. |
+| `mod+shift` with <kbd>I</kbd>, <kbd>J</kbd>, <kbd>C</kbd>, <kbd>K</kbd>, or <kbd>E</kbd> | Developer tools. <kbd>E</kbd> opens them in Firefox and Edge. |
+| `mod+shift` with <kbd>D</kbd>, <kbd>M</kbd>, <kbd>N</kbd>, or <kbd>Delete</kbd> | Browser bookmarks, profiles, a private window, and the dialog that clears browsing data. |
+
+One default binding meets a reserved chord. `toggleAllRows` uses `mod+shift+e`, which is free in Chrome. If your users run Firefox or Edge, bind `toggleAllRows` to another chord in `keymap`. `fillDown` (`mod+d`) and `fillRight` (`mod+r`) keep their keys while the grid has focus, also without the fill add-on. The grid calls `preventDefault` on them, so the browser does not bookmark or reload the page.
+
 ## Custom commands [#custom-commands]
 
 A `keymap` binding for a name that is no built-in action runs the matching `commands` entry. Each entry is a `GridCommand`:

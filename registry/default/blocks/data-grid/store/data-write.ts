@@ -179,15 +179,24 @@ export function writeThenEmit(
   }
 }
 
+/** Runs a store listener's consumer callback; a throw logs, since a throw inside a store listener skips the store's other listeners. */
+export function emitFromListener(label: string, emit: () => void): void {
+  try {
+    emit();
+  } catch (error) {
+    console.error(`[data-grid] ${label} threw:`, error);
+  }
+}
+
 /** Most patches (and, for a delete, row ids) that one `"stream"` call takes; the rest skip with reason `"limit"`. */
 export const MAX_STREAM_PATCHES = 100_000;
 
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
 const STREAM_REJECTION_SCAN_LIMIT = 16;
 
-/** Queues `emit` behind the pending `onDataChange` emits; runs the queue at once when no store write is in progress. */
-function emitAfterWrites(ctx: DataWriteContext, emit: () => void): void {
-  ctx.pendingEmits.push(emit);
+/** Queues `emits` behind the pending emits; runs the queue at once when no store write is in progress. */
+export function emitAfterWrites(ctx: DataWriteContext, ...emits: (() => void)[]): void {
+  ctx.pendingEmits.push(...emits);
   if (ctx.writeDepth === 0) flushEmits(ctx);
 }
 
@@ -1110,7 +1119,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const restoreSelection = stale ? {} : { activeCell: nextActiveCell, selection: selectCellOf(s, nextActiveCell), ...releaseRemembered(s) };
       if ("error" in result) {
         set({ editingError: result.error, editingRejectionCount: s.editingRejectionCount + 1 });
-        s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" });
+        emitAfterWrites(ctx, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" }));
         return;
       }
       if ("noop" in result) {
@@ -1123,14 +1132,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           }),
         );
-        s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" });
+        emitAfterWrites(ctx, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" }));
         return;
       }
       ctx.rowIndexCache.rebase(result.data);
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = result.data;
       const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-      writeThenEmit(ctx, s, result.data, result.change, () =>
+      writeThenEmit(ctx, s, result.data, result.change, () => {
         endEditSession(editing, () =>
           set({
             data: result.data,
@@ -1141,9 +1150,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             ...restoreSelection,
             ...reconcileAfterWrite(s, result.data, result.change.ops),
           }),
-        ),
-      );
-      s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" });
+        );
+        // Queued inside the write, so a throwing onDataChange cannot drop it.
+        emitAfterWrites(ctx, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "commit" }));
+      });
     },
     commitCellValue(ref, value) {
       const coord = resolveRefOrWarn(ctx, get(), ref);

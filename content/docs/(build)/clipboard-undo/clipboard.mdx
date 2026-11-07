@@ -3,7 +3,7 @@ title: Clipboard
 description: Copy, cut, and paste cell ranges as TSV and HTML, protect copied formulas, and change the copy and paste steps with your own functions.
 icon: Clipboard
 type: feature
-aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedatagridclipboard", "tsv", "copy cells"]
+aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedatagridclipboard", "tsv", "copy cells", "copy to excel"]
 demos: none
 ---
 
@@ -19,7 +19,7 @@ The grid reads the `text/html` payload first, for example from another gridcn gr
 - **Skipped cells.** Read-only cells keep their value. This covers a column's static `readOnly` and its per-row function form. A `readOnly` grid ignores the paste.
 - **One change.** A paste calls `onDataChange` once, with one batch of operations (`ops`) and the source `"paste"`. The selection then covers the written cells.
 
-A column with an async `validate` holds the paste until the schema answers. [Validation](/docs/editing-cells/validation#on-bulk-paths) owns that contract. For a large paste against a remote check, `processPaste` below validates the whole block in one request.
+A column with an async `validate` holds the paste until the schema answers. [Validation](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths) owns that contract. For a large paste against a remote check, `processPaste` below validates the whole block in one request.
 
 ## Copy [#copy]
 
@@ -36,6 +36,17 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
   The copied text of each cell comes from the `toText` of its cell type. Display formatting, such
   as a locale date string, stays out of the clipboard.
 </Callout>
+
+### Copy to Excel or Sheets [#copy-to-excel-or-sheets]
+
+<NewBadge />
+
+Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste into a cell of the spreadsheet. The spreadsheet reads the `text/html` table, so each grid cell lands in its own spreadsheet cell. The spreadsheet then reads each text with its own locale rules. These rules apply to the copy:
+
+- The rows come in view order, after the sort and the filters.
+- Only visible columns go into the copy. Column headers stay out.
+- In the table, a tab in a cell becomes four spaces, and a line break stays inside the cell.
+- The spreadsheet runs formula-like text as a formula. Set [`sanitizeClipboardFormulas`](#formula-sanitizing) to paste it as text.
 
 ## Known limitations [#known-limitations]
 

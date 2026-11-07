@@ -119,7 +119,7 @@ A batch into a column with an async schema changes nothing until the schema answ
 - An edit, paste, fill, cell clear, undo, redo, rollback, or row operation
 - A sort or filter change, a hidden or shown column, `reconcileView()` on a stale view, or a new `data`, `columns`, or `searchText` prop
 
-A plain `updateCells` call that does not wait keeps the held batch, until the rows that wait for a re-sort pass 256. If every cell fails, the batch commits nothing. See [Validation](/docs/editing-cells/validation#on-bulk-paths).
+A plain `updateCells` call that does not wait keeps the held batch, until the rows that wait for a re-sort pass 256. If every cell fails, the batch commits nothing. See [Validation](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths).
 
 ## Read the verdict [#what-the-verdict-tells-you]
 

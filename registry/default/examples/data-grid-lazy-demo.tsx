@@ -101,7 +101,6 @@ export default function DataGridLazyDemo(): ReactNode {
       request.signal.addEventListener("abort", () => setRequests((prev) => ({ ...prev, aborted: prev.aborted + 1 })), { once: true });
       return api.fetchRows(request);
     },
-    getRowId: (row) => row.id,
     maxLoadedRows: MAX_LOADED_ROWS,
   });
 

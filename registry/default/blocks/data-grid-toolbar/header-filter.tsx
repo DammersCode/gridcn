@@ -206,7 +206,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
             data-grid-header-filter-trigger=""
             tabIndex={-1}
             aria-label={labels.headerFilterAriaLabel(columnLabel, filtered)}
-            className={cn("shrink-0 rounded p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
+            className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
           >
             <Filter className={cn("size-3.5", filtered && "fill-current")} />
           </button>

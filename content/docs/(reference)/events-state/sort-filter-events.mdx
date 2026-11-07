@@ -58,6 +58,17 @@ function Grid({ rows }: { rows: Row[] }) {
 
 With `sortMode="server"`, the grid tracks the spec and never reorders `data`. When the callback fires, fetch the rows in the new order, for example with `useDataGridServerRows`. See [Compare data modes](/docs/server-path/compare-data-modes).
 
+### Timing and errors [#onsortchange-timing]
+
+<NewBadge />
+
+The callback runs synchronously, after the grid applies the sort. Inside the callback, the store holds the new sort. With a controlled `sortState`, the grid writes nothing, and the callback receives the next sort. These rules apply:
+
+- The sort list, the context menu sort items, URL state, and saved views call `setSorts`, so the callback fires for them too.
+- `setSorts` fires the callback even when the spec equals the current sort. Compare the specs yourself if a fetch must not repeat.
+- A change of the `sortState` prop never fires the callback.
+- If the callback throws, the sort stays applied, and the other callbacks of the change still run. Then the grid rethrows the error to the caller, for example the header click handler or your `setSorts` call.
+
 ## onFilterChange [#onfilterchange]
 
 The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `"and"`. A group holds `join` (`"and"` or `"or"`) and its own `filters`. A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.

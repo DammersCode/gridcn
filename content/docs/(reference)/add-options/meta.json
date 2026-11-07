@@ -3,6 +3,7 @@
   "icon": "SlidersHorizontal",
   "pages": [
     "clipboard-undo",
+    "editing-cells",
     "import-export",
     "rows-pages-menus",
     "selection-shortcuts",

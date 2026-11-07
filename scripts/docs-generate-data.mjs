@@ -21,7 +21,7 @@ export const FINDER = [
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", "/docs/editing-cells/cancel-async-gates", "/docs/recipes-custom-code/write-cell-type"],
   },
   {
     id: "ui-patterns",
@@ -66,7 +66,7 @@ export const ADDONS = [
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
   { name: "data-grid-status-bar", adds: "Count, sum, average, minimum, and maximum of the selected cells.", guides: [A("/docs/selection-shortcuts/status-bar", "Status bar")], options: [A("/docs/add-options/selection-shortcuts/status-bar-options", "Status bar options")] },
-  { name: "data-grid-lookup", adds: "The `lookup` cell type: a column whose options a server searches as the user types.", guides: [A("/docs/editing-cells/lookup-cell", "Lookup cell")], options: [A("/docs/editing-cells/lookup-cell#options", "Lookup options")] },
+  { name: "data-grid-lookup", adds: "The `lookup` cell type: a column whose options a server searches as the user types.", guides: [A("/docs/editing-cells/lookup-cell", "Lookup cell")], options: [A("/docs/add-options/editing-cells/lookup-options", "Lookup options")] },
   { name: "data-grid-find-replace", adds: "A panel that finds text and replaces one match or all matches.", guides: [A("/docs/sort-filter-search/find-replace", "Find and replace")], options: [A("/docs/add-options/sort-filter-search/find-replace-options", "Find and replace options")] },
 ];
 
@@ -95,7 +95,7 @@ export const FEATURES = {
   print: F(["/docs/import-export/export"], ["/docs/add-options/import-export/export-options"], "data-grid-io"),
   "undo-redo": F(["/docs/clipboard-undo/undo-redo"], ["/docs/add-options/clipboard-undo/undo-redo-options"], "data-grid-history"),
   "row-ops": F(["/docs/rows-pages-menus/row-operations"], ["/docs/events-state/data-change-events"]),
-  validation: F(["/docs/editing-cells/validation"], ["/docs/events-state/edit-validation-events"]),
+  validation: F(["/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field"], ["/docs/events-state/edit-validation-events"]),
   "write-through": F(["/docs/save-server/save-edits"], ["/docs/events-state/data-change-events"]),
   streaming: F(["/docs/rows-live-data/stream-updates"], ["/docs/types-hooks/store-hooks"]),
   "url-state": F(["/docs/sort-filter-search/url-state"], ["/docs/add-options/sort-filter-search/url-state-options"], "data-grid-url-state"),
@@ -117,7 +117,7 @@ export const FEATURES = {
   "fetch-limits": F(["/docs/scroll-mode/tune-row-retention"], ["/docs/add-options/server/server-rows-options#fetch-limits"], "data-grid-server"),
   revalidate: F(["/docs/scroll-mode/tune-row-retention#revalidate"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "page-prefetch": F(["/docs/server-pagination/tune-page-loading#prefetch"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
-  "lookup-cell": F(["/docs/editing-cells/lookup-cell"], ["/docs/editing-cells/lookup-cell#options"], "data-grid-lookup"),
+  "lookup-cell": F(["/docs/editing-cells/lookup-cell"], ["/docs/add-options/editing-cells/lookup-options"], "data-grid-lookup"),
   "input-debounce": F(["/docs/types-hooks/use-debounced-input"], ["/docs/types-hooks/use-debounce"], "use-debounce"),
 };
 

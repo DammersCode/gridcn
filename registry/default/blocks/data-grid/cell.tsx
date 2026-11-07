@@ -303,7 +303,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     // Static shimmer block (CSS animate-pulse only, no per-frame JS) sized to roughly a text line;
     // never rendered for checkbox/select cells specially — one shape covers every column type since
     // there's no real value to shape it around yet.
-    content = <div className="h-4 w-3/4 motion-safe:animate-pulse rounded bg-muted" />;
+    content = <div className="h-4 w-3/4 motion-safe:animate-pulse rounded-md bg-muted" />;
   } else if (isEditing) {
     const Editor = cellType.Editor as unknown as (p: {
       value: unknown;
