@@ -54,8 +54,9 @@ export type DataGridFilterMenuProps = {
   allColumns?: boolean;
   /**
    * Replaces the operator list the menu offers per column. Resolution order: this prop (a returned
-   * `undefined` falls through), then the column's own `filterOperators`, then the built-in
-   * `operatorsForColumnType` for its `type`.
+   * `undefined` falls through), then the column's own `filterOperators`, then its cell type's
+   * `filter.operators`, then the built-in `operatorsForColumnType` for its `type`, without the set
+   * operators when a `filterMatch` is set.
    */
   operatorsForColumn?: (column: AnyColumnDef) => readonly FilterOperator[] | undefined;
 };

@@ -3,7 +3,7 @@ title: Style overrides
 icon: SwatchBook
 description: Restyle grid parts with plain CSS, style rows and cells by value with class callbacks, and style by state with data attributes.
 type: feature
-aliases: ["custom css", "conditional styling", "row color", "cell class", "conditional formatting", "color cell", "colour", "highlight cell", "color rows by value"]
+aliases: ["custom css", "conditional styling", "row color", "cell class", "conditional formatting", "color cell", "colour", "highlight cell", "color rows by value", "align column", "right align", "center column", "text align", "dirty row", "changed rows", "unsaved rows", "mark edited rows"]
 ---
 
 The grid paints with shadcn tokens, so your theme restyles it. When a token is not enough, override the classes of one part. Plain CSS changes the built-in parts. Class callbacks and column fields style rows and cells by value. Data attributes style by state.
@@ -120,6 +120,96 @@ const columns = defineColumns<Deal>()([
 ```
 
 If the same rule also reads `value` or `row`, use `getCellClassName`.
+
+### Align a column [#align-a-column]
+
+<NewBadge />
+
+The cell type sets the alignment of a cell. `number` and `date` cells align to the end, which is the right in a left-to-right grid. `checkbox` cells center, and the other types align to the start. `ColumnDef` has no alignment field. To align a `text`, `select`, `url`, or `longText` column, add a text alignment class in `cellClassName`. A `number` or `date` cell sets the alignment on its inner text, so use the `[&_span]:` variant there:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Item = { id: string; code: string; qty: number };
+
+const columns = defineColumns<Item>()([
+  {
+    id: "code",
+    header: "Code",
+    accessorKey: "code",
+    cellClassName: "text-end",
+  },
+  {
+    id: "qty",
+    header: "Qty",
+    accessorKey: "qty",
+    type: "number",
+    cellClassName: "[&_span]:text-center",
+  },
+]);
+```
+
+Result: the codes move to the end of their cells, and the quantities center.
+
+### Mark changed rows [#mark-changed-rows]
+
+<NewBadge />
+
+The grid keeps no flag for a row that the user changed. With `onSave`, it marks the save only: a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
+
+To mark every row that the user changed, keep the changed row objects in a `WeakSet` and fill it in `onDataChange`. A write gives the row a new object, so the row renders again and `getRowClassName` reads the mark:
+
+```tsx
+"use client";
+
+import { useCallback, useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; qty: number };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+]);
+
+type Source = DataChange<Row>["source"];
+const USER_SOURCES = new Set<Source>(["edit", "paste", "fill", "delete"]);
+
+export function ChangedRows({ rows }: { rows: Row[] }) {
+  const [changed] = useState(() => new WeakSet<Row>());
+
+  const onDataChange = useCallback(
+    (_next: readonly Row[], change: DataChange<Row>) => {
+      if (!USER_SOURCES.has(change.source)) return;
+      for (const op of change.ops) {
+        if (op.type === "update") changed.add(op.row);
+      }
+    },
+    [changed],
+  );
+
+  const getRowClassName = useCallback(
+    (row: Row) => (changed.has(row) ? "bg-primary/10" : undefined),
+    [changed],
+  );
+
+  return (
+    <DataGrid
+      className="h-80"
+      defaultData={rows}
+      columns={columns}
+      onDataChange={onDataChange}
+      getRowClassName={getRowClassName}
+    />
+  );
+}
+```
+
+Result: an edited, pasted, filled, or cleared row gets a tint. An undo puts the old row object back, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either. The `WeakSet` keeps one identity, so `getRowClassName` stays stable.
 
 ## Style by state with CSS [#styling-by-state-with-css-only]
 

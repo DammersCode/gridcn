@@ -168,6 +168,9 @@ export const MESSAGES = [
       dev('column "<id>" has no accessorKey or accessorFn to read', "columns/column-helpers.ts", "has no accessorKey or accessorFn to read", "Give the column an `accessorKey` or an `accessorFn`.", "/docs/components-props/column-def#values"),
       dev('column "<id>" is not writable (no setValue or accessorKey)', "columns/column-helpers.ts", "is not writable (no setValue or accessorKey)", "Give the column a `setValue` or an `accessorKey`, or make it `readOnly`.", "/docs/components-props/column-def#values"),
       { text: "gridcn: <DataGridPaginationFooterPart /> must be used inside a <DataGridPaginationBar>.", file: "registry/default/blocks/data-grid-pagination/pagination-footer.tsx", find: "must be used inside a <DataGridPaginationBar>", fix: "Render the pagination parts inside `DataGridPaginationBar`.", page: "/docs/rows-pages-menus/client-pagination" },
+      { text: "The stored views are too large to read", file: "registry/default/blocks/data-grid-views/view-storage.ts", find: "The stored views are too large to read", fix: "`createLocalStorageViewsStorage` throws it on load when the stored text is too long. `DataGridViews` shows the load error, and `onError` receives it. Clear the stored key.", page: "/docs/sort-filter-search/saved-views#storage" },
+      { text: "Browser storage is not available", file: "registry/default/blocks/data-grid-views/view-storage.ts", find: "Browser storage is not available", fix: "`createLocalStorageViewsStorage` throws it on save when `localStorage` is blocked. The views stay in memory, `DataGridViews` shows the save error, and `onError` receives it. Pass your own `storage`.", page: "/docs/sort-filter-search/saved-views#storage" },
+      { text: "The saved views are in an unknown format", file: "registry/default/blocks/data-grid-views/use-data-grid-views.ts", find: "The saved views are in an unknown format", fix: "`useDataGridViews` reports it through `error` and `onError` when `load` resolves a value it cannot read. Return the document that `save` received.", page: "/docs/sort-filter-search/saved-views#storage" },
     ],
   },
   {
@@ -260,6 +263,9 @@ export const MESSAGES = [
       { text: "This file is too large to import.", file: `${CORE}/labels.ts`, find: 'errorFileTooLarge: "This file is too large to import."', fix: "Choose a smaller file, or raise `importLimits.maxFileBytes`.", page: "/docs/add-options/import-export/import-options" },
       { text: "This file has too many rows or columns to import.", file: `${CORE}/labels.ts`, find: 'errorTooManyCells: "This file has too many rows or columns to import."', fix: "Choose a smaller file, or raise `importLimits.maxRows`, `maxColumns`, or `maxCells`.", page: "/docs/add-options/import-export/import-options" },
       { text: "The import could not be completed. Try again.", file: `${CORE}/labels.ts`, find: 'importMergeFailed: "The import could not be completed. Try again."', fix: "Shows when the import fails after the mapping step.", page: "/docs/import-export/import" },
+      { text: "Saved views could not be loaded.", file: "registry/default/blocks/data-grid-views/views-menu.tsx", find: 'loadFailed: "Saved views could not be loaded."', fix: "Shows in the views popover when `load` fails. The `labels` prop of `DataGridViews` replaces it.", page: "/docs/sort-filter-search/saved-views#storage" },
+      { text: "Your last change could not be saved.", file: "registry/default/blocks/data-grid-views/views-menu.tsx", find: 'saveFailed: "Your last change could not be saved."', fix: "Shows in the views popover when `save` fails. The `labels` prop of `DataGridViews` replaces it.", page: "/docs/sort-filter-search/saved-views#storage" },
+      { text: "<n> rows not saved", file: `${CORE}/labels.ts`, find: 'saveRejected: (count) => `${count', fix: "The live region reads it when `onSave` refuses rows. `labels.grid.saveRejected` replaces it.", page: "/docs/save-server/save-edits#what-onsave-receives" },
     ],
   },
 ];
@@ -271,8 +277,6 @@ const CODE = "throws an internal code that the import dialog maps to a label in 
 /** Call sites that print or throw a message without a row. `line` is a fragment of the call line. */
 export const OMITTED = [
   { file: `${B}/data-grid-pinned-rows/use-data-grid-server-aggregate.ts`, line: "fetchAggregates must resolve an object", reason: "the hook catches it and sets the error status" },
-  { file: `${B}/data-grid-views/view-storage.ts`, line: "The stored views are too large to read", reason: "the popover shows it as a load error" },
-  { file: `${B}/data-grid-views/view-storage.ts`, line: "Browser storage is not available", reason: "the popover shows it as a save error" },
   { file: `${B}/data-grid-lookup/lookup-model.ts`, line: "fetchOptions must resolve an array", reason: "the editor catches it and shows the retry line" },
   { file: `${B}/data-grid/interaction/use-grid-interaction.ts`, line: "warnDev(message);", reason: FORWARD },
   { file: `${B}/data-grid/store/async-gate.ts`, line: "warnDev(message);", reason: FORWARD },

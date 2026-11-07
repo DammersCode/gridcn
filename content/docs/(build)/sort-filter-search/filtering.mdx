@@ -6,7 +6,7 @@ type: feature
 aliases: ["filter groups", "and or filter", "filter operators"]
 ---
 
-A filter hides the rows that fail a condition on one column. `filterState` holds the filters as a list. The top level combines its entries with "and". A group inside the list combines its own entries with "and" or "or". Users build the list in the `DataGridFilterMenu` popover. Code sets it with `actions.setFilters()`.
+A filter hides the rows that fail a condition on one column. `filterState` holds the filters as a list. The top level combines its entries with "and". A group inside the list combines its own entries with "and" or "or". Users build the list in the `DataGridFilterMenu` popover, and **Clear all** empties it. Code sets it with `actions.setFilters()`, and `setFilters([])` clears it.
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
 
@@ -14,7 +14,7 @@ A filter hides the rows that fail a condition on one column. `filterState` holds
 
 ## Filter from code
 
-A `FilterSpec` is one condition: `columnId`, `operator`, and `value`. A `FilterGroup` <NewBadge /> is `{ join, filters }`. Pass both kinds to `actions.setFilters()`, or seed the list once with `defaultFilterState`:
+A `FilterSpec` <NewBadge /> is one condition: `columnId`, `operator`, and `value`. A `FilterGroup` is `{ join, filters }`. Pass both kinds to `actions.setFilters()`, or seed the list once with `defaultFilterState`:
 
 ```tsx
 "use client";

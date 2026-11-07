@@ -53,14 +53,14 @@ These are the classes that the grid renders and the place where you override the
 |---|---|---|
 | Grid root, `[role="grid"]` | `relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` or `DataGrid` |
 | Header cell | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none`, plus the column line | `headerClassName` on the column |
-| Data cell | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none`, plus the column line | `getCellClassName`, then `cellClassName` on the column. Every body cell carries an integer `z-index` <NewBadge />, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A non-portalled `z-index` inside a custom cell stays inside that cell |
+| Data cell <NewBadge /> | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none`, plus the column line | `getCellClassName`, then `cellClassName` on the column. Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A non-portalled `z-index` inside a custom cell stays inside that cell |
 | Row | `group/row data-hovered:bg-muted/50` | `getRowClassName`. Pinned and marker cells stay opaque and do not show a row background |
 | Marker cell | `group flex items-center border-b border-border bg-background`, plus the column line | `renderMarker` replaces the content |
 | Marker header | `flex items-center justify-center border-b border-border bg-muted`, plus the column line | None |
 | Selection overlay | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`, or a plugin `Overlay` |
 | Active cell ring | `pointer-events-none ring-2 ring-inset ring-primary` | `--primary` |
 | Column line | A 1px border at the end side of a column. A right-pinned column has it at the start side instead | `--grid-column-border` |
-| Empty state | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop or `labels.grid.emptyState`. A filter or search that leaves zero rows shows `labels.grid.noResults` <NewBadge /> instead |
+| Empty state <NewBadge /> | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop or `labels.grid.emptyState`. A filter or search that leaves zero rows shows `labels.grid.noResults` instead |
 | Loading skeleton | One `h-4 flex-1 rounded bg-muted` bar per column. The bars pulse. Under reduced motion they stay still | The `loading` flag |
 | Loading bar | A 2px track `bg-primary/20` with a `bg-primary` sweep. Under reduced motion the sweep is a full-width static bar | `--primary`, `--grid-loading-sweep-duration` |
 | Validation message | `rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive` | `--destructive` |

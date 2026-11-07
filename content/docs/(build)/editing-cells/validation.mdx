@@ -84,7 +84,7 @@ A schema works too, for example `validate: z.email()` with Zod 4. Your server ch
   A soft rule is the exception.
 </Callout>
 
-The message shows as an error line <NewBadge /> next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
+The message <NewBadge /> shows as an error line next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
 
 If a validator throws or its promise rejects, the grid rejects the value and shows the error message. A throwing validator blocks the edit even on a soft column.
 

@@ -72,7 +72,7 @@ export function ExportAllButton() {
 - `view` (default) writes the rows of the current view, in sort order and after the filters. A grid that pages its view writes every page. Quick search does not narrow the view, so it does not narrow the export.
 - `page` <NewBadge /> writes the rows of the shown page. A grid without paging treats it as `view`.
 - `all` writes every row of `data` in data order, whatever the sort and the filters.
-- `selection` writes the rows that a cell range or a checked row marker covers, in view order. With `keepCheckedRows`, one checked row limits the export to the checked rows.
+- `selection` writes the rows that a cell range or a checked row marker covers, in view order. With the `DataGrid` prop `keepCheckedRows`, which keeps the checks when a cell is selected, one checked row limits the export to the checked rows. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) exports the checked rows from a button.
 
 Every scope writes all visible columns in view order. Hidden columns stay out. A cell range that covers part of a row still writes the whole row. `includeHeaders: false` drops the header row. `maxRows` keeps the first rows only and does not count the header row. When it cuts rows, the console warns in development.
 
@@ -140,9 +140,7 @@ Without a `source`, export covers the rows the grid holds. It never asks the ser
 - With `sortMode="server"`, the `view` scope keeps the order of `data`. With `filterMode="server"`, it applies no filter.
 - With controlled `sortState` and `filterState`, export follows the view like a local grid.
 
-<NewBadge />
-
-To write the whole server result, pass a `source`. See [Export the whole result](/docs/import-export/export-whole-result).
+A `source` <NewBadge /> writes the whole server result. See [Export the whole result](/docs/import-export/export-whole-result).
 
 Print covers the rows the grid holds, in the same way. A grid fed by `useDataGridServerRows` prints its current page, or the loaded blocks in scroll mode, not the rest of the server result. To print the whole result, use a CSV or XLSX export of the whole result.
 

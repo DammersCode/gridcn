@@ -165,12 +165,12 @@ export function OrderGrid() {
 | `getSelection()` | Returns the selection as a snapshot. |
 | `setSelection()` | Takes a `SelectionState` and applies it as a whole. `null` clears it. |
 | `getRow()` | Takes a view index and returns the row there, or `undefined`. |
-| `getViewRowIds()` | Returns the row id of every view row, in view order. `getViewRowIds({ loaded: true })` <NewBadge /> leaves the placeholder ids out. |
+| `getViewRowIds()` <NewBadge /> | Returns the row id of every view row, in view order. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
 
 - `startEditing` does nothing on a `readOnly` grid, on a read-only cell, and on a cell whose type has `activate`, such as a checkbox. `onEditStart` can still veto the edit.
 - `getSelection`, `getRow`, and `getViewRowIds` read at call time. They never re-render the caller.
 - If the result differs from the current selection, `setSelection` fires `onSelectionChange`. To select one cell, call `actions.selectCell(ref)`.
-- `getViewRowIds()[i]` is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` <NewBadge /> tells a placeholder id from a real id, so no code matches an id prefix.
+- `getViewRowIds()[i]` <NewBadge /> is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` tells a placeholder id from a real id, so no code matches an id prefix.
 - `scrollTo` and `focus` do nothing until a `DataGridRoot` mounts.
 
 ## All provider props [#all-props]

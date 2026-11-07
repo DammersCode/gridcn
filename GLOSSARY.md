@@ -45,7 +45,7 @@ mirror the change there.
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names; the root carries `data-gate-pending`. | gate busy, gate loading |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
-| stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | dirty row, outdated row |
+| stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | outdated row |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelay` and `reshape()` control it. | re-sort request |
 
 ## Keyboard actions

@@ -12,7 +12,7 @@ sorting and filtering the response a second time. The [Server rows example](/doc
 
 | Concern | Rule |
 | --- | --- |
-| [Modes](#the-contract) | Set `sortMode="server"` and `filterMode="server"`. |
+| [Modes](#the-contract) | Pass `totalRowCount`, or set `sortMode="server"` and `filterMode="server"`. |
 | [Sort, filter, search](#sort) | The grid shows the spec and never changes `data`. |
 | [Pages or scroll](#pages-or-scroll-mode) | Both modes of `useDataGridServerRows` take the same spec. |
 | [Counts](#row-count-and-unknown-totals) | Pass the filtered `totalRowCount`, or `null`. |
@@ -27,7 +27,7 @@ For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race g
 
 ## The contract
 
-1. Pass `totalRowCount` (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there. <NewBadge />
+1. Pass `totalRowCount` <NewBadge /> (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there.
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
@@ -240,7 +240,9 @@ export function SavedOrders({ first, save, notify }: SavedProps) {
 }
 ```
 
-`onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`). <NewBadge /> Pass `resolveSaveConflict` to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
+`onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`).
+
+Pass `resolveSaveConflict` <NewBadge /> to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
 [Handle refused saves](/docs/save-server/handle-refused-saves#acknowledge-each-change)
 and [Fetch with a cache](/docs/data-modes/fetch-cache).
 
@@ -255,7 +257,9 @@ until your API answers. The grid drops the answer of a gate, with no error, in t
 - an editor is open when a pending paste settles,
 - the user moves to another cell during a pending edit start.
 
-Every gate receives an `AbortSignal` that aborts when the result cannot apply. `gateTimeoutMs` <NewBadge /> aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
+Every gate receives an `AbortSignal` that aborts when the result cannot apply.
+
+`gateTimeoutMs` <NewBadge /> aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
 `useDataGridGatePending()` while a gate is pending. The grid ignores a second paste, edit start, insert, or
 duplicate until the first one settles.
 

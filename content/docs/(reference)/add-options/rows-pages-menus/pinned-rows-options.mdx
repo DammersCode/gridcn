@@ -48,7 +48,9 @@ A reducer has the type `AggregateReducer`: a name or a function.
 | `"count"` | The number of values that are not `null` or `undefined` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 
-The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid. `scope: "page"` covers the shown page only <NewBadge />. With pages mode, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
+The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
+
+`scope: "page"` <NewBadge /> covers the shown page only. With pages mode, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
 
 ## DataGridAggregateReporter [#datagridaggregatereporterprops]
 

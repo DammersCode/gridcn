@@ -57,7 +57,7 @@ Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, URL 
 - If a cell link uses a protocol other than `http:`, `https:`, or `mailto:`, such as `javascript:`, the cell renders plain text. A relative link and a link over 2,048 characters also render plain text.
 - A cell value that throws on conversion to text, such as an object without a prototype, shows as empty text.
 - A paste applies at most 200,000 cells. [Clipboard](/docs/clipboard-undo/clipboard#known-limitations) lists the caps.
-- A paste ignores clipboard HTML <NewBadge /> above 16,000,000 characters and reads the plain text. Above 51,200,000 characters of plain text, it writes nothing.
+- A paste <NewBadge /> ignores clipboard HTML above 16,000,000 characters and reads the plain text. Above 51,200,000 characters of plain text, it writes nothing.
 - URL state reads a bounded number of filters and groups. [URL state](/docs/sort-filter-search/url-state) lists the bounds.
 - CSV export prefixes a formula-like cell with a single quote. Set `sanitizeFormulas: false` on `exportGrid` to turn this off.
 - XLSX export writes every cell as a text cell by default, so no string runs as a formula. If `formatCell` returns a number, a boolean, or a `Date`, that cell is typed.
@@ -72,7 +72,7 @@ The grid makes no network request of its own. It has no telemetry and loads no r
 
 | Path | What leaves | Trigger |
 |---|---|---|
-| Your server functions | What you send in `fetchRows`, `onSave`, `fetchFilterValues`, `fetchOptions`, or a presence channel | Your code. See [Save edits](/docs/save-server/save-edits) and [Load server rows](/docs/server-path/load-server-rows). |
+| Your server functions | What you send in a function you pass, such as `fetchRows`, `onSave`, `fetchFilterValues`, `fetchOptions`, `fetchAggregates`, an export `source`, or a presence channel | Your code. See [Save edits](/docs/save-server/save-edits) and [Load server rows](/docs/server-path/load-server-rows). |
 | Clipboard | The copied cells as `text/plain` and `text/html` | A copy or cut by the user. See [Clipboard](/docs/clipboard-undo/clipboard). |
 | Export file | A CSV or XLSX file that the browser downloads | An export by the user or your code. See [Export](/docs/import-export/export). |
 | URL state | The sort, the filter values, the search text, the page and the page size, and the column layout | `useDataGridUrlState` and `useDataGridUrlPagination`. See [URL state](/docs/sort-filter-search/url-state). |

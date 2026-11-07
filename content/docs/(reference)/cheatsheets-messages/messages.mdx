@@ -175,6 +175,9 @@ The grid throws these errors. Fix the cause in your code.
 | `[data-grid] column "<id>" has no accessorKey or accessorFn to read` | Give the column an `accessorKey` or an `accessorFn`. | [ColumnDef](/docs/components-props/column-def#values) |
 | `[data-grid] column "<id>" is not writable (no setValue or accessorKey)` | Give the column a `setValue` or an `accessorKey`, or make it `readOnly`. | [ColumnDef](/docs/components-props/column-def#values) |
 | `gridcn: <DataGridPaginationFooterPart /> must be used inside a <DataGridPaginationBar>.` | Render the pagination parts inside `DataGridPaginationBar`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `The stored views are too large to read` | `createLocalStorageViewsStorage` throws it on load when the stored text is too long. `DataGridViews` shows the load error, and `onError` receives it. Clear the stored key. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
+| `Browser storage is not available` | `createLocalStorageViewsStorage` throws it on save when `localStorage` is blocked. The views stay in memory, `DataGridViews` shows the save error, and `onError` receives it. Pass your own `storage`. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
+| `The saved views are in an unknown format` | `useDataGridViews` reports it through `error` and `onError` when `load` resolves a value it cannot read. Return the document that `save` received. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 
 ## Add-on warnings [#addon-warnings]
 
@@ -267,6 +270,9 @@ These default labels tell the user about a failure. The `labels` prop replaces e
 | `This file is too large to import.` | Choose a smaller file, or raise `importLimits.maxFileBytes`. | [Import options](/docs/add-options/import-export/import-options) |
 | `This file has too many rows or columns to import.` | Choose a smaller file, or raise `importLimits.maxRows`, `maxColumns`, or `maxCells`. | [Import options](/docs/add-options/import-export/import-options) |
 | `The import could not be completed. Try again.` | Shows when the import fails after the mapping step. | [Import](/docs/import-export/import) |
+| `Saved views could not be loaded.` | Shows in the views popover when `load` fails. The `labels` prop of `DataGridViews` replaces it. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
+| `Your last change could not be saved.` | Shows in the views popover when `save` fails. The `labels` prop of `DataGridViews` replaces it. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
+| `<n> rows not saved` | The live region reads it when `onSave` refuses rows. `labels.grid.saveRejected` replaces it. | [Save edits](/docs/save-server/save-edits#what-onsave-receives) |
 
 ## Related
 

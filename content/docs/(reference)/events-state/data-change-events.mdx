@@ -121,7 +121,9 @@ async function save(change: DataChange<Row>) {
 
 `useDataGridRowSaveStatus(rowId)` reads the `RowSaveStatus` of one row. The row carries `data-save-status="saving"` while the promise is pending. The grid reverts each refused entry through `onDataChange` with `source: "rollback"`. A refused row shows `data-save-status="failed"`.
 
-`resolveSaveConflict({ rowId, mine, theirs, change, message, signal })` decides what a refused row becomes when the server sent `current`. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). <NewBadge /> `actions.replaceRowId(oldId, row)` swaps a client id for the server id. See [Save edits](/docs/save-server/save-edits#id-swap).
+`resolveSaveConflict({ rowId, mine, theirs, change, message, signal })` decides what a refused row becomes when the server sent `current`. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict).
+
+`actions.replaceRowId(oldId, row)` <NewBadge /> swaps a client id for the server id. See [Save edits](/docs/save-server/save-edits#id-swap).
 
 ### onSaveRejected [#onsaverejected]
 

@@ -161,7 +161,9 @@ The grid remembers at most 100,000 hidden checked rows and warns once in develop
 
 ## Server mode
 
-A server grid holds one page, or the loaded part of a source in scroll mode. Set `totalRowCount` to the size of the whole result. `totalRowCount` alone turns on `rememberCheckedRows` <NewBadge />. Pass `keepCheckedRows` too to keep the checks on a cell click and to act only on the checked rows. A checked row that leaves `data` then stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep the check.
+A server grid holds one page, or the loaded part of a source in scroll mode. Set `totalRowCount` to the size of the whole result.
+
+`totalRowCount` <NewBadge /> alone turns on `rememberCheckedRows`. Pass `keepCheckedRows` too to keep the checks on a cell click and to act only on the checked rows. A checked row that leaves `data` then stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep the check.
 
 Set `rememberCheckedRows` to `false` to turn the memory off. `useDataGridServerRows` sets `totalRowCount` and `keepCheckedRows` in `gridProps`.
 

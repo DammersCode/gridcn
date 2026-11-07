@@ -50,7 +50,7 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 `validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
 
-`validateRow` receives `{ signal }` <NewBadge /> as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
+`validateRow` <NewBadge /> receives `{ signal }` as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
 
 ### Schema refine rules [#schema-refine-rules]
 

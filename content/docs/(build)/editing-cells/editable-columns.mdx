@@ -70,7 +70,9 @@ A locked cell rejects typed edits, paste, fill, and clear. Unless the column set
 
 ## Veto an edit [#veto-edit]
 
-`onEditStart` runs before an editor opens on an editable cell. Return `false` to refuse the edit. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit. <NewBadge /> `ctx.signal` aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
+`onEditStart` runs before an editor opens on an editable cell. Return `false` to refuse the edit. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
+
+`ctx.signal` <NewBadge /> aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

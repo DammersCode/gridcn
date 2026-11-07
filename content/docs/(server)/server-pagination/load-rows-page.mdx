@@ -82,7 +82,7 @@ If the count shrinks below the page, the pager calls `onPageChange` once with th
 
 `totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid. The grid then remembers checked rows by row id, so they survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
-If your server sends no count, answer `{ rows, hasMore }` and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. A cursor API answers `nextCursor`: see [Tune page loading](/docs/server-pagination/tune-page-loading). <NewBadge />
+If your server sends no count, answer `{ rows, hasMore }` <NewBadge /> and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. A cursor API answers `nextCursor`: see [Tune page loading](/docs/server-pagination/tune-page-loading).
 
 ## Fetch the pages yourself [#own-fetch]
 
@@ -169,7 +169,9 @@ export function OrdersGrid() {
 }
 ```
 
-`useDataGridServerPages` is `useDataGridServerRows` fixed to pages mode, so the mode cannot change under a mounted hook. <NewBadge /> A `totalRowCount` on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
+`useDataGridServerPages` is `useDataGridServerRows` fixed to pages mode, so the mode cannot change under a mounted hook.
+
+A `totalRowCount` <NewBadge /> on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
 
 ## Related
 

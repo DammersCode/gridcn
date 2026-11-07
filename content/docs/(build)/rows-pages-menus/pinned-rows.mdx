@@ -204,7 +204,7 @@ Aggregates reduce the rows that the grid holds in memory. Two server modes limit
 - **Server pagination.** `data` is the current page, so `useDataGridAggregate` covers that page.
 - **Scroll mode.** Unloaded rows are `undefined` holes. The aggregate skips them and warns once in development, so the band covers loaded rows only.
 
-For totals of the whole server result, use `DataGridServerAggregateReporter`. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals). <NewBadge />
+`DataGridServerAggregateReporter` <NewBadge /> gives the totals of the whole server result. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals).
 
 With `filterMode="server"` or `sortMode="server"`, the view holds the rows of the response, so `scope: "view"` covers the response.
 

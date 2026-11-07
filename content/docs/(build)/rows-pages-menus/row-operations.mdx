@@ -49,7 +49,9 @@ Without `createRow`, an insert does nothing and a development warning appears. T
 
 `createRow` receives the data index where the new row lands. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id, because a copy with the id of its source collides with it.
 
-Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels it. The grid drops a late result when it became `readOnly` or the anchor or source row is gone. <NewBadge /> `ctx.signal` aborts in those cases and when the grid unmounts.
+Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels it. The grid drops a late result when it became `readOnly` or the anchor or source row is gone.
+
+`ctx.signal` <NewBadge /> aborts in those cases and when the grid unmounts.
 
 An operation can land while a cell editor is open. The editor follows its row to the new position. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
 
@@ -81,7 +83,7 @@ function RowTools() {
 - `insertRows(viewRowIndex, count, position)` inserts `count` rows as one change. `createRow` runs once per row. A `count` of 0 or less does nothing.
 - `duplicateRows(viewRowIndexes)` puts each copy directly after its own source row.
 - `deleteRows(viewRowIndexes)` deletes the named rows as one change.
-- `deleteRowsById(rowIds, options?)` deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` <NewBadge /> deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+- `deleteRowsById(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 Under a sort, a new row lands in its sorted position, and the active cell stays on its row. Insert and duplicate shift the selection around the new rows. Delete clears the selection and the active cell. An open edit that survives the delete keeps its cell.
 
@@ -100,7 +102,7 @@ The keys come from `DEFAULT_KEYMAP`. Remap or remove them through the `keymap` p
 
 ## Confirm a delete
 
-`onBeforeDeleteRows` runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal` <NewBadge />, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
 A bulk delete button <NewBadge /> calls `deleteRowsById`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
@@ -200,4 +202,4 @@ Two data modes change the scope of an operation:
 - [Context menu](/docs/rows-pages-menus/context-menu): the menu items that run these operations
 - [Data change events](/docs/events-state/data-change-events): the shape of `onDataChange` and `DataChange`
 - [Data modes](/docs/data-modes): how each mode reads and writes rows
-- [Handle row action results](/docs/rows-live-data/handle-row-action-results): the `{ ok, reason }` that each action returns <NewBadge />, `onRowActionSkipped` <NewBadge />, and `gateTimeoutMs`
+- [Handle row action results](/docs/rows-live-data/handle-row-action-results) <NewBadge />: the `{ ok, reason }` that each action returns, `onRowActionSkipped`, and `gateTimeoutMs`

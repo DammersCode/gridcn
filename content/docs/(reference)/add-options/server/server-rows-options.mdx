@@ -8,7 +8,7 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 `useDataGridServerRows` owns the sort, filter, search text, and rows of one server source. You write `fetchRows`. The hook calls it, aborts a request that a newer one replaces, and keeps the last good rows on screen. `mode` picks how rows reach the grid. The steps and the contract are on [Server rows contract](/docs/contracts/server-rows-contract).
 
-`useDataGridServerPages(options)` and `useDataGridServerScroll(options)` are `useDataGridServerRows` fixed to one mode. They take the options of that mode without `mode`, so the mode cannot change under a mounted hook. <NewBadge />
+`useDataGridServerPages(options)` <NewBadge /> and `useDataGridServerScroll(options)` are `useDataGridServerRows` fixed to one mode. They take the options of that mode without `mode`, so the mode cannot change under a mounted hook.
 
 ## Pages mode [#server-mode]
 
@@ -53,15 +53,13 @@ A server that sends no count answers `totalRowCount: null` and `hasMore`. The pa
 
 ## Scroll mode [#scroll-mode]
 
-Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source. <NewBadge /> Set `source: "indexed"` or `source: "cursor"` to fix the order. An indexed source that answers without `totalRowCount` warns in development.
+Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source.
 
-<NewBadge />
+Set `source: "indexed"` <NewBadge /> or `source: "cursor"` to fix the order. An indexed source that answers without `totalRowCount` warns in development.
 
-`getRowId` is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
+`getRowId` <NewBadge /> is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
 
-<NewBadge />
-
-The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
+The hook <NewBadge /> sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
 
 ### Scroll options [#usedatagridserverrowsscrolloptions]
 
@@ -75,9 +73,9 @@ The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCo
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `loadDelay` | `100` | Milliseconds a block stays in the wanted range before its request starts. `0` starts at once. |
+| `loadDelay` | `100` | Milliseconds a block stays in the wanted range before its request starts. At most 2000. `0` starts at once. |
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
-| `maxLoadedRows` | `10000` | Most rows kept loaded. `Infinity` keeps every row. |
+| `maxLoadedRows` | `10000` | Most rows kept loaded. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
 | `revalidateInterval` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. |
 | `reshapeDelay` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. |
 
@@ -174,7 +172,7 @@ Your API reads `start` and `end` as the row range and returns the rows with the 
 ## Save policy types [#save-policy]
 
 - `SaveRefreshPolicy` is the value of `refreshAfterSave`: `false`, `"each"`, `"settled"`, or a function of a `SaveRefreshReport`.
-- `SaveRefreshReport` describes the saves of one batch. It holds the `saved`, `rejected`, and `failed` counts. It holds the `changes` of those saves, oldest first, at most 100. It holds `pending`, the saves still in flight. `pending` is above 0 only when the 10 second wait forced the decision. <NewBadge />
+- `SaveRefreshReport` <NewBadge /> describes the saves of one batch. It holds the `saved`, `rejected`, and `failed` counts. It holds the `changes` of those saves, oldest first, at most 100. It holds `pending`, the saves still in flight. `pending` is above 0 only when the 10 second wait forced the decision.
 
 ## Related
 

@@ -26,7 +26,7 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
 | `"nothing-to-do"` | No target row matched, or `count` was 0. |
 
-`onRowActionSkipped({ action, reason })` on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, or `deleteRows`, whether a shortcut, a menu item, or a call started it. <NewBadge /> One handler can show a message for all three paths. Disabled row items of the context menu show the reason as a tooltip.
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, or `deleteRows`, whether a shortcut, a menu item, or a call started it. One handler can show a message for all three paths. Disabled row items of the context menu show the reason as a tooltip.
 
 `reorderRows` and `moveRowsBy` return `true` or `false`.
 

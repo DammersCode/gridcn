@@ -41,7 +41,7 @@ export const FINDER = [
   {
     id: "import-export-style",
     title: "Files, style, accessibility, and speed",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells by value"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"], "/docs/performance/row-limits"],
+    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"], "/docs/performance/row-limits"],
   },
 ];
 

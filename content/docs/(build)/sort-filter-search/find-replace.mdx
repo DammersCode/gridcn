@@ -144,9 +144,9 @@ With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> with focus in 
 
 ## Server mode
 
-Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. <NewBadge /> A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText` and let your server evaluate it.
+Find and Replace <NewBadge /> work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText` and let your server evaluate it.
 
-A grid with a `totalRowCount`, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. <NewBadge /> The Find field points to the note with `aria-describedby`. A local grid shows no note. Pass `showScope: true` to show it there, or `showScope: false` to hide it.
+A grid with a `totalRowCount` <NewBadge />, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. Pass `showScope: true` to show it there, or `showScope: false` to hide it.
 
 Replace writes through the same path as an edit. `onDataChange` and `onSave` receive each Replace as one change with the source `"replace"`. A refused save reverts the refused cells. See [Save edits](/docs/save-server/save-edits).
 

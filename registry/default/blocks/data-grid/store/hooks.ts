@@ -247,10 +247,12 @@ export function useDataGridViewIndex(): number[] {
 }
 
 /**
- * True when a deferred `updateCells` batch changed a value the active sort or filter reads, so the
- * displayed order no longer matches the data. Show a "re-sort" control on this and call
- * `actions.reconcileView()` from it. Stays `false` for a stream that touches no sort or filter
- * column — that case downgrades to `"never"` automatically. See {@link UpdateCellsOptions}.
+ * True when a write changed a value the active sort or filter reads, so the displayed order no
+ * longer matches the data: a deferred `updateCells`/`updateRows` batch, an edit, a paste, a fill,
+ * or a clear. In server mode, a push that marks a row stale also sets it. Show a "re-sort" control
+ * on this and call `actions.reconcileView()` from it; with `useDataGridServerRows`,
+ * `reconcileView()` keeps it `true` until the answer delivers the stale rows again. Stays `false`
+ * for a stream that touches no sort or filter column. See {@link UpdateCellsOptions}.
  */
 export function useDataGridViewStale(): boolean {
   return useDataGridStore((s) => s.viewStale);

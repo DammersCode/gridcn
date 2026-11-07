@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
 `columns` is a list of ids, or a map from id to rules: `sortable`, `filterable`, `operators`, and `customOperators`. `customOperators` maps each custom operator id to its value shape: `"none"`, `"single"`, `"range"`, or `"list"`. A list of ids rejects every custom operator. `limits` sets `maxSorts` (8), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (200).
 
-URL state and saved views send more sorts and a longer search text than these defaults allow. <NewBadge /> [Match the limits to the grid](/docs/contracts/server-rows-contract#match-limits) gives the values to set.
+URL state <NewBadge /> and saved views send more sorts and a longer search text than these defaults allow. [Match the limits to the grid](/docs/contracts/server-rows-contract#match-limits) gives the values to set.
 
 ## Sort on the server [#sorting-a-scroll-grid]
 

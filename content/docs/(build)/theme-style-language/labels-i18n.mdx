@@ -143,11 +143,11 @@ export function OrdersGrid({ t }: { t: (key: string) => string }) {
 
 `t` stands for the translate function of your i18n library.
 
-The grid compares `labels` by content <NewBadge />, so a literal object of strings needs no `useMemo`. A label that is a function, such as `pasteBlocked`, counts as changed unless it keeps its identity. Wrap such a label, or build the object with `useMemo` keyed on your active locale.
+The grid compares `labels` <NewBadge /> by content, so a literal object of strings needs no `useMemo`. A label that is a function, such as `pasteBlocked`, counts as changed unless it keeps its identity. Wrap such a label, or build the object with `useMemo` keyed on your active locale.
 
 ## RTL layout
 
-`labels` translates strings. It does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
+`labels` translates strings. It does not format numbers and dates: `options.locale` on each `number` and `date` column sets that language. See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
 
 ```tsx
 import {

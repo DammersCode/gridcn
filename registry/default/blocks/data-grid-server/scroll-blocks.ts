@@ -45,7 +45,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   overscan?: number;
   /**
    * Milliseconds a block stays in the wanted range before its request starts. A fast scroll starts no request until it rests.
-   * Block 0, `refresh()`, `retry()`, and the refetch after the first answer or a count change skip it. Default 100; `0` starts at once.
+   * Block 0, `refresh()`, `retry()`, and the refetch after the first answer or a count change skip it. Default 100, at most 2,000; `0` starts at once.
    */
   loadDelay?: number;
   /** Most block requests in flight at once on a random access source. Default 3, at most 16. */
@@ -54,7 +54,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * Most rows kept loaded on a random access source. When more are loaded, the least recently viewed blocks outside the rendered rows
    * plus overscan plus one block unload. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`
    * but stop counting as loaded, so the next window fetches their block whole.
-   * `Infinity` keeps every row. Default 10,000.
+   * `Infinity` keeps every row. Default 10,000; a value below `blockSize` counts as `blockSize`.
    */
   maxLoadedRows?: number;
   /**
