@@ -6,7 +6,7 @@ type: concept
 aliases: ["a11y", "assistive technology", "accessibility"]
 ---
 
-How does the grid present itself to a screen reader? It follows the WAI-ARIA grid pattern. This page lists the roles and counts, the focus rules, the loading state, and the live regions. [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage) lists what the tests check. [Accessibility gaps](/docs/accessibility/accessibility-gaps) lists what they leave out.
+The grid follows the WAI-ARIA grid pattern. This page lists the roles and counts, the focus rules, the loading state, and the live regions.
 
 ## Conformance target [#conformance-target]
 
@@ -73,7 +73,7 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 
 ## Live regions [#live-regions]
 
-Each grid adds one live region: a `role="status"` element with `aria-live="polite"`. A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. The region reads these changes:
+Each grid adds one live region: a `role="status"` element with `aria-live="polite"`. A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. The region reads these changes, among others:
 
 - A row move, for example "Row 3 moved to position 4 of 8" (`labels.markers.reorderAnnouncement`).
 - The number of checked rows after a check, an uncheck, or Escape, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows.
@@ -83,9 +83,9 @@ The region waits 500 ms after the last change. A marker range drag gets one read
 
 With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers the rows of the current page.
 
-A server sort or a server filter stays quiet. A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
+A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
 
-`announceResults` is a `boolean` prop of the grid. The default is `false`. The props table of [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
+`announceResults` is a `boolean` grid prop with the default `false`. [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
 
 Add-ons bring their own live regions:
 
@@ -99,3 +99,4 @@ Add-ons bring their own live regions:
 - [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage): what the tests check
 - [Accessibility gaps](/docs/accessibility/accessibility-gaps): what they leave out
 - [Checked rows](/docs/selection-shortcuts/checked-rows): the checked-row announcement
+- [Live region messages](/docs/accessibility/live-region-messages): the other messages

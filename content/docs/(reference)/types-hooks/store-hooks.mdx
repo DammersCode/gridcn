@@ -39,7 +39,7 @@ Hooks that read rows. [State and view index](/docs/concepts/state-view-index) ex
 | Hook | Returns | Meaning |
 | --- | --- | --- |
 | <a id="usedatagridviewindex"></a>`useDataGridViewIndex` | `number[]` | The `viewIndex` array: the data index of the row at each view index. |
-| <a id="usedatagridviewstale"></a>`useDataGridViewStale` | `boolean` | `true` while rows keep an old view index after a write. `actions.reconcileView()` clears it. |
+| <a id="usedatagridviewstale"></a>`useDataGridViewStale` | `boolean` | `true` while rows keep an old view index after a write. `actions.reconcileView()` clears it. With `useDataGridServerRows`, it stays `true` until the server answer delivers the stale rows again. |
 | <a id="usedatagridrow"></a>`useDataGridRow` | `TData \| undefined` | The row at a view index. Pass `TData` as a type argument. It re-renders only when that row changes. |
 | <a id="usedatagridrowid"></a>`useDataGridRowId` | `string \| undefined` | The row id at a view index. A row that scroll mode has not loaded returns a placeholder id. An index outside the view returns `undefined`. |
 | <a id="usedatagridrowids"></a>`useDataGridRowIds` | `(string \| undefined)[]` | The row ids for a list of view indexes, in one subscription. |
@@ -97,8 +97,8 @@ Hooks that read column state. [Column visibility](/docs/columns/column-visibilit
 
 | Hook | Returns | Meaning |
 | --- | --- | --- |
-| <a id="usedatagridvisiblecolumns"></a>`useDataGridVisibleColumns` | `readonly ColumnDef<TData>[]` | The visible columns in display order: pinned left, unpinned, pinned right. |
-| <a id="usedatagridallcolumns"></a>`useDataGridAllColumns` | `readonly ColumnDef<TData>[]` | Every column, hidden ones included, in column order. |
+| <a id="usedatagridvisiblecolumns"></a>`useDataGridVisibleColumns` | `readonly ColumnDefOf<TData>[]` | The visible columns in display order: pinned left, unpinned, pinned right. |
+| <a id="usedatagridallcolumns"></a>`useDataGridAllColumns` | `readonly ColumnDefOf<TData>[]` | Every column, hidden ones included, in column order. |
 | <a id="usedatagridiscolumnhidden"></a>`useDataGridIsColumnHidden` | `boolean` | Whether a column id is hidden. |
 | <a id="usedatagridcolumnwidth"></a>`useDataGridColumnWidth` | `number \| undefined` | The width override of a column in pixels, or `undefined`. |
 | <a id="usedatagridcolumnwidths"></a>`useDataGridColumnWidths` | `(number \| undefined)[]` | The width overrides of a list of column ids, in one subscription. |

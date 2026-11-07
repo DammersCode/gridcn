@@ -23,7 +23,7 @@ The type check passes, and the grid works as before.
 
 ### Changed defaults [#changed-defaults]
 
-- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` stops sorting and filtering its rows on the client. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. A 1.3 grid with `totalRowCount` stops client sorting and filtering. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
 - Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
@@ -124,9 +124,9 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Removed exports [#removed-exports]
 
-Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. Read the same values with `useDataGridSelector`. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
+Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the same values. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
 
-The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop their untaught helpers, such as `operatorLabel` and `downloadBlob`.
+The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop untaught helpers such as `operatorLabel` and `downloadBlob`.
 
 ## Related
 

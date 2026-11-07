@@ -67,7 +67,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   output?: ExportOutput;
   /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv' (default). */
   format?: "xlsx" | "csv";
-  /** 'view' (default) exports the current sort/filter order; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
+  /** 'view' (default) exports the current sort/filter order, every page of a paged grid; 'page' exports only the shown page; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
   scope?: "view" | "page" | "all" | "selection";
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
@@ -133,7 +133,7 @@ export type BuildExportRowsOptions = {
 
 /**
  * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks the whole sorted and filtered view (every page)
- * (current sort/filter order), `'all'` walks `data` as-is, `'selection'` walks only the selected
+ * (current sort/filter order), `'page'` walks the shown page only, `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
 export function exportDataIndices(state: DataGridReadState, scope: "view" | "page" | "all" | "selection"): number[] {

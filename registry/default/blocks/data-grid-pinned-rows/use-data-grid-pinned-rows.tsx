@@ -11,7 +11,7 @@ export type UseDataGridPinnedRowsOptions = {
   topRows?: readonly unknown[];
   /** Rows pinned in a sticky band at the viewport's bottom edge; see {@link UseDataGridPinnedRowsOptions.topRows}. */
   bottomRows?: readonly unknown[];
-  /** Marks both bands while server values load, go stale, or fail: the bands dim and set `aria-busy` and `data-status`. Default `"ready"`. */
+  /** Marks both bands while server values load, go stale, or fail: the bands dim and set `data-status`, and set `aria-busy` only while values load or go stale. Default `"ready"`. */
   status?: ServerAggregateStatus;
 };
 

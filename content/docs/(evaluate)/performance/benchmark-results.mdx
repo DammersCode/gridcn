@@ -38,17 +38,21 @@ A unit test builds the view of 100,000 rows in Node, with no rendering. It times
 | One `contains` text filter | Under 200 ms |
 | Three filters joined with `and` | Under 400 ms |
 | Three filters in an `or` group | Under 300 ms |
+| An `isAnyOf` filter and an `or` group of two filters | Under 300 ms |
 | `isBetween` on a number and a date column | Under 400 ms |
+| `isAnyOf` and `isNoneOf` on a number and a date column | Under 400 ms |
 | A sort on three columns | Under 1,000 ms |
 | A filter and a sort together | Under 700 ms |
 
-On CI, the sort and the combined limits are twice as high. No test pins the mount time of the grid.
+On CI, the sort, the `isAnyOf` and `isNoneOf`, and the combined limits are twice as high. No test pins the mount time of the grid.
 
 ## Sort speed [#sort-speed]
 
 <NewBadge />
 
-The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. A number column took 4 to 7 ms, 7.7 to 15 times faster than the comparator sort. A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least. The full run is in `research/perf-sort-1m.md`. Your hardware changes these numbers.
+The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. On unsorted input, a number column took 4 to 7 ms, 7.7 to 15 times faster than the comparator sort. A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least.
+
+On input that is already sorted or reversed, a number column took 9 ms, 1.9 times faster. A text column took 21 to 22 ms, 1.2 to 1.5 times faster. The full run is in `research/perf-sort-1m.md`. Your hardware changes these numbers.
 
 Some columns still use the slower comparator sort. They are a column with `sortCompare` and a cell type with its own `compare`. A number column with `NaN`, infinite values, values above 1e300, or text uses it too. So does a text column with values that are not strings. A view of fewer than 256 rows uses it too.
 

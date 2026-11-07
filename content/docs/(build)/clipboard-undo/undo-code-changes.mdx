@@ -11,7 +11,7 @@ History records the changes that go through the grid's write path. A change that
 
 ## Programmatic changes: record [#programmatic-changes-record]
 
-`record(change, label?)` applies a change to the grid as one write and registers it as one undo entry. You build the change from operations (`ops`) that address rows by row id. `record` sets the source to `"app"`. It does nothing on a `readOnly` grid or before the grid mounts. It returns `true` when it wrote the change and `false` when it did nothing. <NewBadge />
+`record(change, label?)` applies a change to the grid as one write and registers it as one undo entry. You build the change from operations (`ops`) that address rows by row id. `record` sets the source to `"app"`. It does nothing on a `readOnly` grid or before the grid mounts. It returns `false` before the grid mounts and when every operation inserts a row that `data` already holds. Otherwise it returns `true`, also on a `readOnly` grid, where it writes nothing. <NewBadge />
 
 `record` is idempotent for inserts <NewBadge />. It skips an insert of a row that `data` already holds and warns in development. The call writes the change itself, so do not apply it to your own array first.
 

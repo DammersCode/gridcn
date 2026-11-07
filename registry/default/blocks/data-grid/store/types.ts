@@ -903,7 +903,8 @@ export type DataGridStoreState = Omit<
   /**
    * True when at least one deferred `updateCells`/`updateRows` batch changed a value that the active
    * sort or filter reads, so the displayed order no longer matches the data. Drives a "re-sort"
-   * affordance; `reconcileView()` (or any sort/filter/search change) clears it. See
+   * affordance; `reconcileView()` (or any sort/filter/search change) clears it. With `useDataGridServerRows`, `reconcileView()`
+   * keeps it `true` until the answer delivers the stale rows again. See
    * {@link useDataGridViewStale}.
    */
   viewStale: boolean;
@@ -1166,7 +1167,7 @@ export type DataGridActions = {
   updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
   updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
-  /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. No-op when the view is not stale. */
+  /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. With `useDataGridServerRows` it asks for a reshape instead, and `viewStale` stays `true` until the answer delivers the stale rows again. No-op when the view is not stale. */
   reconcileView(): void;
   /**
    * Inserts one row built by the `createRow` prop above/below `viewRowIndex` (view-index).

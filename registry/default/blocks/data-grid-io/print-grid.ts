@@ -16,7 +16,7 @@ const PAGE_SIZE_CSS: Record<PrintPageSize, string> = { A3: "A3", A4: "A4", Lette
 
 /** Options for {@link printGrid}. */
 export type PrintGridOptions = {
-  /** Which rows to print; default `"view"` (the current sort and filter order). */
+  /** Which rows to print: `"view"` (default) prints the current sort and filter order, every page of a paged grid; `"page"` the shown page only; `"all"` every row in `data` order; `"selection"` the selected rows in view order. */
   scope?: "view" | "page" | "all" | "selection";
   /** Printed as an `<h1>` heading and the document title. */
   title?: string;

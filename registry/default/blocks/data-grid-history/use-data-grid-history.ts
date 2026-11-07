@@ -95,7 +95,7 @@ export type UseDataGridHistoryResult<TData> = {
   /**
    * Applies a programmatic change (the consumer-built operation batch) to the grid as one write AND
    * registers it as one undo entry — `commitChange` with `source: "app"`, which the observer
-   * records like any user gesture. Returns `true` when it wrote the change, `false` when it did nothing (the grid is not mounted yet, or every operation was an insert of a row `data` already holds).
+   * records like any user gesture. Returns `false` when the grid is not mounted yet or every operation was an insert of a row `data` already holds, `true` otherwise. A `readOnly` grid writes nothing and still returns `true`.
    * `label` is an optional human-readable entry label.
    */
   record: (change: DataChange<TData>, label?: string) => boolean;
