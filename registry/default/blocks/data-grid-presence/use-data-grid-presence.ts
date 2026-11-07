@@ -28,7 +28,10 @@ export type UseDataGridPresenceOptions = {
 export type UseDataGridPresenceResult = {
   /** One entry of the grid's `plugins` prop — the plugin's `Overlay` paints the highlights, its `Mount` dev-warns once when rows/columns move under an active view-index entry. Stable for the component's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
   plugin: DataGridPlugin<unknown>;
-  /** The real (imperative) mechanism: call directly from your websocket/CRDT handler. */
+  /**
+   * The real (imperative) mechanism: call directly from your websocket/CRDT handler. Replaces the whole list. Keeps the first
+   * 1,000 entries and the first 10,000 ids of a range entry, cuts a label at 64 characters, and drops a malformed entry (dev-warned).
+   */
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
   /** Removes one entry by `id` (a peer's range closed) — prefer this over resending the whole snapshot. */
   removePresenceHighlight(id: string): void;

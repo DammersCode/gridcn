@@ -28,7 +28,7 @@ With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for
 
 ## Load the next page early [#prefetch]
 
-Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. The default is `false`.
+Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. A landed page that the user does not reach within `revalidateInterval`, or within 30 seconds without it, is dropped too. The default is `false`.
 
 ## Refresh on a timer [#revalidate]
 

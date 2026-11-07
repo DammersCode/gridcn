@@ -17,7 +17,7 @@ export type UseDataGridPinnedRowsOptions = {
 
 /** Return value of {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsResult = {
-  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`) — stable identity across renders as long as `topRows`/`bottomRows` keep the same array references. */
+  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`) — stable identity across renders as long as `topRows`/`bottomRows` keep the same array references and `status` stays the same. */
   plugin: DataGridPlugin<unknown>;
 };
 

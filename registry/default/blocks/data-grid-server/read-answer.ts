@@ -26,9 +26,9 @@ export type ServerRowsPageRequest<TCursor = never> = ServerRowsRequest<TCursor> 
 
 /** What `fetchRows` resolves with in every mode. */
 export type ServerRowsAnswer<TData, TCursor = never> = {
-  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. A repeated row id keeps its first row and leaves the later copy's slot empty (a skeleton row); make the sort total. */
+  /** At most `end - start` rows, in order from `start`; extra rows are dropped with a development warning. A repeated row id keeps its first row; the later copy leaves its slot empty in scroll mode (a skeleton row) and is dropped in pages mode. Make the sort total. */
   rows: TData[];
-  /** Row count of the result. Omitted keeps the last known count; `null` declares it unknown. */
+  /** Row count of the result. Omitted keeps the last known count; `null` declares it unknown. A value that is not a non-negative integer reads as `null` (dev-warned); a count above 10,000,000 clamps to it. */
   totalRowCount?: number | null;
   /** Rows exist after this block. Default: the block came back full. Ignored when a count is known. */
   hasMore?: boolean;

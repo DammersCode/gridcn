@@ -127,7 +127,7 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
 /**
  * Runs `write` and queues its `onDataChange`. The queue flushes FIFO once the outermost write
  * returns, so a write that a store subscriber makes during `write` emits after it, in gesture order.
- * The consumer's `onDataChange` runs first, then `onSave` (never for a rollback or a stream), then each
+ * The consumer's `onDataChange` runs first, then `onSave` (never for a rollback, a stream, or an id swap), then each
  * resolved plugin observer. Each runs isolated: a throw in `onDataChange` is rethrown after the rest ran,
  * a throwing `onSave` refuses the change, and a throwing observer logs.
  */

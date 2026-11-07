@@ -17,7 +17,7 @@ export function resolveReplaceLimit(replaceAllLimit: number | undefined): number
 export type ReplaceState = Pick<DataGridReadState, "data" | "viewIndex" | "visibleColumns" | "cellTypes" | "getRowId" | "selection">;
 
 export type ReplaceOptions = SearchOptions & {
-  /** `"view"` (default) covers every visible column of the rows in the view; `"selection"` covers the selected cells. */
+  /** `"view"` (default) covers every visible column of the rows the sort and filter leave, every page of a paged grid; `"selection"` covers the selected cells. */
   scope?: "view" | "selection";
   /** Most cells one plan targets; default 10,000, clamped to 1..100,000. */
   replaceAllLimit?: number;

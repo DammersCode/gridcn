@@ -50,7 +50,7 @@ import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-gr
  */
 export type GridMenuItemSpec =
   | {
-      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
+      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `fill-down`, `fill-right`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
       id: string;
       /** Display label; i18n is the caller's (the built-ins use `labels.contextMenu`). */
       label: string;
@@ -62,7 +62,7 @@ export type GridMenuItemSpec =
       disabled?: boolean;
       /** Destructive (danger-red) item styling. */
       destructive?: boolean;
-      /** Hover hint shown while the item is disabled; the built-in Paste uses it for the permission-blocked case. */
+      /** Hover hint shown while the item is disabled; the built-ins use it for a blocked paste, a failed clipboard write, and blocked row actions. */
       tooltip?: string;
       /** Click handler; omit for a display-only item. */
       onClick?: () => void;

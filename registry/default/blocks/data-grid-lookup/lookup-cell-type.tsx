@@ -39,7 +39,8 @@ function labelOf(value: unknown): string {
 /**
  * `lookup`: the stored value is `{ value, label }` (the key and the text the user sees). `toText`
  * copies the label; `fromText` resolves a pasted label or key against the options this column has
- * shown or copied, else follows `unresolvedPaste`. Sort and quick search read the label.
+ * shown or copied, else follows `unresolvedPaste`. Sort, quick search, and the text filter operators
+ * read the label.
  */
 export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
   Cell: LookupCell,

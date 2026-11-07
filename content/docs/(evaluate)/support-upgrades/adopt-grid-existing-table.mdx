@@ -54,12 +54,12 @@ const columns = defineColumns<Order>()([
 ] as const);
 
 export function OrdersTable({ orders }: { orders: Order[] }) {
-  const [rows, setRows] = useState(orders);
+  const [rows, setRows] = useState<readonly Order[]>(orders);
   const [sorts, setSorts] = useState<SortSpec[]>([]);
   return (
     <DataGrid
       data={rows}
-      onDataChange={(next) => setRows([...next])}
+      onDataChange={setRows}
       columns={columns}
       sortState={sorts}
       onSortChange={setSorts}

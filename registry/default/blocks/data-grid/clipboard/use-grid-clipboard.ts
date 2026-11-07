@@ -500,7 +500,7 @@ function applyResolution(
  * -> processPaste -> writes -> applyCellUpdates), for triggers outside a native ClipboardEvent
  * (context-menu Paste, programmatic paste). Text-only — no HTML-table fidelity, since there's no
  * `text/html` payload to prefer; parity with a plain-text native paste. Returns whether a paste
- * started (false when there's no paste target, a sync `processPaste` vetoed it, or an earlier async
+ * started (false while editing, on a `readOnly` grid, with no paste target, after a sync `processPaste` veto, or while an earlier async
  * gate is still pending); with an async gate or schema the cells commit once it resolves.
  */
 export function pasteText(

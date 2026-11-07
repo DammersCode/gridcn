@@ -30,6 +30,8 @@ A row skips rendering while its props keep the same identity. If the component t
 - Render props such as `renderMarker`, `renderMarkerHeader`, and `renderHeaderCell` (on `DataGridHeader`)
 - The `topRows` and `bottomRows` arrays of [pinned rows](/docs/rows-pages-menus/pinned-rows)
 
+In a controlled grid, store the array that `onDataChange` passes as it is. A copy, `map`, or `filter` makes the grid rebuild its row id map and its view on every change.
+
 If an identity changes between renders, a development build logs a warning:
 
 | Value | The warning appears when |

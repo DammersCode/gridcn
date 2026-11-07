@@ -8,7 +8,7 @@ import { prefixedKey } from "./prefixed-key";
 
 /** Options for {@link useDataGridUrlPagination}. */
 export type UseDataGridUrlPaginationOptions = {
-  /** Namespaces the `page`/`pageSize` URL keys so multiple grids can coexist on one page. */
+  /** Namespaces the `page`/`pageSize` URL keys as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
   /** `pageSize` this many is omitted from the URL. Also the fallback for an invalid URL value. Default 25. */
   defaultPageSize?: number;

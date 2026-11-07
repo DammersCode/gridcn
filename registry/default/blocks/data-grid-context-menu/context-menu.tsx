@@ -72,8 +72,9 @@ export type DataGridContextMenuProps = {
   className?: string;
   children?: ReactNode;
   /**
-   * Resolves the cell-surface item set (Cut/Copy/Paste, Clear contents, Insert row above/below,
-   * Duplicate row(s), Delete row(s)). `defaults` is the built-in set as
+   * Resolves the cell-surface item set (Cut/Copy/Paste, Clear contents, Fill down/right on a touch
+   * selection with the fill add-on, Insert row above/below with `createRow`, Duplicate row(s) with
+   * `duplicateRow`, Delete row(s)). `defaults` is the built-in set as
    * {@link GridMenuItemSpec} entries for the current state; return `defaults` unchanged, a
    * filtered/reordered/extended array, or a fully custom set. The returned array is the complete
    * item set — it owns the items, their order, and their gating. Runs during the menu content's
@@ -83,7 +84,7 @@ export type DataGridContextMenuProps = {
   getCellMenuItems?: CellMenuItemsResolver;
   /**
    * Resolves the header-surface item set (Sort asc/desc/clear, Pin to start/end/unpin, Hide column,
-   * Autosize column). `defaults` is the built-in set as {@link GridMenuItemSpec} entries for the
+   * Autosize column, Autosize all columns). `defaults` is the built-in set as {@link GridMenuItemSpec} entries for the
    * current state; the return value is the complete item set. Applies to the right-click header
    * menu AND every `DataGridHeaderDropdown` rendered inside this wrapper (it flows through
    * {@link DataGridHeaderMenuItemsContext}). Runs during the menu content's render, so it must

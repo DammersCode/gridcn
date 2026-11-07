@@ -4,7 +4,7 @@ import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 export const MAX_STATUS_CELLS = 200_000;
 
 export type SelectionStats = {
-  /** Selected cells with a value, each counted once across overlapping rects. */
+  /** Selected cells whose value is not `undefined` (an unloaded row or a missing field), each counted once across overlapping rects. */
   cells: number;
   /** Cells whose column's cell type `isEmpty` is false. */
   count: number;
@@ -12,6 +12,7 @@ export type SelectionStats = {
   numeric: number;
   /** Neumaier-compensated sum of the numeric values; `null` when `numeric === 0`. */
   sum: number | null;
+  /** `null` when `numeric === 0` or the sum is not finite. */
   avg: number | null;
   min: number | null;
   max: number | null;

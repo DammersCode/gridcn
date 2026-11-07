@@ -66,7 +66,7 @@ const SCROLL_SHADOW = `var(--grid-scroll-shadow, ${PIN_SHADOW})`;
 const SHADOW_SIZE = "var(--grid-shadow-size, 8px)";
 const shadowColor = (pinned: boolean) => (pinned ? PIN_SHADOW : SCROLL_SHADOW);
 
-/** Why the empty state shows: no rows in the data at all, or rows exist but none are in view. */
+/** Why the empty state shows: no rows in the data at all, or rows exist but none are in view (a server filter or search that returned no rows counts as `"filtered"`). */
 export type EmptyStateReason = "no-data" | "filtered";
 
 /** Function form of {@link DataGridRootProps.emptyState} — receives why the view is empty. */
@@ -109,7 +109,8 @@ export type DataGridRootProps<TData = unknown> = {
   /**
    * Rendered centered in place of the body when there are zero rows in view. Accepts a node or a
    * function receiving `{ reason }` — `"no-data"` when the data array is empty, `"filtered"` when
-   * rows exist but none are in view. Never shown while `loading` is true.
+   * rows exist but none are in view, or when `data` is empty under `filterMode="server"` with an
+   * active filter or quick search. Never shown while `loading` is true or `error` is set.
    */
   emptyState?: ReactNode | EmptyStateRenderer;
   /**

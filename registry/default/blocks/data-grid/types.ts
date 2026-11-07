@@ -497,18 +497,20 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   accessorFn?: (row: TData) => TValue;
   /** Immutable write-back; defaults to spreading `accessorKey`. Required for writability when `accessorKey` is absent. */
   setValue?(row: TData, value: TValue): TData;
-  /** Cell type registry key; default "text". */
+  /**
+   * Cell type registry key; default "text". A column without a `type` sorts with the numeric-aware,
+   * case-insensitive text compare instead of the `text` type's `compare`.
+   */
   type?: string;
   options?: unknown;
   readOnly?: boolean | ((row: TData) => boolean);
   /**
    * Rejects a value: the function form returns an error message (`null` accepts), or any
    * `StandardSchemaV1` for `TValue` (Zod/Valibot/ArkType/...) — detected at the call site via
-   * `"~standard" in validate`. A schema's `validate` may resolve async; only the single-cell
-   * editor commit path awaits it (see cell.tsx/use-commit-guard.ts), bulk paths (paste/fill/
-   * import) treat a Promise result as unsupported and skip validation for that cell (dev warn).
-   * On success the COMMITTED value is `result.value` (schemas may transform), documented in
-   * editing-cell-types.mdx.
+   * `"~standard" in validate`. A schema's `validate` may resolve async: the single-cell editor
+   * commit waits for it with the editor open, and a bulk write (paste, fill, `updateCells`) holds
+   * the batch until every cell settles (at most 32 validations run at once).
+   * On success the COMMITTED value is `result.value` (schemas may transform).
    * `TValidate` (not `TValue` directly): a union of a function type and a non-callable schema
    * object, as a plain property, is checked contravariantly as a WHOLE — unlike a pure
    * method-shorthand function, TS can't special-case just the function branch bivariant anymore.
@@ -553,7 +555,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * Per-column filter predicate that REPLACES the built-in text matcher (`matchesFilter`/
    * `createFilterMatcher`) for this column: it receives the cell's RAW value — not
    * `String(value)` — and the spec, and returns whether the row passes. The built-in matcher runs
-   * when this is absent. A thrown result fails the row for that filter.
+   * when this is absent. A thrown result fails the row for that filter. A custom operator from
+   * `filterOperators` uses its own `match` instead.
    */
   filterMatch?: (value: unknown, filter: FilterSpec) => boolean;
   /**
@@ -971,7 +974,7 @@ export interface GridCellTypes {
     options: {
       min?: number;
       max?: number;
-      /** Step applied by ArrowUp/ArrowDown in the editor; default 1. */
+      /** Step applied by ArrowUp/ArrowDown in the editor; default 1. With `decimals`, the step is at least `10 ** -decimals`. */
       step?: number;
       decimals?: number;
       /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
@@ -1015,7 +1018,7 @@ export interface GridCellTypes {
   longText: {
     value: string;
     options: {
-      /** Max stored length (the editor textarea's `maxLength`); default 100,000. */
+      /** The editor textarea's `maxLength`; default 100,000. Paste, fill, and import stay bounded by the type's `validate` at 100,000; declare a column `validate` for a smaller bound there. */
       maxLength?: number;
       placeholder?: string;
     };

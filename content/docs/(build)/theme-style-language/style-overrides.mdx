@@ -155,7 +155,7 @@ Result: the codes move to the end of their cells, and the quantities center.
 
 <NewBadge />
 
-The grid keeps no flag for a row that the user changed. With `onSave`, it marks the save only: a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
+The grid keeps no flag for a row that the user changed. When `onSave` returns a promise, the grid marks the save only: a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
 
 To mark every row that the user changed, keep the changed row objects in a `WeakSet` and fill it in `onDataChange`. A write gives the row a new object, so the row renders again and `getRowClassName` reads the mark:
 
@@ -177,7 +177,13 @@ const columns = defineColumns<Row>()([
 ]);
 
 type Source = DataChange<Row>["source"];
-const USER_SOURCES = new Set<Source>(["edit", "paste", "fill", "delete"]);
+const USER_SOURCES = new Set<Source>([
+  "edit",
+  "paste",
+  "fill",
+  "delete",
+  "replace",
+]);
 
 export function ChangedRows({ rows }: { rows: Row[] }) {
   const [changed] = useState(() => new WeakSet<Row>());
@@ -209,7 +215,7 @@ export function ChangedRows({ rows }: { rows: Row[] }) {
 }
 ```
 
-Result: an edited, pasted, filled, or cleared row gets a tint. An undo puts the old row object back, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either. The `WeakSet` keeps one identity, so `getRowClassName` stays stable.
+Result: an edited, pasted, filled, cleared, or replaced row gets a tint. An undo puts the old row object back, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either. The `WeakSet` keeps one identity, so `getRowClassName` stays stable.
 
 ## Style by state with CSS [#styling-by-state-with-css-only]
 

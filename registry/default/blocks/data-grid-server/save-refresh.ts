@@ -22,10 +22,10 @@ export type SaveRefreshReport = {
  * When the hook fetches again after `onSave` settles.
  * - `"settled"`: once, after every save in flight has settled (or after 10 seconds, so one stuck save cannot stop the refresh). A burst of saves costs one request.
  * - `"each"`: after every save that settles.
+ * - `false`: never. Call `refresh()` yourself.
+ * - a function: once after every save in flight has settled (or after the same 10 seconds), when it returns `true`. A throw counts as `false`.
  *
  * Only a promise from `onSave` counts as a save: a handler that returns nothing has not told the grid when the server has the change, so it never triggers a refresh (call `refresh()` yourself). A refresh needs at least one save the server answered; saves that all threw skip it.
- * - `false`: never. Call `refresh()` yourself.
- * - a function: once after every save in flight has settled, when it returns `true`.
  */
 export type SaveRefreshPolicy = false | "each" | "settled" | ((report: SaveRefreshReport) => boolean);
 

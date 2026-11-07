@@ -8,7 +8,7 @@ aliases: ["history options", "record sources", "dataset key", "undo capacity"]
 
 The `data-grid-history` add-on has two hooks. `useDataGridHistory` adds a history to a grid whose data you own. `useDataGridState` owns the data array and the history together. Both options objects are optional. [Undo and redo](/docs/clipboard-undo/undo-redo) explains the behavior.
 
-This sample sets all three options of `useDataGridHistory`:
+This sample sets all four options of `useDataGridHistory`:
 
 ```tsx
 import { useState } from "react";
@@ -27,6 +27,9 @@ export function HistoryGrid({ rows }: { rows: Row[] }) {
     capacity: 50,
     datasetKey: "2026",
     recordSources: ["edit", "paste", "fill"],
+    onSkip: ({ direction, rowIds }) => {
+      console.info(`Cannot ${direction}: ${rowIds.length} rows are missing`);
+    },
   });
   return (
     <DataGrid
@@ -39,7 +42,7 @@ export function HistoryGrid({ rows }: { rows: Row[] }) {
 }
 ```
 
-The stack keeps the last 50 entries. Only edits, pastes, and fills go on it.
+The stack keeps the last 50 entries. Only edits, pastes, and fills go on it. If an undo or a redo finds a needed row missing, `onSkip` logs it.
 
 ## UseDataGridHistoryOptions [#usedatagridhistoryoptions]
 

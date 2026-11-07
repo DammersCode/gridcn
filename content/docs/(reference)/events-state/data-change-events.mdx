@@ -33,13 +33,13 @@ const columns = defineColumns<Row>()([
 ]);
 
 function Grid({ initial }: { initial: Row[] }) {
-  const [rows, setRows] = useState(initial);
+  const [rows, setRows] = useState<readonly Row[]>(initial);
   return (
     <DataGrid
       data={rows}
       columns={columns}
       onDataChange={(next, change) => {
-        setRows([...next]);
+        setRows(next);
         console.log(change.source, change.ops.length);
       }}
     />
@@ -47,7 +47,7 @@ function Grid({ initial }: { initial: Row[] }) {
 }
 ```
 
-With `data`, you own the array and pass `next` back. With `defaultData`, the grid has already applied the change and the callback only reports. Pass one of the two. If you pass both, `data` wins and development mode warns once. The grid ignores later changes to `defaultData`.
+With `data`, you own the array and pass `next` back. Store `next` as it is: a copy makes the grid rebuild its row id map and its view on every change. With `defaultData`, the grid has already applied the change and the callback only reports. Pass one of the two. If you pass both, `data` wins and development mode warns once. The grid ignores later changes to `defaultData`.
 
 ### DataChange [#datachange]
 
@@ -57,7 +57,7 @@ With `data`, you own the array and pass `next` back. With `defaultData`, the gri
 | `ops` | The operations of the change |
 | `source` | What caused the change |
 | `label` | A name for the history entry, such as `"Add row"` |
-| `reverts` | On a `"rollback"` change, the change it undoes |
+| `reverts` | On a `"rollback"` or `"merge"` change, the change it undoes |
 | `serverRowIds` <NewBadge /> | On a change that took server content, the ids of those rows |
 
 Each operation addresses a row by `rowId`, because row ids survive sorts and filters and view indexes do not.

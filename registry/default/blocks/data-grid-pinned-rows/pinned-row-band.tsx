@@ -18,9 +18,9 @@ export type DataGridPinnedRowBandProps = {
   headerHeight: number;
   /**
    * `aria-rowindex` base for this band's rows (root's aria index layout: header rows, pinned-top
-   * next, then data rows, pinned-bottom last). Top band: 2 (right after the header). Bottom band:
-   * `2 + pinnedTopCount + dataRowCount` (right after every data row) — root computes both bases and
-   * passes them through `RowBandRenderCtx`.
+   * next, then data rows, pinned-bottom last). Top band: `1 + headerRowCount` (right after the header
+   * rows, `2` without column groups), plus the rows of earlier top bands. Bottom band: after every
+   * pinned-top and data row — root computes both bases and passes them through `RowBandRenderCtx`.
    */
   ariaRowIndexBase: number;
   /** Server value state: anything but `"ready"` dims the band; `"loading"` and `"stale"` set `aria-busy`. */

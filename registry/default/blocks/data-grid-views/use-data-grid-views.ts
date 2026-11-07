@@ -74,16 +74,19 @@ export type UseDataGridViewsResult = {
   retry: () => void;
   /** Opens a view (again, to revert changes) and makes it active; `null` only clears the active view. With a controlled `value`, a pick only calls `onValueChange`. */
   selectView: (id: string | null) => void;
-  /** Saves the grid state under `name` and makes the new view active. `null` for a blank name, the view limit, or before the load ends. */
+  /** Saves the grid state under `name` (trimmed, at most 80 characters) and makes the new view active. `null` for a blank name, the limit of 50 views, or before the load ends. */
   saveView: (name: string) => DataGridView | null;
-  /** Replaces a view's state with the grid state. Default: the active view. */
+  /** Replaces a view's state with the grid state. Default: the active view. `false` for an unknown id, no active view, or before the load ends. */
   updateView: (id?: string) => boolean;
+  /** Renames a view. `false` for an unknown id, a blank name, or before the load ends. */
   renameView: (id: string, name: string) => boolean;
+  /** Deletes a view; deleting the active view clears it, and deleting the default view clears the default. `false` for an unknown id or before the load ends. */
   deleteView: (id: string) => boolean;
+  /** Makes a view the one opened after load; `null` clears it. `false` for an unknown id or before the load ends. */
   setDefaultView: (id: string | null) => boolean;
   /** The view as JSON text, or `null` for an unknown id or a view too large to import again. Default: the active view. */
   exportView: (id?: string) => string | null;
-  /** Reads JSON from `exportView`, drops what the live columns lack, and saves it as a new active view named `options.name` when the file has none. */
+  /** Reads JSON from `exportView`, drops what the live columns lack, and saves it as a new active view named `options.name` when the file has none (`"View"` without either). `dropped` counts the removed parts. */
   importView: (text: string, options?: { name?: string }) => ImportViewResult;
 };
 

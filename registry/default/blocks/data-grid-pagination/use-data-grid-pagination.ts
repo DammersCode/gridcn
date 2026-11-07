@@ -25,10 +25,11 @@ export type UseDataGridPaginationClientOptions<TData> = {
   defaultPageSize?: number;
   /** Controls the page size; pair it with `onPageSizeChange`. */
   pageSize?: number;
+  /** Page sizes the footer offers. Default 10, 25, 50, 100. */
   pageSizeOptions?: readonly number[];
   /** First page while `page` is not controlled. Default 1. */
   defaultPage?: number;
-  /** Controls the current page; pair it with `onPageChange`. */
+  /** Controls the current page; pair it with `onPageChange`. A page outside `[1, pageCount]` shows the nearest page. */
   page?: number;
   onPageChange?: (page: number) => void;
   /** Fires after a page-size change with the new size. */

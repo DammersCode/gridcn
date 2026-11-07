@@ -15,9 +15,8 @@ A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range 
 
 Each grid operator maps to a function that builds a Prisma `where` object. The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
 
-```ts fragment="needs @prisma/client"
+```ts fragment="needs @prisma/client" title="app/api/grid/route.ts"
 import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
-// app/api/grid/route.ts
 import type { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 

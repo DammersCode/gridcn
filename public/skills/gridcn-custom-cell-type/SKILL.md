@@ -51,7 +51,7 @@ Completion for this step: Enter commits and moves down, Escape cancels without c
 
 ## 4. Register the type without breaking the built-ins
 
-`cellTypes` on `DataGridProvider` **merges over** the built-ins (`text`, `number`, `checkbox`, `select`, `date`). Pass only your custom entries:
+`cellTypes` on `DataGridProvider` **merges over** the built-ins (`text`, `number`, `checkbox`, `select`, `date`, `url`, `longText`). Pass only your custom entries:
 
 ```tsx
 <DataGridProvider {...grid} columns={columns} cellTypes={{ currency: currencyCellType }}>

@@ -8,7 +8,7 @@ import { useDataGridHistory } from "./use-data-grid-history";
 export type UseDataGridStateOptions<TData> = {
   /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
   getRowId?: (row: TData, index: number) => string;
-  /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
+  /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. */
   capacity?: number;
   /**
    * Identity of the dataset; a change between renders clears both history stacks.
@@ -57,6 +57,7 @@ export type UseDataGridStateResult<TData> = {
  * NOT the core's `defaultData` semantics. It spreads a CONTROLLED `data` prop into the grid and
  * re-feeds it every render; undo/redo work precisely because of that echo. Never treat it like
  * `defaultData` (set once, grid-owned afterwards) and pass it alongside your own data.
+ * `defaultRows` seeds the state once; later changes to it are ignored.
  *
  * ```tsx
  * const grid = useDataGridState(rows, { getRowId: (r) => r.id });

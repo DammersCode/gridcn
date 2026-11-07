@@ -6,7 +6,7 @@ import { isDev, createHistory, buildRollback, useDataGridAnnounce } from "@/regi
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
-  /** Maximum number of entries kept on the undo stack; oldest entries are dropped past this. */
+  /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. A change between renders starts an empty history. */
   capacity?: number;
   /**
    * Identity of the dataset; a change between renders clears both stacks, so undo after a dataset
@@ -14,11 +14,11 @@ export type UseDataGridHistoryOptions<TData> = {
    */
   datasetKey?: string | number;
   /**
-   * Which `DataChange.source` values go on the undo stack. Defaults to every source except
-   * `"stream"` — a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
-   * stack within seconds. Pass a list to change the set, for example
-   * `["edit", "paste", "fill", "delete", "row-operation", "import", "replace", "stream", "app"]` to record
-   * streams too. `source: "history"` and `"rollback"` (undo, redo, and rollback applied through the grid) are never recorded,
+   * Which `DataChange.source` values go on the undo stack. Defaults to
+   * `["edit", "paste", "fill", "delete", "row-operation", "import", "replace", "app"]`: `"stream"` stays
+   * out because a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
+   * stack within seconds. Pass a list to change the set, for example the default plus `"stream"` to record
+   * streams too. `"history"`, `"rollback"`, `"merge"`, and `"id-swap"` are never recorded,
    * whatever the list says — that is what keeps an undo from pushing a second entry.
    */
   recordSources?: readonly DataChange<TData>["source"][];
@@ -75,7 +75,7 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
 export type UseDataGridHistoryResult<TData> = {
   /** One entry of the grid's `plugins` prop — the plugin's `onDataChange` observer records the grid's data changes, its `undo`/`redo` commands back the mod+Z/mod+Shift+Z bindings, and its `Mount` hands the grid's api handle to the imperative triggers below. Stable for the hook's lifetime. An inline `plugins={[plugin]}` is fine: re-resolution is gated on entry identity (name + member references), not on the array's. */
   plugin: DataGridPlugin<TData>;
-  /** Imperative undo (a toolbar button outside the keyboard bindings); no-op when nothing to undo or the grid is read-only. */
+  /** Imperative undo (a toolbar button outside the keyboard bindings); no-op when nothing to undo, the grid is not mounted yet, or the grid is read-only. Applies nothing and calls `onSkip` when a needed row is missing. */
   undo: () => void;
   /** Imperative redo; see {@link UseDataGridHistoryResult.undo}. */
   redo: () => void;

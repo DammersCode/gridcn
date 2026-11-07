@@ -32,7 +32,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   pageSizeOptions?: readonly number[];
   /** First page while `page` is not controlled. Default 1. */
   defaultPage?: number;
-  /** Controls the current page; pair it with `onPageChange`. */
+  /** Controls the current page; pair it with `onPageChange`. A page that is not a whole number of at least 1 reads as page 1. */
   page?: number;
   onPageChange?: (page: number) => void;
   /** The sort, filter, and search while `spec` is not controlled. */
@@ -57,7 +57,8 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /**
    * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
    * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
-   * a local insert, delete, or move, and the start of a save drop it. Default `false`.
+   * a local insert, delete, or move, and the start of a save drop it. A landed page that the pager does not reach within
+   * `revalidateInterval` (30 seconds without it) is dropped too. While a save is pending, the prefetch waits. Default `false`.
    */
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */

@@ -114,7 +114,7 @@ export function OrdersGrid() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [filters, setFilters] = useState<FilterNode[]>([]);
-  const [rows, setRows] = useState<Order[]>([]);
+  const [rows, setRows] = useState<readonly Order[]>([]);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
@@ -150,7 +150,7 @@ export function OrdersGrid() {
     <>
       <DataGrid
         data={rows}
-        onDataChange={(next) => setRows([...next])}
+        onDataChange={setRows}
         columns={columns}
         getRowId={(row) => row.id}
         filterMode="server"

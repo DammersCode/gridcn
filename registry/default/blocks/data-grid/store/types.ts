@@ -106,11 +106,11 @@ export type DataGridSyncProps<TData = unknown> = {
    * read `state.keymap` via {@link useDataGridKeymap}.
    */
   keymap?: Keymap;
-  /** Fired once per user gesture with the next data array and a row-id-based delta batch, after the grid stores that array. */
+  /** Fired once per change (a user gesture, an action, or a `"stream"` push) with the next data array and a row-id-based delta batch, after the grid stores that array. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /**
    * Saves a change on a server. Runs once per change after `onDataChange`, for every `source` except
-   * `"rollback"` (the revert of a refusal) and `"stream"` (a server push must not echo back). Return a promise
+   * `"rollback"` (the revert of a refusal), `"stream"` (a server push must not echo back), and `"id-swap"`. Return a promise
    * to acknowledge the change: it resolves with nothing (accepted) or `{ rejected }` (see {@link SaveAck}),
    * or rejects (the whole change is refused). While the promise is pending the rows are `saving`. A refusal
    * reverts the refused entries through `onDataChange` with `source: "rollback"`.
@@ -149,8 +149,8 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Custom cell types keyed by `ColumnDef.type`, merged OVER the built-in registry — built-ins
    * you do not name keep working. A `null` entry removes a built-in (or a previously provided
-   * type); the grid then renders its columns with the `text` fallback and dev-warns about the
-   * unresolvable type. An inline object literal is fine: the grid rebuilds the registry only
+   * type); the grid then renders its columns with the `text` fallback, drops their edits, pastes,
+   * and deletes, and dev-warns about the unresolvable type. An inline object literal is fine: the grid rebuilds the registry only
    * when an entry changes identity, so define each type once, outside render.
    */
   cellTypes?: Record<string, AnyCellType | null>;
@@ -965,13 +965,13 @@ export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data"> & { d
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
-  /**
-   * Moves ONLY the active cell, leaving the selection (range, row and column channels) untouched,
-   * and fires NO `onSelectionChange` (contrast `selectCell`, which sets a single-cell selection
-   * and fires it). After Escape/`clearSelection`, `selection.current` is `null` while `activeCell`
-   * still exists — read the active cell from `activeCell`, not from `selection.current.cell`.
-   */
-   /** Moves the active cell to the cell named by the stable {@link CellRef}; `null` clears it. */
+   /**
+    * Moves ONLY the active cell to the cell named by the stable {@link CellRef}, leaving the selection
+    * (range, row and column channels) untouched; `null` clears it. Fires NO `onSelectionChange` (contrast
+    * `selectCell`, which sets a single-cell selection and fires it). After Escape/`clearSelection`,
+    * `selection.current` is `null` while `activeCell` still exists — read the active cell from
+    * `activeCell`, not from `selection.current.cell`.
+    */
    setActiveCell(ref: CellRef | null): void;
    /** View-index variant of {@link DataGridActions.setActiveCell} for callers that hold a {@link ViewCoord}. */
    setActiveCellAt(coord: ViewCoord | null): void;
@@ -1141,6 +1141,7 @@ export type DataGridActions = {
    * Puts the given cells into a transient ~1.2 s fade pulse (the
    * "highlight-what-changed" effect a fill/paste/move gesture plays on the cells it just wrote).
    * A cell already flashing gets its timer RESET, so overlapping gestures each get the full pulse.
+   * `durationMs` sets how long the key stays (default 1400).
    * NOT a data change — no `DataChange`, no history, no selection movement.
    */
   flashCells(cells: readonly CellRef[], durationMs?: number): void;
@@ -1180,8 +1181,9 @@ export type DataGridActions = {
   /**
    * Inserts `count` rows built by the `createRow` prop (called with `dataRowIndex + i`)
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
-   * row-id-based `insert` operation per row - a single undo entry. Dev-warning no-op when `createRow` is
-   * absent; silent no-op for `count <= 0`.
+   * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
+   * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
+   * integer), or `"gate-pending"` (an earlier `createRow` promise has not settled).
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
@@ -1193,9 +1195,10 @@ export type DataGridActions = {
   deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): RowActionResult;
   /**
    * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
-   * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Dev-warning
-   * no-op when the `duplicateRow` prop is absent — required so
-   * every duplicated row gets a distinct id, never colliding with its source's React key.
+   * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
+   * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
+   * every duplicated row gets a distinct id, never colliding with its source's React key — and
+   * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
    */
   duplicateRows(viewRowIndexes: number[]): RowActionResult;
   /**
@@ -1311,7 +1314,7 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, the gate said no, or no row matched. */
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. */
 export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
 
 /** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */

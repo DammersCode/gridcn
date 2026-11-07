@@ -103,7 +103,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
 /** Props for {@link DataGridGlobalShortcuts}: the {@link GlobalShortcutsConfig} flags. Omit them all to keep the safe default (undo/redo only). */
 export type DataGridGlobalShortcutsProps = GlobalShortcutsConfig;
 
-/** Mounts the global-shortcut layer; renders nothing. Must sit inside `DataGridRoot`. */
+/** Mounts the global-shortcut layer; renders nothing. Must sit inside `DataGridRoot`. The layer acts only after this grid received focus once; with several such grids, the last focused one owns the keys. */
 export function DataGridGlobalShortcuts(props: DataGridGlobalShortcutsProps): ReactNode {
   useDataGridGlobalShortcuts(props);
   return null;

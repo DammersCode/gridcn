@@ -7,13 +7,13 @@ export type ServerSpecColumnRules = {
   sortable?: boolean;
   /** `false` rejects a filter on the column. Default `true`. */
   filterable?: boolean;
-  /** Allowed operators. Default: every built-in operator and every custom operator in `customOperators`. */
+  /** Allowed operators. Default: every built-in operator. A custom operator in `customOperators` is allowed whether or not this list names it. */
   operators?: readonly FilterOperator[];
   /** Custom operators the column accepts, with the value shape of each. */
   customOperators?: Readonly<Record<string, FilterOperatorInput>>;
 };
 
-/** Bounds that apply to the whole request. Every field is optional. */
+/** Bounds that apply to the whole request. Every field is optional; a negative or non-finite value keeps the default. Groups nest at most 2 levels deep. */
 export type ServerSpecLimits = {
   /** Most sort entries. Default 8. */
   maxSorts?: number;

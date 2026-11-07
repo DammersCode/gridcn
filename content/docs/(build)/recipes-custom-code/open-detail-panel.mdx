@@ -60,7 +60,7 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
   const [open, setOpen] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [rows, setRows] = useState(orders);
+  const [rows, setRows] = useState<readonly Order[]>(orders);
   const order = rows.find((item) => item.id === rowId);
 
   const close = () => {
@@ -86,7 +86,7 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
       <DataGrid
         className="h-[400px]"
         data={rows}
-        onDataChange={(next) => setRows([...next])}
+        onDataChange={setRows}
         columns={columns}
         commands={commands}
         keymap={keymap}

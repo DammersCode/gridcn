@@ -85,6 +85,7 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
 /** Props for {@link DataGridViews}: the options of {@link useDataGridViews} plus styling. */
 export type DataGridViewsProps = UseDataGridViewsOptions & {
   className?: string;
+  /** Overrides for the menu's strings, merged key by key over the built-in English defaults. The grid's `labels` prop does not reach this menu. */
   labels?: Partial<DataGridViewsLabels>;
 };
 

@@ -125,7 +125,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
 | `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
 | `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |
-| `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. The function form of `emptyState` receives it as `reason`. |
+| `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. An empty answer to a server filter or search is `"filtered"`. The function form of `emptyState` receives it as `reason`. |
 | `LoadingStateReason` | `"no-data" \| "rows-present"` | Which loading view the function form of `loadingState` replaces, as `reason`: the skeleton (`"no-data"`) or the header bar (`"rows-present"`). |
 | `DensityMode` | `"compact" \| "default" \| "comfortable"` | A row height preset. |
 

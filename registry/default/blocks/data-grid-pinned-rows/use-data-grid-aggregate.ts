@@ -5,7 +5,7 @@ import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Built-in reducers; a function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
+/** Built-in reducers skip `null` and `undefined` values; `sum`/`avg`/`min`/`max` give `undefined` when no value is left. A function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
 
 /** One reducer per column id to aggregate. */
@@ -91,8 +91,8 @@ function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs
  * each column's `accessorKey`/`accessorFn` exactly like data rows. The object carries no row id, so
  * a pinned band gives it a band id when `getRowId` cannot resolve one. Values are resolved through
  * `getCellValue`, so `accessorFn` columns aggregate correctly, not just plain fields. Defaults to
- * reducing over `viewIndex` (sorted/filtered display order) — pass `scope: "all"` to reduce
- * over the raw `data` instead, ignoring the active filter. Recomputes only when `viewIndex`, `data`,
+ * `scope: "view"`, every row the sort and filter leave across all pages; `"page"` reduces over the
+ * shown page only, and `"all"` over the raw `data`, ignoring the active filter. Recomputes only when `viewIndex`, `data`,
  * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
  * those) never recomputes — same identity-guardrailed contract as the `plugins` prop; define
  * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
@@ -125,8 +125,8 @@ export type DataGridAggregateReporterProps<TData = unknown> = {
 };
 
 /**
- * Bridges {@link useDataGridAggregate} out of the store. `rowBands` is a `DataGridProvider` prop —
- * evaluated in the PARENT before the store exists — so a component that needs the live, filter-aware
+ * Bridges {@link useDataGridAggregate} out of the store. The pinned rows reach the grid as a
+ * plugin's `rowBands` through the `plugins` prop — evaluated in the PARENT before the store exists — so a component that needs the live, filter-aware
  * aggregate to feed back into it must sit INSIDE the provider and report out. Render this as a plain
  * child anywhere under `<DataGridProvider>` (e.g. next to `<DataGridRoot>`) and hold its `onChange`
  * result in the parent's own state; that state is what you pass into `useDataGridPinnedRows`'s

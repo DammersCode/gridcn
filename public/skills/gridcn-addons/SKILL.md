@@ -27,13 +27,13 @@ npx shadcn add @gridcn/<item>
 | Lookup cell | `data-grid-lookup` | none |
 | Presence | `data-grid-presence` | none |
 | Undo & redo | `data-grid-history` | none |
-| Toolbar | `data-grid-toolbar` | `@dnd-kit/react` |
+| Toolbar | `data-grid-toolbar` | `@dnd-kit/react`, `@dnd-kit/dom` |
 | Context menu | `data-grid-context-menu` | none |
 | Keybindings dialog | `data-grid-keybindings` | none |
-| Sort list | `data-grid-sort-list` | `@dnd-kit/react` |
+| Sort list | `data-grid-sort-list` | `@dnd-kit/react`, `@dnd-kit/dom` |
 | URL state | `data-grid-url-state` | `nuqs` |
 | Saved views | `data-grid-views` | none |
-| Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse` |
+| Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse`; dev: `@types/papaparse` |
 | Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
 | Pagination | `data-grid-pagination` | none |
 | Find & replace | `data-grid-find-replace` | none |

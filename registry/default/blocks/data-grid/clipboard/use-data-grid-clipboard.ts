@@ -52,7 +52,9 @@ export type UseDataGridClipboardResult = {
    * Reads `navigator.clipboard.readText()` and applies it through the same parse -> writes ->
    * applyCellUpdates pipeline as a native paste. Resolves `'permission-denied'` when the read is
    * rejected (no `clipboard-read` permission — the context-menu add-on falls back to a
-   * "press Ctrl+V" hint), `'empty'` when the clipboard held no usable text, else `'ok'`.
+   * "press Ctrl+V" hint), else `'ok'` when a paste started. Resolves `'empty'` when the clipboard held no
+   * text or no paste started: the grid is `readOnly`, a cell editor is open, there is no paste target,
+   * a sync `processPaste` vetoed it, or an earlier async gate is still pending.
    */
   pasteFromClipboard: () => Promise<PasteFromClipboardResult>;
 };

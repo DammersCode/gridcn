@@ -37,7 +37,7 @@ function warnDev(message: string): void {
 
 /** Options for {@link useDataGridUrlState}. */
 export type UseDataGridUrlStateOptions = {
-  /** Namespaces the `sort`/`filter`/`join`/`q` URL keys so multiple grids can coexist on one page. */
+  /** Namespaces the `sort`/`filter`/`join`/`q` URL keys and the layout keys (`cols`, `hide`, `widths`, `pins`) as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
   /**
    * Layout parts synced to the URL under `cols` (`order`), `hide` (`hidden`), `widths`, and `pins`.

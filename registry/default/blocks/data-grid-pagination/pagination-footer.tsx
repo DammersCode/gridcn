@@ -38,13 +38,12 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
   pageSizeOptions?: readonly number[];
   className?: string;
   /**
-   * i18n override for this footer's strings, deep-merge semantics like core's `labels` prop
-   * (deep-merged like the grid labels). Standalone default since this component renders outside
-   * `DataGridProvider` in the spec's usage (`<DataGrid /><DataGridPaginationBar /></>` as siblings)
-   * and so has no store to read `useDataGridLabels()` from.
+   * i18n override for this footer's strings, merged key by key over the built-in
+   * `labels.pagination` defaults. The grid's own `labels` prop does not reach the footer, also
+   * inside a `DataGridProvider`: pass the pagination strings here.
    */
   labels?: Partial<DataGridPaginationLabels>;
-  /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). */
+  /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). Default 5. */
   windowSize?: number;
   /** Custom composition of parts; omit to render the default layout (range, page-size, first/prev/pages/next/last). */
   children?: ReactNode;
@@ -58,9 +57,9 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
  * `DataGridPaginationPrev`, `DataGridPaginationPages`, `DataGridPaginationNext`,
  * `DataGridPaginationLast`) for a custom arrangement.
  *
- * Works identically for client and server mode — both produce the same
- * `DataGridPaginationControls` shape from `useDataGridPagination`, so this component never knows
- * which mode it's rendering for.
+ * Works identically for every source: spread the `DataGridPaginationControls` of
+ * `useDataGridPagination`, `useDataGridServerPager`, `useDataGridPager`, or `useDataGridServerRows`,
+ * or pass no controls inside a `DataGridProvider` with `pageSize` to read the grid's own pager.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
   return props.page === undefined ? <ProviderPaginationBar {...props} /> : <PaginationBarView {...props} controls={{ ...(props as BarControls), pageSizeOptions: props.pageSizeOptions ?? DEFAULT_PAGE_SIZES }} />;
@@ -159,7 +158,7 @@ export function DataGridPaginationPrev(): ReactNode {
 
 /** Props for {@link DataGridPaginationPages}. */
 export type DataGridPaginationPagesProps = {
-  /** How many numbered page buttons to show at once (see {@link pageWindow}). */
+  /** How many numbered page buttons to show at once (see {@link pageWindow}). Default 5. */
   windowSize?: number;
 };
 

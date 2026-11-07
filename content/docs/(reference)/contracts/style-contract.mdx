@@ -96,6 +96,8 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 | `data-hovered` | Row | The row under the pointer. The mark stays on its row during a scroll. When the scroll stops, it moves |
 | `data-save-status` | Row | `saving` while a save is pending, `failed` after a refusal |
 | `data-grid-row-index` | Row | The view index of the row |
+| `data-row-stale` <NewBadge /> | Row | A push changed the row in a column that the server sort or filter reads. The mark goes when the server sends the row again |
+| `data-gate-pending` <NewBadge /> | Root | The names of the async gates whose promise is pending, separated by spaces |
 
 Range, row, and column selection draw as overlay elements, not cell attributes. A selection change does not re-render a cell. These rules style a cell by its state:
 

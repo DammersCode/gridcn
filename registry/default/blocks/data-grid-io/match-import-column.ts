@@ -7,8 +7,7 @@ export type ImportTargetColumn = { id: string; headerText?: string; header: unkn
 
 /**
  * Consumer-configurable defaults applied at PRESELECTION time only — the user can always
- * override any of these in the dialog once it's open. See import-export.mdx for the worked
- * example.
+ * override any of these in the dialog once it's open.
  */
 export type ImportDefaults = {
   /** Skip auto-detect and preselect this delimiter. Detect still runs if undefined. */

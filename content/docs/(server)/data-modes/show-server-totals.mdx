@@ -102,7 +102,8 @@ Inside the grid, call `useDataGridServerAggregate(options)` yourself. It returns
 The request carries the spec and not the rows in the grid. The same code serves pages mode, scroll mode, a controlled spec, and your own API.
 
 - The reporter requests once on mount.
-- It requests again after each filter or quick-search change, after `debounceMs`.
+- It requests again after each filter, quick-search, or `columnIds` change, and after `refresh()` and `retry()`.
+- Each request waits `debounceMs` before it starts, the one on mount too.
 - A sort does not change the totals, so it does not request.
 - A newer request aborts the older one through `signal`, and the grid drops a late answer of the older one.
 
@@ -127,7 +128,7 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 | --- | --- | --- |
 | `fetchAggregates` | required | Resolves the values for a `{ spec, columnIds, signal }` request. |
 | `columnIds` | every column | The columns to ask for. |
-| `debounceMs` | `150` | Milliseconds to wait after a filter or quick-search change before the request starts. |
+| `debounceMs` | `150` | Milliseconds to wait before each request starts. `0` starts it at once. |
 | `onError` | none | Called once per failed request. |
 | `onChange` | required on the reporter | Receives the result, to keep in state. |
 

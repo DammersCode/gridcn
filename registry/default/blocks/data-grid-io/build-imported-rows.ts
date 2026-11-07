@@ -58,7 +58,7 @@ export type BuildImportedRowsOptions<TData> = {
   createRow: (index: number, ctx: GateContext) => TData | Promise<TData>;
   /** Parses one cell instead of `cellType.fromText`; may return a promise, which makes the build asynchronous. Its value is validated like any other. */
   processCellFromText?: ProcessCellFromText<TData>;
-  /** Checked between chunks on the large-import path; throws `"import-cancelled"` when true. Ignored below {@link IMPORT_CHUNK_THRESHOLD_ROWS}. */
+  /** Checked between chunks on the chunked path (above {@link IMPORT_CHUNK_THRESHOLD_ROWS} rows, or with `processCellFromText`) and after an async `createRow`; an aborted signal throws `"import-cancelled"`. A small synchronous build ignores it. */
   signal?: AbortSignal;
 };
 
@@ -76,13 +76,13 @@ export const IMPORT_CANCELLED_MESSAGE = "import-cancelled";
 
 /**
  * Builds `TData` rows from parsed import rows: one `createRow(index)` per row, then each mapped
- * cell is parsed through its column's cell type `fromText` and checked by `column.validate` —
- * invalid values are cleared via `clearValue()` rather than dropping the whole row, and every
- * rejected cell is listed in the result's `rejected`.
+ * cell is parsed through its column's cell type `fromText` and checked by `column.validate` (or the
+ * cell type's `validate`) — invalid values are cleared via `clearValue()` rather than dropping the
+ * whole row, and every rejected cell is listed in the result's `rejected`.
  *
- * Returns `{ rows, rejected }` directly when every validator is synchronous AND `dataRows` is at
- * or below {@link IMPORT_CHUNK_THRESHOLD_ROWS}. Above that row count, or when a column has an ASYNC
- * Standard Schema, this returns a Promise instead: large imports are built in chunks that yield to
+ * Returns `{ rows, rejected }` directly when `createRow` and every validator are synchronous, no
+ * `processCellFromText` is given, AND `dataRows` is at or below {@link IMPORT_CHUNK_THRESHOLD_ROWS}.
+ * Otherwise this returns a Promise instead: large imports are built in chunks that yield to
  * the event loop (so the dialog repaints and `options.signal` can cancel between chunks), and any
  * async validators run with the shared chunked concurrency cap. The import dialog's existing
  * pending affordance covers both waits.

@@ -16,8 +16,7 @@ export type PresenceHighlight = {
   /**
    * Unique id PER ENTRY — the `id` must be unique per entry: a user with a multi-range selection
    * sends one entry per range, each with its own id. Entries are keyed by position, not id, so
-   * duplicate ids no longer break rendering — but they do break any per-user bookkeeping (e.g.
-   * clear-on-leave filtering).
+   * duplicate ids still render, but `removePresenceHighlight(id)` removes every entry with that id.
    */
   id: string;
   /** Any CSS color, including `var(--color-primary)`; painted at fixed alpha for the fill, full opacity for the border/chip. An invalid color or an undefined token paints as `var(--color-primary)`. The chip text is black on light colors and white on dark ones. */

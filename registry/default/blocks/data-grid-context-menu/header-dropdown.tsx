@@ -18,7 +18,9 @@ import {
 
 /** Props for {@link DataGridHeaderDropdown} — matches the core's `renderHeaderMenu` render-prop ctx exactly. */
 export type DataGridHeaderDropdownProps = {
+  /** The header's column; the items act on it. */
   column: AnyColumnDef;
+  /** The column's visible-column index. */
   index: number;
   /** The core's own ghost-chevron trigger element (styling/aria-label owned by `header-cell.tsx`). */
   trigger: ReactElement;

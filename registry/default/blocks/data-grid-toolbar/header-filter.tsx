@@ -26,7 +26,9 @@ import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOpti
 
 /** Props for {@link DataGridHeaderFilter} — matches the core's `renderHeaderFilter` render-prop ctx exactly. */
 export type DataGridHeaderFilterProps = {
+  /** The header's column; the popover lists its distinct values, or the `fetchFilterValues` answer. */
   column: AnyColumnDef;
+  /** The column's visible-column index. */
   index: number;
 };
 

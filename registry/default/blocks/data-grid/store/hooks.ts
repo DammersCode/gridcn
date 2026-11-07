@@ -38,10 +38,10 @@ export function useDataGridInternalActions(): DataGridInternalActions & DataGrid
 }
 
 /**
- * The resolved cell-type registry (the consumer's `cellTypes` prop, or the built-ins) — the same
+ * The resolved cell-type registry (the built-ins merged with the consumer's `cellTypes` prop) — the same
  * registry `cell.tsx` and the store's own edit/clipboard/fill resolution read, so tooling that
  * needs to resolve a column's `Cell`/`Editor` never has to guess whether a custom registry is in
- * play. Reference is stable after init, so subscribing costs no re-renders.
+ * play. The reference changes only when a `cellTypes` entry changes identity.
  *
  * The registry key is NOT checked against `ColumnDef.type` at the registry's type level
  * (`Record<string, AnyCellType>` is erased) — per-key type safety comes from `defineColumns` plus
@@ -122,7 +122,7 @@ export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);
 }
 
-/** The latest announcement for the grid's live region: a row move, a row check, or a result count. */
+/** The latest announcement for the grid's live region: a row move, a row check, a result count, a stale view, a refused save, or a blocked undo or redo. */
 export function useDataGridLiveAnnouncement(): LiveAnnouncement | null {
   return useDataGridStore((s) => s.liveAnnouncement);
 }
@@ -241,7 +241,7 @@ export function useDataGridCellErrors(): ReadonlyMap<string, string> {
   return useDataGridStore((s) => s.cellErrors);
 }
 
-/** The sorted/filtered/searched row-index view, in display order. */
+/** The sorted and filtered row-index view (the current page when paged), in display order; quick search never narrows it. */
 export function useDataGridViewIndex(): number[] {
   return useDataGridStore(useShallow((s) => s.viewIndex));
 }
@@ -414,7 +414,8 @@ function selectRowIdToViewRow(s: DataGridStoreState): ReadonlyMap<string, number
 }
 
 /**
- * Full `rowId -> view row index` map for the current view. The map is cached per `viewIndex`
+ * Full `rowId -> view row index` map for the current view; a duplicate row id maps to its first
+ * view row, and an unloaded row is left out. The map is cached per `viewIndex`
  * array, `rowIdentityVersion`, and `getRowId` identity, so the O(n) build cost is paid once per
  * actual row-identity change (sort/filter/insert/delete/reorder or a consumer `data`
  * replacement) or `getRowId` swap, never per streaming tick: a value-only write replaces `data`
@@ -428,7 +429,7 @@ export function useDataGridRowIdToViewRow(): ReadonlyMap<string, number> {
   return useDataGridStore(selectRowIdToViewRow);
 }
 
-/** Total number of rows currently in view (after filter/search). */
+/** Number of rows in the view after the client filters, the current page only when paged; quick search never narrows it. */
 export function useDataGridRowCount(): number {
   return useDataGridStore((s) => s.viewIndex.length);
 }
@@ -709,7 +710,7 @@ export function useDataGridMarkGatePending(name: GateName, active: boolean): voi
   useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
-/** The number of checked rows a filter hides, remembered by `rememberCheckedRows`; `0` when the option is off. */
+/** The number of checked rows a filter hides, remembered by `rememberCheckedRows`; `0` when the option is off and while "all matching" is on. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

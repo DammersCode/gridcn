@@ -27,7 +27,7 @@ export type UseDataGridServerAggregateOptions = {
   fetchAggregates: (request: FetchAggregatesRequest) => Promise<Record<string, unknown>>;
   /** Columns to ask for. Default: every column. */
   columnIds?: readonly string[];
-  /** Wait this long after a filter or quick-search change before the request starts. Default `150`. */
+  /** Wait in ms before each request starts: on mount, after a filter, quick-search, or `columnIds` change, and after `refresh()` and `retry()`. `0` starts at once. Default `150`. */
   debounceMs?: number;
   /** Called once per failed request. */
   onError?: (error: unknown) => void;
@@ -90,7 +90,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
 
 /**
  * Pinned-row values from a server. Calls `fetchAggregates` with the current spec on mount and again
- * after each filter or quick-search change (a sort never changes the aggregated rows), aborts the
+ * after each filter, quick-search, or `columnIds` change (a sort never changes the aggregated rows), aborts the
  * request a newer one replaces, and drops its late answer. Pagination, scroll, and own-API grids
  * use it alike, because the request carries the spec and not the rows the grid holds. Answer
  * values are untrusted: unknown column ids are ignored, text is cut at 1000 characters,
