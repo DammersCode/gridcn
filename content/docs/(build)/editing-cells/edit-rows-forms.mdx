@@ -3,7 +3,7 @@ title: "Edit rows in forms"
 description: Save several fields of one row from a form as one validated, undoable grid change.
 icon: TextCursorInput
 type: task
-aliases: ["edit form", "row form", "multi-field edit", "edit row in dialog"]
+aliases: ["form", "edit form", "row form", "multi-field edit", "edit row in dialog"]
 ---
 
 Inline editors change one cell. A form changes several fields of one row. Call `actions.updateRows` with the form values to write them as one grid change. The keys of `changes` are column ids. Each column's `validate` runs, `validateRow` runs on the row, `onDataChange` fires once, and with `source: "edit"` undo records one entry.

@@ -1,5 +1,6 @@
 // Fails when a ts/tsx code block in content/docs does not type-check against the registry source.
 // A block that is not a full sample carries `fragment="reason"` in its fence info: ```tsx fragment="JSX only".
+// A block that imports packages the repo lacks carries `fragment="needs <pkg> [<pkg>...]"`; it compiles in full with each package as an untyped module.
 // The first sample of a page is checked alone, without placeholder names; later blocks may use `data`, `columns` and similar free names.
 // Usage: node scripts/verify-docs-code.mjs [--root <dir>] [--files a.mdx,b.mdx]
 import { execFileSync } from "node:child_process";
@@ -23,6 +24,7 @@ declare function setRows(...args: any[]): void;
 
 const API_NAME = /^(use)?(DataGrid|isComposingKey|useDebounce)/;
 const FREE_NAME_CODES = new Set(["TS2304", "TS2552", "TS2503", "TS2693", "TS18004"]);
+const SHIM_TYPE_CODES = new Set(["TS2709", "TS2694"]);
 
 /** Names the registry blocks export (declarations and `export { a, b }` lists). */
 export function exportedNames(root) {
@@ -88,6 +90,7 @@ export function run({ root = process.cwd(), files } = {}) {
   const pageFiles = files ? files.map((f) => join(root, f)) : walk(contentDir, [".mdx"]);
   const blocks = [];
   const failures = [];
+  const externalModules = new Set();
   let fragments = 0;
   for (const file of pageFiles) {
     const { body, bodyOffset } = splitFrontmatter(readLf(file));
@@ -103,14 +106,18 @@ export function run({ root = process.cwd(), files } = {}) {
       if (reason === "") failures.push(`${path}:${start}: fragment needs a reason: fragment="why"`);
       if (reason !== undefined) {
         if (reason.startsWith("needs ")) {
-          const pkg = reason.slice(6).trim();
-          const packageName = pkg.startsWith("@") ? pkg.split("/").slice(0, 2).join("/") : pkg.split("/")[0];
+          const pkgs = reason.slice(6).trim().split(/\s+/);
+          const fromPkg = (spec) => pkgs.some((pkg) => spec === pkg || spec.startsWith(`${pkg}/`));
           const specifiers = [...block.code.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
-          if (!specifiers.some((spec) => spec === pkg || spec.startsWith(`${pkg}/`))) failures.push(`${path}:${start}: the block does not import ${pkg}`);
-          else if (existsSync(join(root, "node_modules", packageName))) failures.push(`${path}:${start}: ${pkg} is installed; remove the needs marker`);
+          for (const pkg of pkgs) {
+            const packageName = pkg.startsWith("@") ? pkg.split("/").slice(0, 2).join("/") : pkg.split("/")[0];
+            if (!specifiers.some((spec) => spec === pkg || spec.startsWith(`${pkg}/`))) failures.push(`${path}:${start}: the block does not import ${pkg}`);
+            else if (existsSync(join(root, "node_modules", packageName))) failures.push(`${path}:${start}: ${pkg} is installed; remove the needs marker`);
+            externalModules.add(pkg);
+          }
+          const externalNames = [...block.code.matchAll(/^import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']/gm)].filter((m) => fromPkg(m[2])).flatMap((m) => m[1].match(/[A-Za-z_$][\w$]*/g) ?? []);
           total--;
-          const own = block.code.match(/^import\s[\s\S]*?\sfrom\s+["']@\/[^"']+["'];?/gm);
-          if (own) blocks.push({ ...block, lang: "ts", code: own.join("\n"), file, path, start });
+          blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first), externalNames, externalPkgs: pkgs });
           continue;
         }
         fragments++;
@@ -132,6 +139,9 @@ export function run({ root = process.cwd(), files } = {}) {
   rmSync(base, { recursive: true, force: true });
   writeProject(mainDir, "../../../", true);
   writeProject(firstDir, "../../../", false);
+  // A `needs` package is not installed: it type-checks as an untyped module, so the rest of the sample still checks.
+  const shims = [...externalModules].map((pkg) => `declare module "${pkg}";\ndeclare module "${pkg}/*";`).join("\n");
+  for (const dir of [mainDir, firstDir]) writeFileSync(join(dir, "external-modules.d.ts"), shims);
   const byName = new Map();
   blocks.forEach((block, index) => {
     const name = `block-${index}.${block.lang}`;
@@ -177,9 +187,13 @@ export function run({ root = process.cwd(), files } = {}) {
 
   let failing = 0;
   let external = 0;
-  for (const [name, errors] of errorsByBlock) {
+  for (const [name, allErrors] of errorsByBlock) {
     const block = byName.get(name);
-    const isRelative = (e) => /Cannot find module '\.{1,2}\//.test(e.message);
+    // An untyped module has no type members, so a type use of its names is not the sample's fault.
+    const shimTypeError = (e) => SHIM_TYPE_CODES.has(e.code) && ((block.externalNames ?? []).some((n) => e.message.includes(`'${n}'`)) || (block.externalPkgs ?? []).some((p) => e.message.includes(`"${p}`)));
+    const errors = allErrors.filter((e) => !shimTypeError(e));
+    if (errors.length === 0) continue;
+    const isRelative = (e) => /Cannot find module '(?:\.{1,2}|~)\//.test(e.message);
     if (errors.every((e) => e.code === "TS2307" && isRelative(e))) continue;
     if (errors.every((e) => e.code === "TS2307" && !/'@\//.test(e.message))) {
       external++;

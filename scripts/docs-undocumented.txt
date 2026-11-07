@@ -13,13 +13,8 @@ DataGridStoreStateOf # internal store state with typed rows; read through DataGr
 SelectLineActionOptions # alias of the options of the line selection actions, described with those actions
 DataGridCell # internal cell component; the grid and the pinned rows add-on render it
 DataGridCellProps # props of the internal cell component; the grid and the pinned rows add-on set them
-DataGridCellState # internal per-cell render state of the grid
-DataGridRowCellState # internal per-row render state of the grid
-DropzoneProps # props of Dropzone; Import options lists them in a table
-DropzoneAccept # Record of MIME type to extensions; Import options shows the shape of accept
 DropzoneRejectionReason # union of accept, maxSize, minSize, maxFiles; Import options lists the four values
 FilterFilesOptions # options of filterFiles; Import options names the same four limits as the Dropzone props
-FilterFilesResult # result of filterFiles; Import options describes its two fields
 DropzoneEmptyStateProps # title and description; Import options names both
 DropzoneContentProps # children only; Import options names it
 DataGridCellProps.gridReadOnly # prop of the internal cell component; the grid and the pinned rows add-on set it

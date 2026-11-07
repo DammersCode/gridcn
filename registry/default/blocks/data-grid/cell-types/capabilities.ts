@@ -23,8 +23,9 @@ export const SET_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = ["isAnyOf"
 export const COMPARISON_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = ["gt", "gte", "lt", "lte", "isBetween"];
 
 /**
- * The operator list for a type name whose cell type declares no `filter.operators`: comparisons
- * and set operators for number and date, set operators for select and text, text operators otherwise.
+ * The operator list for a type name whose cell type declares no `filter.operators`: text operators
+ * for every type, plus comparisons and set operators for number and date, plus set operators for
+ * select, text, and an untyped column.
  */
 export function operatorsForColumnType(columnType: string | undefined): BuiltInFilterOperator[] {
   if (columnType === "number" || columnType === "date") return [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS];

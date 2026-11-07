@@ -67,7 +67,7 @@ An observer writes through the public actions. `ctx.api.actions.commitChange(cha
 
 The write emits its own change, and every observer sees it. That includes the observer that wrote. Guard the observer so that it does not write in a loop.
 
-On a read-only grid, `commitChange` writes nothing and emits nothing.
+On a read-only grid, `commitChange` writes nothing and emits nothing, except for a change with `source: "stream"`.
 
 The [undo and redo](/docs/clipboard-undo/undo-redo) add-on uses this path. Its observer records each change. Its `undo` and `redo` commands apply the inverted batch through `commitChange`.
 

@@ -148,8 +148,7 @@ function rowAtY(y: number, rowHeight: number, rowCount: number): number {
 
 /**
  * Maps a pointer event's viewport-relative position to a view-index cell coord using the current
- * scroll offsets. Exported for direct unit testing of the pinned-column hit-testing math; not part
- * of the public hook surface.
+ * scroll offsets. The SDK exports it for add-on authors.
  */
 export function pointerToCoord(
   clientX: number,

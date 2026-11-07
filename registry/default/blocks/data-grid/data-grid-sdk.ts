@@ -1,6 +1,6 @@
 /**
  * Add-on-facing SDK surface of the grid core: the internal seams first-party add-ons
- * (fill, io, pinned-rows, presence, context-menu, keybindings, history, lazy, pagination)
+ * (fill, io, pinned-rows, presence, context-menu, keybindings, history, server, pagination)
  * build on, and the API for add-on and plugin authors. App code imports from `./data-grid`;
  * the docs teach this file for plugin work and store reads (`useDataGridStoreApi`,
  * `DataGridReadState`, `GRID_LAYER`, `hasAnyPin`, `createHistory`, `isComposingKey`). Add-on

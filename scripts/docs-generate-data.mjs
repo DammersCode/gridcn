@@ -6,7 +6,7 @@ export const FINDER = [
   {
     id: "start",
     title: "Start a grid",
-    pages: ["/docs/learning-path/install-gridcn", "/docs/learning-path/render-your-first-grid", "/docs/learning-path/define-columns", "/docs/learning-path/edit-cells", "/docs/learning-path/style-grid", ["/docs/terms-help/fix-install-problems#blank-grid", "Fix an empty grid"]],
+    pages: ["/docs/learning-path/install-gridcn", "/docs/learning-path/render-your-first-grid", "/docs/learning-path/define-columns", "/docs/learning-path/edit-cells", "/docs/learning-path/style-grid", ["/docs/terms-help/fix-install-problems#blank-grid", "Fix an empty grid"], ["/docs/support-upgrades/adopt-grid-existing-table", "Replace an existing table with the grid"], ["/docs/support-upgrades/server-rendering", "Render the grid on the server"]],
   },
   {
     id: "data-fetching",
@@ -41,7 +41,7 @@ export const FINDER = [
   {
     id: "import-export-style",
     title: "Files, style, accessibility, and speed",
-    pages: ["/docs/import-export/import", "/docs/import-export/export", "/docs/theme-style-language/colors-radius", ["/docs/theme-style-language/colors-radius#dark-mode", "Use dark mode"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"], "/docs/performance/row-limits"],
+    pages: ["/docs/import-export/import", "/docs/import-export/export", ["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
   },
 ];
 
@@ -73,7 +73,7 @@ export const ADDONS = [
 /** The first CHANGELOG.md release of each feature that came after 1.0.0, the first tagged release; every other feature is 1.0.0. */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace"],
-  Unreleased: ["push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });

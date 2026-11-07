@@ -35,7 +35,7 @@ export type DataGridToolbarLabels = {
   /** aria-label for the `isBetween` range's maximum-value input. */
   filterValueToAriaLabel: string;
   removeFilterAriaLabel: string;
-  /** aria-label for a filter row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a filter row's drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderFilterAriaLabel: string;
   /** Polite live-region announcement after a filter row moves; `column` is the filter's column label, `position`/`total` are 1-based. */
   filterReorderAnnouncement: (column: string, position: number, total: number) => string;
@@ -86,7 +86,7 @@ export type DataGridSortLabels = {
   ascending: string;
   descending: string;
   removeSortAriaLabel: string;
-  /** aria-label for a sort row's drag-handle drag handle (also moved via ArrowUp/ArrowDown while focused). */
+  /** aria-label for a sort row's drag handle (also moved via ArrowUp/ArrowDown while focused). */
   reorderSortAriaLabel: string;
   /** Polite live-region announcement after a sort row moves; `column` is the sort's column label, `position`/`total` are 1-based. */
   sortReorderAnnouncement: (column: string, position: number, total: number) => string;
@@ -168,7 +168,7 @@ export type DataGridKeybindingsLabels = {
   nativeCopy: string;
   nativeCut: string;
   nativePaste: string;
-  /** Per-`GridAction` row label shown in the dialog; consumer-added actions absent here fall back to a humanized action name (see `labelForAction`). */
+  /** Per-`GridAction` row label shown in the dialog; consumer-added actions absent here fall back to a humanized action name. */
   actions: Partial<Record<GridAction, string>>;
 };
 
@@ -321,7 +321,7 @@ export type DataGridStatusBarLabels = {
   pageSelected: (count: number) => string;
   /** Select-all banner button. `total` is `null` when the size of the result is unknown. */
   selectAllMatching: (total: number | null) => string;
-  /** Select-all banner after "select all matching". `count` is `undefined` when the size of the result is unknown. */
+  /** Select-all banner after "select all matching". `count` is `null` when the size of the result is unknown. */
   allSelected: (count: number | null) => string;
   clearSelection: string;
 };

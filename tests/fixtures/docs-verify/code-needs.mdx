@@ -1,0 +1,10 @@
+---
+title: Code needs fixture
+---
+
+```ts fragment="needs not-installed-pkg"
+import { createThing, type Thing } from "not-installed-pkg";
+
+const thing: Thing = createThing();
+export const value = helperThatDoesNotExist(thing);
+```

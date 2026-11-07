@@ -19,7 +19,7 @@
  *    column. An active PINNED cell ranks above both.
  */
 export const GRID_LAYER = {
-  /** Unpinned body cell — in flow, no stacking context of its own. */
+  /** Unpinned body cell: `z-index` 0, so it is its own stacking context. */
   cell: 0,
   /** Active (focused) unpinned cell: above its neighbours, below anything pinned. */
   activeCell: 4,

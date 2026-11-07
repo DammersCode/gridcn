@@ -13,7 +13,7 @@ A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range 
 
 ## The route [#the-route]
 
-The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string and combines the strings with `.or()`. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
+The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string, and every filter group as `and(...)` or `or(...)`. Each top-level node goes into one `.or()` call. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
 
 ```ts fragment="needs @supabase/supabase-js"
 import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
@@ -25,7 +25,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-type Query = { or: (conditions: string) => Query };
 const COLUMNS = new Set<string>(["name", "email", "role"]);
 
 // A condition string splits on commas and parentheses, so quote every value.
@@ -62,17 +61,16 @@ function readRange(body: any): { start: number; end: number } | null {
   return valid ? { start, end } : null;
 }
 
-function orClause(group: any): string {
-  if (group.filters.some(isEmptyGroup)) return "";
-  return group.filters.map(clause).join(",");
-}
-
-// The top level combines with "and": an "and" group flattens into it.
-function applyNode(query: Query, node: any): Query {
-  if (!Array.isArray(node.filters)) return query.or(clause(node));
-  if (node.join === "and") return node.filters.reduce(applyNode, query);
-  const text = orClause(node);
-  return text ? query.or(text) : query;
+// "" matches every row, as an empty group does in the grid.
+function condition(node: any): string {
+  if (!Array.isArray(node.filters)) {
+    return CLAUSES[node.operator](node.columnId, node.value);
+  }
+  const parts: string[] = node.filters.map(condition);
+  if (node.join === "or" && parts.includes("")) return "";
+  const kept = parts.filter(Boolean);
+  if (kept.length <= 1) return kept[0] ?? "";
+  return `${node.join}(${kept.join(",")})`;
 }
 
 export async function POST(request: Request) {
@@ -92,7 +90,11 @@ export async function POST(request: Request) {
     const pattern = quote(`%${spec.searchText}%`);
     query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
   }
-  query = spec.filters.reduce(applyNode, query);
+  // Each top-level node is one .or() call; the calls combine with "and".
+  for (const node of spec.filters) {
+    const text = condition(node);
+    if (text) query = query.or(text);
+  }
   for (const sort of spec.sorts) {
     query = query.order(sort.columnId, { ascending: sort.direction === "asc" });
   }

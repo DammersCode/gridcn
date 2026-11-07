@@ -326,4 +326,9 @@ describe("verify-docs-code", () => {
     );
     expect(result.failures.join("\n")).not.toContain("code.mdx:8");
   }, 60_000);
+
+  it("compiles a needs block in full with the missing package as an untyped module", () => {
+    const failures = runCode({ files: ["tests/fixtures/docs-verify/code-needs.mdx"] }).failures;
+    expect(failures).toEqual([expect.stringMatching(/code-needs\.mdx:\d+: TS2304 Cannot find name 'helperThatDoesNotExist'/)]);
+  }, 60_000);
 });

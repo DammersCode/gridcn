@@ -71,7 +71,8 @@ export function run({ root = process.cwd() } = {}) {
       }
     }
   }
-  return { name: "coverage", checked: exportsChecked + membersChecked, failures: [...missingExports, ...missingMembers], warnings: [], stats: { exportsChecked, membersChecked, missingExports: missingExports.length, missingMembers: missingMembers.length } };
+  const staleEntries = [...allowed].filter((name) => !name.includes(".") && mentions(name)).map((name) => `scripts/docs-undocumented.txt: ${name} is mentioned in the docs; remove the entry`);
+  return { name: "coverage", checked: exportsChecked + membersChecked, failures: [...missingExports, ...missingMembers, ...staleEntries], warnings: [], stats: { exportsChecked, membersChecked, missingExports: missingExports.length, missingMembers: missingMembers.length } };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

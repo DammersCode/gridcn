@@ -50,6 +50,10 @@ jobs:
       - name: Typed lint (type-checked no-unsafe on registry source)
         run: pnpm lint:typed
 
+      # About 30 s, so it runs here and not in pnpm lint.
+      - name: Docs checks (links, code samples, props, symbols, demos, structure)
+        run: pnpm docs:verify
+
   unit:
     name: Unit + coverage
     runs-on: ubuntu-24.04
