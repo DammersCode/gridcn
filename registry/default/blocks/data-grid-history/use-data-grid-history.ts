@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { useStore } from "zustand";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, createHistory, buildRollback, useDataGridAnnounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, createHistory, buildRollback, useDataGridAnnounce, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type RecordSources<TData> =
   | readonly DataChange<TData>["source"][]
@@ -237,7 +236,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     mountRef.current = function HistoryApiStash(): ReactNode {
       ref.current = useDataGridApi<TData>();
       announce.current = useDataGridAnnounce();
-      const readOnly = useStore(useDataGridStoreApi(), (s) => s.readOnly);
+      const readOnly = useDataGridSelector((s) => s.readOnly);
       useEffect(() => {
         if (readOnlyRef.current === readOnly) return;
         readOnlyRef.current = readOnly;

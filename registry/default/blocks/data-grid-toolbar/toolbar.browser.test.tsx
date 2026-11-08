@@ -1,5 +1,5 @@
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridProvider,

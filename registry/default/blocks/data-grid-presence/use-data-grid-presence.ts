@@ -120,6 +120,13 @@ function createPresenceOverlay(
     warnDev(`presence entry "${entry.id}" has ${unresolvedCount} columnId(s) not in the visible columns (hidden or unknown); those cells are dropped`);
   };
   const reportedExcess = new Map<string, string>();
+  const callExcessRects = (ctx: ExcessRectsContext): void => {
+    try {
+      onExcessRectsRef.current?.(ctx);
+    } catch (error) {
+      console.error("[data-grid-presence] onExcessRects threw", error);
+    }
+  };
   const warnExcessRects = (entry: RowIdRangePresenceHighlight, kept: number, total: number): void => {
     const key = `excess:${entry.id}`;
     if (warnedRangeIssues.has(key)) return;
@@ -159,11 +166,7 @@ function createPresenceOverlay(
         const signature = `${ctx.kept}/${ctx.total}`;
         if (reportedExcess.get(ctx.entry.id) === signature) continue;
         reportedExcess.set(ctx.entry.id, signature);
-        try {
-          onExcessRectsRef.current?.(ctx);
-        } catch (error) {
-          console.error("[data-grid-presence] onExcessRects threw", error);
-        }
+        callExcessRects(ctx);
       }
       for (const id of reportedExcess.keys()) if (!current.has(id)) reportedExcess.delete(id);
     }, [excess]);
