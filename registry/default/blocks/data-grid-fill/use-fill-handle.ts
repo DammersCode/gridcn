@@ -38,13 +38,14 @@ const AUTO_SCROLL_STEP = 16;
 /** Distance (px) from a viewport edge at which drag auto-scroll kicks in. */
 const AUTO_SCROLL_ZONE = 24;
 
-/** Args passed to the `onFill` consumer hook. */
-export type FillArgs = {
+/** The context `processFill` receives. */
+export type ProcessFillContext = {
+  /** The cells the fill extends. For Ctrl/Cmd+D it is the top row, for Ctrl/Cmd+R the left column. */
   source: GridRect;
+  /** The new cells the fill writes. */
   target: GridRect;
+  /** The fill text for `target`, before parsing and validation. */
   values: string[][];
-  /** Call to veto the fill entirely — nothing is applied and the selection doesn't expand. */
-  preventDefault: () => void;
 };
 
 /** Options for {@link useFillHandle}. */
@@ -53,7 +54,12 @@ export type UseFillHandleOptions = {
   layout: InteractionLayout;
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
-  onFill?: (args: FillArgs) => void;
+  /**
+   * Gate that runs before a fill writes (drag release, fill down, fill right). Return the text grid to
+   * write, which goes through each column's `fromText` and `validate` like a paste, or `false` to veto the
+   * fill: nothing is written and the selection does not expand.
+   */
+  processFill?: (ctx: ProcessFillContext) => string[][] | false;
   /** Replaces the built-in series detector (`detectSeries`) — the add-on's default remains the built-in one. */
   detectSeries?: (values: readonly string[]) => SeriesDescriptor | null;
   /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
@@ -86,24 +92,26 @@ export function readRectAsText(s: DataGridReadState, rect: GridRect): string[][]
 }
 
 /**
- * Builds the unvalidated candidate cells for filling `strip` (the new cells only, absolute view
- * coords) by extending `source`: reads source text, runs `generateFill`, then converts each
- * destination value back through its own column's `fromText`, skipping readOnly columns and rows
- * that don't resolve. Also returns `filled`, `generateFill`'s raw text grid, which `onFill`
- * needs BEFORE any validation runs (it can veto the fill outright). Exported for direct unit
- * testing; not part of the public hook surface.
+ * Generates the fill text for `strip` (the new cells only, absolute view coords) by extending
+ * `source`: reads source text and runs `generateFill`. `processFill` sees this grid before any
+ * parsing or validation. Exported for direct unit testing; not part of the public hook surface.
  */
-export function buildFillCandidates(
+export function generateFillText(
   s: DataGridReadState,
   source: GridRect,
   strip: GridRect,
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
-): { candidates: BulkCandidate[]; filled: string[][] } {
+): string[][] {
   const sourceValues = readRectAsText(s, source);
-  const direction = fillDirection(source, strip);
-  const relativeStrip = rectRelativeTo(strip, source);
-  const filled = generateFill(sourceValues, relativeStrip, direction, opts);
+  return generateFill(sourceValues, rectRelativeTo(strip, source), fillDirection(source, strip), opts);
+}
 
+/**
+ * Builds the unvalidated candidate cells for `strip` from its fill text: converts each text back
+ * through its own column's `fromText`, skipping readOnly columns, rows that don't resolve, and
+ * cells the text grid does not cover. Exported for direct unit testing; not part of the public hook surface.
+ */
+export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRect, filled: readonly (readonly string[])[]): BulkCandidate[] {
   const candidates: BulkCandidate[] = [];
   let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
@@ -127,8 +135,9 @@ export function buildFillCandidates(
       const cellType = s.cellTypes[column.type ?? "text"];
       if (!cellType) continue;
 
-      // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
-      const { value, validate } = safeFromText(cellType, filled[row]![col]!, column.options, resolveColumnValidate(column, cellType));
+      const text = filled[row]?.[col];
+      if (text === undefined) continue;
+      const { value, validate } = safeFromText(cellType, text, column.options, resolveColumnValidate(column, cellType));
       candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row: dataRow, rowId });
     }
   }
@@ -137,7 +146,18 @@ export function buildFillCandidates(
       `[data-grid-fill] the fill target skipped ${skippedHoleRows} unloaded row(s) (lazy grid): unloaded cells are never filled and the selection still expands over them. Fill over a lazy grid covers loaded rows only.`,
     );
   }
-  return { candidates, filled };
+  return candidates;
+}
+
+/** The candidates and the fill text for `strip`; the composition of {@link generateFillText} and {@link buildFillCandidatesFromText}. */
+export function buildFillCandidates(
+  s: DataGridReadState,
+  source: GridRect,
+  strip: GridRect,
+  opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
+): { candidates: BulkCandidate[]; filled: string[][] } {
+  const filled = generateFillText(s, source, strip, opts);
+  return { candidates: buildFillCandidatesFromText(s, strip, filled), filled };
 }
 
 /**
@@ -175,7 +195,7 @@ export type FillHandleHandlers = {
  * series inference.
  */
 export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers {
-  const { scrollRef, layout, onFill, detectSeries, fillStore } = options;
+  const { scrollRef, layout, processFill, detectSeries, fillStore } = options;
   const disabled = options.disabled === true;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -184,8 +204,8 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
 
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
-  const callbacksRef = useRef({ onFill, detectSeries });
-  callbacksRef.current = { onFill, detectSeries };
+  const callbacksRef = useRef({ processFill, detectSeries });
+  callbacksRef.current = { processFill, detectSeries };
 
   const dragRef = useRef<{ pointerId: number; source: GridRect } | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -228,8 +248,8 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
   }, [fillStore, scrollRef, storeApi]);
 
   /**
-    * Runs the shared fill pipeline: builds candidates for `strip` (extending `source`), fires
-    * `onFill` (which can veto), validates, applies one `applyCellUpdates` batch, and expands
+    * Runs the shared fill pipeline: generates the fill text for `strip` (extending `source`), runs
+    * `processFill` (which can rewrite or veto), parses, validates, applies one `applyCellUpdates` batch, and expands
    * the selection to `combineRects(source, strip)`.
    *
    * With an async schema on a filled column the write batch is HELD: the selection still expands
@@ -240,12 +260,11 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
   const runFill = useCallback(
     (source: GridRect, strip: GridRect, opts: { forceCopy?: boolean } = {}) => {
       const s = storeApi.getState();
-      const { onFill, detectSeries } = callbacksRef.current;
-      const { candidates, filled } = buildFillCandidates(s, source, strip, { ...opts, detect: detectSeries });
-
-      let prevented = false;
-      onFill?.({ source, target: strip, values: filled, preventDefault: () => (prevented = true) });
-      if (prevented) return;
+      const { processFill, detectSeries } = callbacksRef.current;
+      const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
+      const processed = processFill ? processFill({ source, target: strip, values: filled }) : filled;
+      if (processed === false) return;
+      const candidates = buildFillCandidatesFromText(s, strip, processed);
 
       const resolution = resolveBulkWrites(candidates);
       if (resolution instanceof Promise) {

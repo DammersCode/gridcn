@@ -6,7 +6,7 @@ type: reference
 aliases: ["cell click", "selection callback", "cursor event"]
 ---
 
-`onSelectionChange` pairs with the `selection` prop. `onActiveCellChange` follows the active cell. Three more callbacks report a mouse event on a cell. `onFill` belongs to the fill add-on.
+`onSelectionChange` pairs with the `selection` prop. `onActiveCellChange` follows the active cell. Three more callbacks report a mouse event on a cell.
 
 {/* props: DataGridSyncProps */}
 | Prop | Fires when | Default |
@@ -125,10 +125,6 @@ The callback fires on a double-click, also on a `readOnly` grid. On an editable 
 ### onCellContextMenu [#oncellcontextmenu]
 
 The callback fires on a right-click. The context menu add-on is not affected.
-
-## onFill [#onfill]
-
-`onFill` is an option of `useDataGridFill`, not a prop of the grid. It fires on a fill-handle release and on the fill down and fill right shortcuts, before the grid applies the fill. The argument holds `source` (the selected range), `target` (the strip to fill), `values` (the text of the fill), and `preventDefault()`. Call `preventDefault()` to write nothing and keep the selection as it is.
 
 ## Related
 

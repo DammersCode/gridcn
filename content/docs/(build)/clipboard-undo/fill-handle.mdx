@@ -96,32 +96,32 @@ Pass these options to `useDataGridFill`. Every option is optional:
 | Prop | Type | Default |
 | --- | --- | --- |
 | `disabled` | `boolean` | `false` |
-| `onFill` | `(args: FillArgs) => void` | none |
+| `processFill` | `(ctx: ProcessFillContext) => string[][] \| false` | none |
 | `detectSeries` | `(values: readonly string[]) => SeriesDescriptor \| null` | built-in detector |
 
 ### disabled [#turning-fill-off]
 
 `disabled` hides the handle and turns both commands into no-ops.
 
-### onFill
+### processFill
 
-`onFill` runs on drag release and on both keyboard commands, before the grid applies the fill. To cancel the fill, call `preventDefault`. The grid writes nothing and the selection does not expand. This handler cancels large fills:
+`processFill` <NewBadge /> runs on drag release and on both keyboard commands, before the grid applies the fill. It returns the text grid to write, or `false` to cancel the fill. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This gate cancels large fills:
 
 ```tsx
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
-import type { FillArgs } from "@/components/data-grid-fill/data-grid-fill";
+import type { ProcessFillContext } from "@/components/data-grid-fill/data-grid-fill";
 
-function onFill({ target, preventDefault }: FillArgs) {
-  if (target.height > 100) preventDefault();
+function processFill({ target, values }: ProcessFillContext) {
+  return target.height > 100 ? false : values;
 }
 
 function MyGrid() {
-  const { plugin } = useDataGridFill({ onFill });
+  const { plugin } = useDataGridFill({ processFill });
   // render the grid with plugins={[plugin]}
 }
 ```
 
-`FillArgs` also carries `source`, the rectangle of the source cells, and `values`, the text grid for the target before validation. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only.
+`ProcessFillContext` also carries `source`, the rectangle of the source cells, and `values`, the text grid for the target before parsing. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only. `onDataChange` with the `"fill"` source reports each fill that the grid writes.
 
 ### detectSeries [#custom-series-detection]
 

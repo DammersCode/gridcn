@@ -18,7 +18,6 @@ The grid reports each user action through a callback prop. In the demo, every ca
 - An edit logs `onEditStart`, then `onEditEnd`. A committed value logs `onDataChange` with the change.
 - A drag over cells logs `onSelectionChange`. The panel shows the first five rows of `details.getValues()`.
 - A header click logs `onSortChange`, because the demo sets `headerClickBehavior="sort"`. The filter menu logs `onFilterChange`.
-- A drag of the fill handle logs `onFill`, an option of `useDataGridFill`.
 - A scroll logs `onRenderedRowsChange`. A column resize logs `onColumnResizing` on each drag frame and `onColumnLayoutChange` on release. A pin or a hide from the header menu logs `onColumnLayoutChange`.
 - Simulate presence highlight calls `setPresenceHighlights` of `useDataGridPresence` and logs the highlights that it sets.
 

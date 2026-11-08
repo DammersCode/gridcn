@@ -1,5 +1,5 @@
 /** Public entry point — the only module consumers/docs should import from. */
-export { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult, type FillArgs } from "./use-data-grid-fill";
+export { useDataGridFill, type UseDataGridFillOptions, type UseDataGridFillResult, type ProcessFillContext } from "./use-data-grid-fill";
 export { detectSeries, type SeriesDescriptor } from "./fill";
 
 /** Offers the `fillDown`/`fillRight` global-shortcut flags — this add-on is what makes them do anything. */

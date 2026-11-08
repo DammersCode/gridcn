@@ -19,7 +19,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { getInternalActions, useDataGridStoreApi as useRawStoreApi } from "@/registry/default/blocks/data-grid/store";
 import { createFillStore } from "./fill-store";
-import { buildFillWrites, readRectAsText, useFillHandle } from "./use-fill-handle";
+import { buildFillWrites, readRectAsText, useFillHandle, type UseFillHandleOptions } from "./use-fill-handle";
 
 /** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
 function syncResolution(resolution: BulkResolution | Promise<BulkResolution>): BulkResolution {
@@ -207,7 +207,7 @@ describe("buildFillWrites with an async schema", () => {
     { id: "qty", header: "Qty", accessorKey: "qty", type: "number", validate: asyncQty as never },
   ];
 
-  it("holds the writes as a Promise while `filled` stays available synchronously for onFill", async () => {
+  it("holds the writes as a Promise while `filled` stays available synchronously for processFill", async () => {
     const s = fakeState({ columns: asyncColumns as never, visibleColumns: asyncColumns as never });
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 };
     const strip: GridRect = { x: 1, y: 2, width: 1, height: 2 };
@@ -285,7 +285,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
    * fill; `scrollRef`/`layout` are unused by `fillDown`/`fillRight` (only the pointer-drag path
    * reads them), so they're stubbed.
    */
-  function setUpFill(wrapper: ReturnType<typeof makeWrapper>) {
+  function setUpFill(wrapper: ReturnType<typeof makeWrapper>, processFill?: UseFillHandleOptions["processFill"]) {
     const { result } = renderHook(
       () => {
         const actions = useDataGridActions();
@@ -296,6 +296,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
           scrollRef,
           layout: {} as InteractionLayout,
           fillStore: createFillStore(),
+          processFill,
         });
         return { actions, storeApi, internal, fill };
       },
@@ -370,6 +371,21 @@ describe("useFillHandle staleness guard — async fill held against a real store
       source: "fill",
       rejected: [{ rowId: "2", columnId: "qty", viewRowIndex: 1, value: 2, message: "bad" }],
     });
+  });
+
+  it("processFill returning false vetoes the fill and keeps the selection", () => {
+    const onDataChange = vi.fn();
+    const result = setUpFill(makeWrapper(columns, { onDataChange }), () => false);
+    act(() => result.current.fill.fillDown());
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+
+  it("processFill can rewrite the values that the fill parses and writes", () => {
+    const onDataChange = vi.fn();
+    const result = setUpFill(makeWrapper(columns, { onDataChange }), ({ values }) => values.map((row) => row.map(() => "99")));
+    act(() => result.current.fill.fillDown());
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect(onDataChange.mock.calls[0]![1].ops).toEqual([expect.objectContaining({ rowId: "2", cells: [expect.objectContaining({ columnId: "qty", value: 99 })] })]);
   });
 
   it("drops a held fill and its rejections when the grid turns read-only before it settles", async () => {
@@ -468,7 +484,7 @@ describe("useFillHandle callback identity", () => {
           scrollRef,
           layout: {} as InteractionLayout,
           fillStore: createFillStore(),
-          onFill: () => {},
+          processFill: ({ values }) => values,
           detectSeries: () => {
             detectCalls.push(tag);
             return null;

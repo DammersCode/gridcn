@@ -43,7 +43,7 @@ mirror the change there.
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
 | paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | sliced data, page slice |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
-| gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
+| gate | A prop function that the grid calls before it acts, for example `processPaste`, `processFill`, or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names; the root carries `data-gate-pending`. | gate busy, gate loading |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |

@@ -33,7 +33,7 @@ function useInteractionLayoutFromContext(): InteractionLayout {
 }
 
 /** Props for {@link FillMount} — everything `useFillHandle` needs except `scrollRef`/`layout` (read from context here, only available inside `DataGridRoot`'s own subtree). */
-export type FillMountProps = Pick<UseFillHandleOptions, "disabled" | "onFill" | "detectSeries"> & {
+export type FillMountProps = Pick<UseFillHandleOptions, "disabled" | "processFill" | "detectSeries"> & {
   fillStore: FillStoreApi;
 };
 

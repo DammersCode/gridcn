@@ -6,7 +6,7 @@ type: reference
 aliases: ["event list", "which callback", "controlled props"]
 ---
 
-Every callback on these pages except `onFill` is a prop of `DataGrid` or `DataGridProvider`. `onFill` is an option of `useDataGridFill`. Other add-ons document their own callbacks on their option pages. A callback belongs to a controlled prop, reports an event, or is a gate. The tables below name the callback for each need and link its payload.
+Every callback on these pages except `processFill` is a prop of `DataGrid` or `DataGridProvider`. `processFill` is an option of `useDataGridFill`. Other add-ons document their own callbacks on their option pages. A callback belongs to a controlled prop, reports an event, or is a gate. The tables below name the callback for each need and link its payload.
 
 ## Find the callback [#find-the-callback]
 
@@ -26,7 +26,7 @@ Every callback on these pages except `onFill` is a prop of `DataGrid` or `DataGr
 | Read or control the selection | `onSelectionChange` | [Selection and cell events](/docs/events-state/selection-cell-events#onselectionchange) |
 | Follow the active cell | `onActiveCellChange` | [Selection and cell events](/docs/events-state/selection-cell-events#onactivecellchange) |
 | React to a click, double-click, or right-click on a cell | `onCellClick`, `onCellDoubleClick`, `onCellContextMenu` | [Selection and cell events](/docs/events-state/selection-cell-events#oncellclick) |
-| Cancel a fill | `onFill` | [Selection and cell events](/docs/events-state/selection-cell-events#onfill) |
+| Cancel or rewrite a fill | `processFill` | [Fill handle](/docs/clipboard-undo/fill-handle#processfill) |
 | Save or restore the column layout | `onColumnLayoutChange` | [Column and viewport events](/docs/events-state/column-viewport-events#oncolumnlayoutchange) |
 | Show a live width during a resize | `onColumnResizing` | [Column and viewport events](/docs/events-state/column-viewport-events#oncolumnresizing) |
 | Load rows for the rendered range | `onRenderedRowsChange` | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
@@ -75,7 +75,7 @@ A gate runs before the grid acts and can stop the action:
 
 - `onEditStart` returns `false` to stop an edit.
 - `onBeforeDeleteRows` returns `false` to stop a row delete.
-- `onFill` calls `preventDefault()` to stop a fill.
+- `processFill` returns `false` to stop a fill. It can also return a rewritten text grid.
 - `processPaste` returns `false` to stop a paste.
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).

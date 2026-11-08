@@ -57,7 +57,7 @@ describe("useDataGridFill: plugin component identity across parent re-renders", 
     function Harness() {
       // Mirrors the documented (and audit-flagged) consumer shape: useDataGridFill called in the
       // same component that owns unrelated re-render-triggering state (a keystroke, a selection
-      // change, anything besides disabled/onFill themselves).
+      // change, anything besides disabled/processFill themselves).
       const [tick, setTick] = useState(0);
       bumpUnrelatedState = () => setTick((t) => t + 1);
       const { plugin } = useDataGridFill();

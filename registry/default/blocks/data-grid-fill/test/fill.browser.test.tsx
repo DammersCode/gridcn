@@ -10,7 +10,7 @@ import {
   type DataChange,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFill } from "../data-grid-fill";
-import type { FillArgs } from "../data-grid-fill";
+import type { ProcessFillContext } from "../data-grid-fill";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   cellAt,
@@ -44,10 +44,10 @@ function mockDataChangeFn() {
 function renderFillGrid(
   data: NumRow[],
   onDataChange?: (next: readonly NumRow[], change: DataChange<NumRow>) => void,
-  onFill?: (args: FillArgs) => void,
+  processFill?: (ctx: ProcessFillContext) => string[][] | false,
 ) {
   function Harness() {
-    const { plugin } = useDataGridFill({ onFill });
+    const { plugin } = useDataGridFill({ processFill });
     return (
       <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
         <DataGridRoot className="h-[600px]">
@@ -145,20 +145,20 @@ describe("data-grid-fill add-on", () => {
     }
   });
 
-  it("onFill's values is the computed fill pattern, not the destination's stale content", async () => {
+  it("processFill's values is the computed fill pattern, not the destination's stale content", async () => {
     const onDataChange = mockDataChangeFn();
-    const onFill = vi.fn<(args: FillArgs) => void>();
+    const processFill = vi.fn((ctx: ProcessFillContext): string[][] | false => ctx.values);
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
-    await renderFillGrid(data, onDataChange, onFill);
+    await renderFillGrid(data, onDataChange, processFill);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await selectValueColumn(2); // selects rows 0-1: values 2, 4
     await dragHandleToRow(4); // extend down through row 4 (3 more rows: 2,3,4)
 
-    expect(onFill).toHaveBeenCalledTimes(1);
-    const [args] = onFill.mock.calls[0]!;
+    expect(processFill).toHaveBeenCalledTimes(1);
+    const [args] = processFill.mock.calls[0]!;
     // the destination rows were 2,3,4 (untouched) before the fill — values must be the extrapolated 6,8,10, not that.
     expect(args.values).toEqual([["6"], ["8"], ["10"]]);
   });

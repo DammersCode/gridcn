@@ -5,10 +5,10 @@ import { useDataGridEditing, useDataGridReadOnly, useDataGridSelection, type Dat
 import { createFillStore, useFillOnPointerDown, useFillPreview, type FillStoreApi } from "./fill-store";
 import { renderFillOverlay } from "./fill-overlay";
 import { FillMount } from "./fill-mount";
-import type { FillArgs, UseFillHandleOptions } from "./use-fill-handle";
+import type { ProcessFillContext, UseFillHandleOptions } from "./use-fill-handle";
 
 /** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, where the plugin's `Mount` reads them). */
-export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "onFill" | "detectSeries">;
+export type UseDataGridFillOptions = Pick<UseFillHandleOptions, "disabled" | "processFill" | "detectSeries">;
 
 /** Return value of {@link useDataGridFill}. */
 export type UseDataGridFillResult = {
@@ -29,7 +29,7 @@ export function useDataGridFill(options: UseDataGridFillOptions = {}): UseDataGr
 
   // Kept live via a ref (not hook args) so the plugin's Overlay/Mount components keep a fixed
   // identity for the hook's lifetime — reading options.current on every render instead of
-  // closing over disabled/onFill directly, which would force a fresh component per call.
+  // closing over disabled/processFill directly, which would force a fresh component per call.
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -74,11 +74,11 @@ function createFillOverlay(fillStore: FillStoreApi, optionsRef: { current: UseDa
 /** The plugin's mount component: a fixed-identity wrapper over {@link FillMount} that reads the live options from the ref on every render. */
 function createFillMount(fillStore: FillStoreApi, optionsRef: { current: UseDataGridFillOptions }): ComponentType {
   function FillMountComponent(): ReactNode {
-    const { disabled, onFill, detectSeries } = optionsRef.current;
-    return <FillMount fillStore={fillStore} disabled={disabled} onFill={onFill} detectSeries={detectSeries} />;
+    const { disabled, processFill, detectSeries } = optionsRef.current;
+    return <FillMount fillStore={fillStore} disabled={disabled} processFill={processFill} detectSeries={detectSeries} />;
   }
   return FillMountComponent;
 }
 
-export type { FillArgs, UseFillHandleOptions };
+export type { ProcessFillContext, UseFillHandleOptions };
 export type { FillHandleHandlers } from "./use-fill-handle";
