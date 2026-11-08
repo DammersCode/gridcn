@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_KEYMAP } from "./default-keymap";
 import {
   enabledGlobalActions,
+  bareGlobalBindings,
   resolveGlobalShortcut,
   type GlobalShortcutContext,
   type GlobalShortcutEvent,
@@ -55,6 +56,17 @@ describe("enabledGlobalActions", () => {
 describe("resolveGlobalShortcut - gate rules", () => {
   it("resolves the default undo binding on non-mac (ctrl+z)", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx())).toBe("undo");
+  });
+
+  it("ignores a bare-key binding of an enabled action", () => {
+    const keymap = { ...DEFAULT_KEYMAP, deleteRows: ["Delete"] } as GlobalShortcutContext["keymap"];
+    const ctx = makeCtx({ keymap, actions: ["deleteRows"] });
+    expect(resolveGlobalShortcut(makeEvent({ key: "Delete" }), ctx)).toBe(null);
+  });
+
+  it("lists the bare bindings of the enabled actions", () => {
+    const keymap = { ...DEFAULT_KEYMAP, deleteRows: ["Delete", "mod+Backspace"] } as GlobalShortcutContext["keymap"];
+    expect(bareGlobalBindings(keymap, ["undo", "deleteRows"])).toEqual(["deleteRows: Delete"]);
   });
 
   it("resolves the default undo binding on mac (cmd+z)", () => {

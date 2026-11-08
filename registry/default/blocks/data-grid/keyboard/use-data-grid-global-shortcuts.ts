@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { GlobalShortcutsConfig } from "./global-shortcuts";
-import { enabledGlobalActions, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
+import { bareGlobalBindings, enabledGlobalActions, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
+import { isDev } from "../is-dev";
 import { isPrintableKey } from "./is-printable-key";
 import { useDataGridContainer } from "../interaction/use-data-grid-container";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
@@ -47,6 +48,16 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   // (lastFocusedGrid would no longer match) whenever the effect re-runs
   const gridIdRef = useRef(0);
   if (gridIdRef.current === 0) gridIdRef.current = ++nextGridId;
+
+  const bareBindings = bareGlobalBindings(keymap, enabled).join(", ");
+  const warnedRef = useRef(false);
+  useEffect(() => {
+    if (!bareBindings || warnedRef.current || !isDev()) return;
+    warnedRef.current = true;
+    console.warn(
+      `[data-grid] global shortcut binding(s) without Ctrl/Cmd never fire outside the grid (${bareBindings}); add mod+ to the binding or handle the key in your own window listener`,
+    );
+  }, [bareBindings]);
 
   useEffect(() => {
     const container = containerRef.current;

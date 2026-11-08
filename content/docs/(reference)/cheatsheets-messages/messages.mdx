@@ -50,6 +50,7 @@ These warnings come from the `keymap` and `commands` props.
 | `[data-grid] keymap binding "<binding>" is bound to multiple actions (<actions>); the most specific binding wins; on a tie a keymap binding beats a default. Assign distinct combos to keep every action reachable.` | Give each action its own key combination. | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `[data-grid] keymap action "<action>" has no built-in handler and no custom command; the binding is a no-op` | Add a `commands` entry for the action or remove the binding. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] commands shadows built-in action(s) <names>; the command wins and the built-in no longer dispatches` | Rename the command if you want the built-in action to keep working. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
+| `[data-grid] global shortcut binding(s) without Ctrl/Cmd never fire outside the grid (<action>: <binding>); ...` | Add `mod+` to the binding, or handle the key in your own `window` listener. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 
 ## Data and row warnings [#data-warnings]
 

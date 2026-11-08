@@ -1,6 +1,6 @@
 import type { GridAction, Keymap } from "../types";
 import { isComposingKey } from "../interaction/is-composing-key";
-import { matchKeymap } from "./match-keymap";
+import { matchKeymap, parseBinding } from "./match-keymap";
 import { isMacPlatform } from "./platform";
 
 /**
@@ -89,6 +89,7 @@ export type GlobalShortcutContext = {
  * 5. `ownsFocus` — multi-grid: only the last focused opted-in grid proceeds.
  * 6. `editing` — an open edit session owns the keys, even from a popup outside the grid.
  * 7. The keymap resolves to one of the enabled actions.
+ * 8. The event carries `ctrlKey` or `metaKey`; a bare key never fires page-wide.
  */
 export function resolveGlobalShortcut(
   event: GlobalShortcutEvent,
@@ -102,7 +103,18 @@ export function resolveGlobalShortcut(
   if (ctx.editing) return null;
   const action = matchKeymap(event, ctx.keymap, ctx.isMac, ctx.include);
   if (action === null) return null;
-  return ctx.actions.includes(action) ? action : null;
+  if (!ctx.actions.includes(action)) return null;
+  return event.ctrlKey || event.metaKey ? action : null;
+}
+
+/** The enabled actions that have a binding without Ctrl/Cmd; the global layer never fires those. */
+export function bareGlobalBindings(keymap: Keymap, actions: readonly GridAction[]): string[] {
+  return actions.flatMap((action) =>
+    (keymap[action] ?? []).filter((binding) => {
+      const parsed = parseBinding(binding);
+      return !parsed.mod && !parsed.ctrl;
+    }).map((binding) => `${action}: ${binding}`),
+  );
 }
 
 /** The current platform check, re-exported so consumers/tests never drift from the hook's view. */

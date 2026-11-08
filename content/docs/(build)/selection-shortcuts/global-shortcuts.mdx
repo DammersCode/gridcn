@@ -88,9 +88,7 @@ Omit every flag to enable undo and redo.
 
 Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For example, `insertRowBelow` does nothing without `createRow`, and the row actions do nothing in a read-only grid. The listener reads the effective keymap, so a remapped binding applies to the global layer too. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#remapping).
 
-<Callout type="warn">
-Keep <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> in every remapped binding of a flagged action. The default bindings of all nine actions include it. The layer does not check modifiers. A bare key binding fires on that key anywhere on the page, outside fields and grids.
-</Callout>
+The layer fires a binding only when the key press carries <kbd>Ctrl</kbd> or <kbd>Cmd</kbd>. <NewBadge /> A flagged action with a bare key binding, such as `deleteRows: ["Delete"]`, stays in the grid. In development, the grid warns once about such a binding. To act on a bare key page-wide, add your own `window` listener that calls `api.actions`.
 
 ## Multiple grids [#multiple-grids]
 
