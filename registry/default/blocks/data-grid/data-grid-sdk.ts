@@ -7,8 +7,8 @@
  * imports of this file are rewritten to relative paths at install time (scripts/fix-registry-imports.mjs).
  */
 
-import { useCallback } from "react";
-import { useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
+import { useCallback, useEffect } from "react";
+import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
 import type { LiveAnnouncementKind } from "./store/types";
@@ -119,6 +119,17 @@ export {
 export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
 }
+
+/** Registers `focus` as what the `focusSearch` action runs while the caller is mounted; without one the action leaves its key to the browser. */
+export function useDataGridFocusSearchRegistration(focus: () => void): void {
+  const internalActions = useDataGridInternalActions();
+  useEffect(() => {
+    internalActions._registerFocusSearch(focus);
+    return () => internalActions._registerFocusSearch(null);
+  }, [internalActions, focus]);
+}
+
+export { matchKeymap } from "./keyboard";
 
 /** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */
 export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: number, partial?: boolean) => void {

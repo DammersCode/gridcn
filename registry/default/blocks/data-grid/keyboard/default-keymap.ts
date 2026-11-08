@@ -54,6 +54,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   openColumnMenu: ["shift+alt+ArrowDown"],
   // mirrors openColumnMenu; Alt+Arrow produces no character on any layout, so it never collides with AltGr
   openColumnFilter: ["shift+alt+ArrowUp"],
+  focusSearch: ["mod+f"],
   edit: ["Enter", "F2", " "],
   commitDown: ["Enter"],
   commitUp: ["shift+Enter"],

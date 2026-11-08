@@ -517,6 +517,12 @@ export function dispatchGridAction(args: {
       startEditingAndReveal(state.activeCell, triggerKey);
       break;
     }
+    case "focusSearch": {
+      if (!state.focusSearchImpl) break;
+      preventDefault();
+      state.focusSearchImpl();
+      break;
+    }
     case "cancel": {
       preventDefault();
       getInternalActions(storeApi)._cancelSelection();

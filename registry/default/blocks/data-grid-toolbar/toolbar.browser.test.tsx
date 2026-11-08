@@ -242,7 +242,7 @@ describe("DataGridSearch", () => {
   });
 });
 
-describe("DataGridSearch captureFindShortcut", () => {
+describe("DataGridSearch focusSearch action", () => {
   /** Dispatches mod+F on `target` and returns the event so tests can read `defaultPrevented`. */
   function dispatchModF(target: Element): KeyboardEvent {
     const event = new KeyboardEvent("keydown", { key: "f", ctrlKey: true, bubbles: true, cancelable: true });
@@ -265,7 +265,7 @@ describe("DataGridSearch captureFindShortcut", () => {
     );
   }
 
-  it("defaults to on: mod+F with focus inside the grid focuses the search input and is defaultPrevented", async () => {
+  it("mod+F with focus inside the grid focuses the search input and is defaultPrevented", async () => {
     await renderGridDefault();
     await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
     const cell = document.querySelector<HTMLElement>('[role="gridcell"]');
@@ -277,7 +277,7 @@ describe("DataGridSearch captureFindShortcut", () => {
     await expect.element(input).toHaveFocus();
   });
 
-  it("defaults to on: mod+F while the search input is already focused selects its text", async () => {
+  it("mod+F while the search input is already focused selects its text", async () => {
     await renderGridDefault();
     const input = page.getByRole("textbox", { name: "Search grid" });
     await input.fill("alic");
@@ -365,11 +365,11 @@ describe("DataGridSearch captureFindShortcut", () => {
     await expect.element(page.getByRole("textbox", { name: "Search grid A" })).not.toHaveFocus();
   });
 
-  it("captureFindShortcut={false} opts out: mod+F is never intercepted regardless of focus", async () => {
+  it("keymap={{ focusSearch: [] }} unbinds: mod+F is never intercepted regardless of focus", async () => {
     await render(
-      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} keymap={{ focusSearch: [] }}>
         <DataGridToolbar>
-          <DataGridSearch captureFindShortcut={false} />
+          <DataGridSearch />
         </DataGridToolbar>
         <DataGridRoot className="h-[300px]">
           <DataGridHeader />
@@ -382,6 +382,43 @@ describe("DataGridSearch captureFindShortcut", () => {
     cell!.focus();
     const event = dispatchModF(document.activeElement ?? document.body);
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("a rebound focusSearch chord focuses the search input and frees mod+F", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} keymap={{ focusSearch: ["mod+j"] }}>
+        <DataGridToolbar>
+          <DataGridSearch />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    const cell = document.querySelector<HTMLElement>('[role="gridcell"]');
+    cell!.focus();
+    expect(dispatchModF(cell!).defaultPrevented).toBe(false);
+    const rebound = new KeyboardEvent("keydown", { key: "j", ctrlKey: true, bubbles: true, cancelable: true });
+    cell!.dispatchEvent(rebound);
+    expect(rebound.defaultPrevented).toBe(true);
+    await expect.element(page.getByRole("textbox", { name: "Search grid" })).toHaveFocus();
+  });
+
+  it("without a mounted DataGridSearch the grid leaves mod+F to the browser", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    const cell = document.querySelector<HTMLElement>('[role="gridcell"]');
+    cell!.focus();
+    expect(dispatchModF(cell!).defaultPrevented).toBe(false);
   });
 });
 

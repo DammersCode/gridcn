@@ -77,9 +77,9 @@ Focus stays <NewBadge /> in the search field while Enter steps through the match
 | <kbd>Escape</kbd> | Clears the text and the search. |
 | <kbd>Mod</kbd>+<kbd>F</kbd> | Focuses the input, or selects its text when it has focus. |
 
-<kbd>Mod</kbd>+<kbd>F</kbd> works while focus is inside the grid or its toolbar. Anywhere else on the page, the browser's own find opens. Several grids on one page each take the key when they hold focus. When a toolbar you build yourself carries the `data-grid-toolbar` attribute and contains the `DataGridSearch`, it counts as part of the grid. Native find cannot see rows that virtualization has not rendered, so the grid takes the key. To keep the browser's find in the grid, pass `captureFindShortcut={false}` to `DataGridSearch`.
+<kbd>Mod</kbd>+<kbd>F</kbd> works while focus is inside the grid or its toolbar. Anywhere else on the page, the browser's own find opens. Several grids on one page each take the key when they hold focus. When a toolbar you build yourself carries the `data-grid-toolbar` attribute and contains the `DataGridSearch`, it counts as part of the grid. Native find cannot see rows that virtualization has not rendered, so the grid takes the key. The key is the `focusSearch`<NewBadge /> action of the `keymap`. To keep the browser's find in the grid, set `keymap={{ focusSearch: [] }}`. To use another key, set `keymap={{ focusSearch: ["mod+j"] }}`. Without a `DataGridSearch` on screen, the browser keeps the key.
 
-With the find and replace add-on mounted, <kbd>Mod</kbd>+<kbd>F</kbd> in the grid opens its panel instead. Both show the same search text.
+With the find and replace add-on mounted, <kbd>Mod</kbd>+<kbd>F</kbd> opens its panel instead, and `focusSearch` has no default key. Bind `focusSearch` in your `keymap` to focus the toolbar input with another key. Both show the same search text.
 
 ## Typing delay
 
@@ -93,7 +93,6 @@ Typed text <NewBadge /> is not lost. Blur, <kbd>Enter</kbd>, and unmount commit 
 |---|---|---|---|
 | `placeholder` | `string` | none | Placeholder text. The default comes from `labels.toolbar.searchPlaceholder`. |
 | `debounceMs` | `number` | none | Typing delay in ms. The default is the provider's `inputDebounceMs`. |
-| `captureFindShortcut` | `boolean` | `true` | Takes <kbd>Mod</kbd>+<kbd>F</kbd> while focus is in the grid. |
 | `className` | `string` | none | Classes for the root. |
 
 `defaultSearchText` seeds the text once. `searchText` and `onSearchTextChange(next)` control it.

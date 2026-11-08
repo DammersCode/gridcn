@@ -576,6 +576,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
       openColumnMenu: "Open column menu",
       openColumnFilter: "Open column filter",
       openFind: "Find",
+      focusSearch: "Search",
       openFindReplace: "Find and replace",
 
       edit: "Edit cell",

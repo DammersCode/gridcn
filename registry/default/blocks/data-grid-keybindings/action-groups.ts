@@ -66,6 +66,7 @@ export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = 
   openColumnMenu: "selection",
   openColumnFilter: "selection",
   openFind: "selection",
+  focusSearch: "selection",
   openFindReplace: "selection",
 
   edit: "editing",

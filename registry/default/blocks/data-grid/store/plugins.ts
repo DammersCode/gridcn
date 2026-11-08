@@ -178,7 +178,8 @@ export function mergePluginCommands(
  * `keymap` (always last, and wins). A plugin entry names a pluggable built-in action or a command
  * the plugin defines; any other entry is dropped, dev-warned. A binding another action already
  * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned; the kept
- * bindings replace that action's bindings.
+ * bindings replace that action's bindings. `openFind` and `openFindReplace` take their chord from
+ * the default `focusSearch` binding.
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -204,10 +205,12 @@ export function mergePluginKeymaps(
         );
         continue;
       }
+      const takesSearchKey = (name === "openFind" || name === "openFindReplace") && !consumerKeymap?.focusSearch;
       const effective: Keymap = consumerKeymap ? { ...merged, ...consumerKeymap } : merged;
       const taken = new Set<string>([...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])]);
       for (const [other, otherBindings] of Object.entries(effective)) {
-        if (other !== name) for (const binding of otherBindings ?? []) taken.add(binding);
+        if (other === name || (other === "focusSearch" && takesSearchKey)) continue;
+        for (const binding of otherBindings ?? []) taken.add(binding);
       }
       const kept = (bindings ?? []).filter((binding) => !taken.has(binding));
       if (kept.length < (bindings ?? []).length) {
@@ -217,6 +220,7 @@ export function mergePluginKeymaps(
         );
       }
       if (kept.length > 0) merged[name as GridAction] = kept;
+      if (takesSearchKey && merged.focusSearch) merged.focusSearch = merged.focusSearch.filter((binding) => !kept.includes(binding));
     }
   }
   if (consumerKeymap) Object.assign(merged, consumerKeymap);

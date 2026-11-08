@@ -402,6 +402,7 @@ describe("GridAction coverage", () => {
     openLink: true,
     openFindReplace: true,
     openFind: true,
+    focusSearch: true,
   };
 
   it("every GridAction is either bound in DEFAULT_KEYMAP, implicit-fallback, or explicitly allowlisted", () => {

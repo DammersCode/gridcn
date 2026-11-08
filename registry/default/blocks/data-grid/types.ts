@@ -778,6 +778,7 @@ export interface GridActions {
   openLink: true;
   openFindReplace: true;
   openFind: true;
+  focusSearch: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */
@@ -844,6 +845,7 @@ export type DataGridReadState = Omit<
   | "onRenderedRowsChange"
   | "scrollToCellImpl"
   | "focusImpl"
+  | "focusSearchImpl"
   | "measureFonts"
   | "dataWrite"
 >;

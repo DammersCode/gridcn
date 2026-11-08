@@ -14,12 +14,16 @@ import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import {
+  isMacPlatform,
   useDataGridActions,
+  useDataGridKeymap,
   useDataGridLabels,
   useDataGridScrollToCellAt,
   useDataGridSearchText,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import {
+  matchKeymap,
+  useDataGridFocusSearchRegistration,
   useDataGridInstanceId,
   useDataGridStoreApi,
   GRID_ATTR,
@@ -40,13 +44,6 @@ export type DataGridSearchProps = {
    * Debounce (ms) between typing and the store's `searchText` update. Default: the provider's `inputDebounceMs` (200).
    */
   debounceMs?: number;
-  /**
-   * Mod+F (Ctrl+F / Cmd+F) with focus inside this grid or its toolbar focuses or selects this input
-   * instead of opening the browser's find bar, which cannot reach virtualized rows. The listener sits
-   * on `document` and acts only when focus is in this grid or its toolbar, so a sibling grid and the
-   * rest of the page keep the browser's find. Default `true`; `false` always leaves Mod+F to the browser.
-   */
-  captureFindShortcut?: boolean;
 };
 
 /** True when `target` sits in this grid's DOM, or in a `[data-grid-toolbar]` that holds `input`; never in a sibling grid. */
@@ -64,7 +61,7 @@ function isInsideGridScope(target: EventTarget | null, instanceId: string, input
  * Escape clears the field and the store's search text.
  */
 export function DataGridSearch(props: DataGridSearchProps): ReactNode {
-  const { className, placeholder, captureFindShortcut = true, debounceMs } = props;
+  const { className, placeholder, debounceMs } = props;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const searchText = useDataGridSearchText();
@@ -73,6 +70,7 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
   const scrollToCell = useDataGridScrollToCellAt();
   const instanceId = useDataGridInstanceId();
   const storeApi = useDataGridStoreApi();
+  const keymap = useDataGridKeymap();
 
   const providerDebounceMs = useDataGridInputDebounce();
   // the input value is decoupled from the store's debounced searchText, so typing never stalls.
@@ -91,26 +89,26 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
     setMatchIndex(0);
   }
 
-  // No DOM ancestor spans toolbar and root, so listen on document and gate by instance id or the toolbar holding this input.
-  useEffect(() => {
-    if (!captureFindShortcut) return;
+  const focusInput = useCallback(() => {
+    const field = inputRef.current;
+    if (!field) return;
+    if (document.activeElement === field) field.select();
+    else field.focus();
+  }, []);
+  useDataGridFocusSearchRegistration(focusInput);
 
+  // The grid's keymap layer handles focusSearch inside the root; this listener covers the toolbar, which no DOM ancestor shares with the root.
+  useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const isFind = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "f";
-      if (!isFind || event.defaultPrevented || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
+      if (event.defaultPrevented || !isInsideGridScope(event.target, instanceId, inputRef.current)) return;
+      if (matchKeymap(event, keymap, isMacPlatform(), (action) => action === "focusSearch") === null) return;
       event.preventDefault();
-      const input = inputRef.current;
-      if (!input) return;
-      if (document.activeElement === input) {
-        input.select();
-      } else {
-        input.focus();
-      }
+      focusInput();
     }
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [captureFindShortcut, instanceId]);
+  }, [focusInput, instanceId, keymap]);
 
   const goToMatch = useCallback(
     (index: number) => {

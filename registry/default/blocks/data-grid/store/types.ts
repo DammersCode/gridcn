@@ -910,6 +910,8 @@ export type DataGridStoreState = Omit<
   scrollToCellImpl: ((coord: ViewCoord) => void) | null;
   /** DOM focus for the active cell's element, or the grid when that element is not rendered; registered by the mounted `DataGridRoot`, like `scrollToCellImpl`. */
   focusImpl: (() => void) | null;
+  /** Focuses the quick-search input; registered by the mounted `DataGridSearch` (null without one), which makes `focusSearch` leave the key to the browser. */
+  focusSearchImpl: (() => void) | null;
   /**
    * The autosize measure context the mounted `DataGridRoot` registers (fonts, mounted row
    * window, header-menu flag) — `null` before mount/after unmount, when
@@ -1286,6 +1288,8 @@ export type DataGridInternalActions = {
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
   _registerFocus(impl: (() => void) | null): void;
+  /** @internal `DataGridSearch` registers/clears its input focus on mount/unmount; not part of the public hook surface. */
+  _registerFocusSearch(impl: (() => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
   /**

@@ -272,6 +272,21 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
   });
 
+  it("openFind takes mod+f from the default focusSearch binding without a warning", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
+    const merged = mergePluginKeymaps([plugin], undefined, warn);
+    expect(merged.openFind).toEqual(["mod+f"]);
+    expect(merged.focusSearch).toEqual([]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("openFind leaves focusSearch alone when the consumer binds it", () => {
+    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
+    const merged = mergePluginKeymaps([plugin], { focusSearch: ["mod+j"] }, vi.fn());
+    expect(merged.focusSearch).toEqual(["mod+j"]);
+  });
+
   it("keymap merge order: DEFAULT_KEYMAP <- plugin keymaps (array order) <- consumer keymap", () => {
     const warn = vi.fn();
     const plugin = {

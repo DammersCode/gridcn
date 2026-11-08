@@ -70,9 +70,11 @@ Place it inside `DataGridProvider`, above `DataGridRoot`. Its children share the
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/search.tsx" name="DataGridSearchProps" />
 
-### captureFindShortcut [#capturefindshortcut]
+### focusSearch [#focussearch]
 
-While focus is inside this grid or its toolbar, <kbd>Mod</kbd>+<kbd>F</kbd> focuses the input and leaves the browser find bar closed. Focus anywhere else keeps the browser behavior. The handler skips a key press that another handler already handled.
+<NewBadge />
+
+The `focusSearch` action of the `keymap` prop binds <kbd>Mod</kbd>+<kbd>F</kbd> by default. While focus is inside this grid or its toolbar, the key focuses the input and leaves the browser find bar closed. Focus anywhere else keeps the browser behavior. The handler skips a key press that another handler already handled. `keymap={{ focusSearch: [] }}` leaves the key to the browser.
 
 ## DataGridFilterMenu [#datagridfiltermenu]
 
