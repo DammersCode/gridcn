@@ -286,7 +286,6 @@ function PlaygroundToolbar({ openKeybindings, importDisabled }: { openKeybinding
         ) : (
           <DataGridImportButton<DemoRow>
             createRow={(index) => ({ id: `imported-${index}`, name: "", email: "", age: 18, active: false, role: "User", joined: "", score: 0 })}
-            onImport={() => {}}
           />
         )}
         <DataGridExportButton />

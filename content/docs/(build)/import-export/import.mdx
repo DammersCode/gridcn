@@ -6,7 +6,7 @@ type: feature
 aliases: ["csv import", "xlsx import", "csv upload"]
 ---
 
-Import reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` opens a dialog where the user picks a file, maps its columns, and checks a preview. The dialog runs every cell through the `fromText` of its column's cell type, as a paste does, and hands the rows to your `onImport`. It never writes rows to the grid itself.
+Import reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` opens a dialog where the user picks a file, maps its columns, and checks a preview. The dialog runs every cell through the `fromText` of its column's cell type, as a paste does, and appends the rows to the grid, or hands them to your `onImport`.
 
 <ComponentPreview name="data-grid-io-demo" />
 
@@ -14,13 +14,11 @@ Import reads a CSV, TSV, XLSX, or XLS file into rows. `DataGridImportButton` ope
 
 ## Import a file [#import]
 
-Render this component inside the grid's provider. `./orders` stands for your own module, and `Order` is your row type, here `{ id: string; customer: string; total: number }`. The component appends the rows as one undoable change:
+Render this component inside the grid's provider. `./orders` stands for your own module, and `Order` is your row type, here `{ id: string; customer: string; total: number }`. The button appends the rows as one undoable change:
 
 ```tsx
 "use client";
 
-import { useDataGridActions } from "@/components/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/components/data-grid/data-grid-sdk";
 import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
 import type { Order } from "./orders";
 
@@ -29,25 +27,7 @@ function createImportedRow(): Order {
 }
 
 export function ImportOrders() {
-  const actions = useDataGridActions();
-  const storeApi = useDataGridStoreApi();
-  return (
-    <DataGridImportButton
-      createRow={createImportedRow}
-      onImport={(rows) => {
-        const start = storeApi.getState().data.length;
-        actions.commitChange({
-          source: "import",
-          ops: rows.map((row, offset) => ({
-            type: "insert",
-            rowId: row.id,
-            row,
-            index: start + offset,
-          })),
-        });
-      }}
-    />
-  );
+  return <DataGridImportButton createRow={createImportedRow} />;
 }
 ```
 
@@ -55,7 +35,9 @@ export function ImportOrders() {
 
 `createRow` can return a promise. A rejected promise imports nothing, and Cancel stops a pending import.
 
-`onImport(rows)` decides where the rows land: append, replace, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
+Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. A grid with a `totalRowCount` holds a window of its result, so it has no default: a confirm writes nothing, the dialog shows `The import could not be completed. Try again.`, and a development build warns once. Pass `onImport` on such a grid.
+
+`onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 
 A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
 
@@ -141,7 +123,7 @@ The dialog's drop target is the `dropzone` item, which `data-grid-io` installs. 
 
 ## Server mode
 
-Import <NewBadge /> reads no sort, filter, page, or server state. The dialog never writes rows into the grid. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so send the rows to your API from `onImport` and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
+Import <NewBadge /> reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`: send the rows to your API there and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
 
 ## Related
 

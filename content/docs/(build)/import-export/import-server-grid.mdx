@@ -6,7 +6,7 @@ type: task
 aliases: ["import to server", "import server rows", "import totalRowCount"]
 ---
 
-The import dialog never writes rows into the grid. `onImport(rows, { signal })` is the only exit. A grid with a `totalRowCount` or unloaded rows cannot take appended rows. The data exceeds the count, and the next refresh drops them. Send the rows to your server instead.
+The default append of the import dialog needs the full data. `onImport(rows, { signal })` is the exit of a server grid. A grid with a `totalRowCount` or unloaded rows cannot take appended rows. The data exceeds the count, and the next refresh drops them. Send the rows to your server instead.
 
 <ComponentPreview name="data-grid-export-all-demo" />
 

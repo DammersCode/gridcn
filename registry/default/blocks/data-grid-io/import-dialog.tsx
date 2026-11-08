@@ -67,10 +67,10 @@ export type DataGridImportDialogProps<TData> = {
   className?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
+  /** Builds a fresh row for import row `index`; required. */
   createRow: (index: number, ctx: GateContext) => TData | Promise<TData>;
-  /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace/append). Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. `ctx.signal` aborts when the user cancels or the dialog closes; pass it to your request. */
-  onImport: (rows: TData[], ctx: ImportContext) => void | Promise<void>;
+  /** Called with the fully-built rows on confirm; the consumer decides how to merge (replace, upsert, or a server call). Default: appends the rows to `data` as one undoable `"import"` change. A grid with `totalRowCount` holds a window of its result, so it has no default and needs this prop. Cells rejected by `validate` are already cleared in these rows. May be async (e.g. a server upsert) — the dialog stays pending until it settles and surfaces a rejection instead of closing. `ctx.signal` aborts when the user cancels or the dialog closes; pass it to your request. */
+  onImport?: (rows: TData[], ctx: ImportContext) => void | Promise<void>;
   /** Called once when `onImport` rejects, with the rejection. The dialog stays open. */
   onImportError?: (error: unknown) => void;
   /** Consumer-configurable preselection defaults (delimiter, header row, skip columns, mapping). Omit to keep the built-in detection. */
@@ -94,8 +94,8 @@ export type DataGridImportDialogProps<TData> = {
 /**
  * File-picker -> preview -> column-mapping -> confirm dialog. Parses via
  * {@link useDataGridImportPreview}, builds `TData` rows via {@link buildImportedRows} through each mapped
- * column's cell-type `fromText` + `validate`, then hands the rows to `onImport` — it never writes
- * to the grid store directly, so replace/append semantics stay the consumer's call. A cell that
+ * column's cell-type `fromText` + `validate`, then hands the rows to `onImport`. Without `onImport` it
+ * appends them through `commitChange`; a replace or a server call passes `onImport`. A cell that
  * fails `validate` is cleared (via its cell type's `clearValue()`), not dropped as a row; the
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
@@ -178,6 +178,25 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const [mergeMessage, setMergeMessage] = useState<string | null>(null);
   /** Error key of a row hook or build that failed before `onImport`. */
   const [buildError, setBuildError] = useState<ImportErrorKey | "importBuildFailed" | null>(null);
+  const warnedMissingOnImportRef = useRef(false);
+  const appendRows = useCallback(
+    (rows: TData[]) => {
+      const state = storeApi.getState();
+      if (state.totalRowCount != null) {
+        if (isDev() && !warnedMissingOnImportRef.current) {
+          warnedMissingOnImportRef.current = true;
+          console.warn("[data-grid-io] this grid holds a window of its result; pass onImport to send the rows to your server");
+        }
+        throw new Error("");
+      }
+      const start = state.data.length;
+      actions.commitChange({
+        source: "import",
+        ops: rows.map((row, offset) => ({ type: "insert" as const, rowId: state.getRowId(row, start + offset), row, index: start + offset })),
+      });
+    },
+    [actions, storeApi],
+  );
   const finish = useCallback(
     (rows: TData[], rejected: readonly ImportRejectedCell[], source: ImportSource) => {
       setMergeFailed(false);
@@ -186,7 +205,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       const token = ++confirmTokenRef.current;
       const signal = abortControllerRef.current?.signal ?? new AbortController().signal;
       void Promise.resolve()
-        .then(() => onImport(rows, { signal, rejected, ...source }))
+        .then(() => (onImport ? onImport(rows, { signal, rejected, ...source }) : appendRows(rows)))
         .then(() => {
           if (confirmTokenRef.current === token) actions.clearSelection();
         })
@@ -211,11 +230,11 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
               } catch (callbackError) {
                 if (isDev()) console.warn("[data-grid-io] onImportError threw", callbackError);
               }
-            } else if (isDev()) console.warn("[data-grid-io] onImport rejected; the dialog stays open", error);
+            } else if (isDev() && onImport) console.warn("[data-grid-io] onImport rejected; the dialog stays open", error);
           },
         );
     },
-    [onImport, onImportError, actions, onOpenChange],
+    [onImport, onImportError, appendRows, actions, onOpenChange],
   );
 
   const onConfirm = useCallback(() => {

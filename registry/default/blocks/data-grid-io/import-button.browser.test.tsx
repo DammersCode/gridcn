@@ -799,3 +799,42 @@ describe("DataGridImportDialog (browser)", () => {
     expect(dialog?.className).toContain("max-w-[31rem]");
   });
 });
+
+describe("DataGridImportButton default append (browser)", () => {
+  async function importTwoRows(onDataChange: () => void, totalRowCount?: number) {
+    let nextId = 0;
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} totalRowCount={totalRowCount} sortMode="client" filterMode="client">
+        <DataGridImportButton createRow={(): Row => ({ id: `imported-${nextId++}`, name: "", age: null })} />
+        <DataGridRoot className="h-[200px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    await userEvent.upload(fileInput!, makeCsvFile("Name,Age\nAlice,30\nBob,40"));
+    await expect.element(page.getByText("Showing 2 of 2 rows")).toBeInTheDocument();
+    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
+  }
+
+  it("without onImport, appends the rows as one change with source import", async () => {
+    const onDataChange = vi.fn();
+    await importTwoRows(onDataChange);
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
+    const [next, change] = onDataChange.mock.calls[0]!;
+    expect(change.source).toBe("import");
+    expect((next as Row[]).map((row) => row.name)).toEqual(["Seed", "Alice", "Bob"]);
+  });
+
+  it("without onImport on a grid with totalRowCount, writes nothing and shows the failure", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onDataChange = vi.fn();
+    await importTwoRows(onDataChange, 50);
+    await expect.element(page.getByText("The import could not be completed. Try again.")).toBeInTheDocument();
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("pass onImport"));
+    warn.mockRestore();
+  });
+});
