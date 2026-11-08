@@ -173,7 +173,7 @@ describe("row ops under an open edit session", () => {
     ["reorderRows of other rows", (a: DataGridActions) => a.reorderRows(3, 4)],
   ])("%s keeps the cursor on the surviving edit session", async (_name, op) => {
     let store: StoreApi<DataGridStoreState> | undefined;
-    await renderGrid((s) => (store = s), { createRow: () => ({ id: "new", name: "New", age: 0 }), duplicateRow: (r) => ({ ...r, id: `${r.id}-copy` }), enableRowReorder: true });
+    await renderGrid((s) => (store = s), { createRow: () => ({ id: "new", name: "New", age: 0 }), duplicateRow: (r) => ({ ...r, id: `${r.id}-copy` }) });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await openEditorOnRow(0, "X");

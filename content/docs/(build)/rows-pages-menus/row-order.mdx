@@ -44,9 +44,8 @@ function Playlist() {
 | Prop | Type | Default |
 | --- | --- | --- |
 | `rowMarkers` | `RowMarkersMode` | `"none"` |
-| `enableRowReorder` | `boolean` | `true` |
 
-`enableRowReorder={false}` switches reordering off for the whole grid. The shortcuts and `reorderRows` stop too.
+A `reorder` family mode arms the drag and the keyboard moves. A plain mode (`"number"`, `"checkbox"`, `"both"`) or `"none"` turns them off. `reorderRows` runs in every mode.
 
 ## Drag a row
 
@@ -60,7 +59,7 @@ A press on the handle of a checked row drags every checked row. They land togeth
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They act on the checked rows. With no checked row, they act on the rows of the selected range, then on the active row. The gaps between rows stay.
 
-A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode, and do nothing in a `readOnly` grid or while a cell editor is open. With `'until-cleared'` or `'across-filters'`, they move the checked rows only. With `'across-filters'`, they do nothing when every checked row is hidden or while "all matching" is on. With `'until-click'`, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
+A row at the edge blocks the whole move. The keys need a reorder marker mode, and do nothing in a `readOnly` grid or while a cell editor is open. With `'until-cleared'` or `'across-filters'`, they move the checked rows only. With `'across-filters'`, they do nothing when every checked row is hidden or while "all matching" is on. With `'until-click'`, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
 
 ## Move rows from code
 
@@ -91,7 +90,7 @@ Under client pagination <NewBadge />, `reorderRows` and `moveRowsBy` take page r
 
 These calls return `false` and change nothing in these cases. For an active sort or filter and for unloaded rows, the grid also warns in development:
 
-- `enableRowReorder` is off, or the grid is `readOnly`.
+- The grid is `readOnly`.
 - A client sort or filter is active, because the sort or filter owns the view order.
 - The grid holds unloaded rows in scroll mode.
 - The drop leaves the rows where they are.

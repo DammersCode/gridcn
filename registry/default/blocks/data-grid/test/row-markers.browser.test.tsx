@@ -155,7 +155,7 @@ describe("row markers", () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     await render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe("row markers", () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     await render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" enableRowReorder={false} />
+        <DataGrid data={makeRows(6)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="both" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -385,7 +385,7 @@ describe("row markers", () => {
     // reorder is off: a plain vertical marker drag is the row-reorder gesture when enabled
     await render(
       <div style={{ height: 200 }}>
-        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" enableRowReorder={false} />
+        <DataGrid data={makeRows(200)} columns={columns} getRowId={(r) => r.id} className="h-50" rowMarkers="number" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -663,7 +663,7 @@ describe("mouse-selection hardening matrix (regression: drag-select must never e
   it("a plain marker drag (reorder off) grows AND shrinks the row range as the pointer moves", async () => {
     await render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
+        <DataGrid data={makeRows(10)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -943,7 +943,7 @@ describe("row range checking", () => {
   async function renderGrid(rowMarkers: "checkbox" | "number") {
     await render(
       <div style={{ height: 500 }}>
-        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers={rowMarkers} enableRowReorder={false} />
+        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers={rowMarkers} />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -1041,7 +1041,6 @@ describe("row range checking", () => {
           getRowId={(r) => r.id}
           className="h-[500px]"
           rowMarkers="number"
-          enableRowReorder={false}
           renderMarker={({ viewRowIndex }) => <span>#{viewRowIndex}</span>}
         />
       </div>,
@@ -1076,7 +1075,7 @@ describe("row range checking", () => {
   it("a number drag does nothing more than the press when enableRangeSelection is off", async () => {
     await render(
       <div style={{ height: 500 }}>
-        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers="number" enableRowReorder={false} enableRangeSelection={false} />
+        <DataGrid data={makeRows(12)} columns={columns} getRowId={(r) => r.id} className="h-[500px]" rowMarkers="number" enableRangeSelection={false} />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

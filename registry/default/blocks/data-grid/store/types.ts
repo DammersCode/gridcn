@@ -264,15 +264,6 @@ export type DataGridSyncProps<TData = unknown> = {
   enableColumnResize?: boolean;
   /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
-  /**
-   * Enables drag-to-reorder rows grid-wide; default true. The gesture is zone-based: it lives on
-   * the marker's `reorder`-family modes only (`reorder`, `reorder-number`, `reorder-checkbox`,
-   * `reorder-both`) and only from the drag handle zone (the drag handle + cell background, or the whole
-   * cell in `reorder` mode) — plain `number`/`checkbox`/`both` markers stay pure row-select
-   * surfaces, and within the reorder family the number/checkbox glyphs and Shift+drag always
-   * stay the row-select gesture, so a selection drag never reorders.
-   */
-  enableRowReorder?: boolean;
   /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
@@ -713,7 +704,6 @@ export type DataGridStoreState = Omit<
   | "enableMultiRange"
   | "enableColumnResize"
   | "enableColumnReorder"
-  | "enableRowReorder"
   | "enableColumnPinning"
   | "headerClickBehavior"
   | "labels"
@@ -762,7 +752,6 @@ export type DataGridStoreState = Omit<
   enableMultiRange: boolean;
   enableColumnResize: boolean;
   enableColumnReorder: boolean;
-  enableRowReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
   activeCell: ViewCoord | null;
@@ -1206,8 +1195,7 @@ export type DataGridActions = {
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
    * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
    * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
-   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): `enableRowReorder`
-   * off, readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
+   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
    * On a paged grid the indices are page rows, and an index or `to` outside the shown page is out of range;

@@ -213,7 +213,6 @@ type PlaygroundControls = {
   density: DensityMode;
   direction: GridDirection;
   readOnly: boolean;
-  enableRowReorder: boolean;
   loading: boolean;
   pinnedTotals: boolean;
   presence: boolean;
@@ -339,7 +338,6 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
       plugins={plugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
-      enableRowReorder={controls.enableRowReorder}
       readOnly={controls.readOnly}
     >
       {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
@@ -390,7 +388,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         plugins={plugins}
         rowMarkers={controls.rowMarkers}
         headerClickBehavior={controls.headerClickBehavior}
-        enableRowReorder={controls.enableRowReorder}
         readOnly={controls.readOnly}
       >
         {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
@@ -494,7 +491,6 @@ function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
       plugins={plugins}
       rowMarkers={controls.rowMarkers}
       headerClickBehavior={controls.headerClickBehavior}
-      enableRowReorder={controls.enableRowReorder}
       readOnly={controls.readOnly}
     >
       <div data-testid="lazy-server-sort" className="px-2 text-xs text-muted-foreground">
@@ -552,7 +548,6 @@ export default function DataGridPlaygroundDemo(): ReactNode {
   const [customHeaders, setCustomHeaders] = useState(false);
   const [customMarker, setCustomMarker] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
-  const [enableRowReorder, setEnableRowReorder] = useState(true);
   const [loading, setLoading] = useState(false);
   const [pinnedTotals, setPinnedTotals] = useState(false);
   const [presence, setPresence] = useState(false);
@@ -570,7 +565,6 @@ export default function DataGridPlaygroundDemo(): ReactNode {
     density,
     direction: rtl ? "rtl" : "ltr",
     readOnly,
-    enableRowReorder,
     loading,
     pinnedTotals: pinnedTotals && !isLazy,
     presence,
@@ -659,10 +653,6 @@ export default function DataGridPlaygroundDemo(): ReactNode {
           <Switch aria-label="Read-only" checked={readOnly} onCheckedChange={setReadOnly} />
           Read-only
         </label>
-        <ToggleLabel disabled={rowMarkers === "none"}>
-          <Switch aria-label="Row reorder" checked={enableRowReorder} onCheckedChange={setEnableRowReorder} disabled={rowMarkers === "none"} />
-          Row reorder{rowMarkers === "none" ? " (needs a row-markers mode)" : ""}
-        </ToggleLabel>
         <label className="flex items-center gap-2">
           <Switch aria-label="Loading" checked={loading} onCheckedChange={setLoading} />
           Loading

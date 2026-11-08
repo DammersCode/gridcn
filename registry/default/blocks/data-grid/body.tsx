@@ -9,7 +9,6 @@ import {
   useDataGridRowCount,
   useDataGridRowIds,
   useDataGridRowMarkers,
-  useDataGridRowReorderEnabled,
   useDataGridSelector,
   useDataGridStoreApi,
   type AnyColumnDef,
@@ -229,10 +228,9 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
   // mirroring how DataGridHeader owns useColumnReorder for its headers.
   const actions = useDataGridActions();
   const internalActions = useDataGridInternalActions();
-  const rowReorderEnabled = useDataGridRowReorderEnabled();
   // the gesture lives on the marker's reorder family only — plain number/checkbox/both markers
   // stay pure row-select surfaces (see RowMarkersMode), so a selection drag never reorders.
-  const rowReorderArmed = rowReorderEnabled && isReorderMarkerMode(rowMarkers);
+  const rowReorderArmed = isReorderMarkerMode(rowMarkers);
   /** Resolves the data row (and its above/below half) under a client point, for the reorder drag's live drop target. */
   const hitTestRow = useCallback((clientX: number, clientY: number) => {
     const el = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>(`[role="row"]${gridAttrSelector("rowIndex")}`);

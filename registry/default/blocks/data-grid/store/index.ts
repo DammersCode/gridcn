@@ -84,7 +84,6 @@ export {
   useDataGridCellState,
   useDataGridRowCellState,
   useDataGridRowMarkers,
-  useDataGridRowReorderEnabled,
   useDataGridSelectionConfig,
   useDataGridHiddenCheckedCount,
   useDataGridSelectedRows,

@@ -197,10 +197,10 @@ describe("row reorder (marker drag)", () => {
     await expect.poll(() => document.querySelectorAll(gridAttrSelector("dropIndicator")).length, { timeout: 2000 }).toBe(0);
   });
 
-  it("enableRowReorder=false leaves a marker drag as pure row selection", async () => {
+  it("a plain marker mode leaves a marker drag as pure row selection", async () => {
     await render(
       <div style={{ height: 400 }}>
-        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" enableRowReorder={false} />
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="number" />
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

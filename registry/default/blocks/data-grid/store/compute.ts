@@ -947,7 +947,6 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   | "enableMultiRange"
   | "enableColumnResize"
   | "enableColumnReorder"
-  | "enableRowReorder"
   | "enableColumnPinning"
   | "headerClickBehavior"
 > {
@@ -961,7 +960,6 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
     enableMultiRange: props.enableMultiRange ?? true,
     enableColumnResize: props.enableColumnResize ?? true,
     enableColumnReorder: props.enableColumnReorder ?? true,
-    enableRowReorder: props.enableRowReorder ?? true,
     enableColumnPinning: props.enableColumnPinning ?? true,
     headerClickBehavior: props.headerClickBehavior ?? "select",
   };

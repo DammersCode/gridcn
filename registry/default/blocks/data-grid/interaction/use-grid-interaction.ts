@@ -559,7 +559,7 @@ export function dispatchGridAction(args: {
     case "moveRowsUp":
     case "moveRowsDown": {
       preventDefault();
-      if (state.readOnly || !state.enableRowReorder || !isReorderMarkerMode(state.rowMarkers)) break;
+      if (state.readOnly || !isReorderMarkerMode(state.rowMarkers)) break;
       const rows = rowsToMove(state);
       if (rows.length === 0 || !actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1)) break;
       const active = storeApi.getState().activeCell;

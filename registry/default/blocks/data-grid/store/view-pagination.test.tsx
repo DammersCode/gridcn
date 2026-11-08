@@ -110,7 +110,7 @@ describe("paging the view: search and reorder", () => {
   });
 
   it("reorderRows moves a row of the shown page by page rows", () => {
-    const m = mount({ enableRowReorder: true });
+    const m = mount();
     act(() => m.state().actions.setPage(2));
     expect(m.shown()).toEqual(["r3", "r4", "r5"]);
     act(() => void m.state().actions.reorderRows(0, 2));
@@ -118,7 +118,7 @@ describe("paging the view: search and reorder", () => {
   });
 
   it("a move on a paged grid keeps the checked rows and the active cell on their rows", () => {
-    const m = mount({ enableRowReorder: true, enableRowSelection: true });
+    const m = mount({ enableRowSelection: true });
     act(() => m.state().actions.setPage(2));
     act(() => {
       m.state().actions.setRowSelected(0, true);
@@ -132,7 +132,7 @@ describe("paging the view: search and reorder", () => {
   });
 
   it("a move that leaves the shown page does nothing", () => {
-    const m = mount({ enableRowReorder: true });
+    const m = mount();
     act(() => m.state().actions.setPage(2));
     expect(m.state().actions.moveRowsBy([2], 1)).toBe(false);
     expect(m.state().actions.moveRowsBy([0], -1)).toBe(false);
@@ -144,7 +144,7 @@ describe("paging the view: search and reorder", () => {
 
   it("a move on a paged grid reports data indices in its operations", () => {
     const onDataChange = vi.fn();
-    const m = mount({ enableRowReorder: true, onDataChange });
+    const m = mount({ onDataChange });
     act(() => m.state().actions.setPage(2));
     act(() => void m.state().actions.reorderRows(0, 2));
     const change = onDataChange.mock.calls.at(-1)![1] as { ops: { type: string; from: number; to: number }[] };
@@ -152,7 +152,7 @@ describe("paging the view: search and reorder", () => {
   });
 
   it("a move on a paged grid announces page row numbers over the page row count", () => {
-    const m = mount({ enableRowReorder: true });
+    const m = mount();
     act(() => m.state().actions.setPage(2));
     act(() => void m.state().actions.reorderRows(0, 2));
     expect(m.state().rowMoveAnnouncement).toBe("Row 1 moved to position 3 of 3");
@@ -162,7 +162,7 @@ describe("paging the view: search and reorder", () => {
 
   it("reorderRows stays blocked while a sort is active", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount({ enableRowReorder: true });
+    const m = mount();
     act(() => m.state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
     expect(m.state().actions.reorderRows(0, 1)).toBe(false);
   });

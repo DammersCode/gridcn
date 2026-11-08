@@ -60,7 +60,6 @@ export default function DataGridRowReorderDemo(): ReactNode {
           {...grid}
           columns={columns}
           rowMarkers="reorder-checkbox"
-          enableRowReorder
           onDataChange={(next, change) => {
             grid.onDataChange(next, change);
             setLastChange(change);

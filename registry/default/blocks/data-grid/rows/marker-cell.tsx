@@ -16,7 +16,6 @@ import {
   useDataGridIsRowChannelSelected,
   useDataGridIsRowSelected,
   useDataGridLabels,
-  useDataGridRowReorderEnabled,
 } from "../store";
 
 /** Props for {@link DataGridMarkerCell}. */
@@ -60,7 +59,6 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
   const isRowChannelSelected = useDataGridIsRowChannelSelected(viewRowIndex);
   const isCellSelected = useDataGridIsRowCellSelected(viewRowIndex);
   const labels = useDataGridLabels();
-  const reorderEnabled = useDataGridRowReorderEnabled();
 
   const style: CSSProperties = {
     gridColumnStart: 1,
@@ -126,7 +124,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
               className={cn(
                 "flex h-full touch-none items-center justify-center text-muted-foreground select-none",
                 showNumber || showCheckbox ? "w-5 shrink-0" : "flex-1",
-                reorderEnabled && (isReorderDragging ? "cursor-grabbing" : "cursor-grab"),
+                isReorderDragging ? "cursor-grabbing" : "cursor-grab",
               )}
             >
               <GripVertical className="size-3.5" />

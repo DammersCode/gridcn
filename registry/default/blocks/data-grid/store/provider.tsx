@@ -128,7 +128,6 @@ const CONFIG_KEYS = [
   "enableMultiRange",
   "enableColumnResize",
   "enableColumnReorder",
-  "enableRowReorder",
   "enableColumnPinning",
   "headerClickBehavior",
   "labels",

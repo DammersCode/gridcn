@@ -473,16 +473,6 @@ describe("reorderRows", () => {
     warn.mockRestore();
   });
 
-  it("is a no-op when enableRowReorder is false", () => {
-    const onDataChange = vi.fn();
-    const wrapper = makeWrapper(onDataChange, { enableRowReorder: false });
-    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
-
-    act(() => result.current.reorderRows(0, 2));
-
-    expect(onDataChange).not.toHaveBeenCalled();
-  });
-
   it("is a no-op while readOnly", () => {
     const onDataChange = vi.fn();
     // Read directly in the wrapper body: a factory-built component type is compiler-cached at

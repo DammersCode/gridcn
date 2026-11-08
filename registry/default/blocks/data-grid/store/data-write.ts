@@ -1034,7 +1034,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
   const canMoveRows = (s: DataGridStoreState): boolean => {
-    if (!s.enableRowReorder || s.readOnly) return false;
+    if (s.readOnly) return false;
     if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
       return false;

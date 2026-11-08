@@ -77,12 +77,6 @@ describe("reorderRows with a list", () => {
     warn.mockRestore();
   });
 
-  it("is a no-op when enableRowReorder is false", () => {
-    const { onDataChange, result } = setup(5, { enableRowReorder: false });
-    act(() => void result.current.actions.reorderRows([0, 1], 3));
-    expect(onDataChange).not.toHaveBeenCalled();
-  });
-
   it("is a no-op with a dev warning under an active sort", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { onDataChange, result } = setup(5, { sortState: [{ columnId: "name", direction: "asc" }] });
