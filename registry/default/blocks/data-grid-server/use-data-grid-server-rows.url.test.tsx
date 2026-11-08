@@ -18,7 +18,7 @@ function mount(searchParams: string) {
   }));
   let status = "";
   function Tree() {
-    const url = useDataGridUrlPagination({ defaultPageSize: 10, pageSizeOptions: [10, 25] });
+    const url = useDataGridUrlPagination({ pageSizeOptions: [10, 25] });
     const server = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows, ...url });
     status = server.status;
     return (

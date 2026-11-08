@@ -30,7 +30,11 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
   it("defaults to page 1 and the default pageSize when no params are present", () => {
     const { getResult } = renderHook({});
     expect(getResult().page).toBe(1);
-    expect(getResult().pageSize).toBe(25);
+    expect(getResult().pageSize).toBe(10);
+  });
+
+  it("defaults the pageSize to the first of pageSizeOptions", () => {
+    expect(renderHook({ hookOptions: { pageSizeOptions: [20, 40] } }).getResult().pageSize).toBe(20);
   });
 
   it("opens on the page given by a deep-linked URL", () => {
@@ -51,7 +55,7 @@ describe("useDataGridUrlPagination: reading from the URL", () => {
 
   it("clamps a pageSize outside pageSizeOptions back to the default", () => {
     const { getResult } = renderHook({ searchParams: "?pageSize=999", hookOptions: { pageSizeOptions: [10, 25, 50] } });
-    expect(getResult().pageSize).toBe(25);
+    expect(getResult().pageSize).toBe(10);
   });
 
   it("namespaces URL keys with the prefix option", () => {
@@ -125,7 +129,7 @@ describe("useDataGridUrlPagination: writing to the URL", () => {
     const onUrlUpdate = vi.fn();
     const { getResult } = renderHook({ searchParams: "?pageSize=50", onUrlUpdate });
     await act(async () => {
-      getResult().onPageSizeChange(25);
+      getResult().onPageSizeChange(10);
     });
     await vi.waitFor(() => {
       const last = onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined;

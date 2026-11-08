@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serializePage, parsePage, serializePageSize, parsePageSize, DEFAULT_URL_PAGE_SIZE, MAX_URL_PAGE } from "./page-param";
+import { serializePage, parsePage, serializePageSize, parsePageSize, MAX_URL_PAGE } from "./page-param";
 
 describe("serializePage / parsePage", () => {
   it("round-trips a page beyond the default", () => {
@@ -70,9 +70,5 @@ describe("serializePageSize / parsePageSize", () => {
 
   it("accepts a parsed value that is inside allowedSizes", () => {
     expect(parsePageSize("50", 25, [10, 25, 50])).toBe(50);
-  });
-
-  it("exposes the module default as 25", () => {
-    expect(DEFAULT_URL_PAGE_SIZE).toBe(25);
   });
 });

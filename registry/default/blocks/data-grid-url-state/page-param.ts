@@ -1,6 +1,3 @@
-/** Default `pageSize` when {@link UseDataGridUrlPaginationOptions.defaultPageSize} is not given. */
-export const DEFAULT_URL_PAGE_SIZE = 25;
-
 /** Absolute ceiling for the URL `page` param: a page number beyond it is a typo or an attack, and parses as 1 like any other invalid value. */
 export const MAX_URL_PAGE = 1_000_000;
 

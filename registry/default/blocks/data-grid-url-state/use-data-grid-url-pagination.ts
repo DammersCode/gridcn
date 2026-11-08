@@ -3,14 +3,14 @@
 import { useCallback, useMemo } from "react";
 import { useQueryState } from "nuqs";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
-import { parsePage, parsePageSize, serializePage, serializePageSize, DEFAULT_URL_PAGE_SIZE } from "./page-param";
+import { parsePage, parsePageSize, serializePage, serializePageSize } from "./page-param";
 import { prefixedKey } from "./prefixed-key";
 
 /** Options for {@link useDataGridUrlPagination}. */
 export type UseDataGridUrlPaginationOptions = {
   /** Namespaces the `page`/`pageSize` URL keys as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
-  /** `pageSize` this many is omitted from the URL. Also the fallback for an invalid URL value. Default 25. */
+  /** `pageSize` this many is omitted from the URL. Also the fallback for an invalid URL value. Default: the first of `pageSizeOptions` (10 with the default list). */
   defaultPageSize?: number;
   /** A `pageSize` URL value outside this list (default: the pager sizes 10, 25, 50, 100) falls back to `defaultPageSize`. */
   pageSizeOptions?: readonly number[];
@@ -46,7 +46,9 @@ export type UseDataGridUrlPaginationResult = {
  * <DataGridProvider data={rows} {...url}><DataGridPaginationBar pageSizeOptions={url.pageSizeOptions} /></DataGridProvider>
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
-  const { prefix, defaultPageSize = DEFAULT_URL_PAGE_SIZE, pageSizeOptions } = options;
+  const { prefix, pageSizeOptions } = options;
+  const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
+  const defaultPageSize = options.defaultPageSize ?? resolvedPageSizeOptions[0]!;
 
   const [pageParam, setPageParam] = useQueryState(prefixedKey(prefix, "page"), {
     defaultValue: "",
@@ -62,7 +64,6 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   });
 
   // the URL value is always gated by a size list, so ?pageSize=100000000 can never force an unbounded fetch
-  const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
   const page = parsePage(pageParam);
   const pageSize = parsePageSize(pageSizeParam, defaultPageSize, resolvedPageSizeOptions);
   const onPageChange = useCallback(
