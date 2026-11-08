@@ -16,6 +16,7 @@ import { GateRun } from "../store/gate-signal";
 import { gateTrackerOf } from "../store/internal-actions";
 import { exportText } from "../cell-types/display-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
+import { safeFromText } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
 /** Options for {@link useGridClipboard}. */
@@ -286,12 +287,13 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
       if (!cellType) continue;
 
       const text = sourceRow[c]!; // c < sourceRow.length by loop condition
-      const value = s.processCellFromClipboard
-        ? s.processCellFromClipboard(text, { row, column })
-        : cellType.fromText(text, column.options);
+      const columnValidate = resolveColumnValidate(column, cellType);
+      const { value, validate } = s.processCellFromClipboard
+        ? { value: s.processCellFromClipboard(text, { row, column }), validate: columnValidate }
+        : safeFromText(cellType, text, column.options, columnValidate);
 
       if (isThenable(value)) pending++;
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row, rowId });
     }
   }
   return { candidates, pending };

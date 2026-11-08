@@ -35,7 +35,7 @@ Search matches text, and filter matches the stored value. A `select` column sear
 
 Follow these rules for the methods:
 
-- `fromText` never throws. Paste and import feed it any text. Return `clearValue()` for text it cannot parse.
+- `fromText` receives any text from paste and import. A throw rejects that cell. Return `clearValue()` for text it cannot parse.
 - Store serializable primitives. Use an ISO `yyyy-mm-dd` string and not a `Date`, and a plain number and not a money object. Compare, clipboard, and JSON then stay simple, and no time zone shifts a day.
 - Choose `isEmpty` for each type on purpose. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` is empty, so `0` and `false` count as values. For a column with a comparator (`compare` or `sortCompare`), `isEmpty` decides which cells sort last. `isEmpty` also decides where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
 - Format for people in `toDisplayText`. Keep `toText` a plain string that `fromText` parses back.

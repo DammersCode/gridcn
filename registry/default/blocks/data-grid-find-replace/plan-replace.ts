@@ -1,5 +1,5 @@
 import { type AnyColumnDef, type CellPatch, type CellRef, type SearchOptions } from "@/registry/default/blocks/data-grid/data-grid";
-import { createTextMatcher, fullViewOf, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { createTextMatcher, fullViewOf, isUnparseable, safeFromText, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest find or replacement text; longer input is cut. */
 export const MAX_REPLACE_INPUT_LENGTH = 1_000;
@@ -38,7 +38,7 @@ type ColumnPlan = {
   column: AnyColumnDef;
   readValue: (row: unknown) => unknown;
   readText: (value: unknown) => string;
-  fromText: (text: string) => unknown;
+  fromText: (text: string) => { value: unknown; unparseable: boolean };
   isEmpty: (value: unknown) => boolean;
 };
 
@@ -59,7 +59,10 @@ function planColumn(column: AnyColumnDef, cellTypes: ReplaceState["cellTypes"]):
         return toSafeText(value);
       }
     },
-    fromText: (text) => cellType.fromText(text, options),
+    fromText: (text) => {
+      const parsed = safeFromText(cellType, text, options, undefined);
+      return { value: parsed.value, unparseable: isUnparseable(parsed) };
+    },
     isEmpty: (value) => cellType.isEmpty(value),
   };
 }
@@ -160,8 +163,8 @@ export function planReplace(
     }
     const next = replaced.text;
     if (next === text) return true;
-    const value = entry.fromText(next);
-    if (next.trim() !== "" && entry.isEmpty(value)) {
+    const { value, unparseable } = entry.fromText(next);
+    if (unparseable || (next.trim() !== "" && entry.isEmpty(value))) {
       plan.skipped.push({ ref, reason: "unparseable" });
       return true;
     }

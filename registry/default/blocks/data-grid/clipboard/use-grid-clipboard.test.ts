@@ -60,6 +60,17 @@ function fakeState(overrides: Partial<DataGridStoreState> = {}): DataGridStoreSt
   } as unknown as DataGridStoreState;
 }
 
+describe("buildPasteWrites with a throwing fromText", () => {
+  it("rejects the cell and keeps the rest of the paste", () => {
+    const throwingNumber = { ...cellTypes["number"], fromText: () => { throw new Error("boom"); } };
+    const s = fakeState({ cellTypes: { ...cellTypes, number: throwingNumber } as unknown as DataGridStoreState["cellTypes"] });
+    const resolution = buildPasteWritesRaw(s, [["x", "9"]], { col: 0, row: 0 });
+    if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+    expect(resolution.writes).toEqual([{ viewRowIndex: 0, columnId: "name", value: "x" }]);
+    expect(resolution.rejected.map((cell) => cell.columnId)).toEqual(["qty"]);
+  });
+});
+
 describe("resolveCopyScope", () => {
   it("returns the primary range when a range selection exists", () => {
     const s = fakeState({ selection: selectCellPure({ col: 1, row: 0 }) });

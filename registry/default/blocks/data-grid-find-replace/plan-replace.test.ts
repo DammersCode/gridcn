@@ -42,6 +42,16 @@ const rows = (): Row[] => [
 ];
 
 describe("planReplace", () => {
+  it("skips a patch whose fromText throws", () => {
+    const throwingNumber = { ...cellTypes["number"], fromText: () => { throw new Error("boom"); } };
+    const state = makeState([{ id: "a", name: "x", qty: 5, tag: null }], {
+      cellTypes: { ...cellTypes, number: throwingNumber } as unknown as ReplaceState["cellTypes"],
+    });
+    const plan = planReplace(state, "5", "6", {});
+    expect(plan.patches).toEqual([]);
+    expect(plan.skipped).toEqual([expect.objectContaining({ reason: "unparseable" })]);
+  });
+
   it("replaces every occurrence, case-insensitive by default", () => {
     const plan = planReplace(makeState(rows()), "foo", "x", {});
     expect(plan.patches).toEqual([

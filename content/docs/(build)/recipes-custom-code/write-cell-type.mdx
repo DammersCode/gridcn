@@ -53,7 +53,7 @@ If the stored value, the editor, or the text round trip differs from every built
 1. Declare the key in `GridCellTypes`, so `defineColumns` types the column value and options.
 2. Write `toText` for copy and export. Keep it plain and parseable.
 3. Write `toDisplayText` for the formatted text. Print, column autosize, and the set values of the header filter use it, and use `toText` without it. When the numbers of a selection come from one column, the status bar formats its sum, average, minimum, and maximum with it. `Cell` decides what the cell itself shows.
-4. Write `fromText` for paste and typing. Make sure that it never throws. For text it cannot parse, return `clearValue()`.
+4. Write `fromText` for paste and typing. For text it cannot parse, return `clearValue()`.
 5. Write `Cell` and `Editor`. Start the editor from `useCellEditor`. It owns the draft and the focus, commits on Enter and on blur, and cancels on Escape.
 6. Register the type in `cellTypes` under the name that a column uses in `type`.
 

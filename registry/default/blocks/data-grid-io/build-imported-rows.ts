@@ -1,6 +1,6 @@
 import type { AnyColumnDef, CellType, ColumnDef, GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { isDev, isThenable, resolveColumnValidate, runValidateBatch, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, isThenable, resolveColumnValidate, runValidateBatch, safeFromText, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };
@@ -165,7 +165,11 @@ function buildCellsForRange<TData>(
 
       const text = sourceRow[importColumnIndex] ?? "";
       // as never: validate is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here — safe since column and row/value are all this same import's TData.
-      items.push({ validate: resolveColumnValidate(column as AnyColumnDef, cellType) as never, value: processCellFromText ? processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal }) : cellType.fromText(text, column.options), row: rows[rowIndex] });
+      const columnValidate = resolveColumnValidate(column as AnyColumnDef, cellType);
+      const parsed = processCellFromText
+        ? { value: processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal }), validate: columnValidate }
+        : safeFromText(cellType, text, column.options, columnValidate);
+      items.push({ validate: parsed.validate as never, value: parsed.value, row: rows[rowIndex] });
       cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options) });
     }
   }

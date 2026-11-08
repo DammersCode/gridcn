@@ -413,7 +413,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   toText(value: TValue, options?: TOptions): string;
   /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard/export always use `toText`. */
   toDisplayText?(value: TValue, options?: TOptions): string;
-  /** Parse from paste/import/typing. Must never throw; return clearValue()'s result for garbage. */
+  /** Parse from paste/import/typing; return clearValue()'s result for garbage. A throw rejects the cell on paste, fill, import, and replace. */
   fromText(text: string, options?: TOptions): TValue;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;

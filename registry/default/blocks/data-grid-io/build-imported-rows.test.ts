@@ -56,6 +56,20 @@ function makeRow(index: number): Row {
 }
 
 describe("buildImportedRows", () => {
+  it("lists a cell whose fromText throws in `rejected` and still builds the row", () => {
+    const throwing: CellType<Row, number | null> = { ...numberCellType, fromText: () => { throw new Error("boom"); } };
+    const result = buildImportedRowsRaw({
+      dataRows: [["Alice", "30"]],
+      mapping: [{ importColumnIndex: 0, gridColumnId: "name" }, { importColumnIndex: 1, gridColumnId: "age" }],
+      columns: makeColumns(),
+      cellTypes: { text: textCellType, number: throwing } as never,
+      createRow: makeRow,
+    });
+    if (result instanceof Promise) throw new Error("expected a synchronous result");
+    expect(result.rows).toHaveLength(1);
+    expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: expect.any(String) }]);
+  });
+
   it("creates one row per data row via createRow and applies mapped cells through fromText", () => {
     const rows = buildImportedRows({
       dataRows: [

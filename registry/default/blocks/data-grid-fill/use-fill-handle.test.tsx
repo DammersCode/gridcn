@@ -75,6 +75,15 @@ describe("readRectAsText", () => {
 });
 
 describe("buildFillWrites", () => {
+  it("rejects a cell whose cell type's fromText throws instead of aborting the fill", () => {
+    const throwingNumber = { ...cellTypes["number"], fromText: () => { throw new Error("boom"); } };
+    const s = fakeState({ cellTypes: { ...cellTypes, number: throwingNumber } });
+    const { resolution } = buildFillWrites(s, { x: 1, y: 0, width: 1, height: 2 }, { x: 1, y: 2, width: 1, height: 2 });
+    const settled = syncResolution(resolution);
+    expect(settled.writes).toEqual([]);
+    expect(settled.rejected.map((cell) => cell.viewRowIndex)).toEqual([2, 3]);
+  });
+
   it("extends a detected arithmetic series downward", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"

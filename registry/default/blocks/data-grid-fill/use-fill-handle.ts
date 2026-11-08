@@ -13,6 +13,7 @@ import {
   safeSetPointerCapture,
   resolveBulkWrites,
   resolveColumnValidate,
+  safeFromText,
   snapshotBulkBatch,
   useBulkGeneration,
   useDataGridStoreApi,
@@ -127,8 +128,8 @@ export function buildFillCandidates(
       if (!cellType) continue;
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
-      const value = cellType.fromText(filled[row]![col]!, column.options);
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
+      const { value, validate } = safeFromText(cellType, filled[row]![col]!, column.options, resolveColumnValidate(column, cellType));
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row: dataRow, rowId });
     }
   }
   if (skippedHoleRows > 0 && isDev()) {
