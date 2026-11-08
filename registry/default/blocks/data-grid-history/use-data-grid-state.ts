@@ -2,19 +2,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { type DataChange, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridHistory } from "./use-data-grid-history";
+import { useDataGridHistory, type UseDataGridHistoryOptions } from "./use-data-grid-history";
 
-/** Options for {@link useDataGridState}. */
-export type UseDataGridStateOptions<TData> = {
+/** Options for {@link useDataGridState}: every `useDataGridHistory` option, plus `getRowId`. */
+export type UseDataGridStateOptions<TData> = UseDataGridHistoryOptions<TData> & {
   /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
   getRowId?: (row: TData, index: number) => string;
-  /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. */
-  capacity?: number;
-  /**
-   * Identity of the dataset; a change between renders clears both history stacks.
-   * See `useDataGridHistory`'s `datasetKey`.
-   */
-  datasetKey?: string | number;
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
@@ -69,9 +62,9 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData> = {},
 ): UseDataGridStateResult<TData> {
-  const { getRowId, capacity, datasetKey } = opts;
+  const { getRowId, ...historyOptions } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
-  const history = useDataGridHistory<TData>({ capacity, datasetKey });
+  const history = useDataGridHistory<TData>(historyOptions);
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
   const wrappedGetRowId = useCallback((row: TData, index: number) => getRowId!(row, index), [getRowId]);
   const gridGetRowId = getRowId ? wrappedGetRowId : undefined;

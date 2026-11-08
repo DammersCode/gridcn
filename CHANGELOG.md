@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `useDataGridState` forwards every `useDataGridHistory` option (`recordSources` and `onSkip` included), not only `capacity` and `datasetKey`.
 - **Breaking:** `canUndo` and `canRedo` of `useDataGridHistory` and `useDataGridState().history` are `false` while the grid is `readOnly`, because `undo` and `redo` do nothing then. Before, they stayed `true` for kept entries. After: `disabled={!canUndo}`; the `readOnly ||` guard can go. `historySize` still counts the kept entries.
 - `useDataGridHistory({ recordSources })` also takes a function of the default list, such as `(defaults) => [...defaults, "stream"]`, so a copied list no longer goes stale when a source is added. The list form is unchanged.
 - `updateCells` and `updateRows` take `{ flash: true }` to flash the cells they applied: at once for a synchronous batch, after `settled` for a held one. Cells of hidden columns do not flash. `actions.flashCells` stays for arbitrary cells. The default is no flash.

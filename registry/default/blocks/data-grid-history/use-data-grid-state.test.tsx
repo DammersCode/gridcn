@@ -216,4 +216,15 @@ describe("useDataGridState", () => {
     expect(h.grid().history.canUndo).toBe(false);
     expect(h.grid().history.historySize).toBe(0);
   });
+
+  it("forwards recordSources to the history", () => {
+    const h = setup(defaultRows, { getRowId: (r) => r.id, recordSources: (defaults) => [...defaults, "stream"] });
+    const prev = defaultRows[0]!;
+    const next = { ...prev, name: "Tick" };
+    h.commit({
+      source: "stream",
+      ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Tick", prev: "Alice" }] }],
+    });
+    expect(h.grid().history.canUndo).toBe(true);
+  });
 });
