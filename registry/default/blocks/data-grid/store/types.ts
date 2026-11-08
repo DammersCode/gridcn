@@ -777,7 +777,7 @@ export type DataGridStoreState = Omit<
   /**
    * Rejection nonce for the current edit session: increments on every rejected commit attempt
    * (the sync `validate` rejection in `commitCellEdit`, or an async schema resolving with issues
-   * via `setEditingError`) and resets to 0 on `startEditing`. Editors re-arm their one-shot commit
+   * via `_setEditingError`) and resets to 0 on `startEditing`. Editors re-arm their one-shot commit
    * guard when this changes: a REJECTION is the only signal that the edit is still open and a
    * fresh commit attempt is expected, never "pending cleared", which also happens on
    * Escape/cancel right before the editor unmounts. The store is the single source of truth for
@@ -980,8 +980,6 @@ export type DataGridActions = {
   selectAll(): void;
   /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
   setRowSelected(index: number, checked: boolean): void;
-  /** @internal Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
-  armRowDragAnchor(index: number): void;
   /**
    * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
    * Without a live gesture the anchor is the former anchor row, else the active row, else `target`.
@@ -1099,25 +1097,13 @@ export type DataGridActions = {
   cancelEditing(): void;
   /**
    * Validates and commits the in-progress edit; rejects (keeps editing, sets editingError) or emits
-   * one DataChange and moves activeCell by `movement`. `rejection` is the async validation layer's
-   * awaited schema rejection for an `onInvalid: "warn"` column: the commit's sync re-run cannot see
-   * a schema Promise's issues, so the layer forwards the message to flag the cell. No-op in a
-   * read-only grid.
+   * one DataChange and moves activeCell by `movement`. No-op in a read-only grid.
    */
-  commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
+  commitCellEdit(value: unknown, movement?: { dx: number; dy: number }): void;
   /** Direct-write path for types with no edit mode (checkbox): validates and commits `value` at the cell named by the stable {@link CellRef} without requiring `startEditing` first, and never moves the active cell. No-op in a read-only grid. */
   commitCellValue(ref: CellRef, value: unknown): void;
   /** View-index variant of {@link DataGridActions.commitCellValue} for callers that hold a {@link ViewCoord}. */
   commitCellValueAt(coord: ViewCoord, value: unknown): void;
-  /**
-   * @internal Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
-   * nonce) without touching `editing`/`data` — used by the async Standard Schema commit path (see
-   * cell.tsx/use-async-validate.ts): an async `validate` resolves AFTER `commitCellEdit` would
-   * have run, so the editor-commit layer calls this directly instead of going through the
-   * (synchronous) commit action. No-op if editing has since ended (race guard is the caller's
-   * job — see the generation counter in use-async-validate.ts).
-   */
-  setEditingError(message: string): void;
   /**
    * Merges `errors` into `cellErrors` per-key (an existing entry for a cell not named here
    * survives untouched). NOT a data change: no `DataChange`, no history entry, no `onDataChange`
@@ -1232,6 +1218,21 @@ export type DataGridActions = {
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
 export type DataGridInternalActions = {
+  /** @internal Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
+  _armRowDragAnchor(index: number): void;
+  /**
+   * @internal {@link DataGridActions.commitCellEdit} plus `rejection`: the async validation layer's awaited
+   * schema rejection for an `onInvalid: "warn"` column. The commit's sync re-run cannot see a schema
+   * Promise's issues, so the layer forwards the message to flag the cell.
+   */
+  _commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
+  /**
+   * @internal Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
+   * nonce) without touching `editing`/`data`. An async `validate` resolves after `commitCellEdit` would
+   * have run, so the editor-commit layer calls this instead. No-op if editing has since ended; the
+   * caller's generation counter guards the race (see use-async-validate.ts).
+   */
+  _setEditingError(message: string): void;
   /**
    * @internal Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch. Cut
    * captures the ids at copy time, so a view change during the clipboard write never shifts the

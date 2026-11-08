@@ -1458,7 +1458,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // still resolves purely via the checkbox's own click->toggle. lastPointerRef stays unseeded,
       // so runDragFrame's first tick is a no-op; only a real pointermove extends from this anchor.
       const before = storeApi.getState().rowRangeGesture;
-      actions.armRowDragAnchor(viewRowIndex);
+      getInternalActions(storeApi)._armRowDragAnchor(viewRowIndex);
       const armed = storeApi.getState().rowRangeGesture;
       safeSetPointerCapture(event.currentTarget, event.pointerId);
       beginDrag("row", event.pointerId, event.currentTarget, viewRowIndex, true);

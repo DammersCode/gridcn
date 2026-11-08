@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `DataGridActions` drops the internal members `armRowDragAnchor` and `setEditingError` and the `rejection` parameter of `commitCellEdit`. Add-on authors reach them as `_armRowDragAnchor`, `_setEditingError`, and `_commitCellEdit` through the internal actions of the SDK. `commitCellEdit(value, movement?)` is unchanged for documented code.
 - **Breaking:** the `DataGridGlobalShortcuts` flags are booleans that add to the default set. `undo` and `redo` default to `true`, every other flag to `false`, and `undo={false}` removes one. Before, any flag replaced the default set, so `<DataGridGlobalShortcuts selectAll />` dropped undo and redo. After, it keeps them. Migration for select all alone: `<DataGridGlobalShortcuts selectAll undo={false} redo={false} />`.
 - **Breaking:** `toggleSort(columnId, { additive } = {})` takes an options object. Before: `toggleSort(id, false)` and `toggleSort(id, true)`. After: `toggleSort(id)` and `toggleSort(id, { additive: true })`.
 - `pageSize` and `defaultPageSize` accept `null` (every row), and `onPageSizeChange` receives `number | null`. Before, `setPageSize(null)` did nothing while `pageSize` was controlled and fired no callback. A handler typed `(pageSize: number) => void` widens to `number | null`. `useDataGridUrlPagination` maps `null` to `defaultPageSize`.

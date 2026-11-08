@@ -1961,7 +1961,7 @@ describe("Standard Schema validate", () => {
     expect(result.current.editingError).toBe("must be a whole number");
   });
 
-  it("setEditingError sets editingError without touching editing/data, and no-ops when not editing", () => {
+  it("_setEditingError sets editingError without touching editing/data, and no-ops when not editing", () => {
     const onDataChange = vi.fn();
     const wrapper = makeEditWrapper(onDataChange);
     const { result, rerender } = renderHook(
@@ -1970,7 +1970,7 @@ describe("Standard Schema validate", () => {
     );
 
     act(() => {
-      result.current.actions.setEditingError("should be a no-op, nothing is being edited");
+      result.current.actions._setEditingError("should be a no-op, nothing is being edited");
     });
     rerender();
     expect(result.current.editingError).toBeNull();
@@ -1979,7 +1979,7 @@ describe("Standard Schema validate", () => {
       result.current.actions.startEditingAt({ col: 1, row: 0 });
     });
     act(() => {
-      result.current.actions.setEditingError("async rejection message");
+      result.current.actions._setEditingError("async rejection message");
     });
     rerender();
 

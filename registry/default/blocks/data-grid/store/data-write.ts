@@ -54,7 +54,7 @@ import { forEachMember } from "../selection/compact-selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridStoreState, UpdateCellsSkip, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -389,7 +389,6 @@ export type DataWriteDeps = {
 /** Every data-writing action of the store, extracted as one cluster: the edit commits, the bulk writers, and the row operations; `_deleteCellsById` is the internal clipboard seam, split out by the store factory. */
 export type DataWriteActions = Pick<
   DataGridActions,
-  | "commitCellEdit"
   | "commitCellValue"
   | "commitCellValueAt"
   | "deleteSelection"
@@ -411,6 +410,7 @@ export type DataWriteActions = Pick<
 > & {
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  _commitCellEdit: DataGridInternalActions["_commitCellEdit"];
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -1105,7 +1105,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   return {
-    commitCellEdit(value, movement, rejection) {
+    _commitCellEdit(value, movement, rejection) {
       const s = get();
       const editing = s.editing;
       if (!editing || s.readOnly) return;

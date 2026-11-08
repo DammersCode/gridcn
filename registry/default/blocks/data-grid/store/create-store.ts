@@ -864,9 +864,24 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       endEditSession,
       renameRowKeys,
     });
-    const { _deleteCellsById, ...publicWriteActions } = dataWriteActions;
+    const { _deleteCellsById, _commitCellEdit, ...otherWriteActions } = dataWriteActions;
+    const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
     const internal: DataGridInternalActions = {
       _deleteCellsById,
+      _commitCellEdit,
+      _armRowDragAnchor(index) {
+        const s = get();
+        if (!s.enableRowSelection) return;
+        const base = CompactSelection.adopt(s.selection.rows);
+        set({ lastHighlightedRow: index, rowRangeGesture: rowGestureAt(s, s.selection, index, base, !base.hasIndex(index)) });
+      },
+      _setEditingError(message) {
+        const s = get();
+        if (!s.editing) return;
+        const editing = s.editing;
+        set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
+        emitAfterWrites(dataWrite, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" }));
+      },
       _pruneFlashingCells(keptViewRows) {
         const s = get();
         if (s.flashingCells.size === 0) return;
@@ -1555,12 +1570,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
         set({ selection: next, ...announceChecked(s, { selection: next }), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
-      armRowDragAnchor(index) {
-        const s = get();
-        if (!s.enableRowSelection) return;
-        const base = CompactSelection.adopt(s.selection.rows);
-        set({ lastHighlightedRow: index, rowRangeGesture: rowGestureAt(s, s.selection, index, base, !base.hasIndex(index)) });
-      },
       setAllRowsSelected(checked) {
         const s = get();
         const { selection, viewIndex, enableRowSelection } = s;
@@ -1842,13 +1851,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       // The data-write cluster (see data-write.ts): the edit commits, the bulk writers, and the row operations.
       ...publicWriteActions,
-      setEditingError(message) {
-        const s = get();
-        if (!s.editing) return;
-        const editing = s.editing;
-        set({ editingError: message, editingRejectionCount: s.editingRejectionCount + 1 });
-        emitAfterWrites(dataWrite, () => s.onEditEnd?.({ rowId: editing.rowId, columnId: editing.columnId, viewRowIndex: editing.coord.row, viewColumnIndex: editing.coord.col, result: "rejected" }));
-      },
       setCellErrors(errors) {
         if (errors.length === 0) return;
         set({ cellErrors: mergeCellErrors(get().cellErrors, errors) });

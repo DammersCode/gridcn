@@ -3,7 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { ColumnDef } from "../types";
 import { DataGrid, DataGridProvider, useDataGridActions, type DataGridSyncProps } from "../data-grid";
-import { useDataGridSelector, useDataGridStoreApi } from "../store";
+import { useDataGridInternalActions, useDataGridSelector, useDataGridStoreApi } from "../store";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -36,7 +36,7 @@ function makeWrapper(overrides: Partial<DataGridSyncProps<Row>> = {}) {
 }
 
 function useActionsAndEditing() {
-  return { actions: useDataGridActions(), editing: useDataGridSelector((s) => s.editing) };
+  return { actions: useDataGridInternalActions(), editing: useDataGridSelector((s) => s.editing) };
 }
 
 afterEach(cleanup);
@@ -215,7 +215,7 @@ describe("onEditEnd", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
-    act(() => result.current.actions.setEditingError("taken"));
+    act(() => result.current.actions._setEditingError("taken"));
     expect(result.current.editing).not.toBeNull();
     act(() => result.current.actions.cancelEditing());
     act(() => result.current.actions.cancelEditing());

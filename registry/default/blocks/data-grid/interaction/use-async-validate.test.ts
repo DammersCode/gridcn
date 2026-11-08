@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useAsyncValidate } from "./use-async-validate";
-import type { AnyColumnDef, DataGridActions } from "../store";
+import type { AnyColumnDef, DataGridInternalActions } from "../store";
 import type { StandardSchemaV1 } from "../types";
 
 /** Minimal mock StandardSchemaV1 — no library import anywhere in repo code (per spec). */
@@ -11,8 +11,8 @@ function mockAsyncSchema<TValue>(
   return { "~standard": { version: 1, vendor: "mock", validate: resolve as never } };
 }
 
-function mockActions(overrides: Partial<DataGridActions> = {}): DataGridActions {
-  return { commitCellEdit: vi.fn(), setEditingError: vi.fn(), ...overrides } as unknown as DataGridActions;
+function mockActions(overrides: Partial<DataGridInternalActions> = {}): DataGridInternalActions {
+  return { _commitCellEdit: vi.fn(), _setEditingError: vi.fn(), ...overrides } as unknown as DataGridInternalActions;
 }
 
 describe("useAsyncValidate", () => {
@@ -23,7 +23,7 @@ describe("useAsyncValidate", () => {
 
     act(() => result.current.commit(5, { dx: 0, dy: 1 }));
 
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(5, { dx: 0, dy: 1 });
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(5, { dx: 0, dy: 1 });
     expect(result.current.pending).toBe(false);
   });
 
@@ -34,7 +34,7 @@ describe("useAsyncValidate", () => {
 
     act(() => result.current.commit(5));
 
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(5, undefined);
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(5, undefined);
     expect(result.current.pending).toBe(false);
   });
 
@@ -46,7 +46,7 @@ describe("useAsyncValidate", () => {
 
     act(() => result.current.commit(5));
 
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(5, undefined);
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(5, undefined);
     expect(result.current.pending).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe("useAsyncValidate", () => {
 
     act(() => result.current.commit(5, { dx: 0, dy: 1 }));
     expect(result.current.pending).toBe(true);
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveFn({ value: 10 });
@@ -69,8 +69,8 @@ describe("useAsyncValidate", () => {
     });
 
     expect(result.current.pending).toBe(false);
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(10, { dx: 0, dy: 1 });
-    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(10, { dx: 0, dy: 1 });
+    expect(actions._setEditingError).not.toHaveBeenCalled();
   });
 
   it("async schema: sets editingError on issues, leaves commitCellEdit uncalled, and clears pending", async () => {
@@ -91,8 +91,8 @@ describe("useAsyncValidate", () => {
     });
 
     expect(result.current.pending).toBe(false);
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).toHaveBeenCalledWith("server says no");
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).toHaveBeenCalledWith("server says no");
   });
 
   it("async schema with onInvalid: 'warn': issues commit the RAW value with the rejection forwarded, no editingError", async () => {
@@ -114,8 +114,8 @@ describe("useAsyncValidate", () => {
 
     // the raw value (NOT a schema-transformed one — a rejection carries none) commits, flagged
     expect(result.current.pending).toBe(false);
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(5, { dx: 0, dy: 1 }, "soft fail");
-    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(5, { dx: 0, dy: 1 }, "soft fail");
+    expect(actions._setEditingError).not.toHaveBeenCalled();
   });
 
   it("race guard: a stale resolution (superseded by cancelPending) is dropped silently", async () => {
@@ -140,8 +140,8 @@ describe("useAsyncValidate", () => {
     });
 
     // The stale resolution must not commit or surface an error — it was dropped.
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).not.toHaveBeenCalled();
     expect(result.current.pending).toBe(false);
   });
 
@@ -162,14 +162,14 @@ describe("useAsyncValidate", () => {
       resolvers[0]!({ value: 111 }); // stale — must be dropped
       await Promise.resolve();
     });
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
 
     await act(async () => {
       resolvers[1]!({ value: 222 }); // current — must commit
       await Promise.resolve();
     });
-    expect(actions.commitCellEdit).toHaveBeenCalledTimes(1);
-    expect(actions.commitCellEdit).toHaveBeenCalledWith(222, { dx: 1, dy: 0 });
+    expect(actions._commitCellEdit).toHaveBeenCalledTimes(1);
+    expect(actions._commitCellEdit).toHaveBeenCalledWith(222, { dx: 1, dy: 0 });
   });
 
   it("a synchronously throwing validator rejects the edit with its message, never commits", () => {
@@ -183,8 +183,8 @@ describe("useAsyncValidate", () => {
     expect(() => act(() => result.current.commit(5))).not.toThrow();
 
     expect(result.current.pending).toBe(false);
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).toHaveBeenCalledWith("validator crashed");
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).toHaveBeenCalledWith("validator crashed");
   });
 
   it("a rejecting schema rejects the edit with its message and clears pending", async () => {
@@ -205,8 +205,8 @@ describe("useAsyncValidate", () => {
     });
 
     expect(result.current.pending).toBe(false);
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).toHaveBeenCalledWith("validator rejected");
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).toHaveBeenCalledWith("validator rejected");
   });
 
   it("race guard: a stale rejection (superseded by cancelPending) is dropped silently", async () => {
@@ -226,8 +226,8 @@ describe("useAsyncValidate", () => {
       await Promise.resolve();
     });
 
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).not.toHaveBeenCalled();
     expect(result.current.pending).toBe(false);
   });
 
@@ -248,7 +248,7 @@ describe("useAsyncValidate", () => {
       await Promise.resolve();
     });
 
-    expect(actions.commitCellEdit).not.toHaveBeenCalled();
-    expect(actions.setEditingError).not.toHaveBeenCalled();
+    expect(actions._commitCellEdit).not.toHaveBeenCalled();
+    expect(actions._setEditingError).not.toHaveBeenCalled();
   });
 });

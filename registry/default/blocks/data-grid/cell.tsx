@@ -18,6 +18,7 @@ import { gridAttrSelector } from "./data-attributes";
 import type { CellType, GetCellClassName } from "./types";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridCellTypes, useDataGridStoreApi, type AnyColumnDef } from "./store";
+import { getInternalActions } from "./store/internal-actions";
 import { useDataGridRootContext } from "./layout-context";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import { cellLayer, GRID_LAYER } from "./layers";
@@ -287,7 +288,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Async Standard Schema interception (see use-async-validate.ts doc) — a sync validate/schema
   // forwards to commitCellEdit immediately, zero behavior change from before this hook existed.
   // The type's own `validate` is the fallback the column didn't declare.
-  const asyncValidate = useAsyncValidate(actions, column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined), editSession);
+  const asyncValidate = useAsyncValidate(getInternalActions(storeApi), column, resolveColumnValidate(column as AnyColumnDef, cellType as CellType | undefined), editSession);
   const commit = useCallback(
     (movement?: { dx: number; dy: number }) => asyncValidate.commit(pendingValueRef.current, movement),
     [asyncValidate],
