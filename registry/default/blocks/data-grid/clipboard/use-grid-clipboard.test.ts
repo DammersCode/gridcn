@@ -60,6 +60,25 @@ function fakeState(overrides: Partial<DataGridStoreState> = {}): DataGridStoreSt
   } as unknown as DataGridStoreState;
 }
 
+describe("clipboard override contexts", () => {
+  it("processCellForClipboard receives the cell type's own text", () => {
+    const processCellForClipboard = vi.fn((_value: unknown, ctx: { text: string }) => ctx.text + "!");
+    const s = fakeState({ processCellForClipboard } as Partial<DataGridStoreState>);
+    expect(serializeRect(s, { x: 0, y: 0, width: 2, height: 1 })).toEqual([["a!", "1!"]]);
+  });
+
+  it("processCellFromClipboard receives the column's own parser", () => {
+    const processCellFromClipboard = vi.fn((text: string, ctx: { fromText: (t: string) => unknown }) => ctx.fromText(text));
+    const s = fakeState({ processCellFromClipboard } as Partial<DataGridStoreState>);
+    const resolution = buildPasteWritesRaw(s, [["x", "9"]], { col: 0, row: 0 });
+    if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+    expect(resolution.writes).toEqual([
+      { viewRowIndex: 0, columnId: "name", value: "x" },
+      { viewRowIndex: 0, columnId: "qty", value: 9 },
+    ]);
+  });
+});
+
 describe("buildPasteWrites with a throwing fromText", () => {
   it("rejects the cell and keeps the rest of the paste", () => {
     const throwingNumber = { ...cellTypes["number"], fromText: () => { throw new Error("boom"); } };

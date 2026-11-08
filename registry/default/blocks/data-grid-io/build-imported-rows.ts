@@ -35,6 +35,8 @@ export type ProcessCellFromText<TData> = (
     column: ColumnDef<TData, unknown, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     source: "import";
     signal: AbortSignal;
+    /** The column's own parser, for the cells you do not change. */
+    fromText: (text: string) => unknown;
   },
 ) => unknown;
 
@@ -167,7 +169,7 @@ function buildCellsForRange<TData>(
       // as never: validate is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here — safe since column and row/value are all this same import's TData.
       const columnValidate = resolveColumnValidate(column as AnyColumnDef, cellType);
       const parsed = processCellFromText
-        ? { value: processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal }), validate: columnValidate }
+        ? { value: processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal, fromText: (raw) => cellType.fromText(raw, column.options) }), validate: columnValidate }
         : safeFromText(cellType, text, column.options, columnValidate);
       items.push({ validate: parsed.validate as never, value: parsed.value, row: rows[rowIndex] });
       cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options) });

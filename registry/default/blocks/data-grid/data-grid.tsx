@@ -108,7 +108,7 @@ export {
   type AnyColumnDef,
   createDataGridSelector,
 } from "./store";
-export type { AnyCellType, ColumnDefOf, ClipboardProcessCtx } from "./store";
+export type { AnyCellType, ColumnDefOf, ClipboardProcessCtx, ClipboardCopyCtx, ClipboardPasteCtx } from "./store";
 
 export { useDataGridClipboard, type UseDataGridClipboardResult, type PasteFromClipboardResult } from "./clipboard/use-data-grid-clipboard";
 export { sanitizeFormulaCell } from "./clipboard/serialize-cells";

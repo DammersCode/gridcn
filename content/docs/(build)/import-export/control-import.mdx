@@ -57,7 +57,7 @@ export function ImportOrders({ refresh }: { refresh: () => void }) {
 | `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. The dialog drops the rows above it. |
 | `importDefaults.mapColumn` | for each file header | Receives `(header, index, { signal })`. The `signal` aborts when a newer parse replaces the run or the dialog unmounts. The dialog ignores an aborted result. |
 | `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
-| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. |
+| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. The context holds `fromText` <NewBadge />, the column's own parser. |
 | `onImport` | after the build | Gets `rows` and `{ signal, rejected, fileName, sheetName, mapping }`. |
 | `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |
 

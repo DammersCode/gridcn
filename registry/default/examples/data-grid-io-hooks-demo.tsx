@@ -269,7 +269,7 @@ function ImportPanel(props: { onRows: (rows: Order[]) => void }): ReactNode {
         createRow={() => ({ id: `new-${counter.current++}`, name: "", price: null, qty: null, note: "" })}
         importDefaults={{ defaultHeaderRow: headerRow }}
         processImportRows={clean ? ({ rows }) => rows.map((row) => row.map((cell) => cell.trim())).filter((row) => row.some((cell) => cell !== "")) : undefined}
-        processCellFromText={euro ? (text, { column }) => (column.id === "price" ? parseEuro(text) : column.id === "qty" ? toNumber(text) : text) : undefined}
+        processCellFromText={euro ? (text, { column, fromText }) => (column.id === "price" ? parseEuro(text) : fromText(text)) : undefined}
         onImport={onImport}
         onImportError={(error) => setServerError(error instanceof Error ? error.message : String(error))}
       />

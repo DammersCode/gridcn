@@ -156,14 +156,14 @@ export type DataGridSyncProps<TData = unknown> = {
    * when an entry changes identity, so define each type once, outside render.
    */
   cellTypes?: Record<string, AnyCellType | null>;
-  /** Overrides a cell's clipboard-copy text; falls back to the cell type's `toText`. */
-  processCellForClipboard?: (value: unknown, ctx: ClipboardProcessCtx<TData>) => string;
+  /** Overrides a cell's clipboard-copy text. `ctx.text` is the cell type's own text, for the cells you do not change. */
+  processCellForClipboard?: (value: unknown, ctx: ClipboardCopyCtx<TData>) => string;
   /**
-   * Overrides parsing pasted text into a cell value; falls back to the cell type's `fromText`.
+   * Overrides parsing pasted text into a cell value. `ctx.fromText` is the column's own parser, for the cells you do not change.
    * A promise holds the paste until every cell settles. A pending promise blocks a second paste.
    * A rejection cancels the paste.
    */
-  processCellFromClipboard?: (text: string, ctx: ClipboardProcessCtx<TData>) => unknown;
+  processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => unknown;
   /**
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
@@ -553,8 +553,20 @@ export type AnyColumnDef = ColumnDef<unknown, unknown, any>; // eslint-disable-l
  */
 export type ColumnDefOf<TData> = ColumnDef<TData, unknown, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-/** `processCellForClipboard`/`processCellFromClipboard`'s callback context — named since it repeats identically across both callbacks in both `DataGridSyncProps` and `DataGridProps`. */
+/** The row and column that the clipboard callbacks share. */
 export type ClipboardProcessCtx<TData> = { row: TData; column: ColumnDefOf<TData> };
+
+/** `processCellForClipboard`'s context. */
+export type ClipboardCopyCtx<TData> = ClipboardProcessCtx<TData> & {
+  /** The cell type's own copy text. */
+  text: string;
+};
+
+/** `processCellFromClipboard`'s context. */
+export type ClipboardPasteCtx<TData> = ClipboardProcessCtx<TData> & {
+  /** The column's own parser (the cell type's `fromText` with the column options). */
+  fromText: (text: string) => unknown;
+};
 
 /**
  * `CellType<any, any, any>` — the `cellTypes` registry-prop widening (same single-point `any`

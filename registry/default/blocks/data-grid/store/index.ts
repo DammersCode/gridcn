@@ -8,6 +8,8 @@ export type {
   AnyCellType,
   ColumnDefOf,
   ClipboardProcessCtx,
+  ClipboardCopyCtx,
+  ClipboardPasteCtx,
   SelectLineActionOptions,
   CellPatch,
   RowPatch,

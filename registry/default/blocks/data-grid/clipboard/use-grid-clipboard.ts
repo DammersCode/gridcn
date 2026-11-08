@@ -62,10 +62,8 @@ function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: num
     const cellType = s.cellTypes[column.type ?? "text"];
     // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
     const value = getCellValue<unknown, typeof column>(row, column);
-    const text = s.processCellForClipboard
-      ? s.processCellForClipboard(value, { row, column })
-      : (cellType ? exportText(cellType, value, column.options) : "");
-    cells.push(text);
+    const defaultText = cellType ? exportText(cellType, value, column.options) : "";
+    cells.push(s.processCellForClipboard ? s.processCellForClipboard(value, { row, column, text: defaultText }) : defaultText);
   }
   return cells;
 }
@@ -122,10 +120,8 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], c
       const { column, cellType } = entry;
       // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
       const value = getCellValue<unknown, typeof column>(row, column);
-      const text = s.processCellForClipboard
-        ? s.processCellForClipboard(value, { row, column })
-        : (cellType ? exportText(cellType, value, column.options) : "");
-      cells.push(text);
+      const defaultText = cellType ? exportText(cellType, value, column.options) : "";
+      cells.push(s.processCellForClipboard ? s.processCellForClipboard(value, { row, column, text: defaultText }) : defaultText);
     }
     out.push(cells);
   }, rowCount);
@@ -289,7 +285,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
       const text = sourceRow[c]!; // c < sourceRow.length by loop condition
       const columnValidate = resolveColumnValidate(column, cellType);
       const { value, validate } = s.processCellFromClipboard
-        ? { value: s.processCellFromClipboard(text, { row, column }), validate: columnValidate }
+        ? { value: s.processCellFromClipboard(text, { row, column, fromText: (raw) => cellType.fromText(raw, column.options) }), validate: columnValidate }
         : safeFromText(cellType, text, column.options, columnValidate);
 
       if (isThenable(value)) pending++;
