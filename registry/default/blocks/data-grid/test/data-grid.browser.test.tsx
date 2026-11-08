@@ -1470,7 +1470,7 @@ describe("DataGrid in a real browser", () => {
       { id: "joined", header: "Joined", accessorKey: "joined", type: "date" },
     ];
 
-    async function renderPopupGrid(onEditStart: () => void, onDataChange: () => void) {
+    async function renderPopupGrid(onBeforeEditStart: () => void, onDataChange: () => void) {
       await render(
         <div style={{ height: 300 }}>
           <DataGrid
@@ -1478,7 +1478,7 @@ describe("DataGrid in a real browser", () => {
             columns={popupColumns}
             getRowId={(r) => r.id}
             className="h-[300px]"
-            onEditStart={onEditStart}
+            onBeforeEditStart={onBeforeEditStart}
             onDataChange={onDataChange}
           />
         </div>,
@@ -1487,31 +1487,31 @@ describe("DataGrid in a real browser", () => {
     }
 
     it("commits the select option and does not reopen the editor", async () => {
-      const onEditStart = vi.fn();
+      const onBeforeEditStart = vi.fn();
       const onDataChange = vi.fn();
-      await renderPopupGrid(onEditStart, onDataChange);
+      await renderPopupGrid(onBeforeEditStart, onDataChange);
       await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[0]!);
       await userEvent.keyboard("{Enter}");
-      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
       (page.getByRole("option", { name: "User" }).element() as HTMLElement).focus();
       await userEvent.keyboard("{Enter}");
       expect(onDataChange).toHaveBeenCalledTimes(1);
-      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
       expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
     });
 
     it("commits the calendar day and does not reopen the editor", async () => {
-      const onEditStart = vi.fn();
+      const onBeforeEditStart = vi.fn();
       const onDataChange = vi.fn();
-      await renderPopupGrid(onEditStart, onDataChange);
+      await renderPopupGrid(onBeforeEditStart, onDataChange);
       await userEvent.click(document.querySelectorAll<HTMLElement>('[role="gridcell"]')[1]!);
       await userEvent.keyboard("{Enter}");
-      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
       const editor = document.querySelector<HTMLElement>(gridAttrSelector("cellEditor"))!;
       editor.querySelector<HTMLElement>('[data-day="2026-07-15"] button')!.focus();
       await userEvent.keyboard("{Enter}");
       expect(onDataChange).toHaveBeenCalledTimes(1);
-      expect(onEditStart).toHaveBeenCalledTimes(1);
+      expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
       expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
     });
   });

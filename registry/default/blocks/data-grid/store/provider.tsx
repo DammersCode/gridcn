@@ -143,7 +143,7 @@ const CONFIG_KEYS = [
   "onColumnResizing",
   "onSelectionChange",
   "onActiveCellChange",
-  "onEditStart",
+  "onBeforeEditStart",
   "onEditEnd",
   "onValidationError",
   "onCellDoubleClick",

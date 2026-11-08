@@ -7,13 +7,13 @@ demos: none
 aliases: ["abort signal", "gate timeout", "cancel paste request"]
 ---
 
-A gate is a callback that runs before the grid acts, such as `processPaste` or `onEditStart`. A gate can return a promise, and the grid waits for it. This page shows how to stop that wait: pass the `AbortSignal` of the gate to your request, set `gateTimeoutMs`, and read the pending state. [Async gates example](/docs/validation-examples/async-gates-example) runs the gates live.
+A gate is a callback that runs before the grid acts, such as `processPaste` or `onBeforeEditStart`. A gate can return a promise, and the grid waits for it. This page shows how to stop that wait: pass the `AbortSignal` of the gate to your request, set `gateTimeoutMs`, and read the pending state. [Async gates example](/docs/validation-examples/async-gates-example) runs the gates live.
 
 ## Cancel a request with the signal [#cancel-a-request-with-the-signal]
 
 Every gate receives an `AbortSignal` as its last argument. The signal aborts in three cases:
 
-- A newer run of the same gate replaces the run. For example, the user moves to another cell before `onEditStart` settles.
+- A newer run of the same gate replaces the run. For example, the user moves to another cell before `onBeforeEditStart` settles.
 - The grid unmounts.
 - The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
 
@@ -42,7 +42,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 |---|---|
 | `processPaste` | `({ cells, target, signal })` |
 | `validateRow` | `(row, rowId, { signal })` |
-| `onEditStart` | `(cell, { signal })` |
+| `onBeforeEditStart` | `(cell, { signal })` |
 | `createRow` | `(index, { signal })` |
 | `duplicateRow` | `(row, index, { signal })` |
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
@@ -55,7 +55,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 A gate waits for its promise. Set `gateTimeoutMs` to abort a gate whose promise has not settled in time. The signal aborts, the grid cancels the action, and the next action can start. Pass one number for every gate, or an object with a number for each gate name. Pass the value as the `gateTimeoutMs` prop of `DataGridProvider`:
 
 ```tsx
-const gateTimeoutMs = { processPaste: 10_000, onEditStart: 3_000 };
+const gateTimeoutMs = { processPaste: 10_000, onBeforeEditStart: 3_000 };
 ```
 
 `onGateAborted({ gate, reason })` fires once for every gate that the grid stopped waiting for. `reason` is one of these:

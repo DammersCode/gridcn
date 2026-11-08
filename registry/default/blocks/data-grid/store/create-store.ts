@@ -698,7 +698,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("onEditStart rejected", `onEditStart rejected, so the edit does not start: ${String(error)}`);
+        warnGateOnce("onBeforeEditStart rejected", `onBeforeEditStart rejected, so the edit does not start: ${String(error)}`);
       },
     );
   };
@@ -1025,7 +1025,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             onColumnResizing: props.onColumnResizing,
             onSelectionChange: props.onSelectionChange,
             onActiveCellChange: props.onActiveCellChange,
-            onEditStart: props.onEditStart,
+            onBeforeEditStart: props.onBeforeEditStart,
             onEditEnd: props.onEditEnd,
             onValidationError: props.onValidationError,
             onCellDoubleClick: props.onCellDoubleClick,
@@ -1832,11 +1832,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
         const rowId = s.getRowId(target.row, target.dataRowIndex);
-        const gate = s.onEditStart;
+        const gate = s.onBeforeEditStart;
         if (gate) {
           if (editStartRun && !editStartRun.aborted) return;
           const ref = { rowId, columnId: target.column.id };
-          const run = gates.begin("onEditStart", (now) => cursorLeft(now, ref, s.activeCell));
+          const run = gates.begin("onBeforeEditStart", (now) => cursorLeft(now, ref, s.activeCell));
           const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
           if (verdict === false) return;
           if (isThenable<boolean | void>(verdict)) {

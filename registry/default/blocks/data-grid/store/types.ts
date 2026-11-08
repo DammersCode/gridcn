@@ -212,7 +212,7 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultPage?: number;
   onPageChange?: (page: number) => void;
   /**
-   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
@@ -441,7 +441,7 @@ export type DataGridSyncProps<TData = unknown> = {
     * `signal` aborts when the cursor moves to another cell, the edit is cancelled (Escape), the grid
     * goes read-only, or the grid unmounts; an aborted result is dropped.
     */
-   onEditStart?: (cell: ViewCellRef, ctx: GateContext) => boolean | void | Promise<boolean | void>;
+   onBeforeEditStart?: (cell: ViewCellRef, ctx: GateContext) => boolean | void | Promise<boolean | void>;
    /**
     * Fired when an edit session ends or a commit attempt is refused — `commit` after the session
     * closes, `cancel` when the draft is discarded (including a remap that drops the edited cell),

@@ -15,7 +15,7 @@ The grid reports each user action through a callback prop. In the demo, every ca
 ## What the demo shows [#whats-in-the-demo]
 
 - A click, a double-click, and a right-click on a cell log `onCellClick`, `onCellDoubleClick`, and `onCellContextMenu`. A move of the active cell logs `onActiveCellChange`.
-- An edit logs `onEditStart`, then `onEditEnd`. A committed value logs `onDataChange` with the change.
+- An edit logs `onBeforeEditStart`, then `onEditEnd`. A committed value logs `onDataChange` with the change.
 - A drag over cells logs `onSelectionChange`. The panel shows the first five rows of `details.getValues()`.
 - A header click logs `onSortChange`, because the demo sets `headerClickBehavior="sort"`. The filter menu logs `onFilterChange`.
 - A scroll logs `onRenderedRowsChange`. A column resize logs `onColumnResizing` on each drag frame and `onColumnLayoutChange` on release. A pin or a hide from the header menu logs `onColumnLayoutChange`.

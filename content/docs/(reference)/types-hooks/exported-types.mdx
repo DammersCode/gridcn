@@ -14,7 +14,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `CellRef` | `{ rowId, columnId }` | The stable identity of a cell: the row id from `getRowId` plus the column id. A sort, a filter, or a reorder never changes it. The actions `setActiveCell`, `selectCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue` take a `CellRef`. Each has an `*At` variant, such as `selectCellAt`, that takes a `ViewCoord`. A ref whose row or column is not in the view does nothing, and development mode warns once. |
 | `ViewCoord` | `{ col, row }` | A cell position in view index. `row` is the position in the sorted and filtered list. `col` is the position among the visible columns, without the marker column. When the view changes, the position moves. Store a `CellRef` instead. |
-| `ViewCellRef` | `CellRef & { viewRowIndex, viewColumnIndex }` | A `CellRef` plus the view position of the cell at the time of the event. `onActiveCellChange`, `onEditStart`, and `onEditEnd` deliver it. |
+| `ViewCellRef` | `CellRef & { viewRowIndex, viewColumnIndex }` | A `CellRef` plus the view position of the cell at the time of the event. `onActiveCellChange`, `onBeforeEditStart`, and `onEditEnd` deliver it. |
 | `GridRect` | `{ x, y, width, height }` | A rectangle of cells. It covers the columns `x` to `x + width - 1` and the rows `y` to `y + height - 1`. |
 | `CellErrorTarget` | `{ rowId, columnId }` | A cell that `clearCellErrors` names. |
 | `CellErrorEntry` | `CellErrorTarget & { message }` | A cell and its error message for `setCellErrors`. |
@@ -45,7 +45,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onEditStart`, and `import`. |
+| `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onBeforeEditStart`, and `import`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
 | `RowActionSkipReason` | A union of 7 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
 | `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |

@@ -79,7 +79,7 @@ describe("gate tracker", () => {
 
   it("aborts a held run, drops it from the pending set, and ignores its late settle", () => {
     const { gates, published } = tracker();
-    const run = gates.begin("onEditStart");
+    const run = gates.begin("onBeforeEditStart");
     const { signal } = run;
     gates.hold(run);
     gates.abortRun(run);
@@ -214,16 +214,16 @@ describe("validateRow signal", () => {
   });
 });
 
-describe("onEditStart signal", () => {
+describe("onBeforeEditStart signal", () => {
   const begin = (m: ReturnType<typeof mount>, row = 0) => m.state().actions.startEditingAt({ row, col: 0 });
 
   it("passes the cell and a signal, and shows the gate pending until it settles", async () => {
     const d = deferred<boolean>();
     const gate = vi.fn((_cell: unknown, _ctx: { signal: AbortSignal }) => d.promise);
-    const m = mount({ onEditStart: gate });
+    const m = mount({ onBeforeEditStart: gate });
     begin(m);
     expect(gate.mock.calls[0]![0]).toMatchObject({ rowId: "a", columnId: "name" });
-    expect(m.pending()).toEqual(["onEditStart"]);
+    expect(m.pending()).toEqual(["onBeforeEditStart"]);
     d.resolve(true);
     await settle();
     expect(m.state().editing?.rowId).toBe("a");
@@ -231,7 +231,7 @@ describe("onEditStart signal", () => {
   });
 
   it("a sync gate never shows pending", () => {
-    const m = mount({ onEditStart: () => true });
+    const m = mount({ onBeforeEditStart: () => true });
     begin(m);
     expect(m.state().gatesPending).toBe(EMPTY_GATES_PENDING);
     expect(m.state().editing?.rowId).toBe("a");
@@ -241,7 +241,7 @@ describe("onEditStart signal", () => {
     const signals: AbortSignal[] = [];
     const verdicts = [deferred<boolean>(), deferred<boolean>()];
     const m = mount({
-      onEditStart: (_cell, ctx) => {
+      onBeforeEditStart: (_cell, ctx) => {
         signals.push(ctx.signal);
         return verdicts[signals.length - 1]!.promise;
       },
@@ -263,7 +263,7 @@ describe("onEditStart signal", () => {
     const d = deferred<boolean>();
     let signal!: AbortSignal;
     const m = mount({
-      onEditStart: (_cell, ctx) => {
+      onBeforeEditStart: (_cell, ctx) => {
         signal = ctx.signal;
         return d.promise;
       },
@@ -280,7 +280,7 @@ describe("onEditStart signal", () => {
     const d = deferred<boolean>();
     let signal!: AbortSignal;
     const m = mount({
-      onEditStart: (_cell, ctx) => {
+      onBeforeEditStart: (_cell, ctx) => {
         signal = ctx.signal;
         return d.promise;
       },
@@ -296,7 +296,7 @@ describe("onEditStart signal", () => {
   it("aborts on unmount", () => {
     let signal!: AbortSignal;
     const m = mount({
-      onEditStart: (_cell, ctx) => {
+      onBeforeEditStart: (_cell, ctx) => {
         signal = ctx.signal;
         return new Promise<boolean>(() => {});
       },
@@ -309,7 +309,7 @@ describe("onEditStart signal", () => {
 
   it("an aborted start releases the latch for the next start", async () => {
     const results = [new Promise<boolean>(() => {}), Promise.resolve(true)];
-    const m = mount({ onEditStart: () => results.shift()! });
+    const m = mount({ onBeforeEditStart: () => results.shift()! });
     begin(m);
     m.state().actions.cancelEditing();
     begin(m);

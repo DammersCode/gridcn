@@ -3,19 +3,19 @@ title: Edit and validation events
 icon: PenLine
 description: Stop an edit before it opens, learn how an edit ended, and read the cells that a bulk write refused.
 type: reference
-aliases: ["onvalidationerror", "oneditstart", "oneditend", "oninvalid", "validation error", "veto edit"]
+aliases: ["onvalidationerror", "oneditstart", "onbeforeeditstart", "oneditend", "oninvalid", "validation error", "veto edit"]
 ---
 
-Three callbacks cover the edit lifecycle. `onEditStart` runs before an editor opens. `onEditEnd` reports how a session ended. `onValidationError` reports the cells that a paste, a fill, or a batch update refused.
+Three callbacks cover the edit lifecycle. `onBeforeEditStart` runs before an editor opens. `onEditEnd` reports how a session ended. `onValidationError` reports the cells that a paste, a fill, or a batch update refused.
 
 {/* props: DataGridSyncProps */}
 | Prop | Fires when | Default |
 |---|---|---|
-| `onEditStart` | An editor is about to open | none |
+| `onBeforeEditStart` | An editor is about to open | none |
 | `onEditEnd` | A session ends, or validation refuses a commit attempt | none |
 | `onValidationError` | A bulk write settles with at least one refused cell | none |
 
-## onEditStart [#oneditstart]
+## onBeforeEditStart [#onbeforeeditstart]
 
 The callback fires right before an editor opens. Enter, F2, type-to-replace, and a double-click open an editor. The payload is a `ViewCellRef`: `rowId`, `columnId`, `viewRowIndex`, and `viewColumnIndex`. Return `false` to stop the edit. The grid then makes no state change. This sample stops the edit of a locked row:
 
@@ -33,7 +33,7 @@ function Grid({ rows }: { rows: Row[] }) {
     <DataGrid
       defaultData={rows}
       columns={columns}
-      onEditStart={({ rowId }) => {
+      onBeforeEditStart={({ rowId }) => {
         const row = rows.find((candidate) => candidate.id === rowId);
         return row?.locked === true ? false : undefined;
       }}

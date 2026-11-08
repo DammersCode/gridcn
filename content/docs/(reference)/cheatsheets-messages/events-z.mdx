@@ -15,6 +15,7 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | --- | --- | --- |
 | `onActiveCellChange` | The active cell becomes a different cell, or clears. | [Selection and cell events](/docs/events-state/selection-cell-events#onactivecellchange) |
 | `onBeforeDeleteRows` | Runs before a row delete and can cancel it. | [Data change events](/docs/events-state/data-change-events#onbeforedeleterows) |
+| `onBeforeEditStart` | An editor is about to open. | [Edit and validation events](/docs/events-state/edit-validation-events#onbeforeeditstart) |
 | `onCellClick` | A click lands on a cell. | [Selection and cell events](/docs/events-state/selection-cell-events#oncellclick) |
 | `onCellContextMenu` | A right-click lands on a cell. | [Selection and cell events](/docs/events-state/selection-cell-events#oncellcontextmenu) |
 | `onCellDoubleClick` | A double-click lands on a cell. | [Selection and cell events](/docs/events-state/selection-cell-events#oncelldoubleclick) |
@@ -22,7 +23,6 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onColumnResizing` | Fires on each live width write during a resize drag. | [Column and viewport events](/docs/events-state/column-viewport-events#oncolumnresizing) |
 | `onDataChange` | Fires once per change with the next array and the operations. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
 | `onEditEnd` | A session ends, or validation refuses a commit attempt. | [Edit and validation events](/docs/events-state/edit-validation-events#oneditend) |
-| `onEditStart` | An editor is about to open. | [Edit and validation events](/docs/events-state/edit-validation-events#oneditstart) |
 | `onFilterChange` | Fires with the next filter tree. | [Sort and filter events](/docs/events-state/sort-filter-events#onfilterchange) |
 | `onGateAborted` | Fires once for every async gate that the grid stopped waiting for, with its name and the reason. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
 | `onPageChange` | Fires with the new page after a page change, and with 1 after a filter change. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |

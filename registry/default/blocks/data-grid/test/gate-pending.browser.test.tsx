@@ -18,7 +18,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-async function mountGrid(props: Pick<DataGridSyncProps<Row>, "onEditStart" | "validateRow">) {
+async function mountGrid(props: Pick<DataGridSyncProps<Row>, "onBeforeEditStart" | "validateRow">) {
   await render(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-[300px]" {...props} />);
   await expect.poll(() => document.querySelectorAll("[data-grid-row-index]").length).toBe(rows.length);
 }
@@ -29,30 +29,30 @@ describe("grid root gate state", () => {
     expect(gridEl().hasAttribute("data-gate-pending")).toBe(false);
   });
 
-  it("is busy while onEditStart is pending and clears when it settles", async () => {
+  it("is busy while onBeforeEditStart is pending and clears when it settles", async () => {
     const d = deferred<boolean>();
-    await mountGrid({ onEditStart: () => d.promise });
+    await mountGrid({ onBeforeEditStart: () => d.promise });
     await userEvent.click(cellEl(0));
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(true);
     expect(gridEl().hasAttribute("aria-busy")).toBe(false);
-    expect(gridEl().getAttribute("data-gate-pending")).toBe("onEditStart");
+    expect(gridEl().getAttribute("data-gate-pending")).toBe("onBeforeEditStart");
     d.resolve(true);
     await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(false);
     expect(gridEl().hasAttribute("data-gate-pending")).toBe(false);
   });
 
-  it("Escape aborts a pending onEditStart and clears the busy state", async () => {
+  it("Escape aborts a pending onBeforeEditStart and clears the busy state", async () => {
     let signal: AbortSignal | undefined;
     await mountGrid({
-      onEditStart: (_cell, ctx) => {
+      onBeforeEditStart: (_cell, ctx) => {
         signal = ctx.signal;
         return new Promise<boolean>(() => {});
       },
     });
     await userEvent.click(cellEl(0));
     await userEvent.keyboard("{Enter}");
-    await expect.poll(() => gridEl().getAttribute("data-gate-pending")).toBe("onEditStart");
+    await expect.poll(() => gridEl().getAttribute("data-gate-pending")).toBe("onBeforeEditStart");
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => gridEl().hasAttribute("data-gate-pending")).toBe(false);
     expect(signal?.aborted).toBe(true);
@@ -61,7 +61,7 @@ describe("grid root gate state", () => {
   it("lists every pending gate, space separated", async () => {
     const edit = deferred<boolean>();
     const verdict = deferred<Record<string, string> | null>();
-    await mountGrid({ onEditStart: () => edit.promise, validateRow: () => verdict.promise });
+    await mountGrid({ onBeforeEditStart: () => edit.promise, validateRow: () => verdict.promise });
     await userEvent.click(cellEl(0));
     await userEvent.keyboard("{Enter}");
     edit.resolve(true);

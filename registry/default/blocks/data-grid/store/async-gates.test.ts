@@ -127,22 +127,22 @@ describe("validateRow async", () => {
   });
 });
 
-describe("onEditStart async", () => {
+describe("onBeforeEditStart async", () => {
   it("a sync result opens the editor in the same tick", () => {
-    const m = mount({ onEditStart: () => true });
+    const m = mount({ onBeforeEditStart: () => true });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     expect(m.state().editing?.rowId).toBe("a");
   });
 
   it("a sync false vetoes", () => {
-    const m = mount({ onEditStart: () => false });
+    const m = mount({ onBeforeEditStart: () => false });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     expect(m.state().editing).toBeNull();
   });
 
   it("holds the editor until an async true settles, and keeps the initial text", async () => {
     const d = deferred<boolean>();
-    const m = mount({ onEditStart: () => d.promise });
+    const m = mount({ onBeforeEditStart: () => d.promise });
     m.state().actions.startEditingAt({ row: 1, col: 0 }, "z");
     expect(m.state().editing).toBeNull();
     d.resolve(true);
@@ -152,7 +152,7 @@ describe("onEditStart async", () => {
 
   it("an async false or void keeps veto semantics", async () => {
     const results = [Promise.resolve(false), Promise.resolve(undefined)];
-    const m = mount({ onEditStart: () => results.shift()! });
+    const m = mount({ onBeforeEditStart: () => results.shift()! });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     await settle();
     expect(m.state().editing).toBeNull();
@@ -163,12 +163,12 @@ describe("onEditStart async", () => {
 
   it("a pending promise ignores a second request", async () => {
     const d = deferred<boolean>();
-    const onEditStart = vi.fn(() => d.promise);
-    const m = mount({ onEditStart });
+    const onBeforeEditStart = vi.fn(() => d.promise);
+    const m = mount({ onBeforeEditStart });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     m.state().actions.startEditingAt({ row: 1, col: 0 });
     m.state().actions.startEditingAt({ row: 2, col: 0 });
-    expect(onEditStart).toHaveBeenCalledTimes(1);
+    expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
     d.resolve(true);
     await settle();
     expect(m.state().editing?.rowId).toBe("a");
@@ -177,11 +177,11 @@ describe("onEditStart async", () => {
   it("a rejection cancels, warns, and leaves the gate usable", async () => {
     const warn = warnings();
     const results = [Promise.reject(new Error("down")), Promise.resolve(true)];
-    const m = mount({ onEditStart: () => results.shift()! });
+    const m = mount({ onBeforeEditStart: () => results.shift()! });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     await settle();
     expect(m.state().editing).toBeNull();
-    expect(warn.mock.calls.some(([message]) => String(message).includes("onEditStart rejected"))).toBe(true);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("onBeforeEditStart rejected"))).toBe(true);
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     await settle();
     expect(m.state().editing?.rowId).toBe("a");
@@ -189,7 +189,7 @@ describe("onEditStart async", () => {
 
   it("drops a late result when the user moved on, the grid went readOnly, or the row is gone", async () => {
     const moved = deferred<boolean>();
-    const m = mount({ onEditStart: () => moved.promise });
+    const m = mount({ onBeforeEditStart: () => moved.promise });
     m.state().actions.selectCellAt({ row: 0, col: 0 });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     m.state().actions.selectCellAt({ row: 2, col: 0 });
@@ -198,7 +198,7 @@ describe("onEditStart async", () => {
     expect(m.state().editing).toBeNull();
 
     const ro = deferred<boolean>();
-    const m2 = mount({ onEditStart: () => ro.promise });
+    const m2 = mount({ onBeforeEditStart: () => ro.promise });
     m2.state().actions.startEditingAt({ row: 0, col: 0 });
     m2.sync({ readOnly: true });
     ro.resolve(true);
@@ -206,7 +206,7 @@ describe("onEditStart async", () => {
     expect(m2.state().editing).toBeNull();
 
     const del = deferred<boolean>();
-    const m3 = mount({ onEditStart: () => del.promise });
+    const m3 = mount({ onBeforeEditStart: () => del.promise });
     m3.state().actions.startEditingAt({ row: 0, col: 0 });
     m3.sync({ data: rows(["b", "c"]) });
     del.resolve(true);
@@ -216,7 +216,7 @@ describe("onEditStart async", () => {
 
   it("opens on the cell's current view position after a reorder", async () => {
     const d = deferred<boolean>();
-    const m = mount({ onEditStart: () => d.promise });
+    const m = mount({ onBeforeEditStart: () => d.promise });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     m.sync({ data: rows(["c", "a", "b"]) });
     d.resolve(true);

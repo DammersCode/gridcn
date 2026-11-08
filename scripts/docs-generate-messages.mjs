@@ -95,7 +95,7 @@ export const MESSAGES = [
     intro: "These warnings come from gates that return a promise. The grid prints each one once per grid.",
     rows: [
       dev("validateRow rejected, so the row gets no verdict: <error>", "store/create-store.ts", "validateRow rejected, so the row gets no verdict", "Fix the error in `validateRow`, or catch it inside the function.", "/docs/editing-cells/validation"),
-      dev("onEditStart rejected, so the edit does not start: <error>", "store/create-store.ts", "onEditStart rejected, so the edit does not start", "Fix the error in `onEditStart`, or catch it inside the function.", "/docs/editing-cells/cancel-async-gates"),
+      dev("onBeforeEditStart rejected, so the edit does not start: <error>", "store/create-store.ts", "onBeforeEditStart rejected, so the edit does not start", "Fix the error in `onBeforeEditStart`, or catch it inside the function.", "/docs/editing-cells/cancel-async-gates"),
       dev("createRow rejected, so the insert is cancelled: <error>", "store/data-write.ts", "createRow rejected, so the insert is cancelled", "Fix the error in `createRow`, or catch it inside the function.", "/docs/rows-pages-menus/row-operations#enable-props"),
       dev("duplicateRow rejected, so the duplicate is cancelled: <error>", "store/data-write.ts", "duplicateRow rejected, so the duplicate is cancelled", "Fix the error in `duplicateRow`, or catch it inside the function.", "/docs/rows-pages-menus/row-operations#enable-props"),
       dev("onBeforeDeleteRows threw, so the delete is cancelled: <error>", "store/data-write.ts", "onBeforeDeleteRows threw, so the delete is cancelled", "Fix the error in `onBeforeDeleteRows`. The action returns the reason `\"gate-threw\"`.", "/docs/rows-pages-menus/row-operations"),

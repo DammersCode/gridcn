@@ -32,7 +32,7 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 
 ## Stop a gate that never settles [#gate-timeout]
 
-Set `gateTimeoutMs` to abort an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise has not settled in time. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
+Set `gateTimeoutMs` to abort an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise has not settled in time. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
 
 ## Related
 

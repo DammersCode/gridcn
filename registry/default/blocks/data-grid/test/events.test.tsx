@@ -51,38 +51,38 @@ beforeAll(() => {
   });
 });
 
-describe("onEditStart", () => {
+describe("onBeforeEditStart", () => {
   it("returns false to veto the edit: no session opens", () => {
-    const onEditStart = vi.fn(() => false);
-    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart }) });
+    const onBeforeEditStart = vi.fn(() => false);
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onBeforeEditStart }) });
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
+    expect(onBeforeEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
     expect(result.current.editing).toBeNull();
   });
 
   it("proceeds when the callback returns undefined", () => {
-    const onEditStart = vi.fn();
-    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart }) });
+    const onBeforeEditStart = vi.fn();
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onBeforeEditStart }) });
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
+    expect(onBeforeEditStart).toHaveBeenCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0 }, expect.anything());
     expect(result.current.editing).not.toBeNull();
   });
 
   it("does not fire for a readOnly column", () => {
-    const onEditStart = vi.fn(() => false);
+    const onBeforeEditStart = vi.fn(() => false);
     const readOnlyColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", readOnly: true },
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
     ];
-    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditStart, columns: readOnlyColumns }) });
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onBeforeEditStart, columns: readOnlyColumns }) });
     act(() => {
       result.current.actions.startEditingAt({ col: 0, row: 0 });
     });
-    expect(onEditStart).not.toHaveBeenCalled();
+    expect(onBeforeEditStart).not.toHaveBeenCalled();
     expect(result.current.editing).toBeNull();
   });
 });
@@ -201,10 +201,10 @@ describe("onEditEnd", () => {
     expect(onEditEnd.mock.calls).toEqual([[{ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 0, result: "cancel" }]]);
   });
 
-  it("keeps the open session when onEditStart vetoes a second startEditing", () => {
+  it("keeps the open session when onBeforeEditStart vetoes a second startEditing", () => {
     const onEditEnd = vi.fn();
-    const onEditStart = vi.fn((cell: { viewRowIndex: number }) => (cell.viewRowIndex === 2 ? false : undefined));
-    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd, onEditStart }) });
+    const onBeforeEditStart = vi.fn((cell: { viewRowIndex: number }) => (cell.viewRowIndex === 2 ? false : undefined));
+    const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd, onBeforeEditStart }) });
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
     act(() => result.current.actions.startEditingAt({ col: 0, row: 2 }));
     expect(result.current.editing).toMatchObject({ rowId: "1" });

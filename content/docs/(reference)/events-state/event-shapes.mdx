@@ -20,7 +20,7 @@ Every callback on these pages except `processFill` is a prop of `DataGrid` or `D
 | Read or control the sort | `onSortChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onsortchange) |
 | Read or control the filters | `onFilterChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onfilterchange) |
 | Read or control the quick search text | `onSearchTextChange` | [Sort and filter events](/docs/events-state/sort-filter-events#onsearchtextchange) |
-| Veto an edit before it opens | `onEditStart` | [Edit and validation events](/docs/events-state/edit-validation-events#oneditstart) |
+| Veto an edit before it opens | `onBeforeEditStart` | [Edit and validation events](/docs/events-state/edit-validation-events#onbeforeeditstart) |
 | Know how an edit ended | `onEditEnd` | [Edit and validation events](/docs/events-state/edit-validation-events#oneditend) |
 | Read the cells a bulk write refused | `onValidationError` | [Edit and validation events](/docs/events-state/edit-validation-events#onvalidationerror) |
 | Read or control the selection | `onSelectionChange` | [Selection and cell events](/docs/events-state/selection-cell-events#onselectionchange) |
@@ -73,14 +73,14 @@ These callbacks say what happened and change nothing. `onCellClick`, `onCellDoub
 
 A gate runs before the grid acts and can stop the action:
 
-- `onEditStart` returns `false` to stop an edit.
+- `onBeforeEditStart` returns `false` to stop an edit.
 - `onBeforeDeleteRows` returns `false` to stop a row delete.
 - `processFill` returns `false` to stop a fill. It can also return a rewritten text grid.
 - `processPaste` returns `false` to stop a paste.
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
-`onEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
+`onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
 
 ## Callback timing and errors [#callback-errors]
 

@@ -580,7 +580,7 @@ export {};
 // --- Async gates: each widened prop accepts the sync and the promise form ----------------------
 assertEqual<((row: Row, rowId: string, ctx: { signal: AbortSignal }) => Record<string, string> | null | Promise<Record<string, string> | null>) | undefined, DataGridSyncProps<Row>["validateRow"]>(true);
 assertEqual<((ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>) | undefined, DataGridSyncProps<Row>["processPaste"]>(true);
-assertEqual<((cell: ViewCellRef, ctx: { signal: AbortSignal }) => boolean | void | Promise<boolean | void>) | undefined, DataGridSyncProps<Row>["onEditStart"]>(true);
+assertEqual<((cell: ViewCellRef, ctx: { signal: AbortSignal }) => boolean | void | Promise<boolean | void>) | undefined, DataGridSyncProps<Row>["onBeforeEditStart"]>(true);
 assertEqual<((index: number, ctx: { signal: AbortSignal }) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["createRow"]>(true);
 assertEqual<((row: Row, index: number, ctx: { signal: AbortSignal }) => Row | Promise<Row>) | undefined, DataGridSyncProps<Row>["duplicateRow"]>(true);
 const asyncGateProps: DataGridSyncProps<Row> = {
@@ -588,7 +588,7 @@ const asyncGateProps: DataGridSyncProps<Row> = {
   processPaste: async ({ cells }) => cells,
   processCellFromClipboard: async (text) => text,
   validateRow: async () => null,
-  onEditStart: async () => false,
+  onBeforeEditStart: async () => false,
   createRow: async () => ({ id: "n", name: "" }) as Row,
   duplicateRow: async (row) => row,
 };

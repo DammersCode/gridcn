@@ -117,7 +117,7 @@ function PresenceReadBackButton({
  * pretty-printing the latest payload per event source, most recent first. Wires every event source
  * from the page's numbered sections — onDataChange, onSelectionChange (with details.getValues()),
  * onSortChange, onFilterChange, onCellClick, onRenderedRowsChange, onColumnLayoutChange + onColumnResizing,
- * onEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
+ * onBeforeEditStart/onEditEnd, onActiveCellChange, onValidationError, onCellDoubleClick/onCellContextMenu,
  * and presence read-back as the two-sided contrast.
  */
 export default function DataGridEventsDemo(): ReactNode {
@@ -203,8 +203,8 @@ export default function DataGridEventsDemo(): ReactNode {
     setLog((prev) => pushLog(prev, { source: "onActiveCellChange", at: Date.now(), payload: next }));
   }, []);
 
-  const onEditStart = useCallback((cell: ViewCellRef) => {
-    setLog((prev) => pushLog(prev, { source: "onEditStart", at: Date.now(), payload: cell }));
+  const onBeforeEditStart = useCallback((cell: ViewCellRef) => {
+    setLog((prev) => pushLog(prev, { source: "onBeforeEditStart", at: Date.now(), payload: cell }));
   }, []);
 
   const onEditEnd = useCallback((event: GridEditEndEvent) => {
@@ -240,7 +240,7 @@ export default function DataGridEventsDemo(): ReactNode {
             onColumnLayoutChange={onColumnLayoutChange}
             onColumnResizing={onColumnResizing}
             onActiveCellChange={onActiveCellChange}
-            onEditStart={onEditStart}
+            onBeforeEditStart={onBeforeEditStart}
             onEditEnd={onEditEnd}
             onValidationError={onValidationError}
             onCellDoubleClick={onCellDoubleClick}

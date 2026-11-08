@@ -1742,15 +1742,15 @@ describe("DataGridApi (imperative handle)", () => {
   it("startEditing opens no session on a cell whose type declares activate", () => {
     type CheckRow = Row & { done: boolean };
     const ref = { current: null as DataGridApi<CheckRow> | null };
-    const onEditStart = vi.fn();
+    const onBeforeEditStart = vi.fn();
     const rows: CheckRow[] = makeRows(2).map((r) => ({ ...r, done: false }));
     const checkColumns: readonly ColumnDef<CheckRow, unknown>[] = [{ id: "done", header: "Done", accessorKey: "done", type: "checkbox" }];
     render(
-      <DataGrid ref={(api) => { ref.current = api; }} data={rows} columns={checkColumns} getRowId={(r) => r.id} onEditStart={onEditStart} />,
+      <DataGrid ref={(api) => { ref.current = api; }} data={rows} columns={checkColumns} getRowId={(r) => r.id} onBeforeEditStart={onBeforeEditStart} />,
     );
     act(() => ref.current!.actions.startEditing({ rowId: "0", columnId: "done" }));
     expect(ref.current!.store.getState().editing).toBeNull();
-    expect(onEditStart).not.toHaveBeenCalled();
+    expect(onBeforeEditStart).not.toHaveBeenCalled();
   });
 
   it("focus() seeds (0,0) and lands focus there when nothing is active, then follows the active cell", () => {

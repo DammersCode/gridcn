@@ -70,7 +70,7 @@ A locked cell rejects typed edits, paste, fill, and clear. Unless the column set
 
 ## Veto an edit [#veto-edit]
 
-`onEditStart` runs before an editor opens on an editable cell. Return `false` to refuse the edit. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
+`onBeforeEditStart` runs before an editor opens on an editable cell. Return `false` to refuse the edit. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
 
 `ctx.signal` <NewBadge /> aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
 
@@ -89,7 +89,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
     <DataGrid
       defaultData={tasks}
       columns={columns}
-      onEditStart={({ rowId }) => !frozenIds.has(rowId)}
+      onBeforeEditStart={({ rowId }) => !frozenIds.has(rowId)}
     />
   );
 }
@@ -114,7 +114,7 @@ When an edit ends, `onEditEnd` reports `commit` or `cancel`. For each refused co
 | Prop | Type | Default |
 |---|---|---|
 | `readOnly` | `boolean` | `false` |
-| `onEditStart` | `(cell, ctx: { signal: AbortSignal }) => boolean \| void \| Promise<boolean \| void>` | - |
+| `onBeforeEditStart` | `(cell, ctx: { signal: AbortSignal }) => boolean \| void \| Promise<boolean \| void>` | - |
 | `onEditEnd` | `(event) => void` | - |
 | `keymap` | `Keymap` | - |
 
