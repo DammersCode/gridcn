@@ -63,7 +63,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | --- | --- | --- | --- |
 | `id` | `string` | Required | Stable identity of the column. Duplicate ids trigger a development warning. |
 | `header` | `string \| ReactNode` | Required | A string header shows a sort arrow once you sort the column. The arrow shows on a sorted column, or on every sortable column with `headerClickBehavior="sort"`. A node renders as given, with no sort arrow. |
-| `headerText` | `string` | none | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, the labels, menus, export, and import matching use the column id, and autosize measures no header text. |
+| `headerText` <NewBadge /> | `string` | text of a node `header` | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, they read the text of the elements in the node, or the column id when the node has no text. |
 | `accessorKey` | `keyof TData` (string keys) | none | Row field that holds the value. |
 | `accessorFn` | `(row) => TValue` | none | Computes the value from the row. |
 | `setValue` | `(row, value) => TData` | spread of `accessorKey` | Returns a new row with the value written. |

@@ -61,7 +61,7 @@ function menuSections(columns: readonly AnyColumnDef[], model: ColumnGroupModel 
         : path
             .map((id) => {
               const def = model?.groups.get(id)?.def;
-              return def?.headerText ?? (typeof def?.header === "string" ? def.header : id);
+              return def ? columnLabelText(def) : id;
             })
             .join(" / ");
     sections.push({ key, heading, columns: [column] });

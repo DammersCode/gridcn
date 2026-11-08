@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- A node `header` without `headerText` names its column by the plain text of its elements (`<span><User /> Name</span>` reads `Name`) for screen readers, menus, export, import matching, and autosize. Before, the column id named it. A component inside the node adds no text, so set `headerText` for those; `headerText` still wins.
 - `select` `options.choices` accepts plain strings. A string is a choice whose value and label are the same text, and strings mix with `{ value, label }` objects in one array: `choices: ["Open", "Done"]`.
 - **Breaking:** the column option `onInvalid` is `validationMode`, with the same values (`"block"` by default, `"warn"`), like `sortMode` and `filterMode`. Before: `{ id: "note", validate, onInvalid: "warn" }`. After: `{ id: "note", validate, validationMode: "warn" }`.
 - **Breaking:** `actions.setColumnWidth(id, width)` commits the width and fires `onColumnLayoutChange`, like every other `setColumn*` action, and `actions.previewColumnWidth(id, width)` is the live drag write that fires `onColumnResizing`. `commitColumnWidth` is gone. Before: `actions.commitColumnWidth(id, 200)`, and a custom drag called `actions.setColumnWidth(id, w)` per frame. After: `actions.setColumnWidth(id, 200)`, and the drag calls `actions.previewColumnWidth(id, w)`.

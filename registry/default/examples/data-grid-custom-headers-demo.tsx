@@ -41,7 +41,6 @@ const columns = defineColumns<DemoRow>()([
         />
       </span>
     ),
-    headerText: "Name",
     accessorKey: "name",
     type: "text",
     width: 150,
@@ -60,7 +59,6 @@ const columns = defineColumns<DemoRow>()([
         />
       </span>
     ),
-    headerText: "Score",
     accessorKey: "score",
     type: "number",
     width: 90,

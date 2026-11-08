@@ -1,5 +1,5 @@
 import type { GateContext } from "@/registry/default/blocks/data-grid/data-grid";
-import { isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 
 /** Minimal column shape the header-matching/preview logic needs — matches `ColumnDef` structurally. */
@@ -25,11 +25,6 @@ export type ImportDefaults = {
   mapColumn?: (header: string, index: number, ctx: GateContext) => string | null | undefined | Promise<string | null | undefined>;
 };
 
-/** Column display header for matching: `headerText`, else the string `header`, else the id. */
-function columnMatchText(column: ImportTargetColumn): string {
-  return column.headerText ?? (typeof column.header === "string" ? column.header : column.id);
-}
-
 /**
  * Prefills the import-column -> grid-column mapping by matching each imported header against
  * `column.headerText ?? header ?? column.id`, case-insensitively. Unmatched headers map to `null`
@@ -37,7 +32,7 @@ function columnMatchText(column: ImportTargetColumn): string {
  * match falls back to `null` (skip) since one-source-per-grid-column is enforced everywhere.
  */
 export function matchImportColumns(importHeaders: readonly string[], gridColumns: readonly ImportTargetColumn[]): (string | null)[] {
-  const byLowerText = new Map(gridColumns.map((column) => [columnMatchText(column).toLowerCase(), column.id] as const));
+  const byLowerText = new Map(gridColumns.map((column) => [columnLabelText(column).toLowerCase(), column.id] as const));
   const byLowerId = new Map(gridColumns.map((column) => [column.id.toLowerCase(), column.id] as const));
 
   const claimed = new Set<string>();

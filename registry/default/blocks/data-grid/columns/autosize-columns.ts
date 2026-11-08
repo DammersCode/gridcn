@@ -4,6 +4,7 @@ import { isDev } from "../is-dev";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { displayText } from "../cell-types/display-text";
 import { getCellValue } from "./column-helpers";
+import { columnHeaderText } from "./column-format-helpers";
 import { CELL_PADDING_BUFFER, DEFAULT_CELL_INLINE_PADDING, measureTextWidths } from "./measure-column-text";
 import { clampColumnWidth } from "./resolve-column-width";
 
@@ -111,7 +112,7 @@ export function computeAutosizeWidths(
       if (text) cellTexts.add(text);
     }
     const headerText = includeHeader
-      ? (column.headerText ?? (typeof column.header === "string" ? column.header : "")).slice(0, MAX_SAMPLE_TEXT_LENGTH)
+      ? columnHeaderText(column).slice(0, MAX_SAMPLE_TEXT_LENGTH)
       : "";
     const headerWidth = headerText
       ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)

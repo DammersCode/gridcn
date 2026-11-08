@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { CheckIcon } from "lucide-react";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { useCommitGuard } from "../interaction/use-commit-guard";
+import { columnLabelText } from "../columns/column-format-helpers";
 import { GRID_ATTR } from "../data-attributes";
 
 function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
@@ -13,7 +14,7 @@ function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
       <span
         role="checkbox"
         aria-checked={value ? "true" : "false"}
-        aria-label={column.headerText ?? (typeof column.header === "string" ? column.header : column.id)}
+        aria-label={columnLabelText(column)}
         data-checked={value || undefined}
         className="pointer-events-none flex size-4 shrink-0 items-center justify-center rounded-sm border border-input dark:bg-input/30 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground dark:data-checked:bg-primary"
         {...{ [GRID_ATTR.checkboxBox]: "" }}

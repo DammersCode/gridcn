@@ -18,9 +18,38 @@ describe("columnLabelText", () => {
     expect(columnLabelText(columns[0]!)).toBe("Name");
   });
 
-  it("falls back to the id when the header is not a string", () => {
+  it("falls back to the plain text of a node header", () => {
     const column: ColumnDef<Row, unknown> = { id: "custom", header: <span>node</span>, accessorKey: "name" };
-    expect(columnLabelText(column)).toBe("custom");
+    expect(columnLabelText(column)).toBe("node");
+  });
+
+  it("reads host elements and fragments, and skips a component", () => {
+    const Icon = () => <svg />;
+    const header = (
+      <span>
+        <Icon /> Name <b>of</b> <>user</> {7}
+      </span>
+    );
+    expect(columnLabelText({ id: "c", header })).toBe("Name of user 7");
+  });
+
+  it("reads an sr-only label", () => {
+    expect(columnLabelText({ id: "actions", header: <span className="sr-only">Actions</span> })).toBe("Actions");
+  });
+
+  it("falls back to the id when a node header holds no text", () => {
+    expect(columnLabelText({ id: "icon", header: <svg /> })).toBe("icon");
+  });
+
+  it("bounds the depth and the length of the walk", () => {
+    let deep = <i>core</i>;
+    for (let i = 0; i < 50; i++) deep = <span>{deep}</span>;
+    expect(columnLabelText({ id: "deep", header: deep })).toBe("deep");
+    expect(columnLabelText({ id: "long", header: <span>{"x".repeat(5000)}</span> }).length).toBeLessThanOrEqual(200);
+  });
+
+  it("headerText still wins over a node header", () => {
+    expect(columnLabelText({ id: "c", header: <span>node</span>, headerText: "Given" })).toBe("Given");
   });
 });
 
