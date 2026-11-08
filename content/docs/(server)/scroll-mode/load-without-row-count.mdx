@@ -78,7 +78,7 @@ When the rendered rows come within `overscan` rows of the loaded end, the next b
 
 ## Select rows without a row count
 
-Without `totalRowCount`, select-all checks the loaded rows and the skeleton rows. It never means every matching row. `server.gridProps` carries `totalRowCount: null` until the source ends. The grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Select server rows](/docs/rows-live-data/select-server-rows).
+While the server sends no count, `totalRowCount` is `null`. The header checkbox then checks all matching, the loaded rows and the rows that are not loaded yet. `server.gridProps` carries `totalRowCount: null` until the source ends. The grid remembers checks by row id and offers `actions.selectAllMatching()`. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
 ## Related
 

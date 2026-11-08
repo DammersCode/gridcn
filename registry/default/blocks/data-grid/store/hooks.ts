@@ -641,7 +641,7 @@ export function useDataGridRowReorderEnabled(): boolean {
   return useDataGridStore((s) => s.enableRowReorder);
 }
 
-/** The resolved (defaulted) selection-gesture config; see {@link SelectionConfig}. */
+/** The resolved selection config: the gesture flags and `checkedRowsLifetime`. */
 export function useDataGridSelectionConfig(): {
   enableRowSelection: boolean;
   enableColumnSelection: boolean;
@@ -711,7 +711,7 @@ export function useDataGridMarkGatePending(name: GateName, active: boolean): voi
   useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
-/** The number of checked rows a filter hides, remembered by `checkedRowsLifetime="across-filters"`; `0` otherwise and while "all matching" is on. */
+/** The number of checked rows that left the view (a filter, a page change, a window move), remembered by `checkedRowsLifetime="across-filters"`; `0` otherwise and while "all matching" is on. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

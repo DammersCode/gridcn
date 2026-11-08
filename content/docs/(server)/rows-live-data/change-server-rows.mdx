@@ -12,7 +12,7 @@ Row operations change the rows of the grid. Each one reaches `onDataChange` and 
 
 ## Enable the operations [#enable-the-operations]
 
-Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts:
+Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts. The sample shows the callbacks on a local array. `useDataGridServerRows` takes the same `onSave`:
 
 ```tsx
 import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";

@@ -70,14 +70,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
   - **Saving:** the row attribute `data-write-status` becomes `data-save-status`, and the store fields `writeStatus` and `pendingWriteCount` become `saveStatus` and `pendingSaveCount`.
   - **Selection:** `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` instead of `undefined` for an unknown size.
   - **Selection:** the header checkbox, the row marker checkboxes, the row `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only; a cell range no longer adds to the announced count. Ctrl+A no longer checks rows: it unchecks every checked row, the remembered ones too, and ends "all matching".
-  - **Selection:** to check rows from code, call `setAllRowsSelected(true)` or check rows by id; a cell range alone no longer checks them.
+  - **Selection:** to check rows from code, call `setAllRowsSelected(true)` or check rows by id; a cell range alone no longer checks them. On a grid with `totalRowCount` and `checkedRowsLifetime="across-filters"` whose view holds unloaded rows, the header checkbox and `setAllRowsSelected(true)` check all matching.
   - **Selection:** `checkedRowsLifetime` (`'until-click'`, `'until-cleared'`, `'across-filters'`) replaces `keepCheckedRows` and `keepHiddenCheckedRows`; see the Breaking entry for the mapping.
   - **Core exports:** the twelve names listed in the Breaking entry leave the `data-grid` barrel; read the same values with a hook from `createDataGridSelector`, and add-ons import `useDataGridSelectionConfig` from `data-grid-sdk`.
   - **Pushes:** `updateCells` and `updateRows` skip a row whose save is in flight; push the value again after the save settles.
   - **Pushes:** a `source: "stream"` call takes at most 100,000 patches; the rest skip with reason `"limit"`.
   - **Pushes:** a `source: "stream"` batch writes into a `readOnly` grid and into read-only columns and rows; pass `source: "edit"` to keep the read-only checks.
   - **Add-on exports:** the `data-grid-toolbar`, `data-grid-io`, and `data-grid-keybindings` barrels drop the helpers that nothing teaches, such as `operatorLabel` and `downloadBlob`.
-  - **Sorting and filtering:** a grid with `totalRowCount` defaults `sortMode` and `filterMode` to `"server"`; set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+  - **Sorting and filtering:** if you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`; set `sortMode="client"` and `filterMode="client"` to sort or filter the window in the browser.
   - **Labels:** `labels.contextMenu.pasteBlocked` and `clipboardFailed` are a string or a function that receives the modifier name; code that reads them as a string handles the function too.
   - **Styling:** every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` no longer changes its stacking.
 

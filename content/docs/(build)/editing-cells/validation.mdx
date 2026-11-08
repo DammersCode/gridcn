@@ -20,7 +20,7 @@ A schema message joins its issues with `"; "` and prefixes an issue path as `a.b
 
 A cell type can declare `validate` as a default for its columns. The column's own `validate` wins. Undo and redo replay recorded changes and skip `validate`.
 
-This grid uses both forms:
+Install zod first with `pnpm add zod`. This grid uses both forms:
 
 ```tsx
 import { z } from "zod";

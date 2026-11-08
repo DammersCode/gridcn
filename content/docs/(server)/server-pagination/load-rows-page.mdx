@@ -154,14 +154,12 @@ export function OrdersGrid() {
         columns={columns}
         getRowId={(row) => row.id}
         rowMarkers="checkbox"
-        filterMode="server"
         filterState={filters}
         onFilterChange={(next) => {
           setFilters(next);
           setPage(1);
         }}
         totalRowCount={total}
-        checkedRowsLifetime="across-filters"
         className="h-96"
       />
       <DataGridPaginationBar {...pager} />

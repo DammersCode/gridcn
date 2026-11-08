@@ -935,7 +935,7 @@ export function clampIndex(n: number, max: number): number {
   return Math.max(0, Math.min(n, Math.max(0, max)));
 }
 
-/** Resolves the optional selection-config sync props to their defaulted (all-true) form. */
+/** Resolves the optional selection-config sync props to their defaults, and a non-finite or negative `totalRowCount` to `null`. */
 export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"

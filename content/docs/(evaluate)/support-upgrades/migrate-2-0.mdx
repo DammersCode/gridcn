@@ -21,7 +21,7 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 
 ### Changed defaults [#changed-defaults]
 
-- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
+- If you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`. Set both to `"client"` to sort or filter the window in the browser.
 - Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
@@ -122,11 +122,10 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 | 1.x props | 2.0 prop |
 |---|---|
-| neither | the default: `"until-click"`, or `"across-filters"` with `totalRowCount` |
+| neither | the default: `'until-click'`, or `'across-filters'` with `totalRowCount` |
 | `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
 | `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
 | `keepHiddenCheckedRows` alone | Drop it. It had no effect. |
-| `totalRowCount` with `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
 
 ## Removed exports [#removed-exports]
 

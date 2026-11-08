@@ -147,6 +147,10 @@ function endAllMatching(selection: GridSelection): Pick<DataGridStoreState, "sel
   return { selection: { ...selection, rows: CompactSelection.empty() }, ...NO_REMEMBERED_ROWS };
 }
 
+function viewHoldsUnloadedRows(s: Pick<DataGridStoreState, "viewIndex" | "data">): boolean {
+  return s.viewIndex.some((dataIndex) => s.data[dataIndex] === undefined);
+}
+
 type ProvidedCellTypes = Record<string, CellType | null> | undefined;
 
 /** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
@@ -970,13 +974,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (selectionConfig.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
+          const forgetsRemembered =
+            (s.hiddenCheckedRowIds.size > 0 || s.allMatching) &&
+            !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode });
+          const endsAllMatching = s.allMatching && selectionConfig.totalRowCount === undefined;
+          const rememberedPatch = endsAllMatching ? endAllMatching(s.selection) : forgetsRemembered ? NO_REMEMBERED_ROWS : null;
           return {
             ...selectionConfig,
-            ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode })
-              ? NO_REMEMBERED_ROWS
-              : s.allMatching && selectionConfig.totalRowCount === undefined
-                ? endAllMatching(s.selection)
-                : {}),
+            ...rememberedPatch,
+            ...(rememberedPatch ? announceChecked(s, { selection: s.selection, ...rememberedPatch }) : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
             inputDebounceMs: props.inputDebounceMs,
             onPageChange: props.onPageChange,
@@ -1562,6 +1568,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         const { selection, viewIndex, enableRowSelection } = s;
         if (!enableRowSelection) return;
+        if (checked && s.checkedRowsLifetime === "across-filters" && s.totalRowCount !== undefined && viewHoldsUnloadedRows(s)) {
+          get().actions.selectAllMatching();
+          return;
+        }
         const rows = checked ? CompactSelection.fromSingleSelection([0, viewIndex.length]) : CompactSelection.empty();
         const next = { ...selection, rows };
         set({

@@ -282,8 +282,18 @@ describe("useDataGridSelectedRows", () => {
   it("skips skeleton rows in ids", () => {
     const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }] as Row[];
     const m = mountWithHook({ data: sparse, totalRowCount: 3 });
-    act(() => m.api().getState().actions.setAllRowsSelected(true));
+    act(() => {
+      m.api().getState().actions.setRowSelected(0, true);
+      m.api().getState().actions.setRowSelected(2, true);
+    });
     expect(m.selected().ids).toEqual(["a", "c"]);
+  });
+
+  it("the header checkbox over skeleton rows reads as allMatching with the loaded count", () => {
+    const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }] as Row[];
+    const m = mountWithHook({ data: sparse, totalRowCount: 3 });
+    act(() => m.api().getState().actions.setAllRowsSelected(true));
+    expect(m.selected()).toMatchObject({ mode: "allMatching", excludedIds: [], count: 3 });
   });
 });
 
@@ -437,6 +447,28 @@ describe("remembered checks and a cell click", () => {
     expect(m.state().selection.rows.length).toBe(0);
   });
 
+  it("removing totalRowCount on a server-sorted grid with the default lifetime ends all-matching, unchecks the rows and announces the count", () => {
+    const m = mount({ sortMode: "server", checkedRowsLifetime: undefined });
+    act(() => m.state().actions.selectAllMatching());
+    m.rerender({ sortMode: "server", checkedRowsLifetime: undefined, totalRowCount: undefined });
+    expect(m.state().allMatching).toBe(false);
+    expect(m.state().selection.rows.length).toBe(0);
+    expect(m.remembered()).toEqual([]);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 0 });
+  });
+
+  it("removing totalRowCount forgets the exclusions together with the checks", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    m.uncheck(1);
+    m.rerender({ data: PAGE_TWO });
+    expect(m.remembered()).toEqual(["b"]);
+    m.rerender({ data: PAGE_TWO, totalRowCount: undefined });
+    expect(m.state().allMatching).toBe(false);
+    expect(m.state().selection.rows.length).toBe(0);
+    expect(m.remembered()).toEqual([]);
+  });
+
   it("switching to until-click releases the remembered ids and all-matching", () => {
     const m = mount();
     m.check(1);
@@ -530,5 +562,38 @@ describe("Ctrl/Cmd+A (selectAll) and remembered checks", () => {
     const m = mount();
     act(() => m.state().actions.selectAll());
     expect(m.state().liveAnnouncement).toBeNull();
+  });
+});
+
+describe("header checkbox over a window with unloaded rows", () => {
+  const WINDOW = [...PAGE_ONE, ...Array.from({ length: 6 }, () => undefined)] as unknown as Row[];
+
+  it("checks all matching and reports the selection as allMatching", () => {
+    const m = mount({ data: WINDOW });
+    act(() => m.state().actions.setAllRowsSelected(true));
+    expect(m.state().allMatching).toBe(true);
+    expect(readSelectedRows(m.state())).toMatchObject({ mode: "allMatching", excludedIds: [], count: 9 });
+  });
+
+  it("unchecking the header ends all matching", () => {
+    const m = mount({ data: WINDOW });
+    act(() => m.state().actions.setAllRowsSelected(true));
+    act(() => m.state().actions.setAllRowsSelected(false));
+    expect(m.state().allMatching).toBe(false);
+    expect(m.state().selection.rows.length).toBe(0);
+  });
+
+  it("checks the loaded view rows only when the view holds no unloaded row", () => {
+    const m = mount({ totalRowCount: 9 });
+    act(() => m.state().actions.setAllRowsSelected(true));
+    expect(m.state().allMatching).toBe(false);
+    expect(m.checkedViewRows()).toEqual([0, 1, 2]);
+  });
+
+  it("checks the view rows with the until-click lifetime", () => {
+    const m = mount({ data: WINDOW, checkedRowsLifetime: "until-click" });
+    act(() => m.state().actions.setAllRowsSelected(true));
+    expect(m.state().allMatching).toBe(false);
+    expect(m.state().selection.rows.length).toBe(9);
   });
 });

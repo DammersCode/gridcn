@@ -105,7 +105,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-With `'until-cleared'` and `'across-filters'`, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checks alone. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+With `'until-cleared'` and `'across-filters'`, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checks alone. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, a click on a row number, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
 
 With these values, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
 

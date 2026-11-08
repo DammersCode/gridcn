@@ -16,7 +16,6 @@ Status: 2.0. One prop, `checkedRowsLifetime`, replaces `keepCheckedRows`, `keepH
 - `keepCheckedRows`: `'until-cleared'`.
 - `keepCheckedRows` and `keepHiddenCheckedRows`: `'across-filters'`.
 - `keepHiddenCheckedRows` alone had no effect in 1.x; drop it.
-- `totalRowCount` with `keepCheckedRows`: set `'until-cleared'` to keep the 1.x behavior.
 
 ## Modes
 

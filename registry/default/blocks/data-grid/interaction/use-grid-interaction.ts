@@ -540,16 +540,14 @@ export function dispatchGridAction(args: {
     }
     case "insertRowBelow": {
       preventDefault();
-      // mirrors cell-menu-content.tsx's canInsertRow guard: without createRow, insertRow is a
-      // dev-warning no-op — skip the call so the shortcut doesn't spam that warning on every press.
+      // Without createRow, insertRow is a dev-warning no-op; skip it so the shortcut does not warn on every press.
       if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
       break;
     }
     case "duplicateRow": {
       preventDefault();
       if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
-        // the context-menu item this shortcut labels duplicates the WHOLE selection; no
-        // selection, just the active row
+        // Duplicates the selected rows (only the checked rows while any are checked); without a selection, the active row.
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) });
         if (selected.length > 0) actions.duplicateRows(selected);
         else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);

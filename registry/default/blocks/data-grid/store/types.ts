@@ -190,7 +190,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * - `'across-filters'`: like `'until-cleared'`, and a checked row is remembered by id when it leaves the view (a page change, a window
    *   move, a filter that hides it) and checked again when it returns. Remembered rows stay out of every row action, the controlled
    *   `selection`, and select all; `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with
-   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a lazy grid, behave like `'until-cleared'`.
+   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a lazy grid without `totalRowCount`, behave like `'until-cleared'`.
    */
   checkedRowsLifetime?: CheckedRowsLifetime;
   /**
@@ -229,6 +229,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
    * `checkedRowsLifetime="across-filters"`, a checked row that leaves `data` is remembered by row id in every mode and checked
    * again when it returns, and `actions.selectAllMatching()` can check the whole result.
+   * Setting it, even to `null`, makes `checkedRowsLifetime` default to `'across-filters'` and `sortMode` and `filterMode` default to `"server"`.
    * `useDataGridSelectedRows` reads the outcome. Default: `undefined` (`data` is the whole result).
    */
   totalRowCount?: number | null;
@@ -745,7 +746,7 @@ export type DataGridStoreState = Omit<
   enableRowSelection: boolean;
   checkedRowsLifetime: CheckedRowsLifetime;
   announceResults: boolean;
-  /** Row ids of checked rows a filter hides; empty unless `checkedRowsLifetime` is `'across-filters'` and in effect. Actions never read it. */
+  /** Row ids of checked rows that left the view (a filter, a page change, a window move), or the excluded rows in "all matching"; empty unless `checkedRowsLifetime` is `'across-filters'` and in effect. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
@@ -997,7 +998,7 @@ export type DataGridActions = {
    * `commit` keeps the rows checked so far as the base of the new span. No-op when `enableRowSelection` is false.
    */
   checkRowRange(target: number, opts?: { commit?: boolean }): void;
-  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). No-op when `enableRowSelection` is false. */
+  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). On a grid with `totalRowCount` and `checkedRowsLifetime="across-filters"` whose view holds unloaded rows, checking calls `selectAllMatching`. No-op when `enableRowSelection` is false. */
   setAllRowsSelected(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
