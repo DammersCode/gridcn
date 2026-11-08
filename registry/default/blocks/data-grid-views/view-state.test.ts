@@ -161,7 +161,7 @@ describe("sanitizeViewState", () => {
     expect(result.state.searchText.length).toBeLessThanOrEqual(500);
   });
 
-  it("drops a list filter over its bound instead of narrowing it", () => {
+  it("drops an isNoneOf filter over its value bound instead of narrowing it", () => {
     const result = sanitizeViewState(
       { ...state, filters: [{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 2000 }, (_, i) => String(i)) }] },
       columns,
@@ -294,7 +294,7 @@ describe("view files", () => {
     expect((result.state.filters[0] as { value: string[] }).value).toHaveLength(1000);
   });
 
-  it("names a nameless file", () => {
+  it("reads a nameless file with an empty name", () => {
     const text = JSON.stringify({ format: "gridcn-view", version: 1, state });
     expect(parseViewFile(text, columns)).toMatchObject({ ok: true, name: "" });
   });

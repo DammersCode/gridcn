@@ -12,7 +12,7 @@ Your hardware, your cells, and the load on your machine change the frame times. 
 
 ## Test setup [#test-setup]
 
-The frame-rate suites mount `DataGrid` 600 px high and 1200 px wide with nine columns of text, number, checkbox, and currency cells. The drag suites use 360 px by 1200 px with five columns of text and number cells. The keyboard tests use 1,000 rows. The tests load the real stylesheet, because layout and scroll must be real for frame timing to mean anything.
+The frame-rate suites mount `DataGrid` 600 px high and 1200 px wide with nine columns. The cells are text, number, and checkbox. One number column has a currency format. The drag suites use 360 px by 1200 px with five columns of text and number cells. The keyboard tests use 1,000 rows. The tests load the real stylesheet, because layout and scroll must be real for frame timing to mean anything.
 
 ## Thresholds [#thresholds]
 
@@ -22,7 +22,7 @@ The frame-rate suites mount `DataGrid` 600 px high and 1200 px wide with nine co
 | Long tasks in a fast scroll | Scrolls 240 px per frame for 240 frames, like a fast flick of the wheel, and counts main-thread tasks over 50 ms. | Total long-task time is under 200 ms. On CI the limit is 20,000 ms. |
 | Jump sequence | Jumps to 0, 75, 50, 90, 10, and 100 percent of the scroll height, 250 ms apart. | The longest frame is under 1,000 ms. At most 20 frames pass 50 ms. Long-task time is under 2,000 ms. |
 | Blank rows after a drag |  Drags the scrollbar with random deltas of 200 to 1,500 px. | No row is missing once the scroll settles. |
-| One-row step | Scrolls exactly one row height. | Only the entering row renders again, at most two renders per column. |
+| One-row step | Scrolls exactly one row height. | Only the entering row renders again, at most two renders per column (two rows of cells). |
 | Mounted rows | Scrolls a fast burst, then waits. | The mounted row count returns to its idle size after the scroll settles. |
 
 The thresholds sit below a healthy run. They catch a collapse, not a small slowdown.

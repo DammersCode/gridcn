@@ -45,7 +45,7 @@ describe("lookupCellType value pipeline", () => {
     expect(lookupCellType.toSearchText?.(acme)).toBe("Acme");
   });
 
-  it("offers text operators only, so the label is what a set filter would see", () => {
+  it("offers no isAnyOf operator", () => {
     expect(lookupCellType.filter?.operators).not.toContain("isAnyOf");
   });
 

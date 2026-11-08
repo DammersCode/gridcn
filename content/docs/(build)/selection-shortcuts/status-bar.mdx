@@ -38,7 +38,7 @@ export function SalesGrid({ sales }: { sales: Sale[] }) {
       columns={columns}
       getRowId={(sale) => sale.id}
     >
-      <DataGridRoot>
+      <DataGridRoot className="h-80">
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>

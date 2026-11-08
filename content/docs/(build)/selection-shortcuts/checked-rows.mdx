@@ -19,12 +19,12 @@ import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 
 type Person = { id: string; name: string };
 
-const columns = defineColumns<Person>()([
+const cols = defineColumns<Person>()([
   { id: "name", header: "Name", accessorKey: "name" },
 ]);
 
-export function People({ people }: { people: Person[] }) {
-  return <DataGrid data={people} columns={columns} rowMarkers="checkbox" />;
+export function People({ rows }: { rows: Person[] }) {
+  return <DataGrid defaultData={rows} columns={cols} rowMarkers="checkbox" />;
 }
 ```
 

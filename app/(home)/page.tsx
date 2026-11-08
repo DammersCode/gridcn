@@ -110,10 +110,10 @@ const perfStats = [
       "Real-Chromium tests scroll 100,000 rows and fail on a frame-rate or long-task collapse.",
   },
   {
-    value: "1 row",
-    title: "renders on a one-row scroll step",
+    value: "2 rows",
+    title: "at most re-render on a one-row scroll step",
     description:
-      "Only the entering row renders again. Rows that stay in view keep their DOM nodes.",
+      "The entering row renders again, with one row of slack. Rows that stay in view keep their DOM nodes.",
   },
   {
     value: "0 blank rows",
@@ -344,9 +344,7 @@ export default function HomePage() {
             Performance you can measure
           </h2>
           <p className="max-w-xl text-sm text-muted-foreground">
-            100k-row production benchmark against MUI X DataGrid,
-            react-data-grid, and a TanStack assembly — same seed, same
-            harness, same machine.
+            Real-Chromium tests pin scroll thresholds at 100,000 rows.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

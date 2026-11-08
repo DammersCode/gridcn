@@ -23,7 +23,7 @@ export function safePresenceColor(color: string): string {
   return CSS.supports("color", color) ? color : FALLBACK_PRESENCE_COLOR;
 }
 
-/** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `makePresencePlugin`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
+/** One remote user's selection-range fill + border, grid-line placed like core's own RangeOverlay; color comes from the highlight itself via `--presence-color`, not a shadcn token. Memoized: the resolved rects keep identity across overlay renders (see `createPresenceOverlay`'s memo), so an unchanged highlight never re-renders its divs on a local keystroke. */
 const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   rect,
   color,
@@ -60,7 +60,7 @@ const PresenceHighlightOverlay = memo(function PresenceHighlightOverlay({
   );
 });
 
-/** The remote user's name chip, anchored at a highlight range's top-left VISIBLE corner — only rendered by the caller when that corner survives the window clamp. Memoized like the overlay node. */
+/** The remote user's name chip, anchored at a highlight range's top-left VISIBLE corner — only rendered by the caller when that corner survives the window clamp. */
 const PresenceLabelChip = memo(function PresenceLabelChip({
   rect,
   color,
@@ -198,9 +198,9 @@ function contiguousRuns(values: number[]): { min: number; length: number }[] {
  * Renders every active highlight into the overlay layer using the SAME window-clamp + pin-zone
  * segmentation pipeline core's own built-in overlays use (via `ctx`), so a highlight spanning a
  * pinned column splits into pinned/unpinned segments and paints at the pinned cell's actual screen
- * position exactly like a selection range does. This is the function registered as `OverlayPlugin`.
+ * position exactly like a selection range does. The plugin's `Overlay` calls this function.
  * `highlights` must already be resolved to view-index (see {@link resolveHighlights}) — the caller
- * (`makePresencePlugin`) does that resolution itself since it's the one already subscribed to core
+ * (`createPresenceOverlay`) does that resolution itself since it's the one already subscribed to core
  * hooks inside `DataGridOverlays`'s render, keeping this function a plain (hook-free) renderer.
  */
 export function renderPresenceOverlay(highlights: readonly PresenceHighlight[], ctx: OverlayPluginCtx): ReactNode {

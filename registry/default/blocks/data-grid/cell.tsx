@@ -93,9 +93,6 @@ export type DataGridCellProps = {
   cellError?: string | null;
 };
 
-// True when a cell DOM event originates from the cell's own editor: inline editors' form controls
-// bubble through the DOM, and the portaled popovers (date/select/long-text) bubble up the React
-// tree from outside the cell's div.
 const SEARCH_MATCH_COLOR =
   "data-[search-match]:[--grid-search-color:var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--color-primary,var(--primary))_var(--grid-search-fallback),var(--color-background,var(--background)))))] data-[search-match]:[--grid-search-fallback:50%] dark:data-[search-match]:[--grid-search-fallback:100%]";
 
@@ -107,6 +104,9 @@ function keepsFocusOutsideGrid(doc: Document): boolean {
   return holder.matches(TEXT_FIELD) || holder.isContentEditable || holder.closest(gridAttrSelector("keepFocus")) !== null;
 }
 
+// True when a cell DOM event originates from the cell's own editor: inline editors' form controls
+// bubble through the DOM, and the portaled popovers (date/select/long-text) bubble up the React
+// tree from outside the cell's div.
 function isEditorEvent(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;

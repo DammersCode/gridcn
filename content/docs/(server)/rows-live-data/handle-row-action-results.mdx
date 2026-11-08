@@ -35,7 +35,7 @@ Two more reasons reach `onRowActionSkipped` from the shortcuts only. No action r
 | `"hidden-checked"` | The shortcut found only checked rows that the view does not show. |
 | `"all-matching"` | The shortcut found all matching on. |
 
-`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. It also fires when the Insert row, Duplicate row, or Delete rows shortcut has a target and does nothing. A shortcut with no active cell and no selection has no target, so it reports nothing. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. It also fires when the Insert row, Duplicate row, or Delete rows shortcut does nothing. The Insert row shortcut needs an active cell and reports nothing without one. Duplicate row and Delete rows report a skip even with no active cell and no selection. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
 
 Pass the handler to `DataGridProvider`:
 
@@ -55,7 +55,7 @@ import { DataGridProvider, DataGridRoot } from "@/components/data-grid/data-grid
 
 ## Stop a gate that never settles [#gate-timeout]
 
-Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`, and `import` (the import dialog). Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
+Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, and `processPaste`. The import dialog has no timeout. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
 
 ## Related
 

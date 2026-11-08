@@ -874,7 +874,7 @@ export type DataGridStoreState = Omit<
   onPageSizeChange: ((pageSize: number) => void) | undefined;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
-  /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
+  /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup. */
   searchMatchSet: ReadonlySet<string>;
   /**
    * `searchMatches` grouped by view row -> matched column indices, for {@link computeRowCellState}'s
@@ -1294,7 +1294,8 @@ export type DataGridInternalActions = {
    */
   _subscribeSelection(): () => void;
   /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
-  _deriveSelection(): SelectionState;  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
+  _deriveSelection(): SelectionState;
+  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
   _registerFocus(impl: (() => void) | null): void;

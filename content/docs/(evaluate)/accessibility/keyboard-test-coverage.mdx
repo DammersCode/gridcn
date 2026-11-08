@@ -69,11 +69,14 @@ With this binding, Tab moves to the next cell. A test covers this. Outside an ed
 
 Under a coarse pointer (`@media (pointer: coarse)`), these controls have a hit area of at least 24 by 24 CSS px (WCAG 2.2, SC 2.5.8):
 
-- The selection handles.
 - The column resize area.
 - The column drag handle. Column reorder must be on.
-- The checkbox of a checkbox cell. A touch press within 4 px of the box counts as a hit.
 - The header menu button and the header filter button. Both stay visible.
+
+A touch press, whatever the media query says, has two more targets:
+
+- The selection handles, which show on a touch selection.
+- The checkbox of a checkbox cell. A touch press within 4 px of the box counts as a hit.
 
 A touch selection hides the fill handle. With the fill add-on and the context menu add-on, the context menu then offers Fill down and Fill right. The context menu also offers the clipboard and row items. A hardware keyboard extends a range with Shift+Arrow.
 

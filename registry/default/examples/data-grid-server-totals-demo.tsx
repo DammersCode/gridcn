@@ -40,7 +40,7 @@ export default function DataGridServerTotalsDemo(): ReactNode {
 
   const bottomRows = useMemo(() => [{ id: "__totals__", name: "Total", ...aggregate.row }], [aggregate.row]);
   const { plugin } = useDataGridPinnedRows({ bottomRows, status: aggregate.status });
-  const plugins = useMemo(() => [plugin], [plugin]);
+  const plugins = useMemo(() => [...server.providerProps.plugins, plugin], [server.providerProps.plugins, plugin]);
 
   return (
     <div className="w-full flex flex-col gap-2">

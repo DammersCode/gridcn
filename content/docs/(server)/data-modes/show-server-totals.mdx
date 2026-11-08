@@ -71,7 +71,10 @@ export function OrdersGrid() {
     bottomRows,
     status: totals.status,
   });
-  const plugins = useMemo(() => [plugin], [plugin]);
+  const plugins = useMemo(
+    () => [...server.providerProps.plugins, plugin],
+    [server.providerProps.plugins, plugin],
+  );
 
   return (
     <DataGridProvider
