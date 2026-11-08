@@ -1505,3 +1505,91 @@ describe("row operations under sortMode server", () => {
     expect(result.current.actions.reorderRows(0, 2)).toBe(true);
   });
 });
+
+describe("updateCells and updateRows — flash option", () => {
+  const harnessWithFlashState = () => {
+    const holder: { flashing: ReadonlySet<string> } = { flashing: new Set() };
+    const hook = renderHook(
+      () => {
+        const base = useHarness();
+        holder.flashing = useDataGridStore((s) => s.flashingCells);
+        return base;
+      },
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <DataGridProvider data={rows()} columns={columns} getRowId={getRowId}>
+            {children}
+          </DataGridProvider>
+        ),
+      },
+    );
+    return { ...hook, holder };
+  };
+
+  it("flashes the applied cells and not the skipped ones", () => {
+    const { result, holder } = harnessWithFlashState();
+    act(() => {
+      result.current.actions.updateCells(
+        [
+          { rowId: "a", columnId: "price", value: 31 },
+          { rowId: "missing", columnId: "price", value: 1 },
+        ],
+        { flash: true },
+      );
+    });
+    expect([...holder.flashing]).toHaveLength(1);
+  });
+
+  it("flashes nothing without the option", () => {
+    const { result, holder } = harnessWithFlashState();
+    act(() => {
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }]);
+    });
+    expect(holder.flashing.size).toBe(0);
+  });
+
+  it("updateRows flashes the patched fields of visible columns", () => {
+    const { result, holder } = harnessWithFlashState();
+    act(() => {
+      result.current.actions.updateRows([{ rowId: "b", changes: { price: 1, name: "Zed" } }], { flash: true });
+    });
+    expect(holder.flashing.size).toBe(2);
+  });
+
+  it("flashes a held batch after it settles", async () => {
+    const asyncColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      {
+        id: "price",
+        header: "Price",
+        accessorKey: "price",
+        validate: { "~standard": { version: 1, vendor: "test", validate: async (value: unknown) => ({ value }) } } as never,
+      },
+    ];
+    const holder: { flashing: ReadonlySet<string> } = { flashing: new Set() };
+    const { result } = renderHook(
+      () => {
+        const base = useHarness();
+        holder.flashing = useDataGridStore((s) => s.flashingCells);
+        return base;
+      },
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <DataGridProvider data={rows()} columns={asyncColumns} getRowId={getRowId}>
+            {children}
+          </DataGridProvider>
+        ),
+      },
+    );
+    let verdict!: ReturnType<typeof result.current.actions.updateCells>;
+    act(() => {
+      verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }], { flash: true });
+    });
+    expect(verdict.pending).toBe(true);
+    expect(holder.flashing.size).toBe(0);
+    await act(async () => {
+      await verdict.settled;
+    });
+    expect(holder.flashing.size).toBe(1);
+  });
+});

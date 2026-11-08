@@ -1110,6 +1110,116 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
 
+  const flashApplied = (patches: readonly CellPatch[], verdict: UpdateCellsVerdict): void => {
+    if (verdict.applied === 0) return;
+    const state = get();
+    const skipped = new Set(verdict.skipped.map((skip) => skip.patchIndex));
+    const visible = new Set(state.visibleColumns.map((column) => column.id));
+    const cells: CellRef[] = [];
+    patches.forEach((patch, patchIndex) => {
+      if (!skipped.has(patchIndex) && visible.has(patch.columnId)) cells.push({ rowId: patch.rowId, columnId: patch.columnId });
+    });
+    state.actions.flashCells(cells);
+  };
+
+  const updateCellsCore: DataWriteActions["updateCells"] = (patches, options) => {
+    const s = get();
+    if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
+    if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
+      if (!ctx.warnedStreamLimit) {
+        ctx.warnedStreamLimit = true;
+        warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
+      }
+      const beyond: UpdateCellsSkip[] = [];
+      for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
+      const verdict = updateCellsCore(patches.slice(0, MAX_STREAM_PATCHES), options);
+      const withBeyond = (v: UpdateCellsVerdict): UpdateCellsVerdict => ({ ...v, skipped: [...v.skipped, ...beyond] });
+      return verdict.settled ? { ...verdict, settled: verdict.settled.then(withBeyond) } : withBeyond(verdict);
+    }
+    const skipValidation = options?.skipValidation ?? false;
+
+    // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
+    if (!skipValidation && patchesNeedAsyncCheck(s, patches)) {
+      const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      const validated = prevalidatePatches(s, patches, rowIndex);
+      // Skips report indexes into the caller's `patches`, not into the accepted subset.
+      const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
+        const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
+        const verdict = accepted.length === 0 ? null : updateCellsCore(accepted, { ...options, skipValidation: true });
+        emitStreamRejections(patches, rejected, options?.source);
+        if (!verdict) return { applied: 0, skipped: invalid, pending: false };
+        const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
+        return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
+      };
+      if (validated instanceof Promise) {
+        const token = ++ctx.streamGeneration;
+        const dropped: UpdateCellsVerdict = { applied: 0, skipped: [], pending: false };
+        const settled = validated.then((accepted) => (ctx.streamGeneration !== token ? dropped : apply(accepted)));
+        void settled.catch(() => {});
+        return { applied: 0, skipped: [], pending: true, settled };
+      }
+      return apply(validated);
+    }
+
+    const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+    const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation, options?.source);
+    const nextData = batch.nextData;
+    if (nextData === null) {
+      emitStreamRejections(patches, batch.rejected, options?.source);
+      return { applied: 0, skipped: batch.skipped, pending: false };
+    }
+    const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
+
+    const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
+    ctx.rowIndexCache.rebase(nextData);
+    ctx.lastEmittedData = nextData;
+    const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
+    const stale = marks.state;
+    const change = { source: options?.source ?? "stream", ops: batch.ops };
+    // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
+    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
+
+    // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
+    if (reorder !== "immediate") {
+      // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
+      rememberDeferredRows(ctx, batch.touchedRows);
+      writeThenEmit(ctx, s, nextData, change, () =>
+        set(
+          reorder === "defer" && !s.viewStale
+            ? { data: nextData, viewStale: true, cellErrors, ...stale }
+            : { data: nextData, cellErrors, ...stale },
+        ),
+      );
+      if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
+      emitStreamRejections(patches, batch.rejected, options?.source);
+      return { applied, skipped: batch.skipped, pending: false };
+    }
+    // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
+    const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
+    if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
+      writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
+      emitStreamRejections(patches, batch.rejected, options?.source);
+      return { applied, skipped: batch.skipped, pending: false };
+    }
+    // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
+    const viewIndex = resolveViewIndex(s, nextData, pendingRows(ctx, batch.touchedRows));
+    resetDeferredRows(ctx);
+    writeThenEmit(ctx, s, nextData, change, () =>
+      set({
+        data: nextData,
+        cellErrors,
+        viewIndex,
+        viewStale: s.staleRowIds.size > 0,
+        ...stale,
+        ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
+        ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+      }),
+    );
+    if (marks.touched) requestReshape(ctx, warnDev);
+    emitStreamRejections(patches, batch.rejected, options?.source);
+    return { applied, skipped: batch.skipped, pending: false };
+};
+
   return {
     _commitCellEdit(value, movement, rejection) {
       const s = get();
@@ -1287,101 +1397,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (rejected) emitBulkRejections(source, rejected);
     },
     updateCells(patches, options) {
-      const s = get();
-      if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
-      if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
-        if (!ctx.warnedStreamLimit) {
-          ctx.warnedStreamLimit = true;
-          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
-        }
-        const beyond: UpdateCellsSkip[] = [];
-        for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
-        const verdict = get().actions.updateCells(patches.slice(0, MAX_STREAM_PATCHES), options);
-        const withBeyond = (v: UpdateCellsVerdict): UpdateCellsVerdict => ({ ...v, skipped: [...v.skipped, ...beyond] });
-        return verdict.settled ? { ...verdict, settled: verdict.settled.then(withBeyond) } : withBeyond(verdict);
+      const verdict = updateCellsCore(patches, options);
+      if (options?.flash) {
+        if (verdict.settled) void verdict.settled.then((settled) => flashApplied(patches, settled), () => {});
+        else flashApplied(patches, verdict);
       }
-      const skipValidation = options?.skipValidation ?? false;
-
-      // Re-enters with skipValidation once accepted, so the incremental view path only ever sees validated values.
-      if (!skipValidation && patchesNeedAsyncCheck(s, patches)) {
-        const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-        const validated = prevalidatePatches(s, patches, rowIndex);
-        // Skips report indexes into the caller's `patches`, not into the accepted subset.
-        const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
-          const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
-          const verdict = accepted.length === 0 ? null : get().actions.updateCells(accepted, { ...options, skipValidation: true });
-          emitStreamRejections(patches, rejected, options?.source);
-          if (!verdict) return { applied: 0, skipped: invalid, pending: false };
-          const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
-          return { ...verdict, skipped: [...invalid, ...remapped].sort((a, b) => a.patchIndex - b.patchIndex) };
-        };
-        if (validated instanceof Promise) {
-          const token = ++ctx.streamGeneration;
-          const dropped: UpdateCellsVerdict = { applied: 0, skipped: [], pending: false };
-          const settled = validated.then((accepted) => (ctx.streamGeneration !== token ? dropped : apply(accepted)));
-          void settled.catch(() => {});
-          return { applied: 0, skipped: [], pending: true, settled };
-        }
-        return apply(validated);
-      }
-
-      const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-      const batch = computeCellPatchBatch(s, patches, rowIndex, skipValidation, options?.source);
-      const nextData = batch.nextData;
-      if (nextData === null) {
-        emitStreamRejections(patches, batch.rejected, options?.source);
-        return { applied: 0, skipped: batch.skipped, pending: false };
-      }
-      const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
-
-      const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
-      ctx.rowIndexCache.rebase(nextData);
-      ctx.lastEmittedData = nextData;
-      const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
-      const stale = marks.state;
-      const change = { source: options?.source ?? "stream", ops: batch.ops };
-      // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
-      const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
-
-      // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
-      if (reorder !== "immediate") {
-        // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
-        rememberDeferredRows(ctx, batch.touchedRows);
-        writeThenEmit(ctx, s, nextData, change, () =>
-          set(
-            reorder === "defer" && !s.viewStale
-              ? { data: nextData, viewStale: true, cellErrors, ...stale }
-              : { data: nextData, cellErrors, ...stale },
-          ),
-        );
-        if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
-        emitStreamRejections(patches, batch.rejected, options?.source);
-        return { applied, skipped: batch.skipped, pending: false };
-      }
-      // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
-      const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
-      if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
-        writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
-        emitStreamRejections(patches, batch.rejected, options?.source);
-        return { applied, skipped: batch.skipped, pending: false };
-      }
-      // Re-place only touched and earlier deferred rows; the binary search trusts the rest of the order.
-      const viewIndex = resolveViewIndex(s, nextData, pendingRows(ctx, batch.touchedRows));
-      resetDeferredRows(ctx);
-      writeThenEmit(ctx, s, nextData, change, () =>
-        set({
-          data: nextData,
-          cellErrors,
-          viewIndex,
-          viewStale: s.staleRowIds.size > 0,
-          ...stale,
-          ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
-          ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
-        }),
-      );
-      if (marks.touched) requestReshape(ctx, warnDev);
-      emitStreamRejections(patches, batch.rejected, options?.source);
-      return { applied, skipped: batch.skipped, pending: false };
+      return verdict;
     },
     updateRows(updates, options) {
       if (updates.length === 0) return { applied: 0, skipped: [], pending: false };

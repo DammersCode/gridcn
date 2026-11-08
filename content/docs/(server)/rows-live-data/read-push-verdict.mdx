@@ -29,17 +29,13 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 
 <NewBadge />
 
-The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass the applied patches to `actions.flashCells(cells, durationMs?)`. Each cell is a `CellRef` with `rowId` and `columnId`:
+The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }` to `updateCells` or `updateRows`. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash:
 
 ```tsx fragment="inside the feed component"
-const verdict = actions.updateCells(patches);
-if (!verdict.pending) {
-  const skipped = new Set(verdict.skipped.map((skip) => skip.patchIndex));
-  actions.flashCells(patches.filter((_, index) => !skipped.has(index)));
-}
+actions.updateCells(patches, { flash: true });
 ```
 
-`flashCells` changes no data and adds no history entry. Flashing a cell again resets its timer. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
+`actions.flashCells(cells, durationMs?)` flashes any cells without a write. Each cell is a `CellRef` with `rowId` and `columnId`. `flashCells` changes no data and adds no history entry. Flashing a cell again resets its timer. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
 
 ## Related
 

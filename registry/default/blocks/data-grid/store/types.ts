@@ -648,6 +648,11 @@ export type UpdateCellsOptions = {
   source?: DataChange<unknown>["source"];
   /** Skips each column's `validate`. Default `false`. */
   skipValidation?: boolean;
+  /**
+   * Flashes the cells the call applied, as {@link DataGridActions.flashCells} does: at once for a synchronous
+   * batch, after `settled` for a held one. Only cells of visible columns flash. Default `false`.
+   */
+  flash?: boolean;
 };
 
 /** One entry of {@link UpdateCellsVerdict.skipped}: a patch that was not applied, with the reason. */
