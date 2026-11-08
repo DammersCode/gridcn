@@ -1055,7 +1055,7 @@
     },
     {
       "id": "row-ops",
-      "feature": "Row create, duplicate and delete",
+      "feature": "Row create, duplicate, delete, and move",
       "options": [
         "createRow",
         "duplicateRow",
@@ -1070,13 +1070,15 @@
           "status": "supported",
           "evidence": [
             "content/docs/(build)/rows-pages-menus/row-operations.mdx",
-            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-ops.parity.test.tsx"
+            "tests/parity/row-ops.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/view-pagination.test.tsx"
           ]
         },
         "PS": {
@@ -1114,7 +1116,8 @@
           "status": "supported",
           "evidence": [
             "content/docs/(build)/rows-pages-menus/row-operations.mdx",
-            "registry/default/blocks/data-grid/store/gate-signal.test.ts"
+            "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "tests/parity/row-ops.parity.test.tsx"
           ]
         }
       }

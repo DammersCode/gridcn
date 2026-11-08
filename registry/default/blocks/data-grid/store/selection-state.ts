@@ -2,8 +2,9 @@
  * The public {@link SelectionState} <-> internal {@link GridSelection} bridge: structural
  * equality for the fire guard and the `_syncProps` apply check, derivation (view-index -> stable
  * refs) for `onSelectionChange`/`getSelection`, and resolution (stable refs -> view-index) for
- * the `selection`/`defaultSelection` props and `actions.setSelection`. All refs resolve through
- * the row-index cache's single-id scan plus the lazy view inverse; a lazy-hole placeholder that
+ * the `selection`/`defaultSelection` props and `actions.setSelection`. Refs resolve through the
+ * row-index cache (a single-id scan for a few lookups, the full index above that) plus the lazy
+ * view inverse; a lazy-hole placeholder that
  * no longer resolves falls back to its data index, so it stays positional.
  */
 import type { CellRange, CellRef, GridRect, GridSelection, SelectionState, ViewCoord } from "../types";

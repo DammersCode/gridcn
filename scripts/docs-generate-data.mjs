@@ -36,7 +36,7 @@ export const FINDER = [
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", "/docs/columns/column-order-pinning", "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Freeze the header"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/components-props/data-grid-props#imperative-handle", "Scroll to a row from your own button"]],
+    pages: ["/docs/columns/column-sizing", ["/docs/columns/column-order-pinning", "Pin or freeze columns"], "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Keep the header row on top"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/components-props/data-grid-props#imperative-handle", "Scroll to a row from your own button"]],
   },
   {
     id: "import-export-style",

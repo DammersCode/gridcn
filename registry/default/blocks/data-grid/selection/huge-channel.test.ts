@@ -56,7 +56,7 @@ describe("offsetSelectionForRows over a huge row channel", () => {
     expect(deleted.rows.runs()).toEqual([[0, 999_997]]);
   });
 
-  it("shifts 100,000 separate checked rows in time linear in the runs", () => {
+  it("shifts 100,000 separate checked rows by runs within 200 ms, without listing them", () => {
     const checked = alternating(HUGE);
     const toArray = vi.spyOn(CompactSelection.prototype, "toArray");
     const start = performance.now();

@@ -4,8 +4,9 @@ import type { GridRect, GridSelection } from "../types";
 
 /**
  * Re-anchors a selection after the view rows permute (`newIndexOf[before] === after`). The row
- * channel and the cursor follow their rows. A range stays only when its rows land contiguous,
- * else it collapses onto the cursor. O(r + k log k + h) for r checked rows that land in k runs and
+ * channel and the cursor follow their rows. A range stays only when its rows land contiguous.
+ * A split primary range collapses onto the cursor and drops the stack; a split stacked range is
+ * dropped. O(r + k log k + h) for r checked rows that land in k runs and
  * ranges of h rows.
  */
 export function remapSelectionRows(selection: GridSelection, newIndexOf: ArrayLike<number>): GridSelection {

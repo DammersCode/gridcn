@@ -65,7 +65,7 @@ To remove a row that the server deleted, push a delete:
 actions.deleteRowsById(["AAPL"], { source: "stream" });
 ```
 
-A push delete skips `onBeforeDeleteRows`, `onSave`, and the undo history. It unchecks the row. The cursor and the other checked rows stay where they are. One push delete takes at most 100,000 ids and skips the rest. The server owns the row count. Until the reshape runs, the count can be off by the deleted rows.
+A push delete skips `onBeforeDeleteRows`, `onSave`, and the undo history. It unchecks the row, and the other checked rows stay checked. The active cell stays on its row, and a cell range collapses onto it. If the deleted row held the active cell, the active cell clears. One push delete takes at most 100,000 ids and skips the rest. The server owns the row count. Until the reshape runs, the count can be off by the deleted rows.
 
 The grid cannot place an inserted row, because it does not know the position. When the server reports a new row, call `server.reshape()`.
 

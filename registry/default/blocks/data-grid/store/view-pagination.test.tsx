@@ -117,6 +117,40 @@ describe("paging the view: search and reorder", () => {
     expect(m.shown()).toEqual(["r4", "r5", "r3"]);
   });
 
+  it("a move on a paged grid keeps the checked rows and the active cell on their rows", () => {
+    const m = mount({ enableRowReorder: true, enableRowSelection: true });
+    act(() => m.state().actions.setPage(2));
+    act(() => {
+      m.state().actions.setRowSelected(0, true);
+      m.state().actions.setRowSelected(1, true);
+      m.state().actions.setActiveCellAt({ row: 1, col: 0 });
+    });
+    expect(m.state().actions.moveRowsBy([0, 1], 1)).toBe(true);
+    expect(m.shown()).toEqual(["r5", "r3", "r4"]);
+    expect(m.state().selection.rows.toArray()).toEqual([1, 2]);
+    expect(m.state().activeCell?.row).toBe(2);
+  });
+
+  it("a move that leaves the shown page does nothing", () => {
+    const m = mount({ enableRowReorder: true });
+    act(() => m.state().actions.setPage(2));
+    expect(m.state().actions.moveRowsBy([2], 1)).toBe(false);
+    expect(m.state().actions.moveRowsBy([0], -1)).toBe(false);
+    expect(m.state().actions.reorderRows(0, 3)).toBe(false);
+    expect(m.state().actions.reorderRows([0, 1], 2)).toBe(false);
+    expect(m.shown()).toEqual(["r3", "r4", "r5"]);
+    expect(m.state().data.map((row) => (row as Row).id)).toEqual(rows().map((row) => row.id));
+  });
+
+  it("a move on a paged grid reports data indices in its operations", () => {
+    const onDataChange = vi.fn();
+    const m = mount({ enableRowReorder: true, onDataChange });
+    act(() => m.state().actions.setPage(2));
+    act(() => void m.state().actions.reorderRows(0, 2));
+    const change = onDataChange.mock.calls.at(-1)![1] as { ops: { type: string; from: number; to: number }[] };
+    expect(change.ops).toEqual([expect.objectContaining({ type: "move", from: 3, to: 5 })]);
+  });
+
   it("reorderRows stays blocked while a sort is active", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ enableRowReorder: true });

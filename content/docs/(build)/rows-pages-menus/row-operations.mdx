@@ -6,7 +6,7 @@ aliases: ["add a row", "delete rows", "new row", "remove rows", "copy row", "pro
 icon: ListPlus
 ---
 
-Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRowsById` addresses view indexes, the positions the user sees. `deleteRowsById` takes row ids. Each one writes one change with `source: "row-operation"`. A stream delete writes `source: "stream"` and skips `onBeforeDeleteRows`.
+Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRowsById` addresses view indexes, the positions the user sees. Each one writes one change with `source: "row-operation"`, or `source: "stream"` for a stream delete.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
@@ -85,7 +85,7 @@ function RowTools() {
 - `deleteRows(viewRowIndexes)` deletes the named rows as one change.
 - `deleteRowsById(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-Under a sort, a new row lands in its sorted position, and the active cell stays on its row. Insert and duplicate shift the selection around the new rows. Delete clears the selection and the active cell. An open edit that survives the delete keeps its cell.
+Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection and the active cell, but remembered checks of hidden rows stay. An open edit that survives the delete keeps its cell.
 
 ## Shortcuts [#default-shortcuts]
 
@@ -98,7 +98,7 @@ Under a sort, a new row lands in its sorted position, and the active cell stays 
 
 Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `keepCheckedRows` and at least one checked row, they work on the checked rows only, and do nothing when every checked row is hidden. A `readOnly` grid ignores all four keys.
 
-The keys come from `DEFAULT_KEYMAP`. Remap or remove them through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows. The keys that move rows are on [Row order](/docs/rows-pages-menus/row-order).
+Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows. The keys that move rows are on [Row order](/docs/rows-pages-menus/row-order).
 
 ## Confirm a delete
 

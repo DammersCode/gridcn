@@ -94,7 +94,7 @@ An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, 
 - Inside the handler, a write action such as `updateCells` starts from `next`. With `data`, call `setData(next)` first.
 - A write that another callback makes during a grid write emits its own `onDataChange` after the outer one.
 - `onDataChange` <NewBadge /> runs after the write. If it throws, the change stays written, and `onSave` and the plugin observers still run. Then the grid rethrows the error.
-- A row delete clears the selection and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
+- A row delete clears the checked rows of the view, the cell range, and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
 
 ## onSave [#onsave]
 

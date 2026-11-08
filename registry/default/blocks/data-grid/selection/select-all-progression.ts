@@ -80,8 +80,9 @@ function selectionForRect(rect: GridRect, anchor: ViewCoord): GridSelection {
  * Two-stage Ctrl+A (Excel/Sheets parity):
  * stage 1 selects the active cell's data region, stage 2 (an immediate repeat, tracked by the
  * caller via `stage`) selects the whole grid. When the region already equals the whole grid
- * (dense data), stage 1 already lands on `"all"` so a repeated press stays a no-op rather than
- * toggling anything — the caller's `stage` never needs a second real transition in that case.
+ * (dense data), stage 1 already lands on `"all"`: a repeated press re-selects the whole grid and
+ * drops any row or column check, and it changes nothing while the selection is already exactly the
+ * whole-grid range.
  * Pure: takes the progression stage in, returns the next selection + stage out.
  */
 export function selectAllProgression(

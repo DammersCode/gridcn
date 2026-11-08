@@ -181,9 +181,10 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
   /**
-   * Keeps the checked rows when a cell is selected (click, arrows, Shift or Ctrl click) and makes
-   * row operations (delete, duplicate, move, the cell menu's row items) act only on the checked
-   * rows while any exist. Escape, the checkboxes, and `clearSelection` still change the checks. Default `false`.
+   * Keeps the checked rows when a cell or a column is selected (click, arrows, Shift or Ctrl click,
+   * a header click, Ctrl+Space) and makes row operations (delete, duplicate, move, the cell menu's
+   * row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a row
+   * delete, and `clearSelection` still change the checks. Default `false`.
    * It does not control the memory of checked ids; see `rememberCheckedRows`.
    */
   keepCheckedRows?: boolean;
@@ -1217,13 +1218,14 @@ export type DataGridActions = {
    * off, readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
+   * On a paged grid the indices are page rows, and an index or `to` outside the shown page is out of range.
    * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.
    */
   reorderRows(rows: number | readonly number[], to: number): boolean;
   /**
    * Shifts every row at view indices `rows` by `delta` and keeps the gaps between them (the keyboard
    * move). Same change shape, guards, and return value as {@link reorderRows}; the whole batch stays put
-   * when any row would leave the grid.
+   * when any row would leave the grid, or the shown page on a paged grid.
    */
   moveRowsBy(rows: readonly number[], delta: number): boolean;
   /**

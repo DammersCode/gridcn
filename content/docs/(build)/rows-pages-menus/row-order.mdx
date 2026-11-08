@@ -50,7 +50,7 @@ function Playlist() {
 
 ## Drag a row
 
-The press location decides the gesture. In the reorder family, the drag handle zone is the only way to start a reorder. The zone is a 20 px column at the start of the marker cell. In `"reorder"` mode, it is the whole cell. A press on the handle never changes the selection. A vertical drag that leaves the pressed row reorders it. Press <kbd>Escape</kbd> during the drag to cancel.
+The press location decides the gesture. In the reorder family, the drag handle zone is the only way to start a reorder. The zone is a 1.25rem column (20 px at the default font size) at the start of the marker cell. In `"reorder"` mode, it is the whole cell. A press on the handle never changes the selection. A vertical drag that leaves the pressed row reorders it. Press <kbd>Escape</kbd> during the drag to cancel.
 
 The number and the checkbox in the marker cell only select rows. A press on them selects a row, and a drag selects a row range. A selection drag never reorders. <kbd>Shift</kbd> on the handle never starts a reorder either.
 
@@ -104,7 +104,7 @@ The grid does not recompute search matches after a move. They point at other row
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"` <NewBadge />, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, `reorderRows` and `moveRowsBy` take page rows and a move happens inside the shown page.
+With `sortMode="server"` <NewBadge />, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
 
 ## Related
 

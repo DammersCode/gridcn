@@ -1049,10 +1049,26 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       : markers.reorderRowsAnnouncement(plan.sources.length, plan.targets[0]! + 1, total);
   };
 
-  /** Applies a plan as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, data indices equal full-view indices; a paged view offsets by the page start. */
-  const applyRowMoves = (s: DataGridStoreState, plan: RowMovePlan | null): boolean => {
-    if (!plan) return false;
+  /** The rows a move plans over: the shown page on a paged grid, else every data row. */
+  const movableRowCount = (s: DataGridStoreState): number => (s.pageSize === null ? s.data.length : s.viewIndex.length);
+
+  const toDataPlan = (viewPlan: RowMovePlan, pageStart: number, count: number): RowMovePlan => {
+    if (pageStart === 0 && viewPlan.newIndexOf.length === count) return viewPlan;
+    const newIndexOf = new Int32Array(count);
+    for (let i = 0; i < count; i++) newIndexOf[i] = i;
+    viewPlan.newIndexOf.forEach((after, before) => {
+      newIndexOf[before + pageStart] = after + pageStart;
+    });
+    const offset = (row: number) => row + pageStart;
+    return { sources: viewPlan.sources.map(offset), targets: viewPlan.targets.map(offset), newIndexOf };
+  };
+
+  /** Applies a plan over view rows as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view rows equal data indices offset by the page start. */
+  const applyRowMoves = (s: DataGridStoreState, viewPlan: RowMovePlan | null): boolean => {
+    if (!viewPlan) return false;
     const { data, getRowId } = s;
+    const pageStart = pageStartOf(s.viewIndex);
+    const plan = toDataPlan(viewPlan, pageStart, data.length);
     const { newIndexOf } = plan;
     for (let i = 0; i < data.length; i++) {
       // Indexed access sees sparse holes; a reorder would shift scroll mode's in-flight block bookkeeping.
@@ -1068,15 +1084,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = nextData;
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
-    const pageStart = pageStartOf(s.viewIndex);
-    const follow = (row: number) => (newIndexOf[row + pageStart] ?? row + pageStart) - pageStart;
+    const follow = (row: number) => viewPlan.newIndexOf[row] ?? row;
     const announcement = announceRowMove(s, plan);
     const movedCount = plan.sources.length;
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
         data: nextData,
         rowIdentityVersion: s.rowIdentityVersion + 1,
-        selection: s.pageSize === null ? remapSelectionRows(s.selection, newIndexOf) : emptySelection(),
+        selection: remapSelectionRows(s.selection, viewPlan.newIndexOf),
         activeCell: s.activeCell ? { ...s.activeCell, row: follow(s.activeCell.row) } : null,
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
@@ -1480,15 +1495,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     reorderRows(rows, to) {
       const s = get();
       if (!canMoveRows(s)) return false;
-      const start = pageStartOf(s.viewIndex);
-      const page = (typeof rows === "number" ? [rows] : rows).map((row) => row + start);
-      return applyRowMoves(s, planBlockMove(s.data.length, page, to + start));
+      return applyRowMoves(s, planBlockMove(movableRowCount(s), typeof rows === "number" ? [rows] : rows, to));
     },
     moveRowsBy(rows, delta) {
       const s = get();
       if (!canMoveRows(s)) return false;
-      const start = pageStartOf(s.viewIndex);
-      return applyRowMoves(s, planShiftMove(s.data.length, rows.map((row) => row + start), delta));
+      return applyRowMoves(s, planShiftMove(movableRowCount(s), rows, delta));
     },
     replaceRowId(oldId, row) {
       get().actions.replaceRowIds([{ oldId, row }]);
