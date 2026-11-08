@@ -101,11 +101,11 @@ A sort or filter on a replaced column does not move rows while the panel is open
 
 <NewBadge />
 
-`onReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
+`processReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
 
 ```tsx
 const findReplace = useDataGridFindReplace({
-  onReplace: async ({ plan, signal }) => {
+  processReplace: async ({ plan, signal }) => {
     const allowed = await api.checkEdit(plan.patches, { signal });
     return allowed ? plan : false;
   },
@@ -158,7 +158,8 @@ Replace writes through the same path as an edit. `onDataChange` and `onSave` rec
 |---|---|---|---|
 | `scope` | `"view" \| "selection"` | `"view"` | Which cells Replace covers. |
 | `replaceAllLimit` | `number` | `10000` | Most cells one Replace all changes. Clamped to 1 to 100,000. |
-| `onReplace` <NewBadge /> | `({ plan, signal }) => plan \| false \| Promise` | none | Checks or changes the plan before it writes. `false` cancels. |
+| `processReplace` <NewBadge /> | `({ plan, signal }) => plan \| false \| Promise` | none | Checks or changes the plan before it writes. `false` cancels. |
+| `className` <NewBadge /> | `string` | none | Classes merged into the panel root. |
 
 ### planReplace
 

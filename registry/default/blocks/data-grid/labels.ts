@@ -390,7 +390,7 @@ export type DataGridFindReplaceLabels = {
   moreRemain: string;
   validating: string;
   scopeLoadedRows: string;
-  /** Status line text when `onReplace` vetoed the replace or returned an unusable plan. */
+  /** Status line text when `processReplace` vetoed the replace or returned an unusable plan. */
   replaceCancelled: string;
 };
 

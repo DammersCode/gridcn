@@ -283,8 +283,8 @@ function ReplacePanel(props: { review: Review | null; reviewOn: boolean; setRevi
   const { review, reviewOn, setReviewOn, skipName, setSkipName, open } = props;
   return (
     <div className="flex flex-col gap-3">
-      <Toggle id="hooks-review" label="Review the plan first" hint="onReplace holds the replace until you apply or cancel it." checked={reviewOn} onChange={setReviewOn} />
-      <Toggle id="hooks-skip" label="Leave the Name column alone" hint="onReplace removes its patches from the plan." checked={skipName} onChange={setSkipName} />
+      <Toggle id="hooks-review" label="Review the plan first" hint="processReplace holds the replace until you apply or cancel it." checked={reviewOn} onChange={setReviewOn} />
+      <Toggle id="hooks-skip" label="Leave the Name column alone" hint="processReplace removes its patches from the plan." checked={skipName} onChange={setSkipName} />
       <div>
         <Button type="button" size="sm" onClick={open}>
           Open find and replace
@@ -323,7 +323,7 @@ export default function DataGridIOHooksDemo(): ReactNode {
   const [review, setReview] = useState<Review | null>(null);
 
   const findReplace = useDataGridFindReplace({
-    onReplace:
+    processReplace:
       reviewOn || skipName
         ? ({ plan, signal }) => {
             const edited: ReplacePlan = skipName ? { ...plan, patches: plan.patches.filter((patch) => patch.columnId !== "name") } : plan;

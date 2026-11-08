@@ -12,7 +12,8 @@ aliases: ["replace all", "replace in cells"]
 | --- | --- | --- |
 | `scope` | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `replaceAllLimit` | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `onReplace` <NewBadge /> | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
+| `processReplace` <NewBadge /> | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
+| `className` <NewBadge /> | Adds classes to the panel root | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `open` | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `close` | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `planReplace` | Plans the changes and writes nothing | [Find and replace](/docs/sort-filter-search/find-replace) |
@@ -41,7 +42,7 @@ export function PeopleGrid() {
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace.tsx" name="UseDataGridFindReplaceOptions" />
 
-### onReplace [#onreplace]
+### processReplace [#processreplace]
 
 <NewBadge />
 
@@ -54,6 +55,12 @@ Runs after the panel builds the plan and before it writes. It gets `{ plan, sign
 ### replaceAllLimit [#replacealllimit]
 
 `planReplace` clamps the value to 1 through 100,000. The default is 10,000. When more cells match, Replace all changes the first cells up to the limit. A second click skips the cells the first click changed and continues.
+
+### className [#classname]
+
+<NewBadge />
+
+Merged with `cn` into the class list of the panel root. The panel root sets the width, the corners, the background, and the shadow, so a class here overrides them.
 
 ## Result
 

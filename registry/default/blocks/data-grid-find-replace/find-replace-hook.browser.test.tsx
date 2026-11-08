@@ -36,22 +36,31 @@ async function replaceAll(): Promise<void> {
   await userEvent.click(page.getByRole("button", { name: "Replace all" }));
 }
 
-describe("onReplace", () => {
+describe("className", () => {
+  it("merges into the panel root", async () => {
+    await render(<Harness className="w-96" />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await expect.element(page.getByRole("dialog")).toHaveClass("w-96");
+  });
+});
+
+describe("processReplace", () => {
   it("receives the plan, and what it returns is what gets written", async () => {
     const onDataChange = vi.fn();
-    const onReplace = vi.fn(({ plan }: { plan: { patches: { rowId: string }[] } }) => ({ ...plan, patches: plan.patches.filter((patch) => patch.rowId === "a") }));
-    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    const processReplace = vi.fn(({ plan }: { plan: { patches: { rowId: string }[] } }) => ({ ...plan, patches: plan.patches.filter((patch) => patch.rowId === "a") }));
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} />);
     await replaceAll();
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 replaced");
-    expect(onReplace.mock.calls[0]![0].plan.patches).toHaveLength(2);
-    expect(onReplace.mock.calls[0]![0]).toHaveProperty("signal");
+    expect(processReplace.mock.calls[0]![0].plan.patches).toHaveLength(2);
+    expect(processReplace.mock.calls[0]![0]).toHaveProperty("signal");
     const written = onDataChange.mock.calls.at(-1)![0] as Row[];
     expect(written.map((row) => row.name)).toEqual(["pin one", "needle two", "plain"]);
   });
 
   it("writes nothing when the hook vetoes with false, and says so", async () => {
     const onDataChange = vi.fn();
-    await render(<Harness onReplace={async () => false as const} onDataChange={onDataChange} />);
+    await render(<Harness processReplace={async () => false as const} onDataChange={onDataChange} />);
     await replaceAll();
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("Replace cancelled");
     expect(onDataChange).not.toHaveBeenCalled();
@@ -63,7 +72,7 @@ describe("onReplace", () => {
     await render(
       <Harness
         replaceAllLimit={1}
-        onReplace={({ plan }) => ({ ...plan, patches: [...plan.patches, ...plan.patches, ...plan.patches] })}
+        processReplace={({ plan }) => ({ ...plan, patches: [...plan.patches, ...plan.patches, ...plan.patches] })}
         onDataChange={onDataChange}
       />,
     );
@@ -75,11 +84,11 @@ describe("onReplace", () => {
 
   it("cancels when the hook throws or returns something that is not a plan", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    const throwing = await render(<Harness onReplace={() => Promise.reject(new Error("no"))} />);
+    const throwing = await render(<Harness processReplace={() => Promise.reject(new Error("no"))} />);
     await replaceAll();
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("Replace cancelled");
     await throwing.unmount();
-    await render(<Harness onReplace={(() => ({ patches: "all" })) as never} />);
+    await render(<Harness processReplace={(() => ({ patches: "all" })) as never} />);
     await replaceAll();
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("Replace cancelled");
     vi.restoreAllMocks();
@@ -88,10 +97,10 @@ describe("onReplace", () => {
   it("drops a late answer after the find text changed", async () => {
     const onDataChange = vi.fn();
     let release!: (value: { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean }) => void;
-    const onReplace = vi.fn(() => new Promise<{ patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean }>((resolve) => (release = resolve)));
-    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    const processReplace = vi.fn(() => new Promise<{ patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean }>((resolve) => (release = resolve)));
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} />);
     await replaceAll();
-    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
+    await vi.waitFor(() => expect(processReplace).toHaveBeenCalled());
     await userEvent.click(page.getByRole("textbox", { name: "Find" }));
     await userEvent.keyboard("s");
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -104,10 +113,10 @@ describe("onReplace", () => {
     const onDataChange = vi.fn();
     type Plan = { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean };
     let release!: (value: Plan) => void;
-    const onReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
-    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    const processReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} />);
     await replaceAll();
-    await vi.waitFor(() => expect(onReplace).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(processReplace).toHaveBeenCalledTimes(1));
     await userEvent.click(page.getByRole("textbox", { name: "Replace with" }));
     await userEvent.keyboard("x");
     release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
@@ -115,7 +124,7 @@ describe("onReplace", () => {
     expect(onDataChange).not.toHaveBeenCalled();
 
     await userEvent.click(page.getByRole("button", { name: "Replace all" }));
-    await vi.waitFor(() => expect(onReplace).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(processReplace).toHaveBeenCalledTimes(2));
     await userEvent.click(page.getByRole("button", { name: "Match case" }));
     release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -126,10 +135,10 @@ describe("onReplace", () => {
     const onDataChange = vi.fn();
     type Plan = { patches: { rowId: string; columnId: string; value: string }[]; skipped: never[]; remaining: boolean };
     let release!: (value: Plan) => void;
-    const onReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
-    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    const processReplace = vi.fn(() => new Promise<Plan>((resolve) => (release = resolve)));
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} />);
     await replaceAll();
-    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
+    await vi.waitFor(() => expect(processReplace).toHaveBeenCalled());
     await userEvent.click(page.getByRole("textbox", { name: "Find" }));
     await userEvent.keyboard("s");
     release({ patches: [{ rowId: "a", columnId: "name", value: "stale" }], skipped: [], remaining: false });
@@ -140,7 +149,7 @@ describe("onReplace", () => {
   it("cancels a plan whose patches have no row and column ids", async () => {
     const onDataChange = vi.fn();
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    await render(<Harness onReplace={(() => ({ patches: [{ value: "x" }] })) as never} onDataChange={onDataChange} />);
+    await render(<Harness processReplace={(() => ({ patches: [{ value: "x" }] })) as never} onDataChange={onDataChange} />);
     await replaceAll();
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("Replace cancelled");
     expect(onDataChange).not.toHaveBeenCalled();
@@ -150,11 +159,11 @@ describe("onReplace", () => {
   it("drops a late answer after the panel closed", async () => {
     const onDataChange = vi.fn();
     let release!: (value: false | { patches: never[]; skipped: never[]; remaining: boolean }) => void;
-    const onReplace = vi.fn(() => new Promise<false | { patches: never[]; skipped: never[]; remaining: boolean }>((resolve) => (release = resolve)));
-    await render(<Harness onReplace={onReplace as never} onDataChange={onDataChange} />);
+    const processReplace = vi.fn(() => new Promise<false | { patches: never[]; skipped: never[]; remaining: boolean }>((resolve) => (release = resolve)));
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} />);
     await replaceAll();
-    await vi.waitFor(() => expect(onReplace).toHaveBeenCalled());
-    const signal = (onReplace.mock.calls as unknown as [{ signal: AbortSignal }][])[0]![0].signal;
+    await vi.waitFor(() => expect(processReplace).toHaveBeenCalled());
+    const signal = (processReplace.mock.calls as unknown as [{ signal: AbortSignal }][])[0]![0].signal;
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
     expect(signal.aborted).toBe(true);

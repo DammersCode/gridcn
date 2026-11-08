@@ -13,7 +13,9 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
    * more cancels the replace. Each patch still goes through the column's `fromText` and `validate`.
    * `signal` aborts when a newer replace starts or the panel closes; a late answer is dropped.
    */
-  onReplace?: PanelOptions["onReplace"];
+  processReplace?: PanelOptions["processReplace"];
+  /** Merged into the class list of the panel root. */
+  className?: string;
 };
 
 export type UseDataGridFindReplaceResult = {
@@ -31,7 +33,11 @@ function createPanelStore(): PanelStore {
   return {
     getOptions: () => options,
     setOptions(next) {
+      const classNameChanged = options.className !== next.className;
       options = next;
+      if (!classNameChanged) return;
+      state = { ...state };
+      listeners.forEach((listener) => listener());
     },
     getState: () => state,
     subscribe(listener) {

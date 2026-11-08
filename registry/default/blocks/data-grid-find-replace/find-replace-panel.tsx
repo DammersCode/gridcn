@@ -52,7 +52,8 @@ export type PanelStore = {
 
 /** Replace options plus the panel's own. */
 export type PanelOptions = ReplaceOptions & {
-  onReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
+  processReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
+  className?: string;
 };
 
 type PanelProps = { panelStore: PanelStore };
@@ -289,8 +290,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       finish(verdict);
     };
 
-    const onReplace = panelStore.getOptions().onReplace;
-    if (!onReplace) {
+    const processReplace = panelStore.getOptions().processReplace;
+    if (!processReplace) {
       run(plan);
       return;
     }
@@ -302,7 +303,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
     const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
     void Promise.resolve()
-      .then(() => onReplace({ plan, signal: controller.signal }))
+      .then(() => processReplace({ plan, signal: controller.signal }))
       .then(
         (result) => {
           if (!current()) return;
@@ -312,7 +313,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             return;
           }
           if (!isUsablePlan(result, limit)) {
-            if (isDev()) console.warn("[data-grid-find-replace] onReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
+            if (isDev()) console.warn("[data-grid-find-replace] processReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled");
             setStatus({ kind: "cancelled" });
             return;
           }
@@ -324,7 +325,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         },
         (error: unknown) => {
           if (!current()) return;
-          if (isDev()) console.warn("[data-grid-find-replace] onReplace threw; the replace is cancelled", error);
+          if (isDev()) console.warn("[data-grid-find-replace] processReplace threw; the replace is cancelled", error);
           setStatus({ kind: "cancelled" });
         },
       );
@@ -407,7 +408,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       // body-portaled: physical offsets and `dir` follow the grid, not the page
       dir={position.rtl ? "rtl" : "ltr"}
       style={{ position: "fixed", top: position.top, ...(position.rtl ? { left: position.end } : { right: position.end }), zIndex: 50, maxWidth: `calc(100vw - ${position.end}px - 8px)` }}
-      className="flex w-80 flex-col gap-1 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10"
+      className={cn("flex w-80 flex-col gap-1 rounded-lg bg-popover p-2 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10", panelStore.getOptions().className)}
     >
       <div className="flex items-center gap-1">
         {!readOnly && (
