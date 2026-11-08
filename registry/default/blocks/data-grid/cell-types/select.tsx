@@ -15,7 +15,22 @@ import { columnLabelText } from "../columns/column-format-helpers";
 import { defaultCompareText } from "../sort-filter/default-compare-text";
 
 type Choice = { value: string; label: string };
+type ChoiceInput = GridCellTypes["select"]["options"]["choices"];
 type ChoiceIndex = { byValue: Map<string, Choice>; byLowerLabel: Map<string, Choice> };
+
+const resolvedChoices = new WeakMap<ChoiceInput, readonly Choice[]>();
+
+/** The `{ value, label }` list of a `choices` array: a string becomes a choice with equal value and label. Cached per array. */
+export function resolveSelectChoices(input: ChoiceInput | undefined): readonly Choice[] {
+  if (!input) return [];
+  let resolved = resolvedChoices.get(input);
+  if (resolved) return resolved;
+  resolved = input.some((choice) => typeof choice === "string")
+    ? input.map((choice) => (typeof choice === "string" ? { value: choice, label: choice } : choice))
+    : (input as readonly Choice[]);
+  resolvedChoices.set(input, resolved);
+  return resolved;
+}
 
 // Per-cell lookups (search, display, copy) stay O(1); keyed by array identity, so an in-place mutation of `choices` is not seen.
 const choiceIndexes = new WeakMap<readonly Choice[], ChoiceIndex>();
@@ -53,9 +68,9 @@ function choiceRank(choices: readonly Choice[]): Map<string, number> {
 }
 
 /** The choice whose value is `raw`, else the first whose label matches `raw` case-insensitively. */
-function findChoice(choices: readonly Choice[] | undefined, raw: string): Choice | undefined {
+function findChoice(choices: ChoiceInput | undefined, raw: string): Choice | undefined {
   if (!choices) return undefined;
-  const index = choiceIndex(choices);
+  const index = choiceIndex(resolveSelectChoices(choices));
   return index.byValue.get(raw) ?? index.byLowerLabel.get(toSafeText(raw).toLowerCase());
 }
 
@@ -95,7 +110,7 @@ function SelectEditor({ value, options, onChange, commit, cancel, column, reject
         <SelectValue placeholder="" />
       </SelectTrigger>
       <SelectContent data-grid-cell-editor="">
-        {options?.choices.map((choice) => (
+        {resolveSelectChoices(options?.choices).map((choice) => (
           <SelectItem key={choice.value} value={choice.value}>
             {choice.label}
           </SelectItem>
@@ -136,7 +151,7 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     if (b == null) return 1;
     const choices = options?.choices;
     if (choices) {
-      const ranks = choiceRank(choices);
+      const ranks = choiceRank(resolveSelectChoices(choices));
       const rankA = ranks.get(a);
       const rankB = ranks.get(b);
       if (rankA !== undefined && rankB !== undefined) return rankA - rankB;

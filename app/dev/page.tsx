@@ -67,11 +67,11 @@ const baseColumns = defineColumns<BenchmarkRow>()([
     type: "select",
     options: {
       choices: [
-        { value: "Admin", label: "Admin" },
-        { value: "User", label: "User" },
-        { value: "Editor", label: "Editor" },
-        { value: "Viewer", label: "Viewer" },
-        { value: "Manager", label: "Manager" },
+        "Admin",
+        "User",
+        "Editor",
+        "Viewer",
+        "Manager",
       ],
     },
     width: 140,

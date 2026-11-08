@@ -11,7 +11,7 @@ import {
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveCustomFilterOperators, resolveFilterValueInput, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveCustomFilterOperators, resolveFilterValueInput, resolveSelectChoices, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { distinctColumnValues } from "./distinct-values";
 import { useServerFilterValues } from "./server-filter-values";
@@ -217,7 +217,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
 
   const custom = column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : undefined;
   if (operatorIsAnyOf(operator, custom)) {
-    const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
+    const choices = resolveSelectChoices((column?.options as GridCellTypes["select"]["options"] | undefined)?.choices);
     const selected = Array.isArray(value) ? value : [];
     if (column && choices.length === 0) {
       return (
@@ -279,7 +279,7 @@ export function DataGridFilterValueInput(props: DataGridFilterValueInputProps): 
   }
 
   if (valueInput === "choices") {
-    const choices = (column?.options as GridCellTypes["select"]["options"] | undefined)?.choices ?? [];
+    const choices = resolveSelectChoices((column?.options as GridCellTypes["select"]["options"] | undefined)?.choices);
     return (
       <Select items={choices} value={textValue || null} onValueChange={(next) => onValueChange(next ?? "")}>
         <SelectTrigger className="h-8 w-full" aria-label={labels.toolbar.filterValueAriaLabel}>

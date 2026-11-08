@@ -239,6 +239,27 @@ describe("selectCellType value pipeline", () => {
   });
 });
 
+describe("selectCellType plain-string choices", () => {
+  const plain = { choices: ["Open", "Done"] };
+  const mixed = { choices: ["Open", { value: "d", label: "Done" }] };
+
+  it("a string is a choice whose value and label are equal", () => {
+    expect(selectCellType.toText("Open", plain)).toBe("Open");
+    expect(selectCellType.fromText("open", plain)).toBe("Open");
+    expect(selectCellType.fromText("nope", plain)).toBeNull();
+  });
+
+  it("strings and objects mix in one array", () => {
+    expect(selectCellType.toText("d", mixed)).toBe("Done");
+    expect(selectCellType.fromText("done", mixed)).toBe("d");
+    expect(selectCellType.fromText("Open", mixed)).toBe("Open");
+  });
+
+  it("compare sorts by the label of a string choice", () => {
+    expect(selectCellType.compare!("Done", "Open", plain)).toBeLessThan(0);
+  });
+});
+
 describe("dateCellType value pipeline", () => {
   it("fromText accepts ISO yyyy-mm-dd unchanged", () => {
     expect(dateCellType.fromText("2026-07-03")).toBe("2026-07-03");

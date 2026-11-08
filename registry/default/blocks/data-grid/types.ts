@@ -996,10 +996,10 @@ export interface GridCellTypes {
       /**
        * The cell stores `value`; the grid shows `label`. Display, search, sort, filter text, and copy resolve a
        * stored value to its label here (a value with no choice shows as is). Resolve the label in your own code
-       * with `choices.find((choice) => choice.value === value)?.label`.
+       * with `choices.find((choice) => choice.value === value)?.label`. A string is a choice whose value and label are equal.
        * Lookups are cached per array: pass a new array to change the choices, never mutate it in place.
        */
-      choices: readonly { value: string; label: string }[];
+      choices: readonly (string | { value: string; label: string })[];
     };
   };
   date: {

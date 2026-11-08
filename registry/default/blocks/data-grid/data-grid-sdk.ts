@@ -77,6 +77,7 @@ export { textAccessorFor as rowAccessorFor } from "./store/compute";
 export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
+export { resolveSelectChoices } from "./cell-types/select";
 export { toSafeText } from "./cell-types/safe-text";
 export { safeFromText, isUnparseable, type ParsedCellText } from "./cell-types/safe-from-text";
 export {
