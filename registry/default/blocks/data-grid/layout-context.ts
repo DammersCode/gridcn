@@ -54,12 +54,13 @@ export type ColumnLayout = {
  * distribute `flex` leftover space; 0 on first render/SSR before measurement, which correctly
  * bails flex distribution to base widths until the real measurement lands.
  */
-export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth = 0): ColumnLayout {
+export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth = 0, markerWidthOverride?: number): ColumnLayout {
   const ids = useMemo(() => columns.map((c) => c.id), [columns]);
   const overrides = useDataGridColumnWidths(ids);
   const rowMarkers = useDataGridRowMarkers();
   return useMemo(() => {
-    const mWidth = markerWidth(rowMarkers);
+    const modeWidth = markerWidth(rowMarkers);
+    const mWidth = modeWidth > 0 && markerWidthOverride !== undefined ? Math.max(0, markerWidthOverride) : modeWidth;
     const baseWidths = columns.map((column, i) => resolveColumnWidth(column, overrides[i]));
     // Manual resize (a live override) fixes the column and removes it from flex distribution.
     const flexes = columns.map((column, i) => (overrides[i] === undefined ? column.flex : undefined));
@@ -81,7 +82,7 @@ export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth
       totalWidth: widths.reduce((a, b) => a + b, 0) + mWidth,
       markerWidth: mWidth,
     };
-  }, [columns, overrides, rowMarkers, availableWidth]);
+  }, [columns, overrides, rowMarkers, availableWidth, markerWidthOverride]);
 }
 
 /** A visible column paired with its real (unvirtualized) index, used for grid placement + pin var lookup. */

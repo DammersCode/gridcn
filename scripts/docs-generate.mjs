@@ -439,6 +439,7 @@ const PURPOSE = {
   "DataGridSyncProps.readOnly": "Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: \"stream\"` push still writes. Default `false`.",
   "DataGridSyncProps.columns": "The column definitions of the grid.",
   "DataGridRootProps.aria-label": "Accessible name of the grid.",
+  "DataGridRootProps.markerWidth": "Marker track width in px. It overrides the width of the `rowMarkers` mode. `rowMarkers=\"none\"` ignores it.",
   "DataGridRootProps.aria-labelledby": "Id of the element that names the grid.",
   "DataGridSyncProps.cellTypes": "Custom cell types keyed by `ColumnDef.type`. Built-in types that you do not name keep working.",
   "DataGridSyncProps.autosizeOnMount": "Fits the column widths once after mount, when the view first has rows.",

@@ -265,6 +265,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     "aria-label": ariaLabel,
     "aria-labelledby": ariaLabelledBy,
     rowHeight,
+    markerWidth,
     density,
     headerHeight,
     columnOverscan,
@@ -291,6 +292,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         rowHeight={rowHeight}
+        markerWidth={markerWidth}
         density={density}
         headerHeight={headerHeight}
         columnOverscan={columnOverscan}

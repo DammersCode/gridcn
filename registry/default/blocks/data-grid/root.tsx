@@ -93,6 +93,8 @@ export type DataGridRootProps<TData = unknown> = {
   "aria-labelledby"?: string;
   /** Explicit row height (px); overrides `density` when set. */
   rowHeight?: number;
+  /** Marker track width (px); overrides the width of the `rowMarkers` mode. Ignored with `rowMarkers="none"`. */
+  markerWidth?: number;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
   /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
@@ -178,6 +180,7 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
   "aria-label",
   "aria-labelledby",
   "rowHeight",
+  "markerWidth",
   "density",
   "headerHeight",
   "columnOverscan",
@@ -218,6 +221,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     "aria-label": ariaLabel,
     "aria-labelledby": ariaLabelledBy,
     rowHeight: rowHeightProp,
+    markerWidth: markerWidthProp,
     density,
     headerHeight: headerHeightProp,
     columnOverscan,
@@ -308,7 +312,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // here would re-render this whole tree on every scroll pixel, negating row memoization (mustFix).
   // Read before useColumnLayout: clientWidth drives flex-column distribution below.
   const dimensions = useElementDimensions(scrollRef);
-  const layout = useColumnLayout(visibleColumns, dimensions.clientWidth);
+  const layout = useColumnLayout(visibleColumns, dimensions.clientWidth, markerWidthProp);
   const { template, leftOffsets, rightOffsets, trackLefts: lefts, trackRights: rights, widths, pins, totalWidth } =
     layout;
 

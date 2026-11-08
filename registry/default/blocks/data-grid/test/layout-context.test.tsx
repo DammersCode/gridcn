@@ -31,6 +31,18 @@ function wrapperWithMarkers(rowMarkers: RowMarkersMode) {
 }
 
 describe("useColumnLayout marker column integration", () => {
+  it("takes the marker track width from the override", () => {
+    const { result } = renderHook(() => useColumnLayout(internalColumns, 0, 80), { wrapper: wrapperWithMarkers("number") });
+    expect(result.current.markerWidth).toBe(80);
+    expect(result.current.template).toBe("80px 100px 120px");
+    expect(result.current.trackLefts).toEqual([80, 180]);
+  });
+
+  it("ignores the override when rowMarkers is 'none'", () => {
+    const { result } = renderHook(() => useColumnLayout(internalColumns, 0, 80), { wrapper: wrapperWithMarkers("none") });
+    expect(result.current.markerWidth).toBe(0);
+  });
+
   it("adds no marker track when rowMarkers is 'none'", () => {
     const { result } = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("none") });
     expect(result.current.markerWidth).toBe(0);
