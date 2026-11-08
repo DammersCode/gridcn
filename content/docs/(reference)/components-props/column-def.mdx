@@ -76,14 +76,14 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `minWidth` | `number` | none | Smallest width in px. |
 | `maxWidth` | `number` | none | Largest width in px. |
 | `flex` | `number` | none | Share of the free width of the grid. |
-| `pin` | `"left" \| "right"` | none | Starting pin side. `"left"` is the start side and `"right"` the end side. In a right-to-left page, both flip. |
+| `pin` | `"left" \| "right"` | none | Starting pin side, applied when the column id first appears. `"left"` is the start side and `"right"` the end side. In a right-to-left page, both flip. |
 | `sortable` | `boolean` | `true` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. |
 | `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
 | `filterMatch` | `(value, filter) => boolean` | none | Replaces the text matcher for this column. |
 | `filterOperators` | `readonly (BuiltInFilterOperator \| CustomFilterOperator)[]` | from `type` | Operators that the filter menu offers. A custom operator is an object. See [Filtering](/docs/sort-filter-search/filtering#custom-operators). |
 | `filterCompare` | `(text, bound) => number` | none | Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order. See [Filtering](/docs/sort-filter-search/filtering). |
 | `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
-| `hidden` | `boolean` | none | `true` hides the column at start. `setColumnHidden` and the columns menu change it later. |
+| `hidden` | `boolean` | none | `true` hides the column when its id first appears. `setColumnHidden` and the columns menu change it later. |
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
 | `reorderable` | `boolean` | `true` | `false` stops the drag of this column. `setColumnOrder` ignores the column. |
 | `pinnable` | `boolean` | `true` | `false` removes pin and unpin. `setColumnPin` ignores the column. |

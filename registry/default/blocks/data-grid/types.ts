@@ -547,7 +547,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * column and removes it from flex distribution.
    */
   flex?: number;
-  /** Initial pin side; `"left"` is the inline start and `"right"` the inline end, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
+  /** Initial pin side, applied when the column id first appears; `"left"` is the inline start and `"right"` the inline end, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
   pin?: "left" | "right";
   /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
   sortable?: boolean;
@@ -580,7 +580,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * the empty-cell-last rule still apply.
    */
   sortCompare?: (a: TData, b: TData) => number;
-  /** Initial visibility; toggle at runtime through `setColumnHidden` or the columns menu. */
+  /** Initial visibility, applied when the column id first appears; toggle at runtime through `setColumnHidden` or the columns menu. */
   hidden?: boolean;
   /** `false` disables the resize handle for this column; default true. */
   resizable?: boolean;

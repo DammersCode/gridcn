@@ -836,7 +836,7 @@ export type DataGridStoreState = Omit<
   autosizeOnMount?: boolean | AutosizeOptions;
   /** null = follow the `columns` prop order. */
   columnOrder: string[] | null;
-  /** Single source of truth for visibility; seeded with the def-level `hidden` ids at creation and re-seeded when a new `columns` array is passed. */
+  /** Single source of truth for visibility; seeded with the def-level `hidden` ids of each column when its id first appears. */
   hiddenColumns: readonly string[];
   /**
    * The current column-layout snapshot (`widths`/`order`/`pins`/`hidden`), recomputed at every

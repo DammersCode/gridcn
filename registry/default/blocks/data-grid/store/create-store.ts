@@ -36,6 +36,7 @@ import {
   computeViewIndex,
   viewSorts,
   viewFilters,
+  carryRuntimePins,
   defHiddenColumnIds,
   flashCellKey,
   flashKeyRowId,
@@ -1075,14 +1076,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             forgetDeferredRows(dataWrite);
             pruneRowValidationKeys(nextData, props.getRowId);
           }
-          // Only a new `columns` reference replaces `s.columns`, so runtime pin changes survive re-renders.
           const propsColumnsChanged = props.columns !== lastPropsColumns;
           lastPropsColumns = props.columns;
-          const nextColumns = propsColumnsChanged ? props.columns : s.columns;
-          // A new `columns` array re-asserts def-level hidden flags; a re-render keeps a column the user re-showed.
-          const reseededHidden = propsColumnsChanged
-            ? defHiddenColumnIds(props.columns).filter((id) => !s.hiddenColumns.includes(id))
-            : [];
+          // A def's `pin` and `hidden` seed when its id first appears; a known id keeps its runtime pin and visibility.
+          const knownColumns = propsColumnsChanged ? new Map(s.columns.map((c) => [c.id, c])) : null;
+          const nextColumns = knownColumns ? carryRuntimePins(props.columns, knownColumns) : s.columns;
+          const reseededHidden = knownColumns ? defHiddenColumnIds(props.columns.filter((c) => !knownColumns.has(c.id))) : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // An inline `columnGroups` literal rebuilds the model; the old model stays while structure and headers are equal.
           if (props.columnGroups !== lastPropsColumnGroups || propsColumnsChanged) {

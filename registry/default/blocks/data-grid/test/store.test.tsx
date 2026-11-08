@@ -14,6 +14,7 @@ import {
   useDataGridInternalActions,
   useDataGridCellErrors,
   useDataGridActiveCell,
+  useDataGridAllColumns,
   useDataGridAllRowsSelected,
   useDataGridColumnFeatureFlags,
   useDataGridEditing,
@@ -814,12 +815,12 @@ describe("search never filters viewIndex", () => {
     expect(result.current.matches).toEqual([{ row: 2, columnId: "name" }]);
   });
 
-  it("recomputes searchMatches (not viewIndex) when a matching column becomes hidden via _syncProps", () => {
-    function Harness({ hideAge }: { hideAge: boolean }) {
-      const cols: readonly ColumnDef<Row, unknown>[] = [
-        { id: "name", header: "Name", accessorKey: "name" },
-        { id: "age", header: "Age", accessorKey: "age", hidden: hideAge },
-      ];
+  it("recomputes searchMatches (not viewIndex) when a matching column becomes hidden", () => {
+    const cols: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "age", header: "Age", accessorKey: "age" },
+    ];
+    function Harness() {
       return (
         <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id}>
           <Probe />
@@ -835,11 +836,12 @@ describe("search never filters viewIndex", () => {
           <div data-testid="vi">{viewIndex.join(",")}</div>
           <div data-testid="matches">{matches.map((m) => `${m.row}:${m.columnId}`).join(",")}</div>
           <button onClick={() => actions.setSearch("40")}>search-40</button>
+          <button onClick={() => actions.setColumnHidden("age", true)}>hide-age</button>
         </div>
       );
     }
 
-    const { rerender: rerenderTree } = render(<Harness hideAge={false} />);
+    render(<Harness />);
     act(() => {
       screen.getByText("search-40").click();
     });
@@ -848,7 +850,9 @@ describe("search never filters viewIndex", () => {
     expect(screen.getByTestId("matches").textContent).toBe("2:age");
 
     // hiding "age" removes it from quick-search's column set — the match disappears, viewIndex doesn't change.
-    rerenderTree(<Harness hideAge />);
+    act(() => {
+      screen.getByText("hide-age").click();
+    });
     expect(screen.getByTestId("vi").textContent).toBe("0,1,2");
     expect(screen.getByTestId("matches").textContent).toBe("");
   });
@@ -2684,7 +2688,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       });
     });
 
-    it("re-seeds def-level hidden ids when the columns prop identity changes; a same-reference re-render keeps the user's choice", () => {
+    it("a new columns array keeps a column the user re-showed; a new id seeds its def hidden flag", () => {
       const defHidden: readonly ColumnDef<Row, unknown>[] = [
         { id: "name", header: "Name", accessorKey: "name" },
         { id: "age", header: "Age", accessorKey: "age", hidden: true },
@@ -2719,9 +2723,45 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       rerender(<Harness cols={defHidden} />);
       expect(probed).toEqual(["name", "age"]);
 
-      // a new array whose def still says hidden: true re-asserts the def's flag.
       rerender(<Harness cols={replacedDefHidden} />);
-      expect(probed).toEqual(["name"]);
+      expect(probed).toEqual(["name", "age"]);
+
+      const withNewHidden: readonly ColumnDef<Row, unknown>[] = [...replacedDefHidden, { id: "extra", header: "Extra", accessorKey: "name", hidden: true }];
+      rerender(<Harness cols={withNewHidden} />);
+      expect(probed).toEqual(["name", "age"]);
+    });
+
+    it("a new columns array keeps a runtime pin, a runtime unpin, and seeds the pin of a new id", () => {
+      const defs = (): readonly ColumnDef<Row, unknown>[] => [
+        { id: "name", header: "Name", accessorKey: "name" },
+        { id: "age", header: "Age", accessorKey: "age", pin: "right" },
+      ];
+      let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
+      let pins: Record<string, string | undefined> = {};
+      function Probe() {
+        actionsRef = useDataGridInternalActions();
+        pins = Object.fromEntries(useDataGridAllColumns().map((c) => [c.id, c.pin]));
+        return null;
+      }
+      function Harness({ cols }: { cols: readonly ColumnDef<Row, unknown>[] }) {
+        return (
+          <DataGridProvider data={rows()} columns={cols} getRowId={(r) => r.id}>
+            <Probe />
+          </DataGridProvider>
+        );
+      }
+      const { rerender } = render(<Harness cols={defs()} />);
+      expect(pins).toEqual({ name: undefined, age: "right" });
+
+      act(() => {
+        actionsRef!.setColumnPin("name", "left");
+        actionsRef!.setColumnPin("age", null);
+      });
+      rerender(<Harness cols={defs()} />);
+      expect(pins).toEqual({ name: "left", age: undefined });
+
+      rerender(<Harness cols={[...defs(), { id: "city", header: "City", accessorKey: "name", pin: "right" }]} />);
+      expect(pins).toEqual({ name: "left", age: undefined, city: "right" });
     });
   });
 

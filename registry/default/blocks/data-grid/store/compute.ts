@@ -552,9 +552,21 @@ export function textAccessorFor(
   return accessor;
 }
 
-/** Column ids with `hidden: true` in their def; seeds `hiddenColumns` at creation and re-seeds it when a new `columns` array is passed. */
+/** Column ids with `hidden: true` in their def; seeds `hiddenColumns` for the columns that are new. */
 export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
+}
+
+/** `columns` with the `pin` of each id in `known` taken from the known column; the array itself when no pin differs. */
+export function carryRuntimePins(columns: readonly AnyColumnDef[], known: ReadonlyMap<string, AnyColumnDef>): readonly AnyColumnDef[] {
+  let carried: AnyColumnDef[] | null = null;
+  columns.forEach((def, index) => {
+    const pin = known.get(def.id)?.pin;
+    if (!known.has(def.id) || pin === def.pin) return;
+    carried ??= [...columns];
+    carried[index] = { ...def, pin };
+  });
+  return carried ?? columns;
 }
 
 /** `columnOrder` completed for `columns`: unknown ids drop out, def ids it lacks follow in def order, and `groups` stay contiguous. */
