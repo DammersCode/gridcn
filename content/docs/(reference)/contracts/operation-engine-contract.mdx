@@ -66,7 +66,9 @@ The result keeps `label`. Its `source` is `"history"` by default. Pass `"rollbac
 
 ## commitChange [#commitchange]
 
-`actions.commitChange(change)` applies a whole change to the grid through `applyChange`. It writes once and fires `onDataChange` once, so the change lands on the undo stack as one entry. It does nothing on a `readOnly` grid, except for a change with `source: "stream"`. If no operation applies, it writes and fires nothing. It clears the errors of the cells it writes, and the active cell and the checked rows follow their records. It does not validate the values again. A change with `source: "history"` or `"rollback"` is never recorded in the undo stack.
+`actions.commitChange(change)` applies a whole change to the grid through `applyChange`. It writes once and fires `onDataChange` once, so the change lands on the undo stack as one entry. It does nothing on a `readOnly` grid, except for a change with `source: "stream"`. If no operation applies, it writes and fires nothing.
+
+`commitChange` clears the errors of the cells it writes, and the active cell and the checked rows follow their records. It does not run the column `validate`. It runs `validateRow` for the rows it inserts or updates, except for a change with `source: "stream"`. A change with `source: "history"` or `"rollback"` is never recorded in the undo stack.
 
 The history add-on inverts with `invertChange` and applies with `commitChange`. Its `rollback` reverts a cell only while the cell still holds the change's value.
 

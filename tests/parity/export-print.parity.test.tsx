@@ -35,7 +35,7 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
     expect(names).toEqual(expected[mode] ?? ["Name 5", "Name 4", "Name 3", "Name 2"]);
   });
 
-  it("the all scope covers the rows the grid holds, never a hole", async () => {
+  it("the all scope covers the rows the grid holds", async () => {
     const grid = await mountMode(mode);
     const names = firstColumn(buildExportRows(grid.state(), "all"));
     expect(names).toEqual(grid.held().map((row) => row.name));

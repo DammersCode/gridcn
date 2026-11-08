@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { act, render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { CompactSelection } from "../selection/compact-selection";
-import { checkedRowCount } from "./announcements";
+import { describe, expect, it } from "vitest";
 import { getInternalActions } from "./internal-actions";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
@@ -103,13 +101,22 @@ describe("liveAnnouncement (checked rows)", () => {
     expect(m.state().liveAnnouncement).toMatchObject(checked(1));
   });
 
-  it("counts the rows the markers show: rows covered by a cell range count too", () => {
+  it("counts the checked rows only: rows under a cell range do not count", () => {
     const m = mount();
     m.cellRange(3);
     m.check(4);
-    expect(m.state().liveAnnouncement).toMatchObject(checked(4));
+    expect(m.state().liveAnnouncement).toMatchObject(checked(1));
+    m.check(1);
+    expect(m.state().liveAnnouncement).toMatchObject(checked(2));
     m.uncheck(1);
-    expect(m.state().liveAnnouncement).toMatchObject(checked(3));
+    expect(m.state().liveAnnouncement).toMatchObject(checked(1));
+  });
+
+  it("a check of the active row inside its own cell range reads 1", () => {
+    const m = mount();
+    act(() => m.state().actions.selectCellAt({ col: 0, row: 2 }));
+    m.check(2);
+    expect(m.state().liveAnnouncement).toMatchObject(checked(1));
   });
 
   it("every announcement gets a fresh seq, so the same text can repeat", () => {
@@ -248,32 +255,14 @@ describe("liveAnnouncement (announceResults)", () => {
   });
 });
 
-describe("checkedRowCount", () => {
-  const range = (y: number, height: number) => ({ x: 0, y, width: 1, height });
-  const selectionOf = (rows: CompactSelection, ranges: Array<{ y: number; height: number }>) =>
-    ({
-      rows,
-      columns: CompactSelection.empty(),
-      current: ranges.length ? { cell: [0, ranges[0]!.y], range: range(ranges[0]!.y, ranges[0]!.height), rangeStack: ranges.slice(1).map((r) => range(r.y, r.height)) } : undefined,
-    }) as never;
-
-  it("unites a fragmented rows channel with overlapping ranges", () => {
-    const rows = CompactSelection.fromArray([1, 2, 5, 9]);
-    expect(checkedRowCount(selectionOf(rows, [{ y: 0, height: 4 }, { y: 3, height: 4 }]), 20)).toBe(8);
-  });
-
-  it("walks a huge range over a fragmented channel without per-row lookups", () => {
-    const rows = CompactSelection.fromArray(Array.from({ length: 5000 }, (_, i) => i * 3));
-    const spy = vi.spyOn(rows, "hasIndex");
-    const started = performance.now();
-    const count = checkedRowCount(selectionOf(rows, [{ y: 0, height: 1_000_000 }]), 1_000_000);
-    expect(count).toBe(1_000_000);
-    expect(spy).not.toHaveBeenCalled();
-    expect(performance.now() - started).toBeLessThan(50);
-  });
-});
-
 describe("liveAnnouncement (Escape, hidden rows, quiet results)", () => {
+  it("cancelSelection over a cell range with no checked row stays quiet", () => {
+    const m = mount();
+    m.cellRange(3);
+    act(() => getInternalActions(m.api()!)._cancelSelection());
+    expect(m.state().liveAnnouncement).toBeNull();
+  });
+
   it("cancelSelection announces the dropped checked rows; clearSelection stays quiet", () => {
     const m = mount();
     m.check(0, 1);

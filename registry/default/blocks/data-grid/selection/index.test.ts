@@ -550,7 +550,7 @@ describe("selectAllProgression", () => {
     expect(stage).toBe("all");
   });
 
-  it("dense data: defaults the anchor to [0,0] when there is no current selection", () => {
+  it("dense data: with no current selection, selects the whole grid from the given anchor", () => {
     const { selection: all } = selectAllProgression(emptySelection(), 5, 5, { col: 0, row: 0 }, denseIsEmpty, null);
     expect(all.current?.cell).toEqual({ col: 0, row: 0 });
     expect(all.current?.range).toEqual({ x: 0, y: 0, width: 5, height: 5 });

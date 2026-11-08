@@ -12,7 +12,6 @@ describe("data-grid-announcements-demo", () => {
     await expect.element(page.getByText("none yet")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
     document.querySelector<HTMLElement>(`[role="row"]${gridAttrSelector("rowIndex")} [role="gridcell"]:not(${gridAttrSelector("markerCell")})`)!.click();
-    grid.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     grid.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
     await expect.poll(() => document.querySelector("p span.font-medium")?.textContent, { timeout: 2000 }).toBe("1 row checked");
   });

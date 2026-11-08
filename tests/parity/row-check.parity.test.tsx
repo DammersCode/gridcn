@@ -31,6 +31,16 @@ describe("checked rows with client pagination", () => {
     expect(grid.state().selection.rows.toArray().map((i) => grid.viewIds()[i])).toEqual(["r1"]);
   });
 
+  it("Ctrl/Cmd+A drops the remembered checks of the other pages", async () => {
+    const grid = await mountMode("PC", { props: { rememberCheckedRows: true } });
+    grid.act(() => grid.state().actions.setRowSelected(1, true));
+    grid.goToPage(2);
+    grid.act(() => grid.state().actions.selectAll());
+    expect(grid.state().hiddenCheckedRowIds.size).toBe(0);
+    grid.goToPage(1);
+    expect(grid.state().selection.rows.toArray()).toEqual([]);
+  });
+
   it("a readOnly grid still checks rows because checking is not a write", async () => {
     const grid = await mountMode("PC", { props: { readOnly: true } });
     grid.act(() => grid.state().actions.setRowSelected(2, true));

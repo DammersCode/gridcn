@@ -163,7 +163,8 @@ type Row = { id: string; item: string; price: number };
 
 const specs: AggregateSpecs<Row> = {
   item: (_values, rows) => `${rows.length} rows`,
-  price: (_values, rows) => Math.max(...rows.map((row) => row.price), 0),
+  price: (_values, rows) =>
+    rows.reduce((max, row) => Math.max(max, row.price), 0),
 };
 ```
 

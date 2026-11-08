@@ -2427,43 +2427,57 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "SS": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/hooks/use-debounce.test.tsx"
+            "registry/default/hooks/use-debounce.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/search.test.tsx",
+            "registry/default/blocks/data-grid-toolbar/filter-value-input.test.tsx"
           ]
         },
         "API": {

@@ -78,6 +78,7 @@ The grid holds every row. Only the rows on screen are one page. The footer shows
 - **Streaming patches** reach every row, also rows on other pages.
 - **Totals** from [pinned rows](/docs/rows-pages-menus/pinned-rows) cover every page. Pass `scope: "page"` to `useDataGridAggregate` to total the shown page only.
 - **Export and print** cover every page. Pass `scope: "page"` to `exportGrid` or `printGrid` to write the shown page only.
+- **Announcements** <NewBadge /> from `announceResults` count the rows of every page.
 
 Read the pager from your own components with `const { pager } = useDataGridPager()` <NewBadge /> under the provider. It returns the same controls that the bar uses. `useDataGridPager({ pageSizeOptions })` sets the sizes of the select.
 

@@ -23,7 +23,7 @@ describe("unloaded rows in mode Z (lazy rows)", () => {
     expect(grid.changes).toHaveLength(0);
   });
 
-  it("export and print leave the holes out", async () => {
+  it("export leaves the holes out", async () => {
     const grid = await mountMode("Z", { initialLoad: 3 });
     expect(buildExportRows(grid.state(), "all")).toHaveLength(3);
     expect(buildExportRows(grid.state(), "view", { text: "display" })).toHaveLength(3);

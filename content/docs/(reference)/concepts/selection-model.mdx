@@ -10,7 +10,7 @@ Each grid keeps one selection. The selection has three channels, and each channe
 
 ## Selection channels [#selection-model]
 
-- The cell channel holds the anchor cell and a rectangular range around it. The anchor is the active cell, and it always lies inside the range. With multi-range on, the channel also holds a stack of extra ranges from Ctrl or Cmd clicks. The stack never holds the main range.
+- The cell channel holds the anchor cell and a rectangular range around it. The anchor starts at the active cell and always lies inside the range. <kbd>Alt</kbd>+<kbd>Arrow</kbd> moves the active cell and keeps the anchor and the range, so the active cell can sit outside the range. With multi-range on, the channel also holds a stack of extra ranges from Ctrl or Cmd clicks. The stack never holds the main range.
 - The row channel holds whole rows. A marker checkbox, a marker press and drag, and the row keys set it. The grid calls these rows the checked rows.
 - The column channel holds whole columns. A header click and a header drag set it.
 

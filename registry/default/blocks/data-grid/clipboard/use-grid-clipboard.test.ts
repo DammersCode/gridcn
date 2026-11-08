@@ -390,7 +390,7 @@ describe("pasteText", () => {
     expect(actions.applyCellUpdates).not.toHaveBeenCalled();
   });
 
-  it("returns false for empty/whitespace-only text (nothing to parse)", () => {
+  it("returns false for empty text (nothing to parse)", () => {
     const s = fakeState({ selection: selectCellPure({ col: 0, row: 0 }) });
     const actions = fakeActions();
     expect(pasteText(s, actions, "")).toBe(false);

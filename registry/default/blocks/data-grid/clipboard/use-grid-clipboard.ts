@@ -20,7 +20,7 @@ import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGenerat
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
   rootRef: RefObject<HTMLElement | null>;
-  /** Prefix formula-like cells with `'` in the copied text/plain payload and the HTML cell text (same opt-in as {@link serializeCells}); default `false` so the grid's own paste round-trip stays byte-identical. */
+  /** Prefix formula-like cells with `'` in the copied text/plain payload and the HTML cell text (same opt-in as {@link serializeCells}). Defaults to the grid's `sanitizeClipboardFormulas` prop. */
   sanitizeFormulas?: boolean;
 };
 
@@ -98,7 +98,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], c
 
   const maxRows = cols.length === 0 ? rows.length : Math.max(1, Math.floor(MAX_COPY_CELLS / cols.length));
   const rowCount = Math.min(rows.length, maxRows);
-  // parity with the paste cap's dev warn (applyParsedPaste): a truncated copy must be observable
+  // A truncated copy warns in development, as the paste cap does in runPaste.
   if (rowCount < rows.length && isDev()) {
     console.warn(`gridcn: copy truncated to ${rowCount} of ${rows.length} rows (MAX_COPY_CELLS)`);
   }
@@ -298,8 +298,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
 /**
  * The paste resolution: {@link buildPasteCandidates} validated through {@link resolveBulkWrites}, so
  * the accepted writes plus the rejected cells — synchronously when every touched column validates
- * synchronously, a Promise for the same when one does not. Kept as a named export for consumers and
- * tests that want the pure answer without the store.
+ * synchronously, a Promise for the same when one does not. Tests read the pure answer through it.
  */
 export function buildPasteWrites(
   s: DataGridStoreState,
@@ -314,12 +313,12 @@ export function buildPasteWrites(
  * The paste application core (parse -> tile -> processPaste -> writes -> applyCellUpdates),
  * shared by the native `paste` event handler and {@link pasteText} so
  * both funnel through one pipeline. `cells` is already parsed (HTML-table or TSV); returns `false`
- * when there was nothing to paste (empty parse, no target, or `processPaste` vetoed it) so callers
- * can distinguish "nothing happened" from a successful write.
+ * when there was nothing to paste (empty parse, no target, `processPaste` vetoed it, or an earlier
+ * paste gate is still pending) so callers can distinguish "nothing happened" from a successful write.
  *
  * A touched column with an ASYNC schema makes the write list a Promise: the batch is held, and the
- * single `applyCellUpdates` runs on resolution — still one commit, one DataChange, still dropping
- * failing cells silently. `guard` then decides whether that resolution may land at all; without one
+ * single `applyCellUpdates` runs on resolution — still one commit, one DataChange; the rejected
+ * cells skip the write and reach `onValidationError`. `guard` then decides whether that resolution may land at all; without one
  * (a direct call in a test) a resolved batch always applies. `true` here means "a paste started",
  * which for an async batch is not yet "cells changed".
  */

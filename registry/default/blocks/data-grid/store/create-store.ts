@@ -98,7 +98,7 @@ import {
 } from "./selection-state";
 import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
-import { checkedRowCount, loadedRowCount, nextAnnouncement } from "./announcements";
+import { loadedRowCount, nextAnnouncement } from "./announcements";
 
 /**
  * Resolves the `cellTypes` prop against the built-ins: entries merge OVER the built-ins, and a
@@ -115,14 +115,14 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
   return out;
 }
 
-/** The announcement for a selection change, or nothing when the checked total (rows plus hidden checked rows) stays equal. */
+/** The announcement for a selection change, or nothing when the checked total (rows channel plus hidden checked rows) stays equal. */
 function checkedChange(
   s: DataGridStoreState,
   next: GridSelection,
   hiddenAfter = s.hiddenCheckedRowIds.size,
 ): Pick<DataGridStoreState, "liveAnnouncement"> | Record<string, never> {
-  const before = checkedRowCount(s.selection, s.viewIndex.length) + s.hiddenCheckedRowIds.size;
-  const after = checkedRowCount(next, s.viewIndex.length) + hiddenAfter;
+  const before = s.selection.rows.length + s.hiddenCheckedRowIds.size;
+  const after = next.rows.length + hiddenAfter;
   return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
 
@@ -1518,7 +1518,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return cellType.isEmpty(value);
         };
         const result = selectAllProgression(s.selection, s.viewIndex.length, s.visibleColumns.length, active, isEmptyAt, priorStage);
-        set({ selection: result.selection, selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active } });
+        set({
+          selection: result.selection,
+          ...checkedChange(s, result.selection, 0),
+          ...(s.hiddenCheckedRowIds.size > 0 || s.allMatching ? NO_REMEMBERED_ROWS : {}),
+          selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active },
+        });
       },
       setRowSelected(index, checked) {
         const s = get();

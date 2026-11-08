@@ -5,7 +5,7 @@ import { ALL_MODES, mountMode } from "./modes";
 const gt1 = [{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as const;
 
 describe.each(ALL_MODES)("replace in mode %s", (mode) => {
-  it("plans the cells of the displayed rows and writes them by row id", async () => {
+  it("plans the cells of the rows the filter leaves and writes them by row id", async () => {
     const grid = await mountMode(mode);
     grid.setFilters([...gt1] as never);
     const shown = grid.viewIds();

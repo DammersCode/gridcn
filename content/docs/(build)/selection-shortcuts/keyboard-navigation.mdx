@@ -47,9 +47,9 @@ They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which def
 
 ## Two-stage Ctrl+A [#two-stage-ctrla]
 
-The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects the data region around the active cell: the rectangle of adjacent rows and columns that hold values. When the active cell is empty, the region is that cell. Press the keys again to select the whole grid. When the data fills the whole grid, the first press selects everything.
+The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects the data region around the active cell: the rectangle of adjacent rows and columns that hold values. When the active cell is empty, the region is that cell. Press the keys again to select the whole grid. On a paged grid, the whole grid is the shown page. When the data fills the whole grid, the first press selects everything.
 
-<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells and never checks rows. It unchecks the checked rows, also with `keepCheckedRows`. The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells and never checks rows. It unchecks the checked rows, also with `keepCheckedRows`. It also clears the remembered checks of hidden rows and ends "all matching". The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
 
 ## Escape clears the selection
 

@@ -54,14 +54,19 @@ const rows: Row[] = [
 function MoveDownButton() {
   const actions = useDataGridActions();
   const activeCell = useDataGridActiveCell();
-  const checked = useDataGridSelection().rows.toArray();
-  const targets =
-    checked.length > 0 ? checked : activeCell ? [activeCell.row] : [];
+  const checked = useDataGridSelection().rows;
+  const hasChecked = checked.length > 0;
+  // Read the indexes on click: a render-time toArray() copies every checked row.
+  const moveDown = () =>
+    actions.moveRowsBy(
+      hasChecked ? checked.toArray() : activeCell ? [activeCell.row] : [],
+      1,
+    );
 
   return (
     <Button
-      disabled={targets.length === 0}
-      onClick={() => actions.moveRowsBy(targets, 1)}
+      disabled={!hasChecked && !activeCell}
+      onClick={moveDown}
     >
       Move down
     </Button>

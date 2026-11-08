@@ -224,7 +224,7 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
 });
 
 describe("useDataGridClipboard.cut on a readOnly grid", () => {
-  it("still writes to the clipboard but never calls deleteSelection's onDataChange", async () => {
+  it("still writes to the clipboard but never clears the copied cells", async () => {
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
     vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
     const onDataChange = vi.fn();
@@ -306,7 +306,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect(execCommand).toHaveBeenCalledWith("copy");
   });
 
-  it("cut still clears the selection and resolves 'ok' with a selection present", async () => {
+  it("cut clears the copied cells and resolves 'ok' with a selection present", async () => {
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockResolvedValue(undefined) } });
     vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
     const onDataChange = vi.fn();
@@ -354,7 +354,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect(document.querySelector("textarea")).toBeNull();
   });
 
-  it("cut resolves 'failed' when both write paths fail and never deletes the selection", async () => {
+  it("cut resolves 'failed' when both write paths fail and never clears the copied cells", async () => {
     document.execCommand = vi.fn(() => false);
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
     vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
@@ -367,7 +367,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
-  it("cut deletes the selection on the legacy fallback when execCommand reports success", async () => {
+  it("cut clears the copied cells on the legacy fallback when execCommand reports success", async () => {
     document.execCommand = vi.fn(() => true);
     vi.stubGlobal("navigator", { clipboard: { write: vi.fn().mockRejectedValue(new Error("denied")) } });
     vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);

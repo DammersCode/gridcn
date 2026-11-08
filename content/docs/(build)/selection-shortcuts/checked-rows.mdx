@@ -68,11 +68,11 @@ After a click on a cell, <kbd>Shift</kbd>+<kbd>Arrow</kbd> extends the cell rang
 
 To check rows that are not adjacent, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which keeps the selection. Then press `toggleRow` on each row.
 
-A check or an uncheck reads the number of checked rows in the grid's live region, for example "3 rows checked". Pressing <kbd>Esc</kbd> reads the drop too. The count includes hidden checked rows. The `labels.grid.rowsChecked` label sets the text.
+A check or an uncheck reads the checked-row count in the live region, for example "3 rows checked". <kbd>Esc</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> read the drop too. The count includes hidden checked rows, not the rows of a cell range. `labels.grid.rowsChecked` sets the text.
 
 ## Keep checked rows [#checked-rows]
 
-By default, a cell selection clears the checked rows. A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
+By default, a plain cell click or an arrow key clears the checked rows. A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
 
 Set `keepCheckedRows` to keep the checks across cell selections:
 
@@ -127,9 +127,8 @@ const columns = defineColumns<Order>()([
 
 export function Orders({ orders }: { orders: Order[] }) {
   const gridRef = useRef<DataGridApi<Order> | null>(null);
-  const logChecked = () => {
+  const logChecked = () =>
     console.log(gridRef.current?.getSelection().rowIds ?? []);
-  };
   return (
     <>
       <button type="button" onClick={logChecked}>Log checked ids</button>
@@ -153,7 +152,7 @@ A filter or a page change removes the checked rows it hides. Set `rememberChecke
 
 Hidden checked rows stay out of every row operation, the controlled `selection`, and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing. The context menu disables its Delete rows and Duplicate row items.
 
-<kbd>Esc</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them. Switching to `sortMode="server"` or `filterMode="server"` clears them.
+<kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them. Switching to `sortMode="server"` or `filterMode="server"` clears them.
 
 `useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`.
 

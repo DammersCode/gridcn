@@ -1,7 +1,7 @@
 import { CompactSelection } from "./compact-selection";
 import type { ViewCoord, GridRect, GridSelection } from "../types";
 
-/** Two-stage progression tracked by the caller (interaction layer): which stage the last `selectAllProgression` call produced. */
+/** Two-stage progression the store tracks in `selectAllStage`: which stage the last `selectAllProgression` call produced. */
 export type SelectAllStage = "region" | "all" | null;
 
 /** Probes whether the cell at `coord` is empty, via the cell type's `isEmpty` — same contract as `jumpToDataBoundary`'s local helper. */

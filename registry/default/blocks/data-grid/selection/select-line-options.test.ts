@@ -58,7 +58,7 @@ describe("selectLine", () => {
     toArraySpy.mockRestore();
   });
 
-  it("still materializes a structural CompactSelectionLike through the fallback", () => {
+  it("accepts a structural CompactSelectionLike through the fallback", () => {
     const like = {
       length: 2,
       hasIndex: (i: number) => i === 1 || i === 2,

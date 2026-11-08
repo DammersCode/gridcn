@@ -55,7 +55,7 @@ Call `queryClient.fetchQuery` inside `fetchRows` and use the block as the query 
 
 <InstallCommand item="data-grid-lazy-react-query-demo" />
 
-Call this hook under a `QueryClientProvider`. Put `serverSpecKey(spec)` in the key if the user can sort or filter:
+Call this hook under a `QueryClientProvider`. If the user can sort or filter, send the spec and put `serverSpecKey(spec)` in the key:
 
 ```tsx
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,17 +66,6 @@ import {
 
 type Person = { id: string; name: string };
 
-async function loadPeople(range: {
-  start: number;
-  end: number;
-  signal: AbortSignal;
-}): Promise<Person[]> {
-  const { start, end, signal } = range;
-  const query = `offset=${start}&limit=${end - start}`;
-  const response = await fetch(`/api/people?${query}`, { signal });
-  return (await response.json()).rows;
-}
-
 export function useCachedPeople() {
   const queryClient = useQueryClient();
   return useDataGridServerRows<Person>({
@@ -86,7 +75,12 @@ export function useCachedPeople() {
         queryKey: ["people", serverSpecKey(spec), start, end],
         staleTime: Infinity,
         gcTime: Infinity,
-        queryFn: ({ signal }) => loadPeople({ start, end, signal }),
+        queryFn: async ({ signal }): Promise<Person[]> => {
+          const body = JSON.stringify({ spec, start, end });
+          const init = { method: "POST", body, signal };
+          const response = await fetch("/api/people", init);
+          return (await response.json()).rows;
+        },
       }),
       totalRowCount: 10_000,
     }),
@@ -104,7 +98,7 @@ SWR has no `fetchQuery`. Its `preload(key, fetcher)` runs the fetcher and keeps 
 
 <InstallCommand item="data-grid-lazy-swr-demo" />
 
-The fetcher of SWR receives the key, so the key is a tuple:
+The key is a tuple of the spec key and the block, so each sort, filter, and block gets its own entry:
 
 ```tsx
 import { preload } from "swr";
@@ -115,19 +109,18 @@ import {
 
 type Person = { id: string; name: string };
 
-async function loadPeople(start: number, end: number): Promise<Person[]> {
-  const query = `offset=${start}&limit=${end - start}`;
-  const response = await fetch(`/api/people?${query}`);
-  return (await response.json()).rows;
-}
-
 export function useSwrPeople() {
   return useDataGridServerRows<Person>({
     mode: "scroll",
     fetchRows: async ({ spec, start, end }) => ({
       rows: await preload(
         ["people", serverSpecKey(spec), start, end] as const,
-        (key) => loadPeople(key[2], key[3]),
+        async (): Promise<Person[]> => {
+          const body = JSON.stringify({ spec, start, end });
+          const init = { method: "POST", body };
+          const response = await fetch("/api/people", init);
+          return (await response.json()).rows;
+        },
       ),
       totalRowCount: 10_000,
     }),

@@ -17,7 +17,7 @@ describe.each(ALL_MODES)("onSave write-through in mode %s", (mode) => {
     expect(grid.cell("r1", "n")).toBe(31);
   });
 
-  it("a refused save reverts only the refused row and reports it", async () => {
+  it("a refused save reverts the refused row and reports it", async () => {
     const onSaveRejected = vi.fn();
     const onSave = vi.fn(async () => ({ rejected: [{ rowId: "r1", message: "no" }] }));
     const grid = await mountMode(mode, { props: { onSave, onSaveRejected } });

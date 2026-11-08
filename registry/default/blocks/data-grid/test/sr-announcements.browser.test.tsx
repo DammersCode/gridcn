@@ -39,12 +39,11 @@ async function activateFirstCell(): Promise<HTMLElement> {
     `[role="row"]${gridAttrSelector("rowIndex")} [role="gridcell"]:not(${gridAttrSelector("markerCell")})`,
   )!;
   await userEvent.click(cell);
-  grid.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
   return grid;
 }
 
 describe("screen-reader announcements (live region)", () => {
-  it("a keyboard row check announces the checked total", async () => {
+  it("Ctrl+Shift+Space on the active row, inside its own cell range, announces 1 row checked", async () => {
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
@@ -56,12 +55,25 @@ describe("screen-reader announcements (live region)", () => {
       `[role="row"]${gridAttrSelector("rowIndex")} [role="gridcell"]:not(${gridAttrSelector("markerCell")})`,
     )!;
     await userEvent.click(cell);
-    // Escape clears the cell range — while the active cell's own range covers the row, the row
-    // reads as checked (the marker shows the rows-or-range union), so toggleRow would uncheck it.
-    grid.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
-    grid.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
+    checkActiveRow(grid);
 
     await expect.poll(() => statusTexts().find((t) => t.includes("row checked")), { timeout: 2000 }).toBe("1 row checked");
+  });
+
+  it("Escape over a cell range with no checked row leaves the region quiet", async () => {
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" rowMarkers="checkbox" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await expect.poll(() => statusTexts().length).toBe(1);
+    const grid = await activateFirstCell();
+    const watch = watchRegion();
+    grid.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await sleep(700);
+    watch.stop();
+    expect(watch.seen.filter((text) => text !== "")).toEqual([]);
   });
 
   it("a controlled filter change announces the result count with announceResults", async () => {

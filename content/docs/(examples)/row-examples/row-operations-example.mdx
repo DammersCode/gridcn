@@ -49,19 +49,19 @@ const rows: Row[] = [{ id: "1", name: "Ada" }];
 
 function DeleteButton() {
   const actions = useDataGridActions();
-  const selection = useDataGridSelection();
   const activeCell = useDataGridActiveCell();
-  const targets =
-    selection.rows.length > 0
-      ? selection.rows.toArray()
-      : activeCell
-        ? [activeCell.row]
-        : [];
+  const checked = useDataGridSelection().rows;
+  const hasChecked = checked.length > 0;
+  // Read the indexes on click: a render-time toArray() copies every checked row.
+  const deleteTargets = () =>
+    actions.deleteRows(
+      hasChecked ? checked.toArray() : activeCell ? [activeCell.row] : [],
+    );
 
   return (
     <Button
-      disabled={targets.length === 0}
-      onClick={() => actions.deleteRows(targets)}
+      disabled={!hasChecked && !activeCell}
+      onClick={deleteTargets}
     >
       Delete
     </Button>

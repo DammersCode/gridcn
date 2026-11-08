@@ -101,8 +101,9 @@ function execCommandCopyFallback(text: string): boolean {
 
 /**
  * Public clipboard triggers for use outside native clipboard events (e.g. a context menu's
- * Copy/Cut/Paste items). Mirrors {@link useGridClipboard}'s native-event pipeline exactly, so
- * behavior stays identical whether the user presses Ctrl+C or clicks a menu item.
+ * Copy/Cut/Paste items). Runs the same copy scope, serializer, and paste pipeline as
+ * {@link useGridClipboard}. Unlike the native events, `copy()` and `cut()` also run while a cell
+ * editor is open.
  *
  * Copy and paste address the displayed rows. On a paged grid that is the shown page: a column
  * selection copies the rows of the page, and a paste stops at the page's last row.

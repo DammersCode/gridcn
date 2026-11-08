@@ -29,7 +29,6 @@ The grid brings its roles, focus, and live regions. Your page adds these parts:
 | Column reorder and resize are pointer-only | The keyboard cannot move a column or set its width. | Offer your own controls that call `setColumnOrder` and `setColumnWidth`. With the context menu add-on, the header menu (Shift+Alt+ArrowDown) offers Autosize. |
 | The grid has no accessible name | The grid root has no `aria-label`, and no prop sets one. | Wrap the grid in a labeled `<section>`. The section gets the name. The grid itself stays unnamed. |
 | The grid has no page landmark | Region navigation cannot place the grid in a labeled region, and the axe-core `region` rule reports it. | Place the grid inside `<main>` or a labeled `<section>`. |
-| Cell ranges differ from row state | The checked-row announcement counts rows that a cell range covers. The row `aria-selected` follows checked rows only. | If row state matters, check rows with the marker. |
 | Color contrast has no test | The axe-core suite turns off the `color-contrast` rule. | Check your theme colors with a contrast tool. |
 | No screen reader test | The repository records no manual pass with a screen reader. | Test your grid with the screen readers that your users run. |
 | Announcement timing has no test | Tests assert the announcement text and the `aria-live` structure. They do not assert what a screen reader says or when. | Listen to your flows with a screen reader. |

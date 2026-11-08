@@ -369,3 +369,32 @@ describe("remembered checks and a cell click", () => {
     expect(m.state().allMatching).toBe(false);
   });
 });
+
+describe("Ctrl/Cmd+A (selectAll) and remembered checks", () => {
+  it("after selectAllMatching, selectAll ends all-matching and reads 0 rows checked", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectAll());
+    expect(m.state().allMatching).toBe(false);
+    expect(m.checkedViewRows()).toEqual([]);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 0 });
+  });
+
+  it("drops the remembered checks of other pages, also with keepCheckedRows", () => {
+    const m = mount();
+    m.check(1);
+    m.rerender({ data: PAGE_TWO });
+    m.check(0);
+    act(() => m.state().actions.selectAll());
+    expect(m.checkedViewRows()).toEqual([]);
+    expect(m.remembered()).toEqual([]);
+    m.rerender({ data: PAGE_ONE });
+    expect(m.checkedViewRows()).toEqual([]);
+  });
+
+  it("without any check selectAll stays quiet", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAll());
+    expect(m.state().liveAnnouncement).toBeNull();
+  });
+});

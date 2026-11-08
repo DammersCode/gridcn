@@ -45,7 +45,7 @@ export function selectedColRangesForRow(selection: GridSelection, viewRow: numbe
   return ranges;
 }
 
-/** Whether `col` falls inside any of `ranges` — the per-cell membership check row.tsx/cell.tsx derive `isSelected` from. */
+/** Whether `col` falls inside any of `ranges` — the per-cell membership check row.tsx derives `isSelected` from. */
 export function colRangesContain(ranges: readonly ColRange[], col: number): boolean {
   for (const [start, end] of ranges) {
     if (col >= start && col < end) return true;
