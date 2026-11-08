@@ -21,6 +21,10 @@ import { prefixedKey } from "./prefixed-key";
 const MIN_CHOICE_BOUND = 64;
 
 
+type UrlSpecPart = "sort" | "filter" | "search";
+
+const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort", "filter", "search"];
+
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
 
 const LAYOUT_KEYS: Record<UrlLayoutPart, string> = { order: "cols", hidden: "hide", widths: "widths", pins: "pins" };
@@ -39,6 +43,11 @@ function warnDev(message: string): void {
 export type UseDataGridUrlStateOptions = {
   /** Namespaces the `sort`/`filter`/`join`/`q` URL keys and the layout keys (`cols`, `hide`, `widths`, `pins`) as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
+  /**
+   * View-spec parts synced to the URL: `sort` (`sort`), `filter` (`filter` and the legacy `join`), and `search` (`q`).
+   * `[]` turns spec sync off. Default `["sort", "filter", "search"]`.
+   */
+  specParts?: readonly UrlSpecPart[];
   /**
    * Layout parts synced to the URL under `cols` (`order`), `hide` (`hidden`), `widths`, and `pins`.
    * A part is written only while it differs from the layout the grid started with. `[]` turns
@@ -74,7 +83,10 @@ export type UseDataGridUrlStateResult = {
  * re-runs the mount apply when the URL changed outside the grid's own writes.
  */
 export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): UseDataGridUrlStateResult {
-  const { prefix, layout = DEFAULT_LAYOUT_PARTS } = options;
+  const { prefix, layout = DEFAULT_LAYOUT_PARTS, specParts = DEFAULT_SPEC_PARTS } = options;
+  const syncSort = specParts.includes("sort");
+  const syncFilter = specParts.includes("filter");
+  const syncSearch = specParts.includes("search");
   const layoutParts = layout.join(",");
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -184,12 +196,12 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       return false;
     });
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
-    if (sorts.length > 0 || !keepMountDefaults) actions.setSorts(sorts);
-    if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
-    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
+    if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
+    if (syncFilter && (filters.length > 0 || !keepMountDefaults)) actions.setFilters(filters);
+    if (syncSearch && (searchParam || !keepMountDefaults)) actions.setSearch(searchParam);
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
-  }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
+  }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, syncSort, syncFilter, syncSearch, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
   const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
@@ -203,13 +215,13 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   }, []);
 
   useEffect(() => {
-    if (!appliedRef.current) return;
+    if (!appliedRef.current || !syncSort) return;
     void setSortParamRef.current(serializeSortState(sortState) || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [sortState]);
 
   useEffect(() => {
-    if (!appliedRef.current) return;
+    if (!appliedRef.current || !syncFilter) return;
     void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput }) || null);
     void setJoinParamRef.current(null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -232,7 +244,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
-    if (!appliedRef.current) return;
+    if (!appliedRef.current || !syncSearch) return;
     void setSearchParamRef.current(searchText || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);

@@ -12,6 +12,7 @@ aliases: ["query string", "bookmark view", "share view", "persist sort and filte
 | --- | --- |
 | Rename the keys, or put two grids on one page | [Keys and prefix](#prefix) |
 | Bound what a link holds | [Behavior](#behavior) |
+| Keep filter values and search text out of the URL | [Choose the synced parts](#choose-the-synced-parts) |
 | Keep the column layout or the page | [Column layout](#column-layout), [Pagination](#pagination) |
 | Restore the spec of a server grid | [Server mode](#server-mode) |
 | Add saved views | [With saved views](#with-saved-views) |
@@ -111,6 +112,18 @@ A hand-edited URL cannot express an unbounded view. The `filter` param reads at 
 A sort from the URL (`?sort=name:asc`) <NewBadge /> shows its arrow in the header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
 
 The add-on checks every URL value against the live columns: their ids, their visibility, the `sortable` and `filterable` flags, and the `choices`. A spec for a column that is gone never reaches the view.
+
+## Choose the synced parts
+
+<NewBadge />
+
+The `specParts` option picks which of the sort, the filter, and the search text go into the URL. The default is all three. A filter value or a search text can hold personal data, and the URL ends up in the browser history, server logs, and the `Referer` header. To keep only the sort in the URL, list only `"sort"`:
+
+```tsx
+<DataGridUrlState specParts={["sort"]} />
+```
+
+A part that is not listed is neither read from the URL nor written to it. `applyFromUrl()` leaves it alone.
 
 ## Column layout
 
