@@ -56,7 +56,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, showScope?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
@@ -69,7 +69,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
-| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage`, `storageKey`, `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
+| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
 | Pagination | `defaultPageSize` on the provider + `DataGridPaginationBar` (client; `useDataGridPager()` returns `{ pager }` for your own controls); `useDataGridServerPager` + `DataGridPaginationBar {...pager}` (server) | the bar reads the pager from the provider when you spread nothing; spread `pager` and it works outside the provider too |
