@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `DataGridHeaderFilter` and `BindingChips` take a `className` that merges into the trigger button and the keycap row.
 - Fix: `DataGridStatusBar` renders its `children` when fewer than two cells are selected. Before, it returned `null` and the extra items vanished. It still renders nothing when it has nothing to show and no children; pass `children` conditionally to keep the old behavior.
 - `useDataGridFindReplace({ className })` merges classes into the panel root, which hard-coded its width, corners, and shadow before.
 - `useDataGridState` forwards every `useDataGridHistory` option (`recordSources` and `onSkip` included), not only `capacity` and `datasetKey`.

@@ -30,6 +30,8 @@ export type DataGridHeaderFilterProps = {
   column: AnyColumnDef;
   /** The column's visible-column index. */
   index: number;
+  /** Merged into the class list of the trigger button. */
+  className?: string;
 };
 
 function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
@@ -184,7 +186,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
  * `<DataGridRoot renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>`.
  */
 export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNode {
-  const { column } = props;
+  const { column, className } = props;
   const labels = useDataGridLabels().toolbar;
   const filtered = useDataGridIsColumnFiltered(column.id);
   const api = useDataGridApi();
@@ -208,7 +210,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
             data-grid-header-filter-trigger=""
             tabIndex={-1}
             aria-label={labels.headerFilterAriaLabel(columnLabel, filtered)}
-            className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
+            className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-[5px] text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary", className)}
           >
             <Filter className={cn("size-3.5", filtered && "fill-current")} />
           </button>

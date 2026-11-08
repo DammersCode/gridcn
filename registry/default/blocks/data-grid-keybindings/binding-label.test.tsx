@@ -30,4 +30,9 @@ describe("BindingChips", () => {
     expect(onRecoverableError).not.toHaveBeenCalled();
     expect(container.textContent).toBe("⌘C");
   });
+
+  it("merges className into the group", () => {
+    const html = renderToString(<BindingChips binding="mod+c" className="gap-2" />);
+    expect(html).toContain("gap-2");
+  });
 });
