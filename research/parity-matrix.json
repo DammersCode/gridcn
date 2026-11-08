@@ -1325,7 +1325,7 @@
       "id": "push-reshape",
       "feature": "Pushes into a server-ordered view",
       "options": [
-        "reshapeDelay"
+        "reshapeDelayMs"
       ],
       "cells": {
         "L": {
@@ -1968,7 +1968,7 @@
       "id": "fetch-limits",
       "feature": "Scroll fetch limits",
       "options": [
-        "loadDelay",
+        "loadDelayMs",
         "maxConcurrentFetches",
         "maxLoadedRows"
       ],
@@ -2023,7 +2023,7 @@
       "id": "revalidate",
       "feature": "Revalidation on a timer",
       "options": [
-        "revalidateInterval"
+        "revalidateIntervalMs"
       ],
       "cells": {
         "L": {

@@ -12,7 +12,6 @@ aliases: ["query string", "bookmark view", "share view", "persist sort and filte
 | --- | --- |
 | Rename the keys, or put two grids on one page | [Keys and prefix](#prefix) |
 | Bound what a link holds | [Behavior](#behavior) |
-| Keep filter values and search text out of the URL | [Choose the synced parts](#choose-the-synced-parts) |
 | Keep the column layout or the page | [Column layout](#column-layout), [Pagination](#pagination) |
 | Restore the spec of a server grid | [Server mode](#server-mode) |
 | Add saved views | [With saved views](#with-saved-views) |
@@ -81,8 +80,8 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
   If your app already renders a `NuqsAdapter` near the root, drop the inner one shown above. `DataGridUrlState` needs one `NuqsAdapter` somewhere above it.
 </Callout>
 
-<Callout type="warn" title="Suspense required for the hooks when statically prerendering">
-  `DataGridUrlState` brings its own `<Suspense>` boundary. `useDataGridUrlPagination` and a direct `useDataGridUrlState()` call run in your component. During a production build, a statically prerendered Next.js page that reads `useSearchParams` from a Client Component needs a `<Suspense>` boundary, or the build fails. Wrap the component that calls the hook in one.
+<Callout type="warn" title="Suspense for the hooks when prerendering">
+  `DataGridUrlState` brings its own `<Suspense>` boundary. A prerendered Next.js page needs one around the component that calls `useDataGridUrlPagination` or `useDataGridUrlState()`.
 </Callout>
 
 ## Keys and prefix [#prefix]
@@ -103,6 +102,7 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 
 - URL params apply to the store once, on mount. A missing param keeps the grid's initial state. After that, the store drives the URL.
 - `useDataGridUrlState()` returns `applyFromUrl()`. Call it when the URL changed outside the grid's own writes, such as back and forward navigation. The grid then mirrors the URL. A param that is missing from the URL clears its sort, filter, or search, and resets its layout part to the starting layout. It reads the params of the current render, so call it after your router has updated them.
+- `specParts` <NewBadge /> lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `specParts={["sort"]}` keeps filter values and search text out of the URL.
 - Every write uses `history: "replace"`, so changes never add browser history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes, so typing does not spam the history.
 - The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column. The grid also drops a layout entry for a removed column, with one warning that counts them.
@@ -112,18 +112,6 @@ A hand-edited URL cannot express an unbounded view. The `filter` param reads at 
 A sort from the URL (`?sort=name:asc`) <NewBadge /> shows its arrow in the header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
 
 The add-on checks every URL value against the live columns: their ids, their visibility, the `sortable` and `filterable` flags, and the `choices`. A spec for a column that is gone never reaches the view.
-
-## Choose the synced parts
-
-<NewBadge />
-
-The `specParts` option picks which of the sort, the filter, and the search text go into the URL. The default is all three. A filter value or a search text can hold personal data, and the URL ends up in the browser history, server logs, and the `Referer` header. To keep only the sort in the URL, list only `"sort"`:
-
-```tsx
-<DataGridUrlState specParts={["sort"]} />
-```
-
-A part that is not listed is neither read from the URL nor written to it. `applyFromUrl()` leaves it alone.
 
 ## Column layout
 
@@ -167,7 +155,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 For a server grid, pass the same result into `useDataGridServerRows` or `useDataGridServerPager`. See [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default: the first of `pageSizeOptions`, 10). A `pageSize` outside `pageSizeOptions` falls back to the default. Without `pageSizeOptions`, the pager list 10, 25, 50, 100 is the gate. The pager clamps an out-of-range `page` to the last page and writes the clamped value to the URL. A grid with no pager keeps the typed `page` in the URL. A change of `pageSize` resets the URL `page` to 1.
+`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default: the first of `pageSizeOptions`, 10). A `pageSize` outside `pageSizeOptions` falls back to the default. Without `pageSizeOptions`, the pager list 10, 25, 50, 100 is the gate. The pager clamps an out-of-range `page` and writes it to the URL. A change of `pageSize` resets the URL `page` to 1.
 
 The grid's own `setPageSize` keeps the first visible row on a page-size change. The URL hook resets to page 1 instead, because a page number is valid only for the size it was chosen at.
 

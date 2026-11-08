@@ -55,16 +55,6 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads pasted labels through a cache that belongs to the `fetchOptions` function.
 
-## Dependent lookups
-
-<NewBadge />
-
-`fetchOptions` receives the row that the user edits. Read it to narrow the options, such as the cities of the country in that row:
-
-```tsx
-fetchOptions: ({ query, row, signal }) => searchCities(query, (row as Order).country, signal),
-```
-
 ## The stored value
 
 A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
@@ -103,6 +93,16 @@ A new request aborts the one before it through `signal`. The editor drops a late
 [Lookup options](/docs/add-options/editing-cells/lookup-options) <NewBadge /> lists every option, the request fields, and the label defaults.
 
 The answer is untrusted. The editor keeps only entries with a non-empty `value` (text or a finite number, stored as text) and a text `label`. It drops a repeated `value`, cuts both at 256 characters, and keeps the first `maxResults`. It renders labels as text.
+
+### Dependent lookups
+
+<NewBadge />
+
+`fetchOptions` receives the row that the user edits. Read it to narrow the options, such as the cities of the country in that row:
+
+```tsx
+fetchOptions: ({ query, row, signal }) => searchCities(query, (row as Order).country, signal),
+```
 
 ## Clipboard, fill, import, and export
 
