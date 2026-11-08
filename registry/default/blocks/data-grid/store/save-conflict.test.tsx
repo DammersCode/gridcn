@@ -172,7 +172,7 @@ describe("resolveSaveConflict", () => {
     expect(m.row("a").name).not.toBe("SERVER");
   });
 
-  it("an unmount aborts a pending resolver and reverts nothing", async () => {
+  it("an unmount aborts a pending resolver, and its late answer throws nothing", async () => {
     const answer = deferred<SaveResolution<Row>>();
     let signal: AbortSignal | undefined;
     const m = mount(() => Promise.resolve(refuse()), {

@@ -52,9 +52,9 @@ const columns = defineColumns<LazyRow>()([
 
 /**
  * 10,000 rows through a TanStack Query cache: `useDataGridServerRows` in scroll mode hands each newly scrolled
- * block to `queryClient.fetchQuery`, which dedupes concurrent windows and keeps every fetched
- * window in the query cache for the session (`staleTime: Infinity`), so scrolling back never
- * refetches. `queryFn` takes the query's own signal, not the request `signal`: a block the hook
+ * block to `queryClient.fetchQuery`, which dedupes concurrent windows. With `staleTime: Infinity`, a cached
+ * window never goes stale; nothing observes it, so the cache drops it after `gcTime` (5 minutes by
+ * default). `queryFn` takes the query's own signal, not the request `signal`: a block the hook
  * aborts still finishes and fills the cache.
  */
 function LazyReactQueryGrid(): ReactNode {

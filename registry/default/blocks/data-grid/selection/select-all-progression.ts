@@ -100,10 +100,13 @@ export function selectAllProgression(
 
   const region = computeDataRegion(active, rowCount, colCount, isEmptyAt);
   if (isRect(region, wholeGrid)) {
-    // dense data: region already covers the grid, so this stays a no-op on repeat presses too —
-    // only re-derive the selection if it isn't already exactly the whole grid.
+    // Dense data: a repeat press is a no-op only while the selection is exactly the whole-grid range; a row or column check drops.
     const alreadyWholeGrid =
-      selection.current !== null && selection.current.rangeStack.length === 0 && isRect(selection.current.range, wholeGrid);
+      selection.current !== null &&
+      selection.current.rangeStack.length === 0 &&
+      selection.rows.length === 0 &&
+      selection.columns.length === 0 &&
+      isRect(selection.current.range, wholeGrid);
     return { selection: alreadyWholeGrid ? selection : selectionForRect(wholeGrid, active), stage: "all" };
   }
   return { selection: selectionForRect(region, active), stage: "region" };

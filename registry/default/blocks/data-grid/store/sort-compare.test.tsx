@@ -278,7 +278,7 @@ describe("select sort order", () => {
 });
 
 describe("select sort cost", () => {
-  it("sorts 100k select rows by label faster than collating the labels per comparison", () => {
+  it("sorts 100k select rows by label within 1.5x the time of collating the labels per comparison", () => {
     const choices = Array.from({ length: 50 }, (_, i) => ({ value: `v${i}`, label: `Label ${(i * 37) % 50}` }));
     const rows = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, fruit: `v${(i * 7919) % 50}`, label: `Label ${(((i * 7919) % 50) * 37) % 50}` }));
     function time(columnId: "fruit" | "label"): number {

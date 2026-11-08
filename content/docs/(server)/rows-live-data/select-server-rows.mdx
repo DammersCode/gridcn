@@ -25,7 +25,7 @@ With `totalRowCount` set:
 
 - A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode and `totalRowCount` turns on `rememberCheckedRows` for you. Pass `keepCheckedRows` too to act only on the checked rows.
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
-- `selectAllMatching()` needs `totalRowCount`, and `rememberCheckedRows` not set to `false`. Without them, it does nothing and warns in development. Without `keepCheckedRows`, the next cell click ends "all matching". With `enableRowSelection={false}`, it does nothing.
+- `selectAllMatching()` needs `totalRowCount`, and `rememberCheckedRows` not set to `false`. Without them, it does nothing and warns in development. Without `keepCheckedRows`, the next plain cell click or header click ends "all matching". With `enableRowSelection={false}`, it does nothing.
 
 ## Read the selection as a value [#read-the-selection-as-a-value]
 
@@ -99,7 +99,8 @@ These end it:
 
 - `clearSelection()`, `setSelection(null)`, and an empty controlled `selection`
 - Escape, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, and the header checkbox turned off
-- A plain cell click without `keepCheckedRows`
+- A plain cell click, an arrow key, a plain header click, or <kbd>Ctrl</kbd>+<kbd>Space</kbd> without `keepCheckedRows`
+- A plain click on a row number, or <kbd>Shift</kbd>+<kbd>Space</kbd>
 - A change of the filter or the search text
 - A row delete: `deleteRows`, `deleteRowsById`, or the context menu Delete item
 - `keepCheckedRows` turned off, or `totalRowCount` removed
@@ -109,7 +110,7 @@ This list covers the common causes, not every path.
 The grid remembers at most 100,000 ids. In `ids` mode, it drops the rows beyond the cap. In `allMatching` mode, more than 100,000 exclusions end "all matching" and uncheck every row, because a dropped exclusion selects more rows. The grid warns once in development. An unloaded row of a scroll-mode source stays checked in `allMatching` mode. You cannot exclude it, because it has no id. `useDataGridHiddenCheckedCount()` is `0` while "all matching" is on.
 
 <Callout type="warn" title="Row operations skip rows that the grid does not hold">
-  While "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
+  With `keepCheckedRows`, while "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
 </Callout>
 
 ## Copy and export loaded rows [#selecting-copying-and-exporting]

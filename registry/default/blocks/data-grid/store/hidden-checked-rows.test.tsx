@@ -83,7 +83,7 @@ describe("keepHiddenCheckedRows", () => {
     expect(m.hiddenIds()).toEqual([]);
   });
 
-  it("rememberCheckedRows false turns the memory off, and the deprecated alias still turns it on", () => {
+  it("rememberCheckedRows false turns the memory off", () => {
     const m = mount({ rememberCheckedRows: false });
     m.check(0, 1);
     m.filterToD();

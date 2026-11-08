@@ -62,6 +62,13 @@ describe("useCellEditor", () => {
     expect(cancel).not.toHaveBeenCalled();
   });
 
+  it("Shift+Enter commits with a down movement, like Enter", () => {
+    const props = makeProps();
+    render(<ProbeEditor {...props} />);
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter", shiftKey: true });
+    expect(props.commit).toHaveBeenCalledWith({ dx: 0, dy: 1 });
+  });
+
   it("garbage input commits the codec's clearValue result (null), never throws", async () => {
     const user = userEvent.setup();
     const { onChange, commit } = makeProps();

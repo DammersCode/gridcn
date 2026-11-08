@@ -1233,8 +1233,8 @@ export type DataGridActions = {
    * operation whose row is gone is skipped silently, and a batch where no operation applies writes and emits
    * nothing. Row-moving operations (insert, delete, move) run the row-operation view bookkeeping - full view
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
-   * records - while an update-only batch keeps the selection and cursor as-is (the rebuild only
-   * re-orders rows under an active sort). Cell errors clear for the written cells, and errors of
+   * records. An update-only batch rebuilds the view only to re-order rows under an active sort, and the
+   * cursor and the checked rows then follow their records. Cell errors clear for the written cells, and errors of
    * removed rows are pruned. No-op on a `readOnly` grid, except for a `source: "stream"` change. A `source: "history"` or `"rollback"` change is a
    * pass-through: the history stack ignores it, so an undo, redo, or rollback applied through this action
    * records no second entry. Column `validate` does NOT run - that is `updateCells`' job; build import

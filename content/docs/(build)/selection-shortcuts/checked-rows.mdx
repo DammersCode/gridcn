@@ -72,7 +72,7 @@ A check or an uncheck reads the checked-row count in the live region, for exampl
 
 ## Keep checked rows [#checked-rows]
 
-By default, a plain cell click or an arrow key clears the checked rows. A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
+By default, a plain cell click, a plain header click, or an arrow key clears the checked rows. A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
 
 Set `keepCheckedRows` to keep the checks across cell selections:
 
@@ -99,7 +99,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-With `keepCheckedRows`, a cell click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checked rows as they are. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+With `keepCheckedRows`, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checked rows as they are. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
 
 Under `keepCheckedRows`, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
 
@@ -150,7 +150,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 A filter or a page change removes the checked rows it hides. Set `rememberCheckedRows` <NewBadge /> to remember them. The option works without `keepCheckedRows`. `keepHiddenCheckedRows` is a deprecated alias, and `rememberCheckedRows` wins when both are set. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
 
-Hidden checked rows stay out of every row operation, the controlled `selection`, and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing. The context menu disables its Delete rows and Duplicate row items.
+Hidden checked rows stay out of the controlled `selection` and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. With `keepCheckedRows`, when every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and their menu items turn off. Without it, they act on the range or the active row.
 
 <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them. Switching to `sortMode="server"` or `filterMode="server"` clears them.
 
@@ -167,8 +167,6 @@ A server grid holds one page, or the loaded part of a source in scroll mode. Set
 Set `rememberCheckedRows` to `false` to turn the memory off. `useDataGridServerRows` sets `totalRowCount` and `keepCheckedRows` in `gridProps`.
 
 `useDataGridSelectedRows()` returns the selection to send to your server: `{ mode: "ids", ids }`, or `{ mode: "allMatching", spec, excludedIds }` after `selectAllMatching()`.
-
-[Select server rows](/docs/rows-live-data/select-server-rows) covers selecting every matching row and sending the selection to your server.
 
 ## Checked row props
 

@@ -19,6 +19,17 @@ describe.each(ALL_MODES)("replace in mode %s", (mode) => {
     for (const id of hidden) expect(grid.cell(id, "name")).toBe(`Name ${id.slice(1)}`);
   });
 
+  it("replace all plans and writes the rows of every page", async () => {
+    const grid = await mountMode(mode);
+    const every = grid.fullViewIds();
+    if (mode === "PC") expect(grid.viewIds().length).toBeLessThan(every.length);
+    const plan = planReplace(grid.state(), "Name", "Item");
+    expect(plan.patches.map((patch) => patch.rowId).sort()).toEqual([...every].sort());
+    grid.act(() => void grid.state().actions.updateCells(plan.patches, { source: "replace", reorder: "defer" }));
+    await grid.settle();
+    for (const id of every) expect(grid.cell(id, "name")).toBe(`Item ${id.slice(1)}`);
+  });
+
   it("a readOnly column is skipped", async () => {
     const grid = await mountMode(mode);
     const readOnlyState = { ...grid.state(), visibleColumns: grid.state().visibleColumns.map((c) => (c.id === "name" ? { ...c, readOnly: true } : c)) };

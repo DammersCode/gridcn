@@ -118,7 +118,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Selection [#selection]
 
-- The header checkbox, the row marker checkboxes, `aria-selected`, and Ctrl+Shift+Space read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
+- The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
 - `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` for an unknown size.
 - `rememberCheckedRows` keeps checked ids that leave `data`. With `totalRowCount`, it defaults to `true`. `keepCheckedRows` does not turn it on. `keepHiddenCheckedRows` is a deprecated alias.
 

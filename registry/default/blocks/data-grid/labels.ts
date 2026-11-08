@@ -541,9 +541,9 @@ export const DEFAULT_LABELS: DataGridLabels = {
 
       edit: "Edit cell",
       typeToReplace: "Type to replace",
-      // "(editor)": these fire only while a cell editor is open (the keymap is ignored during an edit)
+      // The built-in editors handle these keys themselves and ignore the keymap; Shift+Enter commits and moves down.
       commitDown: "Commit and move down (editor)",
-      commitUp: "Commit and move up (editor)",
+      commitUp: "Commit and move down (editor, Shift+Enter)",
       commitRight: "Leave the grid forward (Tab)",
       commitLeft: "Leave the grid backward (Shift+Tab)",
       cancel: "Cancel edit",

@@ -15,7 +15,7 @@ The table lists the default bindings, generated from `DEFAULT_KEYMAP`:
 
 <KeymapTable />
 
-`mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. Copy, cut, and paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, X, V) are native browser clipboard events, not keymap entries. The table lists them for completeness. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) changes any binding.
+`mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. Copy, cut, and paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, X, V) are native browser clipboard events, not keymap entries. The table lists them for completeness. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) changes any binding. The built-in editors handle their keys themselves, so a `keymap` entry for `commitDown`, `commitUp`, `commitRight`, or `commitLeft` changes no editor key. In the `text`, `number`, `url`, and `date` editors, <kbd>Shift</kbd>+<kbd>Enter</kbd> commits and moves down, like <kbd>Enter</kbd>.
 
 ## Move and edit
 
@@ -35,7 +35,7 @@ The in-grid undo and redo bindings work only while focus is inside the grid. [Gl
 
 ## Moving rows [#moving-rows]
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of the selected range, or the active row.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of the main range, or the active row.
 
 They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which defaults to `true`. A read-only grid ignores them. See [Row order](/docs/rows-pages-menus/row-order).
 

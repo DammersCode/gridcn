@@ -370,6 +370,63 @@ describe("remembered checks and a cell click", () => {
   });
 });
 
+describe("header click (selectColumn) and remembered checks", () => {
+  it("with keepCheckedRows a header click keeps the checked rows and all-matching", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectColumn(0));
+    expect(m.checkedViewRows()).toEqual([0, 1, 2]);
+    expect(m.state().allMatching).toBe(true);
+    expect(m.state().selection.columns.hasIndex(0)).toBe(true);
+  });
+
+  it("without keepCheckedRows a header click clears the checks and ends all-matching", () => {
+    const m = mount({ keepCheckedRows: false });
+    m.check(1);
+    m.rerender({ data: PAGE_TWO, keepCheckedRows: false });
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectColumn(0));
+    expect(m.checkedViewRows()).toEqual([]);
+    expect(m.state().allMatching).toBe(false);
+    expect(m.remembered()).toEqual([]);
+  });
+
+  it("without keepCheckedRows a header click releases the remembered ids of other pages", () => {
+    const m = mount({ keepCheckedRows: false });
+    m.check(1);
+    m.rerender({ data: PAGE_TWO, keepCheckedRows: false });
+    expect(m.remembered()).toEqual(["b"]);
+    act(() => m.state().actions.selectColumn(0));
+    expect(m.remembered()).toEqual([]);
+  });
+
+  it("an additive header click keeps the checks without keepCheckedRows", () => {
+    const m = mount({ keepCheckedRows: false });
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectColumn(0, { additive: true }));
+    expect(m.checkedViewRows()).toEqual([0, 1, 2]);
+    expect(m.state().allMatching).toBe(true);
+  });
+});
+
+describe("row number click (selectRow) and all-matching", () => {
+  it("a plain number click checks only that row and ends all-matching", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectRow(1));
+    expect(m.checkedViewRows()).toEqual([1]);
+    expect(m.state().allMatching).toBe(false);
+  });
+
+  it("an additive number click keeps all-matching", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectRow(1, { additive: true }));
+    expect(m.checkedViewRows()).toEqual([0, 2]);
+    expect(m.state().allMatching).toBe(true);
+  });
+});
+
 describe("Ctrl/Cmd+A (selectAll) and remembered checks", () => {
   it("after selectAllMatching, selectAll ends all-matching and reads 0 rows checked", () => {
     const m = mount();
@@ -390,6 +447,16 @@ describe("Ctrl/Cmd+A (selectAll) and remembered checks", () => {
     expect(m.remembered()).toEqual([]);
     m.rerender({ data: PAGE_ONE });
     expect(m.checkedViewRows()).toEqual([]);
+  });
+
+  it("on dense data a check placed over the whole-grid range drops on the next selectAll", () => {
+    const m = mount({ totalRowCount: undefined });
+    act(() => m.state().actions.selectAll());
+    m.check(1);
+    act(() => m.state().actions.selectAll());
+    expect(m.checkedViewRows()).toEqual([]);
+    expect(m.state().selection.current?.range).toEqual({ x: 0, y: 0, width: 1, height: 3 });
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 0 });
   });
 
   it("without any check selectAll stays quiet", () => {

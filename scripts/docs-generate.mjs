@@ -332,7 +332,7 @@ function keyboardShortcuts() {
     frontmatter({ title: "Keyboard shortcuts", description: "Look up the default key of every grid action, and the keymap name that rebinds it.", type: "cheatsheet", icon: "Keyboard", aliases: ["key bindings", "default keys", "shortcut list"] }),
     MARKER,
     "",
-    "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. Outside an edit, `Escape` clears the selection and the checked rows.",
+    "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. The built-in editors handle their keys themselves, so a `keymap` entry for `commitDown`, `commitUp`, `commitRight`, or `commitLeft` changes no editor key. Outside an edit, `Escape` clears the selection and the checked rows.",
     "",
     "On Windows and Linux, `Ctrl+Shift+E` opens DevTools in Firefox and Edge, so rebind `toggleAllRows` there. Some browsers reserve `Ctrl+H` for the history, so rebind `openFindReplace` there.",
     "",

@@ -65,25 +65,26 @@ import {
 } from "@/components/data-grid-server/data-grid-server";
 
 type Person = { id: string; name: string };
+type Block = { rows: Person[]; totalRowCount: number };
 
 export function useCachedPeople() {
   const queryClient = useQueryClient();
   return useDataGridServerRows<Person>({
     mode: "scroll",
-    fetchRows: async ({ spec, start, end }) => ({
-      rows: await queryClient.fetchQuery({
+    fetchRows: ({ spec, start, end }) =>
+      queryClient.fetchQuery({
         queryKey: ["people", serverSpecKey(spec), start, end],
         staleTime: Infinity,
         gcTime: Infinity,
-        queryFn: async ({ signal }): Promise<Person[]> => {
+        queryFn: async ({ signal }): Promise<Block> => {
           const body = JSON.stringify({ spec, start, end });
           const init = { method: "POST", body, signal };
           const response = await fetch("/api/people", init);
-          return (await response.json()).rows;
+          // The server answers { rows, total } for the spec.
+          const answer = await response.json();
+          return { rows: answer.rows, totalRowCount: answer.total };
         },
       }),
-      totalRowCount: 10_000,
-    }),
   });
 }
 ```
@@ -109,21 +110,23 @@ import {
 
 type Person = { id: string; name: string };
 
+type Block = { rows: Person[]; totalRowCount: number };
+
 export function useSwrPeople() {
   return useDataGridServerRows<Person>({
     mode: "scroll",
-    fetchRows: async ({ spec, start, end }) => ({
-      rows: await preload(
+    fetchRows: ({ spec, start, end }) =>
+      preload(
         ["people", serverSpecKey(spec), start, end] as const,
-        async (): Promise<Person[]> => {
+        async (): Promise<Block> => {
           const body = JSON.stringify({ spec, start, end });
           const init = { method: "POST", body };
           const response = await fetch("/api/people", init);
-          return (await response.json()).rows;
+          // The server answers { rows, total } for the spec.
+          const answer = await response.json();
+          return { rows: answer.rows, totalRowCount: answer.total };
         },
       ),
-      totalRowCount: 10_000,
-    }),
   });
 }
 ```

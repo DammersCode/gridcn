@@ -79,6 +79,45 @@ export function validateLine(row: unknown) {
 
 Pass `validateRow={validateLine}`. For an async `refine`, return the promise of `safeParseAsync`.
 
+## Check for duplicate values [#duplicate-values]
+
+<NewBadge />
+
+A column `validate` receives the value and its row, but not the other rows. To refuse a value that another row holds, keep the rows in a ref that `onDataChange` updates:
+
+```tsx
+"use client";
+
+import { useMemo, useRef } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Permit = { id: string; plate: string };
+
+const isTaken = (rows: readonly Permit[], id: string, plate: string) =>
+  rows.some((other) => other.id !== id && other.plate === plate);
+
+export function Permits({ permits }: { permits: Permit[] }) {
+  const rows = useRef<readonly Permit[]>(permits);
+  const columns = useMemo(() => defineColumns<Permit>()([{
+    id: "plate",
+    header: "Plate",
+    accessorKey: "plate",
+    validate: (plate: string, row: Permit) =>
+      isTaken(rows.current, row.id, plate) ? "Plate in use" : null,
+  }]), []);
+  return (
+    <DataGrid
+      defaultData={permits}
+      columns={columns}
+      getRowId={(permit) => permit.id}
+      onDataChange={(next) => (rows.current = next)}
+    />
+  );
+}
+```
+
+The ref holds the rows before the gesture, so two cells of one paste with the same new value both pass.
+
 ## Wait for an async schema [#async-schemas]
 
 A Standard Schema can return a promise, for example for a uniqueness check. The function form is synchronous. The same column definition covers a single edit and every bulk path:

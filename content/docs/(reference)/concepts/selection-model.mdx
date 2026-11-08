@@ -14,7 +14,7 @@ Each grid keeps one selection. The selection has three channels, and each channe
 - The row channel holds whole rows. A marker checkbox, a marker press and drag, and the row keys set it. The grid calls these rows the checked rows.
 - The column channel holds whole columns. A header click and a header drag set it.
 
-A plain header click clears the cell range and the row channel, then selects the column. A plain marker press clears the cell range and the column channel, then selects the row. A Ctrl, Cmd, or Shift click on a header keeps the row channel. The same click on a marker keeps the column channel. With `headerClickBehavior="sort"`, a header click sorts the column and selects nothing. The overlay layer paints the column and row channels as full bands.
+A plain header click clears the cell range and the row channel, then selects the column. With `keepCheckedRows`, it keeps the row channel. A plain marker press clears the cell range and the column channel, then selects the row. A Ctrl, Cmd, or Shift click on a header keeps the row channel. The same click on a marker keeps the column channel. With `headerClickBehavior="sort"`, a header click sorts the column and selects nothing. The overlay layer paints the column and row channels as full bands.
 
 A view index is a position in the current sorted and filtered order. A selection holds view indexes. When the view changes, the grid translates them to row ids and column ids.
 

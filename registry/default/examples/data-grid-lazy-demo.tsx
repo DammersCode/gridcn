@@ -39,7 +39,7 @@ const columns = defineColumns<LazyRow>()([
 /**
  * Stand-in for a real backend: resolves `[start, end)` after a fixed delay, no persistence beyond
  * `rowAt`'s deterministic formula. `failNextRange` fails the very next call only (transient);
- * `failPermanently` fails every call until `fixBackend` is called (permanent, e.g. an expired
+ * `setFailPermanently(true)` fails every call until `setFailPermanently(false)` (permanent, e.g. an expired
  * token) — the two buttons in the demo show both failure shapes hit the exact same revert/retry
  * path in `useDataGridServerRows`, since it can't distinguish "will work next time" from "won't".
  */

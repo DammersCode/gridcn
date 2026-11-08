@@ -1447,9 +1447,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const unchanged = next.rows.equals(selection.rows);
         const rows = unchanged ? selection.rows : next.rows;
         const written = unchanged && next.columns.equals(selection.columns) && next.current === selection.current ? selection : { ...next, rows };
+        // A plain number click checks only this row, so it cannot leave every unloaded row selected.
+        const endsAllMatching = s.allMatching && !additive && !extendFromLast;
         set({
           selection: written,
           ...checkedChange(s, written),
+          ...(endsAllMatching ? NO_REMEMBERED_ROWS : {}),
           lastHighlightedRow: index,
           rowRangeGesture: extendFromLast
             ? null
@@ -1481,19 +1484,23 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         set({ selection: nextSelection, ...checkedChange(s, nextSelection), rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
-        const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = get();
+        const s = get();
+        const { lastHighlightedCol, selection, enableColumnSelection, enableMultiRange, enableRangeSelection } = s;
         if (!enableColumnSelection) return;
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
-        const next = selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined });
+        const picked = selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined });
+        const next = s.keepCheckedRows ? { ...picked, rows: selection.rows } : picked;
+        const released = additive || extendFromLast ? {} : releaseRemembered(s);
         if (
           next.columns.equals(selection.columns) &&
           next.rows.equals(selection.rows) &&
           next.current === selection.current &&
-          lastHighlightedCol === index
+          lastHighlightedCol === index &&
+          !("allMatching" in released)
         )
           return;
-        set({ selection: next, lastHighlightedCol: index });
+        set({ selection: next, lastHighlightedCol: index, ...released });
       },
       selectAll() {
         const s = get();

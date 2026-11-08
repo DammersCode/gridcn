@@ -58,7 +58,7 @@ describe("replaceRowId", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it("keeps the active cell, the selection and the open edit on the swapped row", () => {
+  it("keeps the active cell and the open edit on the swapped row", () => {
     const m = mount();
     act(() => m.state().actions.selectCell({ rowId: "tmp-1", columnId: "note" }));
     act(() => m.state().actions.startEditing({ rowId: "tmp-1", columnId: "note" }));

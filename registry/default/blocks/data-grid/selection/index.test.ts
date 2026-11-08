@@ -550,6 +550,16 @@ describe("selectAllProgression", () => {
     expect(stage).toBe("all");
   });
 
+  it("dense data: a repeat press over the whole-grid range drops a checked row and a selected column", () => {
+    const { selection: all } = selectAllProgression(selectCell({ col: 4, row: 4 }), 10, 20, { col: 4, row: 4 }, denseIsEmpty, null);
+    const checked = { ...all, rows: CompactSelection.fromSingleSelection(2), columns: CompactSelection.fromSingleSelection(3) };
+    const { selection: again, stage } = selectAllProgression(checked, 10, 20, { col: 4, row: 4 }, denseIsEmpty, null);
+    expect(again.current?.range).toEqual({ x: 0, y: 0, width: 20, height: 10 });
+    expect(again.rows.length).toBe(0);
+    expect(again.columns.length).toBe(0);
+    expect(stage).toBe("all");
+  });
+
   it("dense data: with no current selection, selects the whole grid from the given anchor", () => {
     const { selection: all } = selectAllProgression(emptySelection(), 5, 5, { col: 0, row: 0 }, denseIsEmpty, null);
     expect(all.current?.cell).toEqual({ col: 0, row: 0 });

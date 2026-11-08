@@ -89,7 +89,7 @@ describe("gate tracker", () => {
     expect(published).toHaveLength(2);
   });
 
-  it("creates the controller on the first signal read, aborted when the run was already cancelled", () => {
+  it("reads an aborted signal when the run was already cancelled", () => {
     const { gates } = tracker();
     const run = gates.begin("validateRow");
     run.cancel();
