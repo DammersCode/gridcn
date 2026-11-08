@@ -27,10 +27,10 @@ vi.mock("./parse-import-file", async (importOriginal) => {
   return {
     ...actual,
     DEFAULT_IMPORT_LIMITS: { ...actual.DEFAULT_IMPORT_LIMITS, maxFileBytes: limit },
-    parseImportFile: (file: File, options?: Parameters<typeof actual.parseImportFile>[1], signal?: AbortSignal) =>
+    parseImportFile: (file: File, options?: Parameters<typeof actual.parseImportFile>[1]) =>
       file.size > limit
         ? Promise.reject(new Error("file-too-large"))
-        : actual.parseImportFile(file, options, signal),
+        : actual.parseImportFile(file, options),
   };
 });
 

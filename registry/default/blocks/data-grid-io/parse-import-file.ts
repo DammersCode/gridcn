@@ -612,8 +612,9 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
   if (signal?.aborted) throw abortError();
   const isXlsx = hasSignature(bytes, ZIP_SIGNATURE);
   if (!isXlsx && !hasSignature(bytes, OLE2_SIGNATURE)) throw new Error(UNSUPPORTED_EXCEL_FORMAT_MESSAGE);
-  const parseLimits = isXlsx ? { ...limits, maxDecompressedBytes: partCap(limits) } : limits;
-  if (isXlsx) assertEntriesWithin(bytes, parseLimits.maxDecompressedBytes);
+  const partBytes = partCap(limits);
+  const parseLimits = isXlsx ? { ...limits, maxDecompressedBytes: partBytes } : limits;
+  if (isXlsx) assertEntriesWithin(bytes, partBytes);
   const hucre = await import("./xlsx-reader");
   try {
     return await (isXlsx ? readXlsxSheet : readXlsSheet)(bytes, sheetName, parseLimits, hucre);
