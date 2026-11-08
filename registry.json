@@ -96,6 +96,11 @@
                "target": "components/data-grid/cell-types/safe-text.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/cell-types/safe-from-text.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/safe-from-text.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/cell-types/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/index.ts"

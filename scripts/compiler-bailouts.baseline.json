@@ -59,11 +59,6 @@
       "Refs: Cannot access refs during render"
     ]
   },
-  "registry/default/blocks/dropzone/dropzone.tsx": {
-    "Dropzone": [
-      "Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement"
-    ]
-  },
   "registry/default/blocks/data-grid/columns/use-column-reorder.ts": {
     "useColumnReorder": [
       "Refs: Cannot access refs during render"

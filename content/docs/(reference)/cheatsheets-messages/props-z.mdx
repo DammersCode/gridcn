@@ -57,8 +57,8 @@ Props of DataGrid, DataGridProvider.
 | `page` | The current page, 1-based. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `pageSize` | Shows `pageSize` rows of the sorted and filtered view at a time. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `plugins` | Installs plugins: overlay layers, row bands, data-change observers, commands, keymap bindings, and root mounts. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `processCellForClipboard` | Overrides a cell's clipboard-copy text. `ctx.text` holds the cell type's `toText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `processCellFromClipboard` | Overrides parsing pasted text into a cell value. `ctx.fromText` holds the column's own parser. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `processCellForClipboard` | Overrides a cell's clipboard-copy text. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `processCellFromClipboard` | Overrides parsing pasted text into a cell value. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `readOnly` | Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: "stream"` push still writes. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
