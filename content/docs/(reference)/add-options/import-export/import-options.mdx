@@ -47,9 +47,9 @@ The user can change every default in the open dialog.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/parse-import-file.ts" name="ImportLimits" />
 
-`maxFileBytes` defaults to 50 MiB, which is `50 * 1024 * 1024` bytes. `maxDecompressedBytes` defaults to 256 MiB.
+`maxFileBytes` defaults to 50 MiB, which is `50 * 1024 * 1024` bytes.
 
-An XLSX part has a cap of `min(maxDecompressedBytes, maxCells * 10 + 1 MiB)` bytes after unpacking.
+An XLSX part has a cap of `maxDecompressedBytes` bytes after unpacking. <NewBadge /> Without `maxDecompressedBytes`, the cap is `maxCells * 10 + 1 MiB`.
 
 ## DataGridImportButtonProps [#datagridimportbuttonprops]
 

@@ -19,14 +19,12 @@ export const DEFAULT_IMPORT_LIMITS = {
   maxColumns: 1_000,
   /** Maximum cells, counted as rows times columns of the imported rectangle; default 5,000,000. */
   maxCells: 5_000_000,
-  /** Maximum unpacked size of one xlsx part (a worksheet, the shared strings); default 256 MiB, and no more than `maxCells` times 10 bytes plus 1 MiB. */
-  maxDecompressedBytes: 256 * 1024 * 1024,
 } as const;
 
 /** Error message {@link parseImportFile} throws for a file over `maxFileBytes`. */
 export const FILE_TOO_LARGE_MESSAGE = "file-too-large";
 
-/** Error message {@link parseImportFile} throws when one part of an xlsx file (a worksheet, the shared strings) unpacks to more than the part cap, a lower `maxDecompressedBytes` or `maxCells` times 10 bytes plus 1 MiB. */
+/** Error message {@link parseImportFile} throws when one part of an xlsx file (a worksheet, the shared strings) unpacks to more than the part cap, `maxDecompressedBytes`, or `maxCells` times 10 bytes plus 1 MiB without it. */
 export const PART_TOO_LARGE_MESSAGE = "part-too-large";
 
 /** Error message {@link parseImportFile} throws when the grid exceeds `maxRows`, `maxColumns`, or `maxCells`. */
@@ -45,7 +43,7 @@ export type ImportLimits = {
   maxColumns?: number;
   /** Maximum rows times columns of the imported rectangle; default 5,000,000. */
   maxCells?: number;
-  /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default 256 MiB, and no more than `maxCells` times 10 bytes plus 1 MiB. Stops zip bombs. */
+  /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default `maxCells` times 10 bytes plus 1 MiB. Stops zip bombs. */
   maxDecompressedBytes?: number;
 };
 
@@ -89,7 +87,7 @@ async function readCsvText(file: File, csvEncoding: string | undefined): Promise
 }
 
 type GridLimits = Required<Pick<ImportLimits, "maxRows" | "maxColumns" | "maxCells">>;
-type ExcelLimits = GridLimits & Required<Pick<ImportLimits, "maxDecompressedBytes">>;
+type ExcelLimits = GridLimits & Pick<ImportLimits, "maxDecompressedBytes">;
 
 /** Throws the too-many-cells error when a `rows` by `columns` rectangle breaks any cap. */
 function assertWithinLimits(rows: number, columns: number, limits: GridLimits): void {
@@ -215,9 +213,14 @@ const UNREADABLE_ZIP_MESSAGE = "unreadable-zip";
 
 const ZIP64_SENTINEL = 0xffffffff;
 
-/** The largest unpacked size any one part of an xlsx may have: bounds the cells a part can hold. */
+/** The part cap that applies without `maxDecompressedBytes`: `maxCells` times 10 bytes plus 1 MiB. */
+export function defaultPartCap(maxCells: number): number {
+  return maxCells * SMALLEST_CELL_XML_BYTES + PART_OVERHEAD_BYTES;
+}
+
+/** The largest unpacked size any one part of an xlsx may have: an explicit `maxDecompressedBytes`, else {@link defaultPartCap}. */
 function partCap(limits: ExcelLimits): number {
-  return Math.min(limits.maxDecompressedBytes, limits.maxCells * SMALLEST_CELL_XML_BYTES + PART_OVERHEAD_BYTES);
+  return limits.maxDecompressedBytes ?? defaultPartCap(limits.maxCells);
 }
 
 /**
@@ -634,8 +637,7 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
   // before any file read: file.size is synchronous, so the DoS check costs nothing
   if (file.size > maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
   if (isExcelFile(file)) {
-    const maxDecompressedBytes = options.maxDecompressedBytes ?? DEFAULT_IMPORT_LIMITS.maxDecompressedBytes;
-    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
+    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes: options.maxDecompressedBytes }, signal);
   }
   if (isCsvFile(file)) {
     const text = await readCsvText(file, options.csvEncoding);

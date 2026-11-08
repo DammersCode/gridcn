@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** an explicit `importLimits.maxDecompressedBytes` is the XLSX part cap as given. Without it, the cap stays `maxCells` times 10 bytes plus 1 MiB. Before, the lower of `maxDecompressedBytes` and that value applied, so a higher `maxDecompressedBytes` had no effect and a text-heavy sheet needed a higher `maxCells`. `DEFAULT_IMPORT_LIMITS` no longer has `maxDecompressedBytes`.
 - `processCellForClipboard` gets `ctx.text` (the cell type's copy text), and `processCellFromClipboard` and the import `processCellFromText` get `ctx.fromText` (the column's own parser). Return them for the cells you do not change: `(value, { column, text }) => (column.id === "price" ? "$" + value : text)`. The new `ClipboardCopyCtx` and `ClipboardPasteCtx` types describe the contexts.
 - Fix: a cell type whose `fromText` throws no longer aborts a paste, a fill, an import, or a replace. The grid rejects that cell: paste and fill leave it unchanged and report it through `onValidationError`, import lists it in `rejected`, and replace skips it. A development build warns once per cell type.
 - The `fetchOptions` request of the lookup cell carries the edited `row`, its `rowId`, and the `columnId`, so a dependent lookup (a city list for the country of the row) reads the row without a ref fed from `onEditStart`. Pasted labels still resolve through the label cache, which has no row.

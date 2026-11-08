@@ -124,6 +124,11 @@ describe("parseImportFile — hostile xlsx", () => {
       await expect(parseImportFile(await xlsxWithWorksheet(sheet, MIB), SMALL)).resolves.toMatchObject({ rows: [["a"]] });
     });
 
+    it("lets an explicit maxDecompressedBytes raise the cap above the cell bound", async () => {
+      await expect(parseImportFile(await xlsxWithWorksheet(sheet, 8 * MIB), SMALL)).rejects.toThrow("part-too-large");
+      await expect(parseImportFile(await xlsxWithWorksheet(sheet, 8 * MIB), { ...SMALL, maxDecompressedBytes: 16 * MIB })).resolves.toMatchObject({ rows: [["a"]] });
+    });
+
     it("lets maxDecompressedBytes lower the cap below the cell bound", async () => {
       await expect(parseImportFile(await xlsxWithWorksheet(sheet, 2 * MIB), { maxDecompressedBytes: MIB })).rejects.toThrow("part-too-large");
     });

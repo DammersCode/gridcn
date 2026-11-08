@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_IMPORT_LIMITS,
+  defaultPartCap,
   FILE_TOO_LARGE_MESSAGE,
   IMPORT_TOO_MANY_CELLS_MESSAGE,
   PART_TOO_LARGE_MESSAGE,
@@ -235,7 +236,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
       maxRows: maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
       maxColumns: maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
       maxCells: maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-      maxDecompressedBytes: maxDecompressedBytes ?? DEFAULT_IMPORT_LIMITS.maxDecompressedBytes,
+      maxDecompressedBytes: maxDecompressedBytes ?? defaultPartCap(maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells),
     }),
     [maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes],
   );
