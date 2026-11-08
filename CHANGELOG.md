@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** the export option `workbookName` is `sheetName`, like the import option. Before: `exportGrid(state, { format: "xlsx", workbookName: "Orders" })`. After: `exportGrid(state, { format: "xlsx", sheetName: "Orders" })`.
 - **Breaking:** `parseImportFile(file, options)` takes `signal` in its options. Before: `parseImportFile(file, options, signal)`. After: `parseImportFile(file, { ...options, signal })`.
 - **Breaking:** an explicit `importLimits.maxDecompressedBytes` is the XLSX part cap as given. Without it, the cap stays `maxCells` times 10 bytes plus 1 MiB. Before, the lower of `maxDecompressedBytes` and that value applied, so a higher `maxDecompressedBytes` had no effect and a text-heavy sheet needed a higher `maxCells`. `DEFAULT_IMPORT_LIMITS` no longer has `maxDecompressedBytes`.
 - `processCellForClipboard` gets `ctx.text` (the cell type's copy text), and `processCellFromClipboard` and the import `processCellFromText` get `ctx.fromText` (the column's own parser). Return them for the cells you do not change: `(value, { column, text }) => (column.id === "price" ? "$" + value : text)`. The new `ClipboardCopyCtx` and `ClipboardPasteCtx` types describe the contexts.

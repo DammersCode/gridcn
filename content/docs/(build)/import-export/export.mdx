@@ -93,7 +93,7 @@ A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a l
 
 An XLSX file holds one compressed sheet. Every cell is a text cell with its `toText` string, so Excel shows a number column as text. A string never runs as a formula there. To write number, boolean, or date cells, return those values from [`formatCell`](/docs/import-export/shape-export-file#result).
 
-`workbookName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
+`sheetName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
 
 - an empty name or a name over 31 characters
 - a name with `[`, `]`, `:`, `*`, `?`, `/`, or `\`

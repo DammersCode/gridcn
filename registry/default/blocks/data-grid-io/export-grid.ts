@@ -89,7 +89,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
   /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
-  workbookName?: string;
+  sheetName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
   maxRows?: number;
   /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
@@ -209,7 +209,7 @@ export type BuildXlsxOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
-  workbookName?: string;
+  sheetName?: string;
   /** Same row cap as {@link ExportGridOptions.maxRows}. */
   maxRows?: number;
 };
@@ -230,10 +230,10 @@ async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
  * returns a number, boolean or Date, which land typed; hucre loads lazily.
  */
 export async function buildXlsx<TData = unknown>(state: DataGridReadState, options: BuildXlsxOptions<TData> = {}): Promise<Blob> {
-  const { scope = "view", includeHeaders = true, workbookName = "Sheet1", maxRows } = options;
+  const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows } = options;
   const rows = buildCappedExportRows(state, scope, maxRows, options, true);
   const table = includeHeaders ? [buildExportHeaders(state, options.columns), ...rows] : rows;
-  return writeSheet(workbookName, table.map((row) => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell))));
+  return writeSheet(sheetName, table.map((row) => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell))));
 }
 
 /**
@@ -276,9 +276,9 @@ async function deliver(blob: Blob, format: "csv" | "xlsx", { fileName, output, s
 
 /** Exports the rows `source` returns; CSV is written batch by batch, XLSX collects the rows first. */
 async function exportFromSource<TData>(state: DataGridReadState, source: ExportSource, options: ExportGridOptions<TData>, delivery: ExportDelivery): Promise<ExportResult> {
-  const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, workbookName = "Sheet1", onProgress } = options;
+  const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, sheetName = "Sheet1", onProgress } = options;
   const xlsx = format === "xlsx";
-  if (xlsx && !isValidSheetName(workbookName)) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${workbookName}`);
+  if (xlsx && !isValidSheetName(sheetName)) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${sheetName}`);
   const headers = buildExportHeaders(state, options.columns).map(cutCell);
   const requested = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
   const maxRows = xlsx ? Math.min(requested, XLSX_MAX_ROWS - (includeHeaders ? 1 : 0), Math.floor(XLSX_MAX_CELLS / Math.max(headers.length, 1))) : requested;
@@ -320,7 +320,7 @@ async function exportFromSource<TData>(state: DataGridReadState, source: ExportS
     }
     return size;
   });
-  await deliver(await writeSheet(workbookName, table), "xlsx", delivery);
+  await deliver(await writeSheet(sheetName, table), "xlsx", delivery);
   return result;
 }
 

@@ -449,13 +449,13 @@ describe("exportGrid — xlsx builds the table once", () => {
 });
 
 describe("buildXlsx", () => {
-  it("resolves with an xlsx Blob whose single sheet is named per workbookName, defaulting to 'Sheet1'", async () => {
+  it("resolves with an xlsx Blob whose single sheet is named per sheetName, defaulting to 'Sheet1'", async () => {
     const blob = await buildXlsx(makeState());
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe(XLSX_TYPE);
     await expect(parseImportFile(new File([blob], "export.xlsx"))).resolves.toMatchObject({ sheetNames: ["Sheet1"] });
 
-    const named = await buildXlsx(makeState(), { workbookName: "Q3 Data" });
+    const named = await buildXlsx(makeState(), { sheetName: "Q3 Data" });
     await expect(parseImportFile(new File([named], "export.xlsx"))).resolves.toMatchObject({ sheetNames: ["Q3 Data"] });
   });
 
@@ -481,9 +481,9 @@ describe("buildXlsx", () => {
     expect(parsed.rows[1]![1]).toBe("short");
   });
 
-  it("rejects a workbookName that Excel does not accept as a sheet name", async () => {
-    await expect(buildXlsx(makeState(), { workbookName: "Q3/Q4" })).rejects.toThrow();
-    await expect(buildXlsx(makeState(), { workbookName: "x".repeat(32) })).rejects.toThrow();
+  it("rejects a sheetName that Excel does not accept as a sheet name", async () => {
+    await expect(buildXlsx(makeState(), { sheetName: "Q3/Q4" })).rejects.toThrow();
+    await expect(buildXlsx(makeState(), { sheetName: "x".repeat(32) })).rejects.toThrow();
   });
 
   it("compresses every part of the workbook", async () => {

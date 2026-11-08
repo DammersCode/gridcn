@@ -70,7 +70,7 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 - A CSV cell that looks like a formula gets the same quote prefix as in a loaded export.
 - A CSV or xlsx export holds the rows in memory until the source ends. The browser then builds one file and downloads it. Memory grows with the file size.
 - For a very large result, set `maxRows` and `maxBytes` to what the memory of your users' devices can hold. The defaults stop at 1,000,000 rows or 256 MiB of file text, whichever comes first. To export more, raise both together: 2,000,000 rows of 150 bytes make about 300 MB, which is above the default `maxBytes`. Past the memory of a browser, export on the server and link to the file.
-- An invalid `workbookName` rejects before the source runs.
+- An invalid `sheetName` rejects before the source runs.
 
 ## Related
 

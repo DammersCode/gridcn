@@ -172,7 +172,7 @@ describe("exportGrid with a source", () => {
     captureDownload();
     const source = vi.fn((_ctx: { spec: ServerSpec; signal: AbortSignal }) => [row("a")]);
     for (const name of ["a/b", "", "'quoted", "history"]) {
-      await expect(exportGrid(makeState(), { format: "xlsx", workbookName: name, source })).rejects.toThrow("sheet name");
+      await expect(exportGrid(makeState(), { format: "xlsx", sheetName: name, source })).rejects.toThrow("sheet name");
     }
     expect(source).not.toHaveBeenCalled();
   });
