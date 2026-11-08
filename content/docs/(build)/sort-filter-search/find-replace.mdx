@@ -146,7 +146,7 @@ With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> with focus in 
 
 Find and Replace <NewBadge /> work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText` and let your server evaluate it.
 
-A grid with a `totalRowCount` <NewBadge />, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. Pass `showScope: true` to show it there, or `showScope: false` to hide it.
+A grid with a `totalRowCount` <NewBadge />, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. To hide the note, set `labels.findReplace.scopeLoadedRows` to `""`.
 
 Replace writes through the same path as an edit. `onDataChange` and `onSave` receive each Replace as one change with the source `"replace"`. A refused save reverts the refused cells. See [Save edits](/docs/save-server/save-edits).
 
@@ -158,7 +158,6 @@ Replace writes through the same path as an edit. `onDataChange` and `onSave` rec
 |---|---|---|---|
 | `scope` | `"view" \| "selection"` | `"view"` | Which cells Replace covers. |
 | `replaceAllLimit` | `number` | `10000` | Most cells one Replace all changes. Clamped to 1 to 100,000. |
-| `showScope` <NewBadge /> | `boolean` | by grid | Shows or hides the "Searches loaded rows only" note. Default: shown for a grid with a `totalRowCount` or a server `sortMode` or `filterMode`. |
 | `onReplace` <NewBadge /> | `({ plan, signal }) => plan \| false \| Promise` | none | Checks or changes the plan before it writes. `false` cancels. |
 
 ### planReplace

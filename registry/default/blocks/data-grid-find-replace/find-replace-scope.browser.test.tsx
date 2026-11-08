@@ -1,7 +1,7 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns, type DeepPartialLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFindReplace, type UseDataGridFindReplaceOptions } from "./use-data-grid-find-replace";
 import "@/app/global.css";
 
@@ -10,7 +10,7 @@ type Row = { id: string; name: string };
 const rows: Row[] = Array.from({ length: 10 }, (_, i) => ({ id: `r${i}`, name: `item ${i}` }));
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ grid = {}, ...options }: UseDataGridFindReplaceOptions & { grid?: { totalRowCount?: number | null; sortMode?: "server" } }) {
+function Harness({ grid = {}, ...options }: UseDataGridFindReplaceOptions & { grid?: { totalRowCount?: number | null; sortMode?: "server"; labels?: DeepPartialLabels } }) {
   const findReplace = useDataGridFindReplace(options);
   return (
     <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} {...grid}>
@@ -48,13 +48,11 @@ describe("find and replace scope note", () => {
     expect(find.getAttribute("aria-describedby")).toBe(note.element().id);
   });
 
-  it("showScope forces it on for a local grid and off for a counted grid", async () => {
-    const forced = await render(<Harness showScope />);
+  it("an empty labels.findReplace.scopeLoadedRows hides it", async () => {
+    await render(<Harness grid={{ totalRowCount: 100, labels: { findReplace: { scopeLoadedRows: "" } } }} />);
     await open();
-    await expect.element(page.getByText("Searches loaded rows only")).toBeInTheDocument();
-    await forced.unmount();
-    await render(<Harness showScope={false} grid={{ totalRowCount: 100 }} />);
-    await open();
+    await expect.element(page.getByRole("textbox", { name: "Find" })).toBeInTheDocument();
     await expect.element(page.getByText("Searches loaded rows only")).not.toBeInTheDocument();
   });
+
 });

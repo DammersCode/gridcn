@@ -56,7 +56,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, showScope?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:

@@ -12,7 +12,6 @@ aliases: ["replace all", "replace in cells"]
 | --- | --- | --- |
 | `scope` | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `replaceAllLimit` | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `showScope` <NewBadge /> | Shows or hides the "Searches loaded rows only" note | [Find and replace](/docs/sort-filter-search/find-replace#server-mode) |
 | `onReplace` <NewBadge /> | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
 | `open` | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `close` | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
@@ -41,12 +40,6 @@ export function PeopleGrid() {
 ```
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace.tsx" name="UseDataGridFindReplaceOptions" />
-
-### showScope [#showscope]
-
-<NewBadge />
-
-The note shows by default for a grid with a `totalRowCount` or a server `sortMode` or `filterMode`. `true` shows it on any grid. `false` hides it.
 
 ### onReplace [#onreplace]
 

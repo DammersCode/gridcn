@@ -50,9 +50,8 @@ export type PanelStore = {
   close(): void;
 };
 
-/** Replace options plus the panel's own: `showScope` forces the loaded-rows note on or off; unset it shows when the result can exceed the loaded rows. */
+/** Replace options plus the panel's own. */
 export type PanelOptions = ReplaceOptions & {
-  showScope?: boolean;
   onReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
 };
 
@@ -106,7 +105,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
   const resultExceedsLoaded = useDataGridSelector<unknown, boolean>((state) => state.totalRowCount !== undefined || state.sortMode === "server" || state.filterMode === "server");
-  const showScope = panelStore.getOptions().showScope ?? resultExceedsLoaded;
+  const showScope = resultExceedsLoaded && labels.scopeLoadedRows !== "";
   const scopeId = useId();
 
   const delayMs = useDataGridInputDebounce();
