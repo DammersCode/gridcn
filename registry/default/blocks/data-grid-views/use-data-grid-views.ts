@@ -32,13 +32,11 @@ import { createLocalStorageViewsStorage, type DataGridViewsStorage } from "./vie
 /** Options for {@link useDataGridViews}. */
 export type UseDataGridViewsOptions = {
   /**
-   * Where views persist. Default: `localStorage` under `storageKey`. The first load reads it once;
-   * a new `storageKey` loads again. Remount the grid with a new `key` to switch to another
-   * `storage` object, for example another user's.
+   * Where views persist. A string is the `localStorage` key of the built-in storage (default
+   * `"gridcn-views"`); a new key loads again. An object is your own storage: remount the grid with
+   * a new `key` to switch to another one, for example another user's. The first load reads it once.
    */
-  storage?: DataGridViewsStorage;
-  /** `localStorage` key of the default storage; ignored when `storage` is set. Default `"gridcn-views"`. */
-  storageKey?: string;
+  storage?: string | DataGridViewsStorage;
   /** Id of the active view. Controlled: the hook opens a view when this changes, and picks only call `onValueChange`. */
   value?: string | null;
   /** First active view id when `value` is not set. */
@@ -110,9 +108,10 @@ function createViewId(): string {
  * that differ, so controlled `sortState` and `filterState` receive their change callbacks.
  */
 export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseDataGridViewsResult {
-  const { storageKey, value, defaultValue, onValueChange, enableDefaultView = true, onError } = options;
+  const { value, defaultValue, onValueChange, enableDefaultView = true, onError } = options;
+  const storageKey = typeof options.storage === "string" ? options.storage : undefined;
   const defaultStorage = useMemo(() => createLocalStorageViewsStorage(storageKey), [storageKey]);
-  const storage = options.storage ?? defaultStorage;
+  const storage = typeof options.storage === "object" ? options.storage : defaultStorage;
 
   const storeApi = useDataGridStoreApi();
   const actions = useDataGridActions();

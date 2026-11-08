@@ -69,7 +69,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
-| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage`, `storageKey`, `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
+| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
 | Pagination | `defaultPageSize` on the provider + `DataGridPaginationBar` (client; `useDataGridPager()` returns `{ pager }` for your own controls); `useDataGridServerPager` + `DataGridPaginationBar {...pager}` (server) | the bar reads the pager from the provider when you spread nothing; spread `pager` and it works outside the provider too |

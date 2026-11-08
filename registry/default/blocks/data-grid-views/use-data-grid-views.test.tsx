@@ -383,7 +383,7 @@ describe("useDataGridViews", () => {
 
   it("default storage reads and writes localStorage", async () => {
     localStorage.setItem("views-test", JSON.stringify(seeded()));
-    const { probe } = setup({ storageKey: "views-test" });
+    const { probe } = setup({ storage: "views-test" });
     await ready(probe);
     expect(probe.current!.views.views).toHaveLength(2);
     act(() => void probe.current!.views.deleteView("a"));
@@ -465,7 +465,7 @@ describe("useDataGridViews", () => {
     const probe: { current: Probe | null } = { current: null };
     const tree = (storageKey: string) => (
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-        <Harness options={{ storageKey }} onProbe={(p) => (probe.current = p)} />
+        <Harness options={{ storage: storageKey }} onProbe={(p) => (probe.current = p)} />
       </DataGridProvider>
     );
     const view = render(tree("key-a"));
@@ -546,7 +546,7 @@ describe("useDataGridViews", () => {
     const probe: { current: Probe | null } = { current: null };
     const tree = (storageKey: string) => (
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-        <Harness options={{ storageKey }} onProbe={(p) => (probe.current = p)} />
+        <Harness options={{ storage: storageKey }} onProbe={(p) => (probe.current = p)} />
       </DataGridProvider>
     );
     const view = render(tree("key-c"));
