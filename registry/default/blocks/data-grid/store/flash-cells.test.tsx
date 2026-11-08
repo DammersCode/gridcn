@@ -58,7 +58,7 @@ describe("flashCells (transient write-pulse)", () => {
 
     // sorting by name moves Charlie (id "1") from view row 0 to view row 2
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     expect(result.current.row0.flashingCols).toBeNull();
     expect(result.current.row2.flashingCols?.has(0)).toBe(true);

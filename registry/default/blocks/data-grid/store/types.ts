@@ -1085,7 +1085,8 @@ export type DataGridActions = {
    * `onColumnLayoutChange` once only when the layout actually changed.
    */
   setColumnLayout(parts: Partial<ColumnLayout>): void;
-  toggleSort(columnId: string, additive: boolean): void;
+  /** Steps the column to its next sort direction, or to no sort. `{ additive: true }` keeps the other sorts, as a Shift-click on the header does. */
+  toggleSort(columnId: string, options?: { additive?: boolean }): void;
   setSorts(sorts: SortSpec[]): void;
   setFilters(filters: FilterNode[]): void;
   /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */

@@ -32,7 +32,7 @@ describe("consumer callbacks of the view actions", () => {
   it("onSortChange sees the written sort in uncontrolled mode", () => {
     let seen: unknown = null;
     const state = mount({ onSortChange: () => (seen = state().sortState) });
-    act(() => state().actions.toggleSort("n", false));
+    act(() => state().actions.toggleSort("n"));
     expect(seen).toEqual([{ columnId: "n", direction: "asc" }]);
     act(() => state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
     expect(seen).toEqual([{ columnId: "n", direction: "desc" }]);
@@ -48,7 +48,7 @@ describe("consumer callbacks of the view actions", () => {
   it("controlled sort calls onSortChange once with the next value and writes nothing", () => {
     const onSortChange = vi.fn();
     const state = mount({ sortState: [], onSortChange });
-    act(() => state().actions.toggleSort("n", false));
+    act(() => state().actions.toggleSort("n"));
     expect(onSortChange.mock.calls).toEqual([[[{ columnId: "n", direction: "asc" }]]]);
     expect(state().sortState).toEqual([]);
   });

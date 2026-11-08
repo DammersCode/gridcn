@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `toggleSort(columnId, { additive } = {})` takes an options object. Before: `toggleSort(id, false)` and `toggleSort(id, true)`. After: `toggleSort(id)` and `toggleSort(id, { additive: true })`.
 - `pageSize` and `defaultPageSize` accept `null` (every row), and `onPageSizeChange` receives `number | null`. Before, `setPageSize(null)` did nothing while `pageSize` was controlled and fired no callback. A handler typed `(pageSize: number) => void` widens to `number | null`. `useDataGridUrlPagination` maps `null` to `defaultPageSize`.
 - `DataGridSortIndicator` reads the grid's sort when `sortState` is omitted, so `<DataGridSortIndicator columnId="score" />` works inside a node header with no wrapper component. The rank number uses `text-[0.625rem]` instead of `text-[10px]`.
 - `renderCell` receives `options` (the column `options`) like a cell type's `Cell`. Before, `options` was `undefined` and the column `options` had to be read from `column.options`.

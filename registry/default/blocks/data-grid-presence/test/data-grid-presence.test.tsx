@@ -910,7 +910,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const first = render(<Harness data={REVERSED} />);
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.toggleSort("name", false));
+    act(() => actions!.toggleSort("name"));
     expect(warn).toHaveBeenCalledTimes(1);
     first.unmount();
 

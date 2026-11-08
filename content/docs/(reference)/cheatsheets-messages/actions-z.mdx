@@ -68,7 +68,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setSorts` | Replaces the active sorts. | [Sorting](/docs/sort-filter-search/sorting) |
 | `startEditing` | Opens an editor at a `CellRef`, with optional first text. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Edit and validation events](/docs/events-state/edit-validation-events) |
-| `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `additive` keeps the other sorts. | [Sorting](/docs/sort-filter-search/sorting) |
+| `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts. | [Sorting](/docs/sort-filter-search/sorting) |
 | `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
 | `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Stream updates](/docs/rows-live-data/stream-updates) |
 

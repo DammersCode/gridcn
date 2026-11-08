@@ -397,7 +397,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
 
     await act(async () => {
       const pending = result.current.clipboard.cut();
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       resolveWrite();
       await pending;
     });
@@ -425,7 +425,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     await act(async () => {
       const pending = result.current.clipboard.cut();
       // ids 1 and 2 were copied; ascending by name puts them at view rows 2 and 0
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       resolveWrite();
       await pending;
     });

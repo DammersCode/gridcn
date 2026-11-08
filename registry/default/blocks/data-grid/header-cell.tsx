@@ -79,7 +79,7 @@ export type DataGridHeaderCellProps = {
     onPointerDown: (columnId: string, event: ReactPointerEvent<HTMLElement>) => void;
   };
   onSelect: (index: number, event: ReactPointerEvent<HTMLElement>) => void;
-  onSort: (columnId: string, additive: boolean) => void;
+  onSort: (columnId: string, options: { additive: boolean }) => void;
   /** Optional per-column header menu slot (root `renderHeaderMenu` prop) — renders a ghost chevron trigger when provided. */
   renderHeaderMenu?: HeaderMenuRenderer;
   /** Optional per-column header filter slot (root `renderHeaderFilter` prop) — rendered for columns that offer a set filter. */
@@ -157,7 +157,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     (event: ReactMouseEvent<HTMLElement>) => {
       if (fromPopup(event) || fromInteractiveContent(event)) return;
       if (headerClickBehavior !== "sort" || column.sortable === false) return;
-      onSort(column.id, event.shiftKey);
+      onSort(column.id, { additive: event.shiftKey });
     },
     [headerClickBehavior, column.sortable, onSort, column.id],
   );

@@ -80,7 +80,7 @@ describe("row channel follows record identity", () => {
     const { store } = mount({ defaultData: rows(), onDataChange, duplicateRow: (row) => ({ ...row, id: `${row.id}2` }) });
     check(store(), ["b", "e"]);
 
-    act(() => store().getState().actions.toggleSort("age", false));
+    act(() => store().getState().actions.toggleSort("age"));
 
     expect(checkedIds(store())).toEqual(["e", "b"]);
     act(() => store().getState().actions.duplicateRows(getSelectedViewRows(store().getState().selection)));

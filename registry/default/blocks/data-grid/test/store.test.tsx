@@ -97,7 +97,7 @@ describe("DataGridProvider instance isolation", () => {
 
     // Selection state lives outside these hooks under test here; assert isolation via sort instead.
     act(() => {
-      a.result.current.actions.toggleSort("name", false);
+      a.result.current.actions.toggleSort("name");
     });
     a.rerender();
     b.rerender();
@@ -118,7 +118,7 @@ describe("_syncProps recompute", () => {
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
 
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
 
@@ -126,7 +126,7 @@ describe("_syncProps recompute", () => {
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
 
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
 
@@ -134,7 +134,7 @@ describe("_syncProps recompute", () => {
     expect(result.current.viewIndex).toEqual([0, 2, 1]);
 
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
 
@@ -350,7 +350,7 @@ describe("atomic hook re-render counts", () => {
         return (
           <>
             <Probe />
-            <button onClick={() => actions.toggleSort("name", false)}>sort</button>
+            <button onClick={() => actions.toggleSort("name")}>sort</button>
           </>
         );
       }
@@ -374,7 +374,7 @@ describe("atomic hook re-render counts", () => {
       expect(result.current.map.get("2")).toBe(1);
 
       act(() => {
-        result.current.actions.toggleSort("name", false);
+        result.current.actions.toggleSort("name");
       });
       // sorted asc by name: Alice(2)=row0, Bob(3)=row1, Charlie(1)=row2
       expect(result.current.map.get("2")).toBe(0);
@@ -742,7 +742,7 @@ describe("actions referential stability", () => {
     const firstActions = result.current.actions;
 
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
 
@@ -907,11 +907,11 @@ describe("toggleSort additive preserves column priority", () => {
     );
 
     act(() => {
-      result.current.actions.toggleSort("name", true);
+      result.current.actions.toggleSort("name", { additive: true });
     });
     rerender();
     act(() => {
-      result.current.actions.toggleSort("age", true);
+      result.current.actions.toggleSort("age", { additive: true });
     });
     rerender();
     expect(result.current.sortState).toEqual([
@@ -920,7 +920,7 @@ describe("toggleSort additive preserves column priority", () => {
     ]);
 
     act(() => {
-      result.current.actions.toggleSort("name", true);
+      result.current.actions.toggleSort("name", { additive: true });
     });
     rerender();
 
@@ -1327,7 +1327,7 @@ describe("commitCellEdit", () => {
 
     // Sort by name ascending: Alice(1), Bob(2), Charlie(0) in view order.
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
@@ -1512,7 +1512,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
     // Sorting by name asc moves Charlie from view row 0 to view row 2.
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
     expect(result.current.editing).toEqual({
@@ -1567,7 +1567,7 @@ describe("editing anchored to its row across view rebuilds", () => {
 
     // age asc: Alice(1), Charlie(0), Bob(2) — Bob stays at view row 2.
     act(() => {
-      result.current.actions.toggleSort("age", false);
+      result.current.actions.toggleSort("age");
     });
     rerender();
     expect(result.current.editing).toBe(before);
@@ -1598,7 +1598,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     expect(result.current.activeCell).toEqual({ col: 0, row: 0 });
 
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
     // Charlie moved 0 -> 2, so the cursor follows the row.
@@ -1611,7 +1611,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     rerender();
     expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
     expect(result.current.activeCell).toEqual({ col: 1, row: 1 });
@@ -1630,7 +1630,7 @@ describe("editing anchored to its row across view rebuilds", () => {
     });
     rerender();
     act(() => {
-      result.current.actions.toggleSort("name", false);
+      result.current.actions.toggleSort("name");
     });
     rerender();
 
@@ -3308,7 +3308,7 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
     it("toggleSort mutates sortState/viewIndex directly, no callback required", () => {
       const wrapper = makeWrapper();
       const { result, rerender } = renderHook(useSortProbe, { wrapper });
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       rerender();
       expect(result.current.sortState).toEqual([{ columnId: "name", direction: "asc" }]);
       expect(result.current.viewIndex).toEqual([1, 2, 0]); // Alice, Bob, Charlie
@@ -3360,7 +3360,7 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       const onSortChange = vi.fn();
       const wrapper = makeConfigWrapper({ onSortChange });
       const { result } = renderHook(useSortProbe, { wrapper });
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       expect(onSortChange).toHaveBeenCalledWith([{ columnId: "name", direction: "asc" }]);
     });
 
@@ -3400,7 +3400,7 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
 
       expect(result.current.viewIndex).toEqual([0, 1, 2]); // original order, untouched by the click below
 
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       rerender();
 
       expect(onSortChange).toHaveBeenCalledWith([{ columnId: "name", direction: "asc" }]);
@@ -3432,7 +3432,7 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       const { result, rerender } = renderHook(useSortProbe, { wrapper: ControlledWrapper });
       expect(result.current.viewIndex).toEqual([0, 1, 2]);
 
-      act(() => result.current.actions.toggleSort("name", false));
+      act(() => result.current.actions.toggleSort("name"));
       rerender();
       expect(onSortChange).toHaveBeenCalledWith([{ columnId: "name", direction: "asc" }]);
       expect(result.current.viewIndex).toEqual([0, 1, 2]); // still unmoved — the prop hasn't changed yet
@@ -3447,8 +3447,8 @@ describe("controlled sortState/filterState/searchText (server escape hatch)", ()
       // sortState is always [] — the consumer never applies onSortChange's value.
       const wrapper = makeConfigWrapper({ sortState: [], onSortChange: () => {} });
       const { result, rerender } = renderHook(useSortProbe, { wrapper });
-      act(() => result.current.actions.toggleSort("name", false));
-      act(() => result.current.actions.toggleSort("age", false));
+      act(() => result.current.actions.toggleSort("name"));
+      act(() => result.current.actions.toggleSort("age"));
       rerender();
       expect(result.current.sortState).toEqual([]);
       expect(result.current.viewIndex).toEqual([0, 1, 2]);

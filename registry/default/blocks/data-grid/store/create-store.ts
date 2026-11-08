@@ -1716,7 +1716,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setColumnLayout(parts) {
         commitLayout(parts);
       },
-      toggleSort(columnId, additive) {
+      toggleSort(columnId, { additive = false } = {}) {
         const s = get();
         const existing = s.sortState.find((sort) => sort.columnId === columnId);
         const direction = nextDirection(existing?.direction);

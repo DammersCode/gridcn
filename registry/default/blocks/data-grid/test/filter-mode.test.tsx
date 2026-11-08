@@ -75,7 +75,7 @@ describe("filterMode", () => {
 
   it('"server" keeps the identity view across sort changes and data writes', () => {
     const { state } = mount({ filterMode: "server", defaultFilterState: alice });
-    act(() => state().actions.toggleSort("name", false));
+    act(() => state().actions.toggleSort("name"));
     expect(state().viewIndex).toEqual([1, 2, 0]);
     act(() => state().actions.updateCells([{ rowId: "1", columnId: "name", value: "Zed" }]));
     expect(state().viewIndex).toHaveLength(3);
@@ -83,7 +83,7 @@ describe("filterMode", () => {
 
   it('"server" with sortMode "server" leaves the view untouched by both specs', () => {
     const { state } = mount({ filterMode: "server", sortMode: "server", defaultFilterState: alice });
-    act(() => state().actions.toggleSort("name", false));
+    act(() => state().actions.toggleSort("name"));
     expect(state().viewIndex).toEqual([0, 1, 2]);
   });
 
