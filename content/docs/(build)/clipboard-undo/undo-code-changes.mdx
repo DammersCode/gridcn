@@ -100,6 +100,16 @@ const history = useDataGridHistory<Row>({
 });
 ```
 
+<NewBadge />
+
+To keep the default list and add one source, pass a function of the defaults:
+
+```tsx fragment="one option"
+const history = useDataGridHistory<Row>({
+  recordSources: (defaults) => [...defaults, "stream"],
+});
+```
+
 ## Dataset changes [#dataset-changes]
 
 After you swap the data, the entries still describe the old rows, and an undo can insert them back. Pass the identity of the dataset as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render clears nothing. This component swaps datasets:

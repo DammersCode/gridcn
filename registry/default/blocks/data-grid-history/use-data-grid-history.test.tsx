@@ -233,6 +233,20 @@ describe("useDataGridHistory", () => {
     expect(h.history().canUndo).toBe(true);
   });
 
+  it("recordSources as a function edits the default list", () => {
+    const h = setupHarness({ recordSources: (defaults) => [...defaults, "stream"] });
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Tick" };
+    h.commit({
+      source: "stream",
+      ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Tick", prev: "Alice" }] }],
+    });
+    expect(h.history().canUndo).toBe(true);
+    h.history().undo();
+    h.commit(editChange("a", { ...prev, name: "Edit" }, prev));
+    expect(h.history().canUndo).toBe(true);
+  });
+
   it("recordSources can also drop a source that is recorded by default", () => {
     const h = setupHarness({ recordSources: ["row-operation"] });
     const prev = initialRows[0]!;

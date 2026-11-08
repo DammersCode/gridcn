@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, 
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, createHistory, buildRollback, useDataGridAnnounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
+type RecordSources<TData> =
+  | readonly DataChange<TData>["source"][]
+  | ((defaults: readonly DataChange<TData>["source"][]) => readonly DataChange<TData>["source"][]);
+
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
   /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. A change between renders starts an empty history. */
@@ -17,11 +21,12 @@ export type UseDataGridHistoryOptions<TData> = {
    * Which `DataChange.source` values go on the undo stack. Defaults to
    * `["edit", "paste", "fill", "delete", "row-operation", "import", "replace", "app"]`: `"stream"` stays
    * out because a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
-   * stack within seconds. Pass a list to change the set, for example the default plus `"stream"` to record
-   * streams too. `"history"`, `"rollback"`, `"merge"`, and `"id-swap"` are never recorded,
-   * whatever the list says — that is what keeps an undo from pushing a second entry.
+   * stack within seconds. Pass a list to replace the set, or a function of the defaults to edit it, for
+   * example `(defaults) => [...defaults, "stream"]` to record streams too. `"history"`, `"rollback"`,
+   * `"merge"`, and `"id-swap"` are never recorded, whatever the list says — that is what keeps an undo
+   * from pushing a second entry.
    */
-  recordSources?: readonly DataChange<TData>["source"][];
+  recordSources?: RecordSources<TData>;
   /**
    * Called when `undo` or `redo` finds a row its change needs missing from `data`, and applies nothing.
    * `"rows-not-loaded"`: `data` has holes (lazy rows); the entry stays, so the same call works after the rows load.
@@ -133,7 +138,10 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   }, [datasetKey, history]);
 
   const recorded = useMemo(
-    () => new Set<DataChange<TData>["source"]>(recordSources ?? DEFAULT_RECORD_SOURCES),
+    () =>
+      new Set<DataChange<TData>["source"]>(
+        typeof recordSources === "function" ? recordSources(DEFAULT_RECORD_SOURCES) : (recordSources ?? DEFAULT_RECORD_SOURCES),
+      ),
     [recordSources],
   );
   const recordedRef = useRef(recorded);

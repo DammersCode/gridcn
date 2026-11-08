@@ -169,7 +169,7 @@ If `onSave` refuses an undo or a redo, the grid reverts the change with a `"roll
 | `capacity` | `number` | `100` |
 | `datasetKey` | `string \| number` | none |
 | `onSkip` <NewBadge /> | `(ctx: { direction; reason; rowIds }) => void` | none |
-| `recordSources` | `readonly DataChange<TData>["source"][]` | `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app` |
+| `recordSources` | `readonly DataChange<TData>["source"][] \| ((defaults) => readonly DataChange<TData>["source"][])` | `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app` |
 
 `useDataGridState` takes `getRowId`, `capacity`, and `datasetKey`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
 

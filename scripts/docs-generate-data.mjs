@@ -157,6 +157,7 @@ export const TERM_PAGES = {
   reshape: "/docs/rows-live-data/push-server-ordered-view",
   "saved view": "/docs/sort-filter-search/saved-views",
   "server aggregate": "/docs/data-modes/show-server-totals",
+  "aggregate row": "/docs/rows-pages-menus/pinned-rows",
   "save conflict": "/docs/save-server/handle-refused-saves#resolve-a-conflict",
   "id swap": "/docs/save-server/save-edits#id-swap",
   lookup: ["/docs/editing-cells/lookup-cell", "A cell type whose options a server searches as the user types."],
