@@ -105,7 +105,7 @@ async function pages(s: ReturnType<typeof server>, extra: PagesExtra = {}, stric
 }
 
 async function scroll(s: ReturnType<typeof server>, extra: ScrollExtra = {}, strict = false) {
-  const grid = mountGrid(() => useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelay: 0, defaultSpec: SORTED, ...extra }), strict);
+  const grid = mountGrid(() => useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, defaultSpec: SORTED, ...extra }), strict);
   await advance(0);
   grid.report({ start: 0, end: 10 });
   await advance(0);
@@ -116,7 +116,7 @@ describe.each([
   ["pages", pages],
   ["scroll", scroll],
 ] as const)("reshape, %s mode", (_name, mount) => {
-  it("marks a deferred push and sends no request without reshapeDelay", async () => {
+  it("marks a deferred push and sends no request without reshapeDelayMs", async () => {
     const s = server();
     const grid = await mount(s);
     grid.push("r1");
@@ -127,7 +127,7 @@ describe.each([
 
   it("reshapes once after the delay, however many pushes joined the timer", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     await advance(400);
     grid.push("r2");
@@ -144,7 +144,7 @@ describe.each([
 
   it("starts the next timer for a push during the reshape request", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     s.state.hold = true;
     await advance(1000);
@@ -163,7 +163,7 @@ describe.each([
 
   it("waits for a request in flight when the timer fires and runs once after it settles", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     s.state.hold = true;
     await advance(1000);
@@ -202,7 +202,7 @@ describe.each([
 
   it("makes a stream delete and reshape() follow the delay when one is set", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.deleteByServer("r1");
     act(() => grid.server().reshape());
     await advance(999);
@@ -213,7 +213,7 @@ describe.each([
 
   it("makes reconcileView() and an immediate push reshape on the next frame despite the delay", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 5000 });
+    const grid = await mount(s, { reshapeDelayMs: 5000 });
     grid.push("r1");
     grid.reconcile();
     await advance(20);
@@ -238,7 +238,7 @@ describe.each([
 
   it("cancels the timer when the spec changes", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     await advance(500);
     act(() => grid.server().gridProps.onSortChange([]));
@@ -251,7 +251,7 @@ describe.each([
 
   it("cancels the timer when the hook unmounts", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     grid.view.unmount();
     await advance(5000);
@@ -260,7 +260,7 @@ describe.each([
 
   it("sends one request per delay under StrictMode", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 }, true);
+    const grid = await mount(s, { reshapeDelayMs: 1000 }, true);
     const before = s.fetchRows.mock.calls.length;
     grid.push("r1");
     await advance(1000);
@@ -271,7 +271,7 @@ describe.each([
 
   it("waits while the document is hidden and runs once when it shows again", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     setVisibility("hidden");
     grid.push("r1");
     await advance(5000);
@@ -281,26 +281,26 @@ describe.each([
     expect(s.fetchRows).toHaveBeenCalledTimes(2);
   });
 
-  it("raises reshapeDelay below 250 ms to 250 and warns once", async () => {
+  it("raises reshapeDelayMs below 250 ms to 250 and warns once", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 100 });
+    const grid = await mount(s, { reshapeDelayMs: 100 });
     grid.push("r1");
     await advance(249);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
     await advance(1);
     expect(s.fetchRows).toHaveBeenCalledTimes(2);
-    expect(warn.mock.calls.filter((call) => String(call[0]).includes("reshapeDelay"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("reshapeDelayMs"))).toHaveLength(1);
   });
 
-  it.each([0, -1, Number.NaN])("treats reshapeDelay %s as off and warns once", async (value) => {
+  it.each([0, -1, Number.NaN])("treats reshapeDelayMs %s as off and warns once", async (value) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const s = server();
-    const grid = await mount(s, { reshapeDelay: value });
+    const grid = await mount(s, { reshapeDelayMs: value });
     grid.push("r1");
     await advance(10_000);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter((call) => String(call[0]).includes("reshapeDelay"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("reshapeDelayMs"))).toHaveLength(1);
   });
 
   it("keeps a push made after the request left when its answer lands", async () => {
@@ -344,7 +344,7 @@ describe.each([
 
   it("drops the copy of a row that a stream delete removed while an answer was in flight", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 60_000 });
+    const grid = await mount(s, { reshapeDelayMs: 60_000 });
     s.state.hold = true;
     act(() => grid.server().refresh());
     await advance(20);
@@ -357,7 +357,7 @@ describe.each([
 
   it("keeps the marks and reports the failure when the reshape request fails, and retry() repeats it", async () => {
     const s = server();
-    const grid = await mount(s, { reshapeDelay: 1000 });
+    const grid = await mount(s, { reshapeDelayMs: 1000 });
     grid.push("r1");
     s.state.fail = true;
     await advance(1000);
@@ -445,12 +445,12 @@ describe("reshape, sequential source", () => {
   const offsetSource = () => vi.fn<Fetch>(async ({ start, end }) => ({ rows: rowsOf(start, Math.min(end, 1000) - start), hasMore: end < 1000 }));
 
   function mountSequence(fetchRows: Fetch, extra: Partial<UseDataGridServerRowsScrollOptions<Row, number>> = {}) {
-    return mountGrid(() => useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelay: 0, defaultSpec: SORTED, ...extra }));
+    return mountGrid(() => useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, defaultSpec: SORTED, ...extra }));
   }
 
   it("shifts the next block start by the rows a stream delete removed", async () => {
     const fetchRows = offsetSource();
-    const grid = mountSequence(fetchRows, { reshapeDelay: 60_000 });
+    const grid = mountSequence(fetchRows, { reshapeDelayMs: 60_000 });
     await advance(0);
     grid.report({ start: 0, end: 10 });
     await advance(0);

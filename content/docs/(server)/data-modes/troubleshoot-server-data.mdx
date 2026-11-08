@@ -38,7 +38,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 
 <NewBadge />
 
-- **Rows show skeletons for a moment after a scroll.** A block starts after it stays in the wanted range for `loadDelay` milliseconds (default 100). Pass `loadDelay: 0` to start at once.
+- **Rows show skeletons for a moment after a scroll.** A block starts after it stays in the wanted range for `loadDelayMs` milliseconds (default 100). Pass `loadDelayMs: 0` to start at once.
 - **Rows that you scrolled past load again.** `maxLoadedRows` (default 10,000) unloads the blocks that the user viewed longest ago. Raise it, or pass `Infinity`. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
 - **The scroll height grows in steps.** The source sends no row count, so the blocks load in order, one at a time. See [Load without row count](/docs/scroll-mode/load-without-row-count).
 - **One block fails while the others load.** The grid keeps the loaded rows and shows an error state. Call `server.retry()` after you fix the cause. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).

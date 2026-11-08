@@ -41,7 +41,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL,
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelay: 0, getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
+    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave} createRow={() => ({ id: "loc", name: "Local" })}>
         <DataGridRoot>

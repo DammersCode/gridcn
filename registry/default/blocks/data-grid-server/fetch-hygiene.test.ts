@@ -3,18 +3,18 @@ import { dueWanted, keepRange, pickEvictions, pruneViewed, readFetchLimits, read
 
 describe("readFetchLimits", () => {
   it("returns the defaults for no options", () => {
-    expect(readFetchLimits(50, {})).toEqual({ loadDelay: 100, maxConcurrentFetches: 3, maxLoadedRows: 10_000, maxLoadedRowsInvalid: false });
+    expect(readFetchLimits(50, {})).toEqual({ loadDelayMs: 100, maxConcurrentFetches: 3, maxLoadedRows: 10_000, maxLoadedRowsInvalid: false });
   });
 
-  it.each([NaN, Infinity, -Infinity, "50" as unknown as number, null as unknown as number])("loadDelay %s falls back to 100", (value) => {
-    expect(readFetchLimits(50, { loadDelay: value }).loadDelay).toBe(100);
+  it.each([NaN, Infinity, -Infinity, "50" as unknown as number, null as unknown as number])("loadDelayMs %s falls back to 100", (value) => {
+    expect(readFetchLimits(50, { loadDelayMs: value }).loadDelayMs).toBe(100);
   });
 
-  it("floors and clamps loadDelay to [0, 2000]", () => {
-    expect(readFetchLimits(50, { loadDelay: 0 }).loadDelay).toBe(0);
-    expect(readFetchLimits(50, { loadDelay: 99.9 }).loadDelay).toBe(99);
-    expect(readFetchLimits(50, { loadDelay: -5 }).loadDelay).toBe(0);
-    expect(readFetchLimits(50, { loadDelay: 99_999 }).loadDelay).toBe(2000);
+  it("floors and clamps loadDelayMs to [0, 2000]", () => {
+    expect(readFetchLimits(50, { loadDelayMs: 0 }).loadDelayMs).toBe(0);
+    expect(readFetchLimits(50, { loadDelayMs: 99.9 }).loadDelayMs).toBe(99);
+    expect(readFetchLimits(50, { loadDelayMs: -5 }).loadDelayMs).toBe(0);
+    expect(readFetchLimits(50, { loadDelayMs: 99_999 }).loadDelayMs).toBe(2000);
   });
 
   it.each([NaN, Infinity, "2" as unknown as number])("maxConcurrentFetches %s falls back to 3", (value) => {
@@ -45,17 +45,19 @@ describe("readFetchLimits", () => {
 
 describe("readRevalidateInterval", () => {
   it("is off and valid for undefined", () => {
-    expect(readRevalidateInterval(undefined)).toEqual({ interval: null, invalid: false });
+    expect(readRevalidateInterval(undefined)).toEqual({ interval: null, invalid: false, raised: false });
   });
 
   it.each([0, -1, NaN, Infinity, "5000", null, {}])("is off and invalid for %s", (value) => {
-    expect(readRevalidateInterval(value)).toEqual({ interval: null, invalid: true });
+    expect(readRevalidateInterval(value)).toEqual({ interval: null, invalid: true, raised: false });
   });
 
   it("floors, raises to 1000 ms, and caps at the setTimeout limit", () => {
     expect(readRevalidateInterval(5000.8).interval).toBe(5000);
     expect(readRevalidateInterval(10).interval).toBe(1000);
     expect(readRevalidateInterval(1e12).interval).toBe(2_147_483_647);
+    expect(readRevalidateInterval(10).raised).toBe(true);
+    expect(readRevalidateInterval(1000).raised).toBe(false);
   });
 });
 

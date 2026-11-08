@@ -230,7 +230,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         </DataGridProvider>
       );
     }
-    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelay: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0 });
+    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0 });
     return (
       <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
         <DataGridRoot>

@@ -103,7 +103,7 @@ export type DataWriteContext = {
   disposed: boolean;
   /** The stale rows with the row object and data index of their latest push; `staleRowIds` in the state is its key set. */
   staleRows: Map<string, { row: unknown; index: number }>;
-  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelay`, `"stale"` is a deferred push that marked a row. */
+  /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelayMs`, `"stale"` is a deferred push that marked a row. */
   reshape: ((trigger: "urgent" | "stale") => void) | null;
   warnedReshape: boolean;
   warnedStreamLimit: boolean;

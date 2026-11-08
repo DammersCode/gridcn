@@ -40,7 +40,7 @@ function setup(extra: Extra = {}, { total = 100_000, auto = false, onSave = true
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelay: 0, maxConcurrentFetches: 16, maxLoadedRows: Infinity, ...extra });
+    server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, maxConcurrentFetches: 16, maxLoadedRows: Infinity, ...extra });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} enableRowSelection onSave={onSave ? save : undefined}>
         <DataGridRoot>
@@ -164,7 +164,7 @@ describe("abort what left the keep range", () => {
 
 describe("load delay", () => {
   it("starts no request while the rendered rows jump, and starts the wanted blocks once they rest", async () => {
-    const t = await mount({ loadDelay: 100, blockSize: 50, overscan: 30 });
+    const t = await mount({ loadDelayMs: 100, blockSize: 50, overscan: 30 });
     for (let i = 1; i <= 20; i++) {
       await t.report(i * 4000, i * 4000 + 30);
       await t.advance(4);
@@ -177,7 +177,7 @@ describe("load delay", () => {
   });
 
   it("starts the next block 100 ms after it enters the overscan while the rows scroll slowly", async () => {
-    const t = await mount({ loadDelay: 100, blockSize: 50, overscan: 30 });
+    const t = await mount({ loadDelayMs: 100, blockSize: 50, overscan: 30 });
     const firstSeen = new Map<number, number>();
     let elapsed = 0;
     for (let i = 0; i < 50; i++) {
@@ -189,14 +189,14 @@ describe("load delay", () => {
     expect([...firstSeen]).toEqual([[50, 100], [100, 920]]);
   });
 
-  it("with loadDelay 0 starts the blocks in the same call", async () => {
-    const t = await mount({ loadDelay: 0 });
+  it("with loadDelayMs 0 starts the blocks in the same call", async () => {
+    const t = await mount({ loadDelayMs: 0 });
     await t.report(100, 130);
     expect(t.starts().slice(1)).toEqual([110, 100, 120]);
   });
 
   it("does not start a block that a report dropped before its delay ended", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     await t.advance(60);
     await t.report(300, 310);
@@ -207,7 +207,7 @@ describe("load delay", () => {
   });
 
   it("restarts the delay of a block that left the wanted range and came back", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     await t.advance(80);
     await t.report(300, 310);
@@ -219,7 +219,7 @@ describe("load delay", () => {
   });
 
   it("lets block 0, refresh, retry, and the refetch after a count change skip the delay", async () => {
-    const t = setup({ loadDelay: 100 });
+    const t = setup({ loadDelayMs: 100 });
     await t.advance(0);
     expect(t.starts()).toEqual([0]);
     await t.land(0);
@@ -235,15 +235,15 @@ describe("load delay", () => {
   });
 
   it("does not count a block that waits for its delay as loading", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     expect(t.server().loading).toBe(false);
     await t.advance(100);
     expect(t.server().loading).toBe(true);
   });
 
-  it("clamps an invalid loadDelay to the default", async () => {
-    const t = await mount({ loadDelay: Number.NaN });
+  it("clamps an invalid loadDelayMs to the default", async () => {
+    const t = await mount({ loadDelayMs: Number.NaN });
     await t.report(100, 110);
     await t.advance(99);
     expect(t.starts()).toEqual([0]);
@@ -252,7 +252,7 @@ describe("load delay", () => {
   });
 
   it("lets the refetch after the first answer skip the delay", async () => {
-    const t = setup({ loadDelay: 100 });
+    const t = setup({ loadDelayMs: 100 });
     await t.advance(0);
     await t.report(100, 110);
     await t.land(0);
@@ -542,7 +542,7 @@ describe("kept slots", () => {
   });
 
   it("keeps the row under the active cell and the edits without onSave through a revalidation tick", async () => {
-    const t = await mount({ revalidateInterval: 5000 }, { onSave: false });
+    const t = await mount({ revalidateIntervalMs: 5000 }, { onSave: false });
     act(() => t.state().actions.commitCellValue({ rowId: "r5", columnId: "name" }, "Local"));
     act(() => t.state().actions.selectCell({ rowId: "r6", columnId: "name" }));
     await t.report(300, 310);
@@ -589,7 +589,7 @@ describe("evict", () => {
 
 describe("races and cleanup", () => {
   it("a spec change drops the waiting blocks and the timer, and nothing from the old spec lands", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     act(() => t.server().gridProps.onSortChange([{ columnId: "name", direction: "asc" }] as never));
     await t.advance(500);
@@ -604,7 +604,7 @@ describe("races and cleanup", () => {
   });
 
   it("a count change keeps the landing block, drops the waiting blocks, and refetches the rendered rows without the delay", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     await t.advance(100);
     await t.report(110, 140);
@@ -616,7 +616,7 @@ describe("races and cleanup", () => {
   });
 
   it("leaves no timer after unmount", async () => {
-    const t = await mount({ loadDelay: 100 });
+    const t = await mount({ loadDelayMs: 100 });
     await t.report(100, 110);
     t.view.unmount();
     expect(vi.getTimerCount()).toBe(0);
@@ -632,7 +632,7 @@ describe("races and cleanup", () => {
   });
 
   it("starts each block once under StrictMode", async () => {
-    const t = await mount({ loadDelay: 100 }, { strict: true });
+    const t = await mount({ loadDelayMs: 100 }, { strict: true });
     await t.report(100, 130);
     await t.advance(100);
     expect(t.starts().filter((start) => start === 100)).toHaveLength(1);
@@ -663,7 +663,7 @@ describe("sequential source", () => {
   }
 
   it("waits the load delay before it asks for the next block", async () => {
-    const t = setupSequence({ loadDelay: 100 });
+    const t = setupSequence({ loadDelayMs: 100 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 10);
@@ -675,7 +675,7 @@ describe("sequential source", () => {
   });
 
   it("goes on at once after a block lands while the rendered rows still rest at the end", async () => {
-    const t = setupSequence({ loadDelay: 100 });
+    const t = setupSequence({ loadDelayMs: 100 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 20);
@@ -685,7 +685,7 @@ describe("sequential source", () => {
   });
 
   it("starts no request when the rendered rows leave the end before the delay ends", async () => {
-    const t = setupSequence({ loadDelay: 100 });
+    const t = setupSequence({ loadDelayMs: 100 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 10);
@@ -695,8 +695,8 @@ describe("sequential source", () => {
     expect(t.starts()).toEqual([0]);
   });
 
-  it("with loadDelay 0 asks for the next block in the same call", async () => {
-    const t = setupSequence({ loadDelay: 0 });
+  it("with loadDelayMs 0 asks for the next block in the same call", async () => {
+    const t = setupSequence({ loadDelayMs: 0 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 10);
@@ -704,7 +704,7 @@ describe("sequential source", () => {
   });
 
   it("does not abort the block in flight when the rendered rows move away", async () => {
-    const t = setupSequence({ loadDelay: 0 });
+    const t = setupSequence({ loadDelayMs: 0 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 10);
@@ -714,7 +714,7 @@ describe("sequential source", () => {
 
   it("keeps every loaded row and warns once for a maxLoadedRows that cannot apply", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const t = setupSequence({ loadDelay: 0, maxLoadedRows: 20 });
+    const t = setupSequence({ loadDelayMs: 0, maxLoadedRows: 20 });
     await t.advance(0);
     await t.land(0);
     for (let end = 10; end <= 60; end += 10) {
@@ -727,14 +727,14 @@ describe("sequential source", () => {
 
   it("does not warn when maxLoadedRows is not passed", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const t = setupSequence({ loadDelay: 0 });
+    const t = setupSequence({ loadDelayMs: 0 });
     await t.advance(0);
     await t.land(0);
     expect(warn).not.toHaveBeenCalled();
   });
 
   it("leaves no timer after unmount while the delay runs", async () => {
-    const t = setupSequence({ loadDelay: 100 });
+    const t = setupSequence({ loadDelayMs: 100 });
     await t.advance(0);
     await t.land(0);
     await t.report(0, 10);

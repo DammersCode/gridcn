@@ -101,9 +101,9 @@ Call `refresh()` <NewBadge /> after your `onSave` promise settles to pick up fie
 
 <NewBadge />
 
-Set `revalidateInterval` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks. The default is off. Pages mode takes the same option.
+Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks. The default is off. Pages mode takes the same option.
 
-When live pushes leave rows out of order for the server's sort, set `reshapeDelay` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 Undo and redo compose with the `onDataChange` of the hook. See [Run history with scroll mode](/docs/save-server/undo-server-data#with-scroll-mode).
 

@@ -47,7 +47,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * Milliseconds a block stays in the wanted range before its request starts. A fast scroll starts no request until it rests.
    * Block 0, `refresh()`, `retry()`, and the refetch after the first answer or a count change skip it. Default 100, at most 2,000; `0` starts at once.
    */
-  loadDelay?: number;
+  loadDelayMs?: number;
   /** Most block requests in flight at once on a random access source. Default 3, at most 16. */
   maxConcurrentFetches?: number;
   /**
@@ -62,14 +62,14 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks.
    * At least 1000. Off by default.
    */
-  revalidateInterval?: number;
+  revalidateIntervalMs?: number;
   /**
    * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
    * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
    * reshape that falls due during a request, or while the page is hidden, waits and runs once; a sequential source skips it while the
    * rendered rows end beyond 10 blocks. At least 250. Off by default: a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
-  reshapeDelay?: number;
+  reshapeDelayMs?: number;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
@@ -135,7 +135,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
    * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
-  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. */
   reshape: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;
@@ -653,7 +653,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     core.delayTimer = null;
     if (!core.ready) return;
     const size = blockSize();
-    const { loadDelay, maxConcurrentFetches } = limits();
+    const { loadDelayMs, maxConcurrentFetches } = limits();
     const centre = core.lastWindow ? (core.lastWindow.start + core.lastWindow.end) / 2 : 0;
     const armTimer = (nextAt: number | null) => {
       if (nextAt === null) return;
@@ -668,7 +668,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         core.wanted.clear();
         return;
       }
-      const { due, nextAt } = dueWanted(core.wanted, { now: Date.now(), delay: loadDelay, centre, limit: 1 });
+      const { due, nextAt } = dueWanted(core.wanted, { now: Date.now(), delay: loadDelayMs, centre, limit: 1 });
       if (due.length > 0) {
         core.wanted.clear();
         runFetch({ start: seq.offset, end: seq.offset + size }, seq.cursor);
@@ -685,12 +685,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     }
     if (core.owed.length > 0) return;
     const free = maxConcurrentFetches - core.inFlight.size;
-    const { due } = dueWanted(core.wanted, { now: Date.now(), delay: loadDelay, centre, limit: free });
+    const { due } = dueWanted(core.wanted, { now: Date.now(), delay: loadDelayMs, centre, limit: free });
     for (const block of due) {
       core.wanted.delete(block.start);
       runFetch(block);
     }
-    armTimer(dueWanted(core.wanted, { now: Date.now(), delay: loadDelay, centre, limit: 0 }).nextAt);
+    armTimer(dueWanted(core.wanted, { now: Date.now(), delay: loadDelayMs, centre, limit: 0 }).nextAt);
   }, [getCore, blockSize, limits, overscanOf, runFetch]);
 
   const pump = useCallback(() => runPumps(getCore(), startDueBlocks), [getCore, startDueBlocks]);
@@ -733,8 +733,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       if (core.ready && core.kind === "sequence") {
         const { seq } = core;
         if (!seq.ended && !seq.refresh && core.inFlight.size === 0 && needsNextBlock(range, seq.length, overscanOf())) {
-          const { loadDelay } = limits();
-          trackWanted(core.wanted, [{ start: seq.offset, end: seq.offset + blockSize() }], immediate ? Date.now() - loadDelay : Date.now());
+          const { loadDelayMs } = limits();
+          trackWanted(core.wanted, [{ start: seq.offset, end: seq.offset + blockSize() }], immediate ? Date.now() - loadDelayMs : Date.now());
         } else core.wanted.clear();
         pump();
         return;
@@ -743,14 +743,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const size = blockSize();
       const wantedRange = expandRange(range, { overscan: overscanOf(), blockSize: size, total: core.count });
       if (rangeSize(wantedRange) === 0) return;
-      const { loadDelay, maxLoadedRows } = limits();
+      const { loadDelayMs, maxLoadedRows } = limits();
       const keep = keepRange(wantedRange, size, core.count);
       core.keep = keep;
       if (Number.isFinite(maxLoadedRows)) stampViewed(core, keep, size, maxLoadedRows);
       leaveKeepRange(keep);
       const covered = [...core.loaded, ...core.empty, ...Array.from(core.inFlight.values(), (entry) => entry.range), ...core.owed];
       const uncovered = subtractRanges(wantedRange, covered).flatMap((gap) => chunkAligned(gap, size));
-      trackWanted(core.wanted, uncovered, immediate ? Date.now() - loadDelay : Date.now());
+      trackWanted(core.wanted, uncovered, immediate ? Date.now() - loadDelayMs : Date.now());
       pump();
     },
     [getCore, overscanOf, blockSize, limits, leaveKeepRange, pump],
@@ -859,7 +859,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     const size = blockSize();
     return Math.ceil(Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) / size) <= MAX_SEQUENTIAL_REVALIDATE_BLOCKS;
   }, [getCore, blockSize, overscanOf]);
-  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelay, run: () => refreshRef.current(), busy: loading, canRun: canRevalidate, resetKey: specKey, warn });
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, run: () => refreshRef.current(), busy: loading, canRun: canRevalidate, resetKey: specKey, warn });
   const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
   useEffect(() => {
     setReshapeListener(requestReshape);
@@ -902,7 +902,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     refreshRef.current = refresh;
   }, [refresh]);
 
-  const restartClock = useRevalidation({ interval: options.revalidateInterval, onTick: () => refreshRef.current(), busy: loading, canTick: canRevalidate, resetKey: specKey });
+  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current(), busy: loading, canTick: canRevalidate, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
   }, [restartClock]);

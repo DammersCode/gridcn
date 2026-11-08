@@ -35,7 +35,7 @@ function setup(source: Source) {
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 });
+    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave}>
         <DataGridRoot>
@@ -235,7 +235,7 @@ describe("refresh without the guard plugin mounted", () => {
   function Tree({ mode, withPlugin, readOnly = false, onServer }: { mode: "scroll" | "pages"; withPlugin: boolean; readOnly?: boolean; onServer: (server: AnyServer) => void }) {
     const server: AnyServer =
       mode === "scroll"
-        ? useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 })
+        ? useDataGridServerRows<Row>({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 })
         : useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: counted, pageSizeOptions: [10] });
     onServer(server);
     return (
@@ -277,7 +277,7 @@ describe("refresh without the guard plugin mounted", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(() =>
       mode === "scroll"
-        ? useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 })
+        ? useDataGridServerRows<Row>({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 })
         : useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: counted, pageSizeOptions: [10] }),
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -290,7 +290,7 @@ describe("refresh without the guard plugin mounted", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let server!: UseDataGridServerRowsScrollResult<Row>;
     function Page({ show }: { show: boolean }) {
-      server = useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 });
+      server = useDataGridServerRows<Row>({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows: counted, blockSize: 10 });
       return show ? (
         <DataGridProvider {...server.providerProps} columns={columns}>
           <DataGridRoot />

@@ -4,7 +4,7 @@ icon: Gauge
 description: Page through a cursor API, load the next page early, and refresh the page on a timer with useDataGridServerRows in pages mode.
 type: task
 demos: compare
-aliases: ["cursor paging", "keyset pagination", "prefetchNextPage", "revalidateInterval", "next cursor"]
+aliases: ["cursor paging", "keyset pagination", "prefetchNextPage", "revalidateIntervalMs", "next cursor"]
 ---
 
 These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works.
@@ -28,11 +28,11 @@ With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for
 
 ## Load the next page early [#prefetch]
 
-Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. A landed page that the user does not reach within `revalidateInterval`, or within 30 seconds without it, is dropped too. The default is `false`.
+Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. A landed page that the user does not reach within `revalidateIntervalMs`, or within 30 seconds without it, is dropped too. The default is `false`.
 
 ## Refresh on a timer [#revalidate]
 
-Set `revalidateInterval` (at least 1000 milliseconds) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. The default is off.
+Set `revalidateIntervalMs` (at least 1000 milliseconds) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. The default is off.
 
 ## Related
 

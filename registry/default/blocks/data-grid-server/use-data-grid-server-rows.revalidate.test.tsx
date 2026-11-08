@@ -48,7 +48,7 @@ async function mountPages(s: ReturnType<typeof server>, extra: PagesExtra = {}) 
 }
 
 async function mountScroll(s: ReturnType<typeof server>, extra: ScrollExtra = {}) {
-  const view = renderHook(() => useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelay: 0, ...extra }));
+  const view = renderHook(() => useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, ...extra }));
   await advance(0);
   return view;
 }
@@ -56,10 +56,10 @@ async function mountScroll(s: ReturnType<typeof server>, extra: ScrollExtra = {}
 describe.each([
   ["pages", mountPages],
   ["scroll", mountScroll],
-] as const)("revalidateInterval, %s mode", (_name, mount) => {
+] as const)("revalidateIntervalMs, %s mode", (_name, mount) => {
   it("refreshes at the interval and never before", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 5000 });
+    await mount(s, { revalidateIntervalMs: 5000 });
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
     await advance(4999);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
@@ -78,7 +78,7 @@ describe.each([
 
   it("raises an interval below one second to one second", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 10 });
+    await mount(s, { revalidateIntervalMs: 10 });
     await advance(999);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
     await advance(1);
@@ -88,22 +88,29 @@ describe.each([
   it.each([0, -5, Number.NaN, Infinity])("is off and warns once for the invalid interval %s", async (value) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const s = server();
-    const view = await mount(s, { revalidateInterval: value });
+    const view = await mount(s, { revalidateIntervalMs: value });
     view.rerender();
     await advance(60_000);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter((call) => String(call[0]).includes("revalidateInterval"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("revalidateIntervalMs"))).toHaveLength(1);
+  });
+
+  it("warns once that an interval below 1000 ms is raised", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const view = await mount(server(), { revalidateIntervalMs: 10 });
+    view.rerender();
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("revalidateIntervalMs below 1000 ms is raised to 1000 ms"))).toHaveLength(1);
   });
 
   it("does not warn when the option is missing", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await mount(server());
-    expect(warn.mock.calls.filter((call) => String(call[0]).includes("revalidateInterval"))).toHaveLength(0);
+    expect(warn.mock.calls.filter((call) => String(call[0]).includes("revalidateIntervalMs"))).toHaveLength(0);
   });
 
   it("waits for a request in flight and runs once, however many ticks passed", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 2000 });
+    await mount(s, { revalidateIntervalMs: 2000 });
     s.state.hold = true;
     await advance(2000);
     expect(s.fetchRows).toHaveBeenCalledTimes(2);
@@ -118,7 +125,7 @@ describe.each([
 
   it("does not run a waiting tick while the page is hidden, and runs it once the page is visible", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 2000 });
+    await mount(s, { revalidateIntervalMs: 2000 });
     s.state.hold = true;
     await advance(2000);
     expect(s.fetchRows).toHaveBeenCalledTimes(2);
@@ -135,7 +142,7 @@ describe.each([
 
   it("restarts the clock on a manual refresh", async () => {
     const s = server();
-    const view = await mount(s, { revalidateInterval: 5000 });
+    const view = await mount(s, { revalidateIntervalMs: 5000 });
     await advance(4000);
     act(() => view.result.current.refresh());
     await advance(20);
@@ -148,7 +155,7 @@ describe.each([
 
   it("stops while the page is hidden and runs once at once when it turns visible with a tick due", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 5000 });
+    await mount(s, { revalidateIntervalMs: 5000 });
     setVisibility("hidden");
     await advance(30_000);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
@@ -159,7 +166,7 @@ describe.each([
 
   it("re-arms for the rest of the interval when the page turns visible before a tick is due", async () => {
     const s = server();
-    await mount(s, { revalidateInterval: 5000 });
+    await mount(s, { revalidateIntervalMs: 5000 });
     await advance(1000);
     setVisibility("hidden");
     await advance(1000);
@@ -172,7 +179,7 @@ describe.each([
 
   it("keeps ticking after an error", async () => {
     const s = server();
-    const view = await mount(s, { revalidateInterval: 3000 });
+    const view = await mount(s, { revalidateIntervalMs: 3000 });
     s.state.fail = true;
     await advance(3000);
     await advance(20);
@@ -183,7 +190,7 @@ describe.each([
 
   it("restarts the clock when the spec changes", async () => {
     const s = server();
-    const view = await mount(s, { revalidateInterval: 5000 });
+    const view = await mount(s, { revalidateIntervalMs: 5000 });
     await advance(4000);
     act(() => view.result.current.gridProps.onSearchTextChange("a"));
     await advance(20);
@@ -196,7 +203,7 @@ describe.each([
 
   it("leaves no timer or listener after unmount", async () => {
     const s = server();
-    const view = await mount(s, { revalidateInterval: 5000 });
+    const view = await mount(s, { revalidateIntervalMs: 5000 });
     view.unmount();
     expect(vi.getTimerCount()).toBe(0);
     await advance(60_000);
@@ -205,7 +212,7 @@ describe.each([
 
   it("starts nothing on a hook that unmounted while a tick waited", async () => {
     const s = server();
-    const view = await mount(s, { revalidateInterval: 2000 });
+    const view = await mount(s, { revalidateIntervalMs: 2000 });
     s.state.hold = true;
     await advance(2000);
     view.unmount();
@@ -213,10 +220,10 @@ describe.each([
   });
 });
 
-describe("revalidateInterval, scroll mode", () => {
+describe("revalidateIntervalMs, scroll mode", () => {
   it("refetches the rendered blocks and drops the other loaded rows", async () => {
     const s = server();
-    const view = await mountScroll(s, { revalidateInterval: 5000 });
+    const view = await mountScroll(s, { revalidateIntervalMs: 5000 });
     act(() => view.result.current.gridProps.onRenderedRowsChange({ start: 100, end: 110 }));
     await advance(20);
     s.fetchRows.mockClear();
@@ -230,7 +237,7 @@ describe("revalidateInterval, scroll mode", () => {
   });
 });
 
-describe("revalidateInterval, sequential source", () => {
+describe("revalidateIntervalMs, sequential source", () => {
   function sequence() {
     const requests: Array<{ start: number }> = [];
     const fetchRows = vi.fn(async ({ start, end }: { start: number; end: number; cursor: number | undefined }) => {
@@ -240,7 +247,7 @@ describe("revalidateInterval, sequential source", () => {
     return { fetchRows, requests };
   }
   const mountSequence = async (s: ReturnType<typeof sequence>) => {
-    const view = renderHook(() => useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelay: 0, revalidateInterval: 3000 }));
+    const view = renderHook(() => useDataGridServerRows<Row, number>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: s.fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, revalidateIntervalMs: 3000 }));
     await advance(0);
     await advance(20);
     return view;

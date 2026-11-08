@@ -46,15 +46,15 @@ type Mode = "pages" | "scroll";
  * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by score. The Server
  * pushes switch pushes score changes every 500 ms: a row whose score the sort reads keeps its place and turns
  * dim and italic (`data-row-stale`) until the hook reshapes (a refresh) and the server places it. Delete on server
- * pushes a delete. The reshape delay select sets `reshapeDelay`: off waits for a refresh, one second reshapes after the pushes.
+ * pushes a delete. The reshape delay select sets `reshapeDelayMs`: off waits for a refresh, one second reshapes after the pushes.
  */
 export default function DataGridServerSideDemo(): ReactNode {
   const [mode, setMode] = useState<Mode>("pages");
   const remote = useMemo(() => createRemoteServer(), []);
   const [revalidate, setRevalidate] = useState(false);
   const [live, setLive] = useState(false);
-  const [reshapeDelay, setReshapeDelay] = useState<"off" | "1000">("off");
-  const push = { live, reshapeDelay: reshapeDelay === "off" ? undefined : Number(reshapeDelay) };
+  const [reshapeDelayMs, setReshapeDelay] = useState<"off" | "1000">("off");
+  const push = { live, reshapeDelayMs: reshapeDelayMs === "off" ? undefined : Number(reshapeDelayMs) };
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -71,7 +71,7 @@ export default function DataGridServerSideDemo(): ReactNode {
           <Switch checked={live} onCheckedChange={setLive} aria-label="Server pushes" />
           Server pushes
         </label>
-        <Select value={reshapeDelay} onValueChange={(value) => setReshapeDelay(value as "off" | "1000")}>
+        <Select value={reshapeDelayMs} onValueChange={(value) => setReshapeDelay(value as "off" | "1000")}>
           <SelectTrigger aria-label="Reshape delay" className="w-40">
             <SelectValue />
           </SelectTrigger>
@@ -88,7 +88,7 @@ export default function DataGridServerSideDemo(): ReactNode {
 }
 
 type Remote = ReturnType<typeof createRemoteServer>;
-type PushProps = { remote: Remote; live: boolean; reshapeDelay: number | undefined };
+type PushProps = { remote: Remote; live: boolean; reshapeDelayMs: number | undefined };
 
 const BY_SCORE = { sorts: [{ columnId: "score", direction: "desc" as const }] };
 const STALE_ROW = "[&_[data-row-stale]]:text-muted-foreground [&_[data-row-stale]]:italic";
@@ -121,13 +121,13 @@ function PushControls({ remote, live }: { remote: Remote; live: boolean }): Reac
   );
 }
 
-function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
+function PagesGrid({ remote, revalidate, live, reshapeDelayMs }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     defaultPageSize: 25,
     defaultSpec: BY_SCORE,
     prefetchNextPage: true,
-    revalidateInterval: revalidate ? 10_000 : undefined,
-    reshapeDelay,
+    revalidateIntervalMs: revalidate ? 10_000 : undefined,
+    reshapeDelayMs,
     onSave: async (change) => remote.applyOps(change.ops),
     fetchRows: async ({ spec, page, pageSize, signal }) => {
       const answer = await remote.fetchPage({ page, pageSize, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });
@@ -161,12 +161,12 @@ function PagesGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { rev
   );
 }
 
-function ScrollGrid({ remote, revalidate, live, reshapeDelay }: PushProps & { revalidate: boolean }): ReactNode {
+function ScrollGrid({ remote, revalidate, live, reshapeDelayMs }: PushProps & { revalidate: boolean }): ReactNode {
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
     defaultSpec: BY_SCORE,
-    revalidateInterval: revalidate ? 10_000 : undefined,
-    reshapeDelay,
+    revalidateIntervalMs: revalidate ? 10_000 : undefined,
+    reshapeDelayMs,
     onSave: async (change) => remote.applyOps(change.ops),
     fetchRows: async ({ spec, start, end, signal }) => {
       const answer = await remote.fetchRange({ start, end, sorts: spec.sorts, filters: spec.filters as RemoteFilterNode[], search: spec.searchText, signal });

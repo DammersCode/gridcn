@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MIN_RESHAPE_DELAY, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
+import { MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
 export type DataSourceState = {
@@ -17,7 +17,7 @@ export type DataSourceState = {
   retry: () => void;
   /** Fetches what is in view again and keeps it on screen until the answer lands. The hook calls it after saves settle by `refreshAfterSave`. */
   refresh: () => void;
-  /** Asks the server to place the rows again after a push: one `refresh()` on the next frame, or after `reshapeDelay`. Calls in one frame join. */
+  /** Asks the server to place the rows again after a push: one `refresh()` on the next frame, or after `reshapeDelayMs`. Calls in one frame join. */
   reshape: () => void;
 };
 
@@ -94,7 +94,7 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
 }
 
 type RevalidationInput = {
-  /** The `revalidateInterval` option as the consumer passed it. */
+  /** The `revalidateIntervalMs` option as the consumer passed it. */
   interval: unknown;
   /** Runs the refresh when a tick is due. */
   onTick: () => void;
@@ -111,12 +111,12 @@ type RevalidationInput = {
  * `restart` (called by every refresh) pushes the next tick a full interval away. Returns `restart`.
  */
 export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey }: RevalidationInput) {
-  const { interval, invalid } = readRevalidateInterval(raw);
+  const { interval, invalid, raised } = readRevalidateInterval(raw);
   const live = useRef({ interval, onTick, busy, canTick });
   useLayoutEffect(() => {
     live.current = { interval, onTick, busy, canTick };
   });
-  const clock = useRef<{ timer: ReturnType<typeof setTimeout> | null; deadline: number; waiting: boolean; warned: boolean }>({ timer: null, deadline: 0, waiting: false, warned: false });
+  const clock = useRef<{ timer: ReturnType<typeof setTimeout> | null; deadline: number; waiting: boolean; warned: boolean; warnedRaised: boolean }>({ timer: null, deadline: 0, waiting: false, warned: false, warnedRaised: false });
 
   const fireRef = useRef<() => void>(() => {});
   const arm = useCallback(() => {
@@ -152,9 +152,16 @@ export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey
   useEffect(() => {
     if (invalid && isDev() && !clock.current.warned) {
       clock.current.warned = true;
-      console.warn("[data-grid-server] revalidateInterval must be a number of milliseconds above 0, so revalidation is off");
+      console.warn("[data-grid-server] revalidateIntervalMs must be a number of milliseconds above 0, so revalidation is off");
     }
   }, [invalid]);
+
+  useEffect(() => {
+    if (raised && isDev() && !clock.current.warnedRaised) {
+      clock.current.warnedRaised = true;
+      console.warn(`[data-grid-server] revalidateIntervalMs below ${MIN_REVALIDATE_INTERVAL} ms is raised to ${MIN_REVALIDATE_INTERVAL} ms`);
+    }
+  }, [raised]);
 
   useEffect(() => {
     if (interval === null || typeof document === "undefined") return;
@@ -189,7 +196,7 @@ export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey
 }
 
 type ReshapeInput = {
-  /** The `reshapeDelay` option as the consumer passed it. */
+  /** The `reshapeDelayMs` option as the consumer passed it. */
   delay: unknown;
   /** Runs the refresh when a reshape is due. */
   run: () => void;
@@ -206,7 +213,7 @@ type ReshapeInput = {
 export type ReshapeTrigger = "stale" | "soon" | "urgent";
 
 /**
- * Schedules the refresh that places pushed rows again. With `reshapeDelay`, `"stale"` and `"soon"` triggers start or join one
+ * Schedules the refresh that places pushed rows again. With `reshapeDelayMs`, `"stale"` and `"soon"` triggers start or join one
  * timer, so a steady feed reshapes at most once per delay; without it `"stale"` triggers do nothing and `"soon"` runs on the next
  * frame. `"urgent"` always runs on the next frame. A reshape that falls due during a request or while the page is hidden waits and runs once.
  */
@@ -259,8 +266,8 @@ export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: Re
   );
 
   useEffect(() => {
-    if (invalid) live.current.warn("reshapeDelay", "reshapeDelay must be a number of milliseconds above 0, so the reshape delay is off");
-    else if (raised) live.current.warn("reshapeDelay", `reshapeDelay below ${MIN_RESHAPE_DELAY} ms is raised to ${MIN_RESHAPE_DELAY} ms`);
+    if (invalid) live.current.warn("reshapeDelayMs", "reshapeDelayMs must be a number of milliseconds above 0, so the reshape delay is off");
+    else if (raised) live.current.warn("reshapeDelayMs", `reshapeDelayMs below ${MIN_RESHAPE_DELAY} ms is raised to ${MIN_RESHAPE_DELAY} ms`);
   }, [invalid, raised]);
 
   useEffect(() => {

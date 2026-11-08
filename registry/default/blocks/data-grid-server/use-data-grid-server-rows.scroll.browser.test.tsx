@@ -59,7 +59,7 @@ function deferredServer(count = 10_000) {
 }
 
 function ServerGrid(props: { fetchRows: Fetch; count?: number; onServer?: (server: UseDataGridServerRowsScrollResult<Row>) => void; onReady?: (api: StoreApi<DataGridStoreState>) => void; defaultFilters?: FilterNode[]; rowClassName?: (row: Row) => string }) {
-  const server = useDataGridServerRows<Row>({ mode: "scroll", loadDelay: 0, maxConcurrentFetches: 16, getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
+  const server = useDataGridServerRows<Row>({ mode: "scroll", loadDelayMs: 0, maxConcurrentFetches: 16, getRowId: (row) => row.id, fetchRows: props.fetchRows, blockSize: 20, overscan: 5, defaultSpec: props.defaultFilters ? { filters: props.defaultFilters } : undefined });
   useEffect(() => {
     props.onServer?.(server);
   });
@@ -372,7 +372,7 @@ describe("scroll mode: 100k rows", () => {
     const fetchRows = vi.fn<Fetch>(async ({ start, end }) => ({ rows: makeRows(start, Math.min(end, total)), totalRowCount: total }));
     let latest!: UseDataGridServerRowsScrollResult<Row>;
     function Grid() {
-      const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 50, overscan: 30, loadDelay: 0, maxLoadedRows: cap });
+      const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 50, overscan: 30, loadDelayMs: 0, maxLoadedRows: cap });
       latest = server;
       return (
         <div style={{ height: 360, width: 400 }}>

@@ -33,7 +33,7 @@ mirror the change there.
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | visible window |
 | keep range | The wanted range grown by one more block on each side. Scroll mode aborts and evicts only blocks outside it. | |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | purge |
-| revalidation | A `refresh()` that the hook runs on a timer (`revalidateInterval`). | polling, auto-refresh |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | polling, auto-refresh |
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | preload |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
@@ -48,7 +48,7 @@ mirror the change there.
 | seed | The initial value a `default*` prop gives once, at mount. | |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
 | stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | outdated row |
-| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelay` and `reshape()` control it. | re-sort request |
+| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | re-sort request |
 
 ## Keyboard actions
 

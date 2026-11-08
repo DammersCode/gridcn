@@ -46,19 +46,19 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
    * Milliseconds between `refresh()` calls the hook runs itself while the page is visible. A tick waits for a request in flight,
    * and every refresh restarts the clock. At least 1000. Off by default.
    */
-  revalidateInterval?: number;
+  revalidateIntervalMs?: number;
   /**
    * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
    * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
    * reshape that falls due during a request, or while the page is hidden, waits and runs once. At least 250. Off by default:
    * a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
-  reshapeDelay?: number;
+  reshapeDelayMs?: number;
   /**
    * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
    * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
    * a local insert, delete, or move, and the start of a save drop it. A landed page that the pager does not reach within
-   * `revalidateInterval` (30 seconds without it) is dropped too. While a save is pending, the prefetch waits. Default `false`.
+   * `revalidateIntervalMs` (30 seconds without it) is dropped too. While a save is pending, the prefetch waits. Default `false`.
    */
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
@@ -99,7 +99,7 @@ export type UseDataGridServerRowsResult<TData> = {
    * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
-  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. */
   reshape: () => void;
 };
 
@@ -374,7 +374,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
           releaseMarks();
           return;
         }
-        const maxAge = readRevalidateInterval(live.current.options.revalidateInterval).interval ?? PREFETCH_MAX_AGE;
+        const maxAge = readRevalidateInterval(live.current.options.revalidateIntervalMs).interval ?? PREFETCH_MAX_AGE;
         entry.expiry = setTimeout(dropPrefetch, maxAge);
         setLanded({ view: ahead, rows: read.rows.filter((row) => row !== undefined) as TData[], read, guard: entry.guard, mark: entry.mark });
       })
@@ -463,7 +463,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, []);
   const restartClockRef = useRef<() => void>(() => {});
   const refreshRef = useRef<() => void>(() => {});
-  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelay, run: () => refreshRef.current(), busy: loading, resetKey: view, warn });
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, run: () => refreshRef.current(), busy: loading, resetKey: view, warn });
   const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
   useEffect(() => {
     setReshapeListener(requestReshape);
@@ -478,7 +478,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
-  const restartClock = useRevalidation({ interval: options.revalidateInterval, onTick: () => refreshRef.current(), busy: loading, resetKey: specKey });
+  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current(), busy: loading, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
   }, [restartClock]);

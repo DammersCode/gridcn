@@ -12,10 +12,10 @@ export const MAX_SEQUENTIAL_REVALIDATE_BLOCKS = 10;
 export const MIN_REVALIDATE_INTERVAL = 1000;
 export const MAX_REVALIDATE_INTERVAL = 2_147_483_647;
 
-export type FetchLimitOptions = { loadDelay?: number; maxConcurrentFetches?: number; maxLoadedRows?: number };
+export type FetchLimitOptions = { loadDelayMs?: number; maxConcurrentFetches?: number; maxLoadedRows?: number };
 
 export type FetchLimits = {
-  loadDelay: number;
+  loadDelayMs: number;
   maxConcurrentFetches: number;
   /** `Infinity` turns eviction off. */
   maxLoadedRows: number;
@@ -36,18 +36,19 @@ export function readFetchLimits(blockSize: number, options: FetchLimitOptions = 
   else if (typeof rows === "number" && Number.isFinite(rows) && rows >= 0) maxLoadedRows = Math.max(blockSize, Math.floor(rows));
   else if (rows !== undefined) maxLoadedRowsInvalid = true;
   return {
-    loadDelay: clampedInteger(options.loadDelay, DEFAULT_LOAD_DELAY, 0, MAX_LOAD_DELAY),
+    loadDelayMs: clampedInteger(options.loadDelayMs, DEFAULT_LOAD_DELAY, 0, MAX_LOAD_DELAY),
     maxConcurrentFetches: clampedInteger(options.maxConcurrentFetches, DEFAULT_MAX_CONCURRENT_FETCHES, 1, MAX_CONCURRENT_FETCHES),
     maxLoadedRows,
     maxLoadedRowsInvalid,
   };
 }
 
-/** The interval in ms, or `null` when revalidation is off; `invalid` marks a value that was set but unusable. */
-export function readRevalidateInterval(value: unknown): { interval: number | null; invalid: boolean } {
-  if (value === undefined) return { interval: null, invalid: false };
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return { interval: null, invalid: true };
-  return { interval: Math.min(MAX_REVALIDATE_INTERVAL, Math.max(MIN_REVALIDATE_INTERVAL, Math.floor(value))), invalid: false };
+/** The interval in ms, or `null` when revalidation is off; `invalid` marks a value that was set but unusable, `raised` a value below the minimum. */
+export function readRevalidateInterval(value: unknown): { interval: number | null; invalid: boolean; raised: boolean } {
+  if (value === undefined) return { interval: null, invalid: false, raised: false };
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return { interval: null, invalid: true, raised: false };
+  const interval = Math.min(MAX_REVALIDATE_INTERVAL, Math.floor(value));
+  return { interval: Math.max(MIN_REVALIDATE_INTERVAL, interval), invalid: false, raised: interval < MIN_REVALIDATE_INTERVAL };
 }
 
 export const MIN_RESHAPE_DELAY = 250;

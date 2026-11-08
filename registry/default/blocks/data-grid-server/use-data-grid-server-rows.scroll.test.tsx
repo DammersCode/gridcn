@@ -15,7 +15,7 @@ function countedServer(total = 1000) {
 }
 
 type Extra = Partial<UseDataGridServerRowsScrollOptions<Row>>;
-const optionsOf = (fetchRows: Fetch, extra: Extra): UseDataGridServerRowsScrollOptions<Row> => ({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
+const optionsOf = (fetchRows: Fetch, extra: Extra): UseDataGridServerRowsScrollOptions<Row> => ({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
 
 async function mount(fetchRows: Fetch, extra: Extra = {}, wrapper?: ({ children }: { children: ReactNode }) => ReactNode) {
   const view = renderHook(() => useDataGridServerRows<Row>(optionsOf(fetchRows, extra)), wrapper ? { wrapper } : undefined);

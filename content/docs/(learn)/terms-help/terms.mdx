@@ -38,7 +38,7 @@ A term row links to the page that explains it.
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | keep range | The wanted range grown by one more block on each side. | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
-| revalidation | A `refresh()` that the hook runs on a timer (`revalidateInterval`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
@@ -629,7 +629,7 @@ A search word in this table opens the page that answers it.
 | `restore view` | [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout) |
 | `restyle the grid` | [Styling model](/docs/concepts/styling-model) |
 | `retry failed fetch` | [Recover from load errors](/docs/scroll-mode/recover-load-errors) |
-| `revalidateInterval` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
+| `revalidateIntervalMs` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `revert edit` | [Undo and redo](/docs/clipboard-undo/undo-redo) |
 | `right align` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `right click menu` | [Context menu](/docs/rows-pages-menus/context-menu) |

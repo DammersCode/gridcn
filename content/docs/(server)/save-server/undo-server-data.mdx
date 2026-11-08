@@ -94,7 +94,7 @@ Three rules keep the combination safe:
 
 - Pass a custom `getRowId` to the hook, never to the grid, and pass `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
 - An entry whose rows left the loaded rows <NewBadge /> applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
-- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateInterval` refetches the same dataset, so it needs no `clear()`. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
+- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateIntervalMs` refetches the same dataset, so it needs no `clear()`. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
 
 When `undo` runs over a sparse array, it warns once in development.
 

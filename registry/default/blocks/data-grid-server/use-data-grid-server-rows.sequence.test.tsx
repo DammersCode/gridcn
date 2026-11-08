@@ -21,7 +21,7 @@ function keyset(size: number) {
 const never = () => new Promise<never>(() => {});
 const view = (end: number): RowRange => ({ start: 0, end });
 type Extra = Partial<UseDataGridServerRowsScrollOptions<Row, number>>;
-const optionsOf = (fetchRows: Fetch, extra: Extra = {}): UseDataGridServerRowsScrollOptions<Row, number> => ({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
+const optionsOf = (fetchRows: Fetch, extra: Extra = {}): UseDataGridServerRowsScrollOptions<Row, number> => ({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0, ...extra });
 
 function mount(fetchRows: Fetch, extra: Extra = {}) {
   return renderHook(() => useDataGridServerRows<Row, number>(optionsOf(fetchRows, extra)));
@@ -171,7 +171,7 @@ describe("scroll mode, sequential: the chain", () => {
     const cycle = ["a", "b", "a", "c"];
     let call = 0;
     const fetchRows = vi.fn(async ({ start, end }: ServerRowsRequest<Cursor>): Promise<ServerRowsAnswer<Row, Cursor>> => ({ rows: rowsOf(start, end - start), nextCursor: { after: cycle[call++]! } }));
-    const { result } = renderHook(() => useDataGridServerRows<Row, Cursor>({ mode: "scroll", loadDelay: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 }));
+    const { result } = renderHook(() => useDataGridServerRows<Row, Cursor>({ mode: "scroll", loadDelayMs: 0, getRowId: (r) => r.id, fetchRows, blockSize: 10, overscan: 0 }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     for (const end of [10, 20, 30, 40]) {
       report(result, view(end));
