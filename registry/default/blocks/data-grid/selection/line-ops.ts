@@ -29,8 +29,8 @@ export function selectColumn(selection: GridSelection, index: number, opts: Sele
 
 /**
  * Resolves every selected region to a flat list of rects, in the order operations
- * like delete/copy should apply: primary range, range stack, full-height column
- * selections, then full-width row selections.
+ * like delete/copy should apply: primary range, range stack, one full-height rect per
+ * run of selected columns, then one full-width rect per run of selected rows.
  */
 export function selectionRects(selection: GridSelection, rowCount: number, colCount: number): GridRect[] {
   const rects: GridRect[] = [];
@@ -38,11 +38,11 @@ export function selectionRects(selection: GridSelection, rowCount: number, colCo
     rects.push(selection.current.range);
     for (const rect of selection.current.rangeStack) rects.push(rect);
   }
-  for (const col of selection.columns.toArray()) {
-    rects.push({ x: col, y: 0, width: 1, height: rowCount });
+  for (const [start, end] of selection.columns.runs()) {
+    rects.push({ x: start, y: 0, width: end - start, height: rowCount });
   }
-  for (const row of selection.rows.toArray()) {
-    rects.push({ x: 0, y: row, width: colCount, height: 1 });
+  for (const [start, end] of selection.rows.runs()) {
+    rects.push({ x: 0, y: start, width: colCount, height: end - start });
   }
   return rects;
 }

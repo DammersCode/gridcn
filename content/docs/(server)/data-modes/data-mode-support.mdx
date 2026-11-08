@@ -596,7 +596,7 @@ Mode-neutral.
 
 ### Unknown total and cursor paging
 
-- Pages mode pages without a total through `hasMore`. It sends no cursor. Cursor paging is sequential scroll mode.
+- Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order.
 - **L**: n/a: The array holds every row.
 - **PC**: n/a: The length of `data` is the total.
 

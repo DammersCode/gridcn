@@ -81,7 +81,7 @@ Each grid adds one live region: a `role="status"` element with `aria-live="polit
 
 The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeated change reads its text again.
 
-With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers the rows of the current page.
+With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers every page, like the footer.
 
 A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
 

@@ -1882,9 +1882,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     const filterMoved = state.filterMode === "client" && state.filterState !== prev.filterState;
     const sortMoved = state.sortMode === "client" && state.sortState !== prev.sortState;
     if (!filterMoved && !sortMoved) return;
-    if (sameRows(state.viewIndex, prev.viewIndex) && sortKey(state) === sortKey(prev)) return;
-    const loaded = loadedRowCount(state.viewIndex, state.data);
-    store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < state.viewIndex.length) });
+    // A paged grid counts every page, like the footer, so a filter that changes only later pages announces too.
+    const view = fullViewOf(state.viewIndex);
+    if (sameRows(view, fullViewOf(prev.viewIndex)) && sortKey(state) === sortKey(prev)) return;
+    const loaded = loadedRowCount(view, state.data);
+    store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < view.length) });
   });
   return store;
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { CompactSelection } from "./compact-selection";
 import type { GridSelection } from "../types";
 import {
@@ -344,6 +344,17 @@ describe("selectionRects", () => {
       { x: 0, y: 1, width: 5, height: 1 },
       { x: 0, y: 3, width: 5, height: 1 },
     ]);
+  });
+
+  it("resolves 100,000 checked rows as one rect without materializing the channel", () => {
+    const rows = CompactSelection.fromSingleSelection([0, 100_000]);
+    const toArray = vi.spyOn(rows, "toArray");
+    const sel: GridSelection = { current: null, rows, columns: CompactSelection.fromSingleSelection([1, 3]) };
+    expect(selectionRects(sel, 100_000, 5)).toEqual([
+      { x: 1, y: 0, width: 2, height: 100_000 },
+      { x: 0, y: 0, width: 5, height: 100_000 },
+    ]);
+    expect(toArray).not.toHaveBeenCalled();
   });
 });
 

@@ -226,7 +226,7 @@ describe("exportGrid with a source", () => {
 describe("exportGrid with a source per data mode", () => {
   const filters = [{ filterId: "f1", columnId: "name", operator: "contains", value: "a" }] as never;
 
-  it("client pagination and server pagination: the held page is not the export", async () => {
+  it("server pagination: the held page is not the export", async () => {
     const read = captureDownload();
     await exportGrid(makeState([row("page-1"), row("page-2")]), { source: () => Promise.resolve([row("all-1"), row("all-2"), row("all-3")]), csvBom: false });
     expect(await read()).toBe("Name\r\nall-1\r\nall-2\r\nall-3");

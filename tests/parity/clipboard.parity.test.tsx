@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pasteText } from "@/registry/default/blocks/data-grid/clipboard/use-grid-clipboard";
+import { pasteText, serializeCopyScope } from "@/registry/default/blocks/data-grid/clipboard/use-grid-clipboard";
 import { ALL_MODES, mountMode } from "./modes";
 
 describe.each(ALL_MODES)("paste in mode %s", (mode) => {
@@ -42,5 +42,23 @@ describe.each(ALL_MODES)("paste in mode %s", (mode) => {
     const grid = await mountMode(mode, { props: { readOnly: true } });
     paste(grid, "9");
     expect(grid.changes).toHaveLength(0);
+  });
+});
+
+describe.each(["PC", "PS"] as const)("clipboard on a paged grid in mode %s", (mode) => {
+  it("a paste stops at the last row of the shown page", async () => {
+    const grid = await mountMode(mode);
+    const page = grid.viewIds();
+    grid.act(() => grid.state().actions.selectCellAt({ col: 1, row: page.length - 2 }));
+    grid.act(() => void pasteText(grid.state(), grid.state().actions, "70\n80\n90"));
+    const written = grid.changes.flatMap((change) => change.ops.map((op) => op.rowId));
+    expect(written).toEqual(page.slice(-2));
+  });
+
+  it("a column selection copies the rows of the shown page", async () => {
+    const grid = await mountMode(mode);
+    const copied = serializeCopyScope(grid.state(), { kind: "columns", columns: [1] });
+    expect(copied).toHaveLength(grid.viewIds().length);
+    expect(grid.viewIds().length).toBeLessThan(6);
   });
 });

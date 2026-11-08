@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CompactSelection } from "./compact-selection";
 import { emptySelection } from "./selection-ops";
 import type { GridSelection } from "../types";
@@ -25,6 +25,14 @@ describe("selectedColRangesForRow", () => {
   it("returns a single-col range per whole-column selection touching this row", () => {
     const selection: GridSelection = { ...emptySelection(), columns: CompactSelection.fromArray([1, 3]) };
     expect(selectedColRangesForRow(selection, 0, 5)).toEqual([[1, 2], [3, 4]]);
+  });
+
+  it("returns one range per run of whole-column selection without materializing the channel", () => {
+    const columns = CompactSelection.fromSingleSelection([0, 100_000]);
+    const toArray = vi.spyOn(columns, "toArray");
+    const selection: GridSelection = { ...emptySelection(), columns };
+    expect(selectedColRangesForRow(selection, 0, 100_000)).toEqual([[0, 100_000]]);
+    expect(toArray).not.toHaveBeenCalled();
   });
 
   it("returns the current range's col span only for rows it covers", () => {

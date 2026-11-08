@@ -33,9 +33,7 @@ function mergeRange(ranges: ColRange[], start: number, end: number): void {
 export function selectedColRangesForRow(selection: GridSelection, viewRow: number, colCount: number): ColRange[] {
   const ranges: ColRange[] = [];
   if (selection.rows.hasIndex(viewRow)) mergeRange(ranges, 0, colCount);
-  if (selection.columns.length > 0) {
-    for (const col of selection.columns.toArray()) mergeRange(ranges, col, col + 1);
-  }
+  for (const [start, end] of selection.columns.runs()) mergeRange(ranges, start, end);
   if (selection.current) {
     if (rectCoversRow(selection.current.range, viewRow)) {
       mergeRange(ranges, selection.current.range.x, selection.current.range.x + selection.current.range.width);

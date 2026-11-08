@@ -15,7 +15,7 @@ The `loading` prop and the number of rows in view decide what the grid shows. In
 |---|---|---|
 | none | `true` | Skeleton rows that fill the viewport. |
 | some | `true` | A slim indeterminate bar under the header. The rows stay on screen. |
-| none | `false` | The empty state, with the text `labels.grid.emptyState`. |
+| none | `false` | The empty state, with the text `labels.grid.emptyState`, or `labels.grid.noResults` when a filter or the search hides every row. |
 
 <Callout type="info" title="Where the data comes from">
 `loading` changes what the grid shows and fetches nothing. Pass the flag from the code that owns your request. The server rows hook returns `loading` in `gridProps`.
@@ -25,7 +25,7 @@ The `loading` prop and the number of rows in view decide what the grid shows. In
 
 While `loading` is true, `loadingState` replaces the skeleton and the bar. It takes a node, or a function that receives `{ reason }`. If no rows are in view, the reason is `"no-data"`. If rows are in view, it is `"rows-present"`. The grid renders the result under the header at full width, and the result owns its accessibility.
 
-`emptyState` takes the same two forms. If `data` is empty and no server filter or search is active, its reason is `"no-data"`. In every other case the reason is `"filtered"`:
+`emptyState` takes the same two forms. If `data` is empty and no server filter or search is active, its reason is `"no-data"`. In every other case the reason is `"filtered"`.
 
 The sample passes `data` without `onDataChange`, so it sets `readOnly`:
 

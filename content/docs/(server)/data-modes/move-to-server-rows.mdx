@@ -75,7 +75,7 @@ The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `
 | [Sort](/docs/data-modes/query-server-rows#sorting-a-scroll-grid) | The grid sorts `data`. `sortCompare` and the cell type compare the values. | Your server sorts. `sortCompare` does not run. |
 | [Filter](/docs/data-modes/query-server-rows#filtering-a-scroll-grid) | The grid runs `filterMatch` and the operators. | Your server filters. `filterMatch` does not run. Without `fetchFilterValues`, the header filter lists the values of the loaded rows. |
 | [Quick search](/docs/sort-filter-search/quick-search#server-mode) | Highlights matches in every row. | Puts the text in `spec.searchText`. The box highlights matches in the rows that come back. |
-| [Copy and paste](/docs/clipboard-undo/clipboard#server-mode) | Every row. | The rows that `data` holds. In scroll mode, a copy gives empty cells for rows that are not loaded, and a paste skips them. |
+| [Copy and paste](/docs/clipboard-undo/clipboard#server-mode) | Every displayed row. On a paged grid, the shown page. | The rows that `data` holds. In scroll mode, a copy gives empty cells for rows that are not loaded, and a paste skips them. |
 | [Checked rows](/docs/rows-live-data/select-server-rows) | The checks cover `data`. | `actions.selectAllMatching()` checks the whole result. Send `useDataGridSelectedRows()` to your server. |
 | [Export](/docs/import-export/export-whole-result) | Writes every row. | Writes the rows the grid holds. Pass a `source` to write the whole result. |
 | [Totals](/docs/data-modes/show-server-totals) | `useDataGridAggregate` totals every row. | `DataGridServerAggregateReporter` asks your server for the totals. |

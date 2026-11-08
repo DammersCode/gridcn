@@ -188,7 +188,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   keepCheckedRows?: boolean;
   /**
-   * Remembers a checked row by id when it leaves `data` (a page change, a window move, a filter that hides it) and checks it
+   * Remembers a checked row by id when it leaves the view (a page change, a window move, a filter that hides it) and checks it
    * again when it returns. Remembered rows stay out of every row action, the controlled `selection`, and select all;
    * `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with `totalRowCount`.
    * Default: `true` while `totalRowCount` is set, else `false`. Set `true` on a client grid to remember rows a client filter hides

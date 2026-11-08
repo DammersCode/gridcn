@@ -154,7 +154,7 @@ describe("pickEvictions", () => {
     expect(picks.map((pick) => pick.block.start)).toEqual([10]);
   });
 
-  it("stays above the cap when only the keep range and protected rows remain", () => {
+  it("stays above the cap when only the keep range remains", () => {
     const picks = pickEvictions({ loaded: [{ start: 40, end: 60 }], viewed: stamps({}), keep, blockSize, cap: 5 });
     expect(picks).toEqual([]);
   });

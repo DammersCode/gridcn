@@ -57,7 +57,7 @@ export function ImportOrders() {
 
 `onImport(rows)` decides where the rows land: append, replace, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 
-A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validation).
+A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
 
 `commitChange` reaches `onDataChange` and `onSave` like a gesture, and `useDataGridHistory` records one entry. Replacing `data` does neither.
 

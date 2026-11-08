@@ -9,7 +9,7 @@ import {
   DataGridBody,
   defineColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridServerRows, type ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
+import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 
 const TOTAL_COUNT = 10_000;
 const SIMULATED_LATENCY_MS = 300;
@@ -28,14 +28,8 @@ function rowAt(index: number): LazyRow {
 
 function createSimulatedApi() {
   return {
-    async fetchRows({ start, end, signal }: Pick<ServerRowsRequest, "start" | "end" | "signal">): Promise<LazyRow[]> {
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, SIMULATED_LATENCY_MS);
-        signal.addEventListener("abort", () => {
-          clearTimeout(timer);
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      });
+    async fetchRows(start: number, end: number): Promise<LazyRow[]> {
+      await new Promise((resolve) => setTimeout(resolve, SIMULATED_LATENCY_MS));
       const rows: LazyRow[] = [];
       for (let i = start; i < end; i++) rows.push(rowAt(i));
       return rows;
@@ -57,14 +51,15 @@ const columns = defineColumns<LazyRow>()([
  * second grid, a detail panel) get the same windows for free. Scrolling back never refetches.
  *
  * The fetcher receives the key itself as its argument (SWR 2.x convention), hence the tuple
- * cast rather than destructured parameters.
+ * cast rather than destructured parameters. It takes no request `signal`: `preload` caches an
+ * aborted block as a rejection, so the block would fail again when it scrolls back.
  */
 function LazySwrGrid(): ReactNode {
   const api = useMemo(() => createSimulatedApi(), []);
   const server = useDataGridServerRows<LazyRow>({
     mode: "scroll",
-    fetchRows: async ({ start, end, signal }) => ({
-      rows: await preload(["rows", start, end] as [string, number, number], (key) => api.fetchRows({ start: key[1], end: key[2], signal })),
+    fetchRows: async ({ start, end }) => ({
+      rows: await preload(["rows", start, end] as [string, number, number], (key) => api.fetchRows(key[1], key[2])),
       totalRowCount: TOTAL_COUNT,
     }),
   });

@@ -152,10 +152,23 @@ describe("serializeCopyScope", () => {
 });
 
 describe("resolvePasteTarget with a huge row selection", () => {
-  it("resolves the lowest selected row without spreading the whole channel", () => {
-    const everyRow = Array.from({ length: 1_000_000 }, (_, i) => i + 5);
-    const s = fakeState({ selection: { ...emptySelection(), rows: CompactSelection.fromArray(everyRow) } });
+  it("resolves the lowest of 100,000 checked rows without materializing the channel", () => {
+    const checked = CompactSelection.fromSingleSelection([5, 100_005]);
+    const toArray = vi.spyOn(checked, "toArray");
+    const s = fakeState({ selection: { ...emptySelection(), rows: checked }, activeCell: null });
     expect(resolvePasteTarget(s)).toEqual({ col: 0, row: 5 });
+    expect(toArray).not.toHaveBeenCalled();
+  });
+
+  it("resolves the lowest selected column without materializing either channel", () => {
+    const checked = CompactSelection.fromSingleSelection([0, 100_000]);
+    const selectedColumns = CompactSelection.fromArray([3, 1]);
+    const rowsToArray = vi.spyOn(checked, "toArray");
+    const columnsToArray = vi.spyOn(selectedColumns, "toArray");
+    const s = fakeState({ selection: { ...emptySelection(), rows: checked, columns: selectedColumns }, activeCell: null });
+    expect(resolvePasteTarget(s)).toEqual({ col: 1, row: 0 });
+    expect(rowsToArray).not.toHaveBeenCalled();
+    expect(columnsToArray).not.toHaveBeenCalled();
   });
 });
 

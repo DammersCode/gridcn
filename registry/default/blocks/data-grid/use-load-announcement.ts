@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useDataGridStoreApi } from "./store";
 import { loadedRowCount, nextAnnouncement } from "./store/announcements";
+import { fullViewOf } from "./store/compute";
 import type { DataGridStoreState } from "./store";
 
 /** What the server evaluates: the client modes announce their own filter and sort changes. */
@@ -47,8 +48,9 @@ export function useLoadAnnouncement(loading: boolean, error: unknown): void {
         storeApi.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
         return;
       }
-      const loaded = loadedRowCount(state.viewIndex, state.data);
-      storeApi.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < state.viewIndex.length) });
+      const view = fullViewOf(state.viewIndex);
+      const loaded = loadedRowCount(view, state.data);
+      storeApi.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < view.length) });
     });
     return () => {
       cancelled = true;

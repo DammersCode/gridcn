@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_MODES, mountMode } from "./modes";
+import { ALL_MODES, makeRows, mountMode } from "./modes";
 
 const gt1 = [{ filterId: "f", columnId: "n", operator: "gt", value: "1" }] as const;
 
@@ -34,6 +34,23 @@ describe.each(ALL_MODES)("result announcements in mode %s", (mode) => {
     grid.setFilters([...gt1] as never);
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
     expect(grid.state().liveAnnouncement).toBeNull();
+  });
+});
+
+describe("result announcements on a client-paged grid", () => {
+  it("counts the rows of every page, like the footer", async () => {
+    const grid = await mountMode("PC", { rows: makeRows(10), props: { announceResults: true } });
+    grid.setFilters([...gt1] as never);
+    expect(grid.viewIds()).toHaveLength(4);
+    expect(grid.state().liveAnnouncement).toMatchObject({ kind: "results", count: 8 });
+  });
+
+  it("announces a filter that changes only later pages", async () => {
+    const grid = await mountMode("PC", { rows: makeRows(10), props: { announceResults: true } });
+    const firstPage = grid.viewIds();
+    grid.setFilters([{ filterId: "f", columnId: "n", operator: "lt", value: "8" }] as never);
+    expect(grid.viewIds()).toEqual(firstPage);
+    expect(grid.state().liveAnnouncement).toMatchObject({ kind: "results", count: 8 });
   });
 });
 

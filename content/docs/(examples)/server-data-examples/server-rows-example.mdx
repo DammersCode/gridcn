@@ -70,7 +70,7 @@ export function OrdersGrid() {
 }
 ```
 
-- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` in pages mode. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
+- The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` until a page answer returns `nextCursor`. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
 - `fetchRows` resolves `{ rows, totalRowCount }`. A server without a count resolves `{ rows, hasMore }`. [Server rows options](/docs/add-options/server/server-rows-options#serverrowsanswer) lists how the hook checks an answer.
 - `server.gridProps` <NewBadge /> carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `loading`, `error`, `onRetry`, `plugins`, and your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). A header click sorts only with `headerClickBehavior="sort"`.
 - Treat the request as untrusted input. Pass it through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query. It throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. Cap the request body size.
