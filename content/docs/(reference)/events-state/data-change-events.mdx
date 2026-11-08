@@ -85,7 +85,7 @@ An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, 
 | `rollback` | The revert of a refused save |
 | `merge` <NewBadge /> | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
 | `id-swap` <NewBadge /> | `actions.replaceRowId` or `actions.replaceRowIds`. `onSave` does not receive it, and history does not record it |
-| `stream` | A batch from `updateCells` or `updateRows` |
+| `stream` | A batch from `updateCells` or `updateRows`, or a `deleteRowsById` call with `source: "stream"` |
 | `replace` | A batch from find and replace |
 | `app` | A change you apply with the history `record` function |
 

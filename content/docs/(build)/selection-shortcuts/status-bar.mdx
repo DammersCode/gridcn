@@ -6,13 +6,13 @@ type: feature
 aliases: ["selection summary", "sum of selected cells", "selection stats", "selection total"]
 ---
 
-Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from the grid's own data. `<DataGridStatusBar />` renders the bar, and `useDataGridSelectionStats` is the headless hook. Both read committed values only, never the draft of an open editor, and write nothing, so `readOnly` grids work unchanged.
+Users read totals of a selection without exporting it. `data-grid-status-bar` computes them from the grid's own data. `<DataGridStatusBar />` renders the bar, and `useDataGridSelectionStats` is the headless hook. Both read committed values only, never the draft of an open editor, and write nothing, so `readOnly` grids work unchanged. For a total of a whole column that stays in sight, use a [pinned totals row](/docs/rows-pages-menus/pinned-rows).
 
 <ComponentPreview name="data-grid-status-bar-demo" />
 
 <InstallCommand item="data-grid-status-bar" manual manualSlot={<ManualInstall item="data-grid-status-bar" />} />
 
-Place the bar inside `DataGridProvider`, next to `DataGridRoot`:
+The `data-grid-status-bar` item depends on the shadcn `button` component. Place the bar inside `DataGridProvider`, next to `DataGridRoot`:
 
 ```tsx
 import {
@@ -70,7 +70,7 @@ The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/
 
 A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region.
 
-Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size. The bar aggregates the selected cells, which sit on the current page. The `data-grid-status-bar` item depends on the shadcn `button` component.
+Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size. The bar aggregates the selected cells, which sit on the current page.
 
 ## When it computes [#when-it-computes]
 

@@ -44,7 +44,7 @@ export function TickerFeed({ url }: { url: string }) {
 }
 ```
 
-One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again.
+One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row, pass a new `data` array.
 
 A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRowsById` call takes at most 100,000 ids under the same rule.
 
@@ -58,7 +58,7 @@ A call with `source: "stream"` <NewBadge /> writes into a `readOnly` grid and in
 
 ## Sorted and filtered views [#sorted-and-filtered-views]
 
-If a patch changes a value that the sort or filter reads, the row keeps its position and the grid sets a stale flag. Read the flag with `useDataGridViewStale` and give the user a control to re-sort. Render it inside the provider too:
+If a patch changes a value that the sort or filter reads, the row keeps its position and the grid sets a stale flag. Read the flag with `useDataGridViewStale` and give the user a control to re-sort. Render it inside the provider:
 
 ```tsx
 import {
@@ -92,7 +92,7 @@ With `sortMode="server"` <NewBadge /> or `filterMode="server"`, the server order
 
 ## Control the data yourself [#controlled-mode]
 
-In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again. If you rebuild the array before you store it, the grid computes those results again on every update.
+In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again. A rebuilt array makes the grid compute them again on every update.
 
 ## Undo and save [#undo-history]
 
@@ -115,7 +115,7 @@ A batch without `reorder: "immediate"` does not move the selection, the active c
 
 If a value fails `validate`, the grid skips it and applies the rest of the batch. `onValidationError` then reports the skipped values with `source: "stream"`. See [Edit and validation events](/docs/events-state/edit-validation-events). When the producer already checked the values, set `skipValidation: true`.
 
-A batch into a column with an async schema changes nothing until the schema answers. The accepted cells then commit together as one `onDataChange`. A write that changes the rows, or a rebuild of the view, supersedes the held batch, and the grid drops its late answer. This list covers the common triggers, not every path:
+A batch into a column with an async schema changes nothing until the schema answers. The accepted cells then commit together as one `onDataChange`. A write that changes the rows, or a rebuild of the view, supersedes the held batch, and the grid drops its late answer. The common triggers are:
 
 - A newer batch that also waits for an async schema, or an `"immediate"` batch that writes a value
 - An edit, paste, fill, cell clear, undo, redo, rollback, or row operation
@@ -125,7 +125,7 @@ A plain `updateCells` call that does not wait keeps the held batch, until the ro
 
 ## Read the verdict [#what-the-verdict-tells-you]
 
-`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons, such as an unknown row or an unchanged value. It also shows how to [flash the written cells](/docs/rows-live-data/read-push-verdict#flash-cells).
+`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons. It also shows how to [flash the written cells](/docs/rows-live-data/read-push-verdict#flash-cells).
 
 ## Related
 

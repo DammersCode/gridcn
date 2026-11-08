@@ -10,7 +10,7 @@ A filter hides the rows that fail a condition on one column. `filterState` holds
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
 
-`DataGridFilterMenu` comes with the [toolbar add-on](/docs/sort-filter-search/toolbar#wiring). Put it inside `<DataGridToolbar>` <NewBadge />. Filtering from code needs no add-on.
+`DataGridFilterMenu` <NewBadge /> comes with the [toolbar add-on](/docs/sort-filter-search/toolbar#wiring). Put it inside `<DataGridToolbar>`. Filtering from code needs no add-on.
 
 ## Filter from code
 
@@ -86,7 +86,7 @@ By default, every column offers the text operators: `contains`, `notContains`, `
 | `isNoneOf` | `string[]` | The cell text equals no entry. Case does not matter. An empty list matches every row. |
 | `empty`, `notEmpty` | none | The cell text is empty, or is not. |
 
-Every value is text, even for number and date columns. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
+Every value is text, even for number and date columns, as in `{ columnId: "stock", operator: "lt", value: "5" }`. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
 
 Four fields change this behavior for one column:
 
@@ -101,7 +101,7 @@ A cell type sets the same defaults with `filter.operators` and `filter.match`. T
 
 <NewBadge />
 
-A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. A server vocabulary gets a name in the grid this way. A `FilterOperator` is a built-in operator or any string. `BuiltInFilterOperator` is the closed set of built-in operators.
+A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filterOperators`. The filter menu shows the `label`, and the filter stores the `id`. A `FilterOperator` is a built-in operator or any string. `BuiltInFilterOperator` is the closed set of built-in operators.
 
 This column registers one operator:
 

@@ -16,22 +16,22 @@ export const FINDER = [
   {
     id: "sort-filter-search",
     title: "Sort, filter, and search",
-    pages: ["/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views"],
+    pages: ["/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views", ["/docs/sort-filter-search/toolbar", "Add a toolbar with search and a filter menu"], ["/docs/sort-filter-search/header-filter", "Filter from the column header"]],
   },
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"], "/docs/recipes-custom-code/write-cell-type"],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"]],
   },
   {
     id: "ui-patterns",
     title: "UI patterns",
-    pages: ["/docs/recipes-custom-code/open-detail-panel", "/docs/recipes-custom-code/run-bulk-actions", "/docs/recipes-custom-code/remember-filters-layout", "/docs/recipes-custom-code/link-multiple-grids", "/docs/recipes-custom-code/write-plugin"],
+    pages: ["/docs/recipes-custom-code/open-detail-panel", "/docs/recipes-custom-code/run-bulk-actions", "/docs/recipes-custom-code/remember-filters-layout"],
   },
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", "/docs/cheatsheets-messages/keyboard-shortcuts"],
+    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], "/docs/cheatsheets-messages/keyboard-shortcuts"],
   },
   {
     id: "columns-rows",

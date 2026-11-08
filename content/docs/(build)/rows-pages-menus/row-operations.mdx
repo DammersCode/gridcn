@@ -53,7 +53,7 @@ Both factories can return a promise. The grid waits until every row settles and 
 
 `ctx.signal` <NewBadge /> aborts in those cases and when the grid unmounts.
 
-An operation can land while a cell editor is open. The editor follows its row to the new position. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
+If a cell editor is open during an operation, the editor follows its row. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
 
 ## Run from code [#programmatic-actions]
 
@@ -85,7 +85,7 @@ function RowTools() {
 - `deleteRows(viewRowIndexes)` deletes the named rows as one change.
 - `deleteRowsById(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection and the active cell, but remembered checks of hidden rows stay. An open edit that survives the delete keeps its cell.
+Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay. An open edit that survives the delete keeps its cell.
 
 ## Shortcuts [#default-shortcuts]
 
@@ -102,7 +102,7 @@ Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Short
 
 ## Confirm a delete
 
-`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById` without `source: "stream"`. It receives `rowIds`, the ids that go. It receives `hiddenCount`, the number of hidden checked rows that stay. It receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsById` without `source: "stream"`. It receives `rowIds`, the ids that go, and `hiddenCount`, the number of hidden checked rows that stay. It also receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
 A bulk delete button <NewBadge /> calls `deleteRowsById`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
@@ -183,11 +183,11 @@ While a promise is pending, a second delete does nothing. After the promise reso
   Settle the promise on every path. A dismissed dialog is a path too. A promise that never settles blocks every later delete until `gateTimeoutMs` <NewBadge /> aborts it.
 </Callout>
 
-Clearing cell contents with <kbd>Delete</kbd> is not a row delete. It does not call `onBeforeDeleteRows`. Undo restores a confirmed delete.
+Clearing cell contents with <kbd>Delete</kbd> is not a row delete and skips `onBeforeDeleteRows`. Undo restores a confirmed delete.
 
 ## Server mode
 
-Row operations change the rows that the grid holds in memory. They never ask a server for rows. Each operation calls `onDataChange` and then `onSave` with the same change. `change.ops` holds one `insert` or `delete` operation per row, keyed by row id. A moved row has a `move` operation.
+Row operations change the rows in memory and never ask a server for rows. Each operation calls `onDataChange` and then `onSave` with the same change. `change.ops` holds one `insert` or `delete` operation per row, keyed by row id. A moved row has a `move` operation.
 
 If the promise from `onSave` rejects, or resolves with a `rejected` entry for a row, the grid reverts that row. A refused insert removes the row. A refused delete restores it. [Handle refused saves](/docs/save-server/handle-refused-saves) shows the full contract.
 

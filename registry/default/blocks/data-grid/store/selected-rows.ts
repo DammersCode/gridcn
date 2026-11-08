@@ -1,5 +1,6 @@
 import type { ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
+import { viewRowOfDataIndex } from "./row-index";
 
 /** The selection as a value a bulk action sends to a server. */
 export type DataGridSelectedRows =
@@ -22,6 +23,46 @@ export type DataGridSelectedRows =
     };
 
 type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "searchText">;
+
+type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount">;
+
+const excludedOutsideViewCache = new WeakMap<ReadonlySet<string>, { data: readonly unknown[]; viewIndex: readonly number[]; count: number }>();
+
+function excludedOutsideView(s: CountSource, resolveRowIds: () => ReadonlyMap<string, number>): number {
+  const excluded = s.hiddenCheckedRowIds;
+  if (excluded.size === 0) return 0;
+  const cached = excludedOutsideViewCache.get(excluded);
+  if (cached && cached.data === s.data && cached.viewIndex === s.viewIndex) return cached.count;
+  const dataRowById = resolveRowIds();
+  let count = 0;
+  for (const id of excluded) {
+    const dataRow = dataRowById.get(id);
+    if (dataRow === undefined || viewRowOfDataIndex(s.viewIndex, dataRow) < 0) count++;
+  }
+  excludedOutsideViewCache.set(excluded, { data: s.data, viewIndex: s.viewIndex, count });
+  return count;
+}
+
+/**
+ * The `count` of {@link readSelectedRows} in "all matching" mode without listing the ids: `totalRowCount`
+ * minus the unchecked loaded view rows and the exclusions outside the view. Linear in the unchecked view rows.
+ */
+export function allMatchingCheckedCount(s: CountSource, resolveRowIds: () => ReadonlyMap<string, number>): number | null {
+  const total = s.totalRowCount;
+  if (typeof total !== "number") return null;
+  const viewLength = s.viewIndex.length;
+  let unchecked = 0;
+  const countGap = (start: number, end: number): void => {
+    for (let viewRow = start; viewRow < end; viewRow++) if (s.data[s.viewIndex[viewRow]!] !== undefined) unchecked++;
+  };
+  let cursor = 0;
+  for (const [start, end] of s.selection.rows.runs()) {
+    countGap(cursor, Math.min(start, viewLength));
+    cursor = Math.max(cursor, end);
+  }
+  countGap(cursor, viewLength);
+  return Math.max(0, total - unchecked - excludedOutsideView(s, resolveRowIds));
+}
 
 /** Reads the checked rows as ids, or as "all matching except these ids". */
 export function readSelectedRows(s: Source): DataGridSelectedRows {

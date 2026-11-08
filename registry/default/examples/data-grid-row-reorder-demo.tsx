@@ -30,10 +30,12 @@ type MoveOp = { type: "move"; rowId: string; row: DemoRow; from: number; to: num
 function MoveDownButton(): ReactNode {
   const actions = useDataGridActions();
   const activeCell = useDataGridActiveCell();
-  const checkedRows = useDataGridSelection().rows.toArray();
-  const rows = checkedRows.length > 0 ? checkedRows : activeCell ? [activeCell.row] : [];
+  const checked = useDataGridSelection().rows;
+  const hasChecked = checked.length > 0;
+  // Read the indexes on click: a render-time toArray() copies every checked row.
+  const moveDown = () => actions.moveRowsBy(hasChecked ? checked.toArray() : activeCell ? [activeCell.row] : [], 1);
   return (
-    <Button variant="outline" size="xs" disabled={rows.length === 0} onClick={() => actions.moveRowsBy(rows, 1)}>
+    <Button variant="outline" size="xs" disabled={!hasChecked && !activeCell} onClick={moveDown}>
       Move down
     </Button>
   );

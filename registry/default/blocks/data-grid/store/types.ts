@@ -1009,7 +1009,7 @@ export type DataGridActions = {
   setAllRowsSelected(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
-   * No-op with a development warning without `totalRowCount` and `rememberCheckedRows`. Read the outcome with `useDataGridSelectedRows`.
+   * No-op with a development warning without `totalRowCount` or with `rememberCheckedRows` off. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
@@ -1198,7 +1198,7 @@ export type DataGridActions = {
   deleteRows(viewRowIndexes: number[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
-   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, unchecks the rows, and leaves the cursor and the other checked rows where they are.
+   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the cursor follow their rows: a range collapses onto the cursor, and the cursor clears when its row is deleted.
    */
   deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): RowActionResult;
   /**
@@ -1218,7 +1218,8 @@ export type DataGridActions = {
    * off, readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
    * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
-   * On a paged grid the indices are page rows, and an index or `to` outside the shown page is out of range.
+   * On a paged grid the indices are page rows, and an index or `to` outside the shown page is out of range;
+   * the `move` operations still carry `from` and `to` as indices of the whole data array.
    * Returns `true` when rows moved, `false` for any no-op — the drag gesture uses the verdict for its a11y announcement.
    */
   reorderRows(rows: number | readonly number[], to: number): boolean;

@@ -99,6 +99,7 @@ import {
 import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
+import { allMatchingCheckedCount } from "./selected-rows";
 
 /**
  * Resolves the `cellTypes` prop against the built-ins: entries merge OVER the built-ins, and a
@@ -115,15 +116,22 @@ function resolveCellTypes(provided: Record<string, CellType | null> | undefined)
   return out;
 }
 
-/** The announcement for a selection change, or nothing when the checked total (rows channel plus hidden checked rows) stays equal. */
+type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount">;
+
+/** The checked total: the rows channel plus the hidden checked rows, or the "all matching" count (`null` for a result of unknown size). */
+function checkedTotal(s: CheckedState, resolveRowIds: () => ReadonlyMap<string, number>): number | null {
+  return s.allMatching ? allMatchingCheckedCount(s, resolveRowIds) : s.selection.rows.length + s.hiddenCheckedRowIds.size;
+}
+
+/** The announcement for a selection change, or nothing when the checked total stays equal or is unknown. */
 function checkedChange(
   s: DataGridStoreState,
-  next: GridSelection,
-  hiddenAfter = s.hiddenCheckedRowIds.size,
+  next: Pick<DataGridStoreState, "selection"> & Partial<Pick<DataGridStoreState, "hiddenCheckedRowIds" | "allMatching">>,
+  resolveRowIds: () => ReadonlyMap<string, number>,
 ): Pick<DataGridStoreState, "liveAnnouncement"> | Record<string, never> {
-  const before = s.selection.rows.length + s.hiddenCheckedRowIds.size;
-  const after = next.rows.length + hiddenAfter;
-  return before === after ? {} : { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
+  const after = checkedTotal({ ...s, ...next }, resolveRowIds);
+  if (after === null || after === checkedTotal(s, resolveRowIds)) return {};
+  return { liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowsChecked", after) };
 }
 
 /** Longest wait between two "view stale" announcements of one grid. */
@@ -276,6 +284,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   };
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
+  const announceChecked = (s: DataGridStoreState, next: Parameters<typeof checkedChange>[1]) =>
+    checkedChange(s, next, () => rowIndexCache.resolve(s.data, s.getRowId));
   /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
   const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
@@ -881,7 +891,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
-          ...checkedChange(s, emptySelection(), 0),
+          ...announceChecked(s, { selection: emptySelection(), ...NO_REMEMBERED_ROWS }),
           ...NO_REMEMBERED_ROWS,
           rowRangeGesture: null,
         });
@@ -1451,7 +1461,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const endsAllMatching = s.allMatching && !additive && !extendFromLast;
         set({
           selection: written,
-          ...checkedChange(s, written),
+          ...announceChecked(s, { selection: written, ...(endsAllMatching ? NO_REMEMBERED_ROWS : {}) }),
           ...(endsAllMatching ? NO_REMEMBERED_ROWS : {}),
           lastHighlightedRow: index,
           rowRangeGesture: extendFromLast
@@ -1481,7 +1491,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           return;
         }
         const nextSelection = { ...selection, current: null, rows };
-        set({ selection: nextSelection, ...checkedChange(s, nextSelection), rowRangeGesture });
+        set({ selection: nextSelection, ...announceChecked(s, { selection: nextSelection }), rowRangeGesture });
       },
       selectColumn(index, opts = {}) {
         const s = get();
@@ -1527,7 +1537,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const result = selectAllProgression(s.selection, s.viewIndex.length, s.visibleColumns.length, active, isEmptyAt, priorStage);
         set({
           selection: result.selection,
-          ...checkedChange(s, result.selection, 0),
+          ...announceChecked(s, { selection: result.selection, ...NO_REMEMBERED_ROWS }),
           ...(s.hiddenCheckedRowIds.size > 0 || s.allMatching ? NO_REMEMBERED_ROWS : {}),
           selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active },
         });
@@ -1538,7 +1548,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (!enableRowSelection) return;
         const base = CompactSelection.adopt(selection.rows);
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
-        set({ selection: next, ...checkedChange(s, next), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
+        set({ selection: next, ...announceChecked(s, { selection: next }), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
       armRowDragAnchor(index) {
         const s = get();
@@ -1554,7 +1564,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const next = { ...selection, rows };
         set({
           selection: next,
-          ...checkedChange(s, next, checked ? s.hiddenCheckedRowIds.size : 0),
+          ...announceChecked(s, { selection: next, ...(checked ? {} : NO_REMEMBERED_ROWS) }),
           rowRangeGesture: null,
           ...(checked ? {} : NO_REMEMBERED_ROWS),
         });

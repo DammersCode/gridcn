@@ -81,7 +81,7 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 - The function forms of column `readOnly`, `getRowClassName`, `getCellClassName`, and column `cellClassName` skip holes. They never receive an `undefined` row.
 - `getRowId` <NewBadge /> runs on loaded rows only. A hole gets a placeholder id that names a position and not a record. `isPlaceholderRowId(id)` from `data-grid` tells a placeholder id from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only.
 - A skeleton cell opens no editor, and the grid skips a write to an unloaded row.
-- `deleteRows` <NewBadge />, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row, and warn once per grid in development. Delete known rows with `deleteRowsById`. See [Row operations](/docs/rows-live-data/change-server-rows#scroll-mode).
+- `deleteRows` <NewBadge />, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row, and warn once per grid in development. Delete known rows with `deleteRowsById`. See [Change server rows](/docs/rows-live-data/change-server-rows#scroll-mode).
 
 ## Edit loaded rows [#editing-loaded-rows]
 

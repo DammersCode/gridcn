@@ -234,7 +234,7 @@ function ProviderPagedGrid() {
 }
 
 describe("DataGridPaginationBar: inside a provider that pages its view", () => {
-  it("reads the pager from the grid, pages the rows, and sorts across pages", async () => {
+  it("reads the pager from the grid, pages the rows, and marks the sorted header", async () => {
     await render(<ProviderPagedGrid />);
     await expect.element(page.getByText("1–25 of 101")).toBeInTheDocument();
     await page.getByRole("button", { name: "Next page" }).click();

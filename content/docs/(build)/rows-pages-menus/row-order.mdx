@@ -60,7 +60,7 @@ A press on the handle of a checked row drags every checked row. They land togeth
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They act on the checked rows. With no checked row, they act on the rows of the selected range, then on the active row. The gaps between rows stay.
 
-A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode. They do nothing in a `readOnly` grid or while a cell editor is open. With `keepCheckedRows`, they do nothing when every checked row is hidden. Without it, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
+A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode. They do nothing in a `readOnly` grid or while a cell editor is open. With `keepCheckedRows`, they do nothing when every checked row is hidden or while "all matching" is on. Without it, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
 
 ## Move rows from code
 
@@ -87,6 +87,8 @@ function MoveTools() {
 
 `rows` is one view index or a list. `to` is the final index of the first row. Moving row 0 to index 3 shifts rows 1 to 3 up. A list moves as one block: the rows keep their order and land next to each other. A repeated index counts once. `to` must leave room for the whole block. `moveRowsBy` shifts every listed row by `delta` and keeps the gaps.
 
+Under client pagination <NewBadge />, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
+
 These calls return `false` and change nothing in these cases. For an active sort or filter and for unloaded rows, the grid also warns in development:
 
 - `enableRowReorder` is off, or the grid is `readOnly`.
@@ -96,7 +98,7 @@ These calls return `false` and change nothing in these cases. For an active sort
 - The list is empty, or an index or `to` is outside the grid.
 - For `moveRowsBy`, a row leaves the grid.
 
-After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. If the rows of a selected range end up next to each other, the range stays. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows.
+After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. If the rows of a selected range end up next to each other, the range stays. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows. Under client pagination, the announced positions count the rows of the shown page, like the row numbers.
 
 The grid does not recompute search matches after a move. They point at other rows until the next view rebuild, such as a new search text. Presence highlights in the view-index range form go stale the same way. The row-id range form follows its rows. See [Show presence](/docs/rows-live-data/show-presence).
 
@@ -104,7 +106,7 @@ The grid does not recompute search matches after a move. They point at other row
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"` <NewBadge />, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows. Under client pagination, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
+With `sortMode="server"` <NewBadge />, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows.
 
 ## Related
 

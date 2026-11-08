@@ -6,7 +6,7 @@ type: concept
 aliases: ["a11y", "assistive technology", "accessibility"]
 ---
 
-The grid follows the WAI-ARIA grid pattern. This page lists the roles and counts, the focus rules, the loading state, and the live regions.
+The grid follows the WAI-ARIA grid pattern.
 
 ## Conformance target [#conformance-target]
 
@@ -76,7 +76,7 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 Each grid adds one live region: a `role="status"` element with `aria-live="polite"`. A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. The region reads these changes, among others:
 
 - A row move, for example "Row 3 moved to position 4 of 8" (`labels.markers.reorderAnnouncement`).
-- The number of checked rows after a check, an uncheck, Escape, or Ctrl/Cmd+A, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows.
+- The number of checked rows after a check, an uncheck, Escape, or Ctrl/Cmd+A, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows. Under "all matching", it counts the result minus the unchecked rows.
 - "All matching rows checked" after select all matching on a result of unknown size (`labels.grid.allMatchingChecked`).
 
 The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeated change reads its text again.

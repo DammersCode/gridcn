@@ -6,6 +6,7 @@ import { holeRowId } from "../data-grid-sdk";
 import { DataGridProvider, useDataGridStoreApi, useDataGridSelectedRows, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { CompactSelection } from "../selection/compact-selection";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
+import { readSelectedRows } from "./selected-rows";
 
 type Row = { id: string; name: string };
 
@@ -357,6 +358,61 @@ describe("selectAllMatching announcement", () => {
     const unknown = mount({ totalRowCount: null });
     act(() => unknown.state().actions.selectAllMatching());
     expect(unknown.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", partial: true });
+  });
+
+  it("a later uncheck or check reads the result size minus every exclusion, across pages", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    m.uncheck(1);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 8 });
+    m.rerender({ data: PAGE_TWO });
+    m.uncheck(0);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 7 });
+    m.rerender({ data: PAGE_ONE });
+    m.check(1);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 8 });
+    expect(readSelectedRows(m.state()).count).toBe(8);
+  });
+
+  it("the count skips unloaded rows of a scroll-mode window, like the selection value", () => {
+    const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }, undefined] as Row[];
+    const m = mount({ data: sparse, totalRowCount: 20 });
+    act(() => m.state().actions.selectAllMatching());
+    m.uncheck(1, 2);
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 19 });
+    expect(readSelectedRows(m.state()).count).toBe(19);
+  });
+
+  it("a later uncheck on a result of unknown size stays quiet", () => {
+    const m = mount({ totalRowCount: null });
+    act(() => m.state().actions.selectAllMatching());
+    const announced = m.state().liveAnnouncement;
+    m.uncheck(1);
+    expect(m.state().liveAnnouncement).toBe(announced);
+  });
+
+  it("a plain number click that ends all-matching reads the one checked row", () => {
+    const m = mount();
+    act(() => m.state().actions.selectAllMatching());
+    m.uncheck(0);
+    m.rerender({ data: PAGE_TWO });
+    act(() => m.state().actions.selectRow(1));
+    expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 1 });
+  });
+});
+
+describe("onBeforeDeleteRows while all-matching is on", () => {
+  it("passes hiddenCount 0: the set holds exclusions, and the delete ends all-matching", () => {
+    const gate = vi.fn(() => true);
+    const props = { onBeforeDeleteRows: gate, onDataChange: () => {} };
+    const m = mount(props);
+    act(() => m.state().actions.selectAllMatching());
+    m.uncheck(1);
+    m.rerender({ ...props, data: PAGE_TWO });
+    expect(m.remembered()).toEqual(["b"]);
+    act(() => m.state().actions.deleteRows([0]));
+    expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 0, signal: expect.any(AbortSignal) });
+    expect(m.state().allMatching).toBe(false);
   });
 });
 

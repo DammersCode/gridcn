@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useDataGridServerPager } from "./use-data-grid-server-pager";
 
 describe("useDataGridServerPager", () => {
-  it("passes total/page/pageSize straight through", () => {
+  it("passes page and totalRowCount through and derives pageCount", () => {
     const onPageChange = vi.fn();
     const { result } = renderHook(() => useDataGridServerPager({ page: 3, pageSize: 20, totalRowCount: 240, onPageChange }));
     expect(result.current.pager.page).toBe(3);
@@ -79,7 +79,7 @@ describe("useDataGridServerPager, page reconcile", () => {
     expect(onPageChange).toHaveBeenCalledExactlyOnceWith(2);
   });
 
-  it("fires once for a shrinking count and not again on an unrelated rerender", () => {
+  it("fires once for an out-of-range page at mount and not again on an unrelated rerender", () => {
     const onPageChange = vi.fn();
     const { rerender } = renderHook(
       ({ totalRowCount }: { totalRowCount: number; tick: number }) => useDataGridServerPager({ page: 99, pageSize: 20, totalRowCount, onPageChange }),

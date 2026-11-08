@@ -151,6 +151,15 @@ describe("paging the view: search and reorder", () => {
     expect(change.ops).toEqual([expect.objectContaining({ type: "move", from: 3, to: 5 })]);
   });
 
+  it("a move on a paged grid announces page row numbers over the page row count", () => {
+    const m = mount({ enableRowReorder: true });
+    act(() => m.state().actions.setPage(2));
+    act(() => void m.state().actions.reorderRows(0, 2));
+    expect(m.state().rowMoveAnnouncement).toBe("Row 1 moved to position 3 of 3");
+    act(() => void m.state().actions.moveRowsBy([0, 1], 1));
+    expect(m.state().rowMoveAnnouncement).toBe("2 rows moved to position 2 of 3");
+  });
+
   it("reorderRows stays blocked while a sort is active", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ enableRowReorder: true });

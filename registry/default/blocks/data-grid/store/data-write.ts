@@ -189,7 +189,7 @@ export function emitFromListener(label: string, emit: () => void): void {
   }
 }
 
-/** Most patches (and, for a delete, row ids) that one `"stream"` call takes; the rest skip with reason `"limit"`. */
+/** Most patches (and, for a delete, row ids) that one `"stream"` call takes. Patches past it skip with reason `"limit"`; delete ids past it drop with a dev warning. */
 export const MAX_STREAM_PATCHES = 100_000;
 
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
@@ -278,11 +278,10 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
 }
 
 /**
- * The view bookkeeping a row-shifting operation (`insertRows`/`deleteRows`/`duplicateRows`) owes: the
- * row count changed, so `computeViewIndex` always returns a fresh array (the content-equality
- * reuse cannot apply), `searchMatches` is recomputed against it, and `viewStale` is cleared —
- * the full rebuild reconciles whatever a deferred `updateCells` batch left stale, mirroring
- * `setColumnHidden`. The caller owns `activeCell` (it follows or clears the cursor itself).
+ * The view bookkeeping a row write owes (`insertRows`/`deleteRows`/`duplicateRows` and `commitChange`):
+ * the view index is rebuilt over `nextData`, `searchMatches` is recomputed against it, and `viewStale`
+ * stays `true` only while pushed stale rows remain, mirroring `setColumnHidden`. The caller owns
+ * `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
   const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
@@ -296,8 +295,9 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
 }
 
 /**
- * With a sort or filter active, inserted rows land anywhere: follow the active row by identity and
- * collapse the range onto it; the row channel follows its records.
+ * After a write that moves rows (an insert or duplicate under a sort, a filter, or paging, and every
+ * row-moving `commitChange`), follow the active row by identity and collapse the range onto it; the
+ * cursor clears when its row is gone. The row channel follows its records.
  */
 export function followActiveRow(s: DataGridStoreState, nextData: readonly unknown[], viewIndex: readonly number[]): Pick<DataGridStoreState, "selection" | "activeCell"> {
   const checked = s.selection.rows;
@@ -844,7 +844,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
       return skippedBy("deleteRows", "gate-pending");
     }
-    const hiddenCount = s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
+    // In "all matching" mode the set holds exclusions, and the delete ends the mode, so no hidden check stays.
+    const hiddenCount = s.allMatching ? 0 : s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
     const run = ctx.gates.begin("onBeforeDeleteRows");
     let verdict: boolean | Promise<boolean>;
     try {
@@ -1041,9 +1042,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
 
+  /** Positions count the rows a move plans over, like the row numbers on screen: page rows on a paged grid. */
   const announceRowMove = (s: DataGridStoreState, plan: RowMovePlan): string => {
     const { markers } = s.labels;
-    const total = s.data.length;
+    const total = movableRowCount(s);
     return plan.sources.length === 1
       ? markers.reorderAnnouncement(plan.sources[0]! + 1, plan.targets[0]! + 1, total)
       : markers.reorderRowsAnnouncement(plan.sources.length, plan.targets[0]! + 1, total);
@@ -1085,7 +1087,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = nextData;
     const editRemap = remapEditing(s, s.viewIndex, s.visibleColumns, nextData, getRowId);
     const follow = (row: number) => viewPlan.newIndexOf[row] ?? row;
-    const announcement = announceRowMove(s, plan);
+    const announcement = announceRowMove(s, viewPlan);
     const movedCount = plan.sources.length;
     writeThenEmit(ctx, s, nextData, { source: "row-operation", ops }, () =>
       set({
