@@ -219,6 +219,13 @@ describe("parseImportFile — size and dimension limits", () => {
     await expect(parseImportFile(makeCsvFile(csv), { maxCells: 9 })).resolves.toMatchObject({ rows: [["a", "b", "c"], ["1"], ["2"]] });
   });
 
+  it("rejects with an AbortError when the signal in the options is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(parseImportFile(makeCsvFile("a,b
+1,2"), { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   it("defaults to 50 MB, 1M rows, 1000 columns, and 5M cells, and small files pass", async () => {
     expect(DEFAULT_IMPORT_LIMITS).toEqual({
       maxFileBytes: 50 * 1024 * 1024,

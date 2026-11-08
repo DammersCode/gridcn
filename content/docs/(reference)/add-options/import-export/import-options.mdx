@@ -65,7 +65,7 @@ If you control the open state yourself, use the dialog.
 
 | Function | Returns | What it does |
 | --- | --- | --- |
-| `parseImportFile(file, options?, signal?)` | `Promise<ParsedImportFile>` | Reads a file into a grid of strings. The header row stays in `rows[0]`. |
+| `parseImportFile(file, options?)` | `Promise<ParsedImportFile>` | Reads a file into a grid of strings. The header row stays in `rows[0]`. |
 | `matchImportColumns(headers, columns)` | `(string \| null)[]` | Matches each header to a grid column id by header text, then by column id. When two headers match one column, the first header keeps it and the later header gives `null`. |
 | `applyImportOptions(headers, columns, options?)` | `(string \| null)[]` | Matches, then applies `defaultSkipColumns` and a synchronous `mapColumn`. |
 | `buildImportedRows(options)` | `BuildImportedRowsResult` or a promise | Builds one row per data row and checks every cell. |
@@ -86,7 +86,7 @@ The function rejects with an `Error`. The add-on sets these messages. Another pa
 | `unknown sheet "<name>"` | The workbook has no sheet named `sheetName`. |
 | `unreadable-zip`, `unreadable-xls` | The file has damage. |
 
-If `signal` aborts before the file read ends, the parse rejects with an `AbortError`. A later abort does not stop the parse.
+The `signal` option aborts the read. If it aborts before the file read ends, the parse rejects with an `AbortError`. A later abort does not stop the parse.
 
 The function resolves to a `ParsedImportFile`:
 

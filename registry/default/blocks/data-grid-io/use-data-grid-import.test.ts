@@ -294,7 +294,7 @@ describe("useDataGridImportPreview — limits", () => {
     await act(async () => {
       await result.current.loadFile(FILE_B, TARGETS);
     });
-    expect(mockedParse).toHaveBeenLastCalledWith(FILE_B, expect.objectContaining(limits), expect.anything());
+    expect(mockedParse).toHaveBeenLastCalledWith(FILE_B, expect.objectContaining({ ...limits, signal: expect.anything() }));
     vi.restoreAllMocks();
   });
 });

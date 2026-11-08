@@ -55,6 +55,8 @@ export type ParseImportFileOptions = ImportLimits & {
   sheetName?: string;
   /** Decodes a CSV file with this label instead of UTF-8. Only the labels in {@link IMPORT_CSV_ENCODINGS} are accepted; any other label throws a `RangeError`. Ignored for xlsx/xls. */
   csvEncoding?: string;
+  /** Aborts the file read; an aborted parse rejects with an AbortError. */
+  signal?: AbortSignal;
 };
 
 /** The `TextDecoder` labels `csvEncoding` accepts. */
@@ -627,7 +629,8 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
  * or the first one. `.xls` means Excel 97-2003 (BIFF8); other `.xls` flavours reject. `signal`
  * aborts the file read when set; an aborted parse rejects with an AbortError.
  */
-export async function parseImportFile(file: File, options: ParseImportFileOptions = {}, signal?: AbortSignal): Promise<ParsedImportFile> {
+export async function parseImportFile(file: File, options: ParseImportFileOptions = {}): Promise<ParsedImportFile> {
+  const { signal } = options;
   const maxFileBytes = options.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
   const limits: GridLimits = {
     maxRows: options.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,

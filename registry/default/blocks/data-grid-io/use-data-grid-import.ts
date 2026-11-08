@@ -253,7 +253,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
         assertImportRows(checked.rows, effectiveLimits);
         parsed = sanitizeParsedFile(checked);
       } else {
-        parsed = await parseImportFile(file, { ...limitOptions, csvEncoding, ...extra }, signal);
+        parsed = await parseImportFile(file, { ...limitOptions, csvEncoding, ...extra, signal });
       }
       return headerRowIndex > 0 ? { ...parsed, rows: parsed.rows.slice(headerRowIndex) } : parsed;
     },
