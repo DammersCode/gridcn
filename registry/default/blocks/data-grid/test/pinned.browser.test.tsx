@@ -322,10 +322,10 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     const { actions } = await renderEngine({ columns: cols, width: 400, height: 300, rowCount: 20 });
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
-    // setColumnWidth is exactly what the resize-drag handler calls per pointermove (see
+    // previewColumnWidth is exactly what the resize-drag handler calls per pointermove (see
     // use-column-resize.ts) — driving it directly reproduces a fractional result deterministically
     // (a real drag's `clientX - startX` delta is not guaranteed whole-px under fractional-scale zoom).
-    actions().setColumnWidth("c0", 137.42);
+    actions().previewColumnWidth("c0", 137.42);
     await new Promise((r) => setTimeout(r, 100));
 
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;

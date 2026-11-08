@@ -164,8 +164,8 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       sortState={sortState}
       resize={{
         enabled: enableColumnResize,
+        previewColumnWidth: actions.previewColumnWidth,
         setColumnWidth: actions.setColumnWidth,
-        commitColumnWidth: actions.commitColumnWidth,
         autosizeColumns: actions.autosizeColumns,
         direction,
       }}

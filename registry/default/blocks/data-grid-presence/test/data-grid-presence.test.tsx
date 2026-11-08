@@ -1039,7 +1039,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(<Harness />);
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.setColumnWidth("name", 200));
+    act(() => actions!.previewColumnWidth("name", 200));
     act(() => actions!.setColumnOrder("name", "qty", "before"));
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();

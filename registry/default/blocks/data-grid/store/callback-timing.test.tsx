@@ -100,7 +100,7 @@ describe("consumer callbacks of the view actions", () => {
 
   it("a throwing onColumnLayoutChange keeps the layout", () => {
     const state = mount({ onColumnLayoutChange: boom });
-    expect(() => act(() => state().actions.commitColumnWidth("n", 240))).toThrow("boom");
+    expect(() => act(() => state().actions.setColumnWidth("n", 240))).toThrow("boom");
     expect(state().columnWidths["n"]).toBe(240);
   });
 });

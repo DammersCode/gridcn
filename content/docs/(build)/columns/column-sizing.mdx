@@ -48,7 +48,7 @@ export function SizedGrid() {
 }
 ```
 
-During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once. If the window loses focus or the browser cancels the pointer, the drag ends without that commit. The column keeps its last live width. `actions.resetColumnWidth(id)` drops the stored width and brings back the width from the column.
+During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once. If the window loses focus or the browser cancels the pointer, the drag ends without that commit. The column keeps its last live width. `actions.resetColumnWidth(id)` drops the stored width and brings back the width from the column. `actions.setColumnWidth(id, width)` sets a width and fires `onColumnLayoutChange`, for your own resize controls. `actions.previewColumnWidth(id, width)` writes a live width and fires `onColumnResizing`, as a drag does.
 
 ## Autosize [#autosize]
 

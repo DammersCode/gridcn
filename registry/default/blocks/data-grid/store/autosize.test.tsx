@@ -113,7 +113,7 @@ describe("actions.autosizeColumns", () => {
     const { store } = mount({ onColumnLayoutChange });
     registerFonts(store());
     act(() => store().getState().actions.autosizeColumns());
-    act(() => store().getState().actions.commitColumnWidth("a", MEASURED.a));
+    act(() => store().getState().actions.setColumnWidth("a", MEASURED.a));
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
   });
 });

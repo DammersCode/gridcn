@@ -62,7 +62,7 @@ describe("columns missing from the column order", () => {
     act(() => store().getState().actions.setColumnOrder("b", "a", "before"));
     rerender({ columns: threeColumns, onColumnLayoutChange });
 
-    act(() => store().getState().actions.commitColumnWidth("a", 200));
+    act(() => store().getState().actions.setColumnWidth("a", 200));
 
     expect(onColumnLayoutChange).toHaveBeenLastCalledWith(expect.objectContaining({ order: ["b", "a", "c"] }));
   });
@@ -142,15 +142,15 @@ describe("onColumnLayoutChange on no-op layout actions", () => {
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
   });
 
-  it("does not fire when commitColumnWidth repeats the committed width", () => {
+  it("does not fire when setColumnWidth repeats the committed width", () => {
     const { actions, onColumnLayoutChange } = mountWithSpy();
 
+    act(() => actions().previewColumnWidth("b", 220));
     act(() => actions().setColumnWidth("b", 220));
-    act(() => actions().commitColumnWidth("b", 220));
-    act(() => actions().commitColumnWidth("b", 220));
+    act(() => actions().setColumnWidth("b", 220));
 
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
-    act(() => actions().commitColumnWidth("b", 240));
+    act(() => actions().setColumnWidth("b", 240));
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(2);
   });
 });
@@ -195,13 +195,13 @@ describe("the column channel follows column identity", () => {
 });
 
 describe("column widths for unknown ids", () => {
-  it("setColumnWidth and commitColumnWidth ignore a column id that columns does not define", () => {
+  it("previewColumnWidth and setColumnWidth ignore a column id that columns does not define", () => {
     const onColumnLayoutChange = vi.fn();
     const onColumnResizing = vi.fn();
     const { store } = mount({ columns: twoColumns, onColumnLayoutChange, onColumnResizing });
 
+    act(() => store().getState().actions.previewColumnWidth("ghost", 200));
     act(() => store().getState().actions.setColumnWidth("ghost", 200));
-    act(() => store().getState().actions.commitColumnWidth("ghost", 200));
 
     expect(store().getState().columnWidths).toEqual({});
     expect(onColumnResizing).not.toHaveBeenCalled();

@@ -381,7 +381,7 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     const { result } = renderHook(() => useActionsAndStore(), { wrapper: makeWrapper({ onActiveCellChange, getRowId }) });
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     getRowId.mockClear();
-    act(() => result.current.actions.setColumnWidth("name", 222));
+    act(() => result.current.actions.previewColumnWidth("name", 222));
     expect(getRowId).not.toHaveBeenCalled();
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
   });

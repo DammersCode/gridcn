@@ -123,7 +123,7 @@ describe("column layout URL sync", () => {
   it("does not write widths or pins by default", async () => {
     const h = renderGrid({});
     await act(async () => {
-      h.actions().commitColumnWidth("name", 222);
+      h.actions().setColumnWidth("name", 222);
       h.actions().setColumnPin("age", "left");
     });
     await flush();
@@ -135,11 +135,11 @@ describe("column layout URL sync", () => {
     await flush();
     const before = h.updates.length;
     await act(async () => {
-      for (let width = 101; width <= 140; width++) h.actions().setColumnWidth("name", width);
+      for (let width = 101; width <= 140; width++) h.actions().previewColumnWidth("name", width);
     });
     await flush();
     expect(h.updates).toHaveLength(before);
-    await act(async () => h.actions().commitColumnWidth("name", 140));
+    await act(async () => h.actions().setColumnWidth("name", 140));
     await flush();
     expect(h.updates).toHaveLength(before + 1);
     expect(lastParam(h, "widths")).toBe("name:140");

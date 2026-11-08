@@ -24,8 +24,8 @@ function renderResizeHook(autosizeColumns = vi.fn()) {
       useColumnResize({
         column: COLUMN,
         currentWidth: 100,
+        previewColumnWidth: vi.fn(),
         setColumnWidth: vi.fn(),
-        commitColumnWidth: vi.fn(),
         autosizeColumns,
       }),
     ),

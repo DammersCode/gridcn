@@ -65,7 +65,7 @@ These hooks read column state for your own UI. Call them under `DataGridProvider
 | `useDataGridColumnWidth(id)` | the stored width in px, or `undefined` while the column has none |
 | `useDataGridColumnWidths(ids)` | the stored widths of a list of columns |
 
-The visible and all-columns hooks return the full `ColumnDef` of each column. Pass your row type, for example `useDataGridVisibleColumns<Row>()`, to type `accessorFn` and `setValue`. The actions of `useDataGridActions()` write the state: `setColumnWidth`, `resetColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`, `setColumnLayout`, and `autosizeColumns`. This sample shows a button for each hidden column:
+The visible and all-columns hooks return the full `ColumnDef` of each column. Pass your row type, for example `useDataGridVisibleColumns<Row>()`, to type `accessorFn` and `setValue`. The actions of `useDataGridActions()` write the state: `setColumnWidth`, `previewColumnWidth`, `resetColumnWidth`, `setColumnOrder`, `setColumnPin`, `setColumnHidden`, `setColumnLayout`, and `autosizeColumns`. This sample shows a button for each hidden column:
 
 ```tsx
 import {

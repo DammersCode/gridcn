@@ -471,7 +471,7 @@ export type DataGridSyncProps<TData = unknown> = {
      */
     onRenderedRowsChange?: (range: { start: number; end: number }) => void;
     /**
-     * Fires on every live width write during a resize drag (`actions.setColumnWidth`, per drag
+     * Fires on every live width write during a resize drag (`actions.previewColumnWidth`, per drag
     * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
    * Fired from the store actions layer, no React-render dependency. Not called for the commit
    * itself (drag release/autosize) — pair with `onColumnLayoutChange` if you need that too.
@@ -1043,18 +1043,18 @@ export type DataGridActions = {
   setSelection(next: SelectionState | null): void;
   /**
    * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
-   * `onColumnLayoutChange` - see `commitColumnWidth` for the commit point). The width is clamped
+   * `onColumnLayoutChange` - see `setColumnWidth` for the commit point). The width is clamped
    * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
    * gesture enforces); a callback-observed width is the clamped one. An unknown column id is a no-op.
    */
-  setColumnWidth(id: string, width: number): void;
+  previewColumnWidth(id: string, width: number): void;
   /**
    * Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize
-   * commit point. The width is clamped exactly as {@link setColumnWidth} clamps, and the fired
+   * commit point. The width is clamped exactly as {@link previewColumnWidth} clamps, and the fired
    * snapshot carries the clamped value. Fires only when the width differs from the last committed
    * one; an unknown column id is a no-op.
    */
-  commitColumnWidth(id: string, width: number): void;
+  setColumnWidth(id: string, width: number): void;
   /**
    * Sizes columns to their content over the whole view, not the mounted window: samples
    * `options.sampleRows` view rows (default 1000, clamped to [1, 10000]) evenly strided across

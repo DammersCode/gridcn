@@ -134,7 +134,7 @@ describe("useColumnLayout flex distribution", () => {
       { wrapper },
     );
     act(() => {
-      result.current.actions.setColumnWidth("a", 150);
+      result.current.actions.previewColumnWidth("a", 150);
     });
     // "a" is now fixed at its override (150), and no longer receives the leftover — "b" stays at
     // its own base width too, since it was never given `flex`.

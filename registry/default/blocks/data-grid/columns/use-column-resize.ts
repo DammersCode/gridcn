@@ -17,7 +17,7 @@ export type ColumnResizeHandlers = {
 
 /**
  * Pointer-capture column resize: drag the handle to live-update the column's
- * width via `setColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
+ * width via `previewColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
  * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag without a
  * commit. Double-click sizes this column to its content through the store's `autosizeColumns`
  * action, which samples the view (one commit, one `onColumnLayoutChange`).
@@ -25,9 +25,9 @@ export type ColumnResizeHandlers = {
 export function useColumnResize(args: {
   column: AnyColumnDef;
   currentWidth: number;
-  setColumnWidth: (id: string, width: number) => void;
+  previewColumnWidth: (id: string, width: number) => void;
   /** Fires once at drag release — the `onColumnLayoutChange` commit point (not per drag frame). */
-  commitColumnWidth: (id: string, width: number) => void;
+  setColumnWidth: (id: string, width: number) => void;
   /** The store's `autosizeColumns` action; double-click calls it for this column. */
   autosizeColumns: (options?: AutosizeOptions) => void;
   /**
@@ -69,7 +69,7 @@ export function useColumnResize(args: {
         const drag = dragRef.current;
         if (!drag) return;
         lastWidth = clamp(drag.startWidth + inlineDelta(e.clientX - drag.startX, argsRef.current.direction ?? "ltr"));
-        argsRef.current.setColumnWidth(column.id, lastWidth);
+        argsRef.current.previewColumnWidth(column.id, lastWidth);
       };
       const cleanup = () => {
         document.removeEventListener("pointermove", handleMove);
@@ -90,7 +90,7 @@ export function useColumnResize(args: {
         setIsResizing(false);
         cleanup();
         // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
-        if (e.type === "pointerup") argsRef.current.commitColumnWidth(column.id, lastWidth);
+        if (e.type === "pointerup") argsRef.current.setColumnWidth(column.id, lastWidth);
       };
       // lostpointercapture fires even when pointerup is missed (alt-tab); the document fallbacks cover environments without capture semantics
       document.addEventListener("pointermove", handleMove);

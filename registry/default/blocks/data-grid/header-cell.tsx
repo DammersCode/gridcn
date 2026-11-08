@@ -66,8 +66,8 @@ export type DataGridHeaderCellProps = {
   sortState: readonly SortSpec[];
   resize: {
     enabled: boolean;
+    previewColumnWidth: (id: string, width: number) => void;
     setColumnWidth: (id: string, width: number) => void;
-    commitColumnWidth: (id: string, width: number) => void;
     /** The store's `autosizeColumns` action; double-click on the handle calls it for this column. */
     autosizeColumns: (options?: AutosizeOptions) => void;
     /** Signs the drag delta so the handle always widens toward the inline end — see {@link useColumnResize}. */
@@ -123,8 +123,8 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   const resize = useColumnResize({
     column,
     currentWidth: width,
+    previewColumnWidth: resizeProps.previewColumnWidth,
     setColumnWidth: resizeProps.setColumnWidth,
-    commitColumnWidth: resizeProps.commitColumnWidth,
     autosizeColumns: resizeProps.autosizeColumns,
     direction: resizeProps.direction,
   });

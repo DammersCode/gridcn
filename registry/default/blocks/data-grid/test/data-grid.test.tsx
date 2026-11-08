@@ -1080,7 +1080,7 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
     expect(rowRenderCounts).toEqual(rowsBefore);
   });
 
-  it("onColumnLayoutChange fires on commitColumnWidth without re-rendering row/cell subscriptions", () => {
+  it("onColumnLayoutChange fires on setColumnWidth without re-rendering row/cell subscriptions", () => {
     const rowRenderCounts: number[] = [0, 0, 0];
     function CountingRow({ viewRowIndex }: { viewRowIndex: number }) {
       const row = useDataGridRow(viewRowIndex);
@@ -1107,7 +1107,7 @@ describe("onSelectionChange / onColumnLayoutChange fire from store actions witho
 
     const before = [...rowRenderCounts];
     act(() => {
-      actionsRef!.commitColumnWidth("qty", 120);
+      actionsRef!.setColumnWidth("qty", 120);
     });
 
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);

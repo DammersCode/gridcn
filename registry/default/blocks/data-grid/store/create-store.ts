@@ -789,7 +789,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
      * layout, normalizes it, and structurally compares the result with the always-current
      * s.columnLayout snapshot - equal: no set, no event; else one set (pins/widths/order/hidden/
      * visible columns/snapshot) plus one onColumnLayoutChange. Live resize frames never run
-     * through here (setColumnWidth).
+     * through here (previewColumnWidth).
      */
     const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
       const s = get();
@@ -1627,7 +1627,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           ...(resolved.activeCell !== undefined ? { activeCell: resolved.activeCell } : {}),
         });
       },
-      setColumnWidth(id, width) {
+      previewColumnWidth(id, width) {
         const column = get().columns.find((c) => c.id === id);
         if (!column) return;
         const next = clampColumnWidth(column, width);
@@ -1635,7 +1635,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const onColumnResizing = get().onColumnResizing;
         if (onColumnResizing) emitAfterWrites(dataWrite, () => onColumnResizing({ columnId: id, width: next }));
       },
-      commitColumnWidth(id, width) {
+      setColumnWidth(id, width) {
         const s = get();
         const column = s.columns.find((c) => c.id === id);
         if (!column) return;

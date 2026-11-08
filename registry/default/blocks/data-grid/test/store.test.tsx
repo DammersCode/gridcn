@@ -2752,25 +2752,25 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     });
   });
 
-  describe("setColumnWidth", () => {
+  describe("previewColumnWidth", () => {
     it("sets a live width override read back by resolveColumnWidth's consumers", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns });
       const { result } = renderHook(
         () => ({ actions: useDataGridInternalActions() }),
         { wrapper },
       );
-      act(() => result.current.actions.setColumnWidth("name", 240));
+      act(() => result.current.actions.previewColumnWidth("name", 240));
       // width overrides are read via useDataGridColumnWidth/useDataGridColumnWidths (layout-context.ts);
       // asserting through the action's own no-throw + a second call composing correctly is sufficient
       // at the store level — layout composition is covered by column-helpers.test.ts / browser tests.
-      act(() => result.current.actions.setColumnWidth("name", 100));
+      act(() => result.current.actions.previewColumnWidth("name", 100));
     });
 
-    it("does NOT fire onColumnLayoutChange (per-frame drag write; commitColumnWidth is the commit point)", () => {
+    it("does NOT fire onColumnLayoutChange (per-frame drag write; setColumnWidth is the commit point)", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
-      act(() => result.current.actions.setColumnWidth("name", 240));
+      act(() => result.current.actions.previewColumnWidth("name", 240));
       expect(onColumnLayoutChange).not.toHaveBeenCalled();
     });
 
@@ -2779,11 +2779,11 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnResizing });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
-      act(() => result.current.actions.setColumnWidth("name", 240));
+      act(() => result.current.actions.previewColumnWidth("name", 240));
       expect(onColumnResizing).toHaveBeenCalledTimes(1);
       expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 240 });
 
-      act(() => result.current.actions.setColumnWidth("name", 260));
+      act(() => result.current.actions.previewColumnWidth("name", 260));
       expect(onColumnResizing).toHaveBeenCalledTimes(2);
       expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 260 });
     });
@@ -2805,28 +2805,28 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
         { wrapper },
       );
 
-      act(() => result.current.actions.setColumnWidth("name", 10)); // below minWidth
+      act(() => result.current.actions.previewColumnWidth("name", 10)); // below minWidth
       expect(result.current.nameWidth).toBe(80);
       expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "name", width: 80 });
 
-      act(() => result.current.actions.setColumnWidth("name", 500)); // above maxWidth
+      act(() => result.current.actions.previewColumnWidth("name", 500)); // above maxWidth
       expect(result.current.nameWidth).toBe(200);
 
-      act(() => result.current.actions.setColumnWidth("name", 120)); // in range, passes through
+      act(() => result.current.actions.previewColumnWidth("name", 120)); // in range, passes through
       expect(result.current.nameWidth).toBe(120);
 
-      act(() => result.current.actions.setColumnWidth("age", 10)); // no minWidth: the 32px floor holds
+      act(() => result.current.actions.previewColumnWidth("age", 10)); // no minWidth: the 32px floor holds
       expect(result.current.ageWidth).toBe(32);
     });
   });
 
-  describe("commitColumnWidth", () => {
+  describe("setColumnWidth", () => {
     it("sets the width and fires onColumnLayoutChange once with the full snapshot", () => {
       const onColumnLayoutChange = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
-      act(() => result.current.actions.commitColumnWidth("name", 240));
+      act(() => result.current.actions.setColumnWidth("name", 240));
 
       expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
       expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
@@ -2837,12 +2837,12 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       });
     });
 
-    it("does NOT fire onColumnResizing (commit point; setColumnWidth is the per-frame one)", () => {
+    it("does NOT fire onColumnResizing (commit point; previewColumnWidth is the per-frame one)", () => {
       const onColumnResizing = vi.fn();
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnResizing });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
-      act(() => result.current.actions.commitColumnWidth("name", 240));
+      act(() => result.current.actions.setColumnWidth("name", 240));
       expect(onColumnResizing).not.toHaveBeenCalled();
     });
 
@@ -2856,7 +2856,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: cols, onColumnLayoutChange });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
-      act(() => result.current.actions.commitColumnWidth("name", 10));
+      act(() => result.current.actions.setColumnWidth("name", 10));
 
       expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
       expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
@@ -2877,7 +2877,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
         { wrapper },
       );
 
-      act(() => result.current.actions.commitColumnWidth("name", 240));
+      act(() => result.current.actions.setColumnWidth("name", 240));
       expect(result.current.nameWidth).toBe(240);
 
       act(() => result.current.actions.resetColumnWidth("name"));
@@ -3122,7 +3122,7 @@ describe("onSelectionChange", () => {
 
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     onSelectionChange.mockClear();
-    act(() => result.current.actions.setColumnWidth("name", 200));
+    act(() => result.current.actions.previewColumnWidth("name", 200));
 
     expect(onSelectionChange).not.toHaveBeenCalled();
   });

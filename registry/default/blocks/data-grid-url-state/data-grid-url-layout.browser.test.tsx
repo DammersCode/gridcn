@@ -61,7 +61,7 @@ describe("column layout round trip through the URL", () => {
     await render(<Harness initial="" />);
     actions.setColumnOrder("city", "name", "before");
     actions.setColumnHidden("age", true);
-    actions.commitColumnWidth("name", 150);
+    actions.setColumnWidth("name", 150);
     actions.setColumnPin("city", "left");
     await expect.poll(() => query().get("hide")).toBe("age");
     await expect.poll(() => query().get("widths")).toBe("name:150");

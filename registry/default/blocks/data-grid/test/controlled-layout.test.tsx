@@ -106,7 +106,7 @@ describe("the controlled columnLayout prop", () => {
     const unsub = store().subscribe((state) => {
       seen.push(state);
     });
-    act(() => store().getState().actions.commitColumnWidth("a", 180));
+    act(() => store().getState().actions.setColumnWidth("a", 180));
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
     const fired = onColumnLayoutChange.mock.calls[0]![0];
     const stateBefore = store().getState();
