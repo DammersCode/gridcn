@@ -13,7 +13,7 @@ A `ColumnDef` describes one column. It names the column, says how to read and wr
 | Identity and header | `id`, `header`, `headerText`, `headerClassName` | [Fields](#fields) |
 | Value | `accessorKey`, `accessorFn`, `setValue`, `readOnly`, `renderCell`, `cellClassName` | [Read and write a value](#values) |
 | Cell type | `type`, `options` | [Fields](#fields) |
-| Validation | `validate`, `onInvalid` | [Validation](#validation) |
+| Validation | `validate`, `validationMode` | [Validation](#validation) |
 | Size | `width`, `minWidth`, `maxWidth`, `flex`, `resizable` | [Width and flex](#width) |
 | Sort and filter | `sortable`, `sortCompare`, `filterable`, `filterMatch`, `filterOperators` | [Sort and filter](#sort-and-filter) |
 | Layout | `pin`, `pinnable`, `reorderable`, `hidden` | [Fields](#fields) |
@@ -71,7 +71,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `options` | `unknown` | none | Settings for the cell type, such as the choices of a select. |
 | `readOnly` | `boolean \| (row) => boolean` | none | Blocks edits. The function form decides per row. |
 | `validate` | `(value, row) => string \| null` or a schema | none | Rejects a value. |
-| `onInvalid` | `"block" \| "warn"` | `"block"` | What a rejection does to a single-cell commit. |
+| `validationMode` | `"block" \| "warn"` | `"block"` | What a rejection does to a single-cell commit. |
 | `width` | `number` | `150` | Width in px. |
 | `minWidth` | `number` | none | Smallest width in px. |
 | `maxWidth` | `number` | none | Largest width in px. |
@@ -103,8 +103,8 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 
 `validate` takes a function that returns an error message or `null`. It also takes any [Standard Schema](https://standardschema.dev) for the value. For a schema, the committed value is the value that the schema returns, so a schema can transform input.
 
-- `onInvalid: "block"` refuses the commit. The editor stays open with the message.
-- `onInvalid: "warn"` commits the raw value and flags the cell. The next valid commit of that cell clears the flag. A validator that throws, or a schema promise that rejects, blocks the commit even in a `"warn"` column.
+- `validationMode: "block"` refuses the commit. The editor stays open with the message.
+- `validationMode: "warn"` commits the raw value and flags the cell. The next valid commit of that cell clears the flag. A validator that throws, or a schema promise that rejects, blocks the commit even in a `"warn"` column.
 - Paste, fill, and `updateCells` drop a rejected cell, even in a `"warn"` column.
 - An async schema works in the editor and in bulk writes. A bulk write runs at most 32 validations at a time.
 

@@ -95,13 +95,13 @@ describe("useAsyncValidate", () => {
     expect(actions._setEditingError).toHaveBeenCalledWith("server says no");
   });
 
-  it("async schema with onInvalid: 'warn': issues commit the RAW value with the rejection forwarded, no editingError", async () => {
+  it("async schema with validationMode: 'warn': issues commit the RAW value with the rejection forwarded, no editingError", async () => {
     const actions = mockActions();
     let resolveFn: (r: { issues: { message: string }[] }) => void = () => {};
     const schema = mockAsyncSchema<number>(
       () => new Promise((resolve) => (resolveFn = resolve as (r: { issues: { message: string }[] }) => void)),
     );
-    const column = { id: "c", header: "C", validate: schema, onInvalid: "warn" } as unknown as AnyColumnDef;
+    const column = { id: "c", header: "C", validate: schema, validationMode: "warn" } as unknown as AnyColumnDef;
     const { result } = renderHook(() => useAsyncValidate(actions, column));
 
     act(() => result.current.commit(5, { dx: 0, dy: 1 }));

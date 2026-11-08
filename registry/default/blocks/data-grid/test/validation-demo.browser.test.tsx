@@ -70,7 +70,7 @@ describe("data-grid-cell-errors-demo", () => {
   });
 });
 
-describe("data-grid-validation-demo: onInvalid 'warn'", () => {
+describe("data-grid-validation-demo: validationMode 'warn'", () => {
   function notesCells(): HTMLElement[] {
     return Array.from(document.querySelectorAll<HTMLElement>('[role="gridcell"][data-column-id="notes"]'));
   }

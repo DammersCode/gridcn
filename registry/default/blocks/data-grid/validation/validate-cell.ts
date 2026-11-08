@@ -5,7 +5,7 @@ export type CellValidate = ((value: unknown, row: unknown) => string | null) | S
 
 /**
  * `error`: rejected, message to show; `thrown` marks a validator that threw, which blocks even an
- * `onInvalid: "warn"` column. `value`: accepted — the value to COMMIT (a schema may transform it).
+ * `validationMode: "warn"` column. `value`: accepted — the value to COMMIT (a schema may transform it).
  */
 export type ValidateResult = { error: string; thrown?: true } | { value: unknown };
 

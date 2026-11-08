@@ -15,7 +15,7 @@ type Row = { id: string; name: string; note: string };
 /** `name` blocks (default), `note` warns (commits + flags) — one rule shape, both effects. */
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name", validate: (v) => (typeof v === "string" && v.length > 7 ? "Too long" : null) },
-  { id: "note", header: "Note", accessorKey: "note", validate: (v) => (typeof v === "string" && v.length > 5 ? "Too long" : null), onInvalid: "warn" },
+  { id: "note", header: "Note", accessorKey: "note", validate: (v) => (typeof v === "string" && v.length > 5 ? "Too long" : null), validationMode: "warn" },
 ];
 
 function rows(): Row[] {
@@ -45,7 +45,7 @@ function useHarness() {
   return { actions, cellErrors, store };
 }
 
-describe("onInvalid: 'warn' — commit + flag instead of block", () => {
+describe("validationMode: 'warn' — commit + flag instead of block", () => {
   it("a bulk updateCells drops a rejected cell of a warn column instead of committing and flagging it", async () => {
     const onDataChange = vi.fn();
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
@@ -81,7 +81,7 @@ describe("onInvalid: 'warn' — commit + flag instead of block", () => {
     expect(result.current.store.getState().editingError).toBeNull();
   });
 
-  it("a blocking column (onInvalid omitted) is unchanged: rejected, data untouched, editor stays open", () => {
+  it("a blocking column (validationMode omitted) is unchanged: rejected, data untouched, editor stays open", () => {
     const onDataChange = vi.fn();
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
 

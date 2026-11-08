@@ -122,10 +122,10 @@ const columns = defineColumns<ValidationRow>()([
     header: "Notes",
     accessorKey: "notes",
     type: "text",
-    // soft rule (onInvalid: "warn"): the value commits and the cell stays flagged until a valid
+    // soft rule (validationMode: "warn"): the value commits and the cell stays flagged until a valid
     // re-commit clears it — the editor CLOSES on commit, unlike a blocking rejection
     validate: (value: unknown) => (typeof value === "string" && value.length > 12 ? "Max 12 characters" : null),
-    onInvalid: "warn",
+    validationMode: "warn",
     width: 44,
     flex: 1,
   },
@@ -186,7 +186,7 @@ const RULES = [
 
 /**
  * Eight rejection paths in one grid: a sync function (Age), three hand-rolled Standard Schemas
- * (Email sync, SKU async with a visible pending state, Price coercing), a soft onInvalid rule
+ * (Email sync, SKU async with a visible pending state, Price coercing), a soft validationMode rule
  * (Notes), and one column per major library that implements Standard Schema natively — Zod
  * (Score), Joi (Code), Valibot (Tag). The rules are listed above the grid so the reader breaks
  * them by typing and sees the error message; pasting a column of mixed

@@ -1262,7 +1262,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             editing: null,
             editingError: null,
             ...restoreSelection,
-            // an `onInvalid: "warn"` re-commit of the same value still lands its flag
+            // an `validationMode: "warn"` re-commit of the same value still lands its flag
             ...(result.warnings ? { cellErrors: mergeCellErrors(s.cellErrors, result.warnings) } : {}),
           }),
         );

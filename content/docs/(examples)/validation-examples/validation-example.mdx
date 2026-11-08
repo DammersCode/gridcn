@@ -17,7 +17,7 @@ Each column of this grid rejects a bad value in its own way. A list above the gr
 - **Email** uses a sync Standard Schema. It rejects a value without an `@`.
 - **SKU** uses an async Standard Schema with about 800 ms of latency. SKU-001 and SKU-002 already exist. See [Async validation example](/docs/validation-examples/async-validation-example).
 - **Price** uses a transforming schema. The text `42.9` commits as `43`, because the schema output is what the cell stores.
-- **Notes** uses `onInvalid: "warn"`. A note over 12 characters commits, and the cell stays flagged until a valid commit.
+- **Notes** uses `validationMode: "warn"`. A note over 12 characters commits, and the cell stays flagged until a valid commit.
 - **Zod Score**, **Joi Code**, and **Valibot Tag** each use a library schema. Break each one to read its message.
 
 To try the bulk path, copy a column of mixed ages from a spreadsheet and paste it onto Age. The valid cells commit and the invalid cells drop.
@@ -26,9 +26,9 @@ To try the bulk path, copy a column of mixed ages from a spreadsheet and paste i
 
 <NewBadge />
 
-The demo lists the kind of every column above the grid. `onInvalid: "warn"` makes a rule soft.
+The demo lists the kind of every column above the grid. `validationMode: "warn"` makes a rule soft.
 
-| | Blocking rule (default) | Soft rule (`onInvalid: "warn"`) |
+| | Blocking rule (default) | Soft rule (`validationMode: "warn"`) |
 | --- | --- | --- |
 | Demo columns | Age, Email, SKU, Price, Zod Score, Joi Code, Valibot Tag | Notes |
 | <kbd>Enter</kbd>, <kbd>Tab</kbd>, or a click on another cell | The editor stays open | The editor closes |
@@ -70,7 +70,7 @@ const columns = defineColumns<Person>()([
     accessorKey: "note",
     validate: (value) =>
       typeof value === "string" && value.length > 12 ? "Too long" : null,
-    onInvalid: "warn",
+    validationMode: "warn",
   },
   {
     id: "score",

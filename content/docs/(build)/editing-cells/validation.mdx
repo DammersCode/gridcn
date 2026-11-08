@@ -90,7 +90,7 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 ## Soft rules [#soft-rules-oninvalid]
 
-By default a rejection blocks the commit. Set `onInvalid: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
+By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
 A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
 
@@ -110,7 +110,7 @@ const columns = defineColumns<Note>()([
       typeof value === "string" && value.length > 12
         ? "Max 12 characters"
         : null,
-    onInvalid: "warn",
+    validationMode: "warn",
   },
 ]);
 
@@ -161,7 +161,7 @@ After a paste, a fill, or an `updateCells` call settles with at least one reject
 | Prop | Type | Default |
 |---|---|---|
 | `validate` | `(value, row) => string \| null` or Standard Schema | - |
-| `onInvalid` | `"block" \| "warn"` | `"block"` |
+| `validationMode` | `"block" \| "warn"` | `"block"` |
 
 {/* props: DataGridSyncProps */}
 

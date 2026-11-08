@@ -1239,7 +1239,7 @@ export type DataGridInternalActions = {
   _armRowDragAnchor(index: number): void;
   /**
    * @internal {@link DataGridActions.commitCellEdit} plus `rejection`: the async validation layer's awaited
-   * schema rejection for an `onInvalid: "warn"` column. The commit's sync re-run cannot see a schema
+   * schema rejection for an `validationMode: "warn"` column. The commit's sync re-run cannot see a schema
    * Promise's issues, so the layer forwards the message to flag the cell.
    */
   _commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
@@ -1372,7 +1372,7 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
 
 /** Result of a successful direct-write commit; `null` state fields mean "leave editing/editingError untouched". */
 /**
- * `warnings` (only on the success/noop arms) carries `onInvalid: "warn"` rejections that committed
+ * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
  * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
  * verdict, so the freshest per-cell signal wins.
  */

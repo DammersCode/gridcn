@@ -535,10 +535,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * transformed value, so `"warn"` commits the RAW value; per-row softness is expressed inside the
    * function form via its `row` argument (return `null` to skip the rule for that row). Bulk paths
    * (paste/fill/updateCells) still drop rejected cells even for `"warn"` columns.
-   * ponytail: soft bulk commits would need `onInvalid` threaded through resolveBulkWrites/
-   * computeCellPatchBatch/prevalidatePatches — add when a soft paste/fill is actually wanted.
    */
-  onInvalid?: "block" | "warn";
+  validationMode?: "block" | "warn";
   /** Rendered width in px; default 150. A resize clamps to `minWidth` and the 32px absolute floor. */
   width?: number;
   minWidth?: number;

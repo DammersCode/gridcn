@@ -15,7 +15,7 @@ function throwOn(bad: string) {
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name", validate: throwOn("boom") },
-  { id: "note", header: "Note", accessorKey: "note", validate: throwOn("boom"), onInvalid: "warn" },
+  { id: "note", header: "Note", accessorKey: "note", validate: throwOn("boom"), validationMode: "warn" },
 ];
 
 function makeWrapper(onDataChange: (next: readonly Row[], change: DataChange<Row>) => void) {
@@ -52,7 +52,7 @@ describe("a function-form validate that throws", () => {
     expect(grid.state().editingError).toBe("validator crashed");
   });
 
-  it("blocks the edit on an onInvalid: 'warn' column too", () => {
+  it("blocks the edit on an validationMode: 'warn' column too", () => {
     const grid = renderGrid();
     act(() => grid.actions.startEditingAt({ row: 0, col: 1 }));
 

@@ -20,7 +20,7 @@ import { formatIssues, isStandardSchema, type CellValidate } from "../validation
  * the sync rejection UX, and the store bumps `editingRejectionCount` — the editors' commit-guard
  * re-arm nonce, single source of truth for sync AND async rejections; the editors re-arm off it,
  * never off "pending cleared", which also happens on Escape/cancel right before unmount) or
- * `_commitCellEdit(value, movement, message)` (`onInvalid: "warn"` — the raw value commits and the
+ * `_commitCellEdit(value, movement, message)` (`validationMode: "warn"` — the raw value commits and the
  * cell is flagged in `cellErrors`).
  *
  * Race guard: a generation counter bumped on every `commit()` call, on unmount/cancel, and when
@@ -68,8 +68,8 @@ export function useAsyncValidate(actions: AsyncValidateActions, column: AnyColum
         setPending(false);
         if (result.issues) {
           const message = formatIssues(result.issues);
-          // onInvalid "warn": commit the raw value and flag the cell — computeCommit's sync re-run cannot see a Promise's issues
-          if (column.onInvalid === "warn") {
+          // validationMode "warn": commit the raw value and flag the cell — computeCommit's sync re-run cannot see a Promise's issues
+          if (column.validationMode === "warn") {
             actions._commitCellEdit(value, movement, message);
             return;
           }

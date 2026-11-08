@@ -433,8 +433,7 @@ const PROP_SOURCES = [
   { title: "Column fields", id: "column-fields", file: `${BLOCKS}/data-grid/types.ts`, type: "ColumnDef", fallback: `${COLUMN_DEF}#fields`, used: "ColumnDef", accept: (e) => e.url === COLUMN_DEF },
 ];
 
-const NOT_CALLBACKS = new Set(["onInvalid"]);
-const isCallback = (name) => /^on[A-Z]/.test(name) && !NOT_CALLBACKS.has(name);
+const isCallback = (name) => /^on[A-Z]/.test(name);
 
 const PURPOSE = {
   "DataGridSyncProps.readOnly": "Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: \"stream\"` push still writes. Default `false`.",

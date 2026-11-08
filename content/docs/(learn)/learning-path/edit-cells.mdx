@@ -61,7 +61,7 @@ Result: untick Active on a row, and its Name cell rejects typing, pastes, and <k
 ## Other ways to lock and validate
 
 - `readOnly` on `<DataGrid>` locks editing and delete in every column.
-- `onInvalid: "warn"` on a column commits a rejected edit and flags the cell. Paste and fill still drop a rejected value. The default, `"block"`, refuses the commit.
+- `validationMode: "warn"` on a column commits a rejected edit and flags the cell. Paste and fill still drop a rejected value. The default, `"block"`, refuses the commit.
 - `validate` also takes a Standard Schema, such as a Zod schema, in place of the function.
 - The cell type picks the editor: a text input, a number input, a date picker, or a list of choices.
 
