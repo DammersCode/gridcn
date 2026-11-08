@@ -10,10 +10,7 @@ import {
   type GridCommand,
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import {
-  DataGridKeybindingsDialog,
-  DataGridKeybindingsShortcut,
-} from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
+import { useDataGridKeybindings } from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
 import { Button } from "@/components/ui/button";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
@@ -46,7 +43,7 @@ const columns = defineColumns<DemoRow>()([
  */
 export default function DataGridKeybindingsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(6), []);
-  const [open, setOpen] = useState(false);
+  const keys = useDataGridKeybindings();
   const [lastCommand, setLastCommand] = useState<string | null>(null);
 
   // A real consumer augments GridActions via declaration merging (like GridCellTypes); that
@@ -72,15 +69,13 @@ export default function DataGridKeybindingsDemo(): ReactNode {
         the button below. Mod+S runs the custom Save row command (listed in the dialog under
         Editing); its result shows below.
       </p>
-      <Button variant="outline" size="sm" className="w-fit" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" className="w-fit" onClick={keys.open}>
         Keyboard shortcuts
       </Button>
       {lastCommand && <p className="text-xs text-muted-foreground">{lastCommand}</p>}
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} commands={commands} keymap={demoKeymap}>
-          <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
+        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} commands={commands} keymap={demoKeymap} plugins={[keys.plugin]}>
           <DataGridRoot className="h-full rounded-none border-none">
-            <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

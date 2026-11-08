@@ -1,7 +1,6 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { useState } from "react";
 import {
   DataGridProvider,
   DataGridRoot,
@@ -12,7 +11,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFindReplace } from "@/registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace";
 import { DataGridKeybindingsDialog } from "./keybindings-dialog";
-import { DataGridKeybindingsShortcut } from "./keybindings-shortcut";
+import { useDataGridKeybindings } from "./use-data-grid-keybindings";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply
 import "@/app/global.css";
 
@@ -30,12 +29,10 @@ const columnsWithHeaderInput = defineColumns<Row>()([
 ] as const);
 
 function Harness({ gridColumns = columns }: { gridColumns?: typeof columns | typeof columnsWithHeaderInput }) {
-  const [open, setOpen] = useState(false);
+  const keys = useDataGridKeybindings();
   return (
-    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id}>
-      <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
+    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id} plugins={[keys.plugin]}>
       <DataGridRoot className="h-[300px]">
-        <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>
@@ -47,7 +44,7 @@ function gridCell(rowText: string): HTMLElement {
   return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')].find((c) => c.textContent?.includes(rowText))!;
 }
 
-describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
+describe("useDataGridKeybindings + DataGridKeybindingsDialog", () => {
   it("'?' opens the dialog while the grid container has focus", async () => {
     await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();

@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useMemo, type ReactElement, type ReactNode } from "react";
 import {
   Dialog,
@@ -64,6 +65,8 @@ export type DataGridKeybindingsDialogProps = {
   defaultOpen?: boolean;
   /** Rendered as the dialog's trigger (e.g. a `<Button>`); omit to drive `open` externally only. */
   trigger?: ReactElement;
+  /** Merged into the dialog content root. */
+  className?: string;
 };
 
 /**
@@ -74,7 +77,7 @@ export type DataGridKeybindingsDialogProps = {
  * they're native browser clipboard events, not part of the keymap.
  */
 export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps): ReactNode {
-  const { open, onOpenChange, defaultOpen, trigger } = props;
+  const { open, onOpenChange, defaultOpen, trigger, className } = props;
   const keymap = useDataGridKeymap();
   const labels = useDataGridLabels();
   const commands = useDataGridCommands();
@@ -83,7 +86,7 @@ export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
       {trigger && <DialogTrigger render={trigger} />}
-      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto sm:max-w-lg" data-slot="data-grid-keybindings-dialog">
+      <DialogContent className={cn("max-h-[80vh] max-w-lg overflow-y-auto sm:max-w-lg", className)} data-slot="data-grid-keybindings-dialog">
         <DialogHeader>
           <DialogTitle>{labels.keybindings.title}</DialogTitle>
           <DialogDescription>{labels.keybindings.description}</DialogDescription>

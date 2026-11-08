@@ -1160,9 +1160,9 @@
                "target": "components/data-grid-keybindings/keybindings-dialog.tsx"
             },
             {
-               "path": "registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx",
+               "path": "registry/default/blocks/data-grid-keybindings/use-data-grid-keybindings.tsx",
                "type": "registry:component",
-               "target": "components/data-grid-keybindings/keybindings-shortcut.tsx"
+               "target": "components/data-grid-keybindings/use-data-grid-keybindings.tsx"
             },
             {
                "path": "registry/default/blocks/data-grid-keybindings/binding-label.tsx",

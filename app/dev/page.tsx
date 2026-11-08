@@ -9,6 +9,7 @@ import {
   defineColumns,
   type ColumnDef,
   type DensityMode,
+  type DataGridPlugin,
   type DeepPartialLabels,
   type HeaderClickBehavior,
   type RowMarkersMode,
@@ -22,7 +23,7 @@ import {
 } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridSortList } from "@/registry/default/blocks/data-grid-sort-list/data-grid-sort-list";
 import { DataGridContextMenu, DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
-import { DataGridKeybindingsDialog, DataGridKeybindingsShortcut } from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
+import { useDataGridKeybindings } from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
 import { DataGridExportButton, DataGridImportButton } from "@/registry/default/blocks/data-grid-io/data-grid-io";
 import { Button } from "@/components/ui/button";
 import { generateBenchmarkRows, type BenchmarkRow } from "./benchmark/_lib/dataset";
@@ -183,8 +184,7 @@ type DevGridProps = {
   headerClickBehavior: HeaderClickBehavior;
   germanLabels: boolean;
   loading: boolean;
-  keybindingsOpen: boolean;
-  setKeybindingsOpen: (open: boolean) => void;
+  keybindingsPlugin: DataGridPlugin<unknown>;
 };
 
 /**
@@ -203,8 +203,7 @@ function DevGrid({
   headerClickBehavior,
   germanLabels,
   loading,
-  keybindingsOpen,
-  setKeybindingsOpen,
+  keybindingsPlugin,
 }: DevGridProps): ReactNode {
   const rows = useMemo(() => generateBenchmarkRows(rowCount), [rowCount]);
   const grid = useDataGridState(rows, { getRowId: (row) => row.id });
@@ -237,6 +236,7 @@ function DevGrid({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
           {...grid}
+          plugins={[...grid.plugins, keybindingsPlugin]}
           columns={columns}
           rowMarkers={rowMarkers}
           headerClickBehavior={headerClickBehavior}
@@ -254,7 +254,6 @@ function DevGrid({
           })}
           duplicateRow={(row: BenchmarkRow): BenchmarkRow => ({ ...row, id: `${row.id}-copy-${nextDuplicatedRowId++}` })}
         >
-          <DataGridKeybindingsDialog open={keybindingsOpen} onOpenChange={setKeybindingsOpen} />
           <DataGridToolbar>
             <DataGridSearch />
             <DataGridFilterMenu />
@@ -283,7 +282,6 @@ function DevGrid({
               loading={loading}
               renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}
             >
-              <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
               <DataGridHeader />
               <DataGridBody />
             </DataGridRoot>
@@ -300,7 +298,7 @@ export default function DevPage(): ReactNode {
   const [rowMarkers, setRowMarkers] = useState<RowMarkersMode>("none");
   const [density, setDensity] = useState<DensityMode>("default");
   const [headerClickBehavior, setHeaderClickBehavior] = useState<HeaderClickBehavior>("select");
-  const [keybindingsOpen, setKeybindingsOpen] = useState(false);
+  const keybindings = useDataGridKeybindings();
   const [germanLabels, setGermanLabels] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -388,7 +386,7 @@ export default function DevPage(): ReactNode {
               ))}
             </select>
           </label>
-          <Button variant="outline" size="sm" onClick={() => setKeybindingsOpen(true)}>
+          <Button variant="outline" size="sm" onClick={keybindings.open}>
             Keyboard shortcuts
           </Button>
           <Button variant={germanLabels ? "default" : "outline"} size="sm" onClick={() => setGermanLabels((v) => !v)}>
@@ -408,8 +406,7 @@ export default function DevPage(): ReactNode {
         headerClickBehavior={headerClickBehavior}
         germanLabels={germanLabels}
         loading={loading}
-        keybindingsOpen={keybindingsOpen}
-        setKeybindingsOpen={setKeybindingsOpen}
+        keybindingsPlugin={keybindings.plugin}
       />
     </div>
   );

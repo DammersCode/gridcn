@@ -346,7 +346,7 @@ function keyboardShortcuts() {
     ...sections,
     "## Other keys [#other-keys]",
     "",
-    table(["Action", "Keys", "Page"], [["Open the shortcuts dialog", `${code("?")} with ${code("DataGridKeybindingsShortcut")} mounted`, link("/docs/selection-shortcuts/shortcut-remapping")]]),
+    table(["Action", "Keys", "Page"], [["Open the shortcuts dialog", `${code("?")} with ${code("useDataGridKeybindings")} in ${code("plugins")}`, link("/docs/selection-shortcuts/shortcut-remapping")]]),
     related(["/docs/selection-shortcuts/shortcut-remapping", "change the keys"], ["/docs/selection-shortcuts/global-shortcuts", "keys outside the grid"], ["/docs/plugins/plugin-commands-shortcuts", "keys from a plugin"]),
   ].join("\n");
 }

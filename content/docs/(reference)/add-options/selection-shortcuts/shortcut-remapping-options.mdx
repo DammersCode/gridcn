@@ -1,7 +1,7 @@
 ---
 title: Shortcut remapping options
 icon: Keyboard
-description: Look up the keymap and commands props, the binding string syntax, and the props of the shortcuts dialog, the ? shortcut, and BindingChips.
+description: Look up the keymap and commands props, the binding string syntax, and the options of the shortcuts dialog hook, the dialog props, and BindingChips.
 type: reference
 aliases: ["key binding syntax", "custom commands", "keybindings dialog props"]
 ---
@@ -42,17 +42,19 @@ A `keymap` name runs the entry of the same name in `commands`. An entry named li
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="GridCommandCtx" />
 
+## useDataGridKeybindings [#usedatagridkeybindings]
+
+<NewBadge />
+
+The hook returns `{ plugin, open, close }`. Put `plugin` in `plugins`. `open()` and `close()` drive the dialog from your own UI. The plugin defines the `openKeybindings` command and binds it to <kbd>?</kbd>.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/use-data-grid-keybindings.tsx" name="UseDataGridKeybindingsOptions" />
+
 ## DataGridKeybindingsDialog [#datagridkeybindingsdialogprops]
 
-The dialog lists the effective keymap, so it shows your overrides. Mount it inside `DataGridProvider`.
+The dialog lists the effective keymap, so it shows your overrides. Mount it inside `DataGridProvider`. Use it for a controlled dialog or a custom trigger.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-dialog.tsx" name="DataGridKeybindingsDialogProps" />
-
-## DataGridKeybindingsShortcut [#datagridkeybindingsshortcutprops]
-
-When the user presses <kbd>?</kbd> with the grid focused and no cell editor open, the component calls `onOpen`. It claims the key, so it shadows type-to-edit and any `keymap` binding on <kbd>?</kbd>. If the <kbd>?</kbd> goes to a text field inside the grid or belongs to an IME composition, the component skips `onOpen` and leaves the key alone. Mount it inside `DataGridRoot`. Outside the root, it throws.
-
-<AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx" name="DataGridKeybindingsShortcutProps" />
 
 ## BindingChips
 
@@ -63,7 +65,6 @@ When the user presses <kbd>?</kbd> with the grid focused and no cell editor open
 This sample opens the dialog on <kbd>?</kbd> and adds a second select-all binding:
 
 ```tsx
-import { useState } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -71,10 +72,7 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import {
-  DataGridKeybindingsDialog,
-  DataGridKeybindingsShortcut,
-} from "@/components/data-grid-keybindings/data-grid-keybindings";
+import { useDataGridKeybindings } from "@/components/data-grid-keybindings/data-grid-keybindings";
 
 type Row = { id: string; name: string };
 
@@ -84,18 +82,17 @@ const columns = defineColumns<Row>()([
 ]);
 
 export function ShortcutsGrid() {
-  const [open, setOpen] = useState(false);
+  const keys = useDataGridKeybindings();
   return (
     <DataGridProvider
       defaultData={rows}
       columns={columns}
       keymap={{ selectAll: ["mod+a", "F8"] }}
+      plugins={[keys.plugin]}
     >
-      <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
       <DataGridRoot className="h-80">
         <DataGridHeader />
         <DataGridBody />
-        <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
       </DataGridRoot>
     </DataGridProvider>
   );

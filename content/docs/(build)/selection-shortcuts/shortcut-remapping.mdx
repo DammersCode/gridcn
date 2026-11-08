@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `DataGridKeybindingsDialog` lists the effective keymap with your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -14,10 +14,9 @@ The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. Th
 
 ## The dialog [#the-dialog]
 
-The dialog reads the keymap and the labels through the store, so it mounts inside `DataGridProvider`. The `?` shortcut reads the root's container, so it mounts inside `DataGridRoot`:
+`useDataGridKeybindings`<NewBadge /> returns `{ plugin, open, close }`. Pass `plugin` in `plugins`. The plugin mounts the dialog and binds the `openKeybindings` command to <kbd>?</kbd>. Call `open()` from your own button:
 
 ```tsx
-import { useState } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -25,10 +24,7 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import {
-  DataGridKeybindingsDialog,
-  DataGridKeybindingsShortcut,
-} from "@/components/data-grid-keybindings/data-grid-keybindings";
+import { useDataGridKeybindings } from "@/components/data-grid-keybindings/data-grid-keybindings";
 
 type Order = { id: string; customer: string };
 
@@ -37,19 +33,19 @@ const columns = defineColumns<Order>()([
 ] as const);
 
 export function OrdersGrid({ orders }: { orders: Order[] }) {
-  const [open, setOpen] = useState(false);
+  const keys = useDataGridKeybindings();
 
   return (
     <DataGridProvider
       data={orders}
       columns={columns}
       getRowId={(order) => order.id}
+      plugins={[keys.plugin]}
     >
-      <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
+      <button type="button" onClick={keys.open}>Shortcuts</button>
       <DataGridRoot>
         <DataGridHeader />
         <DataGridBody />
-        <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
       </DataGridRoot>
     </DataGridProvider>
   );
@@ -58,9 +54,9 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them to the clipboard group. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
 
-<Callout type="warn" title="The ? shortcut claims a key">
-  With `DataGridKeybindingsShortcut` mounted and the grid focused, it claims <kbd>?</kbd> outside an open cell editor. Type-to-edit and any `keymap` binding on <kbd>?</kbd> lose the key, because the shortcut stops the native event before the grid sees it. A <kbd>?</kbd> typed into a text field that a cell or header renders stays with that field. Without the shortcut component, <kbd>?</kbd> starts an edit like any other printable key.
-</Callout>
+The <kbd>?</kbd> key is a normal keymap binding. With the grid focused and no cell editor open, it opens the dialog before type-to-edit sees it. A <kbd>?</kbd> typed into a text field that a cell or header renders stays with that field. Change the key with `keymap={{ openKeybindings: ["F1"] }}`. Remove it with `keymap={{ openKeybindings: [] }}`, and <kbd>?</kbd> starts an edit like any other printable key.
+
+`DataGridKeybindingsDialog` is the same dialog as a component. Use it for a custom placement or your own trigger. It takes `open`, `onOpenChange`, `defaultOpen`, `trigger`, and `className`, and it mounts inside `DataGridProvider`.
 
 ## Binding chips [#binding-chips]
 
@@ -245,5 +241,5 @@ declare module "@/components/data-grid/types" {
 
 - [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the default keymap table
 - [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): the layer that follows remapped bindings outside the grid
-- [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options): props of the dialog and the shortcut
+- [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options): options of the hook and props of the dialog
 - [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts): bindings that a plugin ships

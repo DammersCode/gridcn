@@ -197,7 +197,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: ["alt+k"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn) as Record<string, string[]>;
-    expect(merged.custom).toEqual(["alt+k"]);
+    expect(merged["custom"]).toEqual(["alt+k"]);
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -205,8 +205,8 @@ describe("plugin conflicts (decision 3 table)", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: [DEFAULT_KEYMAP.selectAll![0]!, "alt+k"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn) as Record<string, string[]>;
-    expect(merged.custom).toEqual(["alt+k"]);
-    expect(merged.selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
+    expect(merged["custom"]).toEqual(["alt+k"]);
+    expect(merged["selectAll"]).toEqual(DEFAULT_KEYMAP.selectAll);
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-collide:p:custom"]);
   });
 
@@ -215,15 +215,15 @@ describe("plugin conflicts (decision 3 table)", () => {
     const first = { name: "a", commands: { one: { run: () => {} } }, keymap: { one: ["alt+k"] } };
     const second = { name: "b", commands: { two: { run: () => {} } }, keymap: { two: ["alt+k"] } };
     const merged = mergePluginKeymaps([first, second], undefined, warn) as Record<string, string[]>;
-    expect(merged.one).toEqual(["alt+k"]);
-    expect(merged.two).toBeUndefined();
+    expect(merged["one"]).toEqual(["alt+k"]);
+    expect(merged["two"]).toBeUndefined();
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-collide:b:two"]);
   });
 
   it("the consumer keymap overrides a plugin binding for its own command", () => {
     const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: ["alt+k"] } };
     const merged = mergePluginKeymaps([plugin], { custom: ["alt+j"] } as never, vi.fn()) as Record<string, string[]>;
-    expect(merged.custom).toEqual(["alt+j"]);
+    expect(merged["custom"]).toEqual(["alt+j"]);
   });
 
   it("a plugin keymap entry naming a pluggable action the plugin defines no command for is dropped with a dev warn", () => {

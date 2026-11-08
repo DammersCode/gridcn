@@ -43,10 +43,7 @@ import {
   DataGridHeaderDropdown,
 } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
 import { DataGridSortList } from "@/registry/default/blocks/data-grid-sort-list/data-grid-sort-list";
-import {
-  DataGridKeybindingsDialog,
-  DataGridKeybindingsShortcut,
-} from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
+import { useDataGridKeybindings } from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
 import { DataGridExportButton, DataGridImportButton } from "@/registry/default/blocks/data-grid-io/data-grid-io";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -275,18 +272,9 @@ function useTotalsBand(enabled: boolean) {
 }
 
 /** Toolbar + keybindings dialog shared identically across all three row-supply modes. */
-function PlaygroundToolbar({
-  keybindingsOpen,
-  setKeybindingsOpen,
-  importDisabled,
-}: {
-  keybindingsOpen: boolean;
-  setKeybindingsOpen: (open: boolean) => void;
-  importDisabled: boolean;
-}): ReactNode {
+function PlaygroundToolbar({ openKeybindings, importDisabled }: { openKeybindings: () => void; importDisabled: boolean }): ReactNode {
   return (
-    <>
-      <DataGridToolbar>
+    <DataGridToolbar>
         <DataGridSearch />
         <DataGridFilterMenu />
         <DataGridSortList />
@@ -302,12 +290,10 @@ function PlaygroundToolbar({
           />
         )}
         <DataGridExportButton />
-        <Button variant="outline" size="sm" onClick={() => setKeybindingsOpen(true)}>
+        <Button variant="outline" size="sm" onClick={openKeybindings}>
           Shortcuts
         </Button>
-      </DataGridToolbar>
-      <DataGridKeybindingsDialog open={keybindingsOpen} onOpenChange={setKeybindingsOpen} />
-    </>
+    </DataGridToolbar>
   );
 }
 
@@ -316,9 +302,9 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
   const grid = useDataGridState(useMemo(() => generateDemoRows(60), []), { getRowId: (row) => row.id });
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const [keybindingsOpen, setKeybindingsOpen] = useState(false);
+  const keybindings = useDataGridKeybindings();
   const { pinnedRowsPlugin } = useTotalsBand(controls.pinnedTotals);
-  const plugins = useMemo(() => [...grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin], [grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin]);
+  const plugins = useMemo(() => [...grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin, keybindings.plugin], [grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin, keybindings.plugin]);
   const rowIds = useMemo(() => grid.data.map((row) => row.id), [grid.data]);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
@@ -333,7 +319,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
       readOnly={controls.readOnly}
     >
       <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
-      <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled={false} />
+      <PlaygroundToolbar openKeybindings={keybindings.open} importDisabled={false} />
       <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
         <DataGridRoot
           className="h-full rounded-none border-none"
@@ -345,7 +331,6 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
           direction={controls.direction}
           loading={controls.loading}
         >
-          <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -359,9 +344,9 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
   const [rows, setRows] = useState(() => generateDemoRows(120));
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const [keybindingsOpen, setKeybindingsOpen] = useState(false);
+  const keybindings = useDataGridKeybindings();
   const { pinnedRowsPlugin } = useTotalsBand(controls.pinnedTotals);
-  const plugins = useMemo(() => [fillPlugin, presencePlugin, pinnedRowsPlugin], [fillPlugin, presencePlugin, pinnedRowsPlugin]);
+  const plugins = useMemo(() => [fillPlugin, presencePlugin, pinnedRowsPlugin, keybindings.plugin], [fillPlugin, presencePlugin, pinnedRowsPlugin, keybindings.plugin]);
   const rowIds = useMemo(() => rows.map((row) => row.id), [rows]);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
@@ -382,7 +367,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         readOnly={controls.readOnly}
       >
         <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
-        <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled={false} />
+        <PlaygroundToolbar openKeybindings={keybindings.open} importDisabled={false} />
         <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
           <DataGridRoot
             className="min-h-0 flex-1 rounded-none border-none"
@@ -394,7 +379,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
             direction={controls.direction}
             loading={controls.loading}
           >
-            <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -469,8 +453,8 @@ function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
   });
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
-  const plugins = useMemo(() => [...server.providerProps.plugins, fillPlugin, presencePlugin], [server.providerProps.plugins, fillPlugin, presencePlugin]);
-  const [keybindingsOpen, setKeybindingsOpen] = useState(false);
+  const keybindings = useDataGridKeybindings();
+  const plugins = useMemo(() => [...server.providerProps.plugins, fillPlugin, presencePlugin, keybindings.plugin], [server.providerProps.plugins, fillPlugin, presencePlugin, keybindings.plugin]);
 
   usePresenceDriver(setPresenceHighlights, controls.presence);
 
@@ -486,7 +470,7 @@ function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
       <div data-testid="lazy-server-sort" className="px-2 text-xs text-muted-foreground">
         {server.spec.sorts.length === 0 ? "Server sort: none" : `Server sort: ${sortKey(server.spec.sorts)}`}
       </div>
-      <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled />
+      <PlaygroundToolbar openKeybindings={keybindings.open} importDisabled />
       <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
         <DataGridRoot
           className="h-full rounded-none border-none"
@@ -500,7 +484,6 @@ function LazyGrid({ controls }: { controls: PlaygroundControls }): ReactNode {
           error={server.rootProps.error}
           onRetry={server.rootProps.onRetry}
         >
-          <DataGridKeybindingsShortcut onOpen={() => setKeybindingsOpen(true)} />
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>

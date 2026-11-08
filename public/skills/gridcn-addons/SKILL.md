@@ -56,6 +56,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })`; a totals row is `aggregateRow(specs, { cells?, scope? })` or `serverAggregateRow({ fetchAggregates, cells?, refreshAfterSave? })` in `topRows`/`bottomRows` | `{ plugin }` | `plugin` → `plugins` on the provider |
+| Keybindings | `useDataGridKeybindings({ className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`?` opens the dialog; rebind with `keymap={{ openKeybindings: [...] }}`) |
 | Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
@@ -66,7 +67,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Toolbar | `DataGridToolbar` + children | sibling of `DataGridRoot`, inside the provider |
 | Header filter | `DataGridHeaderFilter` (passed to `DataGridRoot`'s `renderHeaderFilter`: `renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}`) | inside the provider; part of `data-grid-toolbar`, no `DataGridToolbar` needed |
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
-| Keybindings | `DataGridKeybindingsDialog` (inside provider), `DataGridKeybindingsShortcut` (inside `DataGridRoot`) | see split — the `?` shortcut needs the root's container |
+| Keybindings dialog (custom placement) | `DataGridKeybindingsDialog` (controlled `open`, own trigger) | inside the provider; `useDataGridKeybindings` is the default wiring |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
 | URL state | `DataGridUrlState` (option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
 | Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
@@ -155,8 +156,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   a child of `<DataGridToolbar>`, not just imported.
 - **Context menu right-click does nothing**: `DataGridContextMenu` must wrap content that is inside
   `DataGridProvider`; outside it, it throws immediately rather than silently failing.
-- **`?` shortcut or keybindings dialog inert**: `DataGridKeybindingsShortcut` must be inside
-  `DataGridRoot` (it reads the root's container element); the dialog itself only needs the provider.
+- **`?` shortcut or keybindings dialog inert**: `useDataGridKeybindings().plugin` must be in the
+  provider's `plugins`; a `keymap` entry `openKeybindings: []` removes the key.
 - **URL param has no visible effect**: a URL-applied sort shows the arrow on a string header in
   every `headerClickBehavior` mode. If nothing changes, check that the column is sortable and that
   the URL hook's props reach the provider.

@@ -539,3 +539,17 @@ describe("keymapContentEqual", () => {
     expect(keymapContentEqual({ moveLeft: undefined }, { moveLeft: undefined })).toBe(true);
   });
 });
+
+describe("matchKeymap - bare punctuation ignores Shift", () => {
+  const keymap = { openFind: ["?"] } as Keymap;
+  const press = (shiftKey: boolean): KeymapEvent => ({ key: "?", ctrlKey: false, metaKey: false, shiftKey, altKey: false });
+
+  it("matches a bare '?' binding with and without Shift", () => {
+    expect(matchKeymap(press(true), keymap, false)).toBe("openFind");
+    expect(matchKeymap(press(false), keymap, false)).toBe("openFind");
+  });
+
+  it("keeps Shift exact for a letter binding", () => {
+    expect(matchKeymap({ key: "a", ctrlKey: false, metaKey: false, shiftKey: true, altKey: false }, { openFind: ["a"] } as Keymap, false)).toBeNull();
+  });
+});
