@@ -271,6 +271,11 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Partial i18n override, deep-merged over {@link DEFAULT_LABELS}; see {@link useDataGridLabels}. */
   labels?: DeepPartialLabels;
   /**
+   * BCP 47 language tag, such as `"de-DE"`. It formats the numbers and dates of `number` and `date` columns, the status bar, and the default labels.
+   * A column `options.locale` and the status bar `formatValue` win. Default `"en-US"`, so the server and the browser render the same text.
+   */
+  locale?: string;
+  /**
    * Builds a new row for `insertRow` (`index` is the data index at request time); absent makes `insertRow` a dev-warning no-op (duplicateRows/deleteRows don't need it).
    * A promise holds the insert until every row settles; a pending promise blocks a second insert
    * and a rejection cancels it. `signal` aborts when the grid goes read-only, the row the insert
@@ -956,6 +961,8 @@ export type DataGridStoreState = Omit<
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
+  /** The `locale` sync prop, `"en-US"` when absent. */
+  locale: string;
   /** The live-region text of the latest row move (drag, keyboard, or `reorderRows`); empty before the first. */
   rowMoveAnnouncement: string;
   /** What the grid's live region announces next; the region formats it from the current labels. `seq` grows with every record, so a repeated text is announced again. `null` before the first. */

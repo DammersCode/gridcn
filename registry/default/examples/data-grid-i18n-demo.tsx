@@ -25,6 +25,7 @@ type Locale = "en" | "de" | "ar";
 type Translation = {
   name: string;
   dir: GridDirection;
+  locale: string;
   values: {
     columns: { name: string; email: string; role: string; age: string };
     hint: string;
@@ -37,6 +38,7 @@ const TRANSLATIONS: Record<Locale, Translation> = {
   en: {
     name: "English",
     dir: "ltr",
+    locale: "en-US",
     values: {
       columns: { name: "Name", email: "Email", role: "Role", age: "Age" },
       hint: "Pick a language — direction follows it.",
@@ -46,6 +48,7 @@ const TRANSLATIONS: Record<Locale, Translation> = {
   de: {
     name: "Deutsch",
     dir: "ltr",
+    locale: "de-DE",
     values: {
       columns: { name: "Name", email: "E-Mail", role: "Rolle", age: "Alter" },
       hint: "Sprache wählen — die Richtung folgt.",
@@ -58,6 +61,7 @@ const TRANSLATIONS: Record<Locale, Translation> = {
   ar: {
     name: "العربية",
     dir: "rtl",
+    locale: "ar-EG",
     values: {
       columns: { name: "الاسم", email: "البريد الإلكتروني", role: "الدور", age: "العمر" },
       hint: "اختر لغة — يتبعها اتجاه التخطيط.",
@@ -83,7 +87,7 @@ function useTranslation(locale: Locale) {
 export default function DataGridI18nDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(10), []);
   const [locale, setLocale] = useState<Locale>("en");
-  const { dir, values } = useTranslation(locale);
+  const { dir, values, locale: numberLocale } = useTranslation(locale);
 
   const columns = useMemo(
     () =>
@@ -91,7 +95,7 @@ export default function DataGridI18nDemo(): ReactNode {
         { id: "name", header: values.columns.name, accessorKey: "name", type: "text", width: 100, flex: 1, pin: "left" },
         { id: "email", header: values.columns.email, accessorKey: "email", type: "text", width: 130, flex: 2 },
         { id: "role", header: values.columns.role, accessorKey: "role", type: "text", width: 90, flex: 1 },
-        { id: "age", header: values.columns.age, accessorKey: "age", type: "number", width: 70, flex: 1 },
+        { id: "age", header: values.columns.age, accessorKey: "age", type: "number", options: { format: { maximumFractionDigits: 0 } }, width: 70, flex: 1 },
       ] as const),
     [values],
   );
@@ -118,6 +122,7 @@ export default function DataGridI18nDemo(): ReactNode {
           defaultData={rows}
           columns={columns}
           labels={values.labels}
+          locale={numberLocale}
         >
           <DataGridToolbar>
             <DataGridSearch />

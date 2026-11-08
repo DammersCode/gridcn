@@ -27,11 +27,9 @@ export type DataGridStatusBarProps = {
   /**
    * Formats the shown aggregate values. When omitted, the single-column rule applies: if every
    * numeric cell comes from one column, its `toDisplayText` formats sum/avg/min/max (a `number`
-   * column's `options.format` shows currency); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
+   * column's `options.format` shows currency); otherwise `Intl.NumberFormat` in the `locale` of the grid with `maximumFractionDigits: 4`.
    */
   formatValue?: (value: number, aggregate: StatusBarAggregate) => string;
-  /** Locale for the default number format. Default `"en-US"` (the date type's SSR-safe default). */
-  locale?: string;
   /** i18n overrides for this bar's strings, merged over `labels.statusBar`. */
   labels?: Partial<DataGridStatusBarLabels>;
   className?: string;
@@ -52,11 +50,11 @@ const DEFAULT_AGGREGATES: readonly StatusBarAggregate[] = ["count", "sum", "avg"
 export function DataGridStatusBar({
   aggregates = DEFAULT_AGGREGATES,
   formatValue,
-  locale = "en-US",
   labels,
   className,
   children,
 }: DataGridStatusBarProps) {
+  const locale = useDataGridSelector((s) => s.locale);
   const stats = useDataGridSelectionStats();
   const hiddenChecked = useDataGridHiddenCheckedCount();
   const storeLabels = useDataGridLabels();

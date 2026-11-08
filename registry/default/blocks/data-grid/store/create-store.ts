@@ -38,6 +38,8 @@ import {
   viewFilters,
   carryRuntimePins,
   defHiddenColumnIds,
+  DEFAULT_LOCALE,
+  withGridLocale,
   flashCellKey,
   flashKeyRowId,
   isColumnReadOnly,
@@ -177,6 +179,8 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
  * factory's result or a bound hook from this module — only the hooks below.
  */
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
+  const initLocale = init.locale ?? DEFAULT_LOCALE;
+  const initColumns = withGridLocale(init.columns, initLocale);
   let groupModel: ColumnGroupModel | null = buildColumnGroupModel(init.columnGroups, init.columns.map((c) => c.id));
   const warnedGroupIssues = new Set<string>();
   const warnGroupIssues = (model: ColumnGroupModel | null): void => {
@@ -198,8 +202,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel);
   const reorderColumnIds = (ids: readonly string[], columns: readonly AnyColumnDef[], id: string, targetId: string, position: "before" | "after") =>
     reorderColumnIdsBase(ids, columns, id, targetId, position, groupModel);
-  const defHidden = defHiddenColumnIds(init.columns);
-  const seeded = applyDefaultColumnLayout(init.columns, defHidden, init.defaultColumnLayout);
+  const defHidden = defHiddenColumnIds(initColumns);
+  const seeded = applyDefaultColumnLayout(initColumns, defHidden, init.defaultColumnLayout);
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
   // so the server render and the first client paint already show the controlled layout. Omitted
   // parts fall back to the seeded values (there is no store state yet).
@@ -208,7 +212,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const effectiveLayout =
     init.columnLayout !== undefined
       ? normalizeColumnLayout(
-          init.columns,
+          initColumns,
           {
             widths: init.columnLayout.widths ?? seeded.columnWidths,
             order: init.columnLayout.order !== undefined ? init.columnLayout.order : seeded.columnOrder,
@@ -254,6 +258,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let lastPropsColumnGroups = init.columnGroups;
   // The last raw `columns` prop; `s.columns` also carries runtime pin changes that a same-reference re-sync keeps.
   let lastPropsColumns: readonly AnyColumnDef[] = init.columns;
+  let lastColumnsLocale = initLocale;
   // The raw `keymap`/`commands`/`plugins` props last seen by _syncConfig: content-equal re-renders
   // (inline literals) keep `s.keymap`/`s.commands`/`s.plugins`'s references. Seeded with the init
   // values (the creation-time resolution already validated and merged them), so the first config
@@ -1000,7 +1005,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             onSaveRejected: props.onSaveRejected,
             resolveSaveConflict: props.resolveSaveConflict,
             fetchFilterValues: props.fetchFilterValues,
-            labels: mergeLabels(props.labels),
+            locale: props.locale ?? DEFAULT_LOCALE,
+            labels: mergeLabels(props.labels, props.locale ?? DEFAULT_LOCALE),
             plugins: nextPlugins ?? s.plugins,
             commands: commandsUpdated ? nextCommands : s.commands,
             autosizeOnMount: props.autosizeOnMount,
@@ -1080,7 +1086,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastPropsColumns = props.columns;
           // A def's `pin` and `hidden` seed when its id first appears; a known id keeps its runtime pin and visibility.
           const knownColumns = propsColumnsChanged ? new Map(s.columns.map((c) => [c.id, c])) : null;
-          const nextColumns = knownColumns ? carryRuntimePins(props.columns, knownColumns) : s.columns;
+          const nextLocale = props.locale ?? DEFAULT_LOCALE;
+          const localeChanged = nextLocale !== lastColumnsLocale;
+          lastColumnsLocale = nextLocale;
+          const nextColumns = knownColumns ? withGridLocale(carryRuntimePins(props.columns, knownColumns), nextLocale) : localeChanged ? withGridLocale(s.columns, nextLocale) : s.columns;
           const reseededHidden = knownColumns ? defHiddenColumnIds(props.columns.filter((c) => !knownColumns.has(c.id))) : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // An inline `columnGroups` literal rebuilds the model; the old model stays while structure and headers are equal.
@@ -1402,7 +1411,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     readOnly: Boolean(init.readOnly),
     keymap: initKeymap,
     commands: initCommands,
-    labels: mergeLabels(init.labels),
+    locale: initLocale,
+    labels: mergeLabels(init.labels, initLocale),
     rowMoveAnnouncement: "",
     liveAnnouncement: null,
     announceResults: init.announceResults ?? false,

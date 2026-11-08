@@ -147,7 +147,7 @@ The grid compares `labels` <NewBadge /> by content, so a literal object of strin
 
 ## RTL layout
 
-`labels` translates strings. It does not format numbers and dates: `options.locale` on each `number` and `date` column sets that language. See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
+`labels` translates strings. The `locale` prop of the provider, a BCP 47 tag such as `"de-DE"`, sets the language of numbers and dates: the `number` and `date` columns, the default number format of the status bar, and the numbers inside the default labels. <NewBadge /> It defaults to `"en-US"`, so the server and the browser render the same text. `options.locale` on a column and `formatValue` of the status bar win over it. See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
 
 ```tsx
 import {
@@ -159,9 +159,9 @@ import {
 } from "@/components/data-grid/data-grid";
 
 const TRANSLATIONS = {
-  en: { dir: "ltr", labels: { toolbar: { searchPlaceholder: "Search…" } } },
-  ar: { dir: "rtl", labels: { toolbar: { searchPlaceholder: "بحث…" } } },
-} as const satisfies Record<string, { dir: string; labels: DeepPartialLabels }>;
+  en: { dir: "ltr", locale: "en-US", labels: { toolbar: { searchPlaceholder: "Search…" } } },
+  ar: { dir: "rtl", locale: "ar-EG", labels: { toolbar: { searchPlaceholder: "بحث…" } } },
+} as const satisfies Record<string, { dir: string; locale: string; labels: DeepPartialLabels }>;
 
 export function LocaleGrid({ locale }: { locale: keyof typeof TRANSLATIONS }) {
   const { dir, labels } = TRANSLATIONS[locale];

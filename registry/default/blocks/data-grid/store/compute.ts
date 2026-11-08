@@ -10,7 +10,7 @@ import type {
   SortSpec,
   ViewCoord,
 } from "../types";
-import { DEFAULT_LABELS, deepMergeLabels, type DataGridLabels, type DeepPartialLabels } from "../labels";
+import { DEFAULT_LABELS, deepMergeLabels, defaultLabelsFor, type DataGridLabels, type DeepPartialLabels } from "../labels";
 import {
   buildViewIndex,
   defaultCompareText,
@@ -323,17 +323,57 @@ export function pruneCellErrors(
  * `labels` override prop is normally a stable (or absent) reference — re-merging then would hand
  * out a fresh `DataGridLabels` object every render, defeating any subscriber's `useMemo`/`useCallback`
  * keyed on label identity. Returns the previous merge result when `override` is reference-equal to
- * the last call's.
+ * the last call's and `locale` is unchanged.
  */
-export function memoizedMergeLabels(): (override: DeepPartialLabels | undefined) => DataGridLabels {
+export function memoizedMergeLabels(): (override: DeepPartialLabels | undefined, locale: string) => DataGridLabels {
   let lastOverride: DeepPartialLabels | undefined;
+  let lastLocale = DEFAULT_LOCALE;
   let lastResult: DataGridLabels = DEFAULT_LABELS;
-  return (override) => {
-    if (override === lastOverride) return lastResult;
+  return (override, locale) => {
+    if (override === lastOverride && locale === lastLocale) return lastResult;
     lastOverride = override;
-    lastResult = deepMergeLabels(DEFAULT_LABELS, override);
+    lastLocale = locale;
+    lastResult = deepMergeLabels(defaultLabelsFor(locale), override);
     return lastResult;
   };
+}
+
+/** The locale of a grid without a `locale` prop; pinned so the server and the browser format alike. */
+export const DEFAULT_LOCALE = "en-US";
+
+const GRID_LOCALE = Symbol("gridLocale");
+type LocaleOptions = { locale?: string; [GRID_LOCALE]?: true };
+const LOCALE_TYPES = new Set(["number", "date"]);
+const columnsByLocale = new WeakMap<AnyColumnDef, { locale: string; resolved: AnyColumnDef }>();
+
+/**
+ * `columns` with the grid `locale` merged into the `options` of `number` and `date` columns that set no `locale`
+ * themselves. The default locale changes nothing. A column resolved earlier is resolved again from its own `options`.
+ */
+export function withGridLocale(columns: readonly AnyColumnDef[], locale: string): readonly AnyColumnDef[] {
+  let resolved: AnyColumnDef[] | null = null;
+  columns.forEach((column, index) => {
+    const next = resolveColumnLocale(column, locale);
+    if (next === column) return;
+    resolved ??= [...columns];
+    resolved[index] = next;
+  });
+  return resolved ?? columns;
+}
+
+function resolveColumnLocale(column: AnyColumnDef, locale: string): AnyColumnDef {
+  const options = column.options as LocaleOptions | undefined;
+  const injected = options?.[GRID_LOCALE] === true;
+  if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
+  if (injected ? options.locale === locale : locale === DEFAULT_LOCALE) return column;
+  const cached = columnsByLocale.get(column);
+  if (cached?.locale === locale) return cached.resolved;
+  const own: LocaleOptions = { ...options };
+  delete own.locale;
+  delete own[GRID_LOCALE];
+  const resolved = { ...column, options: locale === DEFAULT_LOCALE ? own : { ...own, locale, [GRID_LOCALE]: true } } as AnyColumnDef;
+  columnsByLocale.set(column, { locale, resolved });
+  return resolved;
 }
 
 /** Module-wide monotonic counter backing {@link genFilterId} — no nanoid/uuid dep for a purely-local, never-persisted id. */

@@ -60,7 +60,7 @@ A cell counts as numeric if its raw value is a finite `number`. Detection reads 
 
 The aggregates show once the selection covers two loaded cells. `count` always shows. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
 
-When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise the bar uses `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. `formatValue` overrides both.
+When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise the bar uses `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid. `formatValue` overrides both.
 
 The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children` <NewBadge />, it renders nothing.
 
@@ -104,7 +104,6 @@ The result holds `cells`, `count`, `numeric`, `sum`, `avg`, `min`, `max`, `numer
 |---|---|---|---|
 | `aggregates` | `readonly ("count" \| "sum" \| "avg" \| "min" \| "max")[]` | all five, in this order | Which aggregates to show, and in which order. |
 | `formatValue` | `(value: number, aggregate: StatusBarAggregate) => string` | the single-column rule, else the `Intl` default | Formats the shown aggregate values. |
-| `locale` | `string` | `"en-US"` | Locale for the default number format. |
 | `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | Overrides the strings of this bar. |
 | `className` | `string` | none | Extra classes on the bar element. |
 | `children` | `ReactNode` | none | Extra items, rendered after the aggregates. The bar stays visible while it has children. |
