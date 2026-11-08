@@ -53,7 +53,7 @@ Grep for these two props on `DataGridRoot`/`DataGrid`. An inline arrow function 
 
 ## 5. Unstable plugin members in `plugins`
 
-The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `topRows`/`bottomRows` literal passed to `useDataGridPinnedRows` every render. A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
+The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `aggregateRow(...)` or row object in `topRows`/`bottomRows` created every render (an inline array of stable entries is fine). A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
 
 - Symptoms:
   - `[data-grid] plugin "X"'s Overlay component identity changed; the overlay remounts and loses its state`

@@ -1,10 +1,20 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
 import { GRID_LAYER, type GridColumnLayout, type RenderedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cn } from "@/lib/utils";
 import { DataGridPinnedRow } from "./pinned-row";
+import { isPinnedRowSource } from "./pinned-row-source";
+import { DataGridPinnedSourceRow } from "./pinned-source-row";
 import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
+
+const NO_STATUSES: ReadonlyMap<number, ServerAggregateStatus> = new Map();
+const STATUS_PRECEDENCE: readonly ServerAggregateStatus[] = ["loading", "stale", "error"];
+
+function worstStatus(statuses: ReadonlyMap<number, ServerAggregateStatus>): ServerAggregateStatus {
+  const values = new Set(statuses.values());
+  return STATUS_PRECEDENCE.find((s) => values.has(s)) ?? "ready";
+}
 
 /** Props for {@link DataGridPinnedRowBand}. */
 export type DataGridPinnedRowBandProps = {
@@ -23,7 +33,7 @@ export type DataGridPinnedRowBandProps = {
    * pinned-top and data row — root computes both bases and passes them through `RowBandRenderCtx`.
    */
   ariaRowIndexBase: number;
-  /** Server value state: anything but `"ready"` dims the band; `"loading"` and `"stale"` set `aria-busy`. */
+  /** Server value state: anything but `"ready"` dims the band; `"loading"` and `"stale"` set `aria-busy`. Default: the status of the band's `serverAggregateRow` entries, else `"ready"`. */
   status?: ServerAggregateStatus;
 };
 
@@ -37,7 +47,18 @@ export type DataGridPinnedRowBandProps = {
  * `useDataGridPinnedRows`'s `rowBands.render` calls this once per non-empty band.
  */
 export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactNode {
-  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase, status = "ready" } = props;
+  const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = props;
+  const [sourceStatuses, setSourceStatuses] = useState(NO_STATUSES);
+  const reportStatus = useCallback((bandIndex: number, next: ServerAggregateStatus | undefined) => {
+    setSourceStatuses((prev) => {
+      if (prev.get(bandIndex) === next) return prev;
+      const map = new Map(prev);
+      if (next === undefined) map.delete(bandIndex);
+      else map.set(bandIndex, next);
+      return map;
+    });
+  }, []);
+  const status = props.status ?? worstStatus(sourceStatuses);
   if (rows.length === 0) return null;
 
   const bandHeight = rows.length * rowHeight;
@@ -66,20 +87,19 @@ export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactN
       className={cn(status !== "ready" && "opacity-60", status === "loading" && "motion-safe:animate-pulse")}
       style={layerStyle}
     >
-      {rows.map((row, i) => (
-        <DataGridPinnedRow
-          // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.
-          key={i}
-          position={position}
-          row={row}
-          bandIndex={i}
-          renderedColumns={renderedColumns}
-          layout={layout}
-          gridRowStart={i + 1}
-          ariaRowIndex={ariaRowIndexBase + i}
-          className={position === "bottom" ? "border-t border-border" : undefined}
-        />
-      ))}
+      {rows.map((row, i) => {
+        const rowProps = {
+          position,
+          bandIndex: i,
+          renderedColumns,
+          layout,
+          gridRowStart: i + 1,
+          ariaRowIndex: ariaRowIndexBase + i,
+          className: position === "bottom" ? "border-t border-border" : undefined,
+        };
+        // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.
+        return isPinnedRowSource(row) ? <DataGridPinnedSourceRow key={i} {...rowProps} source={row} onStatus={reportStatus} /> : <DataGridPinnedRow key={i} {...rowProps} row={row} />;
+      })}
     </div>
   );
 }

@@ -1,16 +1,10 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
-import {
-  DataGridServerAggregateReporter,
-  PENDING_SERVER_AGGREGATE,
-  useDataGridPinnedRows,
-  type ServerAggregateResult,
-} from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
+import { serverAggregateRow, useDataGridPinnedRows } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
-import { Button } from "@/components/ui/button";
 import type { DemoRow } from "./demo-data";
 import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server";
 
@@ -28,7 +22,21 @@ const columns = defineColumns<DemoRow>()([
  */
 export default function DataGridServerTotalsDemo(): ReactNode {
   const remote = useMemo(() => createRemoteServer(), []);
-  const [aggregate, setAggregate] = useState<ServerAggregateResult>(PENDING_SERVER_AGGREGATE);
+  const totals = useMemo(
+    () =>
+      serverAggregateRow({
+        columnIds: ["age", "score"],
+        cells: { id: "__totals__", name: "Total" },
+        fetchAggregates: async ({ spec, signal }) => {
+          const all = await remote.fetchRange({ start: 0, end: remote.total, filters: spec.filters as RemoteFilterNode[], signal });
+          return {
+            age: all.rows.reduce((sum, row) => sum + row.age, 0),
+            score: all.rows.reduce((sum, row) => sum + row.score, 0),
+          };
+        },
+      }),
+    [remote],
+  );
 
   const server = useDataGridServerRows<DemoRow>({
     mode: "scroll",
@@ -38,20 +46,12 @@ export default function DataGridServerTotalsDemo(): ReactNode {
     },
   });
 
-  const bottomRows = useMemo(() => [{ id: "__totals__", name: "Total", ...aggregate.row }], [aggregate.row]);
-  const { plugin } = useDataGridPinnedRows({ bottomRows, status: aggregate.status });
+  const { plugin } = useDataGridPinnedRows({ bottomRows: [totals] });
   const plugins = useMemo(() => [plugin], [plugin]);
 
   return (
     <div className="w-full flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>
-          {(server.totalRowCount ?? remote.total).toLocaleString("en-US")} rows match · totals {aggregate.status}
-        </span>
-        <Button type="button" size="sm" variant="outline" onClick={aggregate.status === "error" ? aggregate.retry : aggregate.refresh}>
-          {aggregate.status === "error" ? "Retry totals" : "Refresh totals"}
-        </Button>
-      </div>
+      <span className="text-sm text-muted-foreground">{(server.totalRowCount ?? remote.total).toLocaleString("en-US")} rows match</span>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
           {...server.providerProps}
@@ -60,17 +60,6 @@ export default function DataGridServerTotalsDemo(): ReactNode {
           fetchFilterValues={({ columnId, query, filters, signal }) => remote.fetchValues({ columnId, search: query, filters: filters as RemoteFilterNode[], signal })}
           readOnly
         >
-          <DataGridServerAggregateReporter
-            columnIds={["age", "score"]}
-            onChange={setAggregate}
-            fetchAggregates={async ({ spec, signal }) => {
-              const all = await remote.fetchRange({ start: 0, end: remote.total, filters: spec.filters as RemoteFilterNode[], signal });
-              return {
-                age: all.rows.reduce((sum, row) => sum + row.age, 0),
-                score: all.rows.reduce((sum, row) => sum + row.score, 0),
-              };
-            }}
-          />
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />} {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />

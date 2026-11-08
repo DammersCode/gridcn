@@ -6,7 +6,7 @@ type: task
 aliases: ["server totals", "server aggregates", "fetchAggregates", "totals band server"]
 ---
 
-A server grid holds one page or some blocks, so `useDataGridAggregate` cannot total the whole result. `DataGridServerAggregateReporter` asks your server instead. It calls `fetchAggregates` with the current spec and reports the values as a row for a pinned band.
+A server grid holds one page or some blocks, so `aggregateRow` cannot total the whole result. `serverAggregateRow` asks your server instead. It calls `fetchAggregates` with the current spec and shows the values as a row in a pinned band.
 
 <ComponentPreview name="data-grid-server-totals-demo" />
 
@@ -14,17 +14,15 @@ A server grid holds one page or some blocks, so `useDataGridAggregate` cannot to
 
 ## Fetch the totals [#fetch-totals]
 
-1. Keep the result of the reporter in state. Start the state from `PENDING_SERVER_AGGREGATE`.
-2. Pass the values to `useDataGridPinnedRows` as a row, with the `status` of the result.
-3. Render `DataGridServerAggregateReporter` inside `DataGridProvider`. Pass `onChange` and `fetchAggregates`.
-4. Resolve `{ [columnId]: value }` in `fetchAggregates` for the whole result of `spec`.
+1. Declare the row with `serverAggregateRow`. Create it once, at module scope.
+2. Resolve `{ [columnId]: value }` in `fetchAggregates` for the whole result of `spec`.
+3. Pass the row to `useDataGridPinnedRows`.
 
 This grid pins the totals of the filtered result:
 
 ```tsx
 "use client";
 
-import { useMemo, useState } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -33,10 +31,8 @@ import {
   defineColumns,
 } from "@/components/data-grid/data-grid";
 import {
-  DataGridServerAggregateReporter,
-  PENDING_SERVER_AGGREGATE,
+  serverAggregateRow,
   useDataGridPinnedRows,
-  type ServerAggregateResult,
 } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
@@ -52,6 +48,14 @@ async function post(url: string, body: unknown, signal: AbortSignal) {
   return (await fetch(url, request)).json();
 }
 
+const TOTALS = serverAggregateRow({
+  cells: { id: "__totals__", customer: "Total" },
+  fetchAggregates: ({ spec, signal }) => {
+    const { filters, searchText } = spec;
+    return post("/api/orders/totals", { filters, searchText }, signal);
+  },
+});
+
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
@@ -60,32 +64,14 @@ export function OrdersGrid() {
       return { rows: answer.rows, totalRowCount: answer.total };
     },
   });
-  const [totals, setTotals] = useState<ServerAggregateResult>(
-    PENDING_SERVER_AGGREGATE,
-  );
-  const bottomRows = useMemo(
-    () => [{ id: "__totals__", customer: "Total", ...totals.row }],
-    [totals.row],
-  );
-  const { plugin } = useDataGridPinnedRows({
-    bottomRows,
-    status: totals.status,
-  });
-  const plugins = useMemo(() => [plugin], [plugin]);
+  const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
 
   return (
     <DataGridProvider
       {...server.providerProps}
       columns={columns}
-      plugins={plugins}
+      plugins={[plugin]}
     >
-      <DataGridServerAggregateReporter
-        onChange={setTotals}
-        fetchAggregates={({ spec, signal }) => {
-          const { filters, searchText } = spec;
-          return post("/api/orders/totals", { filters, searchText }, signal);
-        }}
-      />
       <DataGridRoot {...server.rootProps}>
         <DataGridHeader />
         <DataGridBody />
@@ -95,13 +81,25 @@ export function OrdersGrid() {
 }
 ```
 
-Inside the grid, call `useDataGridServerAggregate(options)` yourself. It returns the same result.
+The band sets its own `status` from the row. An explicit `status` option of `useDataGridPinnedRows` replaces it.
+
+## Refresh after a save [#refresh-after-save]
+
+<NewBadge />
+
+`serverAggregateRow` fetches again after the last pending save settles. An edit that your `onSave` answers with a promise therefore updates the totals. Set `refreshAfterSave: false` to keep the totals of the last request, and refresh them through the reporter below.
+
+## Read the result yourself [#read-the-result]
+
+<NewBadge />
+
+To show the status or a refresh button outside the band, render `DataGridServerAggregateReporter` inside `DataGridProvider`. It takes the options of `serverAggregateRow` and an `onChange` that receives the result. Start the state from `PENDING_SERVER_AGGREGATE`. Inside the grid, `useDataGridServerAggregate(options)` returns the same result. The result holds `row`, `status`, `error`, `loading`, `refresh()`, and `retry()`. A reporter does not refresh after saves. Call `refresh()` after your save lands.
 
 ## When it requests [#when-it-requests]
 
 The request carries the spec and not the rows in the grid. The same code serves pages mode, scroll mode, a controlled spec, and your own API.
 
-- The reporter requests once on mount.
+- The row requests once on mount.
 - It requests again after each filter, quick-search, or `columnIds` change, and after `refresh()` and `retry()`.
 - Each request waits `debounceMs` before it starts, the one on mount too.
 - A sort does not change the totals, so it does not request.
@@ -122,7 +120,7 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 
 ## Options [#options]
 
-{/* props: DataGridServerAggregateReporterProps */}
+{/* props: ServerAggregateRowOptions */}
 
 | Option | Default | Effect |
 | --- | --- | --- |
@@ -130,15 +128,13 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 | `columnIds` | every column | The columns to ask for. |
 | `debounceMs` | `150` | Milliseconds to wait before each request starts. `0` starts it at once. |
 | `onError` | none | Called once per failed request. |
-| `onChange` | required on the reporter | Receives the result, to keep in state. |
+| `cells` | none | Fixed cell values by column id, such as the id and a label. |
+| `refreshAfterSave` | `"settled"` | `false` skips the fetch after saves. |
+| `onChange` | required on the reporter only | Receives the result, to keep in state. |
 
 The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.
 
-The values come keyed by column id. A pinned cell reads its row through `accessorKey` or `accessorFn`. A total shows only where the `accessorKey` of the column equals its `id`. When they differ, copy the total to the `accessorKey` in `onChange`. [Pinned rows](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row) shows the same rule for client totals.
-
-<Callout type="warn">
-  Call `totals.refresh()`, the `refresh` of the result that `onChange` stored, after your save lands. An edit does not request new totals, so the band keeps the totals of the last request.
-</Callout>
+The band reads each value by column id. [Pinned rows](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row) shows the same rule for client totals.
 
 ## Related
 

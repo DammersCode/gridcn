@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   DataGridProvider,
   DataGridRoot,
@@ -11,14 +11,9 @@ import {
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import {
   useDataGridPinnedRows,
-  DataGridAggregateReporter,
-  type AggregateSpecs,
+  aggregateRow,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { generateDemoRows, type DemoRow } from "./demo-data";
-
-type SummaryRow = Omit<DemoRow, "active"> & { active?: boolean };
-
-const isSummaryRow = (row: DemoRow) => row.id.startsWith("__");
 
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, pin: "left" },
@@ -45,25 +40,22 @@ const columns = defineColumns<DemoRow>()([
   {
     id: "department",
     header: "Department",
-    accessorFn: (row) => (isSummaryRow(row) ? "" : row.age % 2 === 0 ? "Engineering" : "Sales"),
+    accessorFn: (row) => (row.age % 2 === 0 ? "Engineering" : "Sales"),
     type: "text",
     width: 130,
   },
   {
     id: "location",
     header: "Location",
-    accessorFn: (row) => (isSummaryRow(row) ? "" : row.score % 2 === 0 ? "Remote" : "Onsite"),
+    accessorFn: (row) => (row.score % 2 === 0 ? "Remote" : "Onsite"),
     type: "text",
     width: 110,
   },
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "right" },
 ] as const);
 
-const AVERAGES_SPECS: AggregateSpecs = { age: "avg", score: "avg" };
-const TOTALS_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" };
-
-const EMPTY_AVERAGES_ROW: SummaryRow = { id: "__averages__", name: "Average", email: "", age: 0, role: "", joined: "", score: 0 };
-const EMPTY_TOTALS_ROW: SummaryRow = { id: "__totals__", name: "0 rows", email: "", age: 0, role: "", joined: "", score: 0 };
+const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", name: "Average" } });
+const TOTALS = aggregateRow<DemoRow>({ name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" }, { cells: { id: "totals" } });
 
 /**
  * All four pin zones at once: Name pinned left, Score pinned right, an averages row pinned to
@@ -74,19 +66,7 @@ const EMPTY_TOTALS_ROW: SummaryRow = { id: "__totals__", name: "0 rows", email: 
  */
 export default function DataGridPinningAllSidesDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(200), { getRowId: (row) => row.id });
-  const [averagesRow, setAveragesRow] = useState<SummaryRow>(EMPTY_AVERAGES_ROW);
-  const [totalsRow, setTotalsRow] = useState<SummaryRow>(EMPTY_TOTALS_ROW);
-
-  const onAveragesChange = useCallback((row: Record<string, unknown>) => {
-    setAveragesRow((prev) => ({ ...prev, ...row, name: "Average" }));
-  }, []);
-  const onTotalsChange = useCallback((row: Record<string, unknown>) => {
-    setTotalsRow((prev) => ({ ...prev, ...row }));
-  }, []);
-
-  const top = useMemo(() => [averagesRow], [averagesRow]);
-  const bottom = useMemo(() => [totalsRow], [totalsRow]);
-  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ topRows: top, bottomRows: bottom });
+  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ topRows: [AVERAGES], bottomRows: [TOTALS] });
   const plugins = useMemo(() => [...grid.plugins, pinnedRowsPlugin], [grid.plugins, pinnedRowsPlugin]);
 
   return (
@@ -98,8 +78,6 @@ export default function DataGridPinningAllSidesDemo(): ReactNode {
       </p>
       <div className="flex h-[420px] w-full flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns} plugins={plugins}>
-          <DataGridAggregateReporter specs={AVERAGES_SPECS} onChange={onAveragesChange} />
-          <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

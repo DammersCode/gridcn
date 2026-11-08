@@ -1,24 +1,46 @@
 ---
 title: Pinned rows options
 icon: Pin
-description: Look up the options of useDataGridPinnedRows, the reducers and options of useDataGridAggregate, and the props of DataGridAggregateReporter.
+description: Look up the options of useDataGridPinnedRows, aggregateRow, serverAggregateRow, and useDataGridAggregate, plus the reducers and the reporter props.
 type: reference
 aliases: ["totals row options", "aggregate options", "totals band"]
 ---
 
-`useDataGridPinnedRows` returns a plugin that pins rows above or below the data rows. `useDataGridAggregate` reduces columns into a row for a totals band. `DataGridAggregateReporter` carries that row out of the provider. The rules for pinned rows are on [Pinned rows](/docs/rows-pages-menus/pinned-rows).
+`useDataGridPinnedRows` returns a plugin that pins rows above or below the data rows. `aggregateRow` and `serverAggregateRow` declare a totals row that the band computes. `useDataGridAggregate` reduces columns into a row, and `DataGridAggregateReporter` carries that row out of the provider. The rules for pinned rows are on [Pinned rows](/docs/rows-pages-menus/pinned-rows).
 
 ## useDataGridPinnedRows [#usedatagridpinnedrowsoptions]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
 
-The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while `topRows` and `bottomRows` keep theirs. Memoize the arrays, or the grid resolves its plugins again on every render.
+The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while the entries of `topRows` and `bottomRows` stay the same objects, so an inline array of stable entries is fine.
 
 ## useDataGridPinnedRows status [#status]
 
 <NewBadge />
 
-`status` marks both bands while server values load, go stale, or fail. The bands dim and set `data-status`. They set `aria-busy` only while values load or go stale. The default is `"ready"`.
+`status` marks both bands while server values load, go stale, or fail. The bands dim and set `data-status`. They set `aria-busy` only while values load or go stale. The default is the status of the `serverAggregateRow` entries of the band, else `"ready"`.
+
+## Totals rows [#totals-rows]
+
+<NewBadge />
+
+`aggregateRow` and `serverAggregateRow` declare a totals row for `topRows` or `bottomRows`.
+
+### aggregateRow [#aggregaterow]
+
+<NewBadge />
+
+`aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. Create the row once, at module scope.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts" name="AggregateRowOptions" />
+
+### serverAggregateRow [#serveraggregaterow]
+
+<NewBadge />
+
+`serverAggregateRow(options)` returns a pinned row whose values come from your server. It takes the options of `useDataGridServerAggregate` and sets the `status` of the bands. After the last pending save settles, it fetches again. A `serverAggregateRow` pinned in two places fetches twice, and development builds warn once.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts" name="ServerAggregateRowOptions" />
 
 ## useDataGridServerAggregate [#usedatagridserveraggregateoptions]
 
@@ -34,7 +56,7 @@ The result is a `ServerAggregateResult`:
 
 ## useDataGridAggregate [#usedatagridaggregateoptions]
 
-`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object. If each totals column has an `accessorKey` equal to its `id`, the object works as a pinned row. If the view index, the data, the scope, or the identity of `specs` changes, it recomputes. Define `specs` at module scope, or memoize it.
+`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object. Use it to read the totals inside the provider. If the view index, the data, the scope, or the identity of `specs` changes, it recomputes. Define `specs` at module scope, or memoize it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="UseDataGridAggregateOptions" />
 
@@ -48,13 +70,13 @@ A reducer has the type `AggregateReducer`: a name or a function.
 | `"count"` | The number of values that are not `null` or `undefined` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 
-The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The result <NewBadge /> uses column ids as keys. A pinned row reads it through `accessorKey` or `accessorFn`, so it shows a total only in a column whose `accessorKey` equals its `id`. See [Computing a totals row](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row). The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
+The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The result uses column ids as keys. `aggregateRow` shows it in the band. See [Computing a totals row](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row). The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
 
 `scope: "page"` <NewBadge /> covers the shown page only. With server pagination, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
 
 ## DataGridAggregateReporter [#datagridaggregatereporterprops]
 
-The `plugins` prop lives above the store, so a component above the provider cannot read the aggregate. The reporter sits inside the provider and calls `onChange` with the row. It renders nothing.
+The reporter sits inside the provider and calls `onChange` with the row, so a component outside the provider can show it. It renders nothing.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="DataGridAggregateReporterProps" />
 
@@ -65,18 +87,10 @@ The `plugins` prop lives above the store, so a component above the provider cann
 This sample pins a sum of `price` to the bottom of the grid:
 
 ```tsx
-import { useCallback, useMemo, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
-  DataGridBody,
-  DataGridHeader,
-  DataGridProvider,
-  DataGridRoot,
-  defineColumns,
-} from "@/components/data-grid/data-grid";
-import {
-  DataGridAggregateReporter,
+  aggregateRow,
   useDataGridPinnedRows,
-  type AggregateSpecs,
 } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 
 type Row = { id: string; item: string; price: number };
@@ -89,27 +103,21 @@ const columns = defineColumns<Row>()([
   { id: "item", header: "Item", accessorKey: "item" },
   { id: "price", header: "Price", accessorKey: "price", type: "number" },
 ]);
-const specs: AggregateSpecs<Row> = { price: "sum" };
+const TOTALS = aggregateRow<Row>(
+  { price: "sum" },
+  { cells: { id: "total", item: "Total" } },
+);
 
 export function PricesGrid() {
-  const [totals, setTotals] = useState<Record<string, unknown>>({
-    id: "total",
-    item: "Total",
-  });
-  const onChange = useCallback((row: Record<string, unknown>) => {
-    setTotals((prev) => ({ ...prev, ...row }));
-  }, []);
-  const bottomRows = useMemo(() => [totals], [totals]);
-  const { plugin } = useDataGridPinnedRows({ bottomRows });
+  const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
 
   return (
-    <DataGridProvider defaultData={rows} columns={columns} plugins={[plugin]}>
-      <DataGridAggregateReporter specs={specs} onChange={onChange} />
-      <DataGridRoot className="h-80">
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      plugins={[plugin]}
+      className="h-80"
+    />
   );
 }
 ```

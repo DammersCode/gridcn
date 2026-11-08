@@ -880,6 +880,16 @@
                "target": "components/data-grid-pinned-rows/pinned-row-band.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-pinned-rows/pinned-row-source.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-pinned-rows/pinned-source-row.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-pinned-rows/pinned-source-row.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts",
                "type": "registry:component",
                "target": "components/data-grid-pinned-rows/use-data-grid-aggregate.ts"

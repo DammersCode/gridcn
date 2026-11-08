@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   DataGridProvider,
   DataGridRoot,
@@ -11,8 +11,7 @@ import {
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import {
   useDataGridPinnedRows,
-  DataGridAggregateReporter,
-  type AggregateSpecs,
+  aggregateRow,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { DataGridToolbar, DataGridFilterMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { generateDemoRows, type DemoRow } from "./demo-data";
@@ -42,36 +41,22 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
 ] as const);
 
-const AVERAGES_SPECS: AggregateSpecs = { age: "avg", score: "avg" };
-const TOTALS_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" };
-
-const EMPTY_AVERAGES_ROW: DemoRow = { id: "__averages__", name: "", email: "", age: 0, active: false, role: "Average", joined: "", score: 0 };
-const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "", age: 0, active: false, role: "Total", joined: "", score: 0 };
+const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", role: "Average" } });
+const TOTALS = aggregateRow<DemoRow>(
+  { name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" },
+  { cells: { id: "totals", role: "Total" } },
+);
 
 /**
  * Pinned rows (`data-grid-pinned-rows` add-on): an averages row pinned under the header and a
- * totals row pinned at the viewport's bottom edge, both computed by `useDataGridAggregate` —
+ * totals row pinned at the viewport's bottom edge, both declared with `aggregateRow` —
  * filter-aware, so the bands only reflect the rows the filter/sort view actually shows. Filter the
  * Role column via the toolbar to watch both bands recompute over just the filtered rows.
- * `useDataGridAggregate` reads the store, so `DataGridAggregateReporter` reports its result back up to
- * the `top`/`bottom` state that feeds `useDataGridPinnedRows`, which lives above the provider.
  * Edit a Score or Age cell to watch both bands update too.
  */
 export default function DataGridPinnedRowsDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(30), { getRowId: (row) => row.id });
-  const [averagesRow, setAveragesRow] = useState<DemoRow>(EMPTY_AVERAGES_ROW);
-  const [totalsRow, setTotalsRow] = useState<DemoRow>(EMPTY_TOTALS_ROW);
-
-  const onAveragesChange = useCallback((row: Record<string, unknown>) => {
-    setAveragesRow((prev) => ({ ...prev, ...row }));
-  }, []);
-  const onTotalsChange = useCallback((row: Record<string, unknown>) => {
-    setTotalsRow((prev) => ({ ...prev, ...row }));
-  }, []);
-
-  const top = useMemo(() => [averagesRow], [averagesRow]);
-  const bottom = useMemo(() => [totalsRow], [totalsRow]);
-  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ topRows: top, bottomRows: bottom });
+  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ topRows: [AVERAGES], bottomRows: [TOTALS] });
   const plugins = useMemo(() => [...grid.plugins, pinnedRowsPlugin], [grid.plugins, pinnedRowsPlugin]);
 
   return (
@@ -82,8 +67,6 @@ export default function DataGridPinnedRowsDemo(): ReactNode {
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns} plugins={plugins}>
-          <DataGridAggregateReporter specs={AVERAGES_SPECS} onChange={onAveragesChange} />
-          <DataGridAggregateReporter specs={TOTALS_SPECS} onChange={onTotalsChange} />
           <DataGridToolbar>
             <DataGridFilterMenu />
           </DataGridToolbar>

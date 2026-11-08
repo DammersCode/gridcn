@@ -26,8 +26,7 @@ import { useDataGridState } from "@/registry/default/blocks/data-grid-history/da
 import { useDataGridFill } from "@/registry/default/blocks/data-grid-fill/data-grid-fill";
 import {
   useDataGridPinnedRows,
-  DataGridAggregateReporter,
-  type AggregateSpecs,
+  aggregateRow,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { useDataGridPresence, type PresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
@@ -190,8 +189,7 @@ const customMarkerRenderMarkerHeader = ({ allSelected }: MarkerHeaderRenderCtx):
   <CustomMarkerSelectAll allSelected={allSelected} />
 );
 
-const AGGREGATE_SPECS: AggregateSpecs = { name: (_values, rows) => `${rows.length} rows`, age: "avg", score: "sum" };
-const EMPTY_TOTALS_ROW: DemoRow = { id: "__totals__", name: "0 rows", email: "", age: 0, active: false, role: "Total", joined: "", score: 0 };
+const TOTALS = aggregateRow<DemoRow>({ name: (_values, rows) => `${rows.length} rows`, age: "avg", score: "sum" }, { cells: { id: "totals", role: "Total" } });
 
 const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder", "reorder-number", "reorder-checkbox", "reorder-both"];
 const DENSITY_OPTIONS: readonly DensityMode[] = ["compact", "default", "comfortable"];
@@ -271,15 +269,9 @@ function usePresenceDriver(setPresenceHighlights: (highlights: PresenceHighlight
   }, [enabled, setPresenceHighlights]);
 }
 
-/** Reads the pinned-totals aggregate and forwards it into the `bottom` band passed to `useDataGridPinnedRows`, the `DataGridAggregateReporter` pattern from pinned-rows-demo. */
 function useTotalsBand(enabled: boolean) {
-  const [totalsRow, setTotalsRow] = useState<DemoRow>(EMPTY_TOTALS_ROW);
-  const onTotalsChange = useCallback((row: Record<string, unknown>) => {
-    setTotalsRow((prev) => ({ ...prev, ...row }));
-  }, []);
-  const bottom = useMemo(() => (enabled ? [totalsRow] : []), [enabled, totalsRow]);
-  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ bottomRows: bottom });
-  return { pinnedRowsPlugin, onTotalsChange };
+  const { plugin: pinnedRowsPlugin } = useDataGridPinnedRows({ bottomRows: enabled ? [TOTALS] : [] });
+  return { pinnedRowsPlugin };
 }
 
 /** Toolbar + keybindings dialog shared identically across all three row-supply modes. */
@@ -325,7 +317,7 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
-  const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const { pinnedRowsPlugin } = useTotalsBand(controls.pinnedTotals);
   const plugins = useMemo(() => [...grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin], [grid.plugins, fillPlugin, presencePlugin, pinnedRowsPlugin]);
   const rowIds = useMemo(() => grid.data.map((row) => row.id), [grid.data]);
 
@@ -340,7 +332,6 @@ function VirtualizedGrid({ controls }: { controls: PlaygroundControls }): ReactN
       headerClickBehavior={controls.headerClickBehavior}
       readOnly={controls.readOnly}
     >
-      {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
       <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
       <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled={false} />
       <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
@@ -369,7 +360,7 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
   const { plugin: fillPlugin } = useDataGridFill();
   const { plugin: presencePlugin, setPresenceHighlights } = useDataGridPresence();
   const [keybindingsOpen, setKeybindingsOpen] = useState(false);
-  const { pinnedRowsPlugin, onTotalsChange } = useTotalsBand(controls.pinnedTotals);
+  const { pinnedRowsPlugin } = useTotalsBand(controls.pinnedTotals);
   const plugins = useMemo(() => [fillPlugin, presencePlugin, pinnedRowsPlugin], [fillPlugin, presencePlugin, pinnedRowsPlugin]);
   const rowIds = useMemo(() => rows.map((row) => row.id), [rows]);
 
@@ -390,7 +381,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         headerClickBehavior={controls.headerClickBehavior}
         readOnly={controls.readOnly}
       >
-        {controls.pinnedTotals && <DataGridAggregateReporter specs={AGGREGATE_SPECS} onChange={onTotalsChange} />}
         <StreamingFeed enabled={controls.streaming} reorder={controls.streamingReorder} rowIds={rowIds} />
         <PlaygroundToolbar keybindingsOpen={keybindingsOpen} setKeybindingsOpen={setKeybindingsOpen} importDisabled={false} />
         <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">

@@ -18,8 +18,21 @@ export type DataGridPinnedRowProps = {
   gridRowStart: number;
   /** Root's aria index layout: header rows, pinned-top next, then data rows, pinned-bottom last. */
   ariaRowIndex: number;
+  /** Read each cell from `row[column.id]` instead of the column's accessor. Default `false`. */
+  byColumnId?: boolean;
   className?: string;
 };
+
+const byIdColumns = new WeakMap<object, RenderedColumn["column"]>();
+
+function readByColumnId(column: RenderedColumn["column"]): RenderedColumn["column"] {
+  let derived = byIdColumns.get(column);
+  if (!derived) {
+    derived = { ...column, accessorKey: column.id, accessorFn: undefined } as RenderedColumn["column"];
+    byIdColumns.set(column, derived);
+  }
+  return derived;
+}
 
 function resolvePinnedRowId(getRowId: DataGridStoreState["getRowId"], row: unknown, bandIndex: number, position: "top" | "bottom"): string {
   let id: unknown;
@@ -42,7 +55,7 @@ function resolvePinnedRowId(getRowId: DataGridStoreState["getRowId"], row: unkno
  * thousands), so there's no window-shift-driven re-render pressure to protect against.
  */
 export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
-  const { position, row, bandIndex, renderedColumns, layout, gridRowStart, ariaRowIndex, className } = props;
+  const { position, row, bandIndex, renderedColumns, layout, gridRowStart, ariaRowIndex, byColumnId = false, className } = props;
   const getRowId = useDataGridSelector((s) => s.getRowId);
   // Pinned rows such as aggregates often carry no id, so a throwing or empty getRowId falls back to a band id.
   const rowId = resolvePinnedRowId(getRowId, row, bandIndex, position);
@@ -66,7 +79,7 @@ export function DataGridPinnedRow(props: DataGridPinnedRowProps): ReactNode {
           row={row}
           rowId={rowId}
           viewRowIndex={bandIndex}
-          column={column}
+          column={byColumnId ? readByColumnId(column) : column}
           viewColumnIndex={index}
           gridColOffset={markerColOffset}
           pinnedRow

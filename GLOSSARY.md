@@ -83,6 +83,7 @@ mirror the change there.
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
 | band | A fixed strip of rows above or below the body, such as pinned rows. | |
+| aggregate row | A pinned row that `aggregateRow` or `serverAggregateRow` declares. The band computes its values and reads them by column id. | totals source |
 | server aggregate | A value for a band that a server computes for the whole result of the current spec. | |
 | lookup | A cell type whose options a server searches as the user types. It stores a value and a label. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |

@@ -15,26 +15,18 @@ One grid uses all four pin zones. Name sits in the start band and Score sits in 
 
 - `pin: "left"` on Name and `pin: "right"` on Score pin the column bands.
 - `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
-- `DataGridAggregateReporter` computes both rows from the rows that pass the filter (its `scope` defaults to `"view"`).
+- `aggregateRow` declares both rows. The band computes them from the rows that pass the filter (the `scope` defaults to `"view"`).
 - The grid has nine columns and 200 rows. Scroll it in both directions.
 
 ## Wire the zones
 
-Render one reporter per computed row inside the provider. Each reporter sends its row to a state in the parent component. The parent passes both states to the hook. Memoize the band arrays:
+Declare each computed row with `aggregateRow` and pass it to the hook. The `cells` option sets the fixed cells by column id:
 
 ```tsx
-import { useCallback, useMemo, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
-  DataGridBody,
-  DataGridHeader,
-  DataGridProvider,
-  DataGridRoot,
-  defineColumns,
-} from "@/components/data-grid/data-grid";
-import {
-  DataGridAggregateReporter,
+  aggregateRow,
   useDataGridPinnedRows,
-  type AggregateSpecs,
 } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 
 type Row = { id: string; name: string; age: number; score: number };
@@ -53,40 +45,22 @@ const columns = defineColumns<Row>()([
 
 const rows: Row[] = [{ id: "1", name: "Ada", age: 36, score: 90 }];
 
-const AVERAGE_SPECS: AggregateSpecs = { age: "avg", score: "avg" };
-const TOTAL_SPECS: AggregateSpecs = { age: "sum", score: "sum" };
+const AVERAGE = aggregateRow<Row>(
+  { age: "avg", score: "avg" },
+  { cells: { id: "average", name: "Average" } },
+);
+const TOTAL = aggregateRow<Row>(
+  { age: "sum", score: "sum" },
+  { cells: { id: "total", name: "Total" } },
+);
 
 function PinnedGrid() {
-  const [average, setAverage] = useState<Record<string, unknown>>({
-    id: "average",
-    name: "Average",
+  const { plugin } = useDataGridPinnedRows({
+    topRows: [AVERAGE],
+    bottomRows: [TOTAL],
   });
-  const [total, setTotal] = useState<Record<string, unknown>>({
-    id: "total",
-    name: "Total",
-  });
-  const onAverage = useCallback((row: Record<string, unknown>) => {
-    setAverage((prev) => ({ ...prev, ...row }));
-  }, []);
-  const onTotal = useCallback((row: Record<string, unknown>) => {
-    setTotal((prev) => ({ ...prev, ...row }));
-  }, []);
 
-  const topRows = useMemo(() => [average], [average]);
-  const bottomRows = useMemo(() => [total], [total]);
-  const { plugin } = useDataGridPinnedRows({ topRows, bottomRows });
-  const plugins = useMemo(() => [plugin], [plugin]);
-
-  return (
-    <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
-      <DataGridAggregateReporter specs={AVERAGE_SPECS} onChange={onAverage} />
-      <DataGridAggregateReporter specs={TOTAL_SPECS} onChange={onTotal} />
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
+  return <DataGrid defaultData={rows} columns={columns} plugins={[plugin]} />;
 }
 ```
 

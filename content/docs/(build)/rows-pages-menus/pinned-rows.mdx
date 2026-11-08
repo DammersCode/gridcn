@@ -81,27 +81,15 @@ function TotalsGrid({ rows }: { rows: Row[] }) {
 }
 ```
 
-This total covers every row of `rows` and ignores the active filter. To total the rows that the view shows, use the aggregate hook.
+This total covers every row of `rows` and ignores the active filter. To total the rows that the view shows, use `aggregateRow`.
 
-`useDataGridAggregate(specs)` reduces the columns that `specs` names over the rows of the view. It returns a `{ [columnId]: value }` object. When each totals column has an `accessorKey` equal to its `id`, use that object as a pinned row, as in the sample below.
-
-A pinned cell <NewBadge /> reads the totals object through `accessorKey` or `accessorFn`, as a cell of a data row reads its row. When the `accessorKey` of a column differs from its `id`, copy the total to the `accessorKey` in `onChange`, for example `{ ...row, qty: row.quantity }`. An `accessorFn` receives the totals object in place of a data row, so the cell shows its result for that object, often empty or `NaN`. For the totals object, make the function return the total.
-
-A hook that reads the grid store must run below the provider, and the `plugins` prop lives on the provider. `DataGridAggregateReporter` bridges the two. It renders nothing, and it reports the result through `onChange` into state of the parent:
+`aggregateRow(specs, options)` <NewBadge /> builds a pinned row that reduces the columns that `specs` names over the rows of the view. Put it in `topRows` or `bottomRows`. The band computes it inside the grid, so the sample needs no state and no reporter. The row reads each value by column id. The `cells` option sets fixed values by column id, such as the id and a label. A computed value replaces a fixed cell of the same column id:
 
 ```tsx
-import { useCallback, useMemo, useState } from "react";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
-  DataGridBody,
-  DataGridHeader,
-  DataGridProvider,
-  DataGridRoot,
-  defineColumns,
-} from "@/components/data-grid/data-grid";
-import {
-  DataGridAggregateReporter,
+  aggregateRow,
   useDataGridPinnedRows,
-  type AggregateSpecs,
 } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
 
 type Row = { id: string; item: string; price: number };
@@ -116,45 +104,25 @@ const rows: Row[] = [
   { id: "2", item: "Ink", price: 8 },
 ];
 
-const TOTALS_SPECS: AggregateSpecs = { price: "sum" };
+const TOTALS = aggregateRow<Row>(
+  { price: "sum" },
+  { cells: { id: "total", item: "Total" } },
+);
 
 function TotalsGrid() {
-  const [totals, setTotals] = useState<Record<string, unknown>>({
-    id: "total",
-    item: "Total",
-  });
-  const onTotalsChange = useCallback((row: Record<string, unknown>) => {
-    setTotals((prev) => ({ ...prev, ...row }));
-  }, []);
+  const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
 
-  const bottomRows = useMemo(() => [totals], [totals]);
-  const { plugin } = useDataGridPinnedRows({ bottomRows });
-  const plugins = useMemo(() => [plugin], [plugin]);
-
-  return (
-    <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
-      <DataGridAggregateReporter
-        specs={TOTALS_SPECS}
-        onChange={onTotalsChange}
-      />
-      <DataGridRoot>
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-    </DataGridProvider>
-  );
+  return <DataGrid defaultData={rows} columns={columns} plugins={[plugin]} />;
 }
 ```
 
-A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. The aggregate ignores a spec key that matches no column id and warns once in development.
+Create the row once, at module scope. The hook compares the entries of `topRows` and `bottomRows` by identity, so an inline array of stable entries keeps the plugin.
 
-<Callout type="warn" title="Keep the band arrays stable">
-  `useDataGridPinnedRows` returns a stable `plugin` only while `topRows` and `bottomRows` keep their identity and `status` keeps its value. A fresh array on every render rebuilds the plugin on every render. Memoize the arrays, as the sample does.
-</Callout>
+A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. The aggregate ignores a spec key that matches no column id and warns once in development.
 
 ### Custom reducers [#custom-reducers]
 
-A reducer function receives every resolved value, empty ones included, and the source rows. It owns its own empty handling. Type the specs as `AggregateSpecs<Row>` to type `rows`:
+A reducer function receives every resolved value, empty ones included, and the source rows. It owns its own empty handling. Type the specs as `AggregateSpecs<Row>`, or pass `Row` to `aggregateRow<Row>`, to type `rows`:
 
 ```tsx
 import type { AggregateSpecs } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
@@ -168,6 +136,12 @@ const specs: AggregateSpecs<Row> = {
 };
 ```
 
+### Reading the totals elsewhere [#reading-the-totals-elsewhere]
+
+<NewBadge />
+
+`useDataGridAggregate(specs)` returns the same `{ [columnId]: value }` object inside the grid provider. `DataGridAggregateReporter` reports that object through `onChange` to state of the parent. Use them to show a total outside the band, for example in a toolbar. A plain row object in a band reads its cells through each `accessorKey` or `accessorFn`, as a data row does.
+
 ### Manual computation [#manual-computation]
 
 For anything else, compute the band rows yourself in a `useMemo`, as the first sample does. If the band must match the filtered view, reduce over `useDataGridViewIndex()`.
@@ -180,7 +154,7 @@ For anything else, compute the band rows yourself in a `useMemo`, as the first s
 | --- | --- | --- |
 | `topRows` | `readonly unknown[]` | none |
 | `bottomRows` | `readonly unknown[]` | none |
-| `status` <NewBadge /> | `ServerAggregateStatus` | `"ready"` |
+| `status` <NewBadge /> | `ServerAggregateStatus` | the status of the `serverAggregateRow` entries, else `"ready"` |
 
 `status` <NewBadge /> marks both bands while server values load, go stale, or fail. See [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#status).
 
@@ -210,7 +184,7 @@ Aggregates reduce the rows that the grid holds in memory. Three data modes set t
 - **Server pagination.** `data` is the current page, so `useDataGridAggregate` covers that page.
 - **Scroll mode.** Unloaded rows are `undefined` holes. The aggregate skips them and warns once in development, so the band covers loaded rows only.
 
-`DataGridServerAggregateReporter` <NewBadge /> gives the totals of the whole server result. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals).
+`serverAggregateRow` <NewBadge /> gives the totals of the whole server result. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals).
 
 With `filterMode="server"` or `sortMode="server"`, the view holds the rows of the response, so `scope: "view"` covers the response.
 

@@ -1,5 +1,12 @@
 /** Public entry point — the only module consumers/docs should import from. */
 export { useDataGridPinnedRows, type UseDataGridPinnedRowsOptions, type UseDataGridPinnedRowsResult } from "./use-data-grid-pinned-rows";
+export {
+  aggregateRow,
+  serverAggregateRow,
+  type AggregateRowOptions,
+  type PinnedRowSource,
+  type ServerAggregateRowOptions,
+} from "./pinned-row-source";
 export { DataGridPinnedRow, type DataGridPinnedRowProps } from "./pinned-row";
 export { DataGridPinnedRowBand, type DataGridPinnedRowBandProps } from "./pinned-row-band";
 export {

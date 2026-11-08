@@ -55,7 +55,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 |---|---|---|---|
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
-| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })` | `{ plugin }` | `plugin` → `plugins` on the provider |
+| Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })`; a totals row is `aggregateRow(specs, { cells?, scope? })` or `serverAggregateRow({ fetchAggregates, cells?, refreshAfterSave? })` in `topRows`/`bottomRows` | `{ plugin }` | `plugin` → `plugins` on the provider |
 | Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, onReplace? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
 | Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
@@ -103,17 +103,10 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Presence**: call `useDataGridPresence()` exactly once per grid. A second call mints a separate
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
   return values as props instead.
-- **Pinned rows**: keep `topRows`/`bottomRows` referentially stable (`useMemo`/`useState`, not a
-  fresh `[value]` literal per render) — a fresh array per render rebuilds the returned `plugin`
-  every render, and the grid re-resolves its plugin list on every render.
-- **Server totals**: on a pages, scroll, or own-API grid render `<DataGridServerAggregateReporter fetchAggregates={({ spec, signal }) => …} onChange={setTotals} />` under the provider and pass `totals.row` as a band row and `totals.status` as `status`. It requests again on a filter or quick-search change (start the state from `PENDING_SERVER_AGGREGATE`); call `totals.refresh()` after a save.
+- **Pinned rows**: create `aggregateRow(...)` and `serverAggregateRow(...)` once, at module scope. The hook compares the entries of `topRows`/`bottomRows` by identity, so an inline `[TOTALS]` keeps the plugin. A plain row object must stay a stable value too.
+- **Server totals**: on a pages, scroll, or own-API grid put `serverAggregateRow({ fetchAggregates: ({ spec, signal }) => … })` in `bottomRows`. The band sets its own `status`, requests again on a filter or quick-search change, and fetches again after the pending saves settle (`refreshAfterSave: false` opts out). Pin one `serverAggregateRow` in one place only. To read the result outside the band, render `<DataGridServerAggregateReporter … onChange={setTotals} />` (start the state from `PENDING_SERVER_AGGREGATE`; call `totals.refresh()` after a save).
 - **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column, and keep `fetchOptions` stable.
-- **Totals row**: the `plugin` is needed above the provider, but the aggregate is read inside it.
-  Hold the totals in `useState`, render `<DataGridAggregateReporter specs={...} onChange={setTotals} />`
-  inside the provider, and pass `useMemo(() => [totals], [totals])` as `bottomRows`.
-- **Totals keys**: client and server totals come keyed by column id, but a pinned cell reads its row
-  through `accessorKey`. When a column's `accessorKey` differs from its `id`, remap the total in
-  `onChange` (`{ ...row, qty: row.quantity }`), or the cell stays empty.
+- **Totals row**: put `aggregateRow({ price: "sum" }, { cells: { id: "total", item: "Total" } })` in `bottomRows`. The band reads each value by column id, so no `accessorKey` has to match. `DataGridAggregateReporter` stays for a read outside the band.
 - **Undo/redo choice**: reach for `useDataGridState` only when you actually want history — it
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
@@ -134,7 +127,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 
 - A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
 - An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
-- A grid that holds one page or some loaded blocks exports only those rows. For the whole server result pass `options={{ source }}` to `DataGridExportButton` (or `source` to `exportGrid`): `source({ spec, signal })` returns an array or an async iterable of batches, and your server applies `spec`. Bound it with `maxRows` and `maxBytes`. A `DataGridProvider` with `pageSize` holds every row, so its export, print, and totals cover every page; pass `scope: "page"` to `exportGrid`, `printGrid`, or `useDataGridAggregate` for the shown page only.
+- A grid that holds one page or some loaded blocks exports only those rows. For the whole server result pass `options={{ source }}` to `DataGridExportButton` (or `source` to `exportGrid`): `source({ spec, signal })` returns an array or an async iterable of batches, and your server applies `spec`. Bound it with `maxRows` and `maxBytes`. A `DataGridProvider` with `pageSize` holds every row, so its export, print, and totals cover every page; pass `scope: "page"` to `exportGrid`, `printGrid`, or `aggregateRow` for the shown page only.
 - On a server or counted grid, `onImport(rows, { signal })` must send the rows to the server and then call `server.refresh()`. Never append imported rows to `data` of a grid that has a `totalRowCount`.
 - To send an export somewhere else, pass `output(file, { fileName, format, signal })` (it replaces the download); shape the file with `columns` (ids, hidden allowed) and a sync `formatCell` that may return a number, boolean, or `Date` for typed xlsx cells. `buildCsv` and `exportRows` are the building blocks for custom formats.
 - Import hooks, in order: `parseFile`, `importDefaults.defaultHeaderRow` (a number is the header row index), `processImportRows`, `processCellFromText`, `onImport(rows, { signal, rejected, fileName, sheetName, mapping })`, `onImportError`. Hook results are re-checked against `importLimits`; `csvEncoding` takes only labels from `IMPORT_CSV_ENCODINGS`.
@@ -153,7 +146,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
     identity` — a duplicate `name` in one `plugins` array.
   - `plugins "A" and "B" both define command "C"; the later plugin wins` — a command-name conflict
     between two plugins.
-  - `useDataGridAggregate` (and the reporter) warns once for a spec key that matches no column or
+  - `useDataGridAggregate` (and `aggregateRow`, and the reporter) warns once for a spec key that matches no column or
     for a sparse (scroll mode) `data` array, rather than throwing.
 - **Fill/keyboard fill does nothing**: without the add-on installed, `Ctrl/Cmd+D`/`+R` are genuine
   no-ops (the actions exist in core's keymap, but nothing handles them). A `readOnly` grid also
@@ -200,5 +193,5 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 - Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
 - Do not mount `DataGridUrlState` on a scroll-mode grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
-- Do not pass a fresh `topRows`/`bottomRows` array per render to `useDataGridPinnedRows`.
+- Do not create `aggregateRow`/`serverAggregateRow` inside a component body without `useMemo`.
 - Do not combine scroll mode and `data-grid-pagination` on one grid.
