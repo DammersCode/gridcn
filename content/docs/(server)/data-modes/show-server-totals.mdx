@@ -87,13 +87,13 @@ The band sets its own `status` from the row. An explicit `status` option of `use
 
 <NewBadge />
 
-`serverAggregateRow` fetches again after the last pending save settles. An edit that your `onSave` answers with a promise therefore updates the totals. Set `refreshAfterSave: false` to keep the totals of the last request, and refresh them through the reporter below.
+`serverAggregateRow`, `DataGridServerAggregateReporter`, and `useDataGridServerAggregate` fetch again after the last pending save settles. An edit that your `onSave` answers with a promise therefore updates the totals. Set `refreshAfterSave: false` to keep the totals of the last request, and call `refresh()` on the result yourself.
 
 ## Read the result yourself [#read-the-result]
 
 <NewBadge />
 
-To show the status or a refresh button outside the band, render `DataGridServerAggregateReporter` inside `DataGridProvider`. It takes the options of `serverAggregateRow` and an `onChange` that receives the result. Start the state from `PENDING_SERVER_AGGREGATE`. Inside the grid, `useDataGridServerAggregate(options)` returns the same result. The result holds `row`, `status`, `error`, `loading`, `refresh()`, and `retry()`. A reporter does not refresh after saves. Call `refresh()` after your save lands.
+To show the status or a refresh button outside the band, render `DataGridServerAggregateReporter` inside `DataGridProvider`. It takes the options of `serverAggregateRow` and an `onChange` that receives the result. Start the state from `PENDING_SERVER_AGGREGATE`. Inside the grid, `useDataGridServerAggregate(options)` returns the same result. The result holds `row`, `status`, `error`, `loading`, `refresh()`, and `retry()`.
 
 ## When it requests [#when-it-requests]
 
@@ -129,7 +129,7 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 | `debounceMs` | `150` | Milliseconds to wait before each request starts. `0` starts it at once. |
 | `onError` | none | Called once per failed request. |
 | `cells` | none | Fixed cell values by column id, such as the id and a label. |
-| `refreshAfterSave` | `"settled"` | `false` skips the fetch after saves. |
+| `refreshAfterSave` | `"settled"` | `false` skips the fetch after saves. The reporter and the hook take it too. |
 | `onChange` | required on the reporter only | Receives the result, to keep in state. |
 
 The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.

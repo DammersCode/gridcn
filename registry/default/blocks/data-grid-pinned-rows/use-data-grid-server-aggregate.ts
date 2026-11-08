@@ -31,6 +31,8 @@ export type UseDataGridServerAggregateOptions = {
   debounceMs?: number;
   /** Called once per failed request. */
   onError?: (error: unknown) => void;
+  /** `"settled"` (default) requests again once every save in flight has settled. `false` never does; call `refresh()` yourself. */
+  refreshAfterSave?: false | "settled";
 };
 
 /** Return value of {@link useDataGridServerAggregate}. */
@@ -98,7 +100,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
  * Must run inside the grid provider; see {@link DataGridServerAggregateReporter}.
  */
 export function useDataGridServerAggregate(options: UseDataGridServerAggregateOptions): ServerAggregateResult {
-  const { debounceMs = 150 } = options;
+  const { debounceMs = 150, refreshAfterSave = "settled" } = options;
   const storeApi = useDataGridStoreApi();
   const filters = useStore(storeApi, (s) => s.filterState);
   const sorts = useStore(storeApi, (s) => s.sortState);
@@ -160,6 +162,14 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
   }, [key, columnKey, tick, debounceMs, warnDropped]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
+
+  const pendingSaves = useStore(storeApi, (s) => s.pendingSaveCount);
+  const previousPending = useRef(pendingSaves);
+  useEffect(() => {
+    const settled = previousPending.current > 0 && pendingSaves === 0;
+    previousPending.current = pendingSaves;
+    if (settled && refreshAfterSave !== false) refresh();
+  }, [pendingSaves, refreshAfterSave, refresh]);
   useLayoutEffect(() => {
     statusRef.current = state.status;
   });

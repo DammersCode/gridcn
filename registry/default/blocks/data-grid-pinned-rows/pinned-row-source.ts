@@ -11,8 +11,6 @@ export type AggregateRowOptions = UseDataGridAggregateOptions & {
 export type ServerAggregateRowOptions = UseDataGridServerAggregateOptions & {
   /** Fixed cell values by column id, such as the row id and a label. Fetched values replace a cell of the same column id. */
   cells?: Record<string, unknown>;
-  /** `"settled"` (default) fetches again once every save in flight has settled. `false` never does; call `refresh()` on a {@link DataGridServerAggregateReporter} yourself. */
-  refreshAfterSave?: false | "settled";
 };
 
 /** A pinned row whose values the band computes inside the grid. Build one with {@link aggregateRow} or {@link serverAggregateRow}. */
