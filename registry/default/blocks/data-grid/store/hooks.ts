@@ -11,6 +11,7 @@ import type {
   HeaderClickBehavior,
   Keymap,
   RowMarkersMode,
+  CheckedRowsLifetime,
   SortSpec,
 } from "../types";
 import type { DataGridLabels } from "../labels";
@@ -646,11 +647,11 @@ export function useDataGridSelectionConfig(): {
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
-  keepCheckedRows: boolean;
+  checkedRowsLifetime: CheckedRowsLifetime;
 } {
   return useDataGridStore(
     useShallow((s) => ({
-      keepCheckedRows: s.keepCheckedRows,
+      checkedRowsLifetime: s.checkedRowsLifetime,
       enableRowSelection: s.enableRowSelection,
       enableColumnSelection: s.enableColumnSelection,
       enableRangeSelection: s.enableRangeSelection,
@@ -661,7 +662,7 @@ export function useDataGridSelectionConfig(): {
 
 /**
  * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
- * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `rememberCheckedRows`
+ * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `checkedRowsLifetime="across-filters"`
  * to cover rows outside `data`. The value changes only when the selection or the data does.
  */
 export function useDataGridSelectedRows(): DataGridSelectedRows {
@@ -710,7 +711,7 @@ export function useDataGridMarkGatePending(name: GateName, active: boolean): voi
   useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
-/** The number of checked rows a filter hides, remembered by `rememberCheckedRows`; `0` when the option is off and while "all matching" is on. */
+/** The number of checked rows a filter hides, remembered by `checkedRowsLifetime="across-filters"`; `0` otherwise and while "all matching" is on. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

@@ -96,7 +96,7 @@ Insert and duplicate shift the selection around the new rows. Under a sort, a ne
 | Duplicate rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 
-Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `keepCheckedRows` and at least one checked row, they work on the checked rows only, and do nothing when every checked row is hidden. A `readOnly` grid ignores all four keys.
+Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `'until-cleared'` or `'across-filters'` and one checked row, they work on the checked rows only. A `readOnly` grid ignores all four keys.
 
 Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows. The keys that move rows are on [Row order](/docs/rows-pages-menus/row-order).
 

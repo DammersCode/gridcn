@@ -45,8 +45,7 @@ function Harness(props: {
         columns={columns}
         getRowId={(r) => r.id}
         rowMarkers="checkbox"
-        keepCheckedRows
-        keepHiddenCheckedRows
+        checkedRowsLifetime="across-filters"
         filterState={filters}
         onFilterChange={setFilters}
         onDataChange={props.onDataChange}
@@ -73,7 +72,7 @@ async function mount(props: { onBeforeDeleteRows?: Confirm } = {}) {
 
 const hiddenSuffix = () => [...document.querySelectorAll<HTMLElement>('[role="status"]')].find((el) => el.textContent?.includes("hidden"))?.textContent ?? null;
 
-describe("keepHiddenCheckedRows in a browser", () => {
+describe("checkedRowsLifetime across-filters in a browser", () => {
   it("remembers checks through a filter, shows the hidden count, ignores Delete, and restores the checks", async () => {
     const { onDataChange, checkedIds } = await mount();
     for (const i of [0, 1, 2]) await userEvent.click(checkboxAt(i));

@@ -289,9 +289,7 @@
       "options": [
         "rowMarkers",
         "enableRowSelection",
-        "keepCheckedRows",
-        "keepHiddenCheckedRows",
-        "rememberCheckedRows",
+        "checkedRowsLifetime",
         "selection",
         "defaultSelection",
         "onSelectionChange",

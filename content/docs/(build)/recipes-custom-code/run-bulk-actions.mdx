@@ -16,7 +16,7 @@ A bulk bar needs the checked row ids and one write for each button. Checkbox row
 
 ## Steps
 
-1. Set `rowMarkers="checkbox"` and `keepCheckedRows`. A checked marker adds its row id to `selection.rowIds`, and a cell range does not. Without `keepCheckedRows`, a click on a cell clears the checks.
+1. Set `rowMarkers="checkbox"` and `checkedRowsLifetime="until-cleared"`. A checked marker adds its row id to `selection.rowIds`, and a cell range does not. With the default `'until-click'`, a click on a cell clears the checks.
 2. Keep a count in `onSelectionChange` and show the bar while the count is above zero.
 3. Hold the grid API in a ref and read `getSelection().rowIds` inside each click handler.
 4. Write the checked rows with one action per button.
@@ -82,7 +82,7 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
         defaultData={initialOrders}
         columns={columns}
         rowMarkers="checkbox"
-        keepCheckedRows
+        checkedRowsLifetime="until-cleared"
         onSelectionChange={(next) => setCheckedCount(next.rowIds.length)}
       />
     </>
@@ -96,7 +96,7 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
 
 `deleteRowsById` deletes the rows in one batch and clears the selection, so the bar hides itself. If the grid has `onBeforeDeleteRows`, that callback can cancel the delete.
 
-`scope: "selection"` exports the rows of the checked markers and the rows that a cell range covers. With `keepCheckedRows`, the export writes only the checked rows while a row has a check.
+`scope: "selection"` exports the rows of the checked markers and the rows that a cell range covers. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'`, the export writes only the checked rows while a row has a check.
 
 In a server grid, `rowIds` holds only the checked rows that the grid has loaded. To act on checks from other pages or on all matching rows, send the value of `useDataGridSelectedRows()` to your server. See [Select server rows](/docs/rows-live-data/select-server-rows).
 

@@ -141,10 +141,10 @@ describe("the controlled selection prop", () => {
 
   it("a row range gesture stays live across a controlled round trip", () => {
     const onSelectionChange = vi.fn();
-    const { store, actions, rerender } = mount({ onSelectionChange, keepCheckedRows: true });
+    const { store, actions, rerender } = mount({ onSelectionChange, checkedRowsLifetime: "until-cleared" });
     act(() => actions().selectRow(0));
     act(() => actions().checkRowRange(3));
-    rerender({ onSelectionChange, keepCheckedRows: true, selection: onSelectionChange.mock.lastCall![0] });
+    rerender({ onSelectionChange, checkedRowsLifetime: "until-cleared", selection: onSelectionChange.mock.lastCall![0] });
     act(() => actions().checkRowRange(1));
     expect(store().getState().selection.rows.toArray()).toEqual([0, 1]);
   });

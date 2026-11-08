@@ -32,8 +32,7 @@ export default function DataGridCheckedRowsDemo(): ReactNode {
         columns={columns}
         getRowId={(row) => row.id}
         rowMarkers="checkbox"
-        keepCheckedRows
-        rememberCheckedRows
+        checkedRowsLifetime="across-filters"
       >
         <DataGridRoot
           className="h-[360px]"

@@ -193,13 +193,13 @@ describe("buildExportRows / buildExportHeaders", () => {
     expect(rows.map((r) => r[0])).toEqual(["Alice"]);
   });
 
-  it("scope 'selection' with keepCheckedRows exports only the checked rows while any exist", () => {
+  it("scope 'selection' with a kept checked-rows lifetime exports only the checked rows while any exist", () => {
     const selection = {
       rows: CompactSelection.fromArray([2]),
       current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
     } as never;
-    expect(buildExportRows(makeState({ selection, keepCheckedRows: true }), "selection").map((r) => r[0])).toEqual(["Ünïcödé"]);
-    expect(buildExportRows(makeState({ selection, keepCheckedRows: false }), "selection").map((r) => r[0])).toEqual(["Alice", "Bob", "Ünïcödé"]);
+    expect(buildExportRows(makeState({ selection, checkedRowsLifetime: "until-cleared" }), "selection").map((r) => r[0])).toEqual(["Ünïcödé"]);
+    expect(buildExportRows(makeState({ selection, checkedRowsLifetime: "until-click" }), "selection").map((r) => r[0])).toEqual(["Alice", "Bob", "Ünïcödé"]);
   });
 
   it("scope 'selection' follows view order under a sort, not data order", () => {

@@ -4,7 +4,7 @@
 
 Checked rows are view-row state, remapped by row id when the view rebuilds. A row that leaves
 `data` drops out: a page change, a lazy eviction, or a server filter or sort change loses the
-check. `keepHiddenCheckedRows` is ignored under `sortMode="server"` and `filterMode="server"` and
+check. The memory of hidden checks (`checkedRowsLifetime="across-filters"`) is ignored under `sortMode="server"` and `filterMode="server"` and
 while a lazy source holds unloaded rows. Select-all checks the loaded rows and the skeleton rows,
 and "all N matching" has no representation, so a bulk action over a server result has no valid
 selection.
@@ -14,10 +14,10 @@ selection.
 One new provider prop, `totalRowCount?: number | null`, says that `data` is a window of a larger
 result of that size (`null`: size unknown). It switches on two things.
 
-1. Remembered checks. With `keepCheckedRows` and `totalRowCount`, a checked row that leaves `data`
+1. Remembered checks. With `checkedRowsLifetime="across-filters"` and `totalRowCount`, a checked row that leaves `data`
    is remembered by row id (the `hiddenCheckedRowIds` set) and checked again when it returns. This
    works in every mode: client or server pagination, lazy rows, `sortMode="server"`,
-   `filterMode="server"`. `keepHiddenCheckedRows` is not needed. Without `totalRowCount`, nothing
+   `filterMode="server"`. Without `totalRowCount`, nothing
    changes.
 2. Select all matching. `actions.selectAllMatching()` checks every row of the result. The store
    holds `allMatching` plus the ids the user unchecked. Rows that load later show as checked
@@ -56,7 +56,7 @@ and ids-mode `spec`; `ids`, `excludedIds`, `count`, and every writer keep their 
 - A lazy skeleton row stays checked in `allMatching` and cannot be excluded: it has no id.
 - Never spread a selection channel; the carry walks view rows once per rebuild, only while
   `allMatching` is on or hidden ids exist.
-- `selectAllMatching()` without `totalRowCount` or `keepCheckedRows` is a no-op with a development
+- `selectAllMatching()` without `totalRowCount` or `checkedRowsLifetime="across-filters"` is a no-op with a development
   warning.
 - The status bar and live region count loaded checked rows; `useDataGridHiddenCheckedCount()` is `0`
   while `allMatching` is on. Under server grouping they read `count` instead

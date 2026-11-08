@@ -22,6 +22,7 @@ Props of DataGrid, DataGridProvider.
 | `announceResults` | Announces the view's row count through the grid's live region after a filter, sort, or filter-group change. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `autosizeOnMount` | Fits the column widths once after mount, when the view first has rows. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `cellTypes` | Custom cell types keyed by `ColumnDef.type`. Built-in types that you do not name keep working. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `checkedRowsLifetime` | How long the checked rows last. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `columnGroups` | Shared headers above runs of columns, by column id. Groups nest. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `columnLayout` | The layout that your code controls. | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `columns` | The column definitions of the grid. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -52,8 +53,6 @@ Props of DataGrid, DataGridProvider.
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `headerClickBehavior` | How a plain header click behaves. Default 'select'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `keepCheckedRows` | Keeps the checked rows when a cell or a column is selected and makes row operations act only on the checked rows while any exist. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `keepHiddenCheckedRows` | Deprecated alias of `rememberCheckedRows`. `rememberCheckedRows` wins when both are set. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `labels` | Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `page` | The current page, 1-based. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -63,7 +62,6 @@ Props of DataGrid, DataGridProvider.
 | `processCellFromClipboard` | Overrides parsing pasted text into a cell value. Falls back to the cell type's `fromText`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `readOnly` | Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: "stream"` push still writes. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `rememberCheckedRows` | Remembers a checked row by id when it leaves the view and checks it again when it returns. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `rowMarkers` | Marker column mode. Default 'none'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |

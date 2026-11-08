@@ -338,7 +338,7 @@ describe("scroll mode, sequential: spec, aborts, and races", () => {
     act(() => result.current.gridProps.onSortChange([{ columnId: "name", direction: "asc" }]));
     await waitFor(() => expect(fetchRows.mock.calls.some(([request]) => request.spec.sorts.length === 1)).toBe(true));
     expect(fetchRows.mock.calls.find(([request]) => request.spec.sorts.length === 1)![0]).toMatchObject({ start: 0, cursor: undefined });
-    expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", keepCheckedRows: true });
+    expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", checkedRowsLifetime: "across-filters" });
   });
 
   it("the source may switch its kind after a spec change", async () => {

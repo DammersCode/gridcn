@@ -2,6 +2,11 @@ import type { CompactSelectionLike } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
 import type { DataGridStoreState } from "./types";
 
+/** Whether cell and column selections leave the checked rows alone. */
+export function keepsCheckedRows(s: Pick<DataGridStoreState, "checkedRowsLifetime">): boolean {
+  return s.checkedRowsLifetime !== "until-click";
+}
+
 export const MAX_HIDDEN_CHECKED_ROWS = 100_000;
 
 export const NO_HIDDEN_CHECKED_ROWS: ReadonlySet<string> = new Set<string>();
@@ -17,13 +22,13 @@ export function windowModeActive(s: Pick<DataGridStoreState, "totalRowCount">): 
 }
 
 /**
- * Whether checked rows that leave the view are remembered: `rememberCheckedRows`, with `totalRowCount`
+ * Whether checked rows that leave the view are remembered: `checkedRowsLifetime="across-filters"`, with `totalRowCount`
  * (any mode) or on a client-sorted, client-filtered grid.
  */
 export function hiddenCheckedRowsActive(
-  s: Pick<DataGridStoreState, "rememberCheckedRows" | "sortMode" | "filterMode" | "totalRowCount">,
+  s: Pick<DataGridStoreState, "checkedRowsLifetime" | "sortMode" | "filterMode" | "totalRowCount">,
 ): boolean {
-  return s.rememberCheckedRows && (windowModeActive(s) || (s.sortMode !== "server" && s.filterMode !== "server"));
+  return s.checkedRowsLifetime === "across-filters" && (windowModeActive(s) || (s.sortMode !== "server" && s.filterMode !== "server"));
 }
 
 function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
@@ -36,8 +41,8 @@ function sameIds(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * Whether a row action finds no checked row to act on, so the action does nothing: every checked row is hidden,
  * or "all matching" is on (the grid does not hold those rows).
  */
-export function onlyHiddenRowsChecked(s: Pick<DataGridStoreState, "keepCheckedRows" | "selection" | "hiddenCheckedRowIds" | "allMatching">): boolean {
-  return s.keepCheckedRows && (s.allMatching || (s.selection.rows.length === 0 && s.hiddenCheckedRowIds.size > 0));
+export function onlyHiddenRowsChecked(s: Pick<DataGridStoreState, "checkedRowsLifetime" | "selection" | "hiddenCheckedRowIds" | "allMatching">): boolean {
+  return keepsCheckedRows(s) && (s.allMatching || (s.selection.rows.length === 0 && s.hiddenCheckedRowIds.size > 0));
 }
 
 export type CarriedCheckedRows = {
@@ -176,9 +181,4 @@ export function withoutHiddenCheckedRows(hidden: ReadonlySet<string>, rowIds: It
     next.delete(id);
   }
   return next ?? hidden;
-}
-
-/** The patch a cell selection owes: without `keepCheckedRows` it clears the checks, so the remembered ids and "all matching" go with them. */
-export function releaseRemembered(s: Pick<DataGridStoreState, "keepCheckedRows" | "hiddenCheckedRowIds" | "allMatching">): Partial<DataGridStoreState> {
-  return !s.keepCheckedRows && (s.hiddenCheckedRowIds.size > 0 || s.allMatching) ? NO_REMEMBERED_ROWS : {};
 }

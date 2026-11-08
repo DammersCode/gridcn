@@ -247,7 +247,7 @@ describe("row items with only hidden checked rows", () => {
       return null;
     }
     render(
-      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} duplicateRow={(row) => ({ ...row, id: `${row.id}2` })} keepCheckedRows keepHiddenCheckedRows>
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} duplicateRow={(row) => ({ ...row, id: `${row.id}2` })} checkedRowsLifetime="across-filters">
         <DataGridRoot>
           <Hidden />
         </DataGridRoot>

@@ -8,7 +8,7 @@ aliases: ["server row operations", "save new row", "insert on server", "id from 
 
 Row operations change the rows of the grid. Each one reaches `onDataChange` and `onSave` as an `insert`, `delete`, or `move` operation with a row id. On a server grid, send those operations to your API and let a refusal revert them.
 
-`useDataGridServerRows` sets `keepCheckedRows`. If any row is checked, the operations act on the checked rows only.
+`useDataGridServerRows` sets `checkedRowsLifetime="across-filters"`. If any row is checked, the operations act on the checked rows only.
 
 ## Enable the operations [#enable-the-operations]
 

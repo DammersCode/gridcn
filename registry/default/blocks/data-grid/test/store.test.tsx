@@ -2233,14 +2233,14 @@ describe("rowMarkers config", () => {
 });
 
 describe("selection config defaults and gating", () => {
-  it("defaults every enable flag to true and keepCheckedRows to false", () => {
+  it("defaults every enable flag to true and checkedRowsLifetime to until-click", () => {
     const { result } = renderHook(() => useDataGridSelectionConfig(), { wrapper: makeWrapper() });
     expect(result.current).toEqual({
       enableRowSelection: true,
       enableColumnSelection: true,
       enableRangeSelection: true,
       enableMultiRange: true,
-      keepCheckedRows: false,
+      checkedRowsLifetime: "until-click",
     });
   });
 

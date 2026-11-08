@@ -281,7 +281,7 @@ describe("liveAnnouncement (Escape, hidden rows, quiet results)", () => {
   });
 
   it("hidden checked rows count in the announced total", () => {
-    const m = mount({ keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const m = mount({ checkedRowsLifetime: "across-filters" });
     m.check(0, 1);
     m.filters(onlyD);
     expect(m.state().hiddenCheckedRowIds.size).toBeGreaterThan(0);

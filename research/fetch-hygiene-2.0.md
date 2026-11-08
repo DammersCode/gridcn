@@ -92,7 +92,7 @@ the uncovered blocks nearest the centre of the rendered rows first.
   `rollback`), and drops it when that row's save leaves `"saving"` or when a landed block writes the row's server copy.
   A grid with no `onSave` therefore never loses an edit to eviction; the set grows only with human edits.
 - The cap is soft: when the keep range plus protected slots exceed it, the cache stays above it.
-- Checked rows survive: `keepCheckedRows: true` stores ids, and `totalRowCount` gives the count. Undo entries over an
+- Checked rows survive: `checkedRowsLifetime: "across-filters"` stores ids, and `totalRowCount` gives the count. Undo entries over an
   evicted row are no-ops (the existing `undo-redo.mdx` rule).
 
 ### 2.5 Manual `evict(range)`

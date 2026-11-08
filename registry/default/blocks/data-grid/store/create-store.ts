@@ -72,7 +72,7 @@ import {
   MAX_HIDDEN_CHECKED_ROWS,
   NO_HIDDEN_CHECKED_ROWS,
   NO_REMEMBERED_ROWS,
-  releaseRemembered,
+  keepsCheckedRows,
   windowModeActive,
   carryCheckedRows,
   hiddenCheckedRowsActive,
@@ -280,7 +280,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const warnHiddenCheckedIgnored = (reason: string): void => {
     if (warnedHiddenCheckedIgnored) return;
     warnedHiddenCheckedIgnored = true;
-    warnDev(`rememberCheckedRows is ignored ${reason}`);
+    warnDev(`checkedRowsLifetime="across-filters" falls back to "until-cleared" ${reason}`);
   };
   // `rowId -> dataIndex` for updateCells: row moves invalidate it, value patches keep it warm.
   const rowIndexCache = createRowIndexCache();
@@ -724,7 +724,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // refs only, and the rowIds/columnIds arrays keep their identity.
   let rowIdsDerivation: { rows: CompactSelectionLike; viewIndex: readonly number[]; data: readonly unknown[]; getRowId: (row: unknown, index: number) => string; rowIds: string[] } | null = null;
   let columnIdsDerivation: { columns: CompactSelectionLike; visibleColumns: readonly AnyColumnDef[]; columnIds: string[] } | null = null;
-  if (init.rememberCheckedRows && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
+  if (init.checkedRowsLifetime === "across-filters" && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize });
@@ -919,7 +919,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (opts?.retain) {
             set({ activeCell: next, lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           } else {
-            set({ activeCell: next, selection: selectCellOf(s, next), ...releaseRemembered(s), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
+            set({ activeCell: next, selection: selectCellOf(s, next), lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           }
         }
       },
@@ -967,7 +967,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
-          if (selectionConfig.rememberCheckedRows && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
+          if (selectionConfig.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           return {
@@ -1032,7 +1032,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterMode = resolveFilterMode(props);
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";
-          if (serverRows && s.rememberCheckedRows && s.totalRowCount === undefined) {
+          if (serverRows && s.checkedRowsLifetime === "across-filters" && s.totalRowCount === undefined) {
             warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
           }
           const nextSearchText = props.searchText ?? s.searchText;
@@ -1399,10 +1399,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       selectCell(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
-        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
+        if (coord) set({ activeCell: coord, selection: selectCellOf(get(), coord) });
       },
       selectCellAt(coord) {
-        set({ activeCell: coord, selection: selectCellOf(get(), coord), ...releaseRemembered(get()) });
+        set({ activeCell: coord, selection: selectCellOf(get(), coord) });
       },
       extendTo(ref) {
         const coord = resolveRefOrWarn(dataWrite, get(), ref);
@@ -1411,11 +1411,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       extendToAt(coord) {
         set((s) => {
           // enableRangeSelection: false collapses any drag/shift-extend gesture to single-cell active only.
-          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
+          if (!s.enableRangeSelection) return { selection: selectCellOf(s, coord), activeCell: coord };
           const selection = s.selection.current ? extendTo(s.selection, coord) : selectCellOf(s, coord);
           // extendTo falls back to a fresh anchor at `coord` when there was no prior selection.
           const activeCell = s.selection.current ? s.activeCell : coord;
-          return { selection, activeCell, ...(s.selection.current ? {} : releaseRemembered(s)) };
+          return { selection, activeCell };
         });
       },
       extendSelection(direction, opts) {
@@ -1437,7 +1437,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       pushRangeAt(coord) {
         set((s) => {
           // enableMultiRange: false makes ctrl-click behave as a plain click (no stack push).
-          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord, ...releaseRemembered(s) };
+          if (!s.enableMultiRange) return { selection: selectCellOf(s, coord), activeCell: coord };
           // pushRange moves the anchor to `coord`; keep activeCell in sync with it.
           return { selection: pushRange(s.selection, coord), activeCell: coord };
         });
@@ -1500,17 +1500,15 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
         const picked = selectColumnPure(selection, index, { additive, extendFromLast, from: lastHighlightedCol ?? undefined });
-        const next = s.keepCheckedRows ? { ...picked, rows: selection.rows } : picked;
-        const released = additive || extendFromLast ? {} : releaseRemembered(s);
+        const next = keepsCheckedRows(s) ? { ...picked, rows: selection.rows } : picked;
         if (
           next.columns.equals(selection.columns) &&
           next.rows.equals(selection.rows) &&
           next.current === selection.current &&
-          lastHighlightedCol === index &&
-          !("allMatching" in released)
+          lastHighlightedCol === index
         )
           return;
-        set({ selection: next, lastHighlightedCol: index, ...released });
+        set({ selection: next, lastHighlightedCol: index });
       },
       selectAll() {
         const s = get();
@@ -1572,8 +1570,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       selectAllMatching() {
         const s = get();
         if (!s.enableRowSelection) return;
-        if (!s.rememberCheckedRows || s.totalRowCount === undefined) {
-          warnDev("selectAllMatching is a no-op without totalRowCount and rememberCheckedRows");
+        if (s.checkedRowsLifetime !== "across-filters" || s.totalRowCount === undefined) {
+          warnDev("selectAllMatching is a no-op without totalRowCount and checkedRowsLifetime=\"across-filters\"");
           return;
         }
         const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };

@@ -137,6 +137,9 @@ export type RowMarkersContent = "number" | "checkbox" | "both";
  */
 export type RowMarkersMode = "none" | RowMarkersContent | "reorder" | `reorder-${RowMarkersContent}`;
 
+/** How long the checked rows last; see `checkedRowsLifetime` on `DataGridSyncProps`. */
+export type CheckedRowsLifetime = "until-click" | "until-cleared" | "across-filters";
+
 /** Rectangular cell region, half-open on the far edge (a cell c is inside if x <= c < x + width). */
 export type GridRect = { x: number; y: number; width: number; height: number };
 

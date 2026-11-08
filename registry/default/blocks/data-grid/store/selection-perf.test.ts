@@ -116,7 +116,7 @@ describe("controlled selection perf (100k rows)", () => {
 
 describe("hidden checked rows perf (100k rows)", () => {
   it("moves 100,000 checks into the hidden set and back through a filter change within the ceiling", () => {
-    const store = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const store = makeStore(makeRows(ROW_COUNT), undefined, { checkedRowsLifetime: "across-filters" });
     store.getState().actions.setAllRowsSelected(true);
     const filter = [{ filterId: "f", columnId: "v", operator: "equals", value: 1000 }] as never;
 
@@ -146,8 +146,8 @@ describe("hidden checked rows with streaming (100k rows)", () => {
       }
       return (performance.now() - t0) / n;
     };
-    const plain = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true });
-    const hidden = makeStore(makeRows(ROW_COUNT), undefined, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const plain = makeStore(makeRows(ROW_COUNT), undefined, { checkedRowsLifetime: "until-cleared" });
+    const hidden = makeStore(makeRows(ROW_COUNT), undefined, { checkedRowsLifetime: "across-filters" });
     for (const store of [plain, hidden]) {
       store.getState().actions.setSorts([{ columnId: "v", direction: "asc" }]);
       store.getState().actions.setAllRowsSelected(true);

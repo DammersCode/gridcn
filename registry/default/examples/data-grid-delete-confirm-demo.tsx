@@ -52,7 +52,7 @@ export default function DataGridDeleteConfirmDemo(): ReactNode {
         columns={columns}
         getRowId={(row) => row.id}
         rowMarkers="checkbox"
-        keepCheckedRows
+        checkedRowsLifetime="until-cleared"
         onBeforeDeleteRows={confirmDelete}
       >
         <DataGridContextMenu className="flex h-[360px] flex-col">

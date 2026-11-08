@@ -20,7 +20,7 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 
 ## Custom markers [#custom-markers]
 
-`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. Without `keepCheckedRows`, it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
+`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With the default `checkedRowsLifetime="until-click"`, it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
 
 ```tsx
 import { Check, Circle, Minus } from "lucide-react";

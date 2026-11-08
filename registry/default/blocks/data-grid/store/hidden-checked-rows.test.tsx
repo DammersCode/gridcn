@@ -22,7 +22,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     return null;
   }
   const tree = (next: Partial<DataGridSyncProps<Row>>) => (
-    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={rows()} keepCheckedRows keepHiddenCheckedRows {...next}>
+    <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={rows()} checkedRowsLifetime="across-filters" {...next}>
       <Probe />
     </DataGridProvider>
   );
@@ -54,7 +54,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("keepHiddenCheckedRows", () => {
+describe("checkedRowsLifetime across-filters", () => {
   it("moves checked rows a filter hides into the hidden set and back when the filter clears", () => {
     const m = mount();
     m.check(0, 1, 2);
@@ -74,19 +74,12 @@ describe("keepHiddenCheckedRows", () => {
     expect(m.hiddenIds()).toEqual(["a"]);
   });
 
-  it("off by default: a filter drops the checks", () => {
-    const m = mount({ keepHiddenCheckedRows: false });
+  it("until-cleared: a filter drops the checks", () => {
+    const m = mount({ checkedRowsLifetime: "until-cleared" });
     m.check(0, 1);
     m.filterToD();
     m.clearFilter();
     expect(m.state().selection.rows.length).toBe(0);
-    expect(m.hiddenIds()).toEqual([]);
-  });
-
-  it("rememberCheckedRows false turns the memory off", () => {
-    const m = mount({ rememberCheckedRows: false });
-    m.check(0, 1);
-    m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
   });
 
@@ -181,11 +174,11 @@ describe("keepHiddenCheckedRows", () => {
     expect(m.hiddenIds()).toEqual(["a"]);
   });
 
-  it("turning the option off drops the hidden set", () => {
+  it("leaving across-filters drops the hidden set", () => {
     const m = mount();
     m.check(0);
     m.filterToD();
-    m.rerender({ keepHiddenCheckedRows: false });
+    m.rerender({ checkedRowsLifetime: "until-cleared" });
     expect(m.hiddenIds()).toEqual([]);
   });
 
@@ -205,7 +198,7 @@ describe("keepHiddenCheckedRows", () => {
     m.clearFilter();
     m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("checkedRowsLifetime"))).toHaveLength(1);
   });
 
   it("lazy data with unloaded rows ignores the option and warns once", () => {
@@ -217,7 +210,7 @@ describe("keepHiddenCheckedRows", () => {
     m.clearFilter();
     m.filterToD();
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("checkedRowsLifetime"))).toHaveLength(1);
   });
 
   it("a delete of the visible checks never reaches a hidden row", () => {
@@ -301,7 +294,7 @@ describe("hidden checked rows: undo and redo style commits under a filter", () =
   });
 
   it("an update-only commit under a sort keeps the checks on their records", () => {
-    const m = mount({ keepHiddenCheckedRows: false });
+    const m = mount({ checkedRowsLifetime: "until-cleared" });
     act(() => m.state().actions.setSorts([{ columnId: "name", direction: "desc" }]));
     m.check(0);
     expect(m.state().selection.rows.toArray()).toEqual([0]);
@@ -375,7 +368,7 @@ describe("hidden checked rows: sortMode and cap", () => {
     expect(m.hiddenIds()).toEqual(["a", "b"]);
     m.rerender({ sortMode: "server" });
     expect(m.hiddenIds()).toEqual([]);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("rememberCheckedRows"))).toHaveLength(1);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("checkedRowsLifetime"))).toHaveLength(1);
   });
 
   it("over the cap, new hidden ids are dropped and earlier ones stay", () => {

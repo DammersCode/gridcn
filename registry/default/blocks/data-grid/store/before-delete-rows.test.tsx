@@ -57,7 +57,7 @@ describe("onBeforeDeleteRows", () => {
 
   it("gets the row ids that go and the hidden count, and a true result deletes synchronously", () => {
     const gate = vi.fn<Gate>(() => true);
-    const m = mount(gate, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const m = mount(gate, { checkedRowsLifetime: "across-filters" });
     act(() => [0, 1, 3].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRows(m.state().selection.rows.toArray()));
@@ -147,7 +147,7 @@ describe("onBeforeDeleteRows", () => {
 
   it("drops the result when the checked rows changed while the promise was pending", async () => {
     const pending = deferred();
-    const m = mount(() => pending.promise, { keepCheckedRows: true });
+    const m = mount(() => pending.promise, { checkedRowsLifetime: "until-cleared" });
     act(() => m.state().actions.setRowSelected(0, true));
     act(() => m.state().actions.deleteRows([0]));
     act(() => m.state().actions.setRowSelected(1, true));
@@ -192,7 +192,7 @@ describe("onBeforeDeleteRows", () => {
 
   it("hiddenCount leaves out hidden rows that are in rowIds", () => {
     const gate = vi.fn<Gate>(() => false);
-    const m = mount(gate, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const m = mount(gate, { checkedRowsLifetime: "across-filters" });
     act(() => [0, 1].forEach((r) => m.state().actions.setRowSelected(r, true)));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "D" }] as never));
     act(() => m.state().actions.deleteRowsById(["a"]));

@@ -60,7 +60,7 @@ A press on the handle of a checked row drags every checked row. They land togeth
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They act on the checked rows. With no checked row, they act on the rows of the selected range, then on the active row. The gaps between rows stay.
 
-A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode. They do nothing in a `readOnly` grid or while a cell editor is open. With `keepCheckedRows`, they do nothing when every checked row is hidden or while "all matching" is on. Without it, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
+A row at the edge blocks the whole move. The keys need `enableRowReorder` and a reorder marker mode, and do nothing in a `readOnly` grid or while a cell editor is open. With `'until-cleared'` or `'across-filters'`, they move the checked rows only. With `'across-filters'`, they do nothing when every checked row is hidden or while "all matching" is on. With `'until-click'`, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
 
 ## Move rows from code
 

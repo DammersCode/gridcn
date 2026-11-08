@@ -141,7 +141,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "pag
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-        ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows }).map((viewRow) => state.viewIndex[viewRow]!)
+        ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" }).map((viewRow) => state.viewIndex[viewRow]!)
         : scope === "page"
           ? state.viewIndex
           : fullViewOf(state.viewIndex);

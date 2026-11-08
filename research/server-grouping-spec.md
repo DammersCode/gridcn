@@ -422,7 +422,7 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
 2. `DataGridSelectedRows` type shape (`readSelectedRows` adds `groups: []` and ids-mode `spec`; every
    writer unchanged; type test, selection-test regression, the `server-selection.test.tsx:240,247,259`
    assertion); edit the existing Unreleased CHANGELOG entries (the shape in the selection entry, the
-   `spec` note in the `keepCheckedRows` entry), no new **Breaking** line (the shape is unreleased);
+   `spec` note in the `checkedRowsLifetime` entry), no new **Breaking** line (the shape is unreleased);
    same commit: `lazy-loading.mdx`, `recipes/data-fetching/server-side.mdx`, `selection-keyboard.mdx`
    (sections already new since v1.3.0), the
    server selection demo, `skills/gridcn-data-source/SKILL.md`; `data-grid` payload (and the demo's).

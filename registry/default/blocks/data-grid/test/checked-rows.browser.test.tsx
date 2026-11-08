@@ -17,7 +17,7 @@ const checkboxAt = (i: number) => markerCells()[i]!.querySelector<HTMLElement>('
 const gridCells = () => [...document.querySelectorAll<HTMLElement>(`[role="gridcell"]:not(${gridAttrSelector("markerCell")})`)];
 const deleteRowsChord = "{Control>}{Shift>}{Backspace}{/Shift}{/Control}";
 
-function Harness(props: { keepCheckedRows?: boolean; onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void; apiRef: { current: DataGridApi<Row> | null } }) {
+function Harness(props: { checkedRowsLifetime?: "until-click" | "until-cleared" | "across-filters"; onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void; apiRef: { current: DataGridApi<Row> | null } }) {
   return (
     <>
       <button type="button" data-testid="outside">
@@ -31,7 +31,7 @@ function Harness(props: { keepCheckedRows?: boolean; onDataChange?: (next: reado
           getRowId={(r) => r.id}
           className="h-[400px]"
           rowMarkers="checkbox"
-          keepCheckedRows={props.keepCheckedRows}
+          checkedRowsLifetime={props.checkedRowsLifetime}
           onDataChange={props.onDataChange}
         />
       </div>
@@ -39,7 +39,7 @@ function Harness(props: { keepCheckedRows?: boolean; onDataChange?: (next: reado
   );
 }
 
-async function mount(props: { keepCheckedRows?: boolean; onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void } = {}) {
+async function mount(props: { checkedRowsLifetime?: "until-click" | "until-cleared" | "across-filters"; onDataChange?: (next: readonly Row[], change: DataChange<Row>) => void } = {}) {
   const apiRef = { current: null as DataGridApi<Row> | null };
   await render(<Harness {...props} apiRef={apiRef} />);
   await expect.element(page.getByRole("grid")).toBeInTheDocument();
@@ -89,17 +89,17 @@ describe("checked rows and outside clicks", () => {
   });
 });
 
-describe("keepCheckedRows", () => {
-  it("off: a cell click clears the checked rows", async () => {
+describe("checkedRowsLifetime", () => {
+  it("until-click: a cell click clears the checked rows", async () => {
     const { checkedIds } = await mount();
     await userEvent.click(checkboxAt(1));
     await userEvent.click(gridCells()[4]!);
     expect(checkedIds()).toEqual([]);
   });
 
-  it("on: a cell click keeps the checked rows and Ctrl+Shift+Backspace deletes only them", async () => {
+  it("until-cleared: a cell click keeps the checked rows and Ctrl+Shift+Backspace deletes only them", async () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
-    const { checkedIds } = await mount({ keepCheckedRows: true, onDataChange });
+    const { checkedIds } = await mount({ checkedRowsLifetime: "until-cleared", onDataChange });
     await userEvent.click(checkboxAt(1));
     await userEvent.click(checkboxAt(2));
     await userEvent.click(gridCells()[5]!);
@@ -110,8 +110,8 @@ describe("keepCheckedRows", () => {
     expect(change.ops.map((op) => op.rowId).sort()).toEqual(["row-1", "row-2"]);
   });
 
-  it("on: arrow keys keep the checked rows and Escape clears them", async () => {
-    const { checkedIds } = await mount({ keepCheckedRows: true });
+  it("until-cleared: arrow keys keep the checked rows and Escape clears them", async () => {
+    const { checkedIds } = await mount({ checkedRowsLifetime: "until-cleared" });
     await userEvent.click(checkboxAt(1));
     await userEvent.click(gridCells()[4]!);
     await userEvent.keyboard("{ArrowDown}");

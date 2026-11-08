@@ -12,8 +12,8 @@ describe("checked rows with client pagination", () => {
     expect(grid.state().selection.rows.toArray()).toEqual([]);
   });
 
-  it("rememberCheckedRows remembers the row by id and checks it again when the page returns", async () => {
-    const grid = await mountMode("PC", { props: { rememberCheckedRows: true } });
+  it("across-filters remembers the row by id and checks it again when the page returns", async () => {
+    const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
     grid.act(() => grid.state().actions.setRowSelected(1, true));
     grid.goToPage(2);
     expect([...grid.state().hiddenCheckedRowIds]).toEqual(["r1"]);
@@ -22,8 +22,8 @@ describe("checked rows with client pagination", () => {
     expect(grid.state().hiddenCheckedRowIds.size).toBe(0);
   });
 
-  it("rememberCheckedRows checks a row again on the page a sort moved it to", async () => {
-    const grid = await mountMode("PC", { props: { rememberCheckedRows: true } });
+  it("across-filters checks a row again on the page a sort moved it to", async () => {
+    const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
     grid.act(() => grid.state().actions.setRowSelected(1, true));
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
     expect([...grid.state().hiddenCheckedRowIds]).toEqual(["r1"]);
@@ -32,7 +32,7 @@ describe("checked rows with client pagination", () => {
   });
 
   it("Ctrl/Cmd+A drops the remembered checks of the other pages", async () => {
-    const grid = await mountMode("PC", { props: { rememberCheckedRows: true } });
+    const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
     grid.act(() => grid.state().actions.setRowSelected(1, true));
     grid.goToPage(2);
     grid.act(() => grid.state().actions.selectAll());

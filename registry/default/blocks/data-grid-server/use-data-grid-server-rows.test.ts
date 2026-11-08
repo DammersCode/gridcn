@@ -32,7 +32,7 @@ describe("useDataGridServerRows", () => {
     expect(result.current.gridProps.data).toHaveLength(10);
     expect(result.current.gridProps.totalRowCount).toBe(95);
     expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, totalRowCount: 95, pageCount: 10 });
-    expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", keepCheckedRows: true });
+    expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", checkedRowsLifetime: "across-filters" });
     expect("headerClickBehavior" in result.current.gridProps).toBe(false);
   });
 

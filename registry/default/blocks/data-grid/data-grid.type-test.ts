@@ -194,8 +194,7 @@ assertEqual<(change: DataChange<unknown>) => void, typeof wActions.commitChange>
 // DataGridProps is built as (ExternalStoreProps | OwnedStoreProps) & DataGridRootProps & { ref }, so
 // a prop cannot exist on one home and be forgotten on the wrapper. These guards pin the split itself.
 
-assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepCheckedRows"]>(true);
-assertEqual<boolean | undefined, DataGridSyncProps<Row>["keepHiddenCheckedRows"]>(true);
+assertEqual<"until-click" | "until-cleared" | "across-filters" | undefined, DataGridSyncProps<Row>["checkedRowsLifetime"]>(true);
 assertEqual<boolean | undefined, DataGridSyncProps<Row>["announceResults"]>(true);
 assertEqual<((ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean | Promise<boolean>) | undefined, DataGridSyncProps<Row>["onBeforeDeleteRows"]>(true);
 

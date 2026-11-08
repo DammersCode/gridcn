@@ -120,7 +120,13 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 - The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
 - `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` for an unknown size.
-- `rememberCheckedRows` keeps checked ids that leave `data`. With `totalRowCount`, it defaults to `true`. `keepCheckedRows` does not turn it on. `keepHiddenCheckedRows` is a deprecated alias.
+- <NewBadge /> `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
+
+| 1.x props | 2.0 prop |
+|---|---|
+| neither | `checkedRowsLifetime="until-click"` (default) |
+| `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
+| `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
 
 ## Removed exports [#removed-exports]
 

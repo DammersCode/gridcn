@@ -143,7 +143,7 @@ Unit (`selection` / store tests, 0-based view rows):
 7. Shift steps after a filter change start a new gesture; the anchor follows its row id.
 8. 100k rows: click 0, Shift 99_999, Shift 50 -> one slice [0, 51); no `toArray` call (spy).
 9. header checkbox between two Shift clicks -> the second Shift click starts a new gesture.
-10. `keepHiddenCheckedRows`: a hidden checked row survives a Shift range over its neighbors.
+10. `checkedRowsLifetime="across-filters"`: a hidden checked row survives a Shift range over its neighbors.
 11. lazy source: a range over unloaded holes checks the view indices; row id readers skip holes.
 12. unchanged Shift target -> no `onSelectionChange`.
 

@@ -28,7 +28,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
       columns={columns}
       getRowId={(row: Row | undefined, index: number) => (row === undefined ? holeRowId(index) : row.id)}
       data={PAGE_ONE}
-      keepCheckedRows
+      checkedRowsLifetime="across-filters"
       totalRowCount={9}
       {...next}
     >
@@ -176,12 +176,12 @@ describe("select all matching", () => {
     }
   });
 
-  it("is a no-op with a warning without totalRowCount or with rememberCheckedRows off", () => {
+  it("is a no-op with a warning without totalRowCount or without across-filters", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const noTotal = mount({ totalRowCount: undefined });
     act(() => noTotal.state().actions.selectAllMatching());
     expect(noTotal.state().allMatching).toBe(false);
-    const noKeep = mount({ rememberCheckedRows: false });
+    const noKeep = mount({ checkedRowsLifetime: "until-cleared" });
     act(() => noKeep.state().actions.selectAllMatching());
     expect(noKeep.state().allMatching).toBe(false);
     expect(warn).toHaveBeenCalledTimes(2);
@@ -222,7 +222,7 @@ describe("useDataGridSelectedRows", () => {
         columns={columns}
         getRowId={(row: Row | undefined, index: number) => (row === undefined ? holeRowId(index) : row.id)}
         data={PAGE_ONE}
-        keepCheckedRows
+        checkedRowsLifetime="across-filters"
         totalRowCount={9}
         {...next}
       >
@@ -274,9 +274,9 @@ describe("useDataGridSelectedRows", () => {
     expect(m.selected()).toMatchObject({ mode: "allMatching", spec: { sorts, filters, searchText: "q" } });
   });
 
-  it("a grid with totalRowCount and no keepCheckedRows does not keep checks", () => {
-    const m = mountWithHook({ keepCheckedRows: undefined });
-    expect(m.api().getState().keepCheckedRows).toBe(false);
+  it("a grid with totalRowCount and no checkedRowsLifetime keeps the default until-click", () => {
+    const m = mountWithHook({ checkedRowsLifetime: undefined });
+    expect(m.api().getState().checkedRowsLifetime).toBe("until-click");
   });
 
   it("skips skeleton rows in ids", () => {
@@ -319,18 +319,18 @@ describe("select all matching and the result spec", () => {
     expect(m.state().allMatching).toBe(true);
   });
 
-  it("totalRowCount alone turns the id memory on and leaves keepCheckedRows off", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount({ keepCheckedRows: undefined });
-    expect(m.state().keepCheckedRows).toBe(false);
-    expect(m.state().rememberCheckedRows).toBe(true);
+  it("totalRowCount alone does not turn the id memory on", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ checkedRowsLifetime: undefined });
+    expect(m.state().checkedRowsLifetime).toBe("until-click");
     act(() => m.state().actions.selectAllMatching());
-    expect(m.state().allMatching).toBe(true);
+    expect(m.state().allMatching).toBe(false);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("an explicit rememberCheckedRows false keeps selectAllMatching off with a warning", () => {
+  it("until-cleared keeps selectAllMatching off with a warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount({ rememberCheckedRows: false });
+    const m = mount({ checkedRowsLifetime: "until-cleared" });
     act(() => m.state().actions.selectAllMatching());
     expect(m.state().allMatching).toBe(false);
     expect(warn).toHaveBeenCalledTimes(1);
@@ -417,17 +417,27 @@ describe("onBeforeDeleteRows while all-matching is on", () => {
 });
 
 describe("remembered checks and a cell click", () => {
-  it("without keepCheckedRows a cell click releases the remembered ids and all-matching", () => {
-    const m = mount({ keepCheckedRows: false });
+  it("a cell click keeps the remembered ids and all-matching under across-filters", () => {
+    const m = mount();
     act(() => m.state().actions.selectAllMatching());
+    act(() => m.state().actions.selectCell({ rowId: m.state().getRowId(m.state().data[0]!, 0), columnId: m.state().visibleColumns[0]!.id }));
     expect(m.state().allMatching).toBe(true);
-    act(() => m.state().actions.selectCell({ rowId: m.state().data[0] ? m.state().getRowId(m.state().data[0], 0) : "", columnId: m.state().visibleColumns[0]!.id }));
+  });
+
+  it("switching to until-click releases the remembered ids and all-matching", () => {
+    const m = mount();
+    m.check(1);
+    m.rerender({ data: PAGE_TWO });
+    expect(m.remembered()).toEqual(["b"]);
+    act(() => m.state().actions.selectAllMatching());
+    m.rerender({ data: PAGE_TWO, checkedRowsLifetime: "until-click" });
     expect(m.state().allMatching).toBe(false);
+    expect(m.remembered()).toEqual([]);
   });
 });
 
 describe("header click (selectColumn) and remembered checks", () => {
-  it("with keepCheckedRows a header click keeps the checked rows and all-matching", () => {
+  it("with across-filters a header click keeps the checked rows and all-matching", () => {
     const m = mount();
     act(() => m.state().actions.selectAllMatching());
     act(() => m.state().actions.selectColumn(0));
@@ -436,28 +446,16 @@ describe("header click (selectColumn) and remembered checks", () => {
     expect(m.state().selection.columns.hasIndex(0)).toBe(true);
   });
 
-  it("without keepCheckedRows a header click clears the checks and ends all-matching", () => {
-    const m = mount({ keepCheckedRows: false });
+  it("until-click: a header click clears the checks", () => {
+    const m = mount({ checkedRowsLifetime: "until-click" });
     m.check(1);
-    m.rerender({ data: PAGE_TWO, keepCheckedRows: false });
-    act(() => m.state().actions.selectAllMatching());
     act(() => m.state().actions.selectColumn(0));
     expect(m.checkedViewRows()).toEqual([]);
     expect(m.state().allMatching).toBe(false);
-    expect(m.remembered()).toEqual([]);
   });
 
-  it("without keepCheckedRows a header click releases the remembered ids of other pages", () => {
-    const m = mount({ keepCheckedRows: false });
-    m.check(1);
-    m.rerender({ data: PAGE_TWO, keepCheckedRows: false });
-    expect(m.remembered()).toEqual(["b"]);
-    act(() => m.state().actions.selectColumn(0));
-    expect(m.remembered()).toEqual([]);
-  });
-
-  it("an additive header click keeps the checks without keepCheckedRows", () => {
-    const m = mount({ keepCheckedRows: false });
+  it("an additive header click keeps the checks and all-matching", () => {
+    const m = mount();
     act(() => m.state().actions.selectAllMatching());
     act(() => m.state().actions.selectColumn(0, { additive: true }));
     expect(m.checkedViewRows()).toEqual([0, 1, 2]);
@@ -493,7 +491,7 @@ describe("Ctrl/Cmd+A (selectAll) and remembered checks", () => {
     expect(m.state().liveAnnouncement).toMatchObject({ kind: "rowsChecked", count: 0 });
   });
 
-  it("drops the remembered checks of other pages, also with keepCheckedRows", () => {
+  it("drops the remembered checks of other pages, also with across-filters", () => {
     const m = mount();
     m.check(1);
     m.rerender({ data: PAGE_TWO });

@@ -117,7 +117,7 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` when the server sends none. */
   totalRowCount: number | null;
-  keepCheckedRows: true;
+  checkedRowsLifetime: "across-filters";
   /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
   plugins: readonly DataGridPlugin<unknown>[];
 };
@@ -537,7 +537,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       searchText: spec.searchText,
       onSearchTextChange,
       totalRowCount: shown.totalRowCount,
-      keepCheckedRows: true,
+      checkedRowsLifetime: "across-filters",
       plugins,
     }),
     [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],

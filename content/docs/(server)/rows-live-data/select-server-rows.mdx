@@ -12,20 +12,20 @@ A server grid holds one page, or the loaded part of a scroll-mode source. Declar
 
 ## Declare the result [#selection-over-a-server-result]
 
-Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `totalRowCount` turns on `rememberCheckedRows`, so the checks survive page changes. `keepCheckedRows` keeps the checks on a cell click. `useDataGridServerRows` sets `totalRowCount` and `keepCheckedRows` in `gridProps` and `providerProps`.
+Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `checkedRowsLifetime="across-filters"` keeps the checks across page changes and on a cell click. `useDataGridServerRows` sets `totalRowCount` and `checkedRowsLifetime="across-filters"` in `gridProps` and `providerProps`.
 
 {/* props: DataGridSyncProps */}
 
 | Prop | Description | Default |
 | --- | --- | --- |
 | `totalRowCount` | The size of the result. A negative or non-finite number counts as `null`. | none |
-| `keepCheckedRows` | When the user selects a cell, the checked rows stay. Row operations then act on the checked rows only. | `false` |
+| `checkedRowsLifetime` <NewBadge /> | With `'across-filters'`, a checked row stays checked by row id when it leaves `data`, and a cell selection keeps the checks. Row operations then act on the checked rows only. | `'until-click'` |
 
-With `totalRowCount` set:
+With `totalRowCount` and `checkedRowsLifetime="across-filters"` set:
 
-- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode and `totalRowCount` turns on `rememberCheckedRows` for you. Pass `keepCheckedRows` too to act only on the checked rows.
+- A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode.
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
-- `selectAllMatching()` needs `totalRowCount`, and `rememberCheckedRows` not set to `false`. Without them, it does nothing and warns in development. Without `keepCheckedRows`, the next plain cell click or header click ends "all matching". With `enableRowSelection={false}`, it does nothing.
+- `selectAllMatching()` needs `totalRowCount` and `checkedRowsLifetime="across-filters"`. Without them, it does nothing and warns in development. With `enableRowSelection={false}`, it does nothing.
 
 ## Read the selection as a value [#read-the-selection-as-a-value]
 
@@ -99,18 +99,18 @@ These end it:
 
 - `clearSelection()`, `setSelection(null)`, and an empty controlled `selection`
 - Escape, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, and the header checkbox turned off
-- A plain cell click, an arrow key, a plain header click, or <kbd>Ctrl</kbd>+<kbd>Space</kbd> without `keepCheckedRows`
+- A plain cell click, an arrow key, a plain header click, or <kbd>Ctrl</kbd>+<kbd>Space</kbd> under `'until-click'`
 - A plain click on a row number, or <kbd>Shift</kbd>+<kbd>Space</kbd>
 - A change of the filter or the search text
 - A row delete: `deleteRows`, `deleteRowsById`, or the context menu Delete item
-- `keepCheckedRows` turned off, or `totalRowCount` removed
+- `checkedRowsLifetime` set to another value, or `totalRowCount` removed
 
 This list covers the common causes, not every path.
 
 The grid remembers at most 100,000 ids. In `ids` mode, it drops the rows beyond the cap. In `allMatching` mode, more than 100,000 exclusions end "all matching" and uncheck every row, because a dropped exclusion selects more rows. The grid warns once in development. An unloaded row of a scroll-mode source stays checked in `allMatching` mode. You cannot exclude it, because it has no id. `useDataGridHiddenCheckedCount()` is `0` while "all matching" is on.
 
 <Callout type="warn" title="Row operations skip rows that the grid does not hold">
-  With `keepCheckedRows`, while "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
+  While "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
 </Callout>
 
 ## Copy and export loaded rows [#selecting-copying-and-exporting]

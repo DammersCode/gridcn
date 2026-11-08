@@ -550,7 +550,7 @@ export function dispatchGridAction(args: {
       if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
         // the context-menu item this shortcut labels duplicates the WHOLE selection; no
         // selection, just the active row
-        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" });
         if (selected.length > 0) actions.duplicateRows(selected);
         else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
       }
@@ -574,7 +574,7 @@ export function dispatchGridAction(args: {
     case "deleteRows": {
       preventDefault();
       if (!state.readOnly && !onlyHiddenRowsChecked(state)) {
-        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.keepCheckedRows });
+        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" });
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
       }

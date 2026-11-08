@@ -166,7 +166,7 @@ marks `data` as a window of a larger result. A server that sends no count works 
 
 <NewBadge />
 
-Set `totalRowCount` (`useDataGridServerRows` sets it). It turns on `rememberCheckedRows`, so checks survive page changes, evictions, and server sort
+Set `totalRowCount` (`useDataGridServerRows` sets it). With `checkedRowsLifetime="across-filters"` (the hook sets it), checks survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result. Render this button inside the `DataGridProvider`:
 
 ```tsx

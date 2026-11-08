@@ -44,7 +44,7 @@ const DEFAULT_AGGREGATES: readonly StatusBarAggregate[] = ["count", "sum", "avg"
 /**
  * Aggregate bar for the selected cells: count of non-empty cells plus sum/avg/min/max of numeric
  * cells, computed by {@link useDataGridSelectionStats}. Place it inside `DataGridProvider`, next
- * to `DataGridRoot`, like the pagination bar. Shows the number of hidden checked rows when `rememberCheckedRows` remembers any, and the
+ * to `DataGridRoot`, like the pagination bar. Shows the number of hidden checked rows when `checkedRowsLifetime="across-filters"` remembers any, and the
  * select-all banner: "Select all matching" while every row of a partial view is checked, "Clear
  * selection" after `selectAllMatching`. Renders nothing while fewer than 2 selected cells hold a value, no
  * hidden checked row exists, and no banner shows.

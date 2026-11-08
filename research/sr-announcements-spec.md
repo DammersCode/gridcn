@@ -24,7 +24,7 @@ Issue #87.
    displayed text is trailing debounced (500 ms). Consequence: row-move announcements are
    debounced the same way — a shipped-behavior change that gets a changelog entry.
 2. **Checked-count is default-on core a11y; result-count is opt-in.** New boolean prop
-   `announceResults` (default `false`), following the `keepCheckedRows` prop flow
+   `announceResults` (default `false`), following the `checkedRowsLifetime` prop flow
    (`DataGridSyncProps` → `InternalSyncProps` → init → `_syncConfig`, listed in the provider's
    `CONFIG_KEYS` so a dropped prop syncs `false`).
 3. **Write points.**

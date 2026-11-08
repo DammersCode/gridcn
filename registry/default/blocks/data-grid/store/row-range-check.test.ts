@@ -134,7 +134,7 @@ describe("row range checking", () => {
   });
 
   it("never touches hidden checked rows", () => {
-    const store = makeStore(12, { keepCheckedRows: true, keepHiddenCheckedRows: true });
+    const store = makeStore(12, { checkedRowsLifetime: "across-filters" });
     const { actions } = store.getState();
     actions.setAllRowsSelected(true);
     actions.setFilters([{ filterId: "f", columnId: "t", operator: "equals", value: "hi" }] as never);

@@ -2952,7 +2952,7 @@
       "name": "data-grid-checked-rows-demo",
       "type": "registry:example",
       "title": "Data Grid Checked Rows Demo",
-      "description": "Checked rows survive a filter with keepCheckedRows and keepHiddenCheckedRows; the status bar counts the hidden checked rows.",
+      "description": "Checked rows survive a filter with checkedRowsLifetime 'across-filters'; the status bar counts the hidden checked rows.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",

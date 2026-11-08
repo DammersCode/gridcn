@@ -60,16 +60,16 @@ describe("clearCellSelection", () => {
   });
 });
 
-describe("keepCheckedRows", () => {
-  it("off: a cell click replaces the checked rows", () => {
+describe("checkedRowsLifetime", () => {
+  it("until-click: a cell click replaces the checked rows", () => {
     const { state, check } = mount({});
     check(0, 1);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     expect(state().selection.rows.length).toBe(0);
   });
 
-  it("on: selecting a cell, extending, and pushing a range keep the checked rows", () => {
-    const { state, check } = mount({ keepCheckedRows: true });
+  it("until-cleared: selecting a cell, extending, and pushing a range keep the checked rows", () => {
+    const { state, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     expect(state().selection.rows.toArray()).toEqual([0, 1]);
@@ -80,7 +80,7 @@ describe("keepCheckedRows", () => {
   });
 
   it("on: arrow navigation keeps the checked rows", () => {
-    const { state, store, check } = mount({ keepCheckedRows: true });
+    const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     act(() => getInternalActions(store())._moveActiveCell({ dx: 0, dy: 1 }));
@@ -89,7 +89,7 @@ describe("keepCheckedRows", () => {
 
   it("on: deleteRows removes only the checked rows, not the range", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
-    const { state, store, check } = mount({ keepCheckedRows: true, onDataChange });
+    const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared", onDataChange });
     check(0, 1);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     dispatch(store(), "deleteRows");
@@ -99,7 +99,7 @@ describe("keepCheckedRows", () => {
 
   it("on: duplicateRow duplicates only the checked rows", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
-    const { state, store, check } = mount({ keepCheckedRows: true, onDataChange, duplicateRow: (row) => ({ ...row, id: `${row.id}2` }) });
+    const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared", onDataChange, duplicateRow: (row) => ({ ...row, id: `${row.id}2` }) });
     check(0);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     dispatch(store(), "duplicateRow");
@@ -109,7 +109,7 @@ describe("keepCheckedRows", () => {
 
   it("on: with no checked row, deleteRows acts on the range", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
-    const { state, store } = mount({ keepCheckedRows: true, onDataChange });
+    const { state, store } = mount({ checkedRowsLifetime: "until-cleared", onDataChange });
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
     dispatch(store(), "deleteRows");
     const [, change] = onDataChange.mock.calls[0]!;
@@ -127,18 +127,80 @@ describe("keepCheckedRows", () => {
   });
 
   it("on: Escape clears the checked rows", () => {
-    const { state, store, check } = mount({ keepCheckedRows: true });
+    const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     dispatch(store(), "cancel");
     expect(state().selection.rows.length).toBe(0);
   });
 
   it("on: unchecking and clearSelection still change the checks", () => {
-    const { state, check } = mount({ keepCheckedRows: true });
+    const { state, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     act(() => state().actions.setRowSelected(0, false));
     expect(state().selection.rows.toArray()).toEqual([1]);
     act(() => state().actions.clearSelection());
     expect(state().selection.rows.length).toBe(0);
+  });
+});
+
+describe.each(["until-cleared", "across-filters"] as const)("checkedRowsLifetime %s keeps the checks", (checkedRowsLifetime) => {
+  it("across a cell click, Shift click, Ctrl click and an arrow key", () => {
+    const { state, store, check } = mount({ checkedRowsLifetime });
+    check(0, 1);
+    act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
+    act(() => state().actions.extendToAt({ col: 1, row: 4 }));
+    act(() => state().actions.pushRangeAt({ col: 0, row: 2 }));
+    act(() => getInternalActions(store())._moveActiveCell({ dx: 0, dy: 1 }));
+    expect(state().selection.rows.toArray()).toEqual([0, 1]);
+  });
+
+  it("across a column header click", () => {
+    const { state, check } = mount({ checkedRowsLifetime });
+    check(0, 1);
+    act(() => state().actions.selectColumn(0));
+    expect(state().selection.rows.toArray()).toEqual([0, 1]);
+  });
+
+  it("until a marker checkbox, the header checkbox, Escape or clearSelection changes them", () => {
+    const { state, store, check } = mount({ checkedRowsLifetime });
+    check(0, 1);
+    act(() => state().actions.setRowSelected(0, false));
+    expect(state().selection.rows.toArray()).toEqual([1]);
+    act(() => state().actions.setAllRowsSelected(true));
+    expect(state().selection.rows.length).toBe(5);
+    act(() => state().actions.setAllRowsSelected(false));
+    expect(state().selection.rows.length).toBe(0);
+    check(2);
+    dispatch(store(), "cancel");
+    expect(state().selection.rows.length).toBe(0);
+    check(3);
+    act(() => state().actions.clearSelection());
+    expect(state().selection.rows.length).toBe(0);
+  });
+
+  it("until the checked rows are deleted", () => {
+    const { state, store, check } = mount({ checkedRowsLifetime, onDataChange: () => {} });
+    check(0, 1);
+    dispatch(store(), "deleteRows");
+    expect(state().selection.rows.length).toBe(0);
+  });
+});
+
+describe("checkedRowsLifetime until-click", () => {
+  it.each([
+    ["a cell click", (m: ReturnType<typeof mount>) => m.state().actions.selectCellAt({ col: 0, row: 3 })],
+    ["a Shift click", (m: ReturnType<typeof mount>) => m.state().actions.extendToAt({ col: 1, row: 4 })],
+    ["a Ctrl click", (m: ReturnType<typeof mount>) => m.state().actions.pushRangeAt({ col: 0, row: 2 })],
+    ["an arrow key", (m: ReturnType<typeof mount>) => getInternalActions(m.store())._moveActiveCell({ dx: 0, dy: 1 })],
+    ["a column header click", (m: ReturnType<typeof mount>) => m.state().actions.selectColumn(0)],
+  ])("clears the checks on %s", (_name, gesture) => {
+    const m = mount({ checkedRowsLifetime: "until-click" });
+    m.check(0, 1);
+    act(() => gesture(m));
+    expect(m.state().selection.rows.length).toBe(0);
+  });
+
+  it("is the default", () => {
+    expect(mount({}).state().checkedRowsLifetime).toBe("until-click");
   });
 });

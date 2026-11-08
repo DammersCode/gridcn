@@ -106,7 +106,7 @@ Because the operations name rows by id, history can undo a row operation after a
 
 <InstallCommand item="data-grid-delete-confirm-demo" />
 
-- `rowMarkers="checkbox"` and `keepCheckedRows` make the delete act on the checked rows.
+- `rowMarkers="checkbox"` and `checkedRowsLifetime="until-cleared"` make the delete act on the checked rows.
 - `onBeforeDeleteRows` returns a promise. Cancel resolves it with `false` and keeps the rows. Delete resolves it with `true`. A dismissed dialog resolves it with `false`.
 - The Cancel button gets the focus when the dialog opens.
 

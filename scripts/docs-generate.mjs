@@ -461,7 +461,6 @@ const PURPOSE = {
   "DataGridSyncProps.filterMode": "Who filters: `\"client\"` filters `data`, `\"server\"` only tracks the filters. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
   "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
   "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
-  "DataGridSyncProps.keepHiddenCheckedRows": "Deprecated alias of `rememberCheckedRows`. `rememberCheckedRows` wins when both are set.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",
 };
 
@@ -549,7 +548,7 @@ const ACTION_PURPOSE = {
   setRowSelected: "Checks or unchecks one row by view index. It sets the state and never toggles.",
   checkRowRange: "Checks or unchecks the rows from the anchor row to a target view index.",
   setAllRowsSelected: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page.",
-  selectAllMatching: "Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or with `rememberCheckedRows={false}`.",
+  selectAllMatching: "Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or without `checkedRowsLifetime='across-filters'`.",
   setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row.",
   cancelEditing: "Discards the open edit. It writes nothing.",
   pushRange: "Adds a new range at a `CellRef`, as a Ctrl or Cmd click does.",

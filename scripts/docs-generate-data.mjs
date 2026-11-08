@@ -132,6 +132,7 @@ export const TERM_PAGES = {
   "view index": "/docs/concepts/state-view-index",
   "data index": "/docs/concepts/state-view-index",
   "checked row": "/docs/selection-shortcuts/checked-rows",
+  "checked rows lifetime": "/docs/selection-shortcuts/checked-rows",
   "data mode": ["/docs/data-modes", "One way the grid gets its rows, such as a local array or server pages."],
   commit: "/docs/editing-cells/validation",
   "controlled / uncontrolled": ["/docs/events-state/event-shapes#controlled-pairs", "`data` puts the state in your code. `defaultData` seeds the grid once."],

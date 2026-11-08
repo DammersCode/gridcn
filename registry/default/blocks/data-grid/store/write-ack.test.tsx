@@ -340,7 +340,7 @@ describe("save acknowledgement: refusals in sequence", () => {
     const d = deferred<SaveAck>();
     const m = mount((_next, change) => (change.source === "rollback" ? undefined : d.promise), {
       createRow: () => ({ id: "n", name: "N", note: "n" }),
-      keepCheckedRows: true,
+      checkedRowsLifetime: "until-cleared",
       totalRowCount: 9,
     });
     act(() => m.state().actions.insertRow(0, "below"));

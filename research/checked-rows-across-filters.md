@@ -1,6 +1,6 @@
 # Keep checked rows across filters
 
-Status: implemented in 1.2.0. `keepCheckedRows` keeps checked rows across cell clicks and outside clicks; `keepHiddenCheckedRows` keeps the rows a filter hides.
+Status: implemented in 1.2.0 as `keepCheckedRows` and `keepHiddenCheckedRows`; 2.0 folds both into `checkedRowsLifetime` (`research/checked-rows-lifetime.md`).
 
 ## Goal
 

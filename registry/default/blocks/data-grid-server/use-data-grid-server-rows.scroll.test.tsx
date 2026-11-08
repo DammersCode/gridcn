@@ -440,7 +440,7 @@ describe("useDataGridServerRows scroll mode: spec and refresh", () => {
       expect(after.gridProps[key]).toBe(before.gridProps[key]);
     }
     expect(after.gridProps).toBe(before.gridProps);
-    expect(after.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", keepCheckedRows: true });
+    expect(after.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", checkedRowsLifetime: "across-filters" });
   });
 
   it("uses an index-derived placeholder id for unloaded rows", async () => {

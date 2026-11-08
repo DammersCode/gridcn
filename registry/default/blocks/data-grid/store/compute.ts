@@ -28,6 +28,7 @@ import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
+import { keepsCheckedRows } from "./hidden-checked-rows";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
 import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
@@ -116,10 +117,10 @@ export function clampActiveCell(activeCell: ViewCoord | null, viewLength: number
   return row === activeCell.row && col === activeCell.col ? activeCell : { row, col };
 }
 
-/** The selection after the cursor lands on `coord`: a single cell, with the checked rows kept when `keepCheckedRows` is set. */
-export function selectCellOf(s: Pick<DataGridStoreState, "selection" | "keepCheckedRows">, coord: ViewCoord): GridSelection {
+/** The selection after the cursor lands on `coord`: a single cell, with the checked rows kept unless `checkedRowsLifetime` is `'until-click'`. */
+export function selectCellOf(s: Pick<DataGridStoreState, "selection" | "checkedRowsLifetime">, coord: ViewCoord): GridSelection {
   const next = selectCell(coord);
-  return s.keepCheckedRows ? { ...next, rows: s.selection.rows } : next;
+  return keepsCheckedRows(s) ? { ...next, rows: s.selection.rows } : next;
 }
 
 /** The cursor fitted into a rebuilt view: a move collapses the selection onto the clamped cell, a clear drops its current range. */
@@ -939,8 +940,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"
   | "enableRowSelection"
-  | "keepCheckedRows"
-  | "rememberCheckedRows"
+  | "checkedRowsLifetime"
   | "totalRowCount"
   | "enableColumnSelection"
   | "enableRangeSelection"
@@ -954,8 +954,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
-    keepCheckedRows: props.keepCheckedRows ?? false,
-    rememberCheckedRows: props.rememberCheckedRows ?? props.keepHiddenCheckedRows ?? props.totalRowCount !== undefined,
+    checkedRowsLifetime: props.checkedRowsLifetime ?? "until-click",
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,
