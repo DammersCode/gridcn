@@ -104,14 +104,7 @@ The result has the members of `grid.history` above, plus `plugin`.
 
 ## Read-only grids [#read-only-grids]
 
-A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `redo` do nothing and keep their entries. `canUndo` stays `true` for entries that exist from before. Bind your buttons to `readOnly` as well:
-
-```tsx fragment="JSX inside the quick start component"
-<button disabled={readOnly || !grid.history.canUndo}
-  onClick={grid.history.undo}>
-  Undo
-</button>
-```
+A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `redo` do nothing and keep their entries. `canUndo` <NewBadge /> and `canRedo` are `false` while the grid is `readOnly`. `historySize` still counts the entries.
 
 ## Server mode
 

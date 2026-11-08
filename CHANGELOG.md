@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `canUndo` and `canRedo` of `useDataGridHistory` and `useDataGridState().history` are `false` while the grid is `readOnly`, because `undo` and `redo` do nothing then. Before, they stayed `true` for kept entries. After: `disabled={!canUndo}`; the `readOnly ||` guard can go. `historySize` still counts the kept entries.
 - `useDataGridHistory({ recordSources })` also takes a function of the default list, such as `(defaults) => [...defaults, "stream"]`, so a copied list no longer goes stale when a source is added. The list form is unchanged.
 - `updateCells` and `updateRows` take `{ flash: true }` to flash the cells they applied: at once for a synchronous batch, after `settled` for a held one. Cells of hidden columns do not flash. `actions.flashCells` stays for arbitrary cells. The default is no flash.
 - **Breaking:** `CellType.align` takes `"start" | "center" | "end"` (reading direction) instead of `"left" | "right" | "center"`, and `CellSpan` drops its `align` prop. The cell carries the alignment as `text-start`, `text-center`, or `text-end`, and the inner spans inherit it. Before: `align: "right"`, `<CellSpan text={x} align="right" />`, and `cellClassName: "[&_span]:text-center"` on a `number` column. After: `align: "end"`, `<CellSpan text={x} />`, and `cellClassName: "text-center"`. The old `[&_span]:` form still matches. `printGrid` writes the type's alignment as logical `text-align`, so a right-to-left print keeps numbers at the end.

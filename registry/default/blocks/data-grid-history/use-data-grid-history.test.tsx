@@ -480,13 +480,19 @@ describe("useDataGridHistory readOnly", () => {
 
     h.setGridOpts({ readOnly: true });
     act(() => h.history().undo());
-    expect(h.history().canUndo).toBe(true); // the entry is kept, not popped unapplied
+    expect(h.history().canUndo).toBe(false);
+    expect(h.history().historySize).toBe(1); // the entry is kept, not popped unapplied
     expect(h.data()[0]!.name).toBe("Alicia"); // the data is untouched
 
     h.setGridOpts({ readOnly: false });
+    expect(h.history().canUndo).toBe(true);
     act(() => h.history().undo());
     expect(h.data()[0]!.name).toBe("Alice");
     expect(h.history().canUndo).toBe(false);
+    expect(h.history().canRedo).toBe(true);
+
+    h.setGridOpts({ readOnly: true });
+    expect(h.history().canRedo).toBe(false);
   });
 
   it("rollback reverts a failed change with source 'rollback' and leaves no dead undo entry", () => {

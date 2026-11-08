@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useStore } from "zustand";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, createHistory, buildRollback, useDataGridAnnounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, createHistory, buildRollback, useDataGridAnnounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type RecordSources<TData> =
   | readonly DataChange<TData>["source"][]
@@ -84,9 +85,11 @@ export type UseDataGridHistoryResult<TData> = {
   undo: () => void;
   /** Imperative redo; see {@link UseDataGridHistoryResult.undo}. */
   redo: () => void;
+  /** `true` when `undo` would do something now: an entry exists and the grid is not `readOnly`. */
   canUndo: boolean;
+  /** `true` when `redo` would do something now: an entry exists and the grid is not `readOnly`. */
   canRedo: boolean;
-  /** Number of entries on the undo stack; 0 when there is nothing to undo. */
+  /** Number of entries on the undo stack, also while the grid is `readOnly`; 0 when there is nothing to undo. */
   historySize: number;
   /** Clears both stacks. A dataset change clears them itself when `datasetKey` changes; use `clear` for an imperative reset. */
   clear: () => void;
@@ -151,6 +154,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   // command/observer ctx): the imperative `undo`/`redo`/`record` triggers below run through it.
   const apiRef = useRef<DataGridApi<TData> | null>(null);
   const announceRef = useRef<ReturnType<typeof useDataGridAnnounce> | null>(null);
+  const readOnlyRef = useRef(false);
 
   const applyHistoryChange = useCallback(
     (direction: HistorySkip["direction"]) => {
@@ -233,6 +237,12 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     mountRef.current = function HistoryApiStash(): ReactNode {
       ref.current = useDataGridApi<TData>();
       announce.current = useDataGridAnnounce();
+      const readOnly = useStore(useDataGridStoreApi(), (s) => s.readOnly);
+      useEffect(() => {
+        if (readOnlyRef.current === readOnly) return;
+        readOnlyRef.current = readOnly;
+        forceUpdate((n) => n + 1);
+      }, [readOnly]);
       return null;
     };
   }
@@ -291,8 +301,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     plugin,
     undo,
     redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
+    canUndo: history.canUndo && !readOnlyRef.current,
+    canRedo: history.canRedo && !readOnlyRef.current,
     historySize: history.size,
     clear,
     rollback,
