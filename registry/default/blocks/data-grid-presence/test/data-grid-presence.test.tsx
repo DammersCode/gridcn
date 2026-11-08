@@ -870,7 +870,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     const presence = useDataGridPresence();
     setPresenceHighlights = presence.setPresenceHighlights;
     return (
-      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} plugins={[presence.plugin]}>
+      <DataGridProvider data={data} onDataChange={() => {}} columns={columns} getRowId={(r) => r.id} plugins={[presence.plugin]}>
         <DataGridRoot>
           <DataGridHeader />
           <DataGridBody />
