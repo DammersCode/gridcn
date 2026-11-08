@@ -46,7 +46,7 @@ const columns = defineColumns<DemoRow>()([
 /** nuqs's app-router adapter reads `useSearchParams()`, which Next.js requires inside Suspense during static prerendering. */
 function DataGridUrlStateDemoInner(): ReactNode {
   const rows = useMemo(() => generateDemoRows(60), []);
-  const url = useDataGridUrlPagination({ prefix: "demo", defaultPageSize: 10, totalRowCount: rows.length });
+  const url = useDataGridUrlPagination({ prefix: "demo", defaultPageSize: 10 });
 
   return (
     <div className="w-full flex flex-col gap-3">

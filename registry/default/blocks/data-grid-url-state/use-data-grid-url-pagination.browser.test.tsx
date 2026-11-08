@@ -35,7 +35,7 @@ function TotalFlipper() {
     const timer = setTimeout(() => setTotal(TOTAL_ROWS), 30);
     return () => clearTimeout(timer);
   }, []);
-  const url = useDataGridUrlPagination({ totalRowCount: total });
+  const url = useDataGridUrlPagination();
   const { pager } = useDataGridServerPager({ totalRowCount: total, ...url });
   return <DataGridPaginationBar {...pager} />;
 }
