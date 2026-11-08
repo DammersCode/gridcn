@@ -43,7 +43,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
-/** nuqs's app-router adapter reads `useSearchParams()`, which Next.js requires inside Suspense during static prerendering. */
+/** The pagination hook reads `useSearchParams()` through nuqs; Next.js requires Suspense around it during static prerendering. */
 function DataGridUrlStateDemoInner(): ReactNode {
   const rows = useMemo(() => generateDemoRows(60), []);
   const url = useDataGridUrlPagination({ prefix: "demo" });

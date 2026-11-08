@@ -94,7 +94,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   `DataGridImportButton` → `DataGridExportButton` → your own utility buttons, in that order.
 - **Find & replace + toolbar search**: with both mounted, `Mod+F` in the grid opens the find panel and the toolbar search yields to it; the Find field and the toolbar search show the same text.
 - **URL state**: exactly one `NuqsAdapter` for the whole app — never nest a second one closer to the
-  grid. Wrap the grid in `<Suspense>` if the page is statically prerendered (Next.js requirement,
+  grid. `DataGridUrlState` brings its own `<Suspense>`; wrap the component that calls
+  `useDataGridUrlPagination` or `useDataGridUrlState()` in one if the page is statically prerendered (Next.js requirement,
   since the adapter calls `useSearchParams()`). On a scroll-mode grid, mount
   `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"` (a grid with `totalRowCount` has both by default); otherwise it
   re-sorts and re-filters the partial `data` client-side.

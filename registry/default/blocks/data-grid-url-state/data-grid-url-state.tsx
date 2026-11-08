@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { useDataGridUrlState, type UseDataGridUrlStateOptions } from "./use-data-grid-url-state";
 
 /** Public entry point — the only module consumers/docs should import from. */
@@ -23,7 +23,8 @@ export type DataGridUrlStateProps = UseDataGridUrlStateOptions;
  * Renders nothing; syncs the grid's sort/filter/search state with the URL (see
  * {@link useDataGridUrlState}). Mount it once inside `<DataGridProvider>`, alongside
  * `<DataGridRoot>`/`<DataGridToolbar>`. Requires a nuqs adapter (`NuqsAdapter` from
- * `nuqs/adapters/react`, or your framework's) somewhere above it in the tree.
+ * `nuqs/adapters/react`, or your framework's) somewhere above it in the tree. It reads the URL
+ * under its own `<Suspense>` boundary, so a statically prerendered page needs none for it.
  *
  * @example
  * <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
@@ -33,6 +34,14 @@ export type DataGridUrlStateProps = UseDataGridUrlStateOptions;
  * </DataGridProvider>
  */
 export function DataGridUrlState(props: DataGridUrlStateProps): ReactNode {
+  return (
+    <Suspense fallback={null}>
+      <UrlStateSync {...props} />
+    </Suspense>
+  );
+}
+
+function UrlStateSync(props: DataGridUrlStateProps): ReactNode {
   useDataGridUrlState(props);
   return null;
 }

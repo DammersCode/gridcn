@@ -81,8 +81,8 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
   If your app already renders a `NuqsAdapter` near the root, drop the inner one shown above. `DataGridUrlState` needs one `NuqsAdapter` somewhere above it.
 </Callout>
 
-<Callout type="warn" title="Suspense required when statically prerendering">
-  During a production build, a statically prerendered Next.js page that reads `useSearchParams` from a Client Component needs a `<Suspense>` boundary, or the build fails. Wrap the grid in one.
+<Callout type="warn" title="Suspense required for the hooks when statically prerendering">
+  `DataGridUrlState` brings its own `<Suspense>` boundary. `useDataGridUrlPagination` and a direct `useDataGridUrlState()` call run in your component. During a production build, a statically prerendered Next.js page that reads `useSearchParams` from a Client Component needs a `<Suspense>` boundary, or the build fails. Wrap the component that calls the hook in one.
 </Callout>
 
 ## Keys and prefix [#prefix]
