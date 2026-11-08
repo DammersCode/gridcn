@@ -6,7 +6,7 @@ export { detectSeries, type SeriesDescriptor } from "./fill";
 // Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.
 declare module "../data-grid/keyboard/global-shortcuts" {
   interface DataGridGlobalShortcutActions {
-    fillDown: true;
-    fillRight: true;
+    fillDown: boolean;
+    fillRight: boolean;
   }
 }

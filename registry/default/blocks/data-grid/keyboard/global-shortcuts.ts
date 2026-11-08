@@ -6,7 +6,7 @@ import { isMacPlatform } from "./platform";
 /**
  * An action the global-shortcut layer may resolve and dispatch while DOM focus is OUTSIDE the
  * grid. The layer is action-generic (the gate + `matchKeymap` + the grid's own dispatch path);
- * the SAFE DEFAULT is `undo`/`redo` only. Extension rule for anything added to
+ * the default is `undo`/`redo` only. Extension rule for anything added to
  * {@link DataGridGlobalShortcutActions}: every binding of the added action must be mod-prefixed
  * (no ctrl-only/alt-only combos — Ctrl+Space is the Windows IME toggle, Ctrl+Q the browser quit,
  * etc.), and the action must make sense without grid focus (a navigation move scrolls the grid's
@@ -15,39 +15,38 @@ import { isMacPlatform } from "./platform";
 export type GlobalShortcutAction = GridAction;
 
 /**
- * Actions the global-shortcut window layer may enable, each keyed `true`. Core lists the
+ * Actions the global-shortcut window layer may enable, each a boolean flag. Core lists the
  * actions it ships; an add-on that owns a `GridAction` (undo/redo, fill) augments this
  * interface via `declare module` to offer its own flag — see `data-grid-history`'s and
  * `data-grid-fill`'s barrels for the augmentation.
  */
 export interface DataGridGlobalShortcutActions {
-  selectAll: true;
-  insertRowAbove: true;
-  insertRowBelow: true;
-  duplicateRow: true;
-  deleteRows: true;
+  selectAll: boolean;
+  insertRowAbove: boolean;
+  insertRowBelow: boolean;
+  duplicateRow: boolean;
+  deleteRows: boolean;
 }
 
 /**
- * Opt-in global-shortcut config: one `true` flag per enabled action. Keys are constrained to
- * `GridAction` so an add-on's augmentation of {@link DataGridGlobalShortcutActions} can never
- * compile in a key `dispatchGridAction` cannot resolve. No flag set (or the config omitted)
- * enables the safe default — `undo` and `redo` only; any flag set enables exactly the flagged
- * actions.
+ * Global-shortcut config: one boolean flag per action. `undo` and `redo` default to `true`, every
+ * other flag to `false`; `undo={false}` removes one. Keys are constrained to `GridAction` so an
+ * add-on's augmentation of {@link DataGridGlobalShortcutActions} can never compile in a key
+ * `dispatchGridAction` cannot resolve.
  */
 export type GlobalShortcutsConfig = {
-  [K in keyof DataGridGlobalShortcutActions & GridAction]?: true;
+  [K in keyof DataGridGlobalShortcutActions & GridAction]?: boolean;
 };
 
 /** The actions enabled by default: undo/redo only (the safe set — see {@link GlobalShortcutAction}). */
 const DEFAULT_GLOBAL_ACTIONS: readonly GridAction[] = ["undo", "redo"];
 
-/** The enabled actions of a config: any `true` flag selects exactly the flagged actions. No flag (or no config) enables the default set. */
+/** The enabled actions of a config: the default set minus every `false` flag, plus every `true` flag. */
 export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly GlobalShortcutAction[] {
-  const flagEnabled = Object.keys(config ?? {}).filter(
-    (key) => config?.[key as keyof GlobalShortcutsConfig] === true,
-  ) as GlobalShortcutAction[];
-  return flagEnabled.length > 0 ? flagEnabled : [...DEFAULT_GLOBAL_ACTIONS];
+  const flags = (config ?? {}) as Partial<Record<GlobalShortcutAction, boolean>>;
+  const kept = DEFAULT_GLOBAL_ACTIONS.filter((action) => flags[action] !== false);
+  const added = (Object.keys(flags) as GlobalShortcutAction[]).filter((action) => flags[action] === true && !kept.includes(action));
+  return [...kept, ...added];
 }
 
 /** Minimal event shape for {@link resolveGlobalShortcut} — the matcher's `KeymapEvent` plus `isComposing`, `keyCode`, and `defaultPrevented`. */

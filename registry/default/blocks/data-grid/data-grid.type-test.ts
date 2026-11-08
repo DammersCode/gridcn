@@ -319,8 +319,8 @@ assertEqual<Record<string, CellType>, ReturnType<typeof useDataGridCellTypes>>(t
 // next to files that import data-grid-history/data-grid-fill). This repo type-checks as one
 // `tsc` program (see tsconfig.json's `include`), so that augmentation applies here too — pin
 // the shape everywhere GlobalShortcutsConfig is referenced.
-assertEqual<true | undefined, GlobalShortcutsConfig["selectAll"]>(true);
-assertEqual<true | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
+assertEqual<boolean | undefined, GlobalShortcutsConfig["selectAll"]>(true);
+assertEqual<boolean | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 
 // --- StandardSchemaV1: vendored-type conformance + validate union ----------------------------
 // types.ts vendors `StandardSchemaV1` (no runtime/type import from @standard-schema/spec, see its

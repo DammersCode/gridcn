@@ -44,12 +44,20 @@ describe("enabledGlobalActions", () => {
     expect(enabledGlobalActions({})).toEqual(["undo", "redo"]);
   });
 
-  it("a single flag enables exactly that action", () => {
-    expect(enabledGlobalActions({ selectAll: true })).toEqual(["selectAll"]);
+  it("a flag adds its action to the default set", () => {
+    expect(enabledGlobalActions({ selectAll: true })).toEqual(["undo", "redo", "selectAll"]);
   });
 
-  it("multiple flags enable exactly the flagged actions", () => {
-    expect(enabledGlobalActions({ undo: true, deleteRows: true })).toEqual(["undo", "deleteRows"]);
+  it("multiple flags add their actions in config order", () => {
+    expect(enabledGlobalActions({ deleteRows: true, selectAll: true })).toEqual(["undo", "redo", "deleteRows", "selectAll"]);
+  });
+
+  it("false removes a default action", () => {
+    expect(enabledGlobalActions({ selectAll: true, undo: false, redo: false })).toEqual(["selectAll"]);
+  });
+
+  it("an undefined flag keeps the default", () => {
+    expect(enabledGlobalActions({ undo: undefined })).toEqual(["undo", "redo"]);
   });
 });
 

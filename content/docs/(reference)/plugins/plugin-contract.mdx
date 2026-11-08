@@ -79,7 +79,7 @@ The grid calls `onDataChange(next, change, ctx)` after the store write, your `on
 
 ## Global shortcut flags [#global-shortcut-flags]
 
-`DataGridGlobalShortcuts` enables an action through a `true` flag of the same name. The flags form `GlobalShortcutsConfig`, which is the type `DataGridGlobalShortcutsProps`. `GlobalShortcutAction` is `GridAction`. A plugin that backs a `GridAction` offers its flag by augmenting `DataGridGlobalShortcutActions`. The history add-on does this for `undo` and `redo`, and the fill add-on for `fillDown` and `fillRight`.
+`DataGridGlobalShortcuts` enables an action through a boolean flag of the same name. `undo` and `redo` default to `true`; every other flag defaults to `false`. The flags form `GlobalShortcutsConfig`, which is the type `DataGridGlobalShortcutsProps`. `GlobalShortcutAction` is `GridAction`. A plugin that backs a `GridAction` offers its flag by augmenting `DataGridGlobalShortcutActions`. The history add-on does this for `undo` and `redo`, and the fill add-on for `fillDown` and `fillRight`.
 
 Put this block in a file that has an import or an export:
 

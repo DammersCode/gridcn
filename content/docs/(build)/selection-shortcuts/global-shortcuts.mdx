@@ -62,7 +62,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-Pass one or more flags to choose the actions. Any flag replaces the default set with exactly the flags you pass:
+Undo and redo are on by default. Each flag you pass adds its action. A flag set to `false` removes an action:
 
 ```tsx
 import { DataGridGlobalShortcuts } from "@/components/data-grid/data-grid";
@@ -72,12 +72,12 @@ export function Shortcuts() {
 }
 ```
 
-Omit every flag to enable undo and redo.
+`<DataGridGlobalShortcuts selectAll undo={false} redo={false} />` enables only select all. <NewBadge />
 
 | Flag | Enables | Needs |
 |---|---|---|
-| `undo` | The undo binding. | The Undo and redo add-on |
-| `redo` | The redo bindings. | The Undo and redo add-on |
+| `undo` | The undo binding. Default `true`. | The Undo and redo add-on |
+| `redo` | The redo bindings. Default `true`. | The Undo and redo add-on |
 | `fillDown` | The fill-down binding. | The [Fill handle](/docs/clipboard-undo/fill-handle) add-on |
 | `fillRight` | The fill-right binding. | The Fill handle add-on |
 | `selectAll` | The select-all binding. | `enableRangeSelection`, which defaults to `true` |

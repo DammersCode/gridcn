@@ -7,7 +7,7 @@ export { useDataGridState, type UseDataGridStateOptions, type UseDataGridStateRe
 // Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.
 declare module "../data-grid/keyboard/global-shortcuts" {
   interface DataGridGlobalShortcutActions {
-    undo: true;
-    redo: true;
+    undo: boolean;
+    redo: boolean;
   }
 }
