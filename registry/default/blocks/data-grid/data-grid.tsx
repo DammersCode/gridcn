@@ -262,6 +262,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
   // The root keeps exactly DATA_GRID_ROOT_PROP_KEYS; the rest (the sync props plus `store`) goes to the provider.
   const {
     className,
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
     rowHeight,
     density,
     headerHeight,
@@ -286,6 +288,8 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     <DataGridProvider {...rest}>
       <DataGridRoot
         className={className}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         rowHeight={rowHeight}
         density={density}
         headerHeight={headerHeight}

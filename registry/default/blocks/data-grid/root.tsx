@@ -87,6 +87,10 @@ export type LoadingStateRenderer = (ctx: { reason: LoadingStateReason }) => Reac
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
   className?: string;
+  /** Accessible name of the grid. Set it, or `aria-labelledby`, unless a labelled ancestor names the grid. */
+  "aria-label"?: string;
+  /** Id of the element that names the grid. */
+  "aria-labelledby"?: string;
   /** Explicit row height (px); overrides `density` when set. */
   rowHeight?: number;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
@@ -171,6 +175,8 @@ export type DataGridRootProps<TData = unknown> = {
 /** Every `DataGridRootProps` key the `DataGrid` wrapper keeps for the root; the rest (the sync props plus `store`) goes to the provider. */
 export const DATA_GRID_ROOT_PROP_KEYS = [
   "className",
+  "aria-label",
+  "aria-labelledby",
   "rowHeight",
   "density",
   "headerHeight",
@@ -209,6 +215,8 @@ function suppressNativeTouchContextMenu(event: ReactMouseEvent<HTMLElement>) {
 export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): ReactNode {
   const {
     className,
+    "aria-label": ariaLabel,
+    "aria-labelledby": ariaLabelledBy,
     rowHeight: rowHeightProp,
     density,
     headerHeight: headerHeightProp,
@@ -573,6 +581,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       <div
         ref={scrollRef}
         role="grid"
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         dir={direction}
         {...{ [GRID_ATTR.instance]: instanceId }}
         // Roving-tabindex bootstrap (WAI-ARIA APG grid pattern): before any cell has been made
