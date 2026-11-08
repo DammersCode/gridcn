@@ -3,19 +3,25 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SortSpec } from "../types";
+import { useOptionalDataGridStore } from "../store/provider";
 
 /** Props for {@link DataGridSortIndicator}. */
 export type DataGridSortIndicatorProps = {
   columnId: string;
-  sortState: readonly SortSpec[];
+  /** The sort to read. Default: the grid's sort from the provider; outside a provider the indicator renders nothing. */
+  sortState?: readonly SortSpec[];
 };
 
 /**
  * Sort direction arrow (muted, size-3.5) for a header, plus its multi-sort priority number when
  * more than one sort is active. Renders nothing when the column isn't sorted.
+ * `<DataGridSortIndicator columnId="score" />` inside a node header reads the sort itself.
  */
 export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactNode {
-  const { columnId, sortState } = props;
+  const { columnId } = props;
+  const providerSortState = useOptionalDataGridStore((s) => s.sortState);
+  const sortState = props.sortState ?? providerSortState;
+  if (!sortState) return null;
   const index = sortState.findIndex((s) => s.columnId === columnId);
   if (index === -1) return null;
   const { direction } = sortState[index]!; // index !== -1 checked above, so it's a valid position
@@ -23,7 +29,7 @@ export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactN
   return (
     <span className="ms-1 inline-flex items-center gap-0.5 text-muted-foreground" data-grid-sort-indicator={direction}>
       <Icon className="size-3.5" />
-      {sortState.length > 1 && <span className="text-[10px] tabular-nums">{index + 1}</span>}
+      {sortState.length > 1 && <span className="text-[0.625rem] tabular-nums">{index + 1}</span>}
     </span>
   );
 }

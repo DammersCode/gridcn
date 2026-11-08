@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- `DataGridSortIndicator` reads the grid's sort when `sortState` is omitted, so `<DataGridSortIndicator columnId="score" />` works inside a node header with no wrapper component. The rank number uses `text-[0.625rem]` instead of `text-[10px]`.
 - `renderCell` receives `options` (the column `options`) like a cell type's `Cell`. Before, `options` was `undefined` and the column `options` had to be read from `column.options`.
 - An inline `getRowId` function no longer makes the grid write a new store state on every render. The grid keeps the old function when the new one returns the same ids for the same `data` array. The docs examples drop the default `getRowId={(row) => row.id}`.
 - **Breaking:** `captureFindShortcut` on `DataGridSearch` is removed. `Mod+F` is the core keymap action `focusSearch`, so it shows in the keybindings dialog, rebinds, and unbinds. Migration: `<DataGridSearch captureFindShortcut={false} />` becomes `keymap={{ focusSearch: [] }}` on the provider. Without a mounted `DataGridSearch` the browser keeps the key. The find and replace add-on keeps `Mod+F` for `openFind`, and `focusSearch` has no default key while it is mounted.
