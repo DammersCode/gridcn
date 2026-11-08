@@ -839,9 +839,12 @@ describe("multiplayer presence: rect budget (maxRects / onExcessRects)", () => {
       // 2 non-contiguous row runs × 1 column run = 2 fragments, budget 1
       setPresenceHighlights!([{ id: "big", color: "#f00", rowIds: ["0", "2"], columnIds: ["name", "qty"] }]);
     });
-    expect(onExcess).toHaveBeenCalled();
-    expect(onExcess.mock.calls[0]?.[1]).toBe(1); // kept
-    expect(onExcess.mock.calls[0]?.[2]).toBe(2); // total
+    expect(onExcess).toHaveBeenCalledTimes(1);
+    expect(onExcess.mock.calls[0]?.[0]).toMatchObject({ kept: 1, total: 2, entry: { id: "big" } });
+    act(() => {
+      setPresenceHighlights!([{ id: "big", color: "#0f0", rowIds: ["0", "2"], columnIds: ["name", "qty"] }]);
+    });
+    expect(onExcess).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
 });

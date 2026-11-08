@@ -112,7 +112,7 @@ setPresenceHighlights([
 
 The plugin resolves the ids against the view of the receiver when it paints. It drops a row that a filter hides. It also drops a row that the grid does not hold, such as a row on another page or an unloaded row in scroll mode. It drops a hidden or unknown column and warns once in development. A filter that splits a range paints one rect per contiguous fragment.
 
-One range entry paints at most 1024 fragments. The `maxRects` option changes that cap. The overlay drops the excess and calls `onExcessRects(entry, kept, total)` each time the highlights resolve with an entry over the cap. In development, the grid also warns once for each entry. See [Presence options](/docs/add-options/server/presence-options).
+One range entry paints at most 1024 fragments. The `maxRects` option changes that cap. The overlay drops the excess and calls `onExcessRects({ entry, kept, total })` once each time the `kept` and `total` of an entry over the cap change. In development, the grid also warns once for each entry. See [Presence options](/docs/add-options/server/presence-options).
 
 `isRowIdPresenceHighlight(entry)` and `isRowIdRangePresenceHighlight(entry)` narrow a received entry to the cell form or the row-id range form. To map a row id to a view row yourself, `useDataGridRowIdToViewRow()` returns a `ReadonlyMap<string, number>` of the current view.
 

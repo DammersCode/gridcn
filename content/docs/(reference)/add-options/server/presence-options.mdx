@@ -12,9 +12,7 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-presence/use-data-grid-presence.ts" name="UseDataGridPresenceOptions" />
 
-`maxRects` defaults to `MAX_RESOLVED_RECTS`, which is 1024. It caps the rectangles that one `RowIdRangePresenceHighlight` entry paints, one for each contiguous fragment. The overlay drops the excess. It calls `onExcessRects` each time it resolves the entries again: after each `setPresenceHighlights` call and after a sort, filter, data, or column change. Development builds also warn once for each entry.
-
-`onExcessRects` runs while the overlay renders. Do not set React state in it directly. Log the excess, or defer a state update to an effect or a microtask.
+`maxRects` defaults to `MAX_RESOLVED_RECTS`, which is 1024. It caps the rectangles that one `RowIdRangePresenceHighlight` entry paints, one for each contiguous fragment. The overlay drops the excess. After the overlay commits, it calls `onExcessRects({ entry, kept, total })` once each time the `kept` and `total` of an entry change. <NewBadge /> The call runs outside the render, so it can set React state. Development builds also warn once for each entry.
 
 ## Result [#usedatagridpresenceresult]
 

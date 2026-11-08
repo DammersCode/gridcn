@@ -20,8 +20,21 @@ import { renderPresenceOverlay, resolveHighlights } from "./presence-overlay";
 export type UseDataGridPresenceOptions = {
   /** Cap on the rects one range entry may paint (default {@link MAX_RESOLVED_RECTS}, 1024). Lower it to protect a dense overlay, raise it for a known-large remote selection. */
   maxRects?: number;
-  /** Called (dev warning included) when a range entry's fragments exceed the cap — downsample the remote selection or filter it. */
-  onExcessRects?: (entry: RowIdRangePresenceHighlight, kept: number, total: number) => void;
+  /**
+   * Called after the overlay commits (not while it renders), once each time a range entry's
+   * `(kept, total)` changes while its fragments exceed the cap — downsample the remote selection or
+   * filter it. It is safe to set React state in it.
+   */
+  onExcessRects?: (ctx: ExcessRectsContext) => void;
+};
+
+/** What {@link UseDataGridPresenceOptions.onExcessRects} receives. */
+export type ExcessRectsContext = {
+  entry: RowIdRangePresenceHighlight;
+  /** Rects painted: the `maxRects` cap. */
+  kept: number;
+  /** Rects the entry resolves to. */
+  total: number;
 };
 
 /** Return value of {@link useDataGridPresence}. */
@@ -88,7 +101,7 @@ export function useDataGridPresence(options: UseDataGridPresenceOptions = {}): U
 function createPresenceOverlay(
   store: PresenceStoreApi,
   maxRectsRef: { current: number | undefined },
-  onExcessRectsRef: { current: ((entry: RowIdRangePresenceHighlight, kept: number, total: number) => void) | undefined },
+  onExcessRectsRef: { current: ((ctx: ExcessRectsContext) => void) | undefined },
 ): ComponentType<OverlayPluginCtx> {
   // per-instance (per plugin closure) once-warns: the overlay re-runs on every DataGridOverlays
   // render, so a persistently hidden/unknown column must not re-warn on every render
@@ -106,8 +119,8 @@ function createPresenceOverlay(
     warnedRangeIssues.add(key);
     warnDev(`presence entry "${entry.id}" has ${unresolvedCount} columnId(s) not in the visible columns (hidden or unknown); those cells are dropped`);
   };
+  const reportedExcess = new Map<string, string>();
   const warnExcessRects = (entry: RowIdRangePresenceHighlight, kept: number, total: number): void => {
-    onExcessRectsRef.current?.(entry, kept, total);
     const key = `excess:${entry.id}`;
     if (warnedRangeIssues.has(key)) return;
     warnedRangeIssues.add(key);
@@ -123,10 +136,37 @@ function createPresenceOverlay(
     // compare. maxRects is read through the ref but placed in the deps so a live change re-resolves
     // on the next overlay render.
     const maxRects = maxRectsRef.current;
-    const resolved = useMemo(
-      () => resolveHighlights(highlights, rowIdToViewRow, visibleColumns, warnDroppedColumn, warnUnresolvedColumns, warnExcessRects, maxRects),
-      [highlights, rowIdToViewRow, visibleColumns, warnDroppedColumn, warnUnresolvedColumns, warnExcessRects, maxRects],
-    );
+    const { resolved, excess } = useMemo(() => {
+      const excess: ExcessRectsContext[] = [];
+      const resolved = resolveHighlights(
+        highlights,
+        rowIdToViewRow,
+        visibleColumns,
+        warnDroppedColumn,
+        warnUnresolvedColumns,
+        (entry, kept, total) => {
+          warnExcessRects(entry, kept, total);
+          excess.push({ entry, kept, total });
+        },
+        maxRects,
+      );
+      return { resolved, excess };
+    }, [highlights, rowIdToViewRow, visibleColumns, warnDroppedColumn, warnUnresolvedColumns, warnExcessRects, maxRects]);
+    useEffect(() => {
+      const current = new Set<string>();
+      for (const ctx of excess) {
+        current.add(ctx.entry.id);
+        const signature = `${ctx.kept}/${ctx.total}`;
+        if (reportedExcess.get(ctx.entry.id) === signature) continue;
+        reportedExcess.set(ctx.entry.id, signature);
+        try {
+          onExcessRectsRef.current?.(ctx);
+        } catch (error) {
+          console.error("[data-grid-presence] onExcessRects threw", error);
+        }
+      }
+      for (const id of reportedExcess.keys()) if (!current.has(id)) reportedExcess.delete(id);
+    }, [excess]);
     return renderPresenceOverlay(resolved, ctx);
   }
   return PresenceOverlay;
