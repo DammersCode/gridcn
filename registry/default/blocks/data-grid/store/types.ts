@@ -202,11 +202,11 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Shows `pageSize` rows of the sorted and filtered view at a time. The grid keeps the whole `data`, so sort, filter, aggregates, and
    * streamed patches work across every page; only the rows on screen are one page. Set it to turn paging on (`defaultPageSize` seeds it,
-   * `pageSize` controls it with `onPageSizeChange`). A filter change goes back to page 1. Leave it unset to show every row.
+   * `pageSize` controls it with `onPageSizeChange`). `null` shows every row. A filter change goes back to page 1. Leave it unset to show every row.
    */
-  pageSize?: number;
-  defaultPageSize?: number;
-  onPageSizeChange?: (pageSize: number) => void;
+  pageSize?: number | null;
+  defaultPageSize?: number | null;
+  onPageSizeChange?: (pageSize: number | null) => void;
   /** The current page, 1-based. Controls it with `onPageChange`; `defaultPage` seeds it. A page past the last one shows the last. Default 1. */
   page?: number;
   defaultPage?: number;
@@ -860,7 +860,7 @@ export type DataGridStoreState = Omit<
   pageControlled: boolean;
   pageSizeControlled: boolean;
   onPageChange: ((page: number) => void) | undefined;
-  onPageSizeChange: ((pageSize: number) => void) | undefined;
+  onPageSizeChange: ((pageSize: number | null) => void) | undefined;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
   /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
@@ -997,7 +997,7 @@ export type DataGridActions = {
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
-  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row and does nothing while `pageSize` is controlled. Calls `onPageSizeChange` with a number (not for `null`). */
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with the new size, or `null`; a controlled `pageSize` changes when the parent passes it. */
   setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */

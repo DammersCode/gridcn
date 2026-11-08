@@ -25,7 +25,8 @@ export type UseDataGridUrlPaginationResult = {
   /** The `pageSizeOptions` the URL parsing enforces (`pageSizeOptions` or the pager default) — include it so the bar's select and the URL allow-list never diverge. */
   pageSizeOptions: readonly number[];
   onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  /** `null` (a grid that turns paging off) returns the URL to `defaultPageSize`; the URL has no "every row" size. */
+  onPageSizeChange: (pageSize: number | null) => void;
 };
 
 /**
@@ -89,8 +90,8 @@ export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOption
   );
 
   const onPageSizeChange = useCallback(
-    (next: number) => {
-      void setPageSizeParam(serializePageSize(next, defaultPageSize) || null);
+    (next: number | null) => {
+      void setPageSizeParam(next === null ? null : serializePageSize(next, defaultPageSize) || null);
       // A page number is only valid for the size it was chosen at: a page-size change resets the page to 1 (the URL composition's contract).
       void setPageParam(null);
     },

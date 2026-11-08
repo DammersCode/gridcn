@@ -226,7 +226,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
   const initSortMode = resolveSortMode(init);
   const initFilterMode = resolveFilterMode(init);
-  const initPageSize = init.pageSize ?? init.defaultPageSize ?? null;
+  const initPageSize = init.pageSize !== undefined ? init.pageSize : (init.defaultPageSize ?? null);
   const initPage = init.page ?? init.defaultPage ?? 1;
   if (init.totalRowCount !== undefined && init.sortMode === undefined && init.filterMode === undefined && init.onSortChange === undefined && init.onFilterChange === undefined && init.sortState === undefined && init.filterState === undefined) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
@@ -1037,7 +1037,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           const nextSearchText = props.searchText ?? s.searchText;
           const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState);
-          const nextPageSize = props.pageSize ?? s.pageSize;
+          const nextPageSize = props.pageSize !== undefined ? props.pageSize : s.pageSize;
           const nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
           if (filterSpecChanged && s.pageSize !== null && s.page !== 1) queueMicrotask(() => s.onPageChange?.(1));
           // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
@@ -1738,8 +1738,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setPageSize(pageSize) {
         const s = get();
         if (pageSize === null) {
-          if (s.pageSize === null || s.pageSizeControlled) return;
-          set((s2) => rebuildPageView(s2, 1, null));
+          if (s.pageSize === null) return;
+          if (!s.pageSizeControlled || !s.pageControlled) {
+            set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : 1, s2.pageSizeControlled ? s2.pageSize : null));
+          }
+          emitAfterWrites(dataWrite, () => s.onPageSizeChange?.(null), () => {
+            if (s.page !== 1) s.onPageChange?.(1);
+          });
           return;
         }
         if (!Number.isFinite(pageSize) || pageSize < 1) return;

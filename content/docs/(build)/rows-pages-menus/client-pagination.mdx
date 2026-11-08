@@ -45,7 +45,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off.
+The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off. A controlled `pageSize` of `null` shows every row, and `onPageSizeChange` receives `null` when paging turns off. <NewBadge />
 
 If the data shrinks, the grid <NewBadge /> shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 
@@ -55,9 +55,9 @@ If the data shrinks, the grid <NewBadge /> shows the last page. A page-size chan
 
 | Prop | Type | Default |
 | --- | --- | --- |
-| `pageSize` | `number` | none (every row shows) |
-| `defaultPageSize` | `number` | none |
-| `onPageSizeChange` | `(pageSize: number) => void` | none |
+| `pageSize` | `number \| null` | none (every row shows) |
+| `defaultPageSize` | `number \| null` | none |
+| `onPageSizeChange` | `(pageSize: number \| null) => void` | none |
 | `page` | `number` | `1` |
 | `defaultPage` | `number` | `1` |
 | `onPageChange` | `(page: number) => void` | none |
