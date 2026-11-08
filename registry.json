@@ -1896,7 +1896,7 @@
          "name": "data-grid-filter-operators-demo",
          "type": "registry:example",
          "title": "Data Grid Filter Operators Demo",
-         "description": "Per-column filter operator overrides via operatorsForColumn and ColumnDef.filterOperators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
+         "description": "Per-column filter operator overrides via ColumnDef.filterOperators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",

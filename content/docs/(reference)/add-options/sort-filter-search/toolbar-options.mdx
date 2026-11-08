@@ -3,7 +3,7 @@ title: Toolbar options
 icon: PanelTop
 description: Look up the props of DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu, and DataGridHeaderFilter.
 type: reference
-aliases: ["search props", "filter menu props", "operatorsForColumn"]
+aliases: ["search props", "filter menu props"]
 ---
 
 The toolbar add-on exports five components. `DataGridToolbar` is the frame. `DataGridSearch`, `DataGridFilterMenu`, and `DataGridColumnsMenu` sit inside it. `DataGridHeaderFilter` mounts in the header through the `renderHeaderFilter` slot.
@@ -78,14 +78,13 @@ While focus is inside this grid or its toolbar, <kbd>Mod</kbd>+<kbd>F</kbd> focu
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/filter-menu.tsx" name="DataGridFilterMenuProps" />
 
-### operatorsForColumn [#operatorsforcolumn]
+### Operator list [#operator-list]
 
 The menu picks the operator list of a column in this order:
 
-1. `operatorsForColumn`. A returned `undefined` falls through.
-2. The `filterOperators` of the column.
-3. The `filter.operators` of the cell type.
-4. The default list for the column type.
+1. The `filterOperators` of the column.
+2. The `filter.operators` of the cell type.
+3. The default list for the column type.
 
 ### allColumns [#allcolumns]
 

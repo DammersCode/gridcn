@@ -71,7 +71,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 - `DataGridColumnsMenu` shows and hides columns. Pin controls live in the header menu.
 - `DataGridHeaderFilter` is not a toolbar child. See [Header filter](/docs/sort-filter-search/header-filter).
 
-The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns too. The demo above lists a hidden column in the sort list this way. It also passes `operatorsForColumn` to the filter menu, which limits the Name column to `equals` and `notEquals`.
+The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns too. The demo above lists a hidden column in the sort list this way. It also sets `filterOperators` on the Name column, which limits it to `equals` and `notEquals`.
 
 ## Toolbar order
 

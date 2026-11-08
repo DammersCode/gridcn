@@ -145,7 +145,7 @@ Each row has a column select, an operator select, and a value input. It also has
 
 A new group takes the opposite join of its parent, so a group in the top level starts as "Or". The value input follows the cell type. `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
 
-The menu offers the visible columns. A filter on a hidden column keeps applying, but its row shows a raw column id and logs a development warning. Pass `allColumns` to list hidden columns. Pass `operatorsForColumn(column)` to replace the operator list per column. A returned `undefined` falls through to `filterOperators`, then the cell type, then the defaults.
+The menu offers the visible columns. A filter on a hidden column keeps applying, but its row shows a raw column id and logs a development warning. Pass `allColumns` to list hidden columns.
 
 ### Filter menu keyboard & accessibility
 

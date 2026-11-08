@@ -52,13 +52,6 @@ export type DataGridFilterMenuProps = {
    * restored layout) keeps applying but renders with no column context and logs a dev-time warning.
    */
   allColumns?: boolean;
-  /**
-   * Replaces the operator list the menu offers per column. Resolution order: this prop (a returned
-   * `undefined` falls through), then the column's own `filterOperators`, then its cell type's
-   * `filter.operators`, then the built-in `operatorsForColumnType` for its `type`, without the set
-   * operators when a `filterMatch` is set.
-   */
-  operatorsForColumn?: (column: AnyColumnDef) => readonly FilterOperator[] | undefined;
 };
 
 /** dnd-kit drag payload for a filter row or group: compiler-checked in place of `Record<string, any>`. */
@@ -96,7 +89,7 @@ type FilterMenuContext = {
  * a node among its siblings only and persists through `setFilters`.
  */
 export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
-  const { className, allColumns = false, operatorsForColumn } = props;
+  const { className, allColumns = false } = props;
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const filters = useDataGridFilterState();
@@ -108,13 +101,13 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const filterableColumns = columns.filter((c) => c.filterable !== false);
   const rowCount = countFilterSpecs(filters);
 
-  // per-column operator list: this prop > the column's filterOperators > the cell type's declared operators > the name-based type default
+  // per-column operator list: the column's filterOperators > the cell type's declared operators > the name-based type default
   const operatorsFor = useCallback(
     (column: AnyColumnDef | undefined): readonly FilterOperator[] => {
       if (!column) return operatorsForColumnType(undefined);
-      return operatorsForColumn?.(column) ?? resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
+      return resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
     },
-    [operatorsForColumn, cellTypes],
+    [cellTypes],
   );
 
   const customFor = useCallback(

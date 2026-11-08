@@ -804,17 +804,6 @@ describe("DataGridFilterMenu typed value inputs", () => {
 });
 
 describe("DataGridFilterMenu operator list overrides", () => {
-  it("operatorsForColumn replaces the per-column operator list", async () => {
-    await renderRichGrid(undefined, {
-      operatorsForColumn: (column) => (column.id === "name" ? ["equals", "gt", "lt"] : undefined),
-    });
-    await openFilterMenu();
-    await switchFilterColumn("Name");
-    await page.getByRole("combobox", { name: "Filter operator" }).click();
-    await expect.element(page.getByRole("option", { name: "greater than" })).toBeInTheDocument();
-    expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
-  });
-
   it("column.filterOperators replaces the built-in list for that column", async () => {
     const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["contains"] as const } : c));
     await renderRichGrid(undefined, {}, cols);
