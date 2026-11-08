@@ -3,7 +3,7 @@ title: Shape the export file
 icon: FileSpreadsheet
 description: Pick the columns, format each cell, and send the finished file to your server instead of a browser download.
 type: task
-aliases: ["export formatCell", "export columns", "export output", "upload export", "buildCsv", "exportRows"]
+aliases: ["export formatCell", "export columns", "export output", "upload export", "exportRows"]
 ---
 
 Three options shape the file, and one option decides where it goes. They apply to a loaded export and to an export with a [`source`](/docs/import-export/export-whole-result).
@@ -63,7 +63,7 @@ A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB
 
 ## Build the file without a download
 
-`buildCsv(state, options)` returns the CSV `Blob` of the loaded rows, like `buildXlsx`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each batch of text rows to `onBatch`. Use it to write your own format:
+The `output` option of `exportGrid` receives the CSV or XLSX `Blob` and starts no download. For the CSV text of the loaded rows without a `Blob`, call `rowsToCsv(buildExportRows(state, scope))`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each batch of text rows to `onBatch`. Use it to write your own format:
 
 ```tsx
 import {

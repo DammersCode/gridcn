@@ -102,18 +102,21 @@ An XLSX file holds one compressed sheet. Every cell is a text cell with its `toT
 
 The writer cuts a cell text over 32,767 characters.
 
-`buildXlsx(state, options)` returns the workbook as a `Blob` and starts no download. Use it to upload the file:
+The `output` option receives the workbook as a `Blob` and starts no download. Use it to upload the file:
 
 ```tsx
-import { buildXlsx } from "@/components/data-grid-io/data-grid-io";
-import { useDataGridStoreApi } from "@/components/data-grid/data-grid-sdk";
+import { useDataGridExport } from "@/components/data-grid-io/data-grid-io";
 
 export function useUploadWorkbook() {
-  const storeApi = useDataGridStoreApi();
-  return async () => {
-    const blob = await buildXlsx(storeApi.getState(), { scope: "all" });
-    await fetch("/api/reports", { method: "POST", body: blob });
-  };
+  const { exportGrid } = useDataGridExport();
+  return () =>
+    exportGrid({
+      format: "xlsx",
+      scope: "all",
+      output: async (file) => {
+        await fetch("/api/reports", { method: "POST", body: file });
+      },
+    });
 }
 ```
 
@@ -147,7 +150,7 @@ Print covers the rows the grid holds, in the same way. A grid fed by `useDataGri
 
 ## Related
 
-- [Export options](/docs/add-options/import-export/export-options): every `exportGrid`, `buildXlsx`, and `printGrid` option.
+- [Export options](/docs/add-options/import-export/export-options): every `exportGrid` and `printGrid` option.
 - [Export the whole result](/docs/import-export/export-whole-result): the `source` option for server and paged grids.
 - [Shape the export file](/docs/import-export/shape-export-file): `columns`, `formatCell`, and `output`.
 - [Import](/docs/import-export/import): the dialog that reads CSV and Excel files into rows.
