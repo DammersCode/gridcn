@@ -15,7 +15,7 @@ A plugin is a plain object of type `DataGridPlugin<TData>`. The `plugins` prop o
 | [`rowBands`](#rowbands) | `PluginRowBands` | Adds rows to the top band, the bottom band, or both. |
 | [`onDataChange`](#ondatachange) | `(next, change, ctx) => void` | Observes every data change. |
 | [`commands`](#commands) | `Record<string, GridCommand<TData>>` | Adds named commands. |
-| [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin for the six pluggable actions. |
+| [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin. |
 | [`Mount`](#mount) | `ComponentType` | Runs engine work inside `DataGridRoot`. |
 
 A plugin needs only `name`. [Plugin model](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
@@ -51,7 +51,7 @@ The grid calls `onDataChange(next, change, ctx)` after the store write, your `on
 
 ### keymap [#keymap]
 
-`keymap` binds keys to commands of the same plugin for the six pluggable actions. Bind any other command in your `keymap` prop. The grid drops an entry whose name is not one of the six pluggable actions or has no command in the plugin. It also drops a binding that the default keymap or your `keymap` prop already gives to the same action. The kept bindings replace the bindings of that action. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
+`keymap` binds keys to commands of the same plugin. The grid drops an entry that names a core action other than the six pluggable actions, or a command that the plugin does not define. It also drops a binding that another action already holds. The first owner of a key keeps it. The kept bindings replace the bindings of that action. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
 
 ### Mount [#mount]
 

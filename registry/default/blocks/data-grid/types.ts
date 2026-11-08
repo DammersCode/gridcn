@@ -880,8 +880,8 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds the pluggable built-in actions that THIS plugin also defines in `commands`: an entry whose name is not a pluggable action, or names a command the plugin does not define, is dropped, dev-warned; a binding the grid's default keymap or the consumer's `keymap` already gives the same action is dropped, dev-warned. The kept bindings replace the action's default bindings. */
-  keymap?: Keymap;
+  /** Binds keys to this plugin's own commands and to the pluggable built-in actions it also defines in `commands`. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. The kept bindings replace the action's default bindings. */
+  keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;
 };

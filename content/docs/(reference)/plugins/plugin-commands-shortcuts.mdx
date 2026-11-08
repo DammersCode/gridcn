@@ -6,15 +6,15 @@ type: reference
 aliases: ["plugin hotkeys", "plugin commands", "hollow actions", "bind a key from a plugin"]
 ---
 
-A plugin adds named commands with its `commands` member. Its `keymap` member binds keys to the commands for the six pluggable actions. The grid merges both with the default keymap and with your props. This table lists the outcome of each conflict:
+A plugin adds named commands with its `commands` member. Its `keymap` member binds keys to its own commands and to the six pluggable actions. The grid merges both with the default keymap and with your props. This table lists the outcome of each conflict:
 
 | Situation | Result |
 | --- | --- |
 | Two plugins define the same command name | The later plugin wins. A development warning names both plugins. |
 | Your `commands` prop defines a name that a plugin defines | Your command wins, with no warning. |
 | A plugin command has the name of a built-in action | The grid drops the command and warns in development. The six pluggable actions are the exception. |
-| A plugin `keymap` names an action that is not one of the six pluggable actions, or one that the plugin has no command for | The grid drops the entry and warns in development. |
-| A plugin binds a key that the default keymap or your `keymap` already binds to the same action | The grid drops that binding and warns in development. |
+| A plugin `keymap` names a core action that is not pluggable, or a command that the plugin does not define | The grid drops the entry and warns in development. |
+| A plugin binds a key that the default keymap, your `keymap`, or an earlier plugin already binds to an action | The grid drops that binding and warns in development. |
 
 ## Commands and keymaps [#commands-and-keymaps]
 
@@ -52,9 +52,11 @@ The core has no binding for `openFindReplace` and `openFind`. The find and repla
 
 ## A plugin's own keymap entries [#a-plugins-own-keymap-entries]
 
-An entry in the `keymap` of a plugin needs two things. Its name must be one of the six [pluggable actions](#pluggable-built-ins), and the plugin must define a command with that name. Bind any other command through your own `keymap` prop.
+<NewBadge />
 
-The grid drops a binding that the default keymap or your `keymap` already gives to the same action. The kept bindings replace the bindings of that action.
+An entry in the `keymap` of a plugin needs two things. The plugin must define a command with that name, and the name must not be a core action other than the six [pluggable actions](#pluggable-built-ins). Bind a core action through your own `keymap` prop.
+
+The grid drops a binding that another action already holds. The first owner of a key keeps it. The kept bindings replace the bindings of that action.
 
 The keymap resolves in this order, and a later step wins:
 

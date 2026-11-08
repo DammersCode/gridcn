@@ -17,7 +17,7 @@ A plugin needs only `name`. Every other member is optional, and a plugin holds t
 - `rowBands` adds rows to the top band, the bottom band, or both. See [Plugin overlays](/docs/plugins/plugin-overlays#row-bands).
 - `onDataChange` observes every data change. See [Plugin events](/docs/plugins/plugin-events).
 - `commands` adds named commands to the grid. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts).
-- `keymap` binds keys to the commands of the plugin for the six [pluggable actions](/docs/plugins/plugin-commands-shortcuts#pluggable-built-ins). Bind any other command of the plugin in your `keymap` prop.
+- `keymap` binds keys to the commands of the plugin. A core action other than the six [pluggable actions](/docs/plugins/plugin-commands-shortcuts#pluggable-built-ins) takes its keys from your `keymap` prop.
 - `Mount` is a component that runs engine work inside the grid.
 
 The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict.

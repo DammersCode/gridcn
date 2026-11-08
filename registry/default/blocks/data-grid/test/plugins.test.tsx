@@ -185,18 +185,45 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![1]).toContain("built-in");
   });
 
-  it("a plugin keymap entry naming no pluggable action is dropped with a dev warn", () => {
+  it("a plugin keymap entry naming a non-pluggable built-in is dropped with a dev warn", () => {
     const warn = vi.fn();
-    // "custom" is the plugin's own command but not a built-in action.
-    const plugin = {
-      name: "p",
-      commands: { custom: { run: () => {} } },
-      keymap: { selectAll: ["mod+s"], custom: ["mod+s"] },
-    };
+    const plugin = { name: "p", keymap: { selectAll: ["mod+s"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn);
     expect(merged.selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
-    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unpluggable:p:selectAll", "keymap-unpluggable:p:custom"]);
-    expect(warn.mock.calls[1]![1]).toContain("not a pluggable built-in action");
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unpluggable:p:selectAll"]);
+  });
+
+  it("a plugin keymap binds the plugin's own command", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: ["alt+k"] } };
+    const merged = mergePluginKeymaps([plugin], undefined, warn) as Record<string, string[]>;
+    expect(merged.custom).toEqual(["alt+k"]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("a plugin binding a key another action holds is dropped with a dev warn", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: [DEFAULT_KEYMAP.selectAll![0]!, "alt+k"] } };
+    const merged = mergePluginKeymaps([plugin], undefined, warn) as Record<string, string[]>;
+    expect(merged.custom).toEqual(["alt+k"]);
+    expect(merged.selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-collide:p:custom"]);
+  });
+
+  it("the first plugin to bind a key owns it", () => {
+    const warn = vi.fn();
+    const first = { name: "a", commands: { one: { run: () => {} } }, keymap: { one: ["alt+k"] } };
+    const second = { name: "b", commands: { two: { run: () => {} } }, keymap: { two: ["alt+k"] } };
+    const merged = mergePluginKeymaps([first, second], undefined, warn) as Record<string, string[]>;
+    expect(merged.one).toEqual(["alt+k"]);
+    expect(merged.two).toBeUndefined();
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-collide:b:two"]);
+  });
+
+  it("the consumer keymap overrides a plugin binding for its own command", () => {
+    const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: ["alt+k"] } };
+    const merged = mergePluginKeymaps([plugin], { custom: ["alt+j"] } as never, vi.fn()) as Record<string, string[]>;
+    expect(merged.custom).toEqual(["alt+j"]);
   });
 
   it("a plugin keymap entry naming a pluggable action the plugin defines no command for is dropped with a dev warn", () => {

@@ -174,11 +174,11 @@ export function mergePluginCommands(
 }
 
 /**
- * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order; an entry naming no
- * pluggable action, or a command the plugin does not define, is dropped, dev-warned; a
- * binding the default keymap or the consumer's `keymap` already gives the same action is dropped,
- * dev-warned; the kept bindings replace that action's bindings) <- the
- * consumer's `keymap` (always last, and wins).
+ * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order) <- the consumer's
+ * `keymap` (always last, and wins). A plugin entry names a pluggable built-in action or a command
+ * the plugin defines; any other entry is dropped, dev-warned. A binding another action already
+ * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned; the kept
+ * bindings replace that action's bindings.
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -189,10 +189,11 @@ export function mergePluginKeymaps(
   for (const plugin of plugins) {
     if (!plugin.keymap) continue;
     for (const [name, bindings] of Object.entries(plugin.keymap)) {
-      if (!PLUGGABLE_ACTIONS.includes(name)) {
+      const builtin = (BUILTIN_ACTIONS as readonly string[]).includes(name);
+      if (builtin && !PLUGGABLE_ACTIONS.includes(name)) {
         warn(
           `keymap-unpluggable:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s keymap binds "${name}", which is not a pluggable built-in action; the entry is dropped — a plugin keymap binds only undo, redo, fillDown, fillRight, openFindReplace, and openFind (bind other commands through the consumer's keymap)`,
+          `plugin "${plugin.name}"'s keymap binds "${name}", which is a built-in action that is not pluggable; the entry is dropped — a plugin keymap binds the plugin's own commands and the pluggable actions (undo, redo, fillDown, fillRight, openFindReplace, openFind)`,
         );
         continue;
       }
@@ -203,12 +204,16 @@ export function mergePluginKeymaps(
         );
         continue;
       }
-      const taken = [...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])];
-      const kept = (bindings ?? []).filter((binding) => !taken.includes(binding));
+      const effective: Keymap = consumerKeymap ? { ...merged, ...consumerKeymap } : merged;
+      const taken = new Set<string>([...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])]);
+      for (const [other, otherBindings] of Object.entries(effective)) {
+        if (other !== name) for (const binding of otherBindings ?? []) taken.add(binding);
+      }
+      const kept = (bindings ?? []).filter((binding) => !taken.has(binding));
       if (kept.length < (bindings ?? []).length) {
         warn(
           `keymap-collide:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s binding for "${name}" repeats a key the grid's default keymap or the consumer's keymap already binds to "${name}"; the colliding binding is dropped`,
+          `plugin "${plugin.name}"'s binding for "${name}" repeats a key that another action, the default keymap, or the consumer's keymap already binds; the colliding binding is dropped`,
         );
       }
       if (kept.length > 0) merged[name as GridAction] = kept;
