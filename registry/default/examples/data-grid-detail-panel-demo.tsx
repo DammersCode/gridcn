@@ -59,7 +59,7 @@ export default function DataGridDetailPanelDemo(): ReactNode {
       </p>
       <div ref={containerRef} className="relative overflow-hidden">
         <DataGridProvider
-          data={rows}
+          defaultData={rows}
           columns={columns}
           onCellClick={openFromClick}
           onActiveCellChange={(next) => setRowId(next?.rowId ?? null)}

@@ -51,7 +51,7 @@ export default function DataGridServerSelectionDemo(): ReactNode {
       <p className="m-0 text-sm text-muted-foreground">
         Check rows on page 1, go to page 3, and check more. Then check the header checkbox: the bar under the grid offers "Select all {TOTAL} matching". Uncheck a row and change pages.
       </p>
-      <DataGridProvider data={rows} columns={columns} rowMarkers="checkbox" checkedRowsLifetime="across-filters" totalRowCount={TOTAL}>
+      <DataGridProvider data={rows} columns={columns} readOnly rowMarkers="checkbox" checkedRowsLifetime="across-filters" totalRowCount={TOTAL}>
         <DataGridRoot className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />

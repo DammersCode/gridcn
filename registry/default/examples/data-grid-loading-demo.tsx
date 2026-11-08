@@ -49,7 +49,7 @@ export default function DataGridLoadingDemo(): ReactNode {
         </label>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={rows} columns={columns}>
+        <DataGridProvider data={rows} columns={columns} readOnly>
           <DataGridRoot className="h-full rounded-none border-none" loading={loading}>
             <DataGridHeader />
             <DataGridBody />

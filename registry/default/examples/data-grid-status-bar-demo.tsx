@@ -26,7 +26,7 @@ export default function DataGridStatusBarDemo(): ReactNode {
         Select a range — Shift+click, a row header, or a column header — and the bar below aggregates the
         selection.
       </p>
-      <DataGridProvider data={rows} columns={columns}>
+      <DataGridProvider defaultData={rows} columns={columns}>
         <DataGridRoot className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />

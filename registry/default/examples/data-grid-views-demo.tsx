@@ -95,7 +95,7 @@ export default function DataGridViewsDemo(): ReactNode {
           Simulated server
         </Button>
       </div>
-      <DataGridProvider key={where} data={rows} columns={columns} headerClickBehavior="sort">
+      <DataGridProvider key={where} defaultData={rows} columns={columns} headerClickBehavior="sort">
         <DataGridToolbar>
           <DataGridViews storage={storage} />
           <DataGridSearch />

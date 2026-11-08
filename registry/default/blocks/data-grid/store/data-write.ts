@@ -89,6 +89,8 @@ export type DataWriteContext = {
   lastEmittedData: readonly unknown[] | null;
   /** Dev-warns at most once per grid that a {@link CellRef} failed to resolve (stale row or hidden column). */
   warnedStaleCellRef: boolean;
+  /** Dev-warns at most once per grid that a write reached controlled `data` with no `onDataChange` or `onSave`. */
+  warnedUnreceivedWrite: boolean;
   /** `onDataChange` calls waiting for the outermost write to return; see {@link writeThenEmit}. */
   pendingEmits: (() => void)[];
   /** How many {@link writeThenEmit} writes are running, nested through store subscribers. */
@@ -112,7 +114,7 @@ export type DataWriteContext = {
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -140,6 +142,10 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   followStaleRows(ctx, change.ops);
+  if (s.dataControlled && !s.onDataChange && !s.onSave && change.source !== "rollback" && !ctx.warnedUnreceivedWrite) {
+    ctx.warnedUnreceivedWrite = true;
+    warnDev("data is controlled and no onDataChange receives this change, so the grid drops it on the next render. Pass onDataChange, use defaultData, or set readOnly.");
+  }
   const onDataChange = s.onDataChange;
   const onSave = change.source === "rollback" || change.source === "stream" || change.source === "id-swap" ? undefined : s.onSave;
   const observers = s.plugins.observers;
