@@ -224,7 +224,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     const clipboardParse = state.processCellFromClipboard as ((text: string, ctx: { row: TData; column: unknown }) => unknown) | undefined;
     const cellParser: ProcessCellFromText<TData> | undefined =
       processCellFromText ?? (clipboardParse ? (text, ctx) => clipboardParse(text, { row: ctx.row, column: ctx.column }) : undefined);
-    // state.cellTypes comes back from the generic-erased store (TData = unknown, see core store.tsx's InternalSyncProps comment); re-widened here to this dialog's own TData. allColumns is already TData-typed via useDataGridAllColumns<TData>() above.
+    // state.cellTypes comes back from the generic-erased store (TData = unknown); re-widened here to this dialog's own TData. allColumns is already TData-typed via useDataGridAllColumns<TData>() above.
     const source: ImportSource = { fileName: preview.fileName, sheetName: preview.sheetName, mapping: preview.mapping };
     const token = ++confirmTokenRef.current;
     const fail = (reason: unknown) => {

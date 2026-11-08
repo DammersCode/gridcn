@@ -558,8 +558,7 @@ export type AnyColumnDef = ColumnDef<unknown, unknown, any>; // eslint-disable-l
  * `ColumnDef<TData, unknown, any>` — the same TValidate-erased-to-`any` widening as `AnyColumnDef`
  * (see its doc comment), but keeping `TData` open for call sites that are still generic over the
  * consumer's row type (sync-prop declarations, the public `useDataGridVisibleColumns`/`useDataGridAllColumns`
- * hooks) rather than already erased to `unknown`. Named once here (was 10 verbatim repeats across
- * store.tsx/data-grid.tsx, each with its own eslint-disable) so the widening reason lives in one place.
+ * hooks) rather than already erased to `unknown`. Named once here so the widening reason lives in one place.
  */
 export type ColumnDefOf<TData> = ColumnDef<TData, unknown, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -739,7 +738,7 @@ export type DataGridStoreState = Omit<
   data: readonly unknown[];
   /** Whether `data` is controlled (the `data` prop was defined on the last `_syncProps`/init) — see `data`'s doc comment and `defaultData`. Mirrors the `sortControlled`-style pattern below. */
   dataControlled: boolean;
-  /** Row-agnostic view of the cell-type registry; the `never`-typed sync prop is widened once at the store boundary. */
+  /** Row-agnostic view of the cell-type registry; the typed sync prop is widened once at the store boundary. */
   cellTypes: Record<string, CellType>;
   /** Defaulted (never undefined) — see `resolveSelectionConfig`. */
   rowMarkers: RowMarkersMode;
@@ -1360,7 +1359,6 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
   );
 }
 
-/** Result of a successful direct-write commit; `null` state fields mean "leave editing/editingError untouched". */
 /**
  * `warnings` (only on the success/noop arms) carries `onInvalid: "warn"` rejections that committed
  * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
@@ -1401,7 +1399,7 @@ export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | Owned
   store?: StoreApi<DataGridStoreState>;
 };
 
-/** {@link useDataGridCellState}'s return shape — the 5 primitives `DataGridCell` reads every render. */
+/** {@link useDataGridCellState}'s return shape — the primitives `DataGridCell` reads every render. */
 export type DataGridCellState = {
   isActive: boolean;
   /** True for any selected cell (active cell, inside the primary range/range stack, or its row/column channel) — drives `aria-selected` (WAI-ARIA grid pattern: every selected cell reports it, not just the focused one). */

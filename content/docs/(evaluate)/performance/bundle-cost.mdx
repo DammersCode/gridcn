@@ -10,7 +10,7 @@ gridcn copies its source into your project, so your bundler builds the grid with
 
 | Part | What it adds to the bundle | When it loads |
 | --- | --- | --- |
-| Core (`data-grid`) | About 564 KB minified, 190 KB gzip, with React left out. See [Core](#core). | With the grid |
+| Core (`data-grid`) | About 594 KiB minified, 200 KiB gzip, with React left out. See [Core](#core). | With the grid |
 | `data-grid-io` | `papaparse` for CSV import. The xlsx reader and writer of `hucre`. | `papaparse` with the add-on. `hucre` on the first xlsx or xls file. See [Parts that load on first use](#lazy-parts). |
 | `data-grid-toolbar`, `data-grid-sort-list` | `@dnd-kit/dom` and `@dnd-kit/react` for drag to reorder | With the filter menu or the sort list |
 | `data-grid-url-state` | `nuqs` | With the URL state hooks |
@@ -20,17 +20,17 @@ gridcn copies its source into your project, so your bundler builds the grid with
 
 ## Core [#core]
 
-A measurement of the core import (`data-grid.tsx`, esbuild, minified, React external) gave 564 KB, or 190 KB gzip. The numbers change with each release.
+A measurement of the core import (`data-grid.tsx`, esbuild, minified, React external) gave 594 KiB, or 200 KiB gzip (1 KiB is 1,024 bytes). The numbers change with each release, so run the recipe in [Measure your build](#measure) for your version.
 
-| Share | Minified size |
+| Share | Minified size (KiB) |
 | --- | --- |
-| gridcn code | 250 KB |
-| `@base-ui/react` | 156 KB |
-| `react-day-picker` | 40 KB |
-| `tailwind-merge` | 26 KB |
-| `date-fns` | 22 KB |
+| gridcn code | 298 |
+| `@base-ui/react` | 156 |
+| `react-day-picker` | 41 |
+| `tailwind-merge` | 26 |
+| `date-fns` | 22 |
 
-The date picker and its packages are about 67 KB, or 22 KB gzip. They load with the grid, also in a grid without a `date` column.
+The date picker and its packages are about 67 KiB, or 22 KiB gzip. They load with the grid, also in a grid without a `date` column.
 
 The shadcn/ui components of the core, such as `button`, `popover`, and `calendar`, are files in your project. If your app already uses them, the grid shares them and adds nothing for them.
 
@@ -52,6 +52,8 @@ npx esbuild grid-entry.ts --bundle --minify --format=esm \
   --external:react --external:react-dom --outfile=grid-bundle.js
 gzip -c grid-bundle.js | wc -c
 ```
+
+The recipe prints bytes. Divide by 1,024 for KiB.
 
 esbuild reads the `@/` alias from `tsconfig.json`. Add an add-on to the entry file to see what it adds to the core.
 

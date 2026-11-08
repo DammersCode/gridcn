@@ -25,16 +25,37 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"gate-declined"` | `onBeforeDeleteRows` returned `false`. |
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
 | `"nothing-to-do"` | No target row matched, or `count` was 0. |
-| `"hidden-checked"` | A shortcut found only rows checked that the view does not show. |
-| `"all-matching"` | A shortcut found all matching on. |
 
-`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. It also fires when the Insert row, Duplicate row, or Delete rows shortcut does nothing. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
+A call with `source: "stream"` returns `{ ok: true }` when no id matched, because a server push can repeat a delete.
+
+Two more reasons reach `onRowActionSkipped` from the shortcuts only. No action runs for them:
+
+| `reason` | Meaning |
+| --- | --- |
+| `"hidden-checked"` | The shortcut found only checked rows that the view does not show. |
+| `"all-matching"` | The shortcut found all matching on. |
+
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. It also fires when the Insert row, Duplicate row, or Delete rows shortcut has a target and does nothing. A shortcut with no active cell and no selection has no target, so it reports nothing. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
+
+Pass the handler to `DataGridProvider`:
+
+```tsx
+import { DataGridProvider, DataGridRoot } from "@/components/data-grid/data-grid";
+
+<DataGridProvider
+  defaultData={[]}
+  columns={[]}
+  onRowActionSkipped={({ action, reason }) => console.log(action, reason)}
+>
+  <DataGridRoot />
+</DataGridProvider>;
+```
 
 `reorderRows` and `moveRowsBy` return `true` or `false`.
 
 ## Stop a gate that never settles [#gate-timeout]
 
-Set `gateTimeoutMs` to abort an async gate (`onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`) whose promise has not settled in time. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
+Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onEditStart`, `createRow`, `duplicateRow`, `processPaste`, and `import` (the import dialog). Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
 
 ## Related
 

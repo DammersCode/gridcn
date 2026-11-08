@@ -43,7 +43,7 @@ type Order = { id: string; customer: string; status: string };
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
   { id: "status", header: "Status", accessorKey: "status", type: "text" },
-] as const);
+]);
 
 export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
   const grid = useDataGridState(initialOrders);
