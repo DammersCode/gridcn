@@ -25,8 +25,9 @@ import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-s
 export type DataGridSortListProps = {
   className?: string;
   /**
-   * Source the column options from every column (including hidden ones) instead of only the visible
-   * columns; default false. Lets the menu add and manage sorts on hidden columns.
+   * Offer every column (including hidden ones) when adding or changing a sort instead of only the
+   * visible columns; default false. A sort row on a hidden column always shows that column,
+   * whatever this flag says.
    */
   allColumns?: boolean;
 };
@@ -113,11 +114,11 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
 
   const announceMove = useCallback(
     (columnId: string, toIndex: number, total: number) => {
-      const column = columns.find((c) => c.id === columnId);
+      const column = gridColumns.find((c) => c.id === columnId);
       const label = column ? columnLabelText(column) : columnId;
       setAnnouncement(labels.sort.sortReorderAnnouncement(label, toIndex + 1, total));
     },
-    [columns, labels],
+    [gridColumns, labels],
   );
 
   const reorderSorts = useCallback(
@@ -187,7 +188,9 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
               <div role="list" className="flex max-h-75 flex-col gap-2 overflow-y-auto p-1">
                 {sorts.map((sort, index) => {
                   // a column already used by another row is excluded from this row's own options, not from every row.
-                  const availableColumns = sortableColumns.filter((c) => c.id === sort.columnId || !sortedColumnIds.has(c.id));
+                  const offered = sortableColumns.filter((c) => c.id === sort.columnId || !sortedColumnIds.has(c.id));
+                  const own = gridColumns.find((c) => c.id === sort.columnId);
+                  const availableColumns = own && !offered.includes(own) ? [...offered, own] : offered;
                   return (
                     <SortRow
                       key={index}

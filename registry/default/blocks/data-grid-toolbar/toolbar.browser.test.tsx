@@ -568,8 +568,7 @@ describe("DataGridFilterMenu", () => {
     await expect.poll(() => document.querySelectorAll('[role="row"]').length - 1).toBe(1);
   });
 
-  it("warns in dev when a filter targets a column the default menu cannot list", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("a filter on a hidden column renders its label and operators without allColumns", async () => {
     const hiddenAgeColumns = defineColumns<Row>()([
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
@@ -580,7 +579,7 @@ describe("DataGridFilterMenu", () => {
         data={makeRows()}
         columns={hiddenAgeColumns}
         getRowId={(r) => r.id}
-        filterState={[{ columnId: "age", operator: "equals", value: "40" }]}
+        filterState={[{ columnId: "age", operator: "gt", value: "40" }]}
         onFilterChange={() => {}}
       >
         <DataGridToolbar>
@@ -592,9 +591,10 @@ describe("DataGridFilterMenu", () => {
         </DataGridRoot>
       </DataGridProvider>,
     );
-    await expect.poll(() => warn.mock.calls.length).toBeGreaterThan(0);
-    expect(warn.mock.calls.some((call) => String(call[0]).includes("allColumns"))).toBe(true);
-    warn.mockRestore();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await expect.poll(() => document.querySelector('[aria-label="Filter column"]')?.textContent).toContain("Age");
+    await expect.poll(() => document.querySelector('[aria-label="Filter operator"]')?.textContent).toContain("greater than");
+    expect(document.querySelector('input[type="number"][aria-label="Filter value"]')).not.toBeNull();
   });
 
   it("long column names truncate inside the select trigger instead of overflowing the popover", async () => {

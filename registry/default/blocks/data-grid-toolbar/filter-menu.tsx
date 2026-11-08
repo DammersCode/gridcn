@@ -29,7 +29,6 @@ import {
   columnLabelText,
   countFilterSpecs,
   forEachFilterSpec,
-  isDev,
   isFilterGroup,
   operatorsForColumnType,
   resolveCustomFilterOperators,
@@ -47,9 +46,9 @@ const NO_CUSTOM_OPERATORS: CustomOperators = new Map();
 export type DataGridFilterMenuProps = {
   className?: string;
   /**
-   * Source the column options from every column (including hidden ones) instead of only the visible
-   * columns; default false. Without it, a filter set on a hidden column (programmatically or via a
-   * restored layout) keeps applying but renders with no column context and logs a dev-time warning.
+   * Offer every column (including hidden ones) in the field select instead of only the visible
+   * columns; default false. A filter row on a hidden column always shows that column, whatever
+   * this flag says.
    */
   allColumns?: boolean;
 };
@@ -59,7 +58,8 @@ type FilterRowDragData = { index: number; filterId: string };
 
 /** What a row or group needs from the menu root. */
 type FilterMenuContext = {
-  columns: readonly AnyColumnDef[];
+  /** Every grid column: a row resolves its own column here, offered or not. */
+  allColumns: readonly AnyColumnDef[];
   filterableColumns: readonly AnyColumnDef[];
   operatorsFor: (column: AnyColumnDef | undefined) => readonly FilterOperator[];
   customFor: (column: AnyColumnDef | undefined) => CustomOperators;
@@ -114,23 +114,6 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     (column: AnyColumnDef | undefined): CustomOperators => (column ? resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined) : NO_CUSTOM_OPERATORS),
     [cellTypes],
   );
-
-  // A filter on a column outside the menu's option list (a hidden column by default, or one no
-  // longer in the grid) still applies to the view but renders with no column context and no picker
-  // entry to re-target it — warn in dev and point at the fix.
-  useEffect(() => {
-    if (!isDev()) return;
-    const listed = new Set(columns.map((c) => c.id));
-    const orphans: FilterSpec[] = [];
-    forEachFilterSpec(filters, (f) => {
-      if (!listed.has(f.columnId)) orphans.push(f);
-    });
-    if (orphans.length === 0) return;
-    const ids = Array.from(new Set(orphans.map((f) => f.columnId)));
-    console.warn(
-      `[data-grid-toolbar] DataGridFilterMenu: ${orphans.length} filter row(s) target column(s) missing from the menu's column list (${ids.join(", ")}); pass allColumns to manage hidden-column filters here`,
-    );
-  }, [filters, columns]);
 
   const [announcement, setAnnouncement] = useState("");
   const gripRefs = useRef(new Map<string, HTMLButtonElement | null>());
@@ -203,7 +186,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     let label: string;
     if (isFilterGroup(moved)) label = labels.toolbar.filterGroupName;
     else {
-      const column = columns.find((c) => c.id === moved.columnId);
+      const column = gridColumns.find((c) => c.id === moved.columnId);
       label = column ? columnLabelText(column) : moved.columnId;
     }
     return labels.toolbar.filterReorderAnnouncement(label, toIndex + 1, at.siblings.length);
@@ -213,7 +196,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const latest = () => storeApi.getState().filterState;
 
   const context: FilterMenuContext = {
-    columns,
+    allColumns: gridColumns,
     filterableColumns,
     operatorsFor,
     customFor,
@@ -542,12 +525,13 @@ type FilterRowProps = NodePosition & { filter: FilterSpec };
 /** One filter row: a field select, an operator select, a typed value input, a trash button, and a drag handle. */
 function FilterRow(props: FilterRowProps): ReactNode {
   const { filter, index, join, parentId, path, dropEdge, ctx } = props;
-  const { labels, columns, filterableColumns, operatorsFor, customFor } = ctx;
+  const { labels, allColumns, filterableColumns, operatorsFor, customFor } = ctx;
   const filterId = filter.filterId!; // always assigned by the store; see FilterSpec
-  const column = columns.find((c) => c.id === filter.columnId);
+  const column = allColumns.find((c) => c.id === filter.columnId);
+  const rowColumns = column && !filterableColumns.includes(column) ? [...filterableColumns, column] : filterableColumns;
   const operators = operatorsFor(column);
   const custom = customFor(column);
-  const columnItems = filterableColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
+  const columnItems = rowColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
   const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators, custom) }));
   const { ref, handleRef, isDragSource, onGripKeyDown } = useNodeSortable(filterId, props);
 
@@ -568,7 +552,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
         value={filter.columnId}
         onValueChange={(value) => {
           if (value === null) return;
-          const nextColumn = columns.find((c) => c.id === value);
+          const nextColumn = allColumns.find((c) => c.id === value);
           const nextOperators = operatorsFor(nextColumn);
           const nextOperator = nextOperators.includes(filter.operator) ? filter.operator : nextOperators[0];
           ctx.onUpdate(filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator, customFor(nextColumn)) });
@@ -578,7 +562,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
-          {filterableColumns.map((c) => (
+          {rowColumns.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {columnLabelText(c)}
             </SelectItem>

@@ -281,14 +281,29 @@ describe("DataGridSortList", () => {
     // the grid survives hiding its only sorted column — no crash from a stale sort spec.
     await expect.poll(() => document.querySelectorAll('[role="gridcell"]').length).toBeGreaterThan(0);
 
-    // reopen Sorts: Base UI's SelectPositioner calls setValue(null) once "Age" no longer has a
-    // rendered SelectItem in this row's own options (it's excluded from `availableColumns` once
-    // hidden) — the guard must swallow that null rather than let it overwrite SortSpec.columnId,
-    // which would silently break `columns.find(c => c.id === columnId)` elsewhere. With the guard
-    // in place, the row keeps its real columnId ("age"); with no matching column to resolve a label
-    // from, the trigger correctly falls back to the raw id rather than showing a blank/null value.
+    // reopen Sorts: the row keeps its real columnId and resolves the hidden column's label
     await page.getByRole("button", { name: "Sorts" }).click();
-    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toContain("age");
+    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toContain("Age");
+  });
+
+  it("a sort restored on a hidden column renders its label without allColumns", async () => {
+    const hiddenAgeColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100, hidden: true },
+    ] as const);
+    await render(
+      <DataGridProvider data={makeRows()} columns={hiddenAgeColumns} getRowId={(r) => r.id} sortState={[{ columnId: "age", direction: "asc" }]} onSortChange={() => {}}>
+        <DataGridToolbar>
+          <DataGridSortList />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: "Sorts" }).click();
+    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toContain("Age");
   });
 });
 
