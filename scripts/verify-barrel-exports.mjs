@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A barrel of an add-on exports what the docs teach. A value name missing from content/docs needs an entry in
+// A barrel of the core or an add-on exports what the docs teach. A value name missing from content/docs needs an entry in
 // scripts/barrel-exports-baseline.json (grandfathered names only). Run with --write to regenerate the baseline.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,9 +33,9 @@ function barrelValueNames(source) {
 
 const undocumented = {};
 for (const dir of readdirSync(blocks, { withFileTypes: true })) {
-  if (!dir.isDirectory() || !dir.name.startsWith("data-grid-") || dir.name === "data-grid-sdk") continue;
-  const barrel = join(blocks, dir.name, `${dir.name}.ts`);
-  if (!existsSync(barrel)) continue;
+  if (!dir.isDirectory() || !(dir.name === "data-grid" || dir.name.startsWith("data-grid-"))) continue;
+  const barrel = [".ts", ".tsx"].map((ext) => join(blocks, dir.name, `${dir.name}${ext}`)).find(existsSync);
+  if (!barrel) continue;
   const missing = barrelValueNames(readFileSync(barrel, "utf8")).filter((name) => !new RegExp(String.raw`\b${name}\b`).test(docs));
   if (missing.length > 0) undocumented[dir.name] = missing.sort();
 }

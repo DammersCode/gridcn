@@ -5,7 +5,8 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_LABELS, mergeLabelLayers, useOptionalDataGridLabels, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { mergeLabelLayers, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";

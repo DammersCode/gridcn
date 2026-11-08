@@ -48,7 +48,6 @@ export {
   useDataGridReadOnly,
   useDataGridKeymap,
   useDataGridLabels,
-  useOptionalDataGridLabels,
   useDataGridActiveCell,
   useDataGridActiveColumn,
   useDataGridCellTypes,
@@ -153,7 +152,6 @@ export { applyChange, invertChange } from "./interaction/history";
 
 export {
   DEFAULT_LABELS,
-  mergeLabelLayers,
   type DataGridLabels,
   type DeepPartialLabels,
   type DataGridToolbarLabels,

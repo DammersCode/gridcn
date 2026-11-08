@@ -1,6 +1,6 @@
 {
-  "data-grid-io": [
-    "IMPORT_CANCELLED_MESSAGE"
+  "data-grid": [
+    "DataGridCell"
   ],
   "data-grid-pinned-rows": [
     "DataGridPinnedRow",

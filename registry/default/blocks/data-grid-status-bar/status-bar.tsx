@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_LABELS,
-  mergeLabelLayers,
   useDataGridActions,
   useDataGridCellTypes,
   useDataGridHiddenCheckedCount,
@@ -14,7 +13,7 @@ import {
   useDataGridVisibleColumns,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { mergeLabelLayers, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_STATUS_CELLS } from "./compute-selection-stats";
 import { useDataGridSelectionStats } from "./use-data-grid-selection-stats";
 

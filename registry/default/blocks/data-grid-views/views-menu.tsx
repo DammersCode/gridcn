@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { DEFAULT_LABELS, mergeLabelLayers, useDataGridLabels, type DataGridViewsLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, useDataGridLabels, type DataGridViewsLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type UseDataGridViewsOptions } from "./use-data-grid-views";
 import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
 
