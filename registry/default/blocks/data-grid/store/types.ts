@@ -217,7 +217,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * (a gate waits for its promise).
    */
   gateTimeoutMs?: number | Partial<Record<GateName, number>>;
-  /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`) does nothing, with its name and the reason; the action also returns it. `deleteRowsById` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
+  /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`) does nothing, with its name and the reason; the action also returns it. `deleteRowsById` reports as `deleteRows`, and its `source: "stream"` path never reports. The Insert row, Duplicate row, and Delete rows shortcuts report their skips too (read-only, no factory, only hidden rows checked, all matching). A disabled menu item runs nothing and reports nothing. */
   onRowActionSkipped?: (ctx: { action: "insertRows" | "duplicateRows" | "deleteRows"; reason: RowActionSkipReason }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
@@ -1317,8 +1317,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), no row matched, only rows outside the view are checked (`"hidden-checked"`), or all matching is on (`"all-matching"`). The last two reach `onRowActionSkipped` from the keyboard shortcuts only. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "hidden-checked" | "all-matching";
 
 /** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
 export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };

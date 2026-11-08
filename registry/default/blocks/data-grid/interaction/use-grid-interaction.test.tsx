@@ -115,7 +115,7 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
@@ -135,6 +135,9 @@ function renderInteraction(
         createRow={createRow}
         duplicateRow={duplicateRow}
         readOnly={readOnly}
+        onRowActionSkipped={options.onRowActionSkipped}
+        checkedRowsLifetime={options.checkedRowsLifetime}
+        totalRowCount={options.totalRowCount}
       >
         {children}
       </DataGridProvider>
@@ -653,6 +656,66 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
 
     expect(dataLength(hook)).toBe(3);
+  });
+});
+
+describe("useGridInteraction: onRowActionSkipped from shortcuts", () => {
+  const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
+  const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
+  const insertBelow = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
+  const insertAbove = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
+  const deleteRows = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
+  const duplicate = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
+
+  function setup(options: Parameters<typeof renderInteraction>[1] = {}) {
+    const onRowActionSkipped = vi.fn();
+    const { hook } = renderInteraction(3, { ...options, onRowActionSkipped });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    return { hook, onRowActionSkipped };
+  }
+
+  it("reports readOnly for insert, duplicate, and delete", () => {
+    const { hook, onRowActionSkipped } = setup({ readOnly: true, createRow, duplicateRow });
+    insertBelow(hook);
+    insertAbove(hook);
+    duplicate(hook);
+    deleteRows(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "insertRows", reason: "readOnly" },
+      { action: "insertRows", reason: "readOnly" },
+      { action: "duplicateRows", reason: "readOnly" },
+      { action: "deleteRows", reason: "readOnly" },
+    ]);
+  });
+
+  it("reports no-factory for insert and duplicate", () => {
+    const { hook, onRowActionSkipped } = setup();
+    insertBelow(hook);
+    duplicate(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "insertRows", reason: "no-factory" },
+      { action: "duplicateRows", reason: "no-factory" },
+    ]);
+  });
+
+  it("reports all-matching for duplicate and delete while all matching is on", () => {
+    const { hook, onRowActionSkipped } = setup({ createRow, duplicateRow, checkedRowsLifetime: "across-filters", totalRowCount: 100 });
+    act(() => hook.result.current.actions.selectAllMatching());
+    hook.rerender();
+    expect(hook.result.current.storeApi.getState().allMatching).toBe(true);
+    duplicate(hook);
+    deleteRows(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "duplicateRows", reason: "all-matching" },
+      { action: "deleteRows", reason: "all-matching" },
+    ]);
+  });
+
+  it("stays silent when the shortcut runs the action", () => {
+    const { hook, onRowActionSkipped } = setup({ createRow });
+    insertBelow(hook);
+    expect(onRowActionSkipped).not.toHaveBeenCalled();
   });
 });
 

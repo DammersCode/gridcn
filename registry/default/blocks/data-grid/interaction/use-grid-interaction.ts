@@ -46,6 +46,7 @@ import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
 import { keepsCheckedRows, onlyHiddenRowsChecked } from "../store/hidden-checked-rows";
+import { reportRowActionSkipped } from "../store/row-action-skip";
 import { isComposingKey } from "./is-composing-key";
 import { isReorderMarkerMode } from "../rows/marker-width";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -225,6 +226,8 @@ function warnMissingTriggerOnce(storeApi: object, slotProp: string, message: str
   warned.add(slotProp);
   warnDev(message);
 }
+
+const hiddenCheckedReason = (state: Pick<DataGridStoreState, "allMatching">) => (state.allMatching ? "all-matching" : "hidden-checked");
 
 /**
  * Executes one already-resolved keymap action against the store — the dispatch shared by the
@@ -538,15 +541,22 @@ export function dispatchGridAction(args: {
       preventDefault();
       break;
     }
-    case "insertRowBelow": {
+    case "insertRowBelow":
+    case "insertRowAbove": {
       preventDefault();
-      // Without createRow, insertRow is a dev-warning no-op; skip it so the shortcut does not warn on every press.
-      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
+      if (!state.activeCell) break;
+      // Without createRow, insertRow warns on every press; report the skip here instead.
+      if (state.readOnly) reportRowActionSkipped(state, "insertRows", "readOnly");
+      else if (!state.createRow) reportRowActionSkipped(state, "insertRows", "no-factory");
+      else actions.insertRow(state.activeCell.row, action === "insertRowBelow" ? "below" : "above");
       break;
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
+      if (state.readOnly) reportRowActionSkipped(state, "duplicateRows", "readOnly");
+      else if (!state.duplicateRow) reportRowActionSkipped(state, "duplicateRows", "no-factory");
+      else if (onlyHiddenRowsChecked(state)) reportRowActionSkipped(state, "duplicateRows", hiddenCheckedReason(state));
+      else {
         // Duplicates the selected rows (the checked rows when checked rows outlive clicks and any are checked); without a selection, the active row.
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) });
         if (selected.length > 0) actions.duplicateRows(selected);
@@ -564,14 +574,11 @@ export function dispatchGridAction(args: {
       if (active) scrollCellIntoView(active);
       break;
     }
-    case "insertRowAbove": {
-      preventDefault();
-      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
-      break;
-    }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly && !onlyHiddenRowsChecked(state)) {
+      if (state.readOnly) reportRowActionSkipped(state, "deleteRows", "readOnly");
+      else if (onlyHiddenRowsChecked(state)) reportRowActionSkipped(state, "deleteRows", hiddenCheckedReason(state));
+      else {
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) });
         if (selected.length > 0) actions.deleteRows(selected);
         else if (state.activeCell) actions.deleteRows([state.activeCell.row]);

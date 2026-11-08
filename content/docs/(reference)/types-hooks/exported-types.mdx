@@ -122,6 +122,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
 | `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
+| `CheckedRowsLifetime` <NewBadge /> | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
 | `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
 | `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
 | `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |

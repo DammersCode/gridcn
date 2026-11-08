@@ -33,6 +33,7 @@ import {
   warnDev,
 } from "./commit";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { reportRowActionSkipped, type RowActionName } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
 import { buildRollback } from "../interaction/rollback";
 import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
@@ -818,17 +819,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
   const OK: RowActionResult = { ok: true };
-  const skippedBy = (action: "insertRows" | "duplicateRows" | "deleteRows", reason: RowActionSkipReason): RowActionResult => {
-    const handler = get().onRowActionSkipped;
-    if (handler) {
-      try {
-        handler({ action, reason });
-      } catch (error) {
-        warnDev(`onRowActionSkipped threw: ${String(error)}`);
-      }
-    }
-    return { ok: false, reason };
-  };
+  const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
   const requestDelete = (dataRowIndexes: number[]): RowActionResult => {
     const s = get();
     if (s.readOnly) return skippedBy("deleteRows", "readOnly");

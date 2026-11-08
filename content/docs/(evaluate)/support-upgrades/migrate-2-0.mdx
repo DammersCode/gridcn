@@ -1,12 +1,12 @@
 ---
 title: Migrate to 2.0
 icon: Milestone
-description: Move a grid from 1.3 to 2.0. Rename the save APIs, replace the lazy rows add-on with server rows, and check the changed defaults.
+description: Move a grid from 1.3 to 2.0. Replace the lazy rows add-on with server rows, move server pages to the server pager, and check the changed defaults.
 type: task
-aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "onwriterejected"]
+aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "from 1.3"]
 ---
 
-Release 2.0 renames the save APIs, replaces the `data-grid-lazy` add-on with `data-grid-server`, and changes some defaults of selection, filters, and pushes. Until 2.0 has a tag, the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists these changes under Unreleased.
+Release 2.0 replaces the `data-grid-lazy` add-on with `data-grid-server` and changes some defaults of selection, filters, and pushes. The [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists every change.
 
 Before you start, upgrade to 1.3.0 and commit your work. For an older version, first apply the **Breaking:** entries up to 1.3.0.
 
@@ -38,15 +38,14 @@ In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before 
 
 | 1.3 | 2.0 |
 | --- | --- |
-| `fetchRows` resolves the rows | `fetchRows(request)` resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }` |
+| `fetchRows(start, end, signal)` resolves the rows | `fetchRows({ start, end, signal })` resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }` |
 | `total` | `totalRowCount` in the answer |
-| `batchSize`, `pageSize` | `blockSize` |
+| `batchSize` | `blockSize` |
 | `reset()`, `isLoading` | `refresh()`, `loading` |
-| `Range`, `ServerSpec`, `serverSpecKey` from `data-grid-lazy` | `RowRange`, `ServerSpec`, `serverSpecKey` from `data-grid` |
-| `spec.search` | `spec.searchText`, also in `defaultSpec` |
+| `Range` from `data-grid-lazy` | `RowRange` from `data-grid` |
 | `maxFetchRows` | none. Each request covers one block. |
 
-The hook owns the spec. Remove your `spec`, `sortMode`, `filterMode`, and `onRenderedRowsChange` wiring, and spread `server.gridProps`:
+The hook owns the spec. Remove your `onRenderedRowsChange` and `onDataChange` wiring, and spread `server.gridProps`:
 
 ```tsx
 "use client";
@@ -82,7 +81,6 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ### Pushes and row operations [#pushes]
 
-- A `source: "stream"` call of `updateCells` or `updateRows` skips a row whose save is in flight (reason `"saving"`). Push again after the save settles.
 - A stream call takes at most 100,000 patches. The rest skip as `"limit"`.
 - A stream call of `updateCells`, `updateRows`, or `deleteRowsById` writes into a `readOnly` grid and read-only columns and rows. Pass `source: "edit"` to keep the read-only checks.
 - In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing if the target touches an unloaded row. Delete known rows with `deleteRowsById`.
@@ -90,8 +88,8 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 ## Pagination [#pagination]
 
 - `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
-- For server pages, call `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`.
-- `total` is `totalRowCount` in the server options, `pager`, and `useDataGridUrlPagination`. `null` marks an unknown size.
+- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`.
+- `total` is `totalRowCount` in the pager and in `useDataGridUrlPagination`. `null` marks an unknown size.
 - `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
 - To page the grid view, set `pageSize` on the provider instead of `pageData`.
 
@@ -102,7 +100,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Selection [#selection]
 
-- The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
+- The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells, unchecks every checked row, and ends all matching. To check every row from code, call `setAllRowsSelected(true)`.
 - `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
 
 | 1.x props | 2.0 prop |
