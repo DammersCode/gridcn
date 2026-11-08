@@ -1016,7 +1016,7 @@ export type DataGridActions = {
    * Swaps a row's id for the one the server assigned. `row` is the server's row; `getRowId(row)` is the new id.
    * One write: the row keeps its data position and view position, `onDataChange` fires once with `source: "id-swap"`
    * (`onSave` does not see it, history does not record it), and every state keyed by the old id follows: the open
-   * edit, cell errors, checked rows a filter hides, flashes, save status, saves still in flight and undo entries.
+   * edit, cell errors, remembered checked rows, flashes, save status, saves still in flight and undo entries.
    * No-op on a `readOnly` grid; a development warning for an unknown `oldId` or a new id another row holds. `validateRow` runs again for the swapped row; flashes of the row end.
    */
   replaceRowId(oldId: string, row: unknown): void;

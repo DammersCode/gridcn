@@ -32,28 +32,16 @@ In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before 
 
 `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function of the modifier key. Handle both forms where you read them.
 
-## Save APIs [#save-apis]
-
-| 1.3 | 2.0 |
-| --- | --- |
-| `onWriteRejected` | `onSaveRejected`. Its context adds `error`. |
-| `WriteAck`, `WriteRejection`, `RowWriteStatus` | `SaveAck`, `SaveRejection`, `RowSaveStatus` |
-| `useDataGridRowWriteStatus`, `useDataGridPendingWriteCount` | `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount` |
-| `clearWriteStatus` | `clearSaveStatus` |
-| `data-write-status` row attribute | `data-save-status` |
-| `writeStatus`, `pendingWriteCount` store fields | `saveStatus`, `pendingSaveCount` |
-
 ## Server rows [#server-rows]
 
-`useDataGridServerRows({ mode: "scroll" })` from `data-grid-server` replaces `useDataGridLazyRows` and `useDataGridInfiniteRows`. `DataGridLazyGuard` has no replacement. If a client sort or filter changes over unloaded rows, the core warns in development.
+`useDataGridServerRows({ mode: "scroll" })` from `data-grid-server` replaces `useDataGridLazyRows`. `DataGridLazyGuard` has no replacement. If a client sort or filter changes over unloaded rows, the core warns in development.
 
 | 1.3 | 2.0 |
 | --- | --- |
 | `fetchRows` resolves the rows | `fetchRows(request)` resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }` |
-| `total`, `hasNextPage` | `totalRowCount`, `hasMore` in the answer |
+| `total` | `totalRowCount` in the answer |
 | `batchSize`, `pageSize` | `blockSize` |
 | `reset()`, `isLoading` | `refresh()`, `loading` |
-| `LazyFetchContext` | `ServerRowsRequest` |
 | `Range`, `ServerSpec`, `serverSpecKey` from `data-grid-lazy` | `RowRange`, `ServerSpec`, `serverSpecKey` from `data-grid` |
 | `spec.search` | `spec.searchText`, also in `defaultSpec` |
 | `maxFetchRows` | none. Each request covers one block. |
@@ -109,15 +97,12 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Filters [#filters]
 
-- A `fetchFilterValues` entry is `{ value, label?, count? }`. Rename its `label` to `value`. Add `label` only for other display text.
-- The `search` field of the `fetchFilterValues` context is `query`.
 - `FilterOperator` accepts any string. A `switch` over it needs a default branch. `BuiltInFilterOperator` is the closed set.
 - A grid that a filter or the search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
 
 ## Selection [#selection]
 
 - The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
-- `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` for an unknown size.
 - `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
 
 | 1.x props | 2.0 prop |

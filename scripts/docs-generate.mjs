@@ -547,7 +547,7 @@ const ACTION_PURPOSE = {
   selectAll: "Runs one step of the select-all shortcut. The first call selects the filled block around the active cell, and a repeat selects every cell.",
   setRowSelected: "Checks or unchecks one row by view index. It sets the state and never toggles.",
   checkRowRange: "Checks or unchecks the rows from the anchor row to a target view index.",
-  setAllRowsSelected: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page.",
+  setAllRowsSelected: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching.",
   selectAllMatching: "Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or without `checkedRowsLifetime='across-filters'`.",
   setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row.",
   cancelEditing: "Discards the open edit. It writes nothing.",

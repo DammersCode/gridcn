@@ -39,7 +39,7 @@ import {
   useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { keepsCheckedRows, useDataGridCommands, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { keepsCheckedRows, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -124,7 +124,8 @@ export function useDefaultCellMenuItems(args: {
   const selection = useDataGridSelection();
   const checkedRowsOnly = keepsCheckedRows(useDataGridSelectionConfig());
   const hiddenCheckedCount = useDataGridHiddenCheckedCount();
-  const rowActionsBlocked = checkedRowsOnly && selection.rows.length === 0 && hiddenCheckedCount > 0;
+  const allMatching = useDataGridSelector((s) => s.allMatching);
+  const rowActionsBlocked = checkedRowsOnly && (allMatching || (selection.rows.length === 0 && hiddenCheckedCount > 0));
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
@@ -193,9 +194,9 @@ export function useDefaultCellMenuItems(args: {
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? (allMatching ? labels.contextMenu.rowActionAllMatching : labels.contextMenu.rowActionHiddenChecked) : undefined, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? (allMatching ? labels.contextMenu.rowActionAllMatching : labels.contextMenu.rowActionHiddenChecked) : undefined, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
   return specs;
 }
 

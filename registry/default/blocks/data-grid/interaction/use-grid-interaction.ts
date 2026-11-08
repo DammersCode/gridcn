@@ -547,7 +547,7 @@ export function dispatchGridAction(args: {
     case "duplicateRow": {
       preventDefault();
       if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
-        // Duplicates the selected rows (only the checked rows while any are checked); without a selection, the active row.
+        // Duplicates the selected rows (the checked rows when checked rows outlive clicks and any are checked); without a selection, the active row.
         const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) });
         if (selected.length > 0) actions.duplicateRows(selected);
         else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);

@@ -106,7 +106,7 @@ These end it:
 - Escape, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, and the header checkbox turned off
 - A plain click on a row number, or <kbd>Shift</kbd>+<kbd>Space</kbd>
 - A change of the filter or the search text
-- A row delete: `deleteRows`, `deleteRowsById` without `source: "stream"`, or the context menu Delete item. A server push keeps "all matching".
+- A row delete: `deleteRows`, or `deleteRowsById` without `source: "stream"`. A server push keeps "all matching".
 - `checkedRowsLifetime` set to another value, or `totalRowCount` removed
 
 This list covers the common causes, not every path.
@@ -114,14 +114,14 @@ This list covers the common causes, not every path.
 The grid remembers at most 100,000 ids. In `ids` mode, it drops the rows beyond the cap. In `allMatching` mode, more than 100,000 exclusions end "all matching" and uncheck every row, because a dropped exclusion selects more rows. The grid warns once in development. An unloaded row of a scroll-mode source stays checked in `allMatching` mode. You cannot exclude it, because it has no id. `useDataGridHiddenCheckedCount()` is `0` while "all matching" is on.
 
 <Callout type="warn" title="Row operations skip rows that the grid does not hold">
-  While "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The context menu items and `actions.deleteRows` still act on the loaded checked rows only. Run the bulk action through your own endpoint, then call `clearSelection()`.
+  While "all matching" is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, so `onBeforeDeleteRows` does not run for them. The Duplicate and Delete context menu items turn off and show `labels.contextMenu.rowActionAllMatching` as their tooltip. `actions.deleteRows` and `actions.duplicateRows` skip any call whose rows include an unloaded row. Send `selected.spec` and `selected.excludedIds` to your own endpoint, then call `clearSelection()` and `refresh()`. `deleteRowsById` removes the loaded rows that the server deleted.
 </Callout>
 
 ## Copy and export loaded rows [#selecting-copying-and-exporting]
 
 A scroll-mode grid holds unloaded rows as holes. None of these gestures fetches a row:
 
-- The header checkbox selects all matching when `checkedRowsLifetime="across-filters"` holds and the view has unloaded rows. `useDataGridSelectedRows()` then reads `allMatching`, and the banner has nothing left to offer.
+- The header checkbox selects all matching when `checkedRowsLifetime="across-filters"` holds and the view has unloaded rows. `useDataGridSelectedRows()` then reads `allMatching`, and the status bar shows "All N selected" with a Clear selection button.
 - Ctrl/Cmd+A twice selects the full view, holes included. It selects cells and checks no rows. `getRowIds` lists the loaded rows of that selection and skips unloaded rows.
 - Copy writes empty cells for unloaded rows.
 - Export covers the loaded rows only. It skips holes in every scope.

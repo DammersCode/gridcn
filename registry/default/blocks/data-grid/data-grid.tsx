@@ -197,6 +197,7 @@ export type {
   FetchFilterValues,
   FetchFilterValuesContext,
   FilterJoinOperator,
+  CheckedRowsLifetime,
   GridActions,
   GridAction,
   CommandGroup,

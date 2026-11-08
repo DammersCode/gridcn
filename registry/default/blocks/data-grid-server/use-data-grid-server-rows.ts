@@ -117,7 +117,7 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` when the server sends none. */
   totalRowCount: number | null;
-  /** Keeps checks by row id across pages, evictions, and server sorts and filters. */
+  /** Keeps checks by row id across pages and server sorts and filters. */
   checkedRowsLifetime: "across-filters";
   /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
   plugins: readonly DataGridPlugin<unknown>[];

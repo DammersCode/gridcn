@@ -34,6 +34,7 @@ type ProbeProps = {
   duplicateRow?: (row: Row) => Row;
   pin?: "left" | "right";
   readOnly?: boolean;
+  allMatching?: boolean;
   headerColumnId?: string;
   clipboardFailed?: boolean;
   onClipboardFailed?: () => void;
@@ -42,7 +43,10 @@ type ProbeProps = {
 
 function Probe(props: ProbeProps) {
   const actions = useDataGridActions();
-  useEffect(() => actions.selectCellAt({ col: 0, row: 0 }), [actions]);
+  useEffect(() => {
+    actions.selectCellAt({ col: 0, row: 0 });
+    if (props.allMatching) actions.selectAllMatching();
+  }, [actions, props.allMatching]);
   const cellSpecs = useDefaultCellMenuItems({
     clipboardFailed: props.clipboardFailed,
     onClipboardFailed: props.onClipboardFailed,
@@ -66,6 +70,8 @@ function renderProbe(props: ProbeProps) {
       createRow={props.createRow}
       duplicateRow={props.duplicateRow}
       readOnly={props.readOnly}
+      totalRowCount={props.allMatching ? 50 : undefined}
+      checkedRowsLifetime={props.allMatching ? "across-filters" : undefined}
     >
       <DataGridRoot>
         <Probe {...props} />
@@ -108,6 +114,15 @@ describe("useDefaultCellMenuItems", () => {
     }
     expect(item(cell, "copy")?.disabled).toBeUndefined();
     expect(item(cell, "paste")?.tooltip).toBeUndefined();
+  });
+
+  it("turns off Duplicate and Delete under all matching and explains why", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    renderProbe({ allMatching: true, createRow: () => rows[0]!, duplicateRow: (row) => row, onSpecs: (c) => { cell = c; } });
+    await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
+    expect(item(cell, "duplicate-rows")?.disabled).toBe(true);
+    expect(item(cell, "delete-rows")?.tooltip).toMatch(/all matching/i);
+    expect(item(cell, "insert-row-above")?.disabled).toBeFalsy();
   });
 
   describe("a failed clipboard write", () => {

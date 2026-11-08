@@ -101,7 +101,7 @@ async function save(change: DataChange<Order>) {
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
-    onSave: save,
+    mode: "scroll", onSave: save,
     fetchRows: async ({ start, end, signal }) => {
       const query = `offset=${start}&limit=${end - start}`;
       const response = await fetch(`/api/orders?${query}`, { signal });

@@ -125,6 +125,8 @@ export type DataGridContextMenuLabels = {
   rowActionReadOnly: string;
   /** Tooltip of a disabled row item while only hidden rows are checked. */
   rowActionHiddenChecked: string;
+  /** Tooltip of a disabled row item while all matching rows are checked. */
+  rowActionAllMatching: string;
   /** Tooltip shown on Cut and Copy after the clipboard write failed (no clipboard-write permission, or no secure context). */
   clipboardFailed: string | ((modifier: string) => string);
   clearContents: string;
@@ -462,6 +464,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     pasteBlocked: (modifier) => `requires clipboard permission — use ${modifier}+V`,
     rowActionReadOnly: "The grid is read-only",
     rowActionHiddenChecked: "Only hidden rows are checked",
+    rowActionAllMatching: "All matching rows are checked; send the selection to your server",
     clipboardFailed: (modifier) => `clipboard access failed — use ${modifier}+C or ${modifier}+X`,
     clearContents: "Clear contents",
     fillDown: "Fill down",

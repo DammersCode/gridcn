@@ -28,7 +28,7 @@ export function People({ people }: { people: Person[] }) {
 }
 ```
 
-A click on the header checkbox checks every row of the view, which is the shown page on a paged grid. A second click unchecks them all.
+A click on the header checkbox checks every row of the view, which is the shown page on a paged grid. On a server grid with unloaded rows, it selects all matching ([Select server rows](/docs/rows-live-data/select-server-rows)). A second click unchecks them all.
 
 ## Check a span of rows [#checking-a-range-of-rows]
 
@@ -152,7 +152,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 ## Hidden checked rows
 
-A filter or a page change removes the checked rows it hides. [Filtering](/docs/sort-filter-search/filtering) and the [toolbar](/docs/sort-filter-search/toolbar) add the filter UI. Set `checkedRowsLifetime="across-filters"` to remember them. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
+A filter or a page change removes the checked rows it hides. Set `checkedRowsLifetime="across-filters"` to remember them. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
 
 Hidden checked rows stay out of the controlled `selection` and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and the Duplicate and Delete menu items turn off.
 
@@ -173,7 +173,7 @@ A server grid defaults to `checkedRowsLifetime="across-filters"` when it sets `t
 | Prop | Type | Default |
 |---|---|---|
 | `enableRowSelection` | `boolean` | `true` |
-| `checkedRowsLifetime` | `'until-click' \| 'until-cleared' \| 'across-filters'` | `'across-filters'` with `totalRowCount`, else `'until-click'` |
+| `checkedRowsLifetime` | `CheckedRowsLifetime` | `'across-filters'` with `totalRowCount`, else `'until-click'` |
 | `totalRowCount` | `number \| null` | none |
 | `announceResults` | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |

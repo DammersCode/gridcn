@@ -52,7 +52,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `selectRow` | Selects the row at a view index, as a click on its row marker does. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `setActiveCell` | Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`. | [Selection model](/docs/concepts/selection-model) |
 | `setActiveCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `setActiveCell`. | [Selection model](/docs/concepts/selection-model) |
-| `setAllRowsSelected` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `setAllRowsSelected` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Column visibility](/docs/columns/column-visibility) |

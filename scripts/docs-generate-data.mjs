@@ -31,7 +31,7 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], "/docs/cheatsheets-messages/keyboard-shortcuts"],
+    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"]],
   },
   {
     id: "columns-rows",

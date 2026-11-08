@@ -289,7 +289,7 @@ describe("useDataGridSelectedRows", () => {
     expect(m.selected().ids).toEqual(["a", "c"]);
   });
 
-  it("the header checkbox over skeleton rows reads as allMatching with the loaded count", () => {
+  it("the header checkbox over skeleton rows reads as allMatching with the totalRowCount", () => {
     const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }] as Row[];
     const m = mountWithHook({ data: sparse, totalRowCount: 3 });
     act(() => m.api().getState().actions.setAllRowsSelected(true));
