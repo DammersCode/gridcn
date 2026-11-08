@@ -569,7 +569,7 @@ const ACTION_PURPOSE = {
   setColumnPin: "Pins a column with `\"left\"` or `\"right\"`, or unpins it with `null`.",
   setColumnHidden: "Shows or hides a column.",
   setColumnLayout: "Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value.",
-  toggleSort: "Steps the sort of a column to the next direction or to no sort, as a header click does. `additive` keeps the other sorts.",
+  toggleSort: "Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts.",
   setSorts: "Replaces the active sorts.",
   setFilters: "Replaces the filter tree.",
   setSearch: "Sets the quick-search text. With `options`, it also sets the search options.",
