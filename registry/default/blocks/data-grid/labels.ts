@@ -329,6 +329,41 @@ export type DataGridStatusBarLabels = {
   clearSelection: string;
 };
 
+/** Saved-views add-on strings (`data-grid-views`): the menu, its buttons, and its live-region messages. */
+export type DataGridViewsLabels = {
+  views: string;
+  modified: string;
+  loading: string;
+  empty: string;
+  loadFailed: string;
+  saveFailed: string;
+  limit: string;
+  importedName: string;
+  retry: string;
+  setDefault: (name: string) => string;
+  unsetDefault: (name: string) => string;
+  rename: (name: string) => string;
+  delete: (name: string) => string;
+  confirmDelete: (name: string) => string;
+  newViewName: string;
+  saveNew: string;
+  updateActive: (name: string) => string;
+  confirmRename: string;
+  cancel: string;
+  fileLabel: string;
+  exportView: string;
+  importView: string;
+  saved: (name: string) => string;
+  updated: (name: string) => string;
+  renamed: (name: string) => string;
+  deleted: (name: string) => string;
+  applied: (name: string) => string;
+  imported: (name: string, dropped: number) => string;
+  exported: string;
+  exportTooLarge: string;
+  importFailed: (reason: "too-large" | "invalid" | "limit" | "loading") => string;
+};
+
 /** Find-and-replace panel strings. */
 export type DataGridFindReplaceLabels = {
   dialogLabel: string;
@@ -371,6 +406,7 @@ export interface DataGridLabels {
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;
   statusBar: DataGridStatusBarLabels;
+  views: DataGridViewsLabels;
   findReplace: DataGridFindReplaceLabels;
 }
 
@@ -665,6 +701,40 @@ export const DEFAULT_LABELS: DataGridLabels = {
     allSelected: (count) => (count === null ? "All matching rows are selected." : `All ${count.toLocaleString("en-US")} selected.`),
     clearSelection: "Clear selection",
   },
+  views: {
+    views: "Views",
+    modified: "Modified",
+    loading: "Loading views…",
+    empty: "No saved views yet.",
+    loadFailed: "Saved views could not be loaded.",
+    saveFailed: "Your last change could not be saved.",
+    limit: "The limit of 50 views is reached.",
+    importedName: "Imported view",
+    retry: "Retry",
+    setDefault: (name) => `Use ${name} as the default view`,
+    unsetDefault: (name) => `Stop using ${name} as the default view`,
+    rename: (name) => `Rename ${name}`,
+    delete: (name) => `Delete ${name}`,
+    confirmDelete: (name) => `Confirm delete ${name}`,
+    newViewName: "View name",
+    saveNew: "Save as new view",
+    updateActive: (name) => `Update ${name}`,
+    confirmRename: "Save name",
+    cancel: "Cancel",
+    fileLabel: "View as JSON",
+    exportView: "Export active view",
+    importView: "Import view",
+    saved: (name) => `Saved view ${name}`,
+    updated: (name) => `Updated view ${name}`,
+    renamed: (name) => `Renamed to ${name}`,
+    deleted: (name) => `Deleted view ${name}`,
+    applied: (name) => `Applied view ${name}`,
+    imported: (name, dropped) => (dropped > 0 ? `Imported view ${name}. Left out because they do not fit this grid: ${dropped}.` : `Imported view ${name}`),
+    exported: "Exported the active view as JSON below",
+    exportTooLarge: "This view is too large to export as text.",
+    importFailed: (reason) =>
+      reason === "too-large" ? "The text is too long to be a view." : reason === "limit" ? "The view limit is reached." : reason === "loading" ? "Views are still loading." : "The text is not a valid view.",
+  },
   findReplace: {
     dialogLabel: "Find and replace",
     findLabel: "Find",
@@ -718,7 +788,19 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Pure deep merge for label overrides: plain objects merge recursively, everything else (functions, arrays, primitives) replaces the base value wholesale. */
+/** Merges label layers left to right, skipping `undefined` values: a flat label set, or the base of a deep merge. */
+export function mergeLabelLayers<T extends object>(...layers: readonly (Partial<T> | undefined)[]): T {
+  const result: Record<string, unknown> = {};
+  for (const layer of layers) {
+    if (!layer) continue;
+    for (const [key, value] of Object.entries(layer)) {
+      if (value !== undefined) result[key] = value;
+    }
+  }
+  return result as T;
+}
+
+/** Pure deep merge for label overrides: plain objects merge recursively, everything else (functions, arrays, primitives) replaces the base value wholesale. An `undefined` override value keeps the base. */
 export function deepMergeLabels<T>(base: T, override: DeepPartialLabels<T> | undefined): T {
   if (!override) return base;
   if (!isPlainObject(base) || !isPlainObject(override)) return (override as T) ?? base;
@@ -727,6 +809,7 @@ export function deepMergeLabels<T>(base: T, override: DeepPartialLabels<T> | und
   const result: Record<string, unknown> = { ...base };
   for (const key of Object.keys(overrideRecord)) {
     const overrideValue = overrideRecord[key];
+    if (overrideValue === undefined) continue;
     const baseValue = (base as Record<string, unknown>)[key];
     result[key] = isPlainObject(baseValue) && isPlainObject(overrideValue) ? deepMergeLabels(baseValue, overrideValue) : overrideValue;
   }

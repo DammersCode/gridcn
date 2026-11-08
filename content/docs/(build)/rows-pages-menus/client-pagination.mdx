@@ -126,7 +126,7 @@ The hook takes the same `page`, `pageSize`, `defaultPage`, `defaultPageSize`, `o
 | --- | --- | --- |
 | `pageSizeOptions` | `readonly number[]` | `[10, 25, 50, 100]` |
 | `className` | `string` | none |
-| `labels` | `Partial<DataGridPaginationLabels>` | `labels.pagination` defaults |
+| `labels` | `Partial<DataGridPaginationLabels>` | `labels.pagination` of the grid |
 | `windowSize` | `number` | `5` |
 | `children` | `ReactNode` | the default layout |
 
@@ -160,7 +160,7 @@ function CompactBar({ pager }: { pager: DataGridPaginationControls }) {
 }
 ```
 
-The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The default strings are the `labels.pagination` group. Override them through the `labels` prop of `DataGridPaginationBar`. The `labels` prop of the grid does not reach the footer. See [Labels](/docs/components-props/labels).
+The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The default strings are the `labels.pagination` group. Set them in the `labels.pagination` of the grid, or override them through the `labels` prop of `DataGridPaginationBar`. See [Labels](/docs/components-props/labels).
 
 ## Server mode
 

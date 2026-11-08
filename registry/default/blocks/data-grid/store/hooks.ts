@@ -21,7 +21,7 @@ import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selec
 import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
-import { useDataGridStore, useDataGridStoreApi } from "./provider";
+import { useDataGridStore, useDataGridStoreApi, useOptionalDataGridStore } from "./provider";
 import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
@@ -116,6 +116,11 @@ export function useDataGridCommands(): Record<string, GridCommand> | null {
  */
 export function useDataGridLabels(): DataGridLabels {
   return useDataGridStore((s) => s.labels);
+}
+
+/** The enclosing grid's labels, or `null` outside a `DataGridProvider`; for components that also work without a grid. */
+export function useOptionalDataGridLabels(): DataGridLabels | null {
+  return useOptionalDataGridStore((s) => s.labels);
 }
 
 /** The polite live-region text of the latest row move. */

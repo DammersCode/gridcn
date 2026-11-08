@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -301,6 +301,20 @@ function useDataGridStoreApiInternal(): StoreApi<DataGridStoreState> {
     throw new Error("gridcn: this hook must be used inside a <DataGridProvider>.");
   }
   return store;
+}
+
+/** Selector hook that returns `null` outside a `DataGridProvider` instead of throwing. */
+export function useOptionalDataGridStore<T>(selector: (state: DataGridStoreState) => T): T | null {
+  const store = use(DataGridStoreContext);
+  return useSyncExternalStore(
+    store ? store.subscribe : noopSubscribe,
+    () => (store ? selector(store.getState()) : null),
+    () => (store ? selector(store.getState()) : null),
+  );
+}
+
+function noopSubscribe(): () => void {
+  return () => {};
 }
 
 export function useDataGridStore<T>(selector: (state: DataGridStoreState) => T): T {

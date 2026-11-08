@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { DEFAULT_LABELS, mergeLabelLayers, useOptionalDataGridLabels, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
@@ -38,9 +38,9 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
   pageSizeOptions?: readonly number[];
   className?: string;
   /**
-   * i18n override for this footer's strings, merged key by key over the built-in
-   * `labels.pagination` defaults. The grid's own `labels` prop does not reach the footer, also
-   * inside a `DataGridProvider`: pass the pagination strings here.
+   * i18n override for this footer's strings, merged key by key over the grid's `labels.pagination`
+   * (read from the enclosing `DataGridProvider`), which sits over the built-in defaults. Outside a
+   * provider, the footer cannot see a grid: pass the strings here.
    */
   labels?: Partial<DataGridPaginationLabels>;
   /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). Default 5. */
@@ -73,7 +73,8 @@ function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
 
 function PaginationBarView(props: DataGridPaginationBarProps & { controls: DataGridPaginationControls }): ReactNode {
   const { controls, className, labels: labelsOverride, windowSize, children } = props;
-  const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
+  const gridLabels = useOptionalDataGridLabels();
+  const labels = mergeLabelLayers<DataGridPaginationLabels>(DEFAULT_LABELS.pagination, gridLabels?.pagination, labelsOverride);
 
   return (
     <PaginationBarContext value={{ controls, labels }}>

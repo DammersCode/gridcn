@@ -123,4 +123,14 @@ describe("DataGridViews", () => {
     fireEvent.click(screen.getByRole("button", { name: /views/i }));
     expect(await screen.findByText("No saved views yet.")).toBeInTheDocument();
   });
+
+  it("reads the grid labels.views and lets the component labels win", async () => {
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} labels={{ views: { empty: "Keine Ansichten", loading: undefined } }}>
+        <DataGridViews storage={createMemoryViewsStorage()} labels={{ views: "Ansichten" }} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ansichten" }));
+    expect(await screen.findByText("Keine Ansichten")).toBeInTheDocument();
+  });
 });

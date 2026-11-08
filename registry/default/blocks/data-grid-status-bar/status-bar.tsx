@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_LABELS,
+  mergeLabelLayers,
   useDataGridActions,
   useDataGridCellTypes,
   useDataGridHiddenCheckedCount,
@@ -60,7 +61,7 @@ export function DataGridStatusBar({
   const stats = useDataGridSelectionStats();
   const hiddenChecked = useDataGridHiddenCheckedCount();
   const storeLabels = useDataGridLabels();
-  const mergedLabels = { ...DEFAULT_LABELS.statusBar, ...storeLabels.statusBar, ...labels };
+  const mergedLabels = mergeLabelLayers<DataGridStatusBarLabels>(DEFAULT_LABELS.statusBar, storeLabels.statusBar, labels);
   const visibleColumns = useDataGridVisibleColumns();
   const cellTypes = useDataGridCellTypes();
   const fallbackFormat = useMemo(() => new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }), [locale]);

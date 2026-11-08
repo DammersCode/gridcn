@@ -6,7 +6,7 @@ type: feature
 aliases: ["translation", "rtl", "right to left", "language", "translate", "translate the ui", "localize"]
 ---
 
-Nearly every user-facing string lives in one typed `DataGridLabels` object with English defaults. Pass a partial `labels` object to translate it. Saved views and lookup columns take their own labels, listed under [Coverage by group](#coverage-by-group). The `direction` prop flips the layout for right-to-left languages. The grid has no i18n dependency.
+Nearly every user-facing string lives in one typed `DataGridLabels` object with English defaults. Pass a partial `labels` object to translate it. Lookup columns take their own labels, listed under [Coverage by group](#coverage-by-group). The `direction` prop flips the layout for right-to-left languages. The grid has no i18n dependency.
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
@@ -75,8 +75,8 @@ function ClearFiltersButton() {
 | `io` | export, import dialog, print | `data-grid-io` |
 | `pagination` | page buttons, page size, range text | `data-grid-pagination` |
 | `statusBar` | count, sum, average, minimum, maximum, selection text | `data-grid-status-bar` |
+| `views` <NewBadge /> | the saved views button and menu | `data-grid-views` |
 | `findReplace` | panel fields, buttons, status lines | `data-grid-find-replace` |
-| `DataGridViews` `labels` | the saved views button and menu | `data-grid-views`, [options](/docs/add-options/sort-filter-search/saved-views-options#labels) |
 | `options.labels` of a lookup column | the lookup editor | `data-grid-lookup`, [lookup cell](/docs/editing-cells/lookup-cell) |
 
 [Labels reference](/docs/components-props/labels) lists every field of every group.

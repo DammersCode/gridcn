@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_LABELS, deepMergeLabels, type DataGridLabels } from "./labels";
+import { DEFAULT_LABELS, deepMergeLabels, mergeLabelLayers, type DataGridLabels } from "./labels";
+import { MAX_VIEWS } from "../data-grid-views/view-state";
 
 /** Recursively walks every leaf of {@link DEFAULT_LABELS}, asserting it's a non-empty string or a function. */
 function walkLeaves(value: unknown, path: string, onLeaf: (path: string, leaf: unknown) => void): void {
@@ -54,6 +55,22 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.io.maxFileSize(3 * 1024 ** 4)).toBe("up to 3072 GB");
     expect(DEFAULT_LABELS.io.importRejectedCells(1)).toBe("1 cell failed validation and was left empty.");
     expect(DEFAULT_LABELS.io.importRejectedCells(3)).toBe("3 cells failed validation and were left empty.");
+  });
+});
+
+describe("label layers", () => {
+  it("an undefined override keeps the default instead of replacing it", () => {
+    const merged = deepMergeLabels(DEFAULT_LABELS, { toolbar: { searchPlaceholder: undefined } });
+    expect(merged.toolbar.searchPlaceholder).toBe(DEFAULT_LABELS.toolbar.searchPlaceholder);
+  });
+
+  it("mergeLabelLayers skips undefined values and lets later layers win", () => {
+    const merged = mergeLabelLayers<{ a: string; b: string }>({ a: "1", b: "2" }, { a: "x", b: undefined }, undefined, { b: "" });
+    expect(merged).toEqual({ a: "x", b: "" });
+  });
+
+  it("the views default names the view limit", () => {
+    expect(DEFAULT_LABELS.views.limit).toContain(String(MAX_VIEWS));
   });
 });
 

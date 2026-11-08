@@ -38,11 +38,11 @@ The hook slices `data` into pages for a list that is not a grid. To page a grid,
 
 ## DataGridPaginationBar [#datagridpaginationbarprops]
 
-Spread the `pager` onto the bar. Inside a paged `DataGridProvider`, pass no pager and the bar reads the grid. The `labels` prop of the grid does not reach the bar. Pass the bar its own `labels`.
+Spread the `pager` onto the bar. Inside a paged `DataGridProvider`, pass no pager and the bar reads the grid. The bar reads `labels.pagination` from the enclosing `DataGridProvider`. Outside a provider, the bar cannot see a grid: pass it `labels`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/pagination-footer.tsx" name="DataGridPaginationBarProps" />
 
-The root element carries the `data-grid-pagination` attribute. `labels` merges into the `labels.pagination` defaults.
+The root element carries the `data-grid-pagination` attribute. `labels` merges over the `labels.pagination` of the grid, which merges over the defaults.
 
 ## Footer parts [#parts]
 

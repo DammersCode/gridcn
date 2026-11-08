@@ -20,7 +20,7 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 
 ## Labels [#labels]
 
-`labels` takes a partial `DataGridViewsLabels`. A function field receives the argument shown.
+`labels` takes a partial `DataGridViewsLabels`. It merges over the `labels.views` of the grid, which merges over the defaults. <NewBadge /> A function field receives the argument shown.
 
 {/* props: DataGridViewsLabels */}
 

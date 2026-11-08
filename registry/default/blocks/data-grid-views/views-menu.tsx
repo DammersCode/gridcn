@@ -9,83 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { useDataGridViews, type ImportViewResult, type UseDataGridViewsOptions } from "./use-data-grid-views";
+import { DEFAULT_LABELS, mergeLabelLayers, useDataGridLabels, type DataGridViewsLabels } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridViews, type UseDataGridViewsOptions } from "./use-data-grid-views";
 import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
-
-/** User-facing strings of {@link DataGridViews}. */
-export type DataGridViewsLabels = {
-  views: string;
-  modified: string;
-  loading: string;
-  empty: string;
-  loadFailed: string;
-  saveFailed: string;
-  limit: string;
-  importedName: string;
-  retry: string;
-  setDefault: (name: string) => string;
-  unsetDefault: (name: string) => string;
-  rename: (name: string) => string;
-  delete: (name: string) => string;
-  confirmDelete: (name: string) => string;
-  newViewName: string;
-  saveNew: string;
-  updateActive: (name: string) => string;
-  confirmRename: string;
-  cancel: string;
-  fileLabel: string;
-  exportView: string;
-  importView: string;
-  saved: (name: string) => string;
-  updated: (name: string) => string;
-  renamed: (name: string) => string;
-  deleted: (name: string) => string;
-  applied: (name: string) => string;
-  imported: (name: string, dropped: number) => string;
-  exported: string;
-  exportTooLarge: string;
-  importFailed: (reason: Extract<ImportViewResult, { ok: false }>["reason"]) => string;
-};
-
-export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
-  views: "Views",
-  modified: "Modified",
-  loading: "Loading views…",
-  empty: "No saved views yet.",
-  loadFailed: "Saved views could not be loaded.",
-  saveFailed: "Your last change could not be saved.",
-  limit: `The limit of ${MAX_VIEWS} views is reached.`,
-  importedName: "Imported view",
-  retry: "Retry",
-  setDefault: (name) => `Use ${name} as the default view`,
-  unsetDefault: (name) => `Stop using ${name} as the default view`,
-  rename: (name) => `Rename ${name}`,
-  delete: (name) => `Delete ${name}`,
-  confirmDelete: (name) => `Confirm delete ${name}`,
-  newViewName: "View name",
-  saveNew: "Save as new view",
-  updateActive: (name) => `Update ${name}`,
-  confirmRename: "Save name",
-  cancel: "Cancel",
-  fileLabel: "View as JSON",
-  exportView: "Export active view",
-  importView: "Import view",
-  saved: (name) => `Saved view ${name}`,
-  updated: (name) => `Updated view ${name}`,
-  renamed: (name) => `Renamed to ${name}`,
-  deleted: (name) => `Deleted view ${name}`,
-  applied: (name) => `Applied view ${name}`,
-  imported: (name, dropped) => (dropped > 0 ? `Imported view ${name}. Left out because they do not fit this grid: ${dropped}.` : `Imported view ${name}`),
-  exported: "Exported the active view as JSON below",
-  exportTooLarge: "This view is too large to export as text.",
-  importFailed: (reason) =>
-    reason === "too-large" ? "The text is too long to be a view." : reason === "limit" ? "The view limit is reached." : reason === "loading" ? "Views are still loading." : "The text is not a valid view.",
-};
 
 /** Props for {@link DataGridViews}: the options of {@link useDataGridViews} plus styling. */
 export type DataGridViewsProps = UseDataGridViewsOptions & {
   className?: string;
-  /** Overrides for the menu's strings, merged key by key over the built-in English defaults. The grid's `labels` prop does not reach this menu. */
+  /** Overrides for the menu's strings, merged key by key over the grid's `labels.views`, which sit over the built-in English defaults. */
   labels?: Partial<DataGridViewsLabels>;
 };
 
@@ -195,7 +126,8 @@ function ViewRow({
  * {@link useDataGridViews}.
  */
 export function DataGridViews({ className, labels: labelOverrides, ...options }: DataGridViewsProps) {
-  const labels = { ...DEFAULT_VIEWS_LABELS, ...labelOverrides };
+  const gridLabels = useDataGridLabels();
+  const labels = mergeLabelLayers<DataGridViewsLabels>(DEFAULT_LABELS.views, gridLabels.views, labelOverrides);
   const views = useDataGridViews(options);
   const [newName, setNewName] = useState("");
   const [fileText, setFileText] = useState("");

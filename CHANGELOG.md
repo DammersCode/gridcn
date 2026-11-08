@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- One label chain for every component: the default, then the grid's `labels.<group>`, then the component's own `labels`. `DataGridPaginationBar` reads `labels.pagination` from the provider (the key did nothing before), and `DataGridViews` reads the new `labels.views`. `DataGridViewsLabels` and its defaults moved into `DataGridLabels`. **Breaking:** a label set to `undefined` keeps the default instead of replacing it (it made a string label vanish and a function label throw); set `""` to blank a string label. Before: `<DataGridPaginationBar labels={i18n.pagination} />` inside a provider. After: pass `labels={i18n}` to the grid once.
 - **Breaking:** `importDefaults.autoDetectDelimiter` is removed. `defaultDelimiter` alone fixes the delimiter; leave it unset to detect. Before: `importDefaults={{ autoDetectDelimiter: false }}`. After: `importDefaults={{ defaultDelimiter: "," }}`.
 - Fix: the global shortcut layer (`DataGridGlobalShortcuts`) fires a binding only when the key press carries Ctrl or Cmd. A remapped bare key such as `deleteRows: ["Delete"]` fired on that key anywhere on the page; it now stays in the grid, and development warns once per grid.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
