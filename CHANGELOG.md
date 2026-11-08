@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: `DataGridStatusBar` renders its `children` when fewer than two cells are selected. Before, it returned `null` and the extra items vanished. It still renders nothing when it has nothing to show and no children; pass `children` conditionally to keep the old behavior.
 - `useDataGridFindReplace({ className })` merges classes into the panel root, which hard-coded its width, corners, and shadow before.
 - `useDataGridState` forwards every `useDataGridHistory` option (`recordSources` and `onSkip` included), not only `capacity` and `datasetKey`.
 - **Breaking:** `canUndo` and `canRedo` of `useDataGridHistory` and `useDataGridState().history` are `false` while the grid is `readOnly`, because `undo` and `redo` do nothing then. Before, they stayed `true` for kept entries. After: `disabled={!canUndo}`; the `readOnly ||` guard can go. `historySize` still counts the kept entries.

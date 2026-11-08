@@ -73,3 +73,28 @@ describe("select-all banner", () => {
     expect(screen.getByText("All matching rows are selected.")).toBeInTheDocument();
   });
 });
+
+describe("status bar children", () => {
+  const mountBar = (children?: React.ReactNode) =>
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <DataGridStatusBar>{children}</DataGridStatusBar>
+      </DataGridProvider>,
+    );
+
+  it("renders nothing with no selection and no children", () => {
+    mountBar();
+    expect(screen.queryByText("3 rows")).toBeNull();
+    expect(document.querySelector('[class*="border-t"]')).toBeNull();
+  });
+
+  it("keeps the extra items while fewer than two cells are selected", () => {
+    mountBar(<span>3 rows</span>);
+    expect(screen.getByText("3 rows")).toBeInTheDocument();
+  });
+
+  it("renders nothing when the children are false", () => {
+    mountBar(false);
+    expect(document.querySelector('[class*="border-t"]')).toBeNull();
+  });
+});

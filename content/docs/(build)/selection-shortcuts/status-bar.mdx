@@ -62,7 +62,7 @@ The aggregates show once the selection covers two loaded cells. `count` always s
 
 When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise the bar uses `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. `formatValue` overrides both.
 
-The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show, it renders nothing.
+The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children` <NewBadge />, it renders nothing.
 
 ## Select-all banner [#select-all-banner]
 
@@ -107,7 +107,7 @@ The result holds `cells`, `count`, `numeric`, `sum`, `avg`, `min`, `max`, `numer
 | `locale` | `string` | `"en-US"` | Locale for the default number format. |
 | `labels` | `Partial<DataGridStatusBarLabels>` | merged over `labels.statusBar` | Overrides the strings of this bar. |
 | `className` | `string` | none | Extra classes on the bar element. |
-| `children` | `ReactNode` | none | Extra items, rendered after the aggregates. |
+| `children` | `ReactNode` | none | Extra items, rendered after the aggregates. The bar stays visible while it has children. |
 
 <Callout type="idea" title="The bar is a polite live region">
   The bar is `role="status"` with `aria-live="polite"` and `aria-atomic="true"`. Each value sits next to its label, for example "Sum 1,234".

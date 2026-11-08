@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { Children, useMemo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -35,7 +35,7 @@ export type DataGridStatusBarProps = {
   /** i18n overrides for this bar's strings, merged over `labels.statusBar`. */
   labels?: Partial<DataGridStatusBarLabels>;
   className?: string;
-  /** Extra items, rendered after the aggregates. */
+  /** Extra items, rendered after the aggregates. The bar renders while it has children, even with nothing selected. */
   children?: ReactNode;
 };
 
@@ -81,7 +81,7 @@ export function DataGridStatusBar({
   const pageChecked = useDataGridSelector((s) => s.viewIndex.length > 0 && s.selection.rows.hasAll([0, s.viewIndex.length]));
   const actions = useDataGridActions();
   const escalate = !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
-  if (!showStats && hiddenChecked === 0 && !allMatching && !escalate) return null;
+  if (!showStats && hiddenChecked === 0 && !allMatching && !escalate && Children.toArray(children).length === 0) return null;
 
   const format = (value: number, aggregate: StatusBarAggregate) =>
     formatValue ? formatValue(value, aggregate) : aggregate !== "count" && displayText ? displayText(value) : fallbackFormat.format(value);
