@@ -1,5 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataGridProvider, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridPaginationBar } from "./pagination-footer";
 
@@ -35,5 +35,36 @@ describe("DataGridPaginationBar labels", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Next page" })).toBeInTheDocument();
+  });
+});
+
+describe("DataGridPaginationBar in a server grid", () => {
+  const warnings = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.filter((c) => String(c[0]).includes("spread `server.pager`"));
+
+  it("warns once in development when a no-props bar reads a grid with a server row count", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { rerender } = render(
+      <DataGridProvider data={rows.slice(0, 10)} columns={columns} getRowId={(r) => r.id} totalRowCount={500}>
+        <DataGridPaginationBar />
+      </DataGridProvider>,
+    );
+    rerender(
+      <DataGridProvider data={rows.slice(0, 10)} columns={columns} getRowId={(r) => r.id} totalRowCount={500}>
+        <DataGridPaginationBar />
+      </DataGridProvider>,
+    );
+    expect(warnings(warn)).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("stays quiet for a provider that pages its view", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} pageSize={10}>
+        <DataGridPaginationBar />
+      </DataGridProvider>,
+    );
+    expect(warnings(warn)).toHaveLength(0);
+    warn.mockRestore();
   });
 });

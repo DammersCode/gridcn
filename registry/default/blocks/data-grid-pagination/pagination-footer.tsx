@@ -1,12 +1,12 @@
 "use client";
 
-import { createContext, use, type ReactNode } from "react";
+import { createContext, use, useEffect, useRef, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
-import { mergeLabelLayers, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, mergeLabelLayers, useDataGridSelector, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
@@ -69,6 +69,13 @@ export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactN
 /** The bar of a grid that pages its view: the controls come from the enclosing `DataGridProvider`. */
 function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
   const { pager: controls } = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
+  const serverRows = useDataGridSelector<unknown, boolean>((s) => typeof s.totalRowCount === "number" && s.pageSize === null);
+  const warned = useRef(false);
+  useEffect(() => {
+    if (!serverRows || warned.current || !isDev()) return;
+    warned.current = true;
+    console.warn("[data-grid-pagination] this grid's rows come from a server; spread `server.pager` (or a `useDataGridServerPager` result) onto DataGridPaginationBar");
+  }, [serverRows]);
   return <PaginationBarView {...props} controls={controls} />;
 }
 
