@@ -290,6 +290,17 @@ describe("useDataGridHistory", () => {
     expect(h.history().canUndo).toBe(false);
   });
 
+  it("record() returns false and writes nothing on a read-only grid", () => {
+    const h = setupHarness({}, { readOnly: true });
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Zoe" };
+    let applied = true;
+    act(() => void (applied = h.history().record({ source: "app", ops: [{ type: "update", rowId: "a", row: next, prev, cells: [{ columnId: "name", value: "Zoe", prev: "Alice" }] }] })));
+    expect(applied).toBe(false);
+    expect(h.data()[0]!.name).toBe("Alice");
+    expect(h.history().canUndo).toBe(false);
+  });
+
   it("record() applies a programmatic change and registers it as one undo step", () => {
     const h = setupHarness();
     const prev = initialRows[0]!;
