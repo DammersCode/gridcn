@@ -15,7 +15,7 @@ export type DataSourceState = {
   error: unknown;
   /** Repeats the failed requests. Does nothing without an error. */
   retry: () => void;
-  /** Fetches what is in view again and keeps it on screen until the answer lands. */
+  /** Fetches what is in view again and keeps it on screen until the answer lands. The hook calls it after saves settle by `refreshAfterSave`. */
   refresh: () => void;
   /** Asks the server to place the rows again after a push: one `refresh()` on the next frame, or after `reshapeDelay`. Calls in one frame join. */
   reshape: () => void;

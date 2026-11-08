@@ -93,7 +93,11 @@ export type UseDataGridServerRowsResult<TData> = {
   error: unknown;
   /** Repeats the request that failed. Does nothing without an error. */
   retry: () => void;
-  /** Fetches the current page again and keeps the rows on screen until the answer lands. A block that lands (refresh, retry or window load) replaces every row it carries, except a row that has a pending cell edit or a save that was in flight at any moment since the request was sent: that row keeps its local value. A row with a pending delete is gone: the answer's copy is dropped and its slot stays empty. A protected row that the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there; otherwise it is hidden, and a counted source refreshes when no pending insert or delete is left, so the server decides. A pages refresh appends such a row at the end of the page, so the page can exceed `pageSize` by pending inserts. A sequential refresh that ends before a pending insert may drop it until its save settles. A block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. Call it after the `onSave` promise settles to pick up server-computed fields. */
+  /**
+   * Fetches the current page again and keeps the rows on screen until the answer lands. A row with a pending edit, delete, or in-flight save keeps its local state.
+   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles.
+   * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
+   */
   refresh: () => void;
   /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
   reshape: () => void;
