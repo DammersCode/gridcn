@@ -15,7 +15,7 @@ import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { parseLegacyJoin } from "./join-param";
-import { prefixedKey } from "./prefixed-key";
+import { prefixedKey, useWarnSharedPrefix } from "./prefixed-key";
 
 /** Smallest `isAnyOf` / `isNoneOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
 const MIN_CHOICE_BOUND = 64;
@@ -87,6 +87,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const syncSort = specParts.includes("sort");
   const syncFilter = specParts.includes("filter");
   const syncSearch = specParts.includes("search");
+  useWarnSharedPrefix("useDataGridUrlState", prefix);
   const layoutParts = layout.join(",");
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();

@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useQueryState } from "nuqs";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { parsePage, parsePageSize, serializePage, serializePageSize } from "./page-param";
-import { prefixedKey } from "./prefixed-key";
+import { prefixedKey, useWarnSharedPrefix } from "./prefixed-key";
 
 /** Options for {@link useDataGridUrlPagination}. */
 export type UseDataGridUrlPaginationOptions = {
@@ -47,6 +47,7 @@ export type UseDataGridUrlPaginationResult = {
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
   const { prefix, pageSizeOptions } = options;
+  useWarnSharedPrefix("useDataGridUrlPagination", prefix);
   const resolvedPageSizeOptions: readonly number[] = pageSizeOptions ?? DEFAULT_PAGE_SIZES;
   const defaultPageSize = options.defaultPageSize ?? resolvedPageSizeOptions[0]!;
 
