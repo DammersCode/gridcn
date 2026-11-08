@@ -44,7 +44,7 @@ describe("serializeCopyScope cell-count cap", () => {
       selection: { ...emptySelection(), rows: CompactSelection.fromArray([0, 2, 3]) },
     });
     const scope = resolveCopyScope(s)!;
-    expect(scope).toEqual({ kind: "rows", rows: [0, 2, 3] });
+    expect(scope).toEqual({ kind: "rows", rows: [[0, 1], [2, 4]] });
     expect(serializeCopyScope(s, scope)).toEqual([
       ["row-0", "0"],
       ["row-2", "2"],
@@ -163,6 +163,22 @@ describe("serializeCopyScope cell-count cap", () => {
     const result = serializeCopyScope(s, scope);
     expect(result.length).toBe(rowCap);
     expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(`gridcn: copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
+  });
+
+  it("copies 1,000,000 checked rows up to the cap without materializing the channel", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const totalRows = 1_000_000;
+    const rowCap = Math.floor(MAX_COPY_CELLS / columns.length);
+    const checked = CompactSelection.fromSingleSelection([0, totalRows]);
+    const toArray = vi.spyOn(checked, "toArray");
+    // Only the rows up to the cap are read, so the data stops there.
+    const s = fakeState({ data: bigRows(rowCap), selection: { ...emptySelection(), rows: checked } });
+    const scope = resolveCopyScope(s)!;
+    const result = serializeCopyScope(s, scope);
+    expect(toArray).not.toHaveBeenCalled();
+    expect(result.length).toBe(rowCap);
+    expect(result[rowCap - 1]).toEqual([`row-${rowCap - 1}`, String(rowCap - 1)]);
     expect(warn).toHaveBeenCalledWith(`gridcn: copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
   });
 });

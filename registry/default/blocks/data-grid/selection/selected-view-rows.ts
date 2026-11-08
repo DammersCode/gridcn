@@ -1,3 +1,4 @@
+import { compactSelectionFromRuns } from "./compact-selection";
 import type { GridSelection } from "../types";
 
 /**
@@ -10,14 +11,7 @@ import type { GridSelection } from "../types";
  */
 export function getSelectedViewRows(selection: GridSelection, options: { checkedRowsOnly?: boolean } = {}): number[] {
   if (options.checkedRowsOnly && selection.rows.length > 0) return selection.rows.toArray();
-  const rows = new Set<number>();
   const current = selection.current;
-  if (current) {
-    const rects = [current.range, ...current.rangeStack];
-    for (const rect of rects) {
-      for (let row = rect.y; row < rect.y + rect.height; row++) rows.add(row);
-    }
-  }
-  for (const row of selection.rows.toArray()) rows.add(row);
-  return Array.from(rows).sort((a, b) => a - b);
+  const rectSpans: (readonly [number, number])[] = current ? [current.range, ...current.rangeStack].map((rect) => [rect.y, rect.y + rect.height] as const) : [];
+  return compactSelectionFromRuns(rectSpans.concat(selection.rows.runs())).toArray();
 }

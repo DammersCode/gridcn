@@ -1,4 +1,4 @@
-import { CompactSelection } from "./compact-selection";
+import { compactSelectionFromRuns } from "./compact-selection";
 import type { ViewCoord, GridRect, GridSelection } from "../types";
 
 /** Shifts the row selection channel and any range rects to follow a row insert/delete at `atIndex`. */
@@ -16,14 +16,15 @@ export function offsetSelectionForRows(selection: GridSelection, atIndex: number
   const shiftCell = (cell: ViewCoord): ViewCoord =>
     cell.row >= atIndex ? { ...cell, row: Math.max(atIndex, cell.row + delta) } : cell;
 
-  // Only members at/after atIndex move; earlier members are untouched.
-  const before = selection.rows.toArray().filter((r) => r < atIndex);
-  const afterShifted = selection.rows
-    .toArray()
-    .filter((r) => r >= atIndex)
-    .map((r) => Math.max(atIndex, r + delta))
-    .filter((r) => r >= 0);
-  const rows = CompactSelection.fromArray([...before, ...afterShifted]);
+  // Members before atIndex stay; a member r at/after it moves to max(atIndex, r + delta), and negatives drop.
+  const runs: (readonly [number, number])[] = [];
+  for (const [start, end] of selection.rows.runs()) {
+    if (start < atIndex) runs.push([start, Math.min(end, atIndex)]);
+    if (end <= atIndex) continue;
+    const from = Math.max(start, atIndex);
+    runs.push([Math.max(0, atIndex, from + delta), Math.max(atIndex, end - 1 + delta) + 1]);
+  }
+  const rows = compactSelectionFromRuns(runs);
 
   return {
     current: selection.current

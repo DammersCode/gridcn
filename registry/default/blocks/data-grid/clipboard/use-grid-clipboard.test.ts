@@ -74,9 +74,9 @@ describe("resolveCopyScope", () => {
     expect(resolveCopyScope(s)).toEqual({ kind: "rect", rect: { x: 0, y: 0, width: 1, height: 1 } });
   });
 
-  it("falls back to the selected rows' member list when there is no range", () => {
+  it("falls back to the selected rows' runs when there is no range", () => {
     const s = fakeState({ selection: { ...emptySelection(), rows: CompactSelection.fromArray([1, 2]) } });
-    expect(resolveCopyScope(s)).toEqual({ kind: "rows", rows: [1, 2] });
+    expect(resolveCopyScope(s)).toEqual({ kind: "rows", rows: [[1, 3]] });
   });
 
   it("falls back to the selected columns' member list when there is no range or row selection", () => {
@@ -86,7 +86,7 @@ describe("resolveCopyScope", () => {
 
   it("keeps disjoint row members separate, not a min..max bounding range", () => {
     const s = fakeState({ selection: { ...emptySelection(), rows: CompactSelection.fromArray([0, 3]) } });
-    expect(resolveCopyScope(s)).toEqual({ kind: "rows", rows: [0, 3] });
+    expect(resolveCopyScope(s)).toEqual({ kind: "rows", rows: [[0, 1], [3, 4]] });
   });
 
   it("returns null when nothing is selected", () => {

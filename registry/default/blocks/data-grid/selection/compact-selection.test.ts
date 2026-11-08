@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CompactSelection } from "./compact-selection";
+import { CompactSelection, compactSelectionFromRuns, forEachMember, runsLength } from "./compact-selection";
 
 describe("CompactSelection", () => {
   it("empty() returns a shared singleton with zero length", () => {
@@ -259,5 +259,31 @@ describe("CompactSelection", () => {
       expect(adopted).toBeInstanceOf(CompactSelection);
       expect(adopted.toArray()).toEqual([4, 5, 9]);
     });
+  });
+});
+
+describe("compactSelectionFromRuns", () => {
+  it("sorts, merges overlapping and touching runs, and drops empty ones", () => {
+    expect(compactSelectionFromRuns([[8, 10], [0, 2], [1, 4], [4, 5], [6, 6], [7, 3]]).runs()).toEqual([[0, 5], [8, 10]]);
+  });
+
+  it("returns the shared empty selection for no members", () => {
+    expect(compactSelectionFromRuns([[3, 3]])).toBe(CompactSelection.empty());
+  });
+
+  it("matches fromArray on the same members", () => {
+    expect(compactSelectionFromRuns([[5, 7], [1, 2]]).equals(CompactSelection.fromArray([6, 1, 5]))).toBe(true);
+  });
+});
+
+describe("forEachMember and runsLength", () => {
+  it("visits the members in order and stops at the limit", () => {
+    const seen: number[] = [];
+    forEachMember([[0, 2], [5, 8]], (index) => seen.push(index), 4);
+    expect(seen).toEqual([0, 1, 5, 6]);
+  });
+
+  it("counts the members of the runs", () => {
+    expect(runsLength([[0, 2], [5, 8], [9, 9]])).toBe(5);
   });
 });

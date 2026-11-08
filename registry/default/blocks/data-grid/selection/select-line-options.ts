@@ -1,4 +1,4 @@
-import { CompactSelection } from "./compact-selection";
+import { CompactSelection, compactSelectionFromRuns } from "./compact-selection";
 import type { CompactSelectionLike } from "../types";
 
 /**
@@ -24,8 +24,7 @@ export function selectLine(
   index: number,
   opts: SelectLineOptions = {},
 ): CompactSelection {
-  // only a structural CompactSelectionLike needs the fromArray materialization; a compact channel is used in place
-  const channel = channelLike instanceof CompactSelection ? channelLike : CompactSelection.fromArray(channelLike.toArray());
+  const channel = channelLike instanceof CompactSelection ? channelLike : compactSelectionFromRuns(channelLike.runs());
   if (opts.extendFromLast) {
     const last = opts.from ?? channel.last() ?? index;
     const start = Math.min(last, index);

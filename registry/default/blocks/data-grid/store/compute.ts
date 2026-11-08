@@ -28,7 +28,7 @@ import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
-import { CompactSelection } from "../selection/compact-selection";
+import { CompactSelection, forEachMember } from "../selection/compact-selection";
 import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
@@ -147,12 +147,12 @@ export function remapRowChannel(
 ): CompactSelectionLike {
   if (rows.length === 0 || (prevViewIndex === nextViewIndex && !toNextDataRow)) return rows;
   const wanted = new Set<number>();
-  for (const viewRow of rows.toArray()) {
+  forEachMember(rows.runs(), (viewRow) => {
     const prevDataRow = prevViewIndex[viewRow];
-    if (prevDataRow === undefined) continue;
+    if (prevDataRow === undefined) return;
     const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
     if (nextDataRow !== undefined) wanted.add(nextDataRow);
-  }
+  });
   const found: number[] = [];
   for (let viewRow = 0; viewRow < nextViewIndex.length && found.length < wanted.size; viewRow++) {
     if (wanted.has(nextViewIndex[viewRow]!)) found.push(viewRow);
@@ -170,11 +170,11 @@ export function remapColumnChannel(
   if (columns.length === 0 || prevVisibleColumns === nextVisibleColumns) return columns;
   const nextIndexById = new Map(nextVisibleColumns.map((column, index) => [column.id, index] as const));
   const found: number[] = [];
-  for (const col of columns.toArray()) {
+  forEachMember(columns.runs(), (col) => {
     const id = prevVisibleColumns[col]?.id;
     const next = id === undefined ? undefined : nextIndexById.get(id);
     if (next !== undefined) found.push(next);
-  }
+  });
   const next = CompactSelection.fromArray(found);
   return columns.equals(next) ? columns : next;
 }

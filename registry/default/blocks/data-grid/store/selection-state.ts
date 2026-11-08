@@ -7,7 +7,7 @@
  * no longer resolves falls back to its data index, so it stays positional.
  */
 import type { CellRange, CellRef, GridRect, GridSelection, SelectionState, ViewCoord } from "../types";
-import { CompactSelection } from "../selection/compact-selection";
+import { CompactSelection, forEachMember } from "../selection/compact-selection";
 import { rectContains, rectFromCorners, rectsEqual } from "../selection/rects";
 import type { AnyColumnDef, DataGridStoreState } from "./types";
 import type { RowIndexCache } from "./row-index";
@@ -83,22 +83,22 @@ export function cellRefAtViewCoord(s: SelectionStateSource, coord: ViewCoord): C
 /** Row ids of the row channel, view order; an unloaded lazy row carries its placeholder id. */
 export function deriveRowIds(s: SelectionStateSource): string[] {
   const out: string[] = [];
-  for (const viewRow of s.selection.rows.toArray()) {
+  forEachMember(s.selection.rows.runs(), (viewRow) => {
     const dataRowIndex = s.viewIndex[viewRow];
-    if (dataRowIndex === undefined) continue;
+    if (dataRowIndex === undefined) return;
     const row = s.data[dataRowIndex];
     out.push(row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex));
-  }
+  });
   return out;
 }
 
 /** Column ids of the column channel, view order. */
 export function deriveColumnIds(s: SelectionStateSource): string[] {
   const out: string[] = [];
-  for (const col of s.selection.columns.toArray()) {
+  forEachMember(s.selection.columns.runs(), (col) => {
     const id = s.visibleColumns[col]?.id;
     if (id !== undefined) out.push(id);
-  }
+  });
   return out;
 }
 

@@ -2,6 +2,7 @@
 type Slice = readonly [start: number, end: number];
 
 let sharedEmpty: CompactSelection | undefined;
+let fromMergedSlices: (slices: readonly Slice[]) => CompactSelection;
 
 /**
  * Immutable run-length-encoded integer set: sorted, merged, half-open `[start, end)` slices.
@@ -12,6 +13,10 @@ export class CompactSelection {
 
   private constructor(slices: readonly Slice[]) {
     this.slices = slices;
+  }
+
+  static {
+    fromMergedSlices = (slices) => new CompactSelection(slices);
   }
 
   /** Shared empty singleton. */
@@ -213,4 +218,43 @@ export class CompactSelection {
     }
     return true;
   }
+}
+
+/** A selection of the members of `runs`: half-open `[start, end)` runs in any order, overlapping or empty ones included. */
+export function compactSelectionFromRuns(runs: readonly Slice[]): CompactSelection {
+  const sorted = runs.filter(([start, end]) => start < end).sort((a, b) => a[0] - b[0]);
+  const first = sorted[0];
+  if (!first) return CompactSelection.empty();
+  const merged: Slice[] = [];
+  let [start, end] = first;
+  for (let i = 1; i < sorted.length; i++) {
+    const [s, e] = sorted[i]!; // i < sorted.length by loop condition
+    if (s <= end) {
+      if (e > end) end = e;
+    } else {
+      merged.push([start, end]);
+      start = s;
+      end = e;
+    }
+  }
+  merged.push([start, end]);
+  return fromMergedSlices(merged);
+}
+
+/** Calls `visit` with each member of `runs` in ascending order, stopping after `limit` members. */
+export function forEachMember(runs: readonly Slice[], visit: (index: number) => void, limit = Infinity): void {
+  let left = limit;
+  for (const [start, end] of runs) {
+    for (let index = start; index < end; index++) {
+      if (left-- <= 0) return;
+      visit(index);
+    }
+  }
+}
+
+/** Member count of `runs`. */
+export function runsLength(runs: readonly Slice[]): number {
+  let total = 0;
+  for (const [start, end] of runs) total += Math.max(0, end - start);
+  return total;
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, type RefObject } from "react";
 import type { ViewCoord, GridRect } from "../types";
 import { getCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
+import { forEachMember, runsLength } from "../selection/compact-selection";
 import { gridAttrSelector } from "../data-attributes";
 import { closestGridRoot } from "../interaction/closest-grid-root";
 import { serializeCells } from "./serialize-cells";
@@ -27,17 +28,20 @@ export type UseGridClipboardOptions = {
 /**
  * Copy scope: the primary range if one exists (ignoring the range
  * stack — multi-rect copy is document-scoped to the primary range only), else the selected rows
- * (full width) or selected columns (full height) as their disjoint member lists — a CompactSelection
- * from Ctrl-click is RLE and may hold non-contiguous members, so this must not collapse to a
- * min..max bounding rect (that would silently include unselected rows/columns in between).
+ * (full width) as their disjoint `[start, end)` runs or the selected columns (full height) as their
+ * disjoint member list — a CompactSelection from Ctrl-click is RLE and may hold non-contiguous
+ * members, so this must not collapse to a min..max bounding rect (that would silently include
+ * unselected rows/columns in between).
  */
-export type CopyScope = { kind: "rect"; rect: GridRect } | { kind: "rows"; rows: number[] } | { kind: "columns"; columns: number[] };
+export type CopyScope = { kind: "rect"; rect: GridRect } | { kind: "rows"; rows: readonly RowRun[] } | { kind: "columns"; columns: number[] };
+
+type RowRun = readonly [start: number, end: number];
 
 /** Resolves the copy scope; returns null when nothing is selected. Exported for direct unit testing; not part of the public hook surface. */
 export function resolveCopyScope(s: DataGridStoreState): CopyScope | null {
   if (s.selection.current) return { kind: "rect", rect: s.selection.current.range };
-  const rows = s.selection.rows.toArray();
-  if (rows.length > 0) return { kind: "rows", rows };
+  if (s.selection.rows.length > 0) return { kind: "rows", rows: s.selection.rows.runs() };
+  // The column channel holds at most one member per visible column.
   const cols = s.selection.columns.toArray();
   if (cols.length > 0) return { kind: "columns", columns: cols };
   return null;
@@ -90,22 +94,22 @@ export const MAX_COPY_CELLS = 200_000;
  * hoisted OUTSIDE the row loop, instead of `serializeRowSlice`'s per-(row,col) re-resolution.
  * Truncates at {@link MAX_COPY_CELLS}.
  */
-function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], cols: readonly number[]): string[][] {
+function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], cols: readonly number[]): string[][] {
   const resolved = cols.map((col) => {
     const column = s.visibleColumns[col];
     return column ? { column, cellType: s.cellTypes[column.type ?? "text"] } : null;
   });
 
-  const maxRows = cols.length === 0 ? rows.length : Math.max(1, Math.floor(MAX_COPY_CELLS / cols.length));
-  const rowCount = Math.min(rows.length, maxRows);
+  const total = runsLength(rows);
+  const maxRows = cols.length === 0 ? total : Math.max(1, Math.floor(MAX_COPY_CELLS / cols.length));
+  const rowCount = Math.min(total, maxRows);
   // A truncated copy warns in development, as the paste cap does in runPaste.
-  if (rowCount < rows.length && isDev()) {
-    console.warn(`gridcn: copy truncated to ${rowCount} of ${rows.length} rows (MAX_COPY_CELLS)`);
+  if (rowCount < total && isDev()) {
+    console.warn(`gridcn: copy truncated to ${rowCount} of ${total} rows (MAX_COPY_CELLS)`);
   }
 
   const out: string[][] = [];
-  for (let r = 0; r < rowCount; r++) {
-    const viewRow = rows[r]!; // r < rowCount <= rows.length
+  forEachMember(rows, (viewRow) => {
     const dataRowIndex = s.viewIndex[viewRow];
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     const cells: string[] = [];
@@ -123,13 +127,13 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly number[], c
       cells.push(text);
     }
     out.push(cells);
-  }
+  }, rowCount);
   return out;
 }
 
-/** All view-row indices `[0, rowCount)`, as a plain array — the "columns" scope's implicit row list. */
-function allViewRows(s: DataGridStoreState): number[] {
-  return Array.from({ length: s.viewIndex.length }, (_, i) => i);
+/** Every view row as one run — the "columns" scope's implicit row list. */
+function allViewRows(s: DataGridStoreState): readonly RowRun[] {
+  return [[0, s.viewIndex.length]];
 }
 
 /**
@@ -166,16 +170,14 @@ export function copyScopeCellIds(s: DataGridStoreState, scope: CopyScope): { row
   const viewCols: readonly number[] =
     scope.kind === "rect" ? span(scope.rect.x, scope.rect.width) : scope.kind === "rows" ? span(0, s.visibleColumns.length) : scope.columns;
   const maxRows = Math.max(1, Math.floor(MAX_COPY_CELLS / Math.max(1, viewCols.length)));
-  const viewRows: readonly number[] =
-    scope.kind === "rect"
-      ? span(scope.rect.y, Math.min(scope.rect.height, maxRows))
-      : (scope.kind === "rows" ? scope.rows : allViewRows(s)).slice(0, maxRows);
+  const viewRows: readonly RowRun[] =
+    scope.kind === "rect" ? [[scope.rect.y, scope.rect.y + Math.min(scope.rect.height, maxRows)]] : scope.kind === "rows" ? scope.rows : allViewRows(s);
   const rowIds: string[] = [];
-  for (const viewRow of viewRows) {
+  forEachMember(viewRows, (viewRow) => {
     const dataRowIndex = s.viewIndex[viewRow];
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     if (row !== undefined) rowIds.push(s.getRowId(row, dataRowIndex!));
-  }
+  }, maxRows);
   const columnIds = viewCols.flatMap((col) => {
     const column = s.visibleColumns[col];
     return column ? [column.id] : [];

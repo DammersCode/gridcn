@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { CompactSelection, type CellType, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { buildExportHeaders, buildExportRows, buildXlsx, downloadBlob, exportGrid, quoteCsvField, rowsToCsv, type ExportGridOptions } from "./export-grid";
 import { parseImportFile } from "./parse-import-file";
 import { listZip, XLSX_TYPE } from "./xlsx-fixtures.test-helper";
@@ -163,7 +163,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   it("scope 'selection' exports the rows a cell range covers, in view order", () => {
     const state = makeState({
       selection: {
-        rows: { hasIndex: () => false, toArray: () => [] },
+        rows: CompactSelection.empty(),
         current: { range: { x: 0, y: 1, width: 1, height: 2 }, rangeStack: [] },
       } as never,
     });
@@ -174,7 +174,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   it("scope 'selection' reads ctrl-click stacked ranges too", () => {
     const state = makeState({
       selection: {
-        rows: { hasIndex: () => false, toArray: () => [] },
+        rows: CompactSelection.empty(),
         current: {
           range: { x: 0, y: 0, width: 1, height: 1 },
           rangeStack: [{ x: 0, y: 2, width: 1, height: 1 }],
@@ -187,7 +187,7 @@ describe("buildExportRows / buildExportHeaders", () => {
 
   it("scope 'selection' reads the rows channel (checkbox markers) too", () => {
     const state = makeState({
-      selection: { rows: { hasIndex: () => false, toArray: () => [0] }, current: null } as never,
+      selection: { rows: CompactSelection.fromArray([0]), current: null } as never,
     });
     const rows = buildExportRows(state, "selection");
     expect(rows.map((r) => r[0])).toEqual(["Alice"]);
@@ -195,7 +195,7 @@ describe("buildExportRows / buildExportHeaders", () => {
 
   it("scope 'selection' with keepCheckedRows exports only the checked rows while any exist", () => {
     const selection = {
-      rows: { length: 1, hasIndex: () => false, toArray: () => [2] },
+      rows: CompactSelection.fromArray([2]),
       current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
     } as never;
     expect(buildExportRows(makeState({ selection, keepCheckedRows: true }), "selection").map((r) => r[0])).toEqual(["Ünïcödé"]);
@@ -206,7 +206,7 @@ describe("buildExportRows / buildExportHeaders", () => {
     const state = makeState({
       viewIndex: [2, 1, 0],
       selection: {
-        rows: { hasIndex: () => false, toArray: () => [] },
+        rows: CompactSelection.empty(),
         current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
       } as never,
     });
@@ -215,7 +215,7 @@ describe("buildExportRows / buildExportHeaders", () => {
   });
 
   it("scope 'selection' exports nothing when nothing is selected", () => {
-    const state = makeState({ selection: { rows: { hasIndex: () => false, toArray: () => [] }, current: null } as never });
+    const state = makeState({ selection: { rows: CompactSelection.empty(), current: null } as never });
     expect(buildExportRows(state, "selection")).toEqual([]);
   });
 
@@ -236,7 +236,7 @@ describe("buildExportRows / buildExportHeaders", () => {
       viewIndex: [0, 1, 2, 3],
       visibleColumns: columns,
       selection: {
-        rows: { hasIndex: () => false, toArray: () => [] },
+        rows: CompactSelection.empty(),
         current: { range: { x: 0, y: 0, width: 2, height: 4 }, rangeStack: [] },
       } as never,
     });

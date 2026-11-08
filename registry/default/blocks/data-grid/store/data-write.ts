@@ -50,6 +50,7 @@ import {
   selectCell as selectCellPure,
   selectionRects,
 } from "../selection";
+import { forEachMember } from "../selection/compact-selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
@@ -303,10 +304,10 @@ export function followActiveRow(s: DataGridStoreState, nextData: readonly unknow
   let rows = emptySelection().rows;
   if (checked.length > 0) {
     const records = new Set<unknown>();
-    for (const viewRow of checked.toArray()) {
+    forEachMember(checked.runs(), (viewRow) => {
       const record = s.data[s.viewIndex[viewRow] ?? -1];
       if (record !== undefined) records.add(record);
-    }
+    });
     const nextIndexOf = new Map<unknown, number>();
     nextData.forEach((record, index) => {
       if (records.has(record)) nextIndexOf.set(record, index);
