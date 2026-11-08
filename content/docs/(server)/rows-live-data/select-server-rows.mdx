@@ -12,16 +12,16 @@ A server grid holds one page, or the loaded part of a scroll-mode source. Declar
 
 ## Declare the result [#selection-over-a-server-result]
 
-Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `checkedRowsLifetime="across-filters"` keeps the checks across page changes and on a cell click. `useDataGridServerRows` sets `totalRowCount` and `checkedRowsLifetime="across-filters"` in `gridProps` and `providerProps`.
+Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `totalRowCount` makes `checkedRowsLifetime` default to `'across-filters'`, which keeps the checks across page changes and on a cell click. An explicit value overrides the default. `useDataGridServerRows` sets `totalRowCount` and `checkedRowsLifetime="across-filters"` in `gridProps` and `providerProps`.
 
 {/* props: DataGridSyncProps */}
 
 | Prop | Description | Default |
 | --- | --- | --- |
 | `totalRowCount` | The size of the result. A negative or non-finite number counts as `null`. | none |
-| `checkedRowsLifetime` <NewBadge /> | With `'across-filters'`, a checked row stays checked by row id when it leaves `data`, and a cell selection keeps the checks. Row operations then act on the checked rows only. | `'until-click'` |
+| `checkedRowsLifetime` <NewBadge /> | With `'across-filters'`, a checked row stays checked by row id when it leaves `data`, and a cell selection keeps the checks. Row operations then act on the checked rows only. | `'across-filters'` with `totalRowCount`, else `'until-click'` |
 
-With `totalRowCount` and `checkedRowsLifetime="across-filters"` set:
+With `totalRowCount` and `checkedRowsLifetime="across-filters"` in effect:
 
 - A checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked. This works in every mode.
 - `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
@@ -85,7 +85,7 @@ The server applies the action to every row that matches `spec`, except the exclu
 
 ## Use the select-all banner [#the-select-all-banner]
 
-If you set `totalRowCount`, `DataGridStatusBar` shows a banner:
+If you set `totalRowCount` and `checkedRowsLifetime="across-filters"`, `DataGridStatusBar` shows a banner:
 
 - When you check every row of a page and the result is larger, it shows "All 10 on this page are selected." The button reads "Select all 237 matching", or "Select all matching" for `null`.
 - After the button, it reads "All 237 selected.", or "All matching rows are selected." for `null`, with the button "Clear selection". The count drops by one for each row you uncheck.
@@ -99,7 +99,6 @@ These end it:
 
 - `clearSelection()`, `setSelection(null)`, and an empty controlled `selection`
 - Escape, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, and the header checkbox turned off
-- A plain cell click, an arrow key, a plain header click, or <kbd>Ctrl</kbd>+<kbd>Space</kbd> under `'until-click'`
 - A plain click on a row number, or <kbd>Shift</kbd>+<kbd>Space</kbd>
 - A change of the filter or the search text
 - A row delete: `deleteRows`, `deleteRowsById`, or the context menu Delete item

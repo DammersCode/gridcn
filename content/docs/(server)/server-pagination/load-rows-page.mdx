@@ -153,6 +153,7 @@ export function OrdersGrid() {
         onDataChange={setRows}
         columns={columns}
         getRowId={(row) => row.id}
+        rowMarkers="checkbox"
         filterMode="server"
         filterState={filters}
         onFilterChange={(next) => {

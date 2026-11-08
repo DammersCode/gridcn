@@ -90,7 +90,7 @@ Applies to streaming on top of either:
 
 ## Selection over a server result
 
-- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); add `checkedRowsLifetime="across-filters"` to keep and act on the checks. It makes checks survive page changes, evictions, and server sort or filter changes, by row id.
+- A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); `totalRowCount` makes `checkedRowsLifetime` default to `"across-filters"` (an explicit value wins), which keeps and acts on the checks. It makes checks survive page changes, evictions, and server sort or filter changes, by row id.
 - "Select all N matching": `actions.selectAllMatching()`. Read the selection with `useDataGridSelectedRows()`: `{ mode: "ids", ids }` or `{ mode: "allMatching", excludedIds, count }`. Send it with the request spec (sort, filter, search) to your own endpoint.
 - While `allMatching` is on, the Delete rows, Duplicate row, and Move rows shortcuts do nothing, because the grid does not hold the checked rows.
 
@@ -109,6 +109,6 @@ Applies to streaming on top of either:
 
 ## Selection UI and text inputs
 
-- Ctrl+A is a range action and never checks rows: it unchecks every row, the remembered ones too, and ends "all matching". The header checkbox reads the checked rows only. With `totalRowCount`, `DataGridStatusBar` shows the banner "Select all N matching" once every row of the page is checked; do not build your own button.
+- Ctrl+A is a range action and never checks rows: it unchecks every row, the remembered ones too, and ends "all matching". The header checkbox reads the checked rows only. With `totalRowCount` and `checkedRowsLifetime="across-filters"`, `DataGridStatusBar` shows the banner "Select all N matching" once every row of the page is checked; do not build your own button.
 - `inputDebounceMs` on the provider (default 200, `0` = each keystroke) sets the wait of the toolbar search, filter value inputs, set-filter search, and find & replace. For your own debounced text input use `useDebouncedInput` from the `use-debounce` item (commits on blur, Enter, and unmount; waits for an IME composition).
 - To wait for typing to pause in `useDataGridServerRows`, wait inside `fetchRows`: `await delay(300, signal)`.

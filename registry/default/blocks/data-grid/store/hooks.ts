@@ -663,7 +663,7 @@ export function useDataGridSelectionConfig(): {
 /**
  * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
  * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `checkedRowsLifetime="across-filters"`
- * to cover rows outside `data`. The value changes only when the selection or the data does.
+ * to cover rows outside `data`. The value changes when the selection, the data, the view (sort, filter, search), or `totalRowCount` does.
  */
 export function useDataGridSelectedRows(): DataGridSelectedRows {
   const rows = useDataGridStore((s) => s.selection.rows);

@@ -274,9 +274,9 @@ describe("useDataGridSelectedRows", () => {
     expect(m.selected()).toMatchObject({ mode: "allMatching", spec: { sorts, filters, searchText: "q" } });
   });
 
-  it("a grid with totalRowCount and no checkedRowsLifetime keeps the default until-click", () => {
+  it("a grid with totalRowCount and no checkedRowsLifetime defaults to across-filters", () => {
     const m = mountWithHook({ checkedRowsLifetime: undefined });
-    expect(m.api().getState().checkedRowsLifetime).toBe("until-click");
+    expect(m.api().getState().checkedRowsLifetime).toBe("across-filters");
   });
 
   it("skips skeleton rows in ids", () => {
@@ -319,12 +319,16 @@ describe("select all matching and the result spec", () => {
     expect(m.state().allMatching).toBe(true);
   });
 
-  it("totalRowCount alone does not turn the id memory on", () => {
+  it("totalRowCount alone turns on across-filters, and an explicit until-click turns it off", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ checkedRowsLifetime: undefined });
-    expect(m.state().checkedRowsLifetime).toBe("until-click");
+    expect(m.state().checkedRowsLifetime).toBe("across-filters");
     act(() => m.state().actions.selectAllMatching());
-    expect(m.state().allMatching).toBe(false);
+    expect(m.state().allMatching).toBe(true);
+    cleanup();
+    const off = mount({ checkedRowsLifetime: "until-click" });
+    act(() => off.state().actions.selectAllMatching());
+    expect(off.state().allMatching).toBe(false);
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
@@ -417,11 +421,20 @@ describe("onBeforeDeleteRows while all-matching is on", () => {
 });
 
 describe("remembered checks and a cell click", () => {
-  it("a cell click keeps the remembered ids and all-matching under across-filters", () => {
+  it("a cell click keeps all-matching under across-filters", () => {
     const m = mount();
     act(() => m.state().actions.selectAllMatching());
     act(() => m.state().actions.selectCell({ rowId: m.state().getRowId(m.state().data[0]!, 0), columnId: m.state().visibleColumns[0]!.id }));
     expect(m.state().allMatching).toBe(true);
+  });
+
+  it("removing totalRowCount on a client-sorted, client-filtered grid ends all-matching", () => {
+    const m = mount({ sortMode: "client", filterMode: "client" });
+    act(() => m.state().actions.selectAllMatching());
+    expect(m.state().allMatching).toBe(true);
+    m.rerender({ sortMode: "client", filterMode: "client", totalRowCount: undefined });
+    expect(m.state().allMatching).toBe(false);
+    expect(m.state().selection.rows.length).toBe(0);
   });
 
   it("switching to until-click releases the remembered ids and all-matching", () => {

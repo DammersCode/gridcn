@@ -182,15 +182,15 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
   /**
-   * How long the checked rows last. Default `'until-click'`.
+   * How long the checked rows last. Default `'across-filters'` with `totalRowCount`, else `'until-click'`; an explicit value always wins.
    * - `'until-click'`: a cell or column selection (click, arrows, Shift or Ctrl click, a header click, Ctrl+Space) clears the checked rows.
    * - `'until-cleared'`: the checked rows stay across those gestures, and row operations (delete, duplicate, move, the cell menu's
-   *   row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a row delete, and `clearSelection`
-   *   still change the checks.
+   *   row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a click on a row number, a row delete,
+   *   and `clearSelection` still change the checks.
    * - `'across-filters'`: like `'until-cleared'`, and a checked row is remembered by id when it leaves the view (a page change, a window
    *   move, a filter that hides it) and checked again when it returns. Remembered rows stay out of every row action, the controlled
    *   `selection`, and select all; `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with
-   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount` behaves like `'until-cleared'`.
+   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a lazy grid, behave like `'until-cleared'`.
    */
   checkedRowsLifetime?: CheckedRowsLifetime;
   /**

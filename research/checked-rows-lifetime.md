@@ -6,20 +6,21 @@ Status: 2.0. One prop, `checkedRowsLifetime`, replaces `keepCheckedRows`, `keepH
 
 | Value | Meaning |
 |---|---|
-| `'until-click'` (default) | A cell or column selection clears the checked rows. |
-| `'until-cleared'` | Checks stay across cell and column selections. Only Escape, marker and header checkboxes, `clearSelection()`, and row deletes change them. Row operations act on the checked rows only. |
+| `'until-click'` (default without `totalRowCount`) | A cell or column selection clears the checked rows. |
+| `'until-cleared'` | Checks stay across cell and column selections. Only Escape, Ctrl+A, a click on a row number, marker and header checkboxes, `clearSelection()`, and row deletes change them. Row operations act on the checked rows only. |
 | `'across-filters'` | `'until-cleared'`, and a checked row that leaves the view is remembered by row id and checked again when it returns. |
 
 ## Mapping from 1.x
 
-- Neither prop: `'until-click'`.
+- Neither prop: `'until-click'`, or `'across-filters'` with `totalRowCount` (the default follows `totalRowCount`; an explicit value wins).
 - `keepCheckedRows`: `'until-cleared'`.
 - `keepCheckedRows` and `keepHiddenCheckedRows`: `'across-filters'`.
-- `keepHiddenCheckedRows` alone remembered the rows a filter hid, and a cell click released them and the checks. No value keeps that mix: pick `'across-filters'` (checks stay on a cell click) or `'until-click'` (no memory).
+- `keepHiddenCheckedRows` alone had no effect in 1.x; drop it.
+- `totalRowCount` with `keepCheckedRows`: set `'until-cleared'` to keep the 1.x behavior.
 
 ## Modes
 
 - Client grid: `'across-filters'` remembers rows a client filter or a page change hides.
 - Server grid (`totalRowCount`): `'across-filters'` remembers in every mode, and `actions.selectAllMatching()` needs it. `useDataGridServerRows` and the scroll hook set it.
 - `sortMode="server"` or `filterMode="server"` without `totalRowCount`, or a lazy source with unloaded rows: `'across-filters'` behaves like `'until-cleared'` and warns once in development per instance.
-- `totalRowCount` alone no longer turns the memory on. The remembered ids and "all matching" exist only under `'across-filters'`, so a cell click never has to release them.
+- The remembered ids and "all matching" exist only under `'across-filters'`, so a cell click never has to release them. The select-all banner shows only under `'across-filters'`. Removing `totalRowCount` or changing the lifetime ends "all matching".

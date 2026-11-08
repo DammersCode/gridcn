@@ -302,7 +302,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/selection/compact-selection.test.ts"
+            "registry/default/blocks/data-grid/store/checked-rows-lifetime.test.tsx"
           ]
         },
         "PC": {

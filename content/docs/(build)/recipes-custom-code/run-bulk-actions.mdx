@@ -12,7 +12,7 @@ A bulk bar needs the checked row ids and one write for each button. Checkbox row
 
 - Give every row a stable `id`, or pass `getRowId`.
 - Install [`data-grid-io`](/docs/import-export/export) for the export button.
-- To make the writes undoable, mount [`useDataGridHistory`](/docs/clipboard-undo/undo-redo).
+- To make the writes undoable, own the data with [`useDataGridState`](/docs/clipboard-undo/undo-redo#quick-start-usedatagridstate). `defaultData` keeps no history.
 
 ## Steps
 
@@ -34,6 +34,7 @@ import {
   defineColumns,
   type DataGridApi,
 } from "@/components/data-grid/data-grid";
+import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
 import { exportGrid } from "@/components/data-grid-io/data-grid-io";
 import { Button } from "@/components/ui/button";
 
@@ -45,6 +46,7 @@ const columns = defineColumns<Order>()([
 ] as const);
 
 export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
+  const grid = useDataGridState(initialOrders);
   const gridRef = useRef<DataGridApi<Order> | null>(null);
   const [checkedCount, setCheckedCount] = useState(0);
 
@@ -78,8 +80,8 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
         </div>
       )}
       <DataGrid
+        {...grid}
         ref={gridRef}
-        defaultData={initialOrders}
         columns={columns}
         rowMarkers="checkbox"
         checkedRowsLifetime="until-cleared"

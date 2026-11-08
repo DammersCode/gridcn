@@ -20,7 +20,7 @@ mirror the change there.
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | keep checks, remember checks |
-| hidden checked row | A checked row that the current filter hides. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
+| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |

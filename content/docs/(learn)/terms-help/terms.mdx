@@ -76,7 +76,7 @@ A term row links to the page that explains it.
 | save | Sending a change to a server through `onSave`. | [Save edits](/docs/save-server/save-edits) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
-| hidden checked row | A checked row that the current filter hides. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. | [Row order](/docs/rows-pages-menus/row-order) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). | [Server rows contract](/docs/contracts/server-rows-contract) |
 | value query | The text a `fetchFilterValues` request carries as `query`. | [Server rows contract](/docs/contracts/server-rows-contract) |

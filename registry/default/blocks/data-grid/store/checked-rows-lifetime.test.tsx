@@ -79,7 +79,7 @@ describe("checkedRowsLifetime", () => {
     expect(state().selection.rows.toArray()).toEqual([0, 1]);
   });
 
-  it("on: arrow navigation keeps the checked rows", () => {
+  it("until-cleared: arrow navigation keeps the checked rows", () => {
     const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
@@ -87,7 +87,7 @@ describe("checkedRowsLifetime", () => {
     expect(state().selection.rows.toArray()).toEqual([0, 1]);
   });
 
-  it("on: deleteRows removes only the checked rows, not the range", () => {
+  it("until-cleared: deleteRows removes only the checked rows, not the range", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared", onDataChange });
     check(0, 1);
@@ -97,7 +97,7 @@ describe("checkedRowsLifetime", () => {
     expect(change.ops.map((op) => op.rowId).sort()).toEqual(["a", "b"]);
   });
 
-  it("on: duplicateRow duplicates only the checked rows", () => {
+  it("until-cleared: duplicateRow duplicates only the checked rows", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared", onDataChange, duplicateRow: (row) => ({ ...row, id: `${row.id}2` }) });
     check(0);
@@ -107,7 +107,7 @@ describe("checkedRowsLifetime", () => {
     expect(next.map((r) => r.id)).toEqual(["a", "a2", "b", "c", "d", "e"]);
   });
 
-  it("on: with no checked row, deleteRows acts on the range", () => {
+  it("until-cleared: with no checked row, deleteRows acts on the range", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const { state, store } = mount({ checkedRowsLifetime: "until-cleared", onDataChange });
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
@@ -116,7 +116,7 @@ describe("checkedRowsLifetime", () => {
     expect(change.ops.map((op) => op.rowId)).toEqual(["d"]);
   });
 
-  it("off: deleteRows acts on the union of range and checked rows", () => {
+  it("until-click: deleteRows acts on the union of range and checked rows", () => {
     const onDataChange = vi.fn<(next: readonly Row[], change: DataChange<Row>) => void>();
     const { state, store, check } = mount({ onDataChange });
     act(() => state().actions.selectCellAt({ col: 0, row: 3 }));
@@ -126,14 +126,14 @@ describe("checkedRowsLifetime", () => {
     expect(change.ops.map((op) => op.rowId).sort()).toEqual(["a", "d"]);
   });
 
-  it("on: Escape clears the checked rows", () => {
+  it("until-cleared: Escape clears the checked rows", () => {
     const { state, store, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     dispatch(store(), "cancel");
     expect(state().selection.rows.length).toBe(0);
   });
 
-  it("on: unchecking and clearSelection still change the checks", () => {
+  it("until-cleared: unchecking and clearSelection still change the checks", () => {
     const { state, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
     act(() => state().actions.setRowSelected(0, false));
@@ -198,6 +198,11 @@ describe("checkedRowsLifetime until-click", () => {
     m.check(0, 1);
     act(() => gesture(m));
     expect(m.state().selection.rows.length).toBe(0);
+  });
+
+  it("defaults to across-filters with totalRowCount, and an explicit value wins", () => {
+    expect(mount({ totalRowCount: 10 }).state().checkedRowsLifetime).toBe("across-filters");
+    expect(mount({ totalRowCount: 10, checkedRowsLifetime: "until-click" }).state().checkedRowsLifetime).toBe("until-click");
   });
 
   it("is the default", () => {

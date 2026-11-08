@@ -19,12 +19,10 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 5. Check each behavior change below, and the [changed defaults](#changed-defaults).
 6. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
 
-The type check passes, and the grid works as before.
-
 ### Changed defaults [#changed-defaults]
 
 - A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
-- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
+- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
 
@@ -120,13 +118,15 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 - The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
 - `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` for an unknown size.
-- <NewBadge /> `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
+- `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
 
 | 1.x props | 2.0 prop |
 |---|---|
-| neither | `checkedRowsLifetime="until-click"` (default) |
+| neither | the default: `"until-click"`, or `"across-filters"` with `totalRowCount` |
 | `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
 | `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
+| `keepHiddenCheckedRows` alone | Drop it. It had no effect. |
+| `totalRowCount` with `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
 
 ## Removed exports [#removed-exports]
 

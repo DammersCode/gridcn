@@ -972,7 +972,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           }
           return {
             ...selectionConfig,
-            ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode }) ? NO_REMEMBERED_ROWS : {}),
+            ...((s.hiddenCheckedRowIds.size > 0 || s.allMatching) && !hiddenCheckedRowsActive({ ...selectionConfig, sortMode: s.sortMode, filterMode: s.filterMode })
+              ? NO_REMEMBERED_ROWS
+              : s.allMatching && selectionConfig.totalRowCount === undefined
+                ? endAllMatching(s.selection)
+                : {}),
             onBeforeDeleteRows: props.onBeforeDeleteRows,
             inputDebounceMs: props.inputDebounceMs,
             onPageChange: props.onPageChange,

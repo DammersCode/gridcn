@@ -12,8 +12,6 @@ A checked row is a row whose marker checkbox is on. Users check rows with the ma
 
 ## Show the checkboxes [#show-the-checkboxes]
 
-<NewBadge />
-
 The row checkboxes and the select-all checkbox in the header need `rowMarkers="checkbox"`. The default `rowMarkers` is `"none"`, which renders no marker column. The other checkbox modes are on [Row markers](/docs/rows-pages-menus/row-markers):
 
 ```tsx
@@ -72,14 +70,12 @@ A check or an uncheck reads the checked-row count in the live region, for exampl
 
 ## Choose how long checks last [#checked-rows]
 
-<NewBadge />
-
 `checkedRowsLifetime` sets how long the checked rows last:
 
 | Value | The checked rows stay until |
 |---|---|
-| `'until-click'` (default) | The user selects a cell or a column. |
-| `'until-cleared'` | <kbd>Esc</kbd>, a marker checkbox, the header checkbox, `clearSelection()`, or a row delete changes them. |
+| `'until-click'` (default without `totalRowCount`) | The user selects a cell or a column. |
+| `'until-cleared'` | <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, a click on a row number, a marker checkbox, the header checkbox, `clearSelection()`, or a row delete changes them. |
 | `'across-filters'` | Same as `'until-cleared'`. A filter or a page change that hides a checked row keeps its check, and the grid checks the row again when it shows again. |
 
 A click outside the grid, or in its empty space, clears the cell range and the column selection but never the checked rows.
@@ -109,13 +105,11 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-With these two values, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checks alone. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
+With `'until-cleared'` and `'across-filters'`, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checks alone. <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, the marker checkboxes, the header checkbox, `clearSelection()`, and deleting a row change them.
 
 With these values, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
 
 ### Read the checked rows [#read-the-checked-rows]
-
-<NewBadge />
 
 `getSelection().rowIds` on the grid API returns the ids of the visible checked rows. `onSelectionChange` receives the same `rowIds` on each change. This sample reads the ids on a button click:
 
@@ -158,11 +152,11 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 ## Hidden checked rows
 
-A filter or a page change removes the checked rows it hides. Set `checkedRowsLifetime="across-filters"` to remember them. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
+A filter or a page change removes the checked rows it hides. [Filtering](/docs/sort-filter-search/filtering) and the [toolbar](/docs/sort-filter-search/toolbar) add the filter UI. Set `checkedRowsLifetime="across-filters"` to remember them. The grid checks a remembered row again when it shows again. A sort keeps both the visible and the hidden checks.
 
-Hidden checked rows stay out of the controlled `selection` and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and their menu items turn off.
+Hidden checked rows stay out of the controlled `selection` and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and the Duplicate and Delete menu items turn off.
 
-<kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them. Switching to `sortMode="server"` or `filterMode="server"` clears them.
+<kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them, and so does a click on a row number. Switching to `sortMode="server"` or `filterMode="server"` without `totalRowCount` clears them.
 
 `useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`.
 
@@ -170,11 +164,7 @@ The grid remembers at most 100,000 hidden checked rows and warns once in develop
 
 ## Server mode
 
-A server grid holds one page, or the loaded part of a source in scroll mode. Set `totalRowCount` to the size of the whole result.
-
-With `checkedRowsLifetime="across-filters"` <NewBadge />, a checked row that leaves `data` stays checked by row id. A page change, an eviction in scroll mode, and a server sort or filter change keep the check. `useDataGridServerRows` sets `totalRowCount` and `checkedRowsLifetime="across-filters"` in `gridProps`.
-
-`useDataGridSelectedRows()` returns the selection to send to your server: `{ mode: "ids", ids }`, or `{ mode: "allMatching", spec, excludedIds }` after `selectAllMatching()`.
+A server grid defaults to `checkedRowsLifetime="across-filters"` when it sets `totalRowCount`. A checked row that leaves `data` stays checked by row id. [Select server rows](/docs/rows-live-data/select-server-rows) covers page changes, scroll mode, and select all matching.
 
 ## Checked row props
 
@@ -183,7 +173,7 @@ With `checkedRowsLifetime="across-filters"` <NewBadge />, a checked row that lea
 | Prop | Type | Default |
 |---|---|---|
 | `enableRowSelection` | `boolean` | `true` |
-| `checkedRowsLifetime` <NewBadge /> | `'until-click' \| 'until-cleared' \| 'across-filters'` | `'until-click'` |
+| `checkedRowsLifetime` | `'until-click' \| 'until-cleared' \| 'across-filters'` | `'across-filters'` with `totalRowCount`, else `'until-click'` |
 | `totalRowCount` | `number \| null` | none |
 | `announceResults` | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |

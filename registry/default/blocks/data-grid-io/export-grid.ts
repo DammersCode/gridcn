@@ -1,5 +1,5 @@
 import { sanitizeFormulaCell } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, fullViewOf, getSelectedViewRows, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, fullViewOf, getSelectedViewRows, isDev, keepsCheckedRows, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { CsvDelimiter } from "./parse-import-file";
 import {
   DEFAULT_SOURCE_MAX_BYTES,
@@ -141,7 +141,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "pag
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "selection"
-        ? getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" }).map((viewRow) => state.viewIndex[viewRow]!)
+        ? getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) }).map((viewRow) => state.viewIndex[viewRow]!)
         : scope === "page"
           ? state.viewIndex
           : fullViewOf(state.viewIndex);

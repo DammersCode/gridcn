@@ -76,11 +76,12 @@ export function DataGridStatusBar({
 
   const showStats = stats.cells >= 2;
   const total = useDataGridSelector((s) => s.totalRowCount);
+  const canSelectAllMatching = useDataGridSelector((s) => s.checkedRowsLifetime === "across-filters");
   const allMatching = useDataGridSelector((s) => s.allMatching);
   const pageRows = useDataGridSelector((s) => s.viewIndex.length);
   const pageChecked = useDataGridSelector((s) => s.viewIndex.length > 0 && s.selection.rows.hasAll([0, s.viewIndex.length]));
   const actions = useDataGridActions();
-  const escalate = !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
+  const escalate = canSelectAllMatching && !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
   if (!showStats && hiddenChecked === 0 && !allMatching && !escalate) return null;
 
   const format = (value: number, aggregate: StatusBarAggregate) =>

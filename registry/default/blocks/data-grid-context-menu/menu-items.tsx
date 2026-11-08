@@ -39,7 +39,7 @@ import {
   useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridCommands, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { keepsCheckedRows, useDataGridCommands, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -122,7 +122,7 @@ export function useDefaultCellMenuItems(args: {
   const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
-  const checkedRowsOnly = useDataGridSelectionConfig().checkedRowsLifetime !== "until-click";
+  const checkedRowsOnly = keepsCheckedRows(useDataGridSelectionConfig());
   const hiddenCheckedCount = useDataGridHiddenCheckedCount();
   const rowActionsBlocked = checkedRowsOnly && selection.rows.length === 0 && hiddenCheckedCount > 0;
   const clipboard = useDataGridClipboard();

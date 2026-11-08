@@ -3,6 +3,8 @@
 Implements `research/api-caveat-audit.md` under the API principles in `AGENTS.md`. One entry per finding: what changed, the decision, and the
 capability check (before / after).
 
+Superseded: `checkedRowsLifetime` (see `research/checked-rows-lifetime.md`) replaced `keepCheckedRows`, `keepHiddenCheckedRows`, and `rememberCheckedRows`. Read their entries below as history.
+
 ## Capabilities
 
 ### F2 (done)

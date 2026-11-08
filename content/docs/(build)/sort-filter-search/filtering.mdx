@@ -71,7 +71,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 After the click, a row stays if its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one child. Any other `join` value acts as `"and"`, and an empty group matches every row.
 
-A group holds one more group at most. `setFilters` <NewBadge /> drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
+A group can contain one level of nested groups. `setFilters` <NewBadge /> drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
 
 ## Operators
 

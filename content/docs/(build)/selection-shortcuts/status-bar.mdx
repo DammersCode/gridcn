@@ -68,7 +68,7 @@ The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/
 
 <NewBadge />
 
-A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region.
+A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region.
 
 Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size. The bar aggregates the selected cells, which sit on the current page.
 

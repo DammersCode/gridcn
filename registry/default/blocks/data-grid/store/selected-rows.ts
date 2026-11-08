@@ -45,7 +45,7 @@ function excludedOutsideView(s: CountSource, resolveRowIds: () => ReadonlyMap<st
 
 /**
  * The `count` of {@link readSelectedRows} in "all matching" mode without listing the ids: `totalRowCount`
- * minus the unchecked loaded view rows and the exclusions outside the view. Linear in the unchecked view rows.
+ * minus the unchecked loaded view rows and the exclusions outside the view. Linear in the unchecked view rows and the exclusions; the row-id map is built on a cache miss.
  */
 export function allMatchingCheckedCount(s: CountSource, resolveRowIds: () => ReadonlyMap<string, number>): number | null {
   const total = s.totalRowCount;
