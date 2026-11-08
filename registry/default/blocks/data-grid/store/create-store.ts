@@ -1046,7 +1046,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           // A foreign sync in between replaced s.data, so a late-adopted emitted array is foreign too.
           const isEcho = nextData === dataWrite.lastEmittedData && nextData === s.data;
           const foreignData = nextData !== s.data;
-          if (!foreignData && !warnedGetRowIdSwap && props.getRowId !== s.getRowId && isDev() && sampledRowIdsDiffer(nextData, s.getRowId, props.getRowId)) {
+          // An inline `getRowId` is a new function every render; keep the old one unless the ids differ or the data is foreign.
+          const idsSwapped = !foreignData && props.getRowId !== s.getRowId && sampledRowIdsDiffer(nextData, s.getRowId, props.getRowId);
+          const nextGetRowId = foreignData || idsSwapped ? props.getRowId : s.getRowId;
+          if (idsSwapped && !warnedGetRowIdSwap && isDev()) {
             warnedGetRowIdSwap = true;
             warnDev("getRowId returns other ids but data kept its array; pass a new data array together with a new getRowId");
           }
@@ -1160,7 +1163,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               lastKnownSelection = props.selection;
             } else {
               const resolved = resolveSelectionState(
-                { data: nextData, getRowId: props.getRowId, viewIndex: nextViewIndex, visibleColumns: finalVisibleColumns, selection: s.selection },
+                { data: nextData, getRowId: nextGetRowId, viewIndex: nextViewIndex, visibleColumns: finalVisibleColumns, selection: s.selection },
                 rowIndexCache,
                 props.selection,
                 warnedControlledSelection,
@@ -1180,7 +1183,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           let nextStaleRowIds = s.staleRowIds;
           if (dataWrite.staleRows.size > 0) {
             if (serverSpecChanged(s, { sortState: nextSortState, filterState: nextFilterState, searchText: nextSearchText })) nextStaleRowIds = clearStaleRows(dataWrite).staleRowIds;
-            else if (foreignData) nextStaleRowIds = staleStateAfterPrune(dataWrite, s.staleRowIds, pruneStaleRows(dataWrite, nextData, props.getRowId as (row: unknown, index: number) => string));
+            else if (foreignData) nextStaleRowIds = staleStateAfterPrune(dataWrite, s.staleRowIds, pruneStaleRows(dataWrite, nextData, nextGetRowId as (row: unknown, index: number) => string));
           }
           const staleChanged = nextStaleRowIds !== s.staleRowIds;
           const clientViewActive = viewSorts(nextSortMode, nextSortState).length > 0 || viewFilters(nextFilterMode, nextFilterState).length > 0;
@@ -1195,18 +1198,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             s.sortState !== nextSortState ||
             s.filterControlled !== (props.filterState !== undefined) ||
             s.searchControlled !== (props.searchText !== undefined);
-          if (unchanged && props.getRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
+          if (unchanged && nextGetRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
           // A layout-only apply still remaps the selection's column channel (its visible columns
           // moved), so the remap runs whenever a layout apply is in flight.
           const followed =
             unchanged && layoutApply === null
               ? {}
-              : followView(s, nextViewIndex, finalVisibleColumns, nextData, props.getRowId, !foreignData);
+              : followView(s, nextViewIndex, finalVisibleColumns, nextData, nextGetRowId, !foreignData);
           // Only the recompute slice is written here: the config slice (callbacks, enable* flags,
           // readOnly, keymap, …) is owned by _syncConfig, so a data/sort/filter sync never rewrites it.
           return {
             data: nextData,
-            getRowId: props.getRowId,
+            getRowId: nextGetRowId,
             cellErrors: nextCellErrors,
             columns: finalColumns,
             hiddenColumns: layoutApply?.hiddenColumns ?? nextHiddenColumns,

@@ -55,7 +55,7 @@ export default function DataGridAnnouncementsDemo(): ReactNode {
       <p className="m-0 min-h-6 rounded-md border px-2 py-1 text-sm" aria-hidden="true">
         Last announcement: <span className="font-medium">{spoken || "none yet"}</span>
       </p>
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox" announceResults>
+      <DataGridProvider defaultData={rows} columns={columns} rowMarkers="checkbox" announceResults>
         <DataGridRoot className="h-[360px]" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
           <DataGridHeader />
           <DataGridBody />

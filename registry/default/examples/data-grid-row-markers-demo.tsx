@@ -71,7 +71,7 @@ export default function DataGridRowMarkersDemo(): ReactNode {
         </SelectContent>
       </Select>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers={rowMarkers}>
+        <DataGridProvider defaultData={rows} columns={columns} rowMarkers={rowMarkers}>
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

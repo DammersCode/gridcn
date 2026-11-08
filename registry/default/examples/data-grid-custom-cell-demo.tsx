@@ -177,7 +177,6 @@ export default function DataGridCustomCellDemo(): ReactNode {
         <DataGridProvider
           defaultData={PRODUCTS}
           columns={columns}
-          getRowId={(row) => row.id}
           cellTypes={{ currency: currencyCellType }}
         >
           <DataGridRoot className="h-full rounded-none border-none">

@@ -37,7 +37,7 @@ export default function DataGridFindReplaceDemo(): ReactNode {
         </Button>
         <p className="m-0 text-sm text-muted-foreground">Press Ctrl+H inside the grid to open the panel.</p>
       </div>
-      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} plugins={plugins} onDataChange={setRows}>
+      <DataGridProvider data={rows} columns={columns} plugins={plugins} onDataChange={setRows}>
         <DataGridRoot className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />

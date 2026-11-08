@@ -359,7 +359,6 @@ function PaginatedGrid({ controls }: { controls: PlaygroundControls }): ReactNod
         data={rows}
         defaultPageSize={20}
         columns={controls.columns}
-        getRowId={(row) => row.id}
         onDataChange={onDataChange}
         plugins={plugins}
         rowMarkers={controls.rowMarkers}

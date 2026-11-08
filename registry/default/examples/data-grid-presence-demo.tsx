@@ -130,7 +130,6 @@ export default function DataGridPresenceDemo(): ReactNode {
         <DataGridProvider
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
           plugins={plugins}
           headerClickBehavior="sort"
         >

@@ -81,7 +81,7 @@ export default function DataGridCustomHeadersDemo(): ReactNode {
         Click the Name or Score header to sort: a minus means unsorted, an up icon ascending, a down icon descending.
       </span>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort">
+        <DataGridProvider defaultData={rows} columns={columns} headerClickBehavior="sort">
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

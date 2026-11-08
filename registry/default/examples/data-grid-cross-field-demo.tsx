@@ -34,7 +34,6 @@ export default function DataGridCrossFieldDemo(): ReactNode {
         <DataGrid
           defaultData={initialRows()}
           columns={columns}
-          getRowId={(row) => row.id}
           validateRow={(row) => (row.end < row.start ? { end: "End must be at or after Start" } : null)}
           className="h-full rounded-none border-none"
         />

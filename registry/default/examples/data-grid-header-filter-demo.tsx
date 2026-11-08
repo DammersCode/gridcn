@@ -18,7 +18,7 @@ export default function DataGridHeaderFilterDemo(): ReactNode {
 
   return (
     <div className="w-full flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id}>
+      <DataGridProvider defaultData={rows} columns={columns}>
         <DataGridRoot className="min-h-0 flex-1 rounded-none border-none" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}>
           <DataGridHeader />
           <DataGridBody />

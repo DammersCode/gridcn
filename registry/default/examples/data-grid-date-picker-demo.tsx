@@ -29,7 +29,7 @@ export default function DataGridDatePickerDemo(): ReactNode {
         column shows a typed input with a calendar button, and the calendar opens when you press the button.
       </p>
       <div className="h-[280px] overflow-hidden rounded-md border border-border">
-        <DataGrid defaultData={rows} columns={columns} getRowId={(row) => row.id} className="h-full" />
+        <DataGrid defaultData={rows} columns={columns} className="h-full" />
       </div>
     </div>
   );

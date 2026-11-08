@@ -47,7 +47,6 @@ export default function DataGridWriteAckDemo(): ReactNode {
       <DataGridProvider
         defaultData={initialRows}
         columns={columns}
-        getRowId={(row) => row.id}
         onSave={save}
         onSaveRejected={({ rejected }: SaveRejectedContext<Row>) => setErrors((prev) => [...rejected.map((r) => r.message ?? "Refused"), ...prev].slice(0, 3))}
       >

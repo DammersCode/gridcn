@@ -117,7 +117,6 @@ export default function DataGridI18nDemo(): ReactNode {
         <DataGridProvider
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
           labels={values.labels}
         >
           <DataGridToolbar>

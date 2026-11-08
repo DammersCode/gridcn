@@ -110,7 +110,6 @@ export default function DataGridColumnLayoutDemo(): ReactNode {
           key={generation}
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
           defaultColumnLayout={layout}
           onColumnLayoutChange={persist}
         >

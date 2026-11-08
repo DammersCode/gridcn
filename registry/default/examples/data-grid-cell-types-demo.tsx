@@ -121,7 +121,6 @@ export default function DataGridCellTypesDemo(): ReactNode {
         <DataGrid
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
           className="h-full rounded-none border-none"
         />
       </div>

@@ -95,7 +95,6 @@ export default function DataGridConditionalStylingDemo(): ReactNode {
       <DataGrid
         defaultData={EMPLOYEES}
         columns={columns}
-        getRowId={(row) => row.id}
         className="h-full rounded-none border-none"
         getRowClassName={getRowClassName}
         getCellClassName={getCellClassName}

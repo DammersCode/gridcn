@@ -24,7 +24,6 @@ A row skips rendering while its props keep the same identity. If the component t
 
 - `columns`
 - `data` in a controlled grid
-- `getRowId`
 - `getRowClassName`
 - `getCellClassName`
 - Render props such as `renderMarker`, `renderMarkerHeader`, and `renderHeaderCell` (on `DataGridHeader`)
@@ -42,11 +41,11 @@ If an identity changes between renders, a development build logs a warning:
 | `getCellClassName` | The function identity differs from the last render. |
 | A plugin `Overlay` or `Mount` | The component identity differs. The overlay remounts and loses its state. |
 
-A new `getRowId` function logs no identity warning. It still makes the grid write a new store state on every render. Every reader of `useDataGridRowIdToViewRow`, such as the presence add-on, rebuilds its row-id map.
+An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the same `data` array, the grid keeps the old function. A function that returns other ids takes effect; pass it with a new `data` array.
 
 The warning for a class function reads `getRowClassName identity changed since the last render`. The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
 
-The next sample defines the row id function and the class function once, outside the component:
+The next sample defines the class function once, outside the component:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -57,8 +56,6 @@ const columns = defineColumns<Task>()([
   { id: "title", header: "Title", accessorKey: "title" },
 ] as const);
 
-const getRowId = (task: Task) => task.id;
-
 const getRowClassName = (task: Task) =>
   task.done ? "opacity-60" : undefined;
 
@@ -67,7 +64,6 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
     <DataGrid
       data={tasks}
       columns={columns}
-      getRowId={getRowId}
       getRowClassName={getRowClassName}
     />
   );

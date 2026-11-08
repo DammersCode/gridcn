@@ -30,7 +30,7 @@ export default function DataGridTouchDemo(): ReactNode {
         Use a touch device or browser device mode. Drag a handle to select several cells, then press and hold to open
         the context menu. Fill down and Fill right appear for a touch selection.
       </p>
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} plugins={plugins}>
+      <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
         <DataGridContextMenu className="flex h-[360px] flex-col">
           <DataGridRoot className="h-full" density="comfortable">
             <DataGridHeader />

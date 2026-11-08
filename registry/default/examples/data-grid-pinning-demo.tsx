@@ -67,7 +67,7 @@ export default function DataGridPinningDemo(): ReactNode {
         or autosize — the toolbar's columns menu restores anything hidden.
       </p>
       <div className="flex h-[380px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id}>
+        <DataGridProvider defaultData={rows} columns={columns}>
           <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">
             <DataGridToolbar>
               <DataGridColumnsMenu />

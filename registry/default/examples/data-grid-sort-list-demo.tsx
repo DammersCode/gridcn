@@ -19,7 +19,7 @@ export default function DataGridSortListDemo(): ReactNode {
 
   return (
     <div className="w-full flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id}>
+      <DataGridProvider defaultData={rows} columns={columns}>
         <DataGridToolbar>
           <DataGridSortList />
         </DataGridToolbar>

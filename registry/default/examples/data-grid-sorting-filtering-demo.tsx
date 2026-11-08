@@ -67,7 +67,7 @@ export default function DataGridSortingFilteringDemo(): ReactNode {
         header to add it as a secondary sort. Use Filter in the toolbar for per-column filters; the preset shows a group of two Role rows. Switch the "Or" between them to "And" to change the whole group.
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} headerClickBehavior="sort" defaultFilterState={presetFilters}>
+        <DataGridProvider defaultData={rows} columns={columns} headerClickBehavior="sort" defaultFilterState={presetFilters}>
           <DataGridToolbar>
             <DataGridSearch />
             <DataGridFilterMenu />

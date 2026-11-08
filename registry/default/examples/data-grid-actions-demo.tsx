@@ -128,7 +128,6 @@ export default function DataGridActionsDemo(): ReactNode {
         <DataGridProvider
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
         >
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />

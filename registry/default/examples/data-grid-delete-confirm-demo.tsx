@@ -50,7 +50,6 @@ export default function DataGridDeleteConfirmDemo(): ReactNode {
       <DataGridProvider
         defaultData={rows}
         columns={columns}
-        getRowId={(row) => row.id}
         rowMarkers="checkbox"
         checkedRowsLifetime="until-cleared"
         onBeforeDeleteRows={confirmDelete}

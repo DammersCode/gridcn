@@ -113,7 +113,6 @@ export default function DataGridStylingPatternsDemo(): ReactNode {
         <DataGrid
           defaultData={DEALS}
           columns={columns}
-          getRowId={(row) => row.id}
           className="h-full rounded-none border-none"
           getRowClassName={getRowClassName}
           density={density}

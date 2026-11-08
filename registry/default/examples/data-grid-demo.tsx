@@ -69,7 +69,7 @@ export default function DataGridDemo(): ReactNode {
 
   return (
     <div className="w-full h-[420px] overflow-hidden rounded-md border border-border">
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} plugins={plugins}>
+      <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
         <DataGridRoot className="h-full rounded-none border-none">
           <DataGridHeader />
           <DataGridBody />

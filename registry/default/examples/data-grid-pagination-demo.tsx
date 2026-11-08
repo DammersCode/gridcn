@@ -26,7 +26,6 @@ export default function DataGridPaginationDemo(): ReactNode {
       <DataGridProvider
         data={rows}
         columns={columns}
-        getRowId={(row) => row.id}
         onDataChange={(next) => setRows(next as DemoRow[])}
         defaultPageSize={25}
         headerClickBehavior="sort"

@@ -48,7 +48,6 @@ export default function DataGridAsyncGatesDemo(): ReactNode {
     <DataGridProvider
       defaultData={initialRows()}
       columns={columns}
-      getRowId={(row) => row.id}
       processPaste={async ({ cells }) => {
         setStatus("Normalizing the paste on the server...");
         await serverDelay();

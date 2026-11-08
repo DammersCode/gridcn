@@ -101,7 +101,7 @@ export default function DataGridColumnDragDemo(): ReactNode {
         (<code>reorderable: false</code>) and Score is pinned right. The picker below the line
         moves the chosen column programmatically.
       </p>
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} enableColumnReorder>
+      <DataGridProvider defaultData={rows} columns={columns} enableColumnReorder>
         <ReorderControls />
         <div className="h-[340px] overflow-hidden rounded-md border border-border">
           <DataGridRoot className="h-full rounded-none border-none">

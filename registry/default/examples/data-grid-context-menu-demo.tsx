@@ -63,7 +63,6 @@ export default function DataGridContextMenuDemo(): ReactNode {
         <DataGridProvider
           defaultData={rows}
           columns={columns}
-          getRowId={(row) => row.id}
           createRow={createRow}
           duplicateRow={duplicateRow}
         >

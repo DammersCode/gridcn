@@ -244,7 +244,6 @@ export default function DataGridEventsDemo(): ReactNode {
           <DataGridProvider
             data={data}
             columns={columns}
-            getRowId={(row) => row.id}
             onDataChange={onDataChange}
             onSelectionChange={onSelectionChange}
             onSortChange={onSortChange}

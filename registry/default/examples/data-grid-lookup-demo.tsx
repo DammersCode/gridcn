@@ -44,7 +44,7 @@ export default function DataGridLookupDemo(): ReactNode {
   );
   return (
     <div className="w-full h-[200px] overflow-hidden rounded-md border border-border">
-      <DataGridProvider data={data} onDataChange={setData} columns={columns} getRowId={(row) => row.id} cellTypes={{ lookup: lookupCellType }}>
+      <DataGridProvider data={data} onDataChange={setData} columns={columns} cellTypes={{ lookup: lookupCellType }}>
         <DataGridRoot className="h-full rounded-none border-none">
           <DataGridHeader />
           <DataGridBody />

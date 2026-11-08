@@ -74,7 +74,7 @@ export default function DataGridKeybindingsDemo(): ReactNode {
       </Button>
       {lastCommand && <p className="text-xs text-muted-foreground">{lastCommand}</p>}
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} commands={commands} keymap={demoKeymap} plugins={[keys.plugin]}>
+        <DataGridProvider defaultData={rows} columns={columns} commands={commands} keymap={demoKeymap} plugins={[keys.plugin]}>
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

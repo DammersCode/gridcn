@@ -65,7 +65,7 @@ function PaginatedReactQueryGrid(): ReactNode {
         {query.isPending ? "Loading page…" : `Page ${pager.page} of ${pager.pageCount} · ${query.data?.total ?? 0} rows on the server`}
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={query.data?.rows ?? []} columns={columns} getRowId={(row) => row.id} onDataChange={onDataChange}>
+        <DataGridProvider data={query.data?.rows ?? []} columns={columns} onDataChange={onDataChange}>
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

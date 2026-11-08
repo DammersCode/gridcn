@@ -113,7 +113,7 @@ export default function DataGridPerformanceDemo(): ReactNode {
       </p>
       <div className="relative h-[420px] overflow-hidden rounded-md border border-border">
         <FpsMeter />
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="number">
+        <DataGridProvider defaultData={rows} columns={columns} rowMarkers="number">
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

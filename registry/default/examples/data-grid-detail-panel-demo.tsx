@@ -61,7 +61,6 @@ export default function DataGridDetailPanelDemo(): ReactNode {
         <DataGridProvider
           data={rows}
           columns={columns}
-          getRowId={(r) => r.id}
           onCellClick={openFromClick}
           onActiveCellChange={(next) => setRowId(next?.rowId ?? null)}
           commands={commands}

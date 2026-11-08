@@ -91,7 +91,7 @@ export default function DataGridCustomMarkersDemo(): ReactNode {
         clearing it).
       </p>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} rowMarkers="checkbox">
+        <DataGridProvider defaultData={rows} columns={columns} rowMarkers="checkbox">
           <DataGridRoot className="h-full rounded-none border-none" renderMarker={renderMarker} renderMarkerHeader={renderMarkerHeader}>
             <DataGridHeader />
             <DataGridBody />

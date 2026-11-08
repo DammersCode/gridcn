@@ -63,7 +63,7 @@ export default function DataGridColumnGroupsDemo(): ReactNode {
         within its group. Hide every column of a group and its header disappears.
       </p>
       <div className="flex h-[380px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} columnGroups={columnGroups} getRowId={(row) => row.id}>
+        <DataGridProvider defaultData={rows} columns={columns} columnGroups={columnGroups}>
           <DataGridToolbar>
             <DataGridColumnsMenu />
           </DataGridToolbar>

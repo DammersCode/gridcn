@@ -53,7 +53,7 @@ export default function DataGridFillPatternsDemo(): ReactNode {
         filled range and press Ctrl/Cmd+D (fill down) / Ctrl/Cmd+R (fill right) instead of dragging.
       </p>
       <div className="h-[320px] overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id} plugins={plugins}>
+        <DataGridProvider defaultData={rows} columns={columns} plugins={plugins}>
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

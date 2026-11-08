@@ -344,7 +344,7 @@ export default function DataGridIOHooksDemo(): ReactNode {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <DataGridProvider data={data} columns={columns} getRowId={(row) => row.id} onDataChange={setData} plugins={[findReplace.plugin]}>
+      <DataGridProvider data={data} columns={columns} onDataChange={setData} plugins={[findReplace.plugin]}>
         <div className="flex h-[240px] min-w-0 flex-col overflow-hidden rounded-md border border-border">
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />

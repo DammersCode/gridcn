@@ -31,7 +31,7 @@ export default function DataGridFilterOperatorsDemo(): ReactNode {
         even though it is hidden from the grid.
       </p>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={rows} columns={columns} getRowId={(row) => row.id}>
+        <DataGridProvider defaultData={rows} columns={columns}>
           <DataGridToolbar>
             <DataGridFilterMenu />
             <DataGridSortList allColumns />
