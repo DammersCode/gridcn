@@ -121,7 +121,7 @@ export function useUploadWorkbook() {
 
 `printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker.
 
-Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A call while a print frame is open replaces that frame. Print does nothing during server rendering.
+Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page. A `cellClassName` does not reach the printed table. <NewBadge /> A call while a print frame is open replaces that frame. Print does nothing during server rendering.
 
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.

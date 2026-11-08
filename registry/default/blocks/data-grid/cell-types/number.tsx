@@ -84,7 +84,7 @@ function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, de
 }
 
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
-  return <CellSpan text={displayText(numberCellType, value, options)} align="right" />;
+  return <CellSpan text={displayText(numberCellType, value, options)} />;
 }
 
 function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
@@ -166,5 +166,5 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   clearValue: () => null,
   isEmpty: (value) => value == null,
   compare: compareNumbers,
-  align: "right",
+  align: "end",
 };

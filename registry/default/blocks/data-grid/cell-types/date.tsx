@@ -115,7 +115,7 @@ function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]
 }
 
 function DateCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
-  return <CellSpan text={displayText(dateCellType, value, options)} align="right" />;
+  return <CellSpan text={displayText(dateCellType, value, options)} />;
 }
 
 /** Popover + Calendar (shadcn date-picker pattern): opens on edit start; picking a date commits and stays; a small typed-input above the calendar accepts ISO or Date.parse-able text with Enter to commit. With `calendarTrigger` the calendar stays closed until the input group's calendar button opens it. */
@@ -262,5 +262,5 @@ export const dateCellType: CellType<unknown, string | null, GridCellTypes["date"
     if (b == null) return 1;
     return a < b ? -1 : a > b ? 1 : 0;
   },
-  align: "right",
+  align: "end",
 };

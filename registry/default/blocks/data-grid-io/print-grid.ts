@@ -55,7 +55,7 @@ function printCss(pageSize: string, orientation: "portrait" | "landscape"): stri
     "table { border-collapse: collapse; width: 100%; }",
     "thead { display: table-header-group; }",
     "tr { break-inside: avoid; }",
-    "th, td { border: 1px solid #999; padding: 2px 6px; text-align: left; }",
+    "th, td { border: 1px solid #999; padding: 2px 6px; text-align: start; }",
     "th { font-weight: 600; }",
     "p { margin: 8px 0 0; }",
   ].join("\n");

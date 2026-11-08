@@ -1,19 +1,7 @@
-import { cn } from "@/lib/utils";
-
-/**
- * Shared display span: truncates and honors the type's text alignment. `align` names are reading
- * relative, not physical — `"right"` is the END of the reading direction, so a right-aligned
- * numeric column hugs the inline end in both LTR and RTL.
- */
-export function CellSpan({ text, align }: { text: string; align?: "left" | "right" | "center" }) {
+/** Shared display span: truncates, and inherits the text alignment of its cell. */
+export function CellSpan({ text }: { text: string }) {
   return (
-    <span
-      className={cn(
-        "block w-full truncate",
-        align === "right" && "text-end",
-        align === "center" && "text-center",
-      )}
-    >
+    <span className="block w-full truncate">
       {/* <bdi> isolates the value's own bidi run so mixed-script data shapes correctly, without the
           box taking that run's direction — `dir="auto"` here would resolve a Latin value to `ltr`
           and re-resolve this span's `text-align: start` to the physical LEFT, stranding cell text

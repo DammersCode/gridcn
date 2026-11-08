@@ -127,7 +127,7 @@ If the same rule also reads `value` or `row`, use `getCellClassName`.
 
 <NewBadge />
 
-The cell type sets the alignment of a cell. `number` and `date` cells align to the end, which is the right in a left-to-right grid. `checkbox` cells center, and the other types align to the start. `ColumnDef` has no alignment field. To align a `text`, `select`, `url`, or `longText` column, add a text alignment class in `cellClassName`. A `number` or `date` cell sets the alignment on its inner text, so use the `[&_span]:` variant there:
+The cell type sets the alignment of a cell. `number` and `date` cells align to the end, which is the right in a left-to-right grid. `checkbox` cells center, and the other types align to the start. `ColumnDef` has no alignment field. To align a column, add a text alignment class in `cellClassName`. The class works for every cell type:
 
 ```tsx
 import { defineColumns } from "@/components/data-grid/data-grid";
@@ -146,7 +146,7 @@ const columns = defineColumns<Item>()([
     header: "Qty",
     accessorKey: "qty",
     type: "number",
-    cellClassName: "[&_span]:text-center",
+    cellClassName: "text-center",
   },
 ]);
 ```

@@ -114,7 +114,7 @@ export const currencyCellType: CellType<unknown, number | null, CurrencyOptions>
     if (b == null) return 1;
     return a - b;
   },
-  align: "right",
+  align: "end",
 };
 
 type Product = { id: string; name: string; priceUsd: number | null; priceEur: number | null };

@@ -66,5 +66,5 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
     operators: TEXT_FILTER_OPERATORS,
     match: (value, filter) => matcherFor(filter)(labelOf(value)),
   },
-  align: "left",
+  align: "start",
 };

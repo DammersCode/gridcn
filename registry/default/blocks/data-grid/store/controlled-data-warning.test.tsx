@@ -11,7 +11,7 @@ const data: readonly Row[] = [{ id: "a", name: "A" }, { id: "b", name: "B" }];
 const makeStore = (extra: Partial<InternalSyncProps> = {}) =>
   createDataGridStore({ data, columns, getRowId: (row: Row) => row.id, ...extra } as InternalSyncProps);
 
-const warnings = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.filter((call) => String(call[0]).includes("is controlled"));
+const warnings = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.filter((call) => String(call[0]).includes("is controlled"));
 
 afterEach(() => vi.restoreAllMocks());
 

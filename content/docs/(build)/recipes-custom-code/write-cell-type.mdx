@@ -130,7 +130,7 @@ const moneyCellType = defineCellType("money", {
   clearValue: () => null,
   isEmpty: (value) => value === null,
   compare: (a, b) => (a ?? 0) - (b ?? 0),
-  align: "right",
+  align: "end",
 });
 
 type Product = { id: string; name: string; price: number | null };

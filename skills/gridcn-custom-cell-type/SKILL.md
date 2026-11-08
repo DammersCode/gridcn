@@ -31,7 +31,7 @@ Put the type in your own folder (for example `src/components/grid-cells/currency
 - `isEmpty` is a semantic choice, not a technicality — decide it deliberately, it is not implied by `clearValue`. It gates what a Ctrl+A region treats as blank and what the fill handle treats as a fillable gap. Precedent: for `number`, `0` is not empty (only `null` is); for `checkbox`, `false` is not empty (only `null` is). A column that treats a real `0` as empty makes the fill handle skip it.
 - `toDisplayText` is optional and display-only: locale-formatted dates, currency symbols, and similar. It is never round-tripped and never read by clipboard, export, search, or filter — only the on-screen render uses it (fallback: `toDisplayText ?? toText`, via the `displayText()` helper from the barrel). Keep `toText` plain and parseable so a decorative display format can never leak into an export or break a later paste.
 - `compare` is optional; omit it only if the default (numeric-aware collation of the raw `String(value)`) is correct for the type. It only ever receives two non-empty values — empty placement (per `isEmpty`) is handled outside it, sorting last in both directions.
-- `align` is `"left" | "right" | "center"`, for the default `Cell` rendering only; pair `"right"` with `tabular-nums` for numeric-like types.
+- `align` is `"start" | "center" | "end"`, for the default `Cell` rendering only; pair `"end"` with `tabular-nums` for numeric-like types.
 
 Completion for this step: you can state, in one sentence per method, what `toText`, `fromText`, `clearValue`, and `isEmpty` do for a garbage/empty/typical value — before writing `Cell` or `Editor`.
 

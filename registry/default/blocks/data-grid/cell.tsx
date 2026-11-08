@@ -254,7 +254,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
 
   const cellTypesRegistry = useDataGridCellTypes();
   const cellType = cellTypesRegistry[column.type ?? "text"] ?? cellTypesRegistry["text"] ?? defaultCellTypes.text;
-  const align = cellType.align ?? "left";
+  const align = cellType.align ?? "start";
   const isNumberOrDate = cellType.numeric === true;
 
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
@@ -391,9 +391,9 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
           : "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,transparent)]",
         // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
-        align === "left" && "justify-start",
-        align === "center" && "justify-center",
-        align === "right" && "justify-end",
+        align === "start" && "justify-start text-start",
+        align === "center" && "justify-center text-center",
+        align === "end" && "justify-end text-end",
         isNumberOrDate && !isEditing && "tabular-nums",
         // One visual language for "this value is wrong", whether a live sync/async
         // `validate` rejection or a persisted post-commit `cellErrors` entry set the message — same
@@ -421,8 +421,6 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         <span
           className={cn(
             "w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
-            align === "center" && "text-center",
-            align === "right" && "text-end",
           )}
         >
           {content}

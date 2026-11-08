@@ -419,8 +419,9 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   isEmpty(value: TValue): boolean;
   /** Sort comparator for this type, given the column's `options`; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
   compare?(a: TValue, b: TValue, options?: TOptions): number;
-  align?: "left" | "right" | "center";
-  /** Tabular-nums cell rendering for the right-aligned digits; number and date declare it. */
+  /** Text alignment of the default `Cell` rendering, in reading direction: `"end"` is the right in a left-to-right grid. Default `"start"`. */
+  align?: "start" | "center" | "end";
+  /** Tabular-nums cell rendering for the end-aligned digits; number and date declare it. */
   numeric?: boolean;
   /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;

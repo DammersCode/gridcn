@@ -333,6 +333,19 @@ describe("DataGrid programmatic styling API", () => {
     expect(qtyHeader.className).not.toContain("uppercase");
   });
 
+  it("aligns a number cell on its root and lets cellClassName override it without a span variant", () => {
+    const centered: readonly ColumnDef<Row, unknown>[] = [
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+      { id: "centered", header: "Centered", accessorKey: "qty", type: "number", cellClassName: "text-center" },
+    ];
+    render(<DataGrid data={makeRows(1)} columns={centered} getRowId={(r) => r.id} />);
+    const [endCell, centerCell] = screen.getAllByRole("gridcell");
+    expect(endCell!.className).toContain("text-end");
+    expect(centerCell!.className).toContain("text-center");
+    expect(centerCell!.className).not.toContain("text-end");
+    expect(centerCell!.querySelector("span")!.className).not.toMatch(/text-(end|center)/);
+  });
+
   it("consumer classes win over conflicting built-ins via cn()/twMerge ordering (grid-level then column-level, applied last)", () => {
     // built-in cell class includes "justify-start" (left align, the text type's default) —
     // a consumer override of the SAME utility category (justify-*) must be the one that survives.

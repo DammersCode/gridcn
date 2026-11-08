@@ -381,7 +381,7 @@ describe("printGrid", () => {
   it("applies the cell type's alignment to the cells", () => {
     const { restore } = stubIframePrint();
     try {
-      const aligned: CellType<Row, string> = { ...textCellType, align: "right" };
+      const aligned: CellType<Row, string> = { ...textCellType, align: "end" };
       printGrid(
         makeState({
           viewIndex: [0],
@@ -390,7 +390,7 @@ describe("printGrid", () => {
         }),
       );
       const td = lastIframe().contentDocument!.querySelector("td")!;
-      expect(td.style.textAlign).toBe("right");
+      expect(td.style.textAlign).toBe("end");
     } finally {
       restore();
     }

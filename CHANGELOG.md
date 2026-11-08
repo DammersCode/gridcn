@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `CellType.align` takes `"start" | "center" | "end"` (reading direction) instead of `"left" | "right" | "center"`, and `CellSpan` drops its `align` prop. The cell carries the alignment as `text-start`, `text-center`, or `text-end`, and the inner spans inherit it. Before: `align: "right"`, `<CellSpan text={x} align="right" />`, and `cellClassName: "[&_span]:text-center"` on a `number` column. After: `align: "end"`, `<CellSpan text={x} />`, and `cellClassName: "text-center"`. The old `[&_span]:` form still matches. `printGrid` writes the type's alignment as logical `text-align`, so a right-to-left print keeps numbers at the end.
 - A development build warns once per grid when a write reaches controlled `data` and neither `onDataChange` nor `onSave` is set, because the grid drops the edit on the next render. No behavior change. The `status-bar`, `url-state`, `views`, and `detail-panel` demos seed with `defaultData`, and the `loading` and `server-selection` demos set `readOnly`.
 - Fix: `history.record(change)` returns `false` on a `readOnly` grid, where it writes nothing. Before, it returned `true`. `true` now means the change was written and registered.
 - A keymap binding with a punctuation key and no `shift`, such as `mod+/` or `?`, matches with or without Shift on any layout. Before, only a bare punctuation key (`?`) ignored Shift, and `mod+?` needed `mod+shift+?`. A binding that names `shift` still requires it.

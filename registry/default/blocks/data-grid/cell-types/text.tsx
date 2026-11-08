@@ -23,5 +23,5 @@ export const textCellType: CellType<unknown, string, GridCellTypes["text"]["opti
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",
   compare: compareLocaleText,
-  align: "left",
+  align: "start",
 };

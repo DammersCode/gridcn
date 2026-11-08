@@ -143,5 +143,5 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     }
     return defaultCompareText(findChoice(choices, a)?.label ?? a, findChoice(choices, b)?.label ?? b);
   },
-  align: "left",
+  align: "start",
 };

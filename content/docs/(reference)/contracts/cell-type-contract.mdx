@@ -23,7 +23,7 @@ The type takes three parameters: the row type, the value type, and the options t
 | `isEmpty` | Yes | Says whether a value counts as empty |
 | `toDisplayText` | No | A formatted text for display only |
 | `compare` | No | The sort comparator |
-| `align` | No | `"left"`, `"right"`, or `"center"` |
+| `align` | No | `"start"`, `"center"`, or `"end"` |
 | `numeric` | No | Renders digits with fixed width |
 | `toSearchText` | No | The text that quick search reads |
 | `validate` | No | The default validator for columns of this type |
@@ -125,7 +125,7 @@ function parseAmount(text: string): number | null {
 }
 
 function CurrencyCell({ value }: CellRenderProps<unknown, number | null>) {
-  return <CellSpan text={show(value)} align="right" />;
+  return <CellSpan text={show(value)} />;
 }
 
 function CurrencyEditor(props: CellEditorProps<unknown, number | null>) {
@@ -145,7 +145,7 @@ export const currencyCellType: CellType<unknown, number | null> = {
   clearValue: () => null,
   isEmpty: (value) => value == null,
   compare: (a, b) => (a ?? 0) - (b ?? 0),
-  align: "right",
+  align: "end",
   numeric: true,
 };
 ```
