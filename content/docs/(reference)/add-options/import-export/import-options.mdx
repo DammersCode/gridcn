@@ -147,7 +147,7 @@ The root carries `data-drag-active` during a drag and `data-disabled` while `dis
 - `ProcessImportRows` rewrites or drops the data rows before they are mapped. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
 - `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
 - `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter }`.
-- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, and `sheetName`.
+- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
 
 ## Related
 

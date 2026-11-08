@@ -197,11 +197,11 @@ The [context menu add-on](/docs/rows-pages-menus/context-menu#paste-permission) 
 
 ## Server mode
 
-Copy and paste work on the rows that the grid displays, in their displayed order. On a paged grid, that is the shown page. A column selection copies the rows of the shown page, and a paste stops at the page's last row. This rule is the same in client pagination and in server pagination. With `sortMode="server"`, the displayed order is the order your server returned.
+Copy and paste work on the rows that the grid displays, in their displayed order. On a paged grid, that is the shown page. A column selection copies the rows of the shown page, and a paste stops at the page's last row. Client and server pagination follow this rule. With `sortMode="server"`, the displayed order is the order your server returned.
 
 A paste is one change with the source `"paste"`. The grid calls `onDataChange` and `onSave` with it, and `onSave` sends it to the server. If `onSave` resolves with `{ rejected }` or rejects, the grid reverts the refused cells through `onDataChange` with the source `"rollback"`.
 
-In scroll mode, a paste writes the loaded rows and skips rows that are not loaded. It adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode.
+In scroll mode, a paste writes the loaded rows, skips the rest, and adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode. To copy or export every server row, see [Export the whole result](/docs/import-export/export-whole-result).
 
 ## Related
 

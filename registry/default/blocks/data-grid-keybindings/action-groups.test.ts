@@ -24,7 +24,7 @@ describe("categoryForAction", () => {
 });
 
 describe("labelForAction", () => {
-  it("has a human label for every action bound in DEFAULT_KEYMAP", () => {
+  it("returns a non-empty label for every action bound in DEFAULT_KEYMAP", () => {
     for (const action of Object.keys(DEFAULT_KEYMAP) as GridAction[]) {
       const label = labelForAction(action, DEFAULT_LABELS);
       expect(label.length).toBeGreaterThan(0);

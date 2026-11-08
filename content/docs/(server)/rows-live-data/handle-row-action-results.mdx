@@ -3,7 +3,7 @@ title: Handle row action results
 icon: CircleCheck
 description: Read why a row action did nothing, and stop an async gate that never settles with gateTimeoutMs and onGateAborted.
 type: task
-aliases: ["RowActionResult", "gateTimeoutMs", "onGateAborted", "ok false", "gate pending"]
+aliases: ["RowActionResult", "gateTimeoutMs", "onGateAborted", "ok false", "gate pending", "delete did nothing", "shortcut does nothing", "row not deleted", "onRowActionSkipped"]
 ---
 
 `insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, and `deleteRowsById` can do nothing. They tell you why. A gate such as `onBeforeDeleteRows` can also wait forever. This page covers both. See [Change server rows](/docs/rows-live-data/change-server-rows) for the actions.
@@ -35,7 +35,7 @@ Two more reasons reach `onRowActionSkipped` from the shortcuts only. No action r
 | `"hidden-checked"` | The shortcut found only checked rows that the view does not show. |
 | `"all-matching"` | The shortcut found all matching on. |
 
-`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. It also fires when the Insert row, Duplicate row, or Delete rows shortcut does nothing. The Insert row shortcut needs an active cell and reports nothing without one. Duplicate row and Delete rows report a skip even with no active cell and no selection. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires when `insertRows`, `duplicateRows`, or `deleteRows` does nothing. The Insert row, Duplicate row, and Delete rows shortcuts report only four skips: `"readOnly"`, `"no-factory"` (Insert and Duplicate), `"hidden-checked"`, and `"all-matching"` (Duplicate and Delete). A shortcut that has no target row in a writable grid reports nothing. A disabled item of the context menu runs nothing and fires nothing. It shows the reason as a tooltip.
 
 Pass the handler to `DataGridProvider`:
 

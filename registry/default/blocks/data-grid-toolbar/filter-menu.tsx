@@ -125,6 +125,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   // A filter on a column outside the menu's option list (a hidden column by default, or one no
   // longer in the grid) still applies to the view but renders with no column context and no picker
   // entry to re-target it — warn in dev and point at the fix.
+  const orphansWarnedRef = useRef(false);
   useEffect(() => {
     if (!isDev()) return;
     const listed = new Set(columns.map((c) => c.id));
@@ -132,7 +133,8 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     forEachFilterSpec(filters, (f) => {
       if (!listed.has(f.columnId)) orphans.push(f);
     });
-    if (orphans.length === 0) return;
+    if (orphans.length === 0 || orphansWarnedRef.current) return;
+    orphansWarnedRef.current = true;
     const ids = Array.from(new Set(orphans.map((f) => f.columnId)));
     console.warn(
       `[data-grid-toolbar] DataGridFilterMenu: ${orphans.length} filter row(s) target column(s) missing from the menu's column list (${ids.join(", ")}); pass allColumns to manage hidden-column filters here`,
@@ -199,7 +201,8 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const newRow = (): FilterSpec | undefined => {
     const first = filterableColumns[0];
     if (!first) return undefined;
-    const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
+    const operator = operatorsFor(first)[0]; // empty when the column declares no operators
+    if (!operator) return undefined;
     return { columnId: first.id, operator, value: emptyValueFor(operator, customFor(first)) };
   };
 

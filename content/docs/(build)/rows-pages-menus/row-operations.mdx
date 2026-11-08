@@ -96,7 +96,7 @@ Insert and duplicate shift the selection around the new rows. Under a sort, a ne
 | Duplicate rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 
-Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `'until-cleared'` or `'across-filters'` and at least one checked row, they work on the checked rows only. A `readOnly` grid ignores all four keys. [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results#action-results) tells why a key did nothing.
+Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `'until-cleared'` or `'across-filters'` and at least one checked row, they work on the checked rows only. A `readOnly` grid ignores all four keys. [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results#action-results) tells why a key did nothing. The <kbd>Delete</kbd> key clears cell contents and never deletes rows.
 
 Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows. The keys that move rows are on [Row order](/docs/rows-pages-menus/row-order).
 
@@ -183,7 +183,7 @@ While a promise is pending, a second delete does nothing. After the promise reso
   Settle the promise on every path. A dismissed dialog is a path too. A promise that never settles blocks every later delete until `gateTimeoutMs` <NewBadge /> aborts it.
 </Callout>
 
-Clearing cell contents with <kbd>Delete</kbd> is not a row delete and skips `onBeforeDeleteRows`. Undo restores a confirmed delete.
+Clearing cell contents with <kbd>Delete</kbd> skips `onBeforeDeleteRows`. Undo restores a confirmed delete.
 
 ## Server mode
 

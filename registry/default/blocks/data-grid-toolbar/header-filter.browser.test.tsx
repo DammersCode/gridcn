@@ -253,7 +253,7 @@ describe("DataGridHeaderFilter", () => {
     expect(box.left).toBeLessThan(input.left);
   });
 
-  it("mirrors the group and right-aligns the counts at the start edge in a right-to-left page", async () => {
+  it("mirrors the group and aligns the counts to the end edge in a right-to-left page", async () => {
     document.documentElement.dir = "rtl";
     try {
       await renderGrid();

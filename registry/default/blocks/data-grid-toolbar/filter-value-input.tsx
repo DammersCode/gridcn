@@ -90,7 +90,7 @@ function BetweenValueInput(props: {
 }
 
 /**
- * The `isAnyOf` multi-choice input: a dropdown of the select column's own `choices`, each a
+ * The list-operator input (`isAnyOf`, `isNoneOf`, custom list operators) over a column's own `choices`: a dropdown, each a
  * checkbox. Commits immediately (no debounce — a click is already a deliberate, discrete choice,
  * unlike a keystroke).
  */

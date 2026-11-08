@@ -296,7 +296,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const gates = createGateTracker({
     timeoutMs: (name) => {
       const wanted = store.getState().gateTimeoutMs;
-      return typeof wanted === "object" ? wanted[name] : wanted;
+      return typeof wanted === "object" ? (wanted as Partial<Record<typeof name, number>>)[name] : wanted;
     },
     aborted: (gate, reason) => {
       const onGateAborted = store.getState().onGateAborted;

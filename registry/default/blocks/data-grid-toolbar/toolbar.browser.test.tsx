@@ -560,6 +560,38 @@ describe("DataGridFilterMenu", () => {
     warn.mockRestore();
   });
 
+  it("warns about a filter on an unlisted column once per menu instance", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hiddenColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
+      { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, hidden: true },
+    ] as const);
+    const tree = (value: string) => (
+      <DataGridProvider
+        data={makeRows()}
+        columns={hiddenColumns}
+        getRowId={(r) => r.id}
+        filterState={[{ columnId: "age", operator: "equals", value }]}
+        onFilterChange={() => {}}
+      >
+        <DataGridToolbar>
+          <DataGridFilterMenu />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>
+    );
+    const screen = await render(tree("40"));
+    const menuWarnings = () => warn.mock.calls.filter((call) => String(call[0]).includes("allColumns")).length;
+    await expect.poll(menuWarnings).toBe(1);
+    await screen.rerender(tree("50"));
+    await screen.rerender(tree("60"));
+    expect(menuWarnings()).toBe(1);
+    warn.mockRestore();
+  });
+
   it("long column names truncate inside the select trigger instead of overflowing the popover", async () => {
     const longNameColumns = defineColumns<Row>()([
       {
@@ -879,7 +911,7 @@ describe("DataGridFilterMenu groups", () => {
   };
 
   /** Builds "Age > 26 and (Name contains Ali or Name contains Bo)" by clicking. */
-  async function buildIssueExample() {
+  async function buildNestedFilterTree() {
     await renderGrid();
     await page.getByRole("button", { name: "Filters" }).click();
     await click(buttons("Add filter")[0]);
@@ -909,14 +941,14 @@ describe("DataGridFilterMenu groups", () => {
     expect(connectors).toEqual(["Where", "And"]);
   });
 
-  it("builds the issue example by clicking and counts leaf rows in the badge", async () => {
-    await buildIssueExample();
+  it("builds a nested filter group by clicking and counts leaf rows in the badge", async () => {
+    await buildNestedFilterTree();
     expect(document.querySelector("[data-grid-filter-count]")?.textContent).toBe("3");
     expect([...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or"]);
   });
 
   it("has no group header select; the connector select of a later row replaces it", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     expect(page.getByText("Match any of the following").query()).toBeNull();
     expect(page.getByText("Match all of the following").query()).toBeNull();
     expect(document.querySelectorAll('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')).toHaveLength(1);
@@ -925,7 +957,7 @@ describe("DataGridFilterMenu groups", () => {
   });
 
   it("keeps the first row's connector and the top level connector static", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     const connector = (row: Element) => row.querySelector(":scope > div:first-child")!;
     const groupRows = [...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row]")];
     expect(connector(groupRows[0]!).textContent).toBe("Where");
@@ -937,7 +969,7 @@ describe("DataGridFilterMenu groups", () => {
   });
 
   it("changing the connector on one row sets it on every row of that group and re-filters", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     await click(buttons("Add filter")[0]); // third row in the group
     await expect.poll(() => valueInputs().length).toBe(4);
     const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')];
@@ -955,7 +987,7 @@ describe("DataGridFilterMenu groups", () => {
   });
 
   it("reordering inside a group keeps the result and the level", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     const grips = [...document.querySelectorAll<HTMLElement>('[aria-label="Reorder filter"]')];
     grips[2]!.focus();
     await userEvent.keyboard("{ArrowUp}");
@@ -965,7 +997,7 @@ describe("DataGridFilterMenu groups", () => {
   });
 
   it("removing the last row of a group removes the group", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     const groupRemove = () => [...document.querySelectorAll<HTMLElement>("[data-grid-filter-group] [data-grid-filter-row] [aria-label='Remove filter']")];
     await click(groupRemove()[0]);
     await click(groupRemove()[0]);
@@ -974,14 +1006,14 @@ describe("DataGridFilterMenu groups", () => {
   });
 
   it("removing a group removes its rows", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     await click(buttons("Remove group")[0]);
     await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(0);
     expect(valueInputs()).toHaveLength(1);
   });
 
   it("hides Add group inside a subgroup", async () => {
-    await buildIssueExample();
+    await buildNestedFilterTree();
     expect(buttons("Add group")).toHaveLength(2);
     await click(buttons("Add group")[0]);
     await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(2);

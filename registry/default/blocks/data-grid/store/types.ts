@@ -216,7 +216,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
-  gateTimeoutMs?: number | Partial<Record<GateName, number>>;
+  gateTimeoutMs?: number | Partial<Record<Exclude<GateName, "import">, number>>;
   /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`) does nothing, with its name and the reason; the action also returns it. `deleteRowsById` reports as `deleteRows`, and its `source: "stream"` path never reports. The Insert row, Duplicate row, and Delete rows shortcuts report their skips too (read-only, no factory, only hidden rows checked, all matching). A disabled menu item runs nothing and reports nothing. */
   onRowActionSkipped?: (ctx: { action: "insertRows" | "duplicateRows" | "deleteRows"; reason: RowActionSkipReason }) => void;
   /**

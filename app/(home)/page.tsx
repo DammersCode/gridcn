@@ -497,7 +497,7 @@ export default function HomePage() {
           </h2>
           <p className="max-w-xl text-sm text-muted-foreground">
             The core engine is selection, keyboard, editing, cell types,
-            clipboard, and validation. The twelve add-ons — fill handle,
+            clipboard, and validation. The add-ons — fill handle,
             undo/redo, presence, pinned rows, and more — are separate registry
             items you install only if you want them.
           </p>

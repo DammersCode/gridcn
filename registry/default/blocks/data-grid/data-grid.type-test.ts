@@ -593,3 +593,7 @@ const asyncGateProps: DataGridSyncProps<Row> = {
   duplicateRow: async (row) => row,
 };
 void asyncGateProps;
+
+export const gateTimeoutPerGate: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { onBeforeDeleteRows: 5000 };
+// @ts-expect-error - the import gate has no timeout
+export const gateTimeoutImport: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { import: 5000 };
