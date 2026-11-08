@@ -65,7 +65,7 @@ At the end the skeleton rows go away and `totalRowCount` holds the final row cou
 
 <NewBadge />
 
-The first answer picks the order. To fix it, pass `source: "indexed"` for random access or `source: "cursor"` for a sequential source. An indexed source that answers without `totalRowCount` warns in development.
+The first answer picks the order. To fix it, pass `source: "random"` for random access or `source: "sequential"` for a sequential source. A random source that answers without `totalRowCount` warns in development.
 
 ## How the source advances
 

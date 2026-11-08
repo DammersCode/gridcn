@@ -53,7 +53,7 @@ A server that sends no count answers `totalRowCount: null` and `hasMore`. The pa
 
 Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source.
 
-Set `source: "indexed"` <NewBadge /> or `source: "cursor"` to fix the order. An indexed source that answers without `totalRowCount` warns in development.
+Set `source: "random"` <NewBadge /> or `source: "sequential"` to fix the order. A random source that answers without `totalRowCount` warns in development.
 
 `getRowId` <NewBadge /> is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
 
