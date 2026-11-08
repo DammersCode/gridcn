@@ -1923,8 +1923,8 @@ describe("DataGrid in a real browser", () => {
         const onOuterChange = mockDataChangeFn<Row>();
         const onInnerChange = mockDataChangeFn<Row>();
         const apis = await renderNested(onOuterChange, onInnerChange);
-        apis.outer!.setSelection(cellSelection("row-0", "email"));
-        apis.inner!.setSelection(cellSelection("row-0", "name"));
+        apis.outer!.actions.setSelection(cellSelection("row-0", "email"));
+        apis.inner!.actions.setSelection(cellSelection("row-0", "name"));
         await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
         const innerRoot = document.querySelectorAll<HTMLElement>('[role="grid"]')[1]!;
         const innerActive = innerRoot.querySelector<HTMLElement>("[data-active]")!;
@@ -1940,8 +1940,8 @@ describe("DataGrid in a real browser", () => {
 
       it("focus() lands on the host grid's active cell, not on the nested grid's", async () => {
         const apis = await renderNested();
-        apis.inner!.setSelection(cellSelection("row-0", "name"));
-        apis.outer!.setSelection(cellSelection("row-1", "name"));
+        apis.inner!.actions.setSelection(cellSelection("row-0", "name"));
+        apis.outer!.actions.setSelection(cellSelection("row-1", "name"));
         await expect.poll(() => document.querySelectorAll("[data-active]").length).toBe(2);
         (document.activeElement as HTMLElement | null)?.blur();
 

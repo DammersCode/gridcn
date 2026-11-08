@@ -164,10 +164,10 @@ void partialLayout;
 const clearedProp: DataGridSyncProps<Row> = { onSelectionCleared: () => {} };
 void clearedProp;
 
-// the api handle reads/writes the public selection value; a single cell stays actions.selectCell
+// the api handle reads the public selection value; a single cell stays actions.selectCell
 declare const gridApi: DataGridApi<Row>;
 assertEqual<() => SelectionState, typeof gridApi.getSelection>(true);
-assertEqual<(next: SelectionState | null) => void, typeof gridApi.setSelection>(true);
+assertEqual<(next: SelectionState | null) => void, typeof gridApi.actions.setSelection>(true);
 
 declare const wActions: DataGridActions;
 assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>(true);

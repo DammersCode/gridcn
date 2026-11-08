@@ -802,14 +802,8 @@ export type DataGridApi<TData> = {
   scrollTo(ref: CellRef): void;
   /** Focuses the active cell's element, first scrolling an off-window active cell into view; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
   focus(): void;
-  /** Starts an edit session at the ref's cell — the same guards as `actions.startEditing`. */
-  startEditing(ref: CellRef): void;
-  /** Discards the in-progress edit without emitting a change (`actions.cancelEditing`). */
-  stopEditing(): void;
   /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
   getSelection(): SelectionState;
-  /** Applies the named selection as a whole, emitting like a gesture; `null` clears the whole selection. A single cell stays `actions.selectCell(ref)`. */
-  setSelection(next: SelectionState | null): void;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
   /**

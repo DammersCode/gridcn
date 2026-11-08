@@ -1648,7 +1648,7 @@ describe("DataGridApi (imperative handle)", () => {
     expect(providerRef.current).toBe(sibling);
     expect(Object.keys(sibling!.actions).some((name) => name.startsWith("_"))).toBe(false);
     act(() =>
-      sibling!.setSelection({
+      sibling!.actions.setSelection({
         anchor: { rowId: "1", columnId: "name" },
         range: { start: { rowId: "1", columnId: "name" }, end: { rowId: "1", columnId: "name" } },
         rangeStack: [],
@@ -1704,7 +1704,7 @@ describe("DataGridApi (imperative handle)", () => {
     const { ref } = renderWithHandle({ data: unsorted });
     act(() => ref.current!.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     act(() =>
-      ref.current!.setSelection({
+      ref.current!.actions.setSelection({
         anchor: { rowId: "2", columnId: "qty" },
         range: { start: { rowId: "2", columnId: "qty" }, end: { rowId: "2", columnId: "qty" } },
         rangeStack: [],
@@ -1713,15 +1713,15 @@ describe("DataGridApi (imperative handle)", () => {
       }),
     );
     expect(ref.current!.getSelection().anchor).toEqual({ rowId: "2", columnId: "qty" });
-    act(() => ref.current!.setSelection(null));
+    act(() => ref.current!.actions.setSelection(null));
     expect(ref.current!.getSelection().range).toBeNull();
   });
 
-  it("startEditing opens a session at the ref's cell; stopEditing discards it", () => {
+  it("startEditing opens a session at the ref's cell; cancelEditing discards it", () => {
     const { ref } = renderWithHandle();
-    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    act(() => ref.current!.actions.startEditing({ rowId: "0", columnId: "name" }));
     expect(ref.current!.store.getState().editing).toMatchObject({ rowId: "0", columnId: "name" });
-    act(() => ref.current!.stopEditing());
+    act(() => ref.current!.actions.cancelEditing());
     expect(ref.current!.store.getState().editing).toBeNull();
   });
 
@@ -1731,7 +1731,7 @@ describe("DataGridApi (imperative handle)", () => {
     render(
       <DataGrid ref={(api) => { ref.current = api; }} data={makeRows(3)} columns={columns} getRowId={(r) => r.id} onDataChange={onDataChange} readOnly />,
     );
-    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    act(() => ref.current!.actions.startEditing({ rowId: "0", columnId: "name" }));
     expect(ref.current!.store.getState().editing).toBeNull();
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
     // the editor's Enter path
@@ -1748,7 +1748,7 @@ describe("DataGridApi (imperative handle)", () => {
     render(
       <DataGrid ref={(api) => { ref.current = api; }} data={rows} columns={checkColumns} getRowId={(r) => r.id} onEditStart={onEditStart} />,
     );
-    act(() => ref.current!.startEditing({ rowId: "0", columnId: "done" }));
+    act(() => ref.current!.actions.startEditing({ rowId: "0", columnId: "done" }));
     expect(ref.current!.store.getState().editing).toBeNull();
     expect(onEditStart).not.toHaveBeenCalled();
   });
@@ -1760,7 +1760,7 @@ describe("DataGridApi (imperative handle)", () => {
     expect(document.activeElement).toBe(document.querySelector("[data-active]"));
     expect((document.activeElement as HTMLElement).textContent).toContain("Row 0");
     act(() =>
-      ref.current!.setSelection({
+      ref.current!.actions.setSelection({
         anchor: { rowId: "2", columnId: "name" },
         range: { start: { rowId: "2", columnId: "name" }, end: { rowId: "2", columnId: "name" } },
         rangeStack: [],
@@ -1774,7 +1774,7 @@ describe("DataGridApi (imperative handle)", () => {
 
   it("focus() is a no-op while an edit session is open", () => {
     const { ref } = renderWithHandle();
-    act(() => ref.current!.startEditing({ rowId: "0", columnId: "name" }));
+    act(() => ref.current!.actions.startEditing({ rowId: "0", columnId: "name" }));
     act(() => ref.current!.focus());
     expect(document.activeElement).not.toBe(document.querySelector("[data-active]"));
   });

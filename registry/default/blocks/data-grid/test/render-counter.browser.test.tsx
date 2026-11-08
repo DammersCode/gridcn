@@ -23,7 +23,7 @@ describe("trackRenders", () => {
     const mountCells = tracker.count("DataGridCellImpl");
 
     tracker.reset();
-    ref.current!.startEditing({ rowId: "0", columnId: "name" });
+    ref.current!.actions.startEditing({ rowId: "0", columnId: "name" });
     await vi.waitFor(() => expect(tracker.count("DataGridCellImpl")).toBeGreaterThan(0));
     ref.current!.actions.commitCellEdit("Edited");
     await vi.waitFor(() => expect(page.getByText("Edited").elements()).toHaveLength(1));

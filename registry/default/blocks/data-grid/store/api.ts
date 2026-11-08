@@ -70,17 +70,8 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
       if (s.activeCell) s.scrollToCellImpl?.(s.activeCell);
       s.focusImpl?.();
     },
-    startEditing(cellRef) {
-      actions.startEditing(cellRef);
-    },
-    stopEditing() {
-      actions.cancelEditing();
-    },
     getSelection() {
       return getInternalActions(storeApi)._deriveSelection();
-    },
-    setSelection(next) {
-      actions.setSelection(next);
     },
     getRow(viewRowIndex) {
       const s = read();

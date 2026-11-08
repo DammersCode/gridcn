@@ -19,7 +19,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `CellErrorTarget` | `{ rowId, columnId }` | A cell that `clearCellErrors` names. |
 | `CellErrorEntry` | `CellErrorTarget & { message }` | A cell and its error message for `setCellErrors`. |
 
-[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the handle members that take a `CellRef`, such as `scrollTo` and `startEditing`.
+[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the handle members that take a `CellRef`, such as `scrollTo`.
 
 ## Selection [#selection]
 
@@ -87,7 +87,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, startEditing, stopEditing, getSelection, setSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
+| `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, getSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
 | `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists its methods. |
 | `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
 | `DataGridReadState` | The state that `store.getState()` returns | The argument of `exportGrid` and `printGrid`. |

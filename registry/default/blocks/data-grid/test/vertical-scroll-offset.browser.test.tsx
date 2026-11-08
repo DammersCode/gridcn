@@ -189,7 +189,7 @@ describe("vertical scroll offset", () => {
   });
   describe("range selection overlay after the origin rebased", () => {
     const selectRange = (api: DataGridApi<Row>, fromRow: number, toRow: number) =>
-      api.setSelection({
+      api.actions.setSelection({
         anchor: { rowId: `row-${fromRow}`, columnId: "c1" },
         range: { start: { rowId: `row-${fromRow}`, columnId: "c1" }, end: { rowId: `row-${toRow}`, columnId: "c3" } },
         rangeStack: [],
