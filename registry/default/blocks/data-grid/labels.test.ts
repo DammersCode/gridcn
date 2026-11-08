@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_LABELS, deepMergeLabels, mergeLabelLayers, type DataGridLabels } from "./labels";
+import { DEFAULT_LABELS, defaultLabelsFor, deepMergeLabels, mergeLabelLayers, type DataGridLabels } from "./labels";
 import { MAX_VIEWS } from "../data-grid-views/view-state";
 
 /** Recursively walks every leaf of {@link DEFAULT_LABELS}, asserting it's a non-empty string or a function. */
@@ -175,5 +175,21 @@ describe("statusBar.allSelected", () => {
   it("reads the unknown size as null", () => {
     expect(DEFAULT_LABELS.statusBar.allSelected(null)).toBe("All matching rows are selected.");
     expect(DEFAULT_LABELS.statusBar.allSelected(1234)).toBe("All 1,234 selected.");
+  });
+});
+
+describe("defaultLabelsFor", () => {
+  it("shares one object across spellings of the same locale", () => {
+    expect(defaultLabelsFor("de-de")).toBe(defaultLabelsFor("de-DE"));
+  });
+
+  it("falls back to the default labels for an invalid locale", () => {
+    expect(defaultLabelsFor("not a locale!")).toBe(DEFAULT_LABELS);
+  });
+
+  it("bounds the cache so hostile locale strings cannot grow it", () => {
+    const first = defaultLabelsFor("en-v0000");
+    for (let i = 1; i <= 64; i++) defaultLabelsFor(`en-v${String(i).padStart(4, "0")}`);
+    expect(defaultLabelsFor("en-v0000")).not.toBe(first);
   });
 });

@@ -770,14 +770,26 @@ function buildDefaultLabels(locale: string): DataGridLabels {
 /** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
 export const DEFAULT_LABELS: DataGridLabels = buildDefaultLabels("en-US");
 
-const labelsByLocale = new Map<string, DataGridLabels>([["en-US", DEFAULT_LABELS]]);
+const MAX_CACHED_LOCALES = 16;
+const labelsByLocale = new Map<string, DataGridLabels>();
 
-/** {@link DEFAULT_LABELS} with numbers formatted in `locale`; one object per locale. */
+function canonicalLocale(locale: string): string {
+  try {
+    return Intl.getCanonicalLocales(locale)[0] ?? "en-US";
+  } catch {
+    return "en-US";
+  }
+}
+
+/** {@link DEFAULT_LABELS} with numbers formatted in `locale`; one object per canonical locale, the 16 most recent cached. */
 export function defaultLabelsFor(locale: string): DataGridLabels {
-  let labels = labelsByLocale.get(locale);
+  const key = canonicalLocale(locale);
+  if (key === "en-US") return DEFAULT_LABELS;
+  let labels = labelsByLocale.get(key);
   if (!labels) {
-    labels = buildDefaultLabels(locale);
-    labelsByLocale.set(locale, labels);
+    labels = buildDefaultLabels(key);
+    if (labelsByLocale.size >= MAX_CACHED_LOCALES) labelsByLocale.delete(labelsByLocale.keys().next().value!);
+    labelsByLocale.set(key, labels);
   }
   return labels;
 }
