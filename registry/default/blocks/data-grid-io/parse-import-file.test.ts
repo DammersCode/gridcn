@@ -222,8 +222,7 @@ describe("parseImportFile — size and dimension limits", () => {
   it("rejects with an AbortError when the signal in the options is already aborted", async () => {
     const controller = new AbortController();
     controller.abort();
-    await expect(parseImportFile(makeCsvFile("a,b
-1,2"), { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(parseImportFile(makeCsvFile("a,b\n1,2"), { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
   });
 
   it("defaults to 50 MB, 1M rows, 1000 columns, and 5M cells, and small files pass", async () => {

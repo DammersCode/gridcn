@@ -242,6 +242,8 @@ export type DataGridIOLabels = {
   noFileChosen: string;
   /** Size limit shown next to `noFileChosen` in the empty drop zone; `bytes` is the import's `maxFileBytes`. */
   maxFileSize: (bytes: number) => string;
+  /** Screen-reader description of the drop zone; `types` is the comma-separated list of accepted extensions. */
+  acceptedFileTypes: (types: string) => string;
   /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
   replaceFile: string;
   /** Fallback column header in the mapping table when "First row is a header" is unchecked; `index` is 1-based. */
@@ -645,6 +647,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     chooseFile: "Choose file",
     noFileChosen: "No file chosen",
     maxFileSize: (bytes) => `up to ${formatFileSize(bytes)}`,
+    acceptedFileTypes: (types) => `Accepted file types: ${types}.`,
     replaceFile: "Drop or click to replace",
     columnFallback: (index) => `Column ${index}`,
     delimiter: "Delimiter",

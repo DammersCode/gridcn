@@ -141,10 +141,17 @@ describe("Dropzone (browser)", () => {
     await screen.unmount();
   });
 
-  it("DropzoneContent renders held files from src and hides the empty state", async () => {
+  it("description replaces the screen-reader text", async () => {
+    const screen = await render(<Dropzone accept={{ "text/csv": [".csv"] }} description="Nur CSV" aria-label="Upload" />);
+    await expect.element(page.getByText("Nur CSV")).toBeInTheDocument();
+    await expect.element(page.getByText("Accepted file types", { exact: false })).not.toBeInTheDocument();
+    await screen.unmount();
+  });
+
+  it("DropzoneContent renders held files from files and hides the empty state", async () => {
     const file = makeFile("data.csv", "text/csv");
     const screen = await render(
-      <Dropzone src={[file]} aria-label="Upload">
+      <Dropzone files={[file]} aria-label="Upload">
         <DropzoneEmptyState />
         <DropzoneContent />
       </Dropzone>,

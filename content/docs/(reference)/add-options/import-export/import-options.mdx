@@ -130,8 +130,8 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 | `disabled` | `boolean` | `false` | Ignores drops, clicks, and keys. |
 | `compact` | `boolean` | `false` | Shows the zone as one row. |
 | `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Receives the accepted files and the rejections after a drop or a pick. |
-| `onError` | `(error: Error) => void` | none | Receives an error that `onDrop` throws. |
-| `src` | `File[]` | none | Holds the files to show. `DropzoneEmptyState` hides while it holds a file, and `DropzoneContent` lists them. |
+| `files` | `File[]` | none | Holds the files to show. `DropzoneEmptyState` hides while it holds a file, and `DropzoneContent` lists them. |
+| `description` <NewBadge /> | `string` | English list of `accept` | Sets the screen-reader description of the accepted file types. |
 | `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Replaces the default content. |
 | `className` | `string` | none | Merges after the built-in classes. |
 | `aria-label` | `string` | none | Names the drop surface. |

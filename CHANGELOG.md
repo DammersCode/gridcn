@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `Dropzone` drops `onError` and renames `src` to `files`. A throw from `onDrop` now propagates like any event handler error; before, `onError` received it and, without `onError`, it vanished. Before: `<Dropzone src={files} onError={report} onDrop={add} />`. After: `<Dropzone files={files} onDrop={(accepted, rejections) => { try { add(accepted, rejections); } catch (error) { report(error); } }} />`. `Dropzone` also takes `description` for the screen-reader text, and the import dialog localizes it through the new `labels.io.acceptedFileTypes(types)`.
 - **Breaking:** the export option `workbookName` is `sheetName`, like the import option. Before: `exportGrid(state, { format: "xlsx", workbookName: "Orders" })`. After: `exportGrid(state, { format: "xlsx", sheetName: "Orders" })`.
 - **Breaking:** `parseImportFile(file, options)` takes `signal` in its options. Before: `parseImportFile(file, options, signal)`. After: `parseImportFile(file, { ...options, signal })`.
 - **Breaking:** an explicit `importLimits.maxDecompressedBytes` is the XLSX part cap as given. Without it, the cap stays `maxCells` times 10 bytes plus 1 MiB. Before, the lower of `maxDecompressedBytes` and that value applied, so a higher `maxDecompressedBytes` had no effect and a text-heavy sheet needed a higher `maxCells`. `DEFAULT_IMPORT_LIMITS` no longer has `maxDecompressedBytes`.

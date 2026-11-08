@@ -67,7 +67,7 @@ export function filterFiles(files: readonly File[], options: FilterFilesOptions 
 }
 
 type DropzoneContextValue = {
-  src?: File[];
+  files?: File[];
   isDragActive: boolean;
   disabled: boolean;
   accept?: DropzoneAccept;
@@ -97,10 +97,10 @@ export type DropzoneProps = {
   disabled?: boolean;
   /** Called with accepted files and any rejections after a drop or a file-picker selection. */
   onDrop?: (acceptedFiles: File[], rejections: DropzoneRejection[]) => void;
-  /** Called when the native file read itself fails; filter rejections go through `onDrop` instead. */
-  onError?: (error: Error) => void;
   /** Currently held files, for `DropzoneContent`'s default rendering. */
-  src?: File[];
+  files?: File[];
+  /** Screen-reader description of the accepted file types. Default: an English list built from `accept`. */
+  description?: string;
   /** Accessible name for the drop surface. */
   "aria-label"?: string;
   /** Single-row layout (icon + content inline) instead of the tall centered box — for reuse in a compact spot, e.g. next to an existing preview. Default false. */
@@ -115,23 +115,19 @@ export type DropzoneProps = {
  * the pointer crosses a child element.
  */
 export function Dropzone(props: DropzoneProps): ReactNode {
-  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, onError, src, compact = false, ...rest } = props;
+  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, files, description, compact = false, ...rest } = props;
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
 
   const emit = useCallback(
-    (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      try {
-        const { accepted, rejections } = filterFiles(Array.from(files), { accept, maxSize, minSize, maxFiles });
-        onDrop?.(accepted, rejections);
-      } catch (error) {
-        onError?.(error instanceof Error ? error : new Error(String(error)));
-      }
+    (picked: FileList | null) => {
+      if (!picked || picked.length === 0) return;
+      const { accepted, rejections } = filterFiles(Array.from(picked), { accept, maxSize, minSize, maxFiles });
+      onDrop?.(accepted, rejections);
     },
-    [accept, maxSize, minSize, maxFiles, onDrop, onError],
+    [accept, maxSize, minSize, maxFiles, onDrop],
   );
 
   const openPicker = useCallback(() => {
@@ -186,7 +182,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
   );
 
   return (
-    <DropzoneContext.Provider value={{ src, isDragActive, disabled, accept, maxSize }}>
+    <DropzoneContext.Provider value={{ files, isDragActive, disabled, accept, maxSize }}>
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
@@ -229,7 +225,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
           }}
         />
         <span id={`${inputId}-description`} className="sr-only">
-          {accept ? `Accepted file types: ${Object.values(accept).flat().join(", ")}.` : "All file types accepted."}
+          {description ?? (accept ? `Accepted file types: ${Object.values(accept).flat().join(", ")}.` : "All file types accepted.")}
         </span>
         {children ?? (
           <>
@@ -261,8 +257,8 @@ export type DropzoneEmptyStateProps = { title?: string; description?: string };
 /** Default idle-state contents of {@link Dropzone}: icon, title, and an accepted-types/size caption. */
 export function DropzoneEmptyState(props: DropzoneEmptyStateProps): ReactNode {
   const { title = "Upload a file", description } = props;
-  const { src, accept, maxSize } = useDropzoneContext("DropzoneEmptyState");
-  if (src && src.length > 0) return null;
+  const { files, accept, maxSize } = useDropzoneContext("DropzoneEmptyState");
+  if (files && files.length > 0) return null;
 
   const caption =
     description ??
@@ -286,16 +282,16 @@ export function DropzoneEmptyState(props: DropzoneEmptyStateProps): ReactNode {
 /** Props for {@link DropzoneContent}. */
 export type DropzoneContentProps = { children?: ReactNode };
 
-/** Default held-files contents of {@link Dropzone}: one line per file in `src`, hidden until `src` is non-empty. */
+/** Default held-files contents of {@link Dropzone}: one line per file in `files`, hidden until `files` is non-empty. */
 export function DropzoneContent(props: DropzoneContentProps): ReactNode {
   const { children } = props;
-  const { src } = useDropzoneContext("DropzoneContent");
-  if (!src || src.length === 0) return null;
+  const { files } = useDropzoneContext("DropzoneContent");
+  if (!files || files.length === 0) return null;
   if (children) return <>{children}</>;
 
   return (
     <ul className="flex w-full flex-col gap-1 text-start">
-      {src.map((file, index) => (
+      {files.map((file, index) => (
         <li key={`${file.name}-${index}`} className="truncate text-sm text-foreground">
           <span>{file.name}</span> <span className="text-xs text-muted-foreground">({formatBytes(file.size)})</span>
         </li>
