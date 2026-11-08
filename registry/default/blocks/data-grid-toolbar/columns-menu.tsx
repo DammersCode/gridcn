@@ -34,7 +34,8 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
 
   return (
     <DropdownMenuCheckboxItem
-      checked={!hidden}
+      checked={column.hideable === false || !hidden}
+      disabled={column.hideable === false}
       onCheckedChange={(checked) => actions.setColumnHidden(column.id, checked !== true)}
     >
       {columnLabelText(column)}

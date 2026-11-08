@@ -33,6 +33,7 @@ type ProbeProps = {
   createRow?: () => Row;
   duplicateRow?: (row: Row) => Row;
   pin?: "left" | "right";
+  hideable?: false;
   readOnly?: boolean;
   headerColumnId?: string;
   clipboardFailed?: boolean;
@@ -61,7 +62,7 @@ function renderProbe(props: ProbeProps) {
   return render(
     <DataGridProvider
       data={rows}
-      columns={props.pin ? columns.map((c) => (c.id === "name" ? { ...c, pin: props.pin } : c)) : columns}
+      columns={columns.map((c) => (c.id === "name" ? { ...c, pin: props.pin, hideable: props.hideable } : c))}
       getRowId={(row) => row.id}
       createRow={props.createRow}
       duplicateRow={props.duplicateRow}
@@ -176,6 +177,13 @@ describe("useDefaultHeaderMenuItems", () => {
     expect(item(header, "unpin")).toBeUndefined();
     // `disabled: !pinnable` is explicit; only `true` renders inert
     expect(item(header, "pin-left")?.disabled).toBe(false);
+  });
+
+  it("omits the hide item for a column with hideable false", () => {
+    let header: GridMenuItemSpec[] = [];
+    renderProbe({ hideable: false, onSpecs: (_c, h) => { header = h; } });
+    expect(item(header, "hide-column")).toBeUndefined();
+    expect(item(header, "pin-left")).toBeDefined();
   });
 
   it("adds the unpin entry for a pinned column", () => {

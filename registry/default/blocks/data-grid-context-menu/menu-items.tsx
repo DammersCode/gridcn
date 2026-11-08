@@ -236,7 +236,9 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   if (column.pin != null) {
     specs.push({ id: "unpin", label: labels.contextMenu.unpin, icon: <PinOff className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, null) });
   }
-  specs.push({ id: "hide-column", label: labels.contextMenu.hideColumn, icon: <EyeOff className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnHidden(columnId, true) });
+  if (column.hideable !== false) {
+    specs.push({ id: "hide-column", label: labels.contextMenu.hideColumn, icon: <EyeOff className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnHidden(columnId, true) });
+  }
   if (resizable) {
     specs.push(
       { id: "sep-autosize", separator: true },

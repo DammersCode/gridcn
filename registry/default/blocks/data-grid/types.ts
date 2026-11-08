@@ -588,6 +588,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   reorderable?: boolean;
   /** `false` disables pin/unpin for this column; default true. */
   pinnable?: boolean;
+  /** `false` keeps the column visible in the columns menu and the header menu; default true. `setColumnHidden`, URL state, saved views, and `hidden` still apply. */
+  hideable?: boolean;
   /**
    * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
    * `props` is a {@link CellRenderProps}: `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
