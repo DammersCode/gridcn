@@ -70,8 +70,6 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 - A short answer marks only its rows as loaded and warns in development. The next report of the rendered rows requests the rest.
 - A burst of landing blocks costs about one update of `data` per frame.
 
-`useDataGridServerScroll` is `useDataGridServerRows({ mode: "scroll" })` with the mode fixed.
-
 `blockSize` <NewBadge /> is 50 and `overscan` is 30 by default. Pass `source: "indexed"` to fix random access. A scroll-mode grid defaults `sortMode` and `filterMode` to `"server"`: see [Query server rows](/docs/data-modes/query-server-rows). `getRowId` is optional. It defaults to the `id` field of the row.
 
 ## Skeleton rows

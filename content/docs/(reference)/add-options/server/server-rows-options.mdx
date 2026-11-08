@@ -8,8 +8,6 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 `useDataGridServerRows` owns the sort, filter, search text, and rows of one server source. You write `fetchRows`. The hook calls it, aborts a request that a newer one replaces, and keeps the last good rows on screen. `mode` picks how rows reach the grid. The steps and the contract are on [Server rows contract](/docs/contracts/server-rows-contract).
 
-`useDataGridServerPages(options)` <NewBadge /> and `useDataGridServerScroll(options)` are `useDataGridServerRows` fixed to one mode. They take the options of that mode without `mode`, so the mode cannot change under a mounted hook.
-
 ## Pages mode [#server-mode]
 
 The default mode fetches one page for each state. If the sort, the filter, the search text, or the page size changes, the grid returns to page 1.

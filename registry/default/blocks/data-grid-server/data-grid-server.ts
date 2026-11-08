@@ -2,8 +2,6 @@
 
 export {
   useDataGridServerRows,
-  useDataGridServerPages,
-  useDataGridServerScroll,
   type UseDataGridServerRowsOptions,
   type UseDataGridServerRowsResult,
   type ServerRowsPageRequest,
