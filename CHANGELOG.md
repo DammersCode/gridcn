@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `importDefaults.autoDetectDelimiter` is removed. `defaultDelimiter` alone fixes the delimiter; leave it unset to detect. Before: `importDefaults={{ autoDetectDelimiter: false }}`. After: `importDefaults={{ defaultDelimiter: "," }}`.
 - Fix: the global shortcut layer (`DataGridGlobalShortcuts`) fires a binding only when the key press carries Ctrl or Cmd. A remapped bare key such as `deleteRows: ["Delete"]` fired on that key anywhere on the page; it now stays in the grid, and development warns once per grid.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
 - A plugin `keymap` entry binds only the six pluggable actions. A plugin that named another built-in action, such as `selectAll`, in `commands` and `keymap` lost the command but replaced the action's default keys. The development warning for such an entry says that the action is not pluggable.

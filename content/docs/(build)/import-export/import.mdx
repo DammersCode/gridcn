@@ -124,7 +124,7 @@ Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change 
 
 `importDefaults` sets where the dialog starts, and the user can change every choice:
 
-- `defaultDelimiter` sets the delimiter and skips detection. `autoDetectDelimiter: false` without it means a comma.
+- `defaultDelimiter` sets the delimiter and skips detection.
 - `defaultHeaderRow` sets the header toggle.
 - `defaultSkipColumns` skips source columns by header text (any case) or 0-based index.
 - `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. The dialog does not compare the answers. When two answers name one grid column, the later one wins on import.

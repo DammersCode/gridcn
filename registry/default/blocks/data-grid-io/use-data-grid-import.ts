@@ -108,12 +108,6 @@ function computeImportHeaders(rows: string[][], hasHeaderRow: boolean, columnFal
   return Array.from({ length: columnCount }, (_, i) => columnFallback(i + 1));
 }
 
-/** Resolves the `csvDelimiter` override to parse with, given `ImportDefaults`; undefined means "let auto-detect run". */
-function resolveDelimiterOverride(options: ImportDefaults): CsvDelimiter | undefined {
-  if (options.autoDetectDelimiter === false) return options.defaultDelimiter ?? ",";
-  return options.defaultDelimiter;
-}
-
 /** Options for {@link useDataGridImportPreview}. */
 export type UseDataGridImportPreviewOptions = {
   /** `labels.io.columnFallback` — builds the header shown for column N when the file has no header row. */
@@ -282,7 +276,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
     setError(null);
     setIsParsing(true);
     try {
-      const parsed = await parse(file, { csvDelimiter: resolveDelimiterOverride(defaults) }, controller.signal);
+      const parsed = await parse(file, { csvDelimiter: defaults.defaultDelimiter }, controller.signal);
       if (generation !== parseGenerationRef.current) return; // superseded by a newer file load or a reset
       if (parsed.rows.length === 0) {
         setError("errorNoRows");

@@ -469,13 +469,13 @@ describe("DataGridImportButton (browser)", () => {
     await expect.element(delimiterTrigger).toHaveTextContent("Semicolon (;)");
   });
 
-  it("autoDetectDelimiter: false suppresses detection and uses defaultDelimiter (or comma)", async () => {
+  it("defaultDelimiter suppresses detection", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
         <DataGridImportButton
           createRow={(): Row => ({ id: "imported-0", name: "", age: null })}
           onImport={() => {}}
-          importDefaults={{ autoDetectDelimiter: false }}
+          importDefaults={{ defaultDelimiter: "," }}
         />
         <DataGridRoot className="h-[200px]">
           <DataGridHeader />
@@ -486,8 +486,7 @@ describe("DataGridImportButton (browser)", () => {
 
     await userEvent.click(page.getByRole("button", { name: "Import" }));
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-    // semicolon-delimited content would normally auto-detect to ';'; forcing off detection parses
-    // it as comma-delimited instead, so the whole line becomes one column.
+    // semicolon content would auto-detect to ';'; a fixed comma keeps the whole line in one column
     const file = makeCsvFile("Name;Age\nAlice;30");
     await userEvent.upload(fileInput!, file);
 

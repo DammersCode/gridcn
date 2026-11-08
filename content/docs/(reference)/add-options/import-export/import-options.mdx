@@ -39,7 +39,6 @@ export function ImportRows({ onRows }: { onRows: (rows: Row[]) => void }) {
 The user can change every default in the open dialog.
 
 - With `defaultDelimiter` set, the dialog reads CSV files with that delimiter and does not detect one.
-- With `autoDetectDelimiter` set to `false` and no `defaultDelimiter`, the dialog uses a comma.
 - `mapColumn` wins over `defaultSkipColumns`. If a promise from `mapColumn` rejects, the dialog drops every answer of `mapColumn` and uses the built-in match with `defaultSkipColumns`.
 
 ## ImportLimits [#importlimits]
