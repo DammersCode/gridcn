@@ -7,8 +7,6 @@ export {
   type PinnedRowSource,
   type ServerAggregateRowOptions,
 } from "./pinned-row-source";
-export { DataGridPinnedRow, type DataGridPinnedRowProps } from "./pinned-row";
-export { DataGridPinnedRowBand, type DataGridPinnedRowBandProps } from "./pinned-row-band";
 export {
   useDataGridAggregate,
   DataGridAggregateReporter,

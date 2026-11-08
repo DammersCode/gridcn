@@ -1,9 +1,5 @@
 {
   "data-grid": [
     "DataGridCell"
-  ],
-  "data-grid-pinned-rows": [
-    "DataGridPinnedRow",
-    "DataGridPinnedRowBand"
   ]
 }

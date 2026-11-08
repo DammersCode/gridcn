@@ -1,8 +1,4 @@
 # Public names that no docs page mentions on purpose. One per line (Name or Type.member), reason after #.
-DataGridPinnedRow # takes the plugin internal band render context; no page teaches calling it
-DataGridPinnedRowProps # props of DataGridPinnedRow
-DataGridPinnedRowBand # internal band renderer of the pinned rows plugin
-DataGridPinnedRowBandProps # props of DataGridPinnedRowBand
 KeysMatching # type helper behind defineColumns accessor keys; the reader never writes it
 AccessorLike # type helper behind defineColumns; the reader never writes it
 InferredValue # type helper behind defineColumns value inference; the reader never writes it

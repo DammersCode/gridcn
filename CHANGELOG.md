@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `data-grid-pinned-rows` no longer exports `DataGridPinnedRow` and `DataGridPinnedRowBand` (and their props types). Their props take grid internals, and `useDataGridPinnedRows` renders them. Before: `import { DataGridPinnedRowBand } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows"`. After: import the module file (`.../pinned-row-band`), or render a custom band with your own plugin and `rowBands.render`.
 - `DataGridHeaderFilter` and `BindingChips` take a `className` that merges into the trigger button and the keycap row.
 - Fix: `DataGridStatusBar` renders its `children` when fewer than two cells are selected. Before, it returned `null` and the extra items vanished. It still renders nothing when it has nothing to show and no children; pass `children` conditionally to keep the old behavior.
 - `useDataGridFindReplace({ className })` merges classes into the panel root, which hard-coded its width, corners, and shadow before.
