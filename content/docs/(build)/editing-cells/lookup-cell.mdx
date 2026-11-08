@@ -55,6 +55,16 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads pasted labels through a cache that belongs to the `fetchOptions` function.
 
+## Dependent lookups
+
+<NewBadge />
+
+`fetchOptions` receives the row that the user edits. Read it to narrow the options, such as the cities of the country in that row:
+
+```tsx
+fetchOptions: ({ query, row, signal }) => searchCities(query, (row as Order).country, signal),
+```
+
 ## The stored value
 
 A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
@@ -83,7 +93,7 @@ A new request aborts the one before it through `signal`. The editor drops a late
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `fetchOptions` | required | Resolves `{ value, label }[]` for `{ query, signal }`. |
+| `fetchOptions` | required | Resolves `{ value, label }[]` for `{ query, signal, row, rowId, columnId }`. |
 | `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
 | `minQueryLength` | `0` | Fewest typed characters that start a request. |
 | `maxResults` | `50` | Most options shown. The limit is `200`. |
@@ -113,7 +123,7 @@ The cell calls your `fetchOptions` in every data mode, because the options live 
 
 - `LookupOption` is `{ value, label }`.
 - `LookupValue` is the stored value: a `LookupOption`, a bare key string without a label, or `null`.
-- `LookupFetchRequest` is the argument of `fetchOptions`: `query` and `signal`.
+- `LookupFetchRequest` is the argument of `fetchOptions`: `query`, `signal`, and the edited `row`, `rowId`, and `columnId`.
 - `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
 
 `defineColumns` <NewBadge /> checks a `lookup` column after you add the type to `GridCellTypes`. It then checks `accessorKey` against `LookupValue` and `options` against `LookupOptions`:

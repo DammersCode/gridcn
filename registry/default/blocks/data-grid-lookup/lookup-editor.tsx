@@ -23,7 +23,7 @@ type Fetched = { status: "idle" | "loading" | "ready" | "error"; options: readon
 
 /** Opens on edit start. Typing searches `fetchOptions` after a pause; arrow keys move, Enter or a click picks, Escape cancels. */
 export function LookupEditor(props: CellEditorProps<unknown, LookupValue, LookupOptions>) {
-  const { value, options, onChange, commit, cancel, column, pending, rejectionCount, initialText } = props;
+  const { value, options, onChange, commit, cancel, column, pending, rejectionCount, initialText, row, rowId } = props;
   const labels = { ...DEFAULT_LABELS, ...options?.labels };
   const minQueryLength = Math.max(0, options?.minQueryLength ?? 0);
   const providerDelay = useDataGridInputDebounce();
@@ -45,8 +45,10 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
   const [active, setActive] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const latest = useRef(options);
+  const target = useRef({ row, rowId, columnId: column.id });
   useLayoutEffect(() => {
     latest.current = options;
+    target.current = { row, rowId, columnId: column.id };
   });
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
     }
     const controller = new AbortController();
     setFetched((prev) => ({ status: "loading", options: prev.options }));
-    new Promise<unknown>((resolve) => resolve(fetchOptions({ query, signal: controller.signal })))
+    new Promise<unknown>((resolve) => resolve(fetchOptions({ query, signal: controller.signal, ...target.current })))
       .then((answer) => {
         if (controller.signal.aborted) return;
         const list = sanitizeOptions(answer, latest.current?.maxResults);

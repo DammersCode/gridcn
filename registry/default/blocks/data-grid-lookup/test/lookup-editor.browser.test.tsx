@@ -76,6 +76,19 @@ describe("lookup editor", () => {
     expect(requests[0]?.signal.aborted).toBe(true);
   });
 
+  it("sends the edited row, its id, and the column id with each request", async () => {
+    const requests: LookupFetchRequest[] = [];
+    const row: Row = { id: "r1", customer: acme };
+    const fetchOptions = (req: LookupFetchRequest) => {
+      requests.push(req);
+      return Promise.resolve([acme]);
+    };
+    await setup(makeOptions({ fetchOptions }), [row]);
+    await openEditor();
+    await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0));
+    expect(requests[0]).toMatchObject({ row, rowId: "r1", columnId: "customer" });
+  });
+
   it("ignores a late answer of a superseded query", async () => {
     const pending: { query: string; resolve: (o: LookupOption[]) => void }[] = [];
     const fetchOptions = (req: LookupFetchRequest) => new Promise<LookupOption[]>((resolve) => pending.push({ query: req.query, resolve }));

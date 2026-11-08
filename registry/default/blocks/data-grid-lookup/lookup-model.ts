@@ -12,6 +12,12 @@ export type LookupFetchRequest = {
   query: string;
   /** Aborted when the user types again, closes the editor, or the cell unmounts. */
   signal: AbortSignal;
+  /** The row being edited, so a dependent lookup can narrow its options. The request does not repeat when a push changes the row during the edit. */
+  row: unknown;
+  /** The id of the row being edited. */
+  rowId: string;
+  /** The id of the lookup column. */
+  columnId: string;
 };
 
 /** Text the editor shows; each field falls back to English. */
