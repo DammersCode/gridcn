@@ -23,7 +23,7 @@ function deferred<T>() {
 const settle = () => new Promise<void>((resolve) => setTimeout(resolve));
 
 function mount(overrides: Partial<InternalSyncProps> = {}) {
-  const base = { data: rows(), columns, getRowId: (row: unknown) => (row as Row).id, ...overrides } as InternalSyncProps;
+  const base = { data: rows(), onDataChange: () => {}, columns, getRowId: (row: unknown) => (row as Row).id, ...overrides } as InternalSyncProps;
   const store = createDataGridStore(base);
   return {
     store,

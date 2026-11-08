@@ -609,7 +609,7 @@ describe("plugin onDataChange observers", () => {
         { name: "a", onDataChange: () => { throw new Error("boom"); } } as const,
         { name: "b", onDataChange: () => { ran.push("b"); } } as const,
       ],
-      { data: rows },
+      { data: rows, onDataChange: () => {} },
     );
     expect(() => act(() => h.actions().commitChange(editChange("0", { ...rows[0]!, name: "Changed" }, rows[0]!)))).not.toThrow();
     expect(ran).toEqual(["b"]);

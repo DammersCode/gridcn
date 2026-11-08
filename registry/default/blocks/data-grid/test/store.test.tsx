@@ -3801,7 +3801,7 @@ describe("CellRef actions (stable identity coordinates)", () => {
   it("commitCellValue writes at the ref's resolved cell without moving the active cell", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHook(useRefActions, {
-      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }] }),
+      wrapper: makeConfigWrapper({ sortState: [{ columnId: "name", direction: "asc" }], onDataChange: () => {} }),
     });
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
     act(() => result.current.actions.commitCellValue({ rowId: "3", columnId: "age" }, 41));
