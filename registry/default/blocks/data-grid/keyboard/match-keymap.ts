@@ -42,9 +42,9 @@ function keysEqual(eventKey: string, bindingKey: string): boolean {
   return eventKey === bindingKey;
 }
 
-/** A bare punctuation key such as `?` needs Shift on some layouts and not on others; `event.key` already carries the result. */
+/** A punctuation key such as `?` needs Shift on some layouts and not on others; `event.key` already carries the result. */
 function isShiftAgnosticKey(binding: ParsedBinding): boolean {
-  return !binding.shift && !binding.mod && !binding.ctrl && !binding.alt && /^[^\p{L}\p{N}\s]$/u.test(binding.key);
+  return !binding.shift && /^[^\p{L}\p{N}\s]$/u.test(binding.key);
 }
 
 function matchesBinding(event: KeymapEvent, binding: ParsedBinding, isMac: boolean): boolean {

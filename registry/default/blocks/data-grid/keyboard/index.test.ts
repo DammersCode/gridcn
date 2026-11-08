@@ -550,6 +550,21 @@ describe("matchKeymap - bare punctuation ignores Shift", () => {
     expect(matchKeymap(press(false), keymap, false)).toBe("openFind");
   });
 
+  it("ignores Shift for a punctuation binding with a modifier", () => {
+    const modSlash = { openFind: ["mod+/"] } as Keymap;
+    const slash = (shiftKey: boolean): KeymapEvent => ({ key: "/", ctrlKey: true, metaKey: false, shiftKey, altKey: false });
+    expect(matchKeymap(slash(true), modSlash, false)).toBe("openFind");
+    expect(matchKeymap(slash(false), modSlash, false)).toBe("openFind");
+  });
+
+  it("requires Shift when the binding names it, and prefers that binding", () => {
+    const keymap2 = { openFind: ["mod+/"], openKeybindings: ["mod+shift+/"] } as Keymap;
+    const slash = (shiftKey: boolean): KeymapEvent => ({ key: "/", ctrlKey: true, metaKey: false, shiftKey, altKey: false });
+    expect(matchKeymap(slash(true), keymap2, false)).toBe("openKeybindings");
+    expect(matchKeymap(slash(false), keymap2, false)).toBe("openFind");
+    expect(matchKeymap(slash(false), { openKeybindings: ["mod+shift+/"] } as Keymap, false)).toBeNull();
+  });
+
   it("keeps Shift exact for a letter binding", () => {
     expect(matchKeymap({ key: "a", ctrlKey: false, metaKey: false, shiftKey: true, altKey: false }, { openFind: ["a"] } as Keymap, false)).toBeNull();
   });
