@@ -185,3 +185,38 @@ describe("batch reorder cost at 100,000 rows", () => {
     expect(ms).toBeLessThan(100 * CI_FACTOR);
   });
 });
+
+describe("skipped row moves report through onRowActionSkipped", () => {
+  it("reports view-ordered under a client sort, for reorderRows and moveRowsBy", () => {
+    const onRowActionSkipped = vi.fn();
+    const { result } = setup(5, { sortState: [{ columnId: "name", direction: "asc" }], onRowActionSkipped });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    act(() => void result.current.actions.reorderRows(0, 2));
+    act(() => void result.current.actions.moveRowsBy([1], 1));
+
+    expect(onRowActionSkipped).toHaveBeenNthCalledWith(1, { action: "moveRows", reason: "view-ordered" });
+    expect(onRowActionSkipped).toHaveBeenNthCalledWith(2, { action: "moveRows", reason: "view-ordered" });
+  });
+
+  it("reports readOnly and nothing-to-do, and keeps the boolean return", () => {
+    const onRowActionSkipped = vi.fn();
+    const readOnly = setup(5, { readOnly: true, onRowActionSkipped });
+    let moved = true;
+    act(() => void (moved = readOnly.result.current.actions.reorderRows(0, 2)));
+    expect(moved).toBe(false);
+    expect(onRowActionSkipped).toHaveBeenLastCalledWith({ action: "moveRows", reason: "readOnly" });
+
+    const editable = setup(5, { onRowActionSkipped });
+    act(() => void (moved = editable.result.current.actions.moveRowsBy([0], -1)));
+    expect(moved).toBe(false);
+    expect(onRowActionSkipped).toHaveBeenLastCalledWith({ action: "moveRows", reason: "nothing-to-do" });
+  });
+
+  it("does not report a move that ran", () => {
+    const onRowActionSkipped = vi.fn();
+    const { result } = setup(5, { onRowActionSkipped });
+    act(() => void result.current.actions.reorderRows(0, 2));
+    expect(onRowActionSkipped).not.toHaveBeenCalled();
+  });
+});

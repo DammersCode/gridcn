@@ -88,7 +88,7 @@ function MoveTools() {
 
 Under client pagination <NewBadge />, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
 
-These calls return `false` and change nothing in these cases. For an active sort or filter and for unloaded rows, the grid also warns in development:
+These calls return `false`, change nothing, and report through [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results) <NewBadge /> with `action: "moveRows"`. The reasons are `"readOnly"`, `"view-ordered"`, `"unloaded-rows"`, and `"nothing-to-do"`. For an active sort or filter and for unloaded rows, the grid also warns in development:
 
 - The grid is `readOnly`.
 - A client sort or filter is active, because the sort or filter owns the view order.

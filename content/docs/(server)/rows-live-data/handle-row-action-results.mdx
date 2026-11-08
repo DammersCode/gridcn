@@ -24,11 +24,12 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"no-factory"` | `createRow` or `duplicateRow` is missing. |
 | `"gate-declined"` | `onBeforeDeleteRows` returned `false`. |
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
-| `"nothing-to-do"` | No target row matched, or `count` was 0. |
+| `"nothing-to-do"` | No target row matched, `count` was 0, or a row move had nowhere to go. |
+| `"view-ordered"` <NewBadge /> | A row move was refused because an active sort or filter owns the row order. |
 
-`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, or `deleteRows`, whether a shortcut, a menu item, or a call started it. One handler can show a message for all three paths. Disabled row items of the context menu show the reason as a tooltip.
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows` <NewBadge />, whether a shortcut, a drag, a menu item, or a call started it. One handler can show a message for all four paths. Disabled row items of the context menu show the reason as a tooltip.
 
-`reorderRows` and `moveRowsBy` return `true` or `false`.
+`reorderRows` and `moveRowsBy` return `true` or `false` and report their skips as `action: "moveRows"`.
 
 ## Stop a gate that never settles [#gate-timeout]
 

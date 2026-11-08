@@ -54,7 +54,7 @@ import { forEachMember } from "../selection/compact-selection";
 import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -824,7 +824,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
   const OK: RowActionResult = { ok: true };
-  const skippedBy = (action: "insertRows" | "duplicateRows" | "deleteRows", reason: RowActionSkipReason): RowActionResult => {
+  const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => {
     const handler = get().onRowActionSkipped;
     if (handler) {
       try {
@@ -1039,13 +1039,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
     );
   };
-  const canMoveRows = (s: DataGridStoreState): boolean => {
-    if (s.readOnly) return false;
+  const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
+    if (s.readOnly) return "readOnly";
     if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
-      return false;
+      return "view-ordered";
     }
-    return true;
+    return null;
   };
 
   /** Positions count the rows a move plans over, like the row numbers on screen: page rows on a paged grid. */
@@ -1073,7 +1073,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
 
   /** Applies a plan over view rows as one write: one `move` operation per moved row, one emit, one permutation for the selection. Unsorted and unfiltered, view rows equal data indices offset by the page start. */
   const applyRowMoves = (s: DataGridStoreState, viewPlan: RowMovePlan | null): boolean => {
-    if (!viewPlan) return false;
+    if (!viewPlan) return skippedBy("moveRows", "nothing-to-do").ok;
     const { data, getRowId } = s;
     const pageStart = pageStartOf(s.viewIndex);
     const plan = toDataPlan(viewPlan, pageStart, data.length);
@@ -1082,7 +1082,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // Indexed access sees sparse holes; a reorder would shift scroll mode's in-flight block bookkeeping.
       if (data[i] === undefined) {
         warnDev("reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first");
-        return false;
+        return skippedBy("moveRows", "unloaded-rows").ok;
       }
     }
     const nextData = new Array<unknown>(data.length);
@@ -1523,12 +1523,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     reorderRows(rows, to) {
       const s = get();
-      if (!canMoveRows(s)) return false;
+      const blocked = moveBlockedReason(s);
+      if (blocked) return skippedBy("moveRows", blocked).ok;
       return applyRowMoves(s, planBlockMove(movableRowCount(s), typeof rows === "number" ? [rows] : rows, to));
     },
     moveRowsBy(rows, delta) {
       const s = get();
-      if (!canMoveRows(s)) return false;
+      const blocked = moveBlockedReason(s);
+      if (blocked) return skippedBy("moveRows", blocked).ok;
       return applyRowMoves(s, planShiftMove(movableRowCount(s), rows, delta));
     },
     replaceRowId(oldId, row) {
