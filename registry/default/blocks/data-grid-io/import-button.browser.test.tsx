@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridImportButton } from "./data-grid-io";
+import { DataGridImportDialog } from "./import-dialog";
 // real stylesheet so Tailwind's `grid`/dialog utilities actually apply
 import "@/app/global.css";
 
@@ -784,5 +785,17 @@ describe("DataGridImportDialog at a short viewport", () => {
     // scrolled to the bottom, the footer sits inside the visible dialog box.
     expect(footerRect.bottom).toBeLessThanOrEqual(dialogRect.bottom + 1);
     expect(footerRect.top).toBeGreaterThanOrEqual(dialogRect.top - 1);
+  });
+});
+
+describe("DataGridImportDialog (browser)", () => {
+  it("merges className into the dialog content", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridImportDialog open onOpenChange={() => {}} onImport={() => {}} className="max-w-[31rem]" createRow={(): Row => ({ id: "x", name: "", age: null })} />
+      </DataGridProvider>,
+    );
+    const dialog = page.getByRole("dialog").query();
+    expect(dialog?.className).toContain("max-w-[31rem]");
   });
 });

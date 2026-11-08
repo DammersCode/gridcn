@@ -9,7 +9,7 @@ import { DataGridImportDialog, type DataGridImportDialogProps, type ImportDefaul
 export type { ImportDefaults };
 
 /** Props for {@link DataGridImportButton}: the dialog's props except the open state, plus `className`. */
-export type DataGridImportButtonProps<TData> = Omit<DataGridImportDialogProps<TData>, "open" | "onOpenChange"> & {
+export type DataGridImportButtonProps<TData> = Omit<DataGridImportDialogProps<TData>, "open" | "onOpenChange" | "className"> & {
   className?: string;
 };
 

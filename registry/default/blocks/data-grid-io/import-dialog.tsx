@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, isDev, useDataGridMarkGatePending, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
@@ -62,6 +63,8 @@ const MAX_ERROR_MESSAGE_LENGTH = 200;
 
 /** Props for {@link DataGridImportDialog}. */
 export type DataGridImportDialogProps<TData> = {
+  /** Merges into the dialog content, which is `max-h-[80vh]` and `sm:max-w-2xl` by default. */
+  className?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Builds a fresh row for import row `index`; required — the dialog never writes to the grid store directly. */
@@ -97,7 +100,7 @@ export type DataGridImportDialogProps<TData> = {
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
-  const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file } = props;
+  const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file, className } = props;
   const maxFileBytes = importLimits?.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
@@ -276,7 +279,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] min-w-0 overflow-y-auto sm:max-w-2xl">
+      <DialogContent className={cn("max-h-[80vh] min-w-0 overflow-y-auto sm:max-w-2xl", className)}>
         <DialogHeader>
           <DialogTitle>{labels.io.importDialogTitle}</DialogTitle>
           <DialogDescription>{labels.io.importDialogDescription}</DialogDescription>
