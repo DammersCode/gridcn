@@ -336,7 +336,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       />
     );
   } else if (column.renderCell) {
-    content = column.renderCell({ value, row, rowId, columnId: column.id, viewRowIndex: viewRowIndex, column, isActive });
+    content = column.renderCell({ value, row, rowId, columnId: column.id, viewRowIndex: viewRowIndex, column, options: column.options, isActive });
   } else {
     const Cell = cellType.Cell as unknown as (p: {
       value: unknown;

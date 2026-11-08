@@ -240,7 +240,7 @@ export type CellRenderProps<TData, TValue, TOptions = unknown> = {
   columnId: string;
   /** Display (view-index) row index: the sorted/filtered position, matching what the user sees. NOT a stable index into `data` — it reshuffles under sort and filter. */
   viewRowIndex: number;
-  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. A cell type's `Cell` receives it; `renderCell` does not (read `column.options`). */
+  /** The column's `options`, typed through `TOptions` (your declared options type) when the cell type is parameterized with it. A cell type's `Cell` and `renderCell` receive it. */
   options?: TOptions;
   // `column`'s own validate erases independently (3rd param `any`) — same reasoning as
   // CellClassNameCtx.column below; without it, renderCell's own bivariance gets re-poisoned by
@@ -591,7 +591,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   pinnable?: boolean;
   /**
    * Display-only override that keeps the column's type pipeline; method-shorthand for the same bivariance reason as `validate`.
-   * `props` is a {@link CellRenderProps}: `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, and `isActive`. `options` stays unset; read `column.options`.
+   * `props` is a {@link CellRenderProps}: `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, `column`, `options`, and `isActive`.
    */
   renderCell?(props: CellRenderProps<TData, TValue>): ReactNode;
   /**

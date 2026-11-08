@@ -223,6 +223,14 @@ describe("DataGrid cell content", () => {
     expect(screen.getByText("<Row 0>")).toBeInTheDocument();
   });
 
+  it("passes the column options to renderCell", () => {
+    const optionColumns: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name", options: { prefix: ">>" }, renderCell: ({ value, options }) => `${(options as { prefix: string }).prefix}${String(value)}` },
+    ];
+    render(<DataGrid data={makeRows(1)} columns={optionColumns} getRowId={(r) => r.id} />);
+    expect(screen.getByText(">>Row 0")).toBeInTheDocument();
+  });
+
   it("marks readOnly cells with data-readonly", () => {
     const readOnlyColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", readOnly: true },
