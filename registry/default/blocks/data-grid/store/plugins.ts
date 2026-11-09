@@ -1,6 +1,6 @@
 import type { GridAction, Keymap } from "../types";
 import type { DataGridPlugin, GridCommand } from "../types";
-import { BUILTIN_ACTIONS, DEFAULT_KEYMAP, PLUGGABLE_ACTIONS } from "../keyboard";
+import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
 import type {
   ResolvedBandSegment,
   ResolvedPluginMount,
@@ -139,7 +139,7 @@ export function resolvePlugins(list: readonly DataGridPlugin[], warn: PluginWarn
 
 /**
  * The merged command map: the plugins' commands in array order (the later plugin wins a name
- * conflict, dev-warned; a built-in action name is dropped, dev-warned, unless pluggable), then the
+ * conflict, dev-warned; a built-in action name is dropped, dev-warned), then the
  * consumer's `commands` over everything (the app owner's explicit choice, silently). `null` when
  * nothing lands.
  */
@@ -153,11 +153,10 @@ export function mergePluginCommands(
   for (const plugin of plugins) {
     if (!plugin.commands) continue;
     for (const [name, command] of Object.entries(plugin.commands)) {
-      const builtin = (BUILTIN_ACTIONS as readonly string[]).includes(name);
-      if (builtin && !PLUGGABLE_ACTIONS.includes(name)) {
+      if ((BUILTIN_ACTIONS as readonly string[]).includes(name)) {
         warn(
           `cmd-builtin:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s command "${name}" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)`,
+          `plugin "${plugin.name}"'s command "${name}" names a built-in action and is dropped — plugins cannot replace core behavior`,
         );
         continue;
       }
@@ -175,11 +174,10 @@ export function mergePluginCommands(
 
 /**
  * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order) <- the consumer's
- * `keymap` (always last, and wins). A plugin entry names a pluggable built-in action or a command
- * the plugin defines; any other entry is dropped, dev-warned. A binding another action already
- * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned; the kept
- * bindings replace that action's bindings. `openFind` and `openFindReplace` take their chord from
- * the default `focusSearch` binding.
+ * `keymap` (always last, and wins). A plugin entry names a command the plugin defines; any other
+ * entry is dropped, dev-warned. A binding another action already holds (default keymap, consumer
+ * keymap, or an earlier plugin) is dropped, dev-warned; the kept bindings replace that action's
+ * bindings. A plugin binding takes a chord from the default `focusSearch` binding silently.
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -190,11 +188,10 @@ export function mergePluginKeymaps(
   for (const plugin of plugins) {
     if (!plugin.keymap) continue;
     for (const [name, bindings] of Object.entries(plugin.keymap)) {
-      const builtin = (BUILTIN_ACTIONS as readonly string[]).includes(name);
-      if (builtin && !PLUGGABLE_ACTIONS.includes(name)) {
+      if ((BUILTIN_ACTIONS as readonly string[]).includes(name)) {
         warn(
           `keymap-unpluggable:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s keymap binds "${name}", which is a built-in action that is not pluggable; the entry is dropped — a plugin keymap binds the plugin's own commands and the pluggable actions (undo, redo, fillDown, fillRight, openFindReplace, openFind)`,
+          `plugin "${plugin.name}"'s keymap binds "${name}", which is a built-in action; the entry is dropped — a plugin keymap binds the plugin's own commands`,
         );
         continue;
       }
@@ -205,7 +202,7 @@ export function mergePluginKeymaps(
         );
         continue;
       }
-      const takesSearchKey = (name === "openFind" || name === "openFindReplace") && !consumerKeymap?.focusSearch;
+      const takesSearchKey = !consumerKeymap?.focusSearch;
       const effective: Keymap = consumerKeymap ? { ...merged, ...consumerKeymap } : merged;
       const taken = new Set<string>([...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])]);
       for (const [other, otherBindings] of Object.entries(effective)) {

@@ -23,7 +23,7 @@ export function categoryLabel(category: KeybindingCategory, labels: DataGridLabe
 }
 
 /** Groups every built-in `GridAction` for the dialog; actions absent here fall back to 'other' so consumer-added actions still render. */
-export const ACTION_CATEGORY: Partial<Record<GridAction, KeybindingCategory>> = {
+export const ACTION_CATEGORY: Partial<Record<GridAction | (string & {}), KeybindingCategory>> = {
   moveUp: "navigation",
   moveDown: "navigation",
   moveLeft: "navigation",

@@ -229,8 +229,7 @@ function warnMissingTriggerOnce(storeApi: object, slotProp: string, message: str
  * Executes one already-resolved keymap action against the store — the dispatch shared by the
  * in-grid keydown handler and the global-shortcut window layer, so a globally registered action
  * behaves EXACTLY like its in-grid binding (same scrolling, same store-side guards: `insertRowBelow`
- * without `createRow` no-ops, a hollow built-in (`undo`, `fillDown`, ...) no-ops until a command
- * implements it, ...). `preventDefault` is the caller's event handler, invoked only for the
+ * without `createRow` no-ops, ...). `preventDefault` is the caller's event handler, invoked only for the
  * actions that would preventDefault in-grid.
  * Not part of the public hook surface.
  */
@@ -536,17 +535,6 @@ export function dispatchGridAction(args: {
     case "clearContents": {
       preventDefault();
       if (!state.readOnly) actions.deleteSelection();
-      break;
-    }
-    // Pluggable built-ins: the body is hollow; a plugin (or the consumer's `commands`) that names
-    // the action takes over above, in the command path, with its own `when` gate.
-    case "fillDown":
-    case "fillRight":
-    case "undo":
-    case "redo":
-    case "openFindReplace":
-    case "openFind": {
-      preventDefault();
       break;
     }
     case "insertRowBelow": {

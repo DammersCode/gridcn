@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_KEYMAP } from "./default-keymap";
+import { HISTORY_KEYMAP } from "../../data-grid-history/history-keymap";
+import { DEFAULT_KEYMAP as CORE_KEYMAP } from "./default-keymap";
 import {
   enabledGlobalActions,
   bareGlobalBindings,
@@ -7,6 +8,8 @@ import {
   type GlobalShortcutContext,
   type GlobalShortcutEvent,
 } from "./global-shortcuts";
+
+const DEFAULT_KEYMAP = { ...CORE_KEYMAP, ...HISTORY_KEYMAP };
 
 function makeEvent(overrides: Partial<GlobalShortcutEvent> = {}): GlobalShortcutEvent {
   return {
@@ -86,7 +89,7 @@ describe("resolveGlobalShortcut - gate rules", () => {
   });
 
   it("skips actions the include filter rejects, so an editor-only command keeps undo working", () => {
-    const keymap = { ...DEFAULT_KEYMAP, logEdit: ["mod+z"] } as GlobalShortcutContext["keymap"];
+    const keymap = { logEdit: ["mod+z"], ...DEFAULT_KEYMAP } as GlobalShortcutContext["keymap"];
     const include = (action: string) => action !== "logEdit";
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap }))).toBe(null);
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ keymap, include }))).toBe("undo");

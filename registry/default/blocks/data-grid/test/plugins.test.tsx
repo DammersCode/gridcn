@@ -122,7 +122,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     const commands = mergePluginCommands(resolved.list, null, warn)!;
     expect(commands["undo"]).toBe(first.commands!["undo"]);
     expect(commands["fillDown"]).toBeUndefined();
-    expect(mergePluginKeymaps(resolved.list, undefined, warn).fillDown).toEqual(DEFAULT_KEYMAP.fillDown);
+    expect(mergePluginKeymaps(resolved.list, undefined, warn).fillDown).toBeUndefined();
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
@@ -135,7 +135,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     ]);
     const state = h.store().getState();
     expect(state.plugins.list).toHaveLength(1);
-    expect(state.keymap.undo).toEqual(DEFAULT_KEYMAP.undo);
+    expect(state.keymap.undo).toBeUndefined();
     state.commands!["undo"]!.run({} as never);
     expect(firstUndo).toHaveBeenCalledTimes(1);
     expect(secondUndo).not.toHaveBeenCalled();
@@ -166,7 +166,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("a plugin command named after a built-in action is dropped with a dev warn; the pluggable built-ins are kept", () => {
+  it("a plugin command named after a built-in action is dropped with a dev warn; an add-on action name is an ordinary command", () => {
     const warn = vi.fn();
     const plugin = {
       name: "p",
@@ -226,11 +226,11 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(merged["custom"]).toEqual(["alt+j"]);
   });
 
-  it("a plugin keymap entry naming a pluggable action the plugin defines no command for is dropped with a dev warn", () => {
+  it("a plugin keymap entry naming a command the plugin does not define is dropped with a dev warn", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { undo: { run: () => {} } }, keymap: { redo: ["mod+shift+r"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn);
-    expect(merged.redo).toEqual(DEFAULT_KEYMAP.redo);
+    expect(merged.redo).toBeUndefined();
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unknown:p:redo"]);
     expect(warn.mock.calls[0]![1]).toContain("defines no such command");
   });
@@ -241,20 +241,6 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(mergePluginCommands([plugin], null, warn)).toBeNull();
     expect(mergePluginKeymaps([plugin], undefined, warn).selectAll).toEqual(DEFAULT_KEYMAP.selectAll);
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["cmd-builtin:p:selectAll", "keymap-unpluggable:p:selectAll"]);
-  });
-
-  it("a plugin binding equal to a DEFAULT_KEYMAP binding is dropped with a dev warn; the default keeps working", () => {
-    const warn = vi.fn();
-    const plugin = {
-      name: "p",
-      commands: { fillDown: { run: () => {} } },
-      keymap: { fillDown: ["mod+d", "mod+shift+d"] },
-    };
-    const merged = mergePluginKeymaps([plugin], undefined, warn);
-    expect(merged.fillDown).toEqual(["mod+shift+d"]);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
-    expect(warn.mock.calls[0]![1]).toContain("colliding binding is dropped");
   });
 
   it("a plugin binding a key the consumer's keymap already owns is dropped; the consumer's binding wins", () => {
@@ -272,7 +258,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
   });
 
-  it("openFind takes mod+f from the default focusSearch binding without a warning", () => {
+  it("a plugin binding takes mod+f from the default focusSearch binding without a warning", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn);
@@ -281,7 +267,7 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("openFind leaves focusSearch alone when the consumer binds it", () => {
+  it("a plugin binding leaves focusSearch alone when the consumer binds it", () => {
     const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
     const merged = mergePluginKeymaps([plugin], { focusSearch: ["mod+j"] }, vi.fn());
     expect(merged.focusSearch).toEqual(["mod+j"]);
@@ -863,15 +849,10 @@ describe("fill plugin commands (mod+D / mod+R)", () => {
     expect(data()[1]!.name).toBe(fillRows[1]!.name);
   });
 
-  it("without the plugin the keys are hollow no-ops that still prevent the browser default", () => {
+  it("without the plugin mod+D and mod+R stay unbound", () => {
     render(<FillGrid withPlugin={false} />);
-    const actions = store!.getState().actions;
-    act(() => {
-      actions.selectCellAt({ col: 0, row: 0 });
-      actions.extendToAt({ col: 0, row: 1 });
-    });
-    const preventDefault = dispatch("fillDown");
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(data()[1]!.name).toBe(fillRows[1]!.name);
+    const { keymap } = store!.getState();
+    expect(keymap.fillDown).toBeUndefined();
+    expect(keymap.fillRight).toBeUndefined();
   });
 });

@@ -807,6 +807,11 @@
                "target": "components/data-grid-fill/data-grid-fill.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-fill/fill-keymap.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-fill/fill-keymap.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-fill/detect-series.ts",
                "type": "registry:component",
                "target": "components/data-grid-fill/detect-series.ts"
@@ -969,6 +974,11 @@
                "path": "registry/default/blocks/data-grid-history/data-grid-history.ts",
                "type": "registry:component",
                "target": "components/data-grid-history/data-grid-history.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-history/history-keymap.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-history/history-keymap.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-history/use-data-grid-history.ts",

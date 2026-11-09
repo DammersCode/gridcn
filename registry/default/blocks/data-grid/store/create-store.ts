@@ -1,6 +1,6 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import type { CellRef, ColumnLayout, ColumnPin, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
-import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
+import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
 import { getCellValue } from "../columns/column-helpers";
@@ -947,11 +947,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _syncConfig(props) {
         if (props.commands && !warnedCommandShadow && isDev()) {
-          // BUILTIN_ACTIONS includes typeToReplace, which has no default binding; the six pluggable
-          // actions are the sanctioned shadow (their built-in bodies are hollow).
-          const shadowed = Object.keys(props.commands).filter((name) =>
-            (BUILTIN_ACTIONS as readonly string[]).includes(name) && !PLUGGABLE_ACTIONS.includes(name),
-          );
+          const shadowed = Object.keys(props.commands).filter((name) => (BUILTIN_ACTIONS as readonly string[]).includes(name));
           if (shadowed.length > 0) {
             warnedCommandShadow = true;
             warnDev(`commands shadows built-in action(s) ${shadowed.join(", ")}; the command wins and the built-in no longer dispatches`);

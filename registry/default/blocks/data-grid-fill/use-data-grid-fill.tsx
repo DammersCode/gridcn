@@ -5,6 +5,7 @@ import { useDataGridEditing, useDataGridReadOnly, useDataGridSelection, type Dat
 import { createFillStore, useFillOnPointerDown, useFillPreview, type FillStoreApi } from "./fill-store";
 import { renderFillOverlay } from "./fill-overlay";
 import { FillMount } from "./fill-mount";
+import { FILL_KEYMAP } from "./fill-keymap";
 import type { ProcessFillContext, UseFillHandleOptions } from "./use-fill-handle";
 
 /** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, where the plugin's `Mount` reads them). */
@@ -48,6 +49,7 @@ export function useDataGridFill(options: UseDataGridFillOptions = {}): UseDataGr
           run: () => fillStore.getState().fillRight?.(),
         },
       },
+      keymap: FILL_KEYMAP,
     }),
     [fillStore],
   );

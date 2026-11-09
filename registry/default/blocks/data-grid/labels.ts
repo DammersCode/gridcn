@@ -171,7 +171,7 @@ export type DataGridKeybindingsLabels = {
   nativeCut: string;
   nativePaste: string;
   /** Per-`GridAction` row label shown in the dialog; consumer-added actions absent here fall back to a humanized action name. */
-  actions: Partial<Record<GridAction, string>>;
+  actions: Partial<Record<GridAction | (string & {}), string>>;
 };
 
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */

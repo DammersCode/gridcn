@@ -39,7 +39,7 @@ export type GlobalShortcutsConfig = {
 };
 
 /** The actions enabled by default: undo/redo only (the safe set — see {@link GlobalShortcutAction}). */
-const DEFAULT_GLOBAL_ACTIONS: readonly GridAction[] = ["undo", "redo"];
+const DEFAULT_GLOBAL_ACTIONS = ["undo", "redo"] as readonly string[] as readonly GridAction[];
 
 /** The enabled actions of a config: the default set minus every `false` flag, plus every `true` flag. */
 export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly GlobalShortcutAction[] {

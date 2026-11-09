@@ -95,10 +95,10 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const run = vi.fn();
     const { grid, focusCell, press } = renderGrid({
       commands: { saveAll: { run } },
-      keymap: { saveAll: ["mod+z"] } as Keymap, // mod+z is the default undo binding
+      keymap: { saveAll: ["mod+a"] } as Keymap, // mod+a is the default selectAll binding
     });
     focusCell(0);
-    press(grid, { key: "z", ctrlKey: true });
+    press(grid, { key: "a", ctrlKey: true });
     expect(run).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
@@ -107,13 +107,13 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { grid, press } = renderGrid({
       commands: { saveAll: { run: vi.fn() } },
-      keymap: { saveAll: ["mod+y"] } as Keymap, // mod+y is the default redo binding
+      keymap: { saveAll: ["mod+shift+e"] } as Keymap, // mod+shift+e is the default toggleAllRows binding
     });
     // the warning fires at mount (keymap sync); a keypress must not re-warn
-    press(grid, { key: "y", ctrlKey: true });
-    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+y"));
+    press(grid, { key: "e", ctrlKey: true, shiftKey: true });
+    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+shift+e"));
     expect(shared.length).toBe(1);
-    expect(String(shared[0]![0])).toContain("redo");
+    expect(String(shared[0]![0])).toContain("toggleAllRows");
     expect(String(shared[0]![0])).toContain("saveAll");
     warn.mockRestore();
   });

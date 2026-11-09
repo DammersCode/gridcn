@@ -115,29 +115,6 @@ describe("dispatchGridAction custom-command tier", () => {
   });
 });
 
-describe("dispatchGridAction pluggable built-ins (undo/redo/fillDown/fillRight)", () => {
-  function dispatchHollow(action: GridAction) {
-    const actions = fakeActions();
-    const preventDefault = vi.fn();
-    dispatchGridAction({
-      action,
-      actions,
-      storeApi: fakeStore({}),
-      scrollRef: { current: null },
-      scrollCellIntoView: vi.fn(),
-      rowHeight: 36,
-      preventDefault,
-    });
-    return { actions, preventDefault };
-  }
-
-  it.each(["undo", "redo", "fillDown", "fillRight"] as const)("%s preventDefaults and runs no core body", (action) => {
-    const { actions, preventDefault } = dispatchHollow(action);
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(actions.selectAll).not.toHaveBeenCalled();
-  });
-});
-
 describe("dispatchGridAction missing header trigger warning", () => {
   it("warns once per grid instance when openColumnFilter finds no trigger", () => {
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => (callback(0), 1));

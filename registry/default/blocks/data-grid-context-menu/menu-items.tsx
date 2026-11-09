@@ -28,6 +28,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   formatShortcut,
+  type GridAction,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridApi,
@@ -178,8 +179,8 @@ export function useDefaultCellMenuItems(args: {
     specs.splice(
       specs.findIndex((spec) => spec.id === "clear-contents") + 1,
       0,
-      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => api.runShortcut("fillDown") },
-      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => api.runShortcut("fillRight") },
+      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => api.runShortcut("fillDown" as GridAction) },
+      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => api.runShortcut("fillRight" as GridAction) },
     );
   }
   if (canInsertRow) {

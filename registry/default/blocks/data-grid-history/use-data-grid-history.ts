@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { HISTORY_KEYMAP } from "./history-keymap";
 import { isDev, createHistory, buildRollback, useDataGridAnnounce, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type RecordSources<TData> =
@@ -291,6 +292,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
           },
         },
       },
+      keymap: HISTORY_KEYMAP,
       Mount: mountRef.current ?? undefined,
     }),
     [history, rolledBack, undo, redo, mountRef.current],

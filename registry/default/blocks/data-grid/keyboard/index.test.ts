@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { isDefaultBinding } from "./match-keymap";
-import { DEFAULT_KEYMAP, keymapContentEqual, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+import { FILL_KEYMAP } from "../../data-grid-fill/fill-keymap";
+import { HISTORY_KEYMAP } from "../../data-grid-history/history-keymap";
+import { DEFAULT_KEYMAP as CORE_KEYMAP, keymapContentEqual, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
 import type { GridAction, Keymap } from "../types";
 
 function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEvent {
@@ -12,6 +14,8 @@ function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEve
     ...overrides,
   };
 }
+
+const DEFAULT_KEYMAP = { ...CORE_KEYMAP, ...HISTORY_KEYMAP, ...FILL_KEYMAP };
 
 describe("parseBinding", () => {
   it("parses a plain key with no modifiers", () => {
@@ -375,7 +379,7 @@ describe("GridAction coverage", () => {
   // (even `[]`, which disables the fallback).
   const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
-  // Bound only through the keymap of the add-on that implements them.
+  // Bound only through the keymap of the add-on that implements them (find-replace binds its own keys).
   const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace", "openFind"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
@@ -421,8 +425,8 @@ describe("GridAction coverage", () => {
 
 describe("matchKeymap - tie-break", () => {
   it("a consumer binding wins a specificity tie against the default binding of the same combo", () => {
-    const keymap = { ...DEFAULT_KEYMAP, saveAll: ["mod+z"] } as Keymap;
-    expect(matchKeymap(makeEvent({ key: "z", ctrlKey: true }), keymap, false)).toBe("saveAll");
+    const keymap = { ...DEFAULT_KEYMAP, saveAll: ["mod+a"] } as Keymap;
+    expect(matchKeymap(makeEvent({ key: "a", ctrlKey: true }), keymap, false)).toBe("saveAll");
   });
 
   it("keeps the earlier entry on a tie between two default bindings (Enter: edit before commitDown)", () => {
@@ -440,10 +444,11 @@ describe("matchKeymap - tie-break", () => {
   });
 
   it("counts a restated default as a default regardless of modifier order or key case", () => {
-    expect(isDefaultBinding("redo", "shift+mod+z")).toBe(true);
-    expect(isDefaultBinding("redo", "mod+shift+Z")).toBe(true);
-    expect(isDefaultBinding("redo", "mod+alt+z")).toBe(false);
-    expect(isDefaultBinding("undo", "ctrl+z")).toBe(false);
+    expect(isDefaultBinding("toggleAllRows", "shift+mod+e")).toBe(true);
+    expect(isDefaultBinding("toggleAllRows", "mod+shift+E")).toBe(true);
+    expect(isDefaultBinding("toggleAllRows", "mod+alt+e")).toBe(false);
+    expect(isDefaultBinding("selectAll", "ctrl+a")).toBe(false);
+    expect(isDefaultBinding("undo", "mod+z")).toBe(false);
   });
 });
 

@@ -766,10 +766,6 @@ export interface GridActions {
   commitLeft: true;
   cancel: true;
   clearContents: true;
-  undo: true;
-  redo: true;
-  fillDown: true;
-  fillRight: true;
   insertRowBelow: true;
   insertRowAbove: true;
   duplicateRow: true;
@@ -777,8 +773,6 @@ export interface GridActions {
   moveRowsUp: true;
   moveRowsDown: true;
   openLink: true;
-  openFindReplace: true;
-  openFind: true;
   focusSearch: true;
 }
 
