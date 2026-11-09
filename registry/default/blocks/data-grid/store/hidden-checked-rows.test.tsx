@@ -6,6 +6,7 @@ import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type Da
 import { MAX_HIDDEN_CHECKED_ROWS, carryCheckedRows } from "./hidden-checked-rows";
 import { CompactSelection } from "../selection/compact-selection";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -32,7 +33,7 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     state,
     store: () => api!,
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree(next)),
-    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, true))),
+    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowCheckedAt(viewIndex(r), true))),
     filterToD: () => act(() => state().actions.setFilters([...onlyD] as never)),
     clearFilter: () => act(() => state().actions.setFilters([])),
     hiddenIds: () => [...state().hiddenCheckedRowIds].sort(),
@@ -99,7 +100,7 @@ describe("checkedRowsLifetime across-filters", () => {
     m.check(0, 1);
     m.filterToD();
     m.check(0);
-    act(() => m.state().actions.deleteRows([0]));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     expect(m.dataIds()).toEqual(["a", "b", "c", "e"]);
     expect(m.hiddenIds()).toEqual(["a", "b"]);
   });
@@ -108,7 +109,7 @@ describe("checkedRowsLifetime across-filters", () => {
     const m = mount();
     m.check(0, 1);
     m.filterToD();
-    act(() => m.state().actions.deleteRowsById(["a"]));
+    act(() => m.state().actions.deleteRows(["a"]));
     expect(m.hiddenIds()).toEqual(["b"]);
   });
 
@@ -125,7 +126,7 @@ describe("checkedRowsLifetime across-filters", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const ids = Array.from({ length: MAX_HIDDEN_CHECKED_ROWS + 5 }, (_, i) => `r${i}`);
     const m = mount({ defaultData: rows(ids) });
-    act(() => m.state().actions.setAllRowsSelected(true));
+    act(() => m.state().actions.setAllRowsChecked(true));
     act(() => m.state().actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "none" }] as never));
     expect(m.state().hiddenCheckedRowIds.size).toBe(MAX_HIDDEN_CHECKED_ROWS);
     expect(warn).toHaveBeenCalledTimes(1);
@@ -152,7 +153,7 @@ describe("checkedRowsLifetime across-filters", () => {
     m.check(0);
     m.filterToD();
     expect(m.hiddenIds()).toEqual(["a"]);
-    act(() => m.state().actions.setAllRowsSelected(false));
+    act(() => m.state().actions.setAllRowsChecked(false));
     expect(m.hiddenIds()).toEqual([]);
   });
 
@@ -160,7 +161,7 @@ describe("checkedRowsLifetime across-filters", () => {
     const m = mount();
     m.check(0, 3);
     m.filterToD();
-    act(() => m.state().actions.setRowSelected(0, false));
+    act(() => m.state().actions.setRowCheckedAt(viewIndex(0), false));
     act(() => m.state().actions.clearCellSelection());
     expect(m.hiddenIds()).toEqual(["a"]);
   });
@@ -169,7 +170,7 @@ describe("checkedRowsLifetime across-filters", () => {
     const m = mount();
     m.check(0);
     m.filterToD();
-    act(() => m.state().actions.setAllRowsSelected(true));
+    act(() => m.state().actions.setAllRowsChecked(true));
     expect(m.state().selection.rows.toArray()).toEqual([0]);
     expect(m.hiddenIds()).toEqual(["a"]);
   });
@@ -218,7 +219,7 @@ describe("checkedRowsLifetime across-filters", () => {
     const m = mount({ onDataChange });
     m.check(0, 1, 3);
     m.filterToD();
-    act(() => m.state().actions.deleteRows(m.state().selection.rows.toArray()));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes(m.state().selection.rows.toArray())));
     const [, change] = onDataChange.mock.calls[0]!;
     expect(change.ops.map((op) => op.rowId)).toEqual(["d"]);
   });
@@ -389,7 +390,7 @@ describe("hidden checked rows: sortMode and cap", () => {
     const isAnyOf = (values: string[]) => [{ filterId: "f", columnId: "name", operator: "isAnyOf", value: values }] as never;
     act(() => m.state().actions.setFilters(isAnyOf(["R100002", "R100003", "R100004"])));
     expect(m.state().hiddenCheckedRowIds.size).toBe(MAX_HIDDEN_CHECKED_ROWS - 1);
-    act(() => m.state().actions.setAllRowsSelected(true));
+    act(() => m.state().actions.setAllRowsChecked(true));
     act(() => m.state().actions.setFilters(isAnyOf(["none"])));
     const hidden = m.state().hiddenCheckedRowIds;
     expect(hidden.size).toBe(MAX_HIDDEN_CHECKED_ROWS);

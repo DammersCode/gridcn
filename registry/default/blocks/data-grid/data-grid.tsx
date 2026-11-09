@@ -138,6 +138,7 @@ export { displayText } from "./cell-types/display-text";
 export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";
+export { viewIndex, viewIndexes } from "./types";
 export { defineColumns, getCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
 /** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */
@@ -173,6 +174,7 @@ export type {
   DataGridApi,
   ViewCellRef,
   ViewCoord,
+  ViewIndex,
   GridRect,
   GridSelection,
   CompactSelectionLike,

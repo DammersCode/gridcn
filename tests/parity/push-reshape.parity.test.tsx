@@ -41,7 +41,7 @@ function suite(mode: ModeId) {
   it("deletes a row on a stream delete without onBeforeDeleteRows or onSave", async () => {
     let asked = 0;
     const grid = await mountMode(mode, { props: { sortMode: "server", filterMode: "server", onBeforeDeleteRows: () => (asked++, true) } });
-    grid.act(() => grid.state().actions.deleteRowsById(["r1"], { source: "stream" }));
+    grid.act(() => grid.state().actions.deleteRows(["r1"], { source: "stream" }));
     await grid.settle();
     expect(grid.dataIds()).not.toContain("r1");
     expect(grid.changes.at(-1)?.source).toBe("stream");

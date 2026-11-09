@@ -8,6 +8,7 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
+  viewIndexes,
   type DataGridApi,
   type RowActionResult,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -62,10 +63,10 @@ export default function DataGridRowActionResultsDemo(): ReactNode {
         Click Delete first row twice, delete the locked second row, insert a row without a createRow factory, or turn on read-only. Pick the slow server: the gate times out after {GATE_TIMEOUT_MS} ms.
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="xs" variant="outline" onClick={() => run("deleteRows([0])", () => grid.current?.actions.deleteRows([0]))}>
+        <Button type="button" size="xs" variant="outline" onClick={() => run("deleteRowsAt([0])", () => grid.current?.actions.deleteRowsAt(viewIndexes([0])))}>
           Delete first row
         </Button>
-        <Button type="button" size="xs" variant="outline" onClick={() => run("deleteRows([1])", () => grid.current?.actions.deleteRows([1]))}>
+        <Button type="button" size="xs" variant="outline" onClick={() => run("deleteRowsAt([1])", () => grid.current?.actions.deleteRowsAt(viewIndexes([1])))}>
           Delete second row
         </Button>
         <Button type="button" size="xs" variant="outline" onClick={() => run('insertRow(0, "below")', () => grid.current?.actions.insertRow(0, "below"))}>

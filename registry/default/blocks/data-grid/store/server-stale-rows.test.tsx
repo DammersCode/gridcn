@@ -338,7 +338,7 @@ describe("stale marks follow the grid's own writes", () => {
 
   it("keeps the mark when the user deletes another row", () => {
     const grid = marked();
-    act(() => grid.result.current.actions.deleteRowsById(["c"]));
+    act(() => grid.result.current.actions.deleteRows(["c"]));
     foreignSync(grid);
     expect(grid.stale()).toEqual(["a"]);
     expect(grid.result.current.viewStale).toBe(true);

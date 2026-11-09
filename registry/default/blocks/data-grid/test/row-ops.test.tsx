@@ -11,6 +11,7 @@ import {
   useDataGridViewIndex,
   type DataGridSyncProps,
 } from "../store";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -203,13 +204,13 @@ describe("insertRows", () => {
   });
 });
 
-describe("deleteRowsById", () => {
+describe("deleteRows", () => {
   it("deletes the rows with the given ids as one row-operation DataChange and skips unknown ids", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById(["3", "1", "missing"]));
+    act(() => result.current.deleteRows(["3", "1", "missing"]));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
@@ -222,7 +223,7 @@ describe("deleteRowsById", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById([]));
+    act(() => result.current.deleteRows([]));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
@@ -232,7 +233,7 @@ describe("deleteRowsById", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById(["missing", "absent"]));
+    act(() => result.current.deleteRows(["missing", "absent"]));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
@@ -242,7 +243,7 @@ describe("deleteRowsById", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById(["1", "1"]));
+    act(() => result.current.deleteRows(["1", "1"]));
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3"]);
@@ -254,7 +255,7 @@ describe("deleteRowsById", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById(["3", "1"]));
+    act(() => result.current.deleteRows(["3", "1"]));
 
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(change.ops).toEqual([
@@ -268,19 +269,19 @@ describe("deleteRowsById", () => {
     const wrapper = makeWrapper(onDataChange, { readOnly: true });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRowsById(["1"]));
+    act(() => result.current.deleteRows(["1"]));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
 });
 
-describe("deleteRows", () => {
+describe("deleteRowsAt", () => {
   it("deletes the given view rows as one row-operation DataChange with id-keyed delete ops", () => {
     const onDataChange = vi.fn();
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRows([0, 2]));
+    act(() => result.current.deleteRowsAt(viewIndexes([0, 2])));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
@@ -299,7 +300,7 @@ describe("deleteRows", () => {
 
     // sort by name ascending: view order becomes Alice(2), Bob(3), Charlie(1); view row 0 is data row 1 (Alice).
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.deleteRows([0]));
+    act(() => result.current.deleteRowsAt(viewIndexes([0])));
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "3"]);
@@ -311,7 +312,7 @@ describe("deleteRows", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRows([0, 0]));
+    act(() => result.current.deleteRowsAt(viewIndexes([0, 0])));
 
     const [, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(change.ops).toHaveLength(1);
@@ -322,7 +323,7 @@ describe("deleteRows", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.deleteRows([]));
+    act(() => result.current.deleteRowsAt(viewIndexes([])));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
@@ -335,10 +336,39 @@ describe("duplicateRows", () => {
     const wrapper = makeWrapper(onDataChange);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.duplicateRows([0]));
+    act(() => result.current.duplicateRowsAt(viewIndexes([0])));
 
     expect(onDataChange).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("duplicateRow"));
+    warn.mockRestore();
+  });
+
+  it("duplicates the rows with the given ids like duplicateRowsAt at their view positions", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, { duplicateRow });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => result.current.duplicateRows(["1", "missing"]));
+
+    const [next] = onDataChange.mock.calls[0] as [readonly Row[]];
+    expect(next.map((r) => r.id)).toEqual(["1", "1-copy", "2", "3"]);
+  });
+
+  it("warns once that a numeric id which is a view index does nothing, and changes no behavior", () => {
+    const onDataChange = vi.fn();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const wrapper = makeWrapper(onDataChange, { duplicateRow });
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+
+    act(() => {
+      result.current.deleteRows([0] as unknown as string[]);
+      result.current.deleteRows([1] as unknown as string[]);
+      result.current.duplicateRows([0] as unknown as string[]);
+      result.current.setRowChecked(0 as unknown as string, true);
+    });
+
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("deleteRowsAt"))).toHaveLength(1);
     warn.mockRestore();
   });
 
@@ -347,7 +377,7 @@ describe("duplicateRows", () => {
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.duplicateRows([0]));
+    act(() => result.current.duplicateRowsAt(viewIndexes([0])));
 
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
@@ -366,7 +396,7 @@ describe("duplicateRows", () => {
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.duplicateRows([0, 2]));
+    act(() => result.current.duplicateRowsAt(viewIndexes([0, 2])));
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "1-copy", "2", "3", "3-copy"]);
@@ -381,7 +411,7 @@ describe("duplicateRows", () => {
 
     // sort by name ascending: view row 0 is data row 1 (Alice, id "2").
     act(() => result.current.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.duplicateRows([0]));
+    act(() => result.current.duplicateRowsAt(viewIndexes([0])));
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "2", "2-copy", "3"]);
@@ -393,7 +423,7 @@ describe("duplicateRows", () => {
     const wrapper = makeWrapper(onDataChange, { duplicateRow });
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
 
-    act(() => result.current.duplicateRows([]));
+    act(() => result.current.duplicateRowsAt(viewIndexes([])));
 
     expect(onDataChange).not.toHaveBeenCalled();
   });
@@ -577,8 +607,8 @@ describe("reorderRows", () => {
     });
 
     // select Charlie (view 0) and Alice (view 1) in the row channel
-    act(() => result.current.actions.setRowSelected(0, true));
-    act(() => result.current.actions.setRowSelected(1, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(1), true));
 
     // move Charlie to final view 2: [Alice, Bob, Charlie] — Charlie→2, Alice→0
     act(() => result.current.actions.reorderRows(0, 2));
@@ -649,7 +679,7 @@ describe("row ops rebuild the view index", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.deleteRows([0, 2]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([0, 2])));
 
     expect(result.current.viewIndex).toEqual([0]);
   });
@@ -660,7 +690,7 @@ describe("row ops rebuild the view index", () => {
       wrapper,
     });
 
-    act(() => result.current.actions.duplicateRows([0, 2]));
+    act(() => result.current.actions.duplicateRowsAt(viewIndexes([0, 2])));
 
     expect(result.current.viewIndex).toEqual([0, 1, 2, 3, 4]);
   });
@@ -710,7 +740,7 @@ describe("row ops rebuild the view index", () => {
 
     // name ascending: view row 0 is Alice (data index 1); deleting it leaves Bob(1), Charlie(0).
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.actions.deleteRows([0]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([0])));
 
     expect(result.current.viewIndex).toEqual([1, 0]);
   });
@@ -723,7 +753,7 @@ describe("row ops rebuild the view index", () => {
 
     // name ascending: duplicating view row 0 (Alice, data 1) inserts the copy at data index 2.
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
-    act(() => result.current.actions.duplicateRows([0]));
+    act(() => result.current.actions.duplicateRowsAt(viewIndexes([0])));
 
     // Alice(1), Alice-copy(2), Bob(3), Charlie(0)
     expect(result.current.viewIndex).toEqual([1, 2, 3, 0]);
@@ -761,7 +791,7 @@ describe("row ops rebuild the view index", () => {
     // ...and the echo re-sync (same array identity back through the prop) keeps it
     rerender();
     expect(result.current.viewIndex).toEqual([0, 1, 2, 3, 4]);
-    act(() => result.current.actions.deleteRows([4]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([4])));
     expect(result.current.viewIndex).toEqual([0, 1, 2, 3]);
     rerender();
     expect(result.current.viewIndex).toEqual([0, 1, 2, 3]);
@@ -810,7 +840,7 @@ describe("row ops with an open edit session", () => {
     );
 
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
-    act(() => result.current.actions.deleteRows([0]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([0])));
 
     const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3"]);
@@ -827,7 +857,7 @@ describe("row ops with an open edit session", () => {
     });
 
     act(() => result.current.actions.startEditingAt({ col: 0, row: 0 })); // Charlie (rowId "1")
-    act(() => result.current.actions.deleteRows([1])); // Alice leaves
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([1]))); // Alice leaves
 
     const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "3"]);
@@ -853,7 +883,7 @@ describe("row ops with an open edit session", () => {
     );
 
     act(() => result.current.actions.startEditingAt({ col: 0, row: 1 })); // Alice (rowId "2", data 1)
-    act(() => result.current.actions.duplicateRows([0])); // Charlie's copy lands below him
+    act(() => result.current.actions.duplicateRowsAt(viewIndexes([0]))); // Charlie's copy lands below him
 
     const [next] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "1-copy", "2", "3"]);

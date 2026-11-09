@@ -398,7 +398,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         trace.push(`local ${op} ${id}`);
         const index = data().findIndex((row) => row?.id === id);
         if (op === "insert") act(() => state().actions.insertRow(index, "below"));
-        else if (op === "delete") act(() => state().actions.deleteRowsById([id]));
+        else if (op === "delete") act(() => state().actions.deleteRows([id]));
         else act(() => void state().actions.reorderRows(index, Math.max(0, index - 1 - rnd.int(3))));
         shifted = true;
         if (kind === "cursor" || kind === "offset") {
@@ -448,7 +448,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
           request.deletedSince.add(id);
           request.shifted = true;
         }
-        act(() => state().actions.deleteRowsById([id], { source: "stream" }));
+        act(() => state().actions.deleteRows([id], { source: "stream" }));
         shifted = true;
         dirty = true;
         refreshPending = false;

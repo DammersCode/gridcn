@@ -6,6 +6,7 @@ import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "
 import { getSelectedViewRows, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import { useDataGridServerRows, type ServerRowsAnswer, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./use-data-grid-server-rows";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 type Request = { start: number; end: number; signal: AbortSignal; settled: boolean; resolve: () => void; reject: () => void };
@@ -448,7 +449,7 @@ describe("bounded cache", () => {
 
   it("keeps the checked rows when their blocks are evicted", async () => {
     const t = await mount({ maxLoadedRows: 40 });
-    act(() => t.state().actions.setRowSelected(2, true));
+    act(() => t.state().actions.setRowCheckedAt(viewIndex(2), true));
     expect(getSelectedViewRows(t.state().selection)).toEqual([2]);
     await scrollThrough(t, 10);
     expect(t.isLoaded(2)).toBe(false);

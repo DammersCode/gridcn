@@ -331,7 +331,7 @@ assertEqual<boolean | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 import type { StandardSchemaV1 as OfficialStandardSchemaV1 } from "@standard-schema/spec";
 import type { StandardSchemaV1 } from "./types";
 import { type GRID_ATTR } from "./data-grid-sdk";
-import type { ViewCellRef, ViewCoord } from "./types";
+import { viewIndexes, type ViewCellRef, type ViewCoord } from "./types";
 
 function assertVendoredMatchesOfficial<Input, Output>(
   _vendoredToOfficial: (v: StandardSchemaV1<Input, Output>) => OfficialStandardSchemaV1<Input, Output>,
@@ -593,3 +593,13 @@ const asyncGateProps: DataGridSyncProps<Row> = {
   duplicateRow: async (row) => row,
 };
 void asyncGateProps;
+
+// @ts-expect-error - deleteRowsAt takes ViewIndex values, so an old numeric-index call is a type error
+publicActions.deleteRowsAt([4]);
+// @ts-expect-error - duplicateRowsAt takes ViewIndex values
+publicActions.duplicateRowsAt([4]);
+// @ts-expect-error - setRowCheckedAt takes a ViewIndex
+publicActions.setRowCheckedAt(4, true);
+// @ts-expect-error - deleteRows takes stable row ids, not view indexes
+publicActions.deleteRows([4]);
+publicActions.deleteRowsAt(viewIndexes([4]));

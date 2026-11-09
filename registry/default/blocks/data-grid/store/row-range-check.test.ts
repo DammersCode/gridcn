@@ -3,6 +3,7 @@ import type { ColumnDef } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Item = { id: string; v: number; t: string };
 
@@ -58,9 +59,9 @@ describe("row range checking", () => {
   it("unchecks the range when the anchor row was unchecked", () => {
     const store = makeStore(12);
     const { actions } = store.getState();
-    actions.setRowSelected(2, true);
-    actions.setRowSelected(9, true);
-    actions.setRowSelected(4, false);
+    actions.setRowCheckedAt(viewIndex(2), true);
+    actions.setRowCheckedAt(viewIndex(9), true);
+    actions.setRowCheckedAt(viewIndex(4), false);
     actions.checkRowRange(7);
     expect(checked(store)).toEqual([2, 9]);
     actions.checkRowRange(1);
@@ -105,7 +106,7 @@ describe("row range checking", () => {
     actions.selectRow(1);
     actions.checkRowRange(3);
     actions.selectCellAt({ row: 2, col: 0 });
-    actions.setAllRowsSelected(false);
+    actions.setAllRowsChecked(false);
     actions.checkRowRange(5);
     expect(checked(store)).toEqual(range(2, 5));
     actions.checkRowRange(3);
@@ -136,7 +137,7 @@ describe("row range checking", () => {
   it("never touches hidden checked rows", () => {
     const store = makeStore(12, { checkedRowsLifetime: "across-filters" });
     const { actions } = store.getState();
-    actions.setAllRowsSelected(true);
+    actions.setAllRowsChecked(true);
     actions.setFilters([{ filterId: "f", columnId: "t", operator: "equals", value: "hi" }] as never);
     const hidden = store.getState().hiddenCheckedRowIds;
     expect([...hidden].sort()).toEqual(["0", "1", "2", "3", "4", "5"]);

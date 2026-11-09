@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import type { SaveAck, SaveConflictContext, SaveResolution } from "./write-ack";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; note: string; version: number };
 
@@ -203,7 +204,7 @@ describe("resolveSaveConflict", () => {
   it("is not called for a refused insert or delete", async () => {
     const resolver = vi.fn();
     const m = mount(() => Promise.resolve({ rejected: [{ rowId: "a", current: theirs }] }), { resolveSaveConflict: resolver });
-    act(() => m.state().actions.deleteRows([0]));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     await flush();
     expect(resolver).not.toHaveBeenCalled();
     expect(m.row("a")).toEqual(theirs);

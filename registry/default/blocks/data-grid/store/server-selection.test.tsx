@@ -7,6 +7,7 @@ import { DataGridProvider, useDataGridStoreApi, useDataGridSelectedRows, type Da
 import { CompactSelection } from "../selection/compact-selection";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 import { readSelectedRows } from "./selected-rows";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -41,8 +42,8 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     state,
     store: () => api!,
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree(next)),
-    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, true))),
-    uncheck: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, false))),
+    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowCheckedAt(viewIndex(r), true))),
+    uncheck: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowCheckedAt(viewIndex(r), false))),
     checkedViewRows: () => state().selection.rows.toArray(),
     remembered: () => [...state().hiddenCheckedRowIds].sort(),
     dispatch: (action: "deleteRows" | "duplicateRow" | "moveRowsDown") =>
@@ -118,7 +119,7 @@ describe("remembered checks over a window of the result (totalRowCount)", () => 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const many = page(Array.from({ length: MAX_HIDDEN_CHECKED_ROWS + 5 }, (_, i) => `x${i}`));
     const m = mount({ data: many, totalRowCount: many.length });
-    act(() => m.state().actions.setAllRowsSelected(true));
+    act(() => m.state().actions.setAllRowsChecked(true));
     m.rerender({ data: PAGE_TWO, totalRowCount: many.length });
     expect(m.state().hiddenCheckedRowIds.size).toBe(MAX_HIDDEN_CHECKED_ROWS);
     expect(warn).toHaveBeenCalled();
@@ -162,7 +163,7 @@ describe("select all matching", () => {
   it("clearSelection, header off, and setSelection(null) leave allMatching", () => {
     for (const clear of [
       (s: DataGridStoreState) => s.actions.clearSelection(),
-      (s: DataGridStoreState) => s.actions.setAllRowsSelected(false),
+      (s: DataGridStoreState) => s.actions.setAllRowsChecked(false),
       (s: DataGridStoreState) => s.actions.setSelection(null),
     ]) {
       const m = mount();
@@ -249,16 +250,16 @@ describe("useDataGridSelectedRows", () => {
 
   it("ids mode lists the checked and the remembered rows", () => {
     const m = mountWithHook();
-    act(() => m.api().getState().actions.setRowSelected(0, true));
+    act(() => m.api().getState().actions.setRowCheckedAt(viewIndex(0), true));
     m.rerender({ data: PAGE_TWO });
-    act(() => m.api().getState().actions.setRowSelected(1, true));
+    act(() => m.api().getState().actions.setRowCheckedAt(viewIndex(1), true));
     expect(m.selected()).toEqual({ mode: "ids", ids: ["e", "a"], excludedIds: [], count: 2 });
   });
 
   it("allMatching mode reports the exclusions and the count from totalRowCount", () => {
     const m = mountWithHook();
     act(() => m.api().getState().actions.selectAllMatching());
-    act(() => m.api().getState().actions.setRowSelected(1, false));
+    act(() => m.api().getState().actions.setRowCheckedAt(viewIndex(1), false));
     expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: ["b"], count: 8, spec: NO_SPEC });
     m.rerender({ data: PAGE_TWO });
     expect(m.selected()).toMatchObject({ mode: "allMatching", excludedIds: ["b"], count: 8 });
@@ -267,10 +268,10 @@ describe("useDataGridSelectedRows", () => {
   it("re-checking an excluded row on its page removes it from excludedIds without a page change", () => {
     const m = mountWithHook();
     act(() => m.api().getState().actions.selectAllMatching());
-    act(() => m.api().getState().actions.setRowSelected(1, false));
+    act(() => m.api().getState().actions.setRowCheckedAt(viewIndex(1), false));
     m.rerender({ data: PAGE_TWO });
     m.rerender({ data: PAGE_ONE });
-    act(() => m.api().getState().actions.setRowSelected(1, true));
+    act(() => m.api().getState().actions.setRowCheckedAt(viewIndex(1), true));
     expect(m.selected()).toEqual({ mode: "allMatching", ids: [], excludedIds: [], count: 9, spec: NO_SPEC });
   });
 
@@ -296,7 +297,7 @@ describe("useDataGridSelectedRows", () => {
   it("skips skeleton rows in ids", () => {
     const sparse = [{ id: "a", name: "A" }, undefined, { id: "c", name: "C" }] as Row[];
     const m = mountWithHook({ data: sparse, totalRowCount: 3 });
-    act(() => m.api().getState().actions.setAllRowsSelected(true));
+    act(() => m.api().getState().actions.setAllRowsChecked(true));
     expect(m.selected().ids).toEqual(["a", "c"]);
   });
 });
@@ -353,7 +354,7 @@ describe("select all matching and the result spec", () => {
   it("a programmatic deleteRows leaves allMatching", () => {
     const m = mount({ onDataChange: () => {} });
     act(() => m.state().actions.selectAllMatching());
-    act(() => m.state().actions.deleteRows([0]));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     expect(m.state().allMatching).toBe(false);
   });
 
@@ -424,7 +425,7 @@ describe("onBeforeDeleteRows while all-matching is on", () => {
     m.uncheck(1);
     m.rerender({ ...props, data: PAGE_TWO });
     expect(m.remembered()).toEqual(["b"]);
-    act(() => m.state().actions.deleteRows([0]));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     expect(gate).toHaveBeenCalledWith({ rowIds: ["d"], hiddenCount: 0, signal: expect.any(AbortSignal) });
     expect(m.state().allMatching).toBe(false);
   });

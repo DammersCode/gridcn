@@ -63,7 +63,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
               checked={state === "checked"}
               tabIndex={-1}
               indeterminate={state === "indeterminate"}
-              onCheckedChange={(checked) => actions.setAllRowsSelected(checked === true)}
+              onCheckedChange={(checked) => actions.setAllRowsChecked(checked === true)}
               aria-label={labels.markers.selectAll}
             />
           )}

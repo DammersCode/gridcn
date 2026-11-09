@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ColumnPin, ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
+import { viewIndex, viewIndexes, type ColumnPin, type ViewCoord, type GridSelection, type CellType, type GridAction, type GridCommandCtx } from "../types";
 import type { RowActionName, SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
@@ -492,12 +492,12 @@ export function dispatchGridAction(args: {
     case "toggleRow": {
       preventDefault();
       const active = state.activeCell;
-      if (active) actions.setRowSelected(active.row, !state.selection.rows.hasIndex(active.row));
+      if (active) actions.setRowCheckedAt(viewIndex(active.row), !state.selection.rows.hasIndex(active.row));
       break;
     }
     case "toggleAllRows": {
       preventDefault();
-      actions.setAllRowsSelected(allRowsSelectedState(state) !== "checked");
+      actions.setAllRowsChecked(allRowsSelectedState(state) !== "checked");
       break;
     }
     case "openColumnMenu":
@@ -546,7 +546,7 @@ export function dispatchGridAction(args: {
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow) runRowOperation("duplicateRows", (rows) => actions.duplicateRows(rows));
+      if (!state.readOnly && state.duplicateRow) runRowOperation("duplicateRows", (rows) => actions.duplicateRowsAt(viewIndexes(rows)));
       break;
     }
     case "moveRowsUp":
@@ -568,7 +568,7 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly) runRowOperation("deleteRows", (rows) => actions.deleteRows(rows));
+      if (!state.readOnly) runRowOperation("deleteRows", (rows) => actions.deleteRowsAt(viewIndexes(rows)));
       break;
     }
     case "openLink": {

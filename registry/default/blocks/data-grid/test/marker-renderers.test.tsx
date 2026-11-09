@@ -61,12 +61,12 @@ function press(el: HTMLElement, init: PointerEventInit = { button: 0 }): void {
 
 /**
  * A test marker header that drives the rows channel through the grid's own action, exactly the
- * demo's shape (Button inside the provider calling setAllRowsSelected).
+ * demo's shape (Button inside the provider calling setAllRowsChecked).
  */
 function TestHeaderButton({ allSelected }: { allSelected: MarkerHeaderRenderCtx["allSelected"] }): ReactNode {
-  const { setAllRowsSelected } = useDataGridActions();
+  const { setAllRowsChecked } = useDataGridActions();
   return (
-    <button type="button" data-testid="custom-marker-header" data-all-selected={allSelected} onClick={() => setAllRowsSelected(true)}>
+    <button type="button" data-testid="custom-marker-header" data-all-selected={allSelected} onClick={() => setAllRowsChecked(true)}>
       select all
     </button>
   );
@@ -76,12 +76,12 @@ const renderMarkerHeader = ({ allSelected }: MarkerHeaderRenderCtx): ReactNode =
   <TestHeaderButton allSelected={allSelected} />
 );
 
-/** The demo's own shape: toggles the rows channel (setAllRowsSelected(!checked)). */
+/** The demo's own shape: toggles the rows channel (setAllRowsChecked(!checked)). */
 function ToggleHeaderButton({ allSelected }: { allSelected: MarkerHeaderRenderCtx["allSelected"] }): ReactNode {
-  const { setAllRowsSelected } = useDataGridActions();
+  const { setAllRowsChecked } = useDataGridActions();
   const checked = allSelected === "checked";
   return (
-    <button type="button" data-testid="custom-marker-header" data-all-selected={allSelected} onClick={() => setAllRowsSelected(!checked)}>
+    <button type="button" data-testid="custom-marker-header" data-all-selected={allSelected} onClick={() => setAllRowsChecked(!checked)}>
       toggle all
     </button>
   );
@@ -259,7 +259,7 @@ describe("renderMarkerHeader (custom marker header content)", () => {
 
     fireEvent.click(header);
     expect(header).toHaveAttribute("data-all-selected", "checked");
-    // the toggle-off direction: setAllRowsSelected(false) through the same custom control.
+    // the toggle-off direction: setAllRowsChecked(false) through the same custom control.
     fireEvent.click(header);
     expect(header).toHaveAttribute("data-all-selected", "unchecked");
     expect(markerCells().every((cell) => cell.getAttribute(GRID_ATTR.selected) === null)).toBe(true);

@@ -11,6 +11,7 @@ import {
   useDataGridStore,
   type DataGridSyncProps,
 } from "../store";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number; active: boolean };
 
@@ -410,7 +411,7 @@ describe("pruning on row-shape changes", () => {
     });
 
     act(() => {
-      result.current.actions.deleteRows([0]); // deletes rowId "1"
+      result.current.actions.deleteRowsAt(viewIndexes([0])); // deletes rowId "1"
     });
 
     expect(result.current.cellErrors.has("1:name")).toBe(false);
@@ -425,7 +426,7 @@ describe("pruning on row-shape changes", () => {
     const before = result.current.cellErrors;
 
     act(() => {
-      result.current.actions.deleteRows([0]); // deletes rowId "1", unrelated to the error
+      result.current.actions.deleteRowsAt(viewIndexes([0])); // deletes rowId "1", unrelated to the error
     });
 
     expect(result.current.cellErrors).toBe(before);
@@ -501,7 +502,7 @@ describe("pruning on row-shape changes", () => {
     });
 
     act(() => {
-      result.current.actions.duplicateRows([0]);
+      result.current.actions.duplicateRowsAt(viewIndexes([0]));
     });
 
     expect(result.current.cellErrors.has("gone:name")).toBe(false);
@@ -560,7 +561,7 @@ describe("pruning on row-shape changes", () => {
       });
 
       act(() => {
-        result.current.actions.deleteRows([1]); // deletes rowId "t1:o8"
+        result.current.actions.deleteRowsAt(viewIndexes([1])); // deletes rowId "t1:o8"
       });
 
       expect(result.current.cellErrors.get("t1:o9:meta:sku")).toBe("rejected");
@@ -599,7 +600,7 @@ describe("pruning on row-shape changes", () => {
       });
 
       act(() => {
-        result.current.actions.deleteRows([0]); // deletes rowId "t1:o9" itself
+        result.current.actions.deleteRowsAt(viewIndexes([0])); // deletes rowId "t1:o9" itself
       });
 
       expect(result.current.cellErrors.has("t1:o9:meta:sku")).toBe(false);

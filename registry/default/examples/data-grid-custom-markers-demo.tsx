@@ -46,7 +46,7 @@ const renderMarker = ({ isRowChannelSelected, isCellSelected }: MarkerCellRender
  * `labels.markers.selectAll` aria-label does not come for free here).
  */
 function SelectAllMarkerButton({ allSelected }: { allSelected: MarkerHeaderRenderCtx["allSelected"] }): ReactNode {
-  const { setAllRowsSelected } = useDataGridActions();
+  const { setAllRowsChecked } = useDataGridActions();
   const checked = allSelected === "checked";
   return (
     <Button
@@ -57,7 +57,7 @@ function SelectAllMarkerButton({ allSelected }: { allSelected: MarkerHeaderRende
       data-testid="custom-marker-header"
       aria-label={checked ? "Unselect all rows" : "Select all rows"}
       aria-pressed={checked}
-      onClick={() => setAllRowsSelected(!checked)}
+      onClick={() => setAllRowsChecked(!checked)}
     >
       {allSelected === "indeterminate" ? (
         <ListMinus className="size-3.5 text-muted-foreground" aria-hidden="true" />

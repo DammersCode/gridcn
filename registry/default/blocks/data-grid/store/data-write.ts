@@ -51,7 +51,7 @@ import {
   selectionRects,
 } from "../selection";
 import { forEachMember } from "../selection/compact-selection";
-import type { CellRef, CompactSelectionLike, DataChange, DataGridApi, DataOp, GridBulkValidationError, GridValidationErrorEvent, ViewCoord } from "../types";
+import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -89,6 +89,7 @@ export type DataWriteContext = {
   lastEmittedData: readonly unknown[] | null;
   /** Dev-warns at most once per grid that a {@link CellRef} failed to resolve (stale row or hidden column). */
   warnedStaleCellRef: boolean;
+  warnedViewIndexIds: boolean;
   /** Dev-warns at most once per grid that a write reached controlled `data` with no `onDataChange` or `onSave`. */
   warnedUnreceivedWrite: boolean;
   /** `onDataChange` calls waiting for the outermost write to return; see {@link writeThenEmit}. */
@@ -114,7 +115,7 @@ export type DataWriteContext = {
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -125,6 +126,16 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
     warnDev(`CellRef { rowId: ${ref.rowId}, columnId: ${ref.columnId} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
   }
   return coord;
+}
+
+/** Dev-warns once per grid when an id-first row action got a number that is no row id but is a view index: a call from before the `At` suffix. */
+export function warnViewIndexIds(ctx: DataWriteContext, s: DataGridStoreState, rowIds: readonly unknown[], action: string): void {
+  if (ctx.warnedViewIndexIds) return;
+  const indexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+  const looksLikeViewIndex = (id: unknown): boolean => typeof id === "number" && Number.isInteger(id) && id >= 0 && id < s.viewIndex.length && !indexById.has(String(id));
+  if (!rowIds.some(looksLikeViewIndex)) return;
+  ctx.warnedViewIndexIds = true;
+  warnDev(`${action} takes stable row ids, and a number here matches no row id: it did nothing for that number. To address rows by view index, call ${action}At with viewIndexes([...])`);
 }
 
 /**
@@ -405,8 +416,9 @@ export type DataWriteActions = Pick<
   | "insertRow"
   | "insertRows"
   | "deleteRows"
-  | "deleteRowsById"
+  | "deleteRowsAt"
   | "duplicateRows"
+  | "duplicateRowsAt"
   | "reorderRows"
   | "moveRowsBy"
   | "commitChange"
@@ -821,7 +833,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const warnGateOnce = createWarnOnce();
   const touchesUnloadedRow = (s: DataGridStoreState, dataRowIndexes: readonly number[], operation: string): boolean => {
     if (!dataRowIndexes.some((i) => s.data[i] === undefined && i >= 0 && i < s.data.length)) return false;
-    warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (scroll mode): load the range first, or delete known ids with deleteRowsById`);
+    warnGateOnce("unloaded rows", `${operation} is a no-op while its target rows are still unloaded (scroll mode): load the range first, or delete known ids with deleteRows`);
     return true;
   };
   const OK: RowActionResult = { ok: true };
@@ -930,7 +942,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }),
     );
   };
-  const finishDuplicate = (s: DataGridStoreState, viewRowIndexes: number[], copies: ReadonlyMap<number, unknown>): void => {
+  const finishDuplicate = (s: DataGridStoreState, viewRowIndexes: readonly number[], copies: ReadonlyMap<number, unknown>): void => {
     const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
     const batch = computeDuplicateBatch(s, dataRowIndexes, copies);
     if (!batch) return;
@@ -1475,12 +1487,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       commitInsertedRows(s, viewRowIndex, count, position, dataRowIndex, rows);
       return OK;
     },
-    deleteRows(viewRowIndexes) {
+    deleteRowsAt(viewRowIndexes) {
       const s = get();
       return requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
     },
-    deleteRowsById(rowIds, options) {
+    deleteRows(rowIds, options) {
       const s = get();
+      warnViewIndexIds(ctx, s, rowIds, "deleteRows");
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       if (options?.source === "stream") {
         if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
@@ -1502,7 +1515,19 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       return requestDelete(rowIds.map((rowId) => dataRowIndexByRowId.get(rowId)).filter((i): i is number => i !== undefined));
     },
-    duplicateRows(viewRowIndexes) {
+    duplicateRows(rowIds) {
+      const s = get();
+      warnViewIndexIds(ctx, s, rowIds, "duplicateRows");
+      const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
+      const viewRows: number[] = [];
+      for (const rowId of rowIds) {
+        const dataRowIndex = dataRowIndexByRowId.get(rowId);
+        const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(s.viewIndex, dataRowIndex);
+        if (viewRow >= 0) viewRows.push(viewRow);
+      }
+      return get().actions.duplicateRowsAt(viewIndexes(viewRows));
+    },
+    duplicateRowsAt(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
       if (!s.duplicateRow) {

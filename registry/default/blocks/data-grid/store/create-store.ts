@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { CellRef, ColumnLayout, ColumnPin, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
+import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type DataOp, type FilterNode, type Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
@@ -85,7 +85,7 @@ import { apiHandleOf } from "./api";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
-import { createDataWriteActions, createDataWriteContext, emitAfterWrites, emitFromListener, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn } from "./data-write";
+import { createDataWriteActions, createDataWriteContext, emitAfterWrites, emitFromListener, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn, warnViewIndexIds } from "./data-write";
 import { NO_STALE_ROWS, clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { registerInternalActions } from "./internal-actions";
 import { claimPluginAttachments, mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
@@ -1572,7 +1572,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           selectAllStage: { stage: result.stage, selection: result.selection, activeCell: active },
         });
       },
-      setRowSelected(index, checked) {
+      setRowChecked(rowId, checked) {
+        const s = get();
+        warnViewIndexIds(dataWrite, s, [rowId], "setRowChecked");
+        const dataRowIndex = rowIndexCache.resolveOne(s.data, s.getRowId, rowId);
+        const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(s.viewIndex, dataRowIndex);
+        if (viewRow >= 0) get().actions.setRowCheckedAt(viewIndex(viewRow), checked);
+      },
+      setRowCheckedAt(index, checked) {
         const s = get();
         const { selection, enableRowSelection, enableMultiRange } = s;
         if (!enableRowSelection) return;
@@ -1580,7 +1587,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
         set({ selection: next, ...announceChecked(s, { selection: next }), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
       },
-      setAllRowsSelected(checked) {
+      setAllRowsChecked(checked) {
         const s = get();
         const { selection, viewIndex, enableRowSelection } = s;
         if (!enableRowSelection) return;

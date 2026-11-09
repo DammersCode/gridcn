@@ -21,6 +21,7 @@ import { INCREMENTAL_VIEW_ASSERT_RATE, setIncrementalAssertRate } from "./comput
 import * as compute from "./compute";
 import { createRowIndexCache, diffRowIndex, resolveReorder, touchesViewInputs, viewRowOfDataIndex } from "./row-index";
 import * as sortFilter from "../sort-filter";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; price: number; note?: string };
 
@@ -761,7 +762,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
-    act(() => result.current.actions.deleteRows([0])); // removes row "a"; b,c shift down one
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([0]))); // removes row "a"; b,c shift down one
     act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.map((r) => r.id)).toEqual(["b", "c"]);
@@ -786,7 +787,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     }
     const { result } = renderHook(() => useHarness(), { wrapper: Wrapper });
     warm(result);
-    act(() => result.current.actions.duplicateRows([0])); // copy of "a" lands at index 1
+    act(() => result.current.actions.duplicateRowsAt(viewIndexes([0]))); // copy of "a" lands at index 1
     act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
     const next = lastData(onDataChange);
     expect(next.map((r) => r.id)).toEqual(["a", "a-copy1", "b", "c"]);
@@ -1496,7 +1497,7 @@ describe("row operations under sortMode server", () => {
   it("duplicateRows moves the active cell like an unsorted grid", () => {
     const { result } = renderServer();
     act(() => result.current.store.getState().actions.setActiveCellAt({ col: 0, row: 2 }));
-    act(() => result.current.actions.duplicateRows([0]));
+    act(() => result.current.actions.duplicateRowsAt(viewIndexes([0])));
     expect(result.current.store.getState().activeCell?.row).toBe(3);
   });
 

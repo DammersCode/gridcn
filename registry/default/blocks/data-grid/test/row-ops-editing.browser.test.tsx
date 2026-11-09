@@ -17,6 +17,7 @@ import { useDataGridStoreApi, type DataGridStoreState } from "../store";
 import type { DataChange } from "../types";
 // real stylesheet so Tailwind's `grid`/`overflow-auto` actually apply (same convention as column-ux.browser.test.tsx)
 import "@/app/global.css";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -117,7 +118,7 @@ describe("row ops under an open edit session", () => {
 
     await openEditorOnRow(2, "X"); // Person 2 (row-2)
 
-    store!.getState().actions.deleteRows([0]); // row-0 leaves, everything shifts up one
+    store!.getState().actions.deleteRowsAt(viewIndexes([0])); // row-0 leaves, everything shifts up one
 
     await vi.waitFor(() => {
       expect(editorInput(1)?.value).toBe("Person 2X");
@@ -134,7 +135,7 @@ describe("row ops under an open edit session", () => {
     const input = await openEditorOnRow(1, "X"); // Person 1 (row-1)
     expect(input.value).toBe("Person 1X");
 
-    store!.getState().actions.deleteRows([1]);
+    store!.getState().actions.deleteRowsAt(viewIndexes([1]));
 
     await vi.waitFor(() => {
       expect(document.querySelector(gridAttrSelector("editing", "true"))).toBeNull();
@@ -152,7 +153,7 @@ describe("row ops under an open edit session", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     await openEditorOnRow(0, "X"); // row-0 stays at view row 0 when row-3 goes
-    store!.getState().actions.deleteRows([3]);
+    store!.getState().actions.deleteRowsAt(viewIndexes([3]));
 
     expect(store!.getState().editing?.rowId).toBe("row-0");
     expect(store!.getState().activeCell).toEqual({ row: 0, col: 0 });
@@ -169,7 +170,7 @@ describe("row ops under an open edit session", () => {
 
   it.each([
     ["insertRows below", (a: DataGridActions) => a.insertRows(3, 1, "below")],
-    ["duplicateRows of another row", (a: DataGridActions) => a.duplicateRows([3])],
+    ["duplicateRows of another row", (a: DataGridActions) => a.duplicateRowsAt(viewIndexes([3]))],
     ["reorderRows of other rows", (a: DataGridActions) => a.reorderRows(3, 4)],
   ])("%s keeps the cursor on the surviving edit session", async (_name, op) => {
     let store: StoreApi<DataGridStoreState> | undefined;

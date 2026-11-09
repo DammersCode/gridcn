@@ -20,6 +20,7 @@ import {
 import { getInternalActions, useDataGridStoreApi as useRawStoreApi } from "@/registry/default/blocks/data-grid/store";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle, type UseFillHandleOptions } from "./use-fill-handle";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 /** Asserts the sync contract while calling: a sync-only column set must never return a Promise. */
 function syncResolution(resolution: BulkResolution | Promise<BulkResolution>): BulkResolution {
@@ -430,7 +431,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
 
     // strip is view row 1 ({ id: "2", name: "b" }) — delete it out from under the held fill.
     act(() => result.current.fill.fillDown());
-    act(() => result.current.actions.deleteRows([1]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([1])));
     release(2);
     await settle();
 

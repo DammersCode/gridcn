@@ -11,6 +11,7 @@ import { firstRowHeight, gridElement, mountedRows, originRebased, scrollByTicks 
 import { useDataGridServerRows, type ServerRowsAnswer, type ServerRowsRequest, type UseDataGridServerRowsScrollResult } from "./use-data-grid-server-rows";
 // real stylesheet — layout/scroll must be real for skeleton/scroll assertions to mean anything
 import "@/app/global.css";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 const ROW_HEIGHT = 36;
 
@@ -280,8 +281,8 @@ describe("scroll mode: checked rows across windows", () => {
     await render(<ServerGrid fetchRows={fetchRows} onReady={(a) => (api = a)} />);
     await vi.waitFor(() => expect(document.body.textContent).toContain("Person 0"));
 
-    api.getState().actions.setRowSelected(1, true);
-    api.getState().actions.setRowSelected(2, true);
+    api.getState().actions.setRowCheckedAt(viewIndex(1), true);
+    api.getState().actions.setRowCheckedAt(viewIndex(2), true);
     expect(readSelectedRows(api.getState())).toMatchObject({ mode: "ids", ids: ["row-1", "row-2"] });
 
     await scrollGridTo(500);

@@ -10,6 +10,7 @@ import {
   useDataGridSelection,
   type DataGridSyncProps,
 } from "../store";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 const CI_FACTOR = process.env["CI"] ? 2 : 1;
 
@@ -114,8 +115,8 @@ describe("reorderRows with a list", () => {
     const { result } = setup(8);
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 3 });
-      result.current.actions.setRowSelected(1, true);
-      result.current.actions.setRowSelected(3, true);
+      result.current.actions.setRowCheckedAt(viewIndex(1), true);
+      result.current.actions.setRowCheckedAt(viewIndex(3), true);
     });
 
     act(() => void result.current.actions.reorderRows([1, 3], 5));

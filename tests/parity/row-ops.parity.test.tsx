@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ALL_MODES, mountMode } from "./modes";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 const loaded = (ids: string[]) => ids.filter((id) => id !== "");
 
@@ -14,9 +15,9 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
     expect(grid.changes.at(-1)?.ops.map((op) => op.type)).toEqual(["insert"]);
   });
 
-  it("deleteRowsById removes exactly the named row", async () => {
+  it("deleteRows removes exactly the named row", async () => {
     const grid = await mountMode(mode);
-    grid.act(() => grid.state().actions.deleteRowsById(["r1"]));
+    grid.act(() => grid.state().actions.deleteRows(["r1"]));
     const ids = grid.dataIds();
     expect(ids).not.toContain("r1");
     expect(ids).toContain("r0");
@@ -25,7 +26,7 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
 
   it("duplicateRows puts the copy right after its source", async () => {
     const grid = await mountMode(mode);
-    grid.act(() => grid.state().actions.duplicateRows([0]));
+    grid.act(() => grid.state().actions.duplicateRowsAt(viewIndexes([0])));
     expect(loaded(grid.dataIds()).slice(0, 2)).toEqual(["r0", "r0-copy"]);
   });
 
@@ -38,7 +39,7 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
 
   it("onBeforeDeleteRows can veto a delete", async () => {
     const grid = await mountMode(mode, { props: { onBeforeDeleteRows: () => false } });
-    grid.act(() => grid.state().actions.deleteRows([0]));
+    grid.act(() => grid.state().actions.deleteRowsAt(viewIndexes([0])));
     await grid.settle();
     expect(grid.dataIds()).toContain("r0");
     expect(grid.changes).toHaveLength(0);
@@ -49,8 +50,8 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
     grid.act(() => {
       const a = grid.state().actions;
       a.insertRow(0, "below");
-      a.deleteRowsById(["r1"]);
-      a.duplicateRows([0]);
+      a.deleteRows(["r1"]);
+      a.duplicateRowsAt(viewIndexes([0]));
       a.reorderRows(0, 2);
     });
     expect(grid.changes).toHaveLength(0);

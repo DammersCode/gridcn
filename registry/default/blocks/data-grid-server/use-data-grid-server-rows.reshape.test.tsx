@@ -85,7 +85,7 @@ function mountGrid(use: () => Server, strict = false) {
     view,
     push: (rowId: string, value = "Aaron", options?: Parameters<ReturnType<typeof actions>["updateCells"]>[1]) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], options)),
     pushNow: async (rowId: string, value: string | undefined, changes?: Partial<Row>) => void (changes ? actions().updateRows([{ rowId, changes }]) : actions().updateCells([{ rowId, columnId: "name", value }])),
-    deleteByServer: (...ids: string[]) => act(() => void actions().deleteRowsById(ids, { source: "stream" })),
+    deleteByServer: (...ids: string[]) => act(() => void actions().deleteRows(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
     error: () => server.error,
     ids: () => (store.getState().data as readonly (Row | undefined)[]).map((row) => row?.id),

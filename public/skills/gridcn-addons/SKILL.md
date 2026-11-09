@@ -192,7 +192,7 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 ## Do not
 
 - Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
-- Do not call `deleteRows` with row ids. It takes view row indices (`deleteRows(viewRowIndexes)`). To delete by id, call `actions.deleteRowsById(ids)`.
+- Do not pass view indexes to `deleteRows`, `duplicateRows`, or `setRowChecked`. They take stable row ids. A name that ends in `At` (`deleteRowsAt`, `duplicateRowsAt`, `setRowCheckedAt`) takes `viewIndexes([...])`.
 - Do not mount `DataGridUrlState` on a scroll-mode grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
 - Do not create `aggregateRow`/`serverAggregateRow` inside a component body without `useMemo`.

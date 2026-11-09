@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { useDataGridSelectionStats } from "@/registry/default/blocks/data-grid-status-bar/use-data-grid-selection-stats";
 import type { SelectionStats } from "@/registry/default/blocks/data-grid-status-bar/compute-selection-stats";
 import { mountMode } from "./modes";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 describe("checked rows with client pagination", () => {
   it("a page change drops the checks of the page left behind", async () => {
     const grid = await mountMode("PC");
-    grid.act(() => grid.state().actions.setRowSelected(1, true));
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(1), true));
     expect([...grid.state().selection.rows.toArray()]).toEqual([1]);
     grid.goToPage(2);
     expect(grid.state().selection.rows.toArray()).toEqual([]);
@@ -14,7 +15,7 @@ describe("checked rows with client pagination", () => {
 
   it("across-filters remembers the row by id and checks it again when the page returns", async () => {
     const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
-    grid.act(() => grid.state().actions.setRowSelected(1, true));
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(1), true));
     grid.goToPage(2);
     expect([...grid.state().hiddenCheckedRowIds]).toEqual(["r1"]);
     grid.goToPage(1);
@@ -24,7 +25,7 @@ describe("checked rows with client pagination", () => {
 
   it("across-filters checks a row again on the page a sort moved it to", async () => {
     const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
-    grid.act(() => grid.state().actions.setRowSelected(1, true));
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(1), true));
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
     expect([...grid.state().hiddenCheckedRowIds]).toEqual(["r1"]);
     grid.goToPage(2);
@@ -33,7 +34,7 @@ describe("checked rows with client pagination", () => {
 
   it("Ctrl/Cmd+A drops the remembered checks of the other pages", async () => {
     const grid = await mountMode("PC", { props: { checkedRowsLifetime: "across-filters" } });
-    grid.act(() => grid.state().actions.setRowSelected(1, true));
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(1), true));
     grid.goToPage(2);
     grid.act(() => grid.state().actions.selectAll());
     expect(grid.state().hiddenCheckedRowIds.size).toBe(0);
@@ -43,7 +44,7 @@ describe("checked rows with client pagination", () => {
 
   it("a readOnly grid still checks rows because checking is not a write", async () => {
     const grid = await mountMode("PC", { props: { readOnly: true } });
-    grid.act(() => grid.state().actions.setRowSelected(2, true));
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(2), true));
     expect(grid.state().selection.rows.toArray()).toEqual([2]);
   });
 });

@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { fullViewOf } from "./compute";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; n: number };
 const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "n", header: "N", accessorKey: "n" }];
@@ -121,8 +122,8 @@ describe("paging the view: search and reorder", () => {
     const m = mount({ enableRowSelection: true });
     act(() => m.state().actions.setPage(2));
     act(() => {
-      m.state().actions.setRowSelected(0, true);
-      m.state().actions.setRowSelected(1, true);
+      m.state().actions.setRowCheckedAt(viewIndex(0), true);
+      m.state().actions.setRowCheckedAt(viewIndex(1), true);
       m.state().actions.setActiveCellAt({ row: 1, col: 0 });
     });
     expect(m.state().actions.moveRowsBy([0, 1], 1)).toBe(true);

@@ -161,7 +161,7 @@ const customMarkerRenderMarker = ({ isRowChannelSelected, isCellSelected }: Mark
 );
 
 function CustomMarkerSelectAll({ allSelected }: { allSelected: MarkerHeaderRenderCtx["allSelected"] }): ReactNode {
-  const { setAllRowsSelected } = useDataGridActions();
+  const { setAllRowsChecked } = useDataGridActions();
   const checked = allSelected === "checked";
   return (
     <Button
@@ -171,7 +171,7 @@ function CustomMarkerSelectAll({ allSelected }: { allSelected: MarkerHeaderRende
       className="size-5"
       aria-label={checked ? "Unselect all rows" : "Select all rows"}
       aria-pressed={checked}
-      onClick={() => setAllRowsSelected(!checked)}
+      onClick={() => setAllRowsChecked(!checked)}
     >
       {checked ? (
         <ListChecks className="size-3.5 text-muted-foreground" aria-hidden="true" />

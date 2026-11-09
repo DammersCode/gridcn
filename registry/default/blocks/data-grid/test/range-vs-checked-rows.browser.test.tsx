@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, useDataGridActions, type ColumnDef } from "../data-grid";
 import "@/app/global.css";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string };
 const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "id", header: "Id", accessorKey: "id" }];
@@ -45,7 +46,7 @@ describe("a cell range is not a checked row", () => {
   it("checking a row checks only that row", async () => {
     await mount();
     await expect.element(page.getByText("a", { exact: true })).toBeInTheDocument();
-    actions!.setRowSelected(1, true);
+    actions!.setRowCheckedAt(viewIndex(1), true);
     await expect.poll(() => dataRows().map((r) => r.getAttribute("aria-selected"))).toEqual(["false", "true", "false"]);
   });
 });

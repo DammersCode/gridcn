@@ -6,6 +6,7 @@ import { getSelectedViewRows } from "../selection/selected-view-rows";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { getSelectedRowIds } from "./compute";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -57,7 +58,7 @@ function check(store: StoreApi<DataGridStoreState>, ids: readonly string[]): voi
   const s = store.getState();
   for (const id of ids) {
     const viewRow = s.viewIndex.findIndex((dataRow) => s.getRowId(s.data[dataRow], dataRow) === id);
-    act(() => s.actions.setRowSelected(viewRow, true));
+    act(() => s.actions.setRowCheckedAt(viewIndex(viewRow), true));
   }
 }
 
@@ -70,7 +71,7 @@ describe("row channel follows record identity", () => {
     act(() => store().getState().actions.setSorts([{ columnId: "name", direction: "asc" }]));
 
     expect(checkedIds(store())).toEqual(["c", "a"]);
-    act(() => store().getState().actions.deleteRows(getSelectedViewRows(store().getState().selection)));
+    act(() => store().getState().actions.deleteRowsAt(viewIndexes(getSelectedViewRows(store().getState().selection))));
     const [, change] = onDataChange.mock.calls[0]!;
     expect(change.ops.map((op) => op.rowId).sort()).toEqual(["a", "c"]);
   });
@@ -83,7 +84,7 @@ describe("row channel follows record identity", () => {
     act(() => store().getState().actions.toggleSort("age"));
 
     expect(checkedIds(store())).toEqual(["e", "b"]);
-    act(() => store().getState().actions.duplicateRows(getSelectedViewRows(store().getState().selection)));
+    act(() => store().getState().actions.duplicateRowsAt(viewIndexes(getSelectedViewRows(store().getState().selection))));
     const [next] = onDataChange.mock.calls[0]!;
     expect(next.map((row) => row.id).filter((id) => id.endsWith("2")).sort()).toEqual(["b2", "e2"]);
   });
@@ -218,7 +219,7 @@ describe("row channel over unloaded rows", () => {
     const loaded = rows();
     const sparse: (Row | undefined)[] = [loaded[0], loaded[1], undefined, undefined, undefined];
     const view = render(grid(sparse));
-    act(() => api!.getState().actions.setAllRowsSelected(true));
+    act(() => api!.getState().actions.setAllRowsChecked(true));
 
     view.rerender(grid(loaded));
 
@@ -281,7 +282,7 @@ describe("row ops under a sort keep the checked records", () => {
     act(() => store().getState().actions.setSorts([{ columnId: "name", direction: "asc" }]));
     check(store(), ["c", "d"]);
 
-    act(() => store().getState().actions.duplicateRows([0]));
+    act(() => store().getState().actions.duplicateRowsAt(viewIndexes([0])));
 
     expect(checkedIds(store()).sort()).toEqual(["c", "d"]);
   });

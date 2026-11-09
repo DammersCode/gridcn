@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from ".";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; note: string };
 
@@ -226,19 +227,19 @@ const sites: Site[] = [
   },
   {
     site: "deleteRows",
-    run: (store) => store.getState().actions.deleteRows([0]),
+    run: (store) => store.getState().actions.deleteRowsAt(viewIndexes([0])),
     check: (data) => expect(ids(data)).toEqual(["b"]),
   },
   {
     site: "duplicateRows",
-    run: (store) => store.getState().actions.duplicateRows([0]),
+    run: (store) => store.getState().actions.duplicateRowsAt(viewIndexes([0])),
     check: (data) => expect(ids(data)).toEqual(["a", "a2", "b"]),
   },
   {
     site: "duplicateRows (sorted)",
     run: (store) => {
       sortByName(store);
-      store.getState().actions.duplicateRows([0]);
+      store.getState().actions.duplicateRowsAt(viewIndexes([0]));
     },
     check: (data) => expect(ids(data)).toEqual(["a", "a2", "b"]),
   },

@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   formatShortcut,
   type GridAction,
+  viewIndexes,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridApi,
@@ -189,9 +190,9 @@ export function useDefaultCellMenuItems(args: {
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRowsAt(viewIndexes(rows)) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRowsAt(viewIndexes(rows)) });
   return specs;
 }
 

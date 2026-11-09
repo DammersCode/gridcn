@@ -4,6 +4,7 @@ import { createDataGridStore } from "./create-store";
 import { EMPTY_GATES_PENDING, createGateTracker, type GateName } from "./gate-signal";
 import { getInternalActions } from "./internal-actions";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -180,7 +181,7 @@ describe("validateRow signal", () => {
       },
     });
     edit(m, "x");
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     expect(signal.aborted).toBe(true);
     expect(m.state().gatesPending).toBe(EMPTY_GATES_PENDING);
   });
@@ -414,7 +415,7 @@ describe("duplicateRow signal", () => {
     const d = deferred<Row>();
     const duplicateRow = vi.fn((_row: unknown, _index: number, _ctx: { signal: AbortSignal }) => d.promise);
     const m = mount({ duplicateRow });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     expect(duplicateRow.mock.calls[0]![2].signal.aborted).toBe(false);
     expect(m.pending()).toEqual(["duplicateRow"]);
     d.resolve(copy(rows()[0]!, 1));
@@ -432,7 +433,7 @@ describe("duplicateRow signal", () => {
         return d.promise;
       },
     });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     m.unmount();
     expect(signal.aborted).toBe(true);
     d.resolve({ id: "z", name: "Z" });
@@ -449,7 +450,7 @@ describe("duplicateRow signal", () => {
         return d.promise;
       },
     });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     m.sync({ readOnly: true });
     expect(signal.aborted).toBe(true);
     d.resolve({ id: "z", name: "Z" });
@@ -465,7 +466,7 @@ describe("duplicateRow signal", () => {
         return new Promise<Row>(() => {});
       },
     });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     m.sync({ data: rows(["b", "c"]) });
     expect(signal.aborted).toBe(true);
   });
@@ -478,7 +479,7 @@ describe("duplicateRow signal", () => {
         return copy(row as Row, i);
       },
     });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     expect(signals).toHaveLength(1);
     expect(m.state().gatesPending).toBe(EMPTY_GATES_PENDING);
   });
@@ -489,7 +490,7 @@ describe("onBeforeDeleteRows signal", () => {
     const d = deferred<boolean>();
     const gate = vi.fn((_ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => d.promise);
     const m = mount({ onBeforeDeleteRows: gate });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     expect(gate.mock.calls[0]![0].signal.aborted).toBe(false);
     expect(m.pending()).toEqual(["onBeforeDeleteRows"]);
     d.resolve(true);
@@ -507,7 +508,7 @@ describe("onBeforeDeleteRows signal", () => {
         return d.promise;
       },
     });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     m.unmount();
     expect(signal.aborted).toBe(true);
     d.resolve(true);
@@ -524,7 +525,7 @@ describe("onBeforeDeleteRows signal", () => {
         return d.promise;
       },
     });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     m.sync({ readOnly: true });
     expect(signal.aborted).toBe(true);
     d.resolve(true);
@@ -541,7 +542,7 @@ describe("onBeforeDeleteRows signal", () => {
         return d.promise;
       },
     });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     m.sync({ data: rows(["x", "y"]) });
     expect(signal.aborted).toBe(true);
     d.resolve(true);
@@ -552,10 +553,10 @@ describe("onBeforeDeleteRows signal", () => {
   it("a second request after an abort asks again", async () => {
     const results = [new Promise<boolean>(() => {}), Promise.resolve(true)];
     const m = mount({ onBeforeDeleteRows: () => results.shift()! });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     m.sync({ readOnly: true });
     m.sync({ readOnly: false });
-    m.state().actions.deleteRows([0]);
+    m.state().actions.deleteRowsAt(viewIndexes([0]));
     await settle();
     expect(m.ids()).toEqual(["b", "c"]);
   });

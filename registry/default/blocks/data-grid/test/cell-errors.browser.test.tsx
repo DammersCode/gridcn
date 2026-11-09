@@ -15,6 +15,7 @@ import { gridAttrSelector } from "../data-grid-sdk";
 import { useDataGridStoreApi, type DataGridStoreState } from "../store";
 // real stylesheet so Tailwind's ring/tint utilities actually apply
 import "@/app/global.css";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -431,7 +432,7 @@ describe("cell-errors: pruning", () => {
     store!.getState().actions.setCellErrors([{ rowId: "row-1", columnId: "name", message: "boom" }]);
     await vi.waitFor(() => expect(store!.getState().cellErrors.size).toBe(1));
 
-    store!.getState().actions.deleteRows([1]);
+    store!.getState().actions.deleteRowsAt(viewIndexes([1]));
 
     await vi.waitFor(() => expect(store!.getState().cellErrors.size).toBe(0));
   });

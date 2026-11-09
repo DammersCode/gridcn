@@ -19,7 +19,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
-function RowActions({ rowIndex }: { rowIndex: number }): ReactNode {
+function RowActions({ rowId, rowIndex }: { rowId: string; rowIndex: number }): ReactNode {
   const actions = useDataGridActions();
   // The row's first editable cell (Name, col 0) is where Edit drops the user.
   const editRow = () => actions.startEditingAt({ row: rowIndex, col: 0 });
@@ -40,7 +40,7 @@ function RowActions({ rowIndex }: { rowIndex: number }): ReactNode {
         variant="ghost"
         className="size-7"
         aria-label="Delete row"
-        onClick={() => actions.deleteRows([rowIndex])}
+        onClick={() => actions.deleteRows([rowId])}
       >
         <Trash2 className="size-3.5" />
       </Button>
@@ -59,10 +59,10 @@ function RowActions({ rowIndex }: { rowIndex: number }): ReactNode {
         />
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={editRow}>Edit</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => actions.duplicateRows([rowIndex])}>
+          <DropdownMenuItem onClick={() => actions.duplicateRows([rowId])}>
             Duplicate
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => actions.deleteRows([rowIndex])}>
+          <DropdownMenuItem onClick={() => actions.deleteRows([rowId])}>
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -105,14 +105,14 @@ const columns = defineColumns<DemoRow>()([
     pin: "end",
     readOnly: true,
     width: 110,
-    renderCell: ({ viewRowIndex }) => <RowActions rowIndex={viewRowIndex} />,
+    renderCell: ({ rowId, viewRowIndex }) => <RowActions rowId={rowId} rowIndex={viewRowIndex} />,
   },
 ] as const);
 
 /**
  * The action-buttons column pattern: a pinned-right `readOnly` column that composes shadcn
  * Buttons over store actions (`startEditing` drops the row's first editable cell into edit mode,
- * `deleteRows`/`duplicateRows` work on the row by its view index). No new core feature — pure
+ * `deleteRows`/`duplicateRows` work on the row by its id). No new core feature — pure
  * `renderCell` composition.
  */
 export default function DataGridActionsDemo(): ReactNode {

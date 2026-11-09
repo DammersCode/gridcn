@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, getInternalActions, useDataGridActions, useDataGridStoreApi, type DataGridSyncProps } from "../store";
 import { useDataGridClipboard } from "./use-data-grid-clipboard";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -185,7 +186,7 @@ describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
 
     // setUpGrid selects { col: 0, row: 0 } — view row 0 is the paste target.
     await act(() => result.current.clipboard.pasteFromClipboard());
-    act(() => result.current.actions.deleteRows([0]));
+    act(() => result.current.actions.deleteRowsAt(viewIndexes([0])));
     await act(async () => {
       release("Z");
       await settled;

@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { holeRowId } from "../data-grid-sdk";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from ".";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -45,8 +46,8 @@ describe("row operations over unloaded lazy rows", () => {
   it("deleteRows with a hole in the request deletes nothing and warns once", () => {
     spyWarn();
     const m = mount();
-    act(() => m.actions().deleteRows([0, 2]));
-    act(() => m.actions().deleteRows([1, 3]));
+    act(() => m.actions().deleteRowsAt(viewIndexes([0, 2])));
+    act(() => m.actions().deleteRowsAt(viewIndexes([1, 3])));
     expect(m.length()).toBe(6);
     expect(m.onDataChange).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
@@ -54,15 +55,15 @@ describe("row operations over unloaded lazy rows", () => {
 
   it("deleteRows over loaded rows only still deletes", () => {
     const m = mount();
-    act(() => m.actions().deleteRows([0, 1]));
+    act(() => m.actions().deleteRowsAt(viewIndexes([0, 1])));
     expect(m.length()).toBe(4);
     expect(m.onDataChange).toHaveBeenCalledTimes(1);
   });
 
-  it("deleteRowsById over a placeholder id deletes nothing", () => {
+  it("deleteRows over a placeholder id deletes nothing", () => {
     spyWarn();
     const m = mount();
-    act(() => m.actions().deleteRowsById(["r0", holeRowId(2)]));
+    act(() => m.actions().deleteRows(["r0", holeRowId(2)]));
     expect(m.length()).toBe(6);
     expect(m.onDataChange).not.toHaveBeenCalled();
   });
@@ -70,7 +71,7 @@ describe("row operations over unloaded lazy rows", () => {
   it("duplicateRows with a hole among the sources duplicates nothing", () => {
     spyWarn();
     const m = mount();
-    act(() => m.actions().duplicateRows([0, 3]));
+    act(() => m.actions().duplicateRowsAt(viewIndexes([0, 3])));
     expect(m.length()).toBe(6);
     expect(m.onDataChange).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledTimes(1);
@@ -78,7 +79,7 @@ describe("row operations over unloaded lazy rows", () => {
 
   it("duplicateRows over loaded rows still duplicates", () => {
     const m = mount();
-    act(() => m.actions().duplicateRows([0]));
+    act(() => m.actions().duplicateRowsAt(viewIndexes([0])));
     expect(m.length()).toBe(7);
   });
 
@@ -101,8 +102,8 @@ describe("row operations over unloaded lazy rows", () => {
   it("warns once per instance across operation kinds", () => {
     spyWarn();
     const m = mount();
-    act(() => m.actions().deleteRows([2]));
-    act(() => m.actions().duplicateRows([2]));
+    act(() => m.actions().deleteRowsAt(viewIndexes([2])));
+    act(() => m.actions().duplicateRowsAt(viewIndexes([2])));
     act(() => m.actions().insertRow(2, "below"));
     expect(warn).toHaveBeenCalledTimes(1);
   });

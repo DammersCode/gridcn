@@ -7,6 +7,7 @@ import {
   useDefaultHeaderMenuItems,
   type GridMenuItemSpec,
 } from "./menu-items";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 afterEach(cleanup);
 
@@ -230,8 +231,8 @@ describe("delete-rows after a sort", () => {
       </DataGridProvider>,
     );
     act(() => actions!.selectCellAt({ row: 0, col: 0 }));
-    act(() => actions!.setRowSelected(2, true));
-    act(() => actions!.setRowSelected(3, true));
+    act(() => actions!.setRowCheckedAt(viewIndex(2), true));
+    act(() => actions!.setRowCheckedAt(viewIndex(3), true));
     act(() => actions!.setSorts([{ columnId: "name", direction: "asc" }]));
 
     act(() => item(specs, "delete-rows")!.onClick!());
@@ -248,7 +249,7 @@ describe("row items with only hidden checked rows", () => {
     function Hidden() {
       const actions = useDataGridActions();
       useEffect(() => {
-        actions.setRowSelected(0, true);
+        actions.setRowCheckedAt(viewIndex(0), true);
         actions.setFilters([{ filterId: "f", columnId: "name", operator: "equals", value: "Bob" }]);
       }, [actions]);
       cell = useDefaultCellMenuItems({ row: 0, canInsertRow: true, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });

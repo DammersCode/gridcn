@@ -9,6 +9,16 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** row actions take a stable row id unless the name ends in `At`, which takes view indexes. `deleteRows` and `duplicateRows` take row ids, and `deleteRowsAt` and `duplicateRowsAt` take view indexes wrapped in `viewIndexes([...])`, so a plain number array is a type error. `setRowChecked(rowId, checked)` is new, and `setRowSelected` and `setAllRowsSelected` are `setRowCheckedAt` and `setAllRowsChecked`. In development, `deleteRows`, `duplicateRows`, and `setRowChecked` warn once per grid when a number that is no row id is a view index, because a JavaScript call from before this change would otherwise do nothing silently. `onRowActionSkipped` keeps `action: "deleteRows"` for both addressings. `insertRow(s)`, `reorderRows`, `moveRowsBy`, `selectRow`, and `checkRowRange` keep their view-index parameters.
+
+  | Before | After |
+  | --- | --- |
+  | `deleteRows([4])` | `deleteRowsAt(viewIndexes([4]))` |
+  | `deleteRowsById(ids)` | `deleteRows(ids)` |
+  | `deleteRowsById(ids, { source: "stream" })` | `deleteRows(ids, { source: "stream" })` |
+  | `duplicateRows([4])` | `duplicateRowsAt(viewIndexes([4]))` |
+  | `setRowSelected(4, true)` | `setRowCheckedAt(viewIndex(4), true)` or `setRowChecked(rowId, true)` |
+  | `setAllRowsSelected(true)` | `setAllRowsChecked(true)` |
 - **Breaking:** `ColumnDef.filter` replaces `filterOperators`, `filterMatch`, and `filterCompare`. It takes the shape of the cell type's `filter` (`operators`, `match`, `compare`, `valueInput`), and each member wins over the same member of the type's `filter`. `CellTypeFilter` gains `compare`, and the type's `valueInput` is now available per column. `filterable` stays a flat column prop. The old flat keys are no longer in `ColumnDef`, so they are a type error. In development a column that still has one warns once per key; the key has no effect. Every capability stays: a column-level operator list, raw-value matcher, and bound order work as before, and a custom operator still works on the client and on the server (`parseServerSpec` reads the operators you pass it).
 
   | Before | After |

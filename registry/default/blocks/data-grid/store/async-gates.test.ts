@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDataGridStore } from "./create-store";
 import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -324,7 +325,7 @@ describe("duplicateRow async", () => {
   it("a sync factory duplicates in the same tick, with the same arguments as before", () => {
     const duplicateRow = vi.fn(duplicate);
     const m = mount({ duplicateRow });
-    m.state().actions.duplicateRows([0, 2]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0, 2]));
     expect(duplicateRow.mock.calls.map(([row, index]) => [(row as Row).id, index])).toEqual([["c", 4], ["a", 1]]);
     expect(m.ids()).toEqual(["a", "a-copy1", "b", "c", "c-copy4"]);
   });
@@ -332,7 +333,7 @@ describe("duplicateRow async", () => {
   it("holds until every copy settles, then writes once", async () => {
     const onDataChange = vi.fn();
     const m = mount({ duplicateRow: (row) => Promise.resolve({ id: `${(row as Row).id}2`, name: (row as Row).name }), onDataChange });
-    m.state().actions.duplicateRows([0, 1]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0, 1]));
     expect(m.ids()).toEqual(["a", "b", "c"]);
     await settle();
     expect(m.ids()).toEqual(["a", "a2", "b", "b2", "c"]);
@@ -344,9 +345,9 @@ describe("duplicateRow async", () => {
     const d = deferred<Row>();
     const duplicateRow = vi.fn(() => d.promise);
     const m = mount({ duplicateRow });
-    m.state().actions.duplicateRows([0]);
-    m.state().actions.duplicateRows([1]);
-    m.state().actions.duplicateRows([2]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
+    m.state().actions.duplicateRowsAt(viewIndexes([1]));
+    m.state().actions.duplicateRowsAt(viewIndexes([2]));
     expect(duplicateRow).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls.filter(([message]) => String(message).includes("duplicateRow"))).toHaveLength(1);
     d.resolve({ id: "x", name: "X" });
@@ -358,10 +359,10 @@ describe("duplicateRow async", () => {
     warnings();
     const results: Promise<Row>[] = [Promise.reject(new Error("down")), Promise.resolve({ id: "x", name: "X" })];
     const m = mount({ duplicateRow: () => results.shift()! });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     await settle();
     expect(m.ids()).toEqual(["a", "b", "c"]);
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     await settle();
     expect(m.ids()).toEqual(["a", "x", "b", "c"]);
   });
@@ -369,14 +370,14 @@ describe("duplicateRow async", () => {
   it("drops the result when readOnly, and skips a source row that is gone", async () => {
     const ro = deferred<Row>();
     const m = mount({ duplicateRow: () => ro.promise });
-    m.state().actions.duplicateRows([0]);
+    m.state().actions.duplicateRowsAt(viewIndexes([0]));
     m.sync({ readOnly: true });
     ro.resolve({ id: "x", name: "X" });
     await settle();
     expect(m.ids()).toEqual(["a", "b", "c"]);
 
     const m2 = mount({ duplicateRow: (row) => Promise.resolve({ id: `${(row as Row).id}2`, name: (row as Row).name }) });
-    m2.state().actions.duplicateRows([0, 1]);
+    m2.state().actions.duplicateRowsAt(viewIndexes([0, 1]));
     m2.sync({ data: rows(["b", "c"]) });
     await settle();
     expect(m2.ids()).toEqual(["b", "b2", "c"]);

@@ -4,6 +4,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from ".";
 import type { SaveAck } from "./write-ack";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; note: string; locked: string; byRow: string };
 
@@ -127,10 +128,10 @@ describe("stream delete", () => {
     const onBeforeDeleteRows = vi.fn(() => true);
     const onDataChange = vi.fn();
     const m = mount(onSave, { onBeforeDeleteRows, onDataChange });
-    act(() => m.state().actions.setRowSelected(0, true));
+    act(() => m.state().actions.setRowCheckedAt(viewIndex(0), true));
     expect(m.state().selection.rows.length).toBe(1);
 
-    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+    act(() => m.state().actions.deleteRows(["a"], { source: "stream" }));
 
     expect(ids(m)).toEqual(["b"]);
     expect(onBeforeDeleteRows).not.toHaveBeenCalled();
@@ -142,14 +143,14 @@ describe("stream delete", () => {
 
   it("keeps the checked state of the other rows", () => {
     const m = mount();
-    act(() => m.state().actions.setRowSelected(1, true));
-    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+    act(() => m.state().actions.setRowCheckedAt(viewIndex(1), true));
+    act(() => m.state().actions.deleteRows(["a"], { source: "stream" }));
     expect(m.state().selection.rows.hasIndex(0)).toBe(true);
   });
 
   it("ignores ids that match no row, including a prototype key", () => {
     const m = mount();
-    act(() => m.state().actions.deleteRowsById(["nope", "__proto__", "constructor"], { source: "stream" }));
+    act(() => m.state().actions.deleteRows(["nope", "__proto__", "constructor"], { source: "stream" }));
     expect(ids(m)).toEqual(["a", "b"]);
   });
 
@@ -157,7 +158,7 @@ describe("stream delete", () => {
     const onSave = vi.fn();
     const onBeforeDeleteRows = vi.fn(() => true);
     const m = mount(onSave, { onBeforeDeleteRows });
-    act(() => m.state().actions.deleteRowsById(["a"]));
+    act(() => m.state().actions.deleteRows(["a"]));
     expect(onBeforeDeleteRows).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledTimes(1);
   });
@@ -166,7 +167,7 @@ describe("stream delete", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount();
     const many = Array.from({ length: 100_000 }, (_, i) => `x${i}`);
-    act(() => m.state().actions.deleteRowsById([...many, "a"], { source: "stream" }));
+    act(() => m.state().actions.deleteRows([...many, "a"], { source: "stream" }));
     expect(ids(m)).toEqual(["a", "b"]);
     expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(1);
   });
@@ -200,9 +201,9 @@ describe("stream into read-only targets", () => {
 
   it("deletes by stream in a readOnly grid, and a user delete stays refused", () => {
     const m = mount(undefined, { readOnly: true });
-    act(() => m.state().actions.deleteRowsById(["a"]));
+    act(() => m.state().actions.deleteRows(["a"]));
     expect(m.state().data).toHaveLength(2);
-    act(() => m.state().actions.deleteRowsById(["a"], { source: "stream" }));
+    act(() => m.state().actions.deleteRows(["a"], { source: "stream" }));
     expect(m.state().data).toHaveLength(1);
   });
 

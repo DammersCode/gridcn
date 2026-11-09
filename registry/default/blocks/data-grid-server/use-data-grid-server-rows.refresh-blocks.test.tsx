@@ -401,7 +401,7 @@ describe("a local row operation on a random-access source", () => {
   it("keeps no hole in the loaded ranges and writes no row twice", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
-    act(() => t.state().actions.deleteRowsById(["r1"]));
+    act(() => t.state().actions.deleteRows(["r1"]));
     await t.ready();
     const loaded = t.server().getLoadedRanges();
     t.server().gridProps.data.forEach((row, index) => {
@@ -480,7 +480,7 @@ describe("a local row operation on a random-access source", () => {
   it("refreshes once when a delete settles", async () => {
     const t = setup("counted");
     await loadTwoBlocks(t);
-    act(() => t.state().actions.deleteRowsById(["r1"]));
+    act(() => t.state().actions.deleteRows(["r1"]));
     await t.ready();
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
     expect(t.nameOf("r1")).toBeUndefined();
@@ -497,7 +497,7 @@ describe("a pending delete on a sequential source", () => {
   it("keeps the row gone when a refresh brings it back from the server", async () => {
     const t = setup("cursor");
     await loadTwoBlocks(t);
-    act(() => t.state().actions.deleteRowsById(["r1"]));
+    act(() => t.state().actions.deleteRows(["r1"]));
     act(() => t.server().refresh());
     await t.ready();
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));

@@ -113,7 +113,7 @@ function PushControls({ remote, live }: { remote: Remote; live: boolean }): Reac
         const first = api.getRow(0);
         if (!first) return;
         remote.remove([first.id]);
-        api.actions.deleteRowsById([first.id], { source: "stream" });
+        api.actions.deleteRows([first.id], { source: "stream" });
       }}
     >
       Delete on server

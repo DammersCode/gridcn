@@ -5,6 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridRowSaveStatus, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import type { SaveAck, SaveRejection } from "./write-ack";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; note: string };
 
@@ -200,7 +201,7 @@ describe("save acknowledgement", () => {
 
     const del = deferred<SaveAck>();
     const m2 = mount(() => del.promise);
-    act(() => m2.state().actions.deleteRows([1]));
+    act(() => m2.state().actions.deleteRowsAt(viewIndexes([1])));
     expect(m2.state().data).toHaveLength(2);
     del.resolve({ rejected: [{ rowId: "b" }] });
     await flush();
@@ -344,7 +345,7 @@ describe("save acknowledgement: refusals in sequence", () => {
       totalRowCount: 9,
     });
     act(() => m.state().actions.insertRow(0, "below"));
-    act(() => m.state().actions.setRowSelected(1, true));
+    act(() => m.state().actions.setRowCheckedAt(viewIndex(1), true));
     d.resolve({ rejected: [{ rowId: "n" }] });
     await flush();
     expect(m.state().hiddenCheckedRowIds.has("n")).toBe(false);
@@ -619,7 +620,7 @@ describe("SaveRejection.current", () => {
   it("a refused delete restores the row as the server holds it", async () => {
     const d = deferred<SaveAck>();
     const m = mount(() => d.promise);
-    act(() => m.state().actions.deleteRows([0]));
+    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     d.resolve({ rejected: [{ rowId: "a", current: server }] });
     await flush();
     expect((m.state().data as Row[])[0]).toEqual(server);

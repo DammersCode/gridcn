@@ -49,7 +49,7 @@ describe.each(ALL_MODES)("validateRow in mode %s", (mode) => {
     let release!: (value: Record<string, string> | null) => void;
     const grid = await mountMode(mode, { props: { validateRow: () => new Promise((resolve) => (release = resolve)) } });
     edit(grid, "r1", -5);
-    grid.act(() => grid.state().actions.deleteRowsById(["r1"]));
+    grid.act(() => grid.state().actions.deleteRows(["r1"]));
     release({ n: "late" });
     await grid.settle();
     expect(grid.dataIds()).not.toContain("r1");

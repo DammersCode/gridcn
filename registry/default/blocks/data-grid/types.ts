@@ -82,6 +82,17 @@ export namespace StandardSchemaV1 {
 // case, else `accessorKey` collapses to an uninhabited `undefined` field.
 export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData & string;
 
+declare const viewIndexBrand: unique symbol;
+
+/** A row position in the current view. The `At` row actions take it, so a plain number cannot pass for a stable row id. Build one with {@link viewIndex}. */
+export type ViewIndex = number & { readonly [viewIndexBrand]: true };
+
+/** Marks `index` as a view row position for an `At` action. */
+export const viewIndex = (index: number): ViewIndex => index as ViewIndex;
+
+/** Marks each of `indexes` as a view row position for an `At` action. */
+export const viewIndexes = (indexes: readonly number[]): readonly ViewIndex[] => indexes as readonly ViewIndex[];
+
 /** Cell coordinate in view-index: 0-based view row (sorted/filtered, not a data index) and 0-based visible-column index (marker columns excluded). It reshuffles under sort and filter — never persist it or compare it across a reorder; address cells by {@link CellRef} instead. */
 export type ViewCoord = { col: number; row: number };
 

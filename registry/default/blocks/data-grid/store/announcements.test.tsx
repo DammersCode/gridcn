@@ -5,6 +5,7 @@ import { getInternalActions } from "./internal-actions";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -33,15 +34,15 @@ function mount(props: Partial<DataGridSyncProps<Row>> = {}) {
     api: () => api,
     // Merge so a re-render keeps the mount props (announceResults) unless next overrides them.
     rerender: (next: Partial<DataGridSyncProps<Row>>) => view.rerender(tree({ ...props, ...next })),
-    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, true))),
-    uncheck: (viewRow: number) => act(() => state().actions.setRowSelected(viewRow, false)),
+    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowCheckedAt(viewIndex(r), true))),
+    uncheck: (viewRow: number) => act(() => state().actions.setRowCheckedAt(viewIndex(viewRow), false)),
     checkRange: (target: number, opts?: { commit?: boolean }) => act(() => state().actions.checkRowRange(target, opts)),
     cellRange: (height: number) =>
       act(() => {
         state().actions.selectCellAt({ col: 0, row: 0 });
         for (let i = 1; i < height; i++) state().actions.extendSelection("down");
       }),
-    setAll: (checked: boolean) => act(() => state().actions.setAllRowsSelected(checked)),
+    setAll: (checked: boolean) => act(() => state().actions.setAllRowsChecked(checked)),
     selectRow: (index: number, opts?: { additive?: boolean }) => act(() => state().actions.selectRow(index, opts)),
     filters: (filters: unknown) => act(() => state().actions.setFilters(filters as never)),
     sorts: (sorts: unknown) => act(() => state().actions.setSorts(sorts as never)),
@@ -61,7 +62,7 @@ describe("liveAnnouncement (checked rows)", () => {
     expect(mount().state().liveAnnouncement).toBeNull();
   });
 
-  it("setRowSelected records the checked total on check and uncheck", () => {
+  it("setRowCheckedAt records the checked total on check and uncheck", () => {
     const m = mount();
     m.check(0, 2);
     expect(m.state().liveAnnouncement).toMatchObject(checked(2));
@@ -77,7 +78,7 @@ describe("liveAnnouncement (checked rows)", () => {
     expect(m.state().liveAnnouncement).toMatchObject(checked(2));
   });
 
-  it("setAllRowsSelected records the full view and the empty set", () => {
+  it("setAllRowsChecked records the full view and the empty set", () => {
     const m = mount();
     m.setAll(true);
     expect(m.state().liveAnnouncement).toMatchObject(checked(5));

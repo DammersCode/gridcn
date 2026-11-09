@@ -16,6 +16,7 @@ import { MAX_RESOLVED_RECTS, resolveHighlights, safePresenceColor } from "../pre
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import { createPresenceStore, MAX_PRESENCE_ENTRIES } from "../presence-store";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -992,13 +993,13 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const first = render(<Harness />);
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.deleteRows([0]));
+    act(() => actions!.deleteRowsAt(viewIndexes([0])));
     expect(warn).toHaveBeenCalledTimes(1);
     first.unmount();
 
     render(<Harness />);
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.deleteRows([0]));
+    act(() => actions!.deleteRowsAt(viewIndexes([0])));
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });

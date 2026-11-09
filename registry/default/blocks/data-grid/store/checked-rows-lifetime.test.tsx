@@ -5,6 +5,7 @@ import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
 import { getInternalActions } from "./internal-actions";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
+import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string };
 
@@ -30,7 +31,7 @@ function mount(props: Partial<DataGridSyncProps<Row>>) {
   return {
     state,
     store: () => api!,
-    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowSelected(r, true))),
+    check: (...viewRows: number[]) => act(() => viewRows.forEach((r) => state().actions.setRowCheckedAt(viewIndex(r), true))),
   };
 }
 
@@ -136,7 +137,7 @@ describe("checkedRowsLifetime", () => {
   it("on: unchecking and clearSelection still change the checks", () => {
     const { state, check } = mount({ checkedRowsLifetime: "until-cleared" });
     check(0, 1);
-    act(() => state().actions.setRowSelected(0, false));
+    act(() => state().actions.setRowCheckedAt(viewIndex(0), false));
     expect(state().selection.rows.toArray()).toEqual([1]);
     act(() => state().actions.clearSelection());
     expect(state().selection.rows.length).toBe(0);
@@ -164,11 +165,11 @@ describe.each(["until-cleared", "across-filters"] as const)("checkedRowsLifetime
   it("until a marker checkbox, the header checkbox, Escape or clearSelection changes them", () => {
     const { state, store, check } = mount({ checkedRowsLifetime });
     check(0, 1);
-    act(() => state().actions.setRowSelected(0, false));
+    act(() => state().actions.setRowCheckedAt(viewIndex(0), false));
     expect(state().selection.rows.toArray()).toEqual([1]);
-    act(() => state().actions.setAllRowsSelected(true));
+    act(() => state().actions.setAllRowsChecked(true));
     expect(state().selection.rows.length).toBe(5);
-    act(() => state().actions.setAllRowsSelected(false));
+    act(() => state().actions.setAllRowsChecked(false));
     expect(state().selection.rows.length).toBe(0);
     check(2);
     dispatch(store(), "cancel");

@@ -6,6 +6,7 @@ import type { ColumnDef, SelectionState } from "../types";
 import { DataGrid, DataGridProvider } from "../data-grid";
 import { getInternalActions, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from "../store";
 import * as selectionStateModule from "../store/selection-state";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -246,7 +247,7 @@ describe("the controlled selection prop", () => {
     const onSelectionChange = vi.fn();
     const { store } = mount({ onSelectionChange });
     act(() => store().getState().actions.selectCellAt({ row: 0, col: 0 }));
-    act(() => store().getState().actions.setRowSelected(0, true));
+    act(() => store().getState().actions.setRowCheckedAt(viewIndex(0), true));
     onSelectionChange.mockClear();
 
     act(() => store().getState().actions.extendToAt({ row: 1, col: 0 }));
@@ -275,7 +276,7 @@ describe("the controlled selection prop", () => {
       expect(derived().rowIds).toEqual(["1"]);
 
       // Charlie now sits at view row 2: deleting it removes the checked record only.
-      act(() => store().getState().actions.deleteRows([2]));
+      act(() => store().getState().actions.deleteRowsAt(viewIndexes([2])));
       expect(store().getState().data.map((row) => (row as Row).id)).toEqual(["2", "3", "4"]);
     });
 

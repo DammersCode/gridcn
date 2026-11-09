@@ -117,7 +117,7 @@ describe("controlled selection perf (100k rows)", () => {
 describe("hidden checked rows perf (100k rows)", () => {
   it("moves 100,000 checks into the hidden set and back through a filter change within the ceiling", () => {
     const store = makeStore(makeRows(ROW_COUNT), undefined, { checkedRowsLifetime: "across-filters" });
-    store.getState().actions.setAllRowsSelected(true);
+    store.getState().actions.setAllRowsChecked(true);
     const filter = [{ filterId: "f", columnId: "v", operator: "equals", value: 1000 }] as never;
 
     const t0 = performance.now();
@@ -150,7 +150,7 @@ describe("hidden checked rows with streaming (100k rows)", () => {
     const hidden = makeStore(makeRows(ROW_COUNT), undefined, { checkedRowsLifetime: "across-filters" });
     for (const store of [plain, hidden]) {
       store.getState().actions.setSorts([{ columnId: "v", direction: "asc" }]);
-      store.getState().actions.setAllRowsSelected(true);
+      store.getState().actions.setAllRowsChecked(true);
     }
     const plainMs = tick(plain, 20);
     const hiddenMs = tick(hidden, 20);
@@ -170,7 +170,7 @@ describe("controlled selection perf (1M rows)", () => {
     });
     const unsub = getInternalActions(store)._subscribeSelection();
     const t0 = performance.now();
-    store.getState().actions.setAllRowsSelected(true);
+    store.getState().actions.setAllRowsChecked(true);
     const ms = performance.now() - t0;
     unsub();
 

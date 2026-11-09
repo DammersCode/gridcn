@@ -41,6 +41,7 @@ import {
   useDataGridSelector,
 } from "../store";
 import type { FilterGroup, FilterNode, FilterSpec, SortSpec } from "../types";
+import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
 type Row = { id: string; name: string; age: number };
 
@@ -536,7 +537,7 @@ describe("atomic hook re-render counts", () => {
           <>
             <Probe />
             <button onClick={() => actions.insertRows(0, 1)}>insert</button>
-            <button onClick={() => actions.deleteRows([0])}>delete</button>
+            <button onClick={() => actions.deleteRowsAt(viewIndexes([0]))}>delete</button>
           </>
         );
       }
@@ -2013,7 +2014,7 @@ describe("validateRow verdict ownership across row deletion", () => {
     expect(result.current.errors.get(cellErrorKey("1", "name"))).toBe("Charlie is banned");
 
     act(() => {
-      result.current.actions.deleteRows([0]);
+      result.current.actions.deleteRowsAt(viewIndexes([0]));
       result.current.actions.insertRow(0, "above");
     });
     act(() => {
@@ -2318,21 +2319,32 @@ describe("selection config defaults and gating", () => {
   });
 });
 
-describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGridAllRowsSelected", () => {
-  it("setRowSelected adds/removes a single row from the rows channel without touching the range channel", () => {
+describe("marker channel wiring: setRowCheckedAt / setAllRowsChecked / useDataGridAllRowsSelected", () => {
+  it("setRowCheckedAt adds/removes a single row from the rows channel without touching the range channel", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 2 }); // unrelated range/active-cell state
-      result.current.actions.setRowSelected(1, true);
+      result.current.actions.setRowCheckedAt(viewIndex(1), true);
     });
 
     expect(result.current.selection.rows.toArray()).toEqual([1]);
     expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 2 }); // untouched
 
-    act(() => result.current.actions.setRowSelected(1, false));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(1), false));
     expect(result.current.selection.rows.toArray()).toEqual([]);
+  });
+
+  it("setRowChecked checks a row by its id and ignores an id that is not in the view", () => {
+    const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
+    const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
+
+    act(() => result.current.actions.setRowChecked("2", true));
+    expect(result.current.selection.rows.toArray()).toEqual([1]);
+
+    act(() => result.current.actions.setRowChecked("missing", true));
+    expect(result.current.selection.rows.toArray()).toEqual([1]);
   });
 
   it("unchecking a row inside a drag range with enableMultiRange false leaves a single range around the anchor", () => {
@@ -2344,42 +2356,42 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
       result.current.actions.selectCellAt({ col: 0, row: 1 });
       result.current.actions.extendToAt({ col: 1, row: 5 });
     });
-    act(() => result.current.actions.setRowSelected(3, false));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(3), false));
 
     expect(result.current.selection.current?.range).toEqual({ x: 0, y: 1, width: 2, height: 2 });
     expect(result.current.selection.current?.rangeStack).toEqual([]);
     expect(result.current.selection.current?.cell).toEqual({ col: 0, row: 1 });
   });
 
-  it("setRowSelected is additive: toggling a second row keeps the first", () => {
+  it("setRowCheckedAt is additive: toggling a second row keeps the first", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
     act(() => {
-      result.current.actions.setRowSelected(0, true);
-      result.current.actions.setRowSelected(2, true);
+      result.current.actions.setRowCheckedAt(viewIndex(0), true);
+      result.current.actions.setRowCheckedAt(viewIndex(2), true);
     });
 
     expect(result.current.selection.rows.toArray()).toEqual([0, 2]);
   });
 
-  it("setRowSelected is a no-op when enableRowSelection is false", () => {
+  it("setRowCheckedAt is a no-op when enableRowSelection is false", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox", enableRowSelection: false });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
-    act(() => result.current.actions.setRowSelected(0, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
 
     expect(result.current.selection.rows.length).toBe(0);
   });
 
-  it("setAllRowsSelected(true) selects every view row; (false) clears the channel", () => {
+  it("setAllRowsChecked(true) selects every view row; (false) clears the channel", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), selection: useDataGridSelection() }), { wrapper });
 
-    act(() => result.current.actions.setAllRowsSelected(true));
+    act(() => result.current.actions.setAllRowsChecked(true));
     expect(result.current.selection.rows.toArray()).toEqual([0, 1, 2]);
 
-    act(() => result.current.actions.setAllRowsSelected(false));
+    act(() => result.current.actions.setAllRowsChecked(false));
     expect(result.current.selection.rows.toArray()).toEqual([]);
   });
 
@@ -2392,13 +2404,13 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
     expect(result.current.state).toBe("unchecked");
 
-    act(() => result.current.actions.setRowSelected(0, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
     expect(result.current.state).toBe("indeterminate");
 
-    act(() => result.current.actions.setAllRowsSelected(true));
+    act(() => result.current.actions.setAllRowsChecked(true));
     expect(result.current.state).toBe("checked");
 
-    act(() => result.current.actions.setAllRowsSelected(false));
+    act(() => result.current.actions.setAllRowsChecked(false));
     expect(result.current.state).toBe("unchecked");
   });
 
@@ -2430,9 +2442,9 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
   it("the header turns checked once the rows channel holds every row, and indeterminate for some", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), allRowsState: useDataGridAllRowsSelected() }), { wrapper });
-    act(() => result.current.actions.setRowSelected(0, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
     expect(result.current.allRowsState).toBe("indeterminate");
-    act(() => result.current.actions.setAllRowsSelected(true));
+    act(() => result.current.actions.setAllRowsChecked(true));
     expect(result.current.allRowsState).toBe("checked");
   });
 
@@ -2467,8 +2479,8 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
     // select 2 of 5 view rows via checkbox marker (indices 3, 4).
     act(() => {
-      latest!.actions.setRowSelected(3, true);
-      latest!.actions.setRowSelected(4, true);
+      latest!.actions.setRowCheckedAt(viewIndex(3), true);
+      latest!.actions.setRowCheckedAt(viewIndex(4), true);
     });
     expect(latest!.allRowsState).toBe("indeterminate");
 
@@ -2479,7 +2491,7 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     expect(latest!.allRowsState).toBe("unchecked");
   });
 
-  it("setRowSelected(index, false) unchecks a row that an active range covered, splitting the range", () => {
+  it("setRowCheckedAt(index, false) unchecks a row that an active range covered, splitting the range", () => {
     const wrapper = makeConfigWrapper({ rowMarkers: "checkbox" });
     const { result } = renderHook(
       () => ({ actions: useDataGridInternalActions(), row1Selected: useDataGridIsRowSelected(1) }),
@@ -2489,11 +2501,11 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
     act(() => {
       result.current.actions.selectCellAt({ col: 0, row: 0 });
       result.current.actions.extendToAt({ col: 1, row: 2 }); // range covers rows 0-2, including row 1
-      result.current.actions.setRowSelected(1, true);
+      result.current.actions.setRowCheckedAt(viewIndex(1), true);
     });
     expect(result.current.row1Selected).toBe(true);
 
-    act(() => result.current.actions.setRowSelected(1, false));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(1), false));
     expect(result.current.row1Selected).toBe(false);
   });
 
@@ -2519,14 +2531,14 @@ describe("marker channel wiring: setRowSelected / setAllRowsSelected / useDataGr
 
     hasIndexSpy.mockClear();
     hasAllSpy.mockClear();
-    act(() => result.current.actions.setRowSelected(0, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
     expect(result.current.state).toBe("indeterminate");
     expect(hasIndexSpy).not.toHaveBeenCalled();
     expect(hasAllSpy.mock.calls.length).toBeLessThan(50);
 
     hasIndexSpy.mockClear();
     hasAllSpy.mockClear();
-    act(() => result.current.actions.setAllRowsSelected(true));
+    act(() => result.current.actions.setAllRowsChecked(true));
     expect(result.current.state).toBe("checked");
     expect(hasIndexSpy).not.toHaveBeenCalled();
     expect(hasAllSpy.mock.calls.length).toBeLessThan(50);
@@ -3110,7 +3122,7 @@ describe("onSelectionChange", () => {
     const wrapper = makeConfigWrapper({ onSelectionChange, rowMarkers: "checkbox" });
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
-    act(() => result.current.actions.setRowSelected(2, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(2), true));
 
     const [, details] = onSelectionChange.mock.calls.at(-1)!;
     expect(details.getRowIds()).toEqual(["3"]);
@@ -3122,8 +3134,8 @@ describe("onSelectionChange", () => {
     const { result } = renderHook(useSelectionProbe, { wrapper });
 
     act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
-    act(() => result.current.actions.setRowSelected(0, true));
-    act(() => result.current.actions.setRowSelected(2, true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(0), true));
+    act(() => result.current.actions.setRowCheckedAt(viewIndex(2), true));
 
     const [, details] = onSelectionChange.mock.calls.at(-1)!;
     expect(details.getRowIds()).toEqual(["1", "3"]);
@@ -3737,7 +3749,7 @@ describe("useDataGridSelector / typed useDataGridRow", () => {
     act(() => storeApi?.getState().actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]));
     expect(renders).toBe(base);
     // a length change still re-renders
-    act(() => storeApi?.getState().actions.deleteRows([0]));
+    act(() => storeApi?.getState().actions.deleteRowsAt(viewIndexes([0])));
     expect(renders).toBe(base + 1);
     unmount();
   });

@@ -5,6 +5,7 @@ import type {
   CellRef,
   ViewCellRef,
   ViewCoord,
+  ViewIndex,
   AutosizeOptions,
   CellType,
   ColumnDef,
@@ -99,7 +100,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
    * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
    * blocks the next keydown before any passive effect runs and cancels an open edit session.
-   * A `"stream"` push (`updateCells`, `updateRows`, `deleteRowsById`) still writes. Default `false`.
+   * A `"stream"` push (`updateCells`, `updateRows`, `deleteRows`) still writes. Default `false`.
    */
   readOnly?: boolean;
   /**
@@ -219,7 +220,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * (a gate waits for its promise).
    */
   gateTimeoutMs?: number | Partial<Record<GateName, number>>;
-  /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason; the insert, duplicate, and delete actions also return it, and `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. `deleteRowsById` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
+  /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason; the insert, duplicate, and delete actions also return it, and `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. `deleteRowsAt` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
   onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
@@ -243,7 +244,7 @@ export type DataGridSyncProps<TData = unknown> = {
   announceResults?: boolean;
   /**
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
-   * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
+   * item, and `actions.deleteRows` / `deleteRowsAt`. `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
    * A pending promise blocks a second delete. A throw or a rejection cancels. `signal` aborts when
    * the grid goes read-only, the rows or the checked rows change, or the grid unmounts; an aborted
@@ -639,8 +640,8 @@ export type CellErrorTarget = {
 /** One entry for {@link DataGridActions.setCellErrors}: the target cell plus its rejection message. */
 export type CellErrorEntry = CellErrorTarget & { message: string };
 
-/** Options for {@link DataGridActions.deleteRowsById}. */
-export type DeleteRowsByIdOptions = {
+/** Options for {@link DataGridActions.deleteRows}. */
+export type DeleteRowsOptions = {
   /** `"row-operation"` (default) runs the delete gate and reaches `onSave`. `"stream"` is a push from the server. */
   source?: "row-operation" | "stream";
 };
@@ -1006,8 +1007,10 @@ export type DataGridActions = {
   selectRow(index: number, opts?: SelectLineActionOptions): void;
   selectColumn(index: number, opts?: SelectLineActionOptions): void;
   selectAll(): void;
-  /** Checkbox marker: sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. No-op when `enableRowSelection` is false. */
-  setRowSelected(index: number, checked: boolean): void;
+  /** Sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. A `rowId` that is not in the view does nothing. No-op when `enableRowSelection` is false. */
+  setRowChecked(rowId: string, checked: boolean): void;
+  /** View-index variant of {@link DataGridActions.setRowChecked} for callers that hold a {@link ViewIndex}. */
+  setRowCheckedAt(index: ViewIndex, checked: boolean): void;
   /**
    * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
    * Without a live gesture the anchor is the former anchor row, else the active row, else `target`.
@@ -1015,7 +1018,7 @@ export type DataGridActions = {
    */
   checkRowRange(target: number, opts?: { commit?: boolean }): void;
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). No-op when `enableRowSelection` is false. */
-  setAllRowsSelected(checked: boolean): void;
+  setAllRowsChecked(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
    * No-op with a development warning without `totalRowCount` or without `checkedRowsLifetime="across-filters"`. Read the outcome with `useDataGridSelectedRows`.
@@ -1192,21 +1195,27 @@ export type DataGridActions = {
    * target row is not loaded yet in scroll mode).
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
-  /** Deletes the rows at `viewRowIndexes` (view-index) as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
-  deleteRows(viewRowIndexes: number[]): RowActionResult;
+  /** View-index variant of {@link DataGridActions.deleteRows}: deletes the rows at `viewRowIndexes` as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
+  deleteRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
    * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the cursor follow their rows: a range collapses onto the cursor, and the cursor clears when its row is deleted.
    */
-  deleteRowsById(rowIds: readonly string[], options?: DeleteRowsByIdOptions): RowActionResult;
+  deleteRows(rowIds: readonly string[], options?: DeleteRowsOptions): RowActionResult;
   /**
-   * Duplicates the rows at `viewRowIndexes` (view-index), inserting each copy directly after its
+   * Duplicates the rows with the given ids, inserting each copy directly after its source row,
+   * as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Ids that match no row are skipped.
+   * Returns the same skip reasons as {@link DataGridActions.duplicateRowsAt}.
+   */
+  duplicateRows(rowIds: readonly string[]): RowActionResult;
+  /**
+   * View-index variant of {@link DataGridActions.duplicateRows}: duplicates the rows at `viewRowIndexes`, inserting each copy directly after its
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
    * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
    * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
    */
-  duplicateRows(viewRowIndexes: number[]): RowActionResult;
+  duplicateRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
   /**
    * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
@@ -1345,10 +1354,10 @@ export type DataGridStore = DataGridStoreState;
 /** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort or filter owns the row order. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
 export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "all-matching" | "hidden-rows-only";
 
-/** The row actions that report through `onRowActionSkipped`; `deleteRowsById` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
+/** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";
 
-/** What `deleteRows`, `deleteRowsById`, `insertRow(s)`, and `duplicateRows` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
+/** What `deleteRows`, `deleteRowsAt`, `insertRow(s)`, `duplicateRows`, and `duplicateRowsAt` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
 export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
 
 /**
