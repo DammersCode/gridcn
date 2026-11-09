@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Fails on source patterns that shipped bugs before. Fix: follow the message.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
