@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: Undo and Redo write only the cells of the history entry onto the row as it is now. They wrote the whole row from the time of the edit, which reverted the other columns of that row to their old values after a stream push or a refetch. `onSave` and `onDataChange` receive the current row in the `"history"` change.
 - Fix: a plain-text paste with a quote inside a field, such as `5" pipe`, keeps the tabs and line breaks after it as cell and row separators. The quote opened a quoted cell that swallowed the rest of the paste into one cell. Only a quote at the start of a field opens a quoted cell.
 - Fix: filling a `select` column copies the stored values when the continued label is no choice, such as `Tier 3` after `Tier 1` and `Tier 2`. The fill cleared the cells.
 - Fix: plain numbers in exponent or bare-decimal form, such as `-1e-7`, `-1e+21`, and `-.5`, stay unchanged in CSV export and in copy with `sanitizeClipboardFormulas`. They got the formula quote (`'-1e-7`).

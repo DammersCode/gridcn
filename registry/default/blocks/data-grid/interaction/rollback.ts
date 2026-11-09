@@ -68,3 +68,45 @@ export function buildRollback<TData>(change: DataChange<TData>, s: RollbackSourc
   }
   return { ops, source: "rollback", label: change.label, reverts: change };
 }
+
+/**
+ * Re-targets an undo or redo `change` at the current rows: an update with cells writes only those
+ * cells onto the row as it is now, so values that changed since the edit (a stream push, a refetch) stay.
+ * An update without cells, an update for a row that `s.data` lacks, and every insert, delete, and move pass through.
+ */
+export function rebaseOntoCurrent<TData>(change: DataChange<TData>, s: RollbackSource<TData>): DataChange<TData> {
+  if (!change.ops.some((op) => op.type === "update" && op.cells)) return change;
+  const rowById = new Map<string, TData>();
+  (s.data as readonly TData[]).forEach((row, i) => {
+    if (row === undefined) return;
+    const id = s.getRowId(row, i);
+    if (!rowById.has(id)) rowById.set(id, row);
+  });
+  const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
+  const working = new Map<string, TData>();
+  const ops: DataChange<TData>["ops"] = [];
+  for (const op of change.ops) {
+    if (op.type === "insert") working.set(op.rowId, op.row);
+    if (op.type !== "update" || !op.cells) {
+      ops.push(op);
+      continue;
+    }
+    const current = working.get(op.rowId) ?? rowById.get(op.rowId);
+    if (current === undefined) {
+      ops.push(op);
+      continue;
+    }
+    let row: TData = current;
+    const cells: NonNullable<typeof op.cells> = [];
+    for (const cell of op.cells) {
+      const column = columnsById.get(cell.columnId);
+      if (!column) continue;
+      cells.push({ columnId: cell.columnId, value: cell.value, prev: getCellValue(row, column as never) });
+      row = setCellValue<TData, never>(row, column as never, cell.value as never);
+    }
+    if (cells.length === 0) continue;
+    working.set(op.rowId, row);
+    ops.push({ type: "update", rowId: op.rowId, row, prev: current, cells });
+  }
+  return { ...change, ops };
+}

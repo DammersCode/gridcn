@@ -209,10 +209,10 @@ export type History<TData> = {
   push(change: DataChange<TData>): void;
   /** Removes a recorded change (matched by identity) from both stacks; true when it was found. Pass the change `undo()` or `redo()` returned to remove its entry. */
   discard(change: DataChange<TData>): boolean;
-  /** Returns the inverted top-of-undo-stack change to apply, or null if nothing to undo. */
-  undo(): DataChange<TData> | null;
-  /** Returns the original change, re-tagged source "history", to re-apply; or null if nothing to redo. */
-  redo(): DataChange<TData> | null;
+  /** Returns the inverted top-of-undo-stack change to apply, or null if nothing to undo. `rebase` maps the change before it is returned and tracked. */
+  undo(rebase?: (change: DataChange<TData>) => DataChange<TData>): DataChange<TData> | null;
+  /** Returns the original change, re-tagged source "history", to re-apply; or null if nothing to redo. `rebase` maps the change before it is returned and tracked. */
+  redo(rebase?: (change: DataChange<TData>) => DataChange<TData>): DataChange<TData> | null;
   /**
    * Puts the entry behind a change that `undo()` or `redo()` returned back where it was, because the
    * change was not applied or was refused. False when the entry cannot return (a newer change moved on).
@@ -301,19 +301,20 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
       redoStack = redoStack.filter((entry) => rootOf(entry) !== target);
       return undoStack.length + redoStack.length !== before;
     },
-    undo() {
+    undo(rebase) {
       const entry = undoStack.pop();
       if (!entry) return null;
       redoStack.push(entry);
-      const inverted = invertChange(entry);
+      const inverted = rebase ? rebase(invertChange(entry)) : invertChange(entry);
       applied.set(inverted, { entry, direction: "undo" });
       return inverted;
     },
-    redo() {
+    redo(rebase) {
       const entry = redoStack.pop();
       if (!entry) return null;
       undoStack.push(entry);
-      const replay: DataChange<TData> = { ...entry, source: "history" };
+      const replayed: DataChange<TData> = { ...entry, source: "history" };
+      const replay = rebase ? rebase(replayed) : replayed;
       applied.set(replay, { entry, direction: "redo" });
       return replay;
     },

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, createHistory, buildRollback, useDataGridAnnounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, createHistory, buildRollback, rebaseOntoCurrent, useDataGridAnnounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
@@ -151,7 +151,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const state = api.store.getState();
       // A read-only grid refuses the revert, so popping the entry would only lose it.
       if (state.readOnly) return;
-      const change = direction === "undo" ? history.undo() : history.redo();
+      const rebase = (entry: DataChange<TData>) => rebaseOntoCurrent(entry, state);
+      const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;
       const { missing, hasHoles } = findMissingRows(change, state.data, state.getRowId);
       if (!warnedSparseData.current && hasHoles && isDev()) {

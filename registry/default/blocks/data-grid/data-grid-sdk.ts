@@ -132,7 +132,7 @@ export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
-export { buildRollback } from "./interaction/rollback";
+export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 export { EMPTY_SERVER_SPEC } from "./server-spec";
