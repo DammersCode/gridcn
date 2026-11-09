@@ -92,11 +92,11 @@ With `sortMode="server"` <NewBadge /> or `filterMode="server"`, the server order
 
 ## Control the data yourself [#controlled-mode]
 
-In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again. A rebuilt array makes the grid compute them again on every update.
+In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again.
 
 ## Undo and save [#undo-history]
 
-A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it. A push into a row with a save in flight is skipped with reason `saving`. Push the value again after the save settles.
+A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it. Undo writes only the cells of its edit, so pushed values stay. A push into a row with a save in flight is skipped with reason `saving`. Push the value again after the save settles.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, list the sources for the history add-on. The list replaces the default, so keep the default sources in it:
 

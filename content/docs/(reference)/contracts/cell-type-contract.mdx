@@ -74,7 +74,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 `clearValue` is the value that Delete writes into a cleared cell. It is also the value that `fromText` returns for text it cannot parse.
 
-`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. The built-in types differ. `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. Fill also reads `isEmpty`. If `fromText` returns an empty value for a generated text that is not blank, the fill writes no series to that column and repeats the source values.
+`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. The built-in types differ: `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. A fill writes no series to a column when `fromText` returns an empty value for a generated text that is not blank.
 
 ### validate [#validate]
 
