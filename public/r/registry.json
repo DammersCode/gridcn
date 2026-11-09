@@ -96,6 +96,11 @@
           "target": "components/data-grid/cell-types/safe-text.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/cell-types/safe-from-text.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/cell-types/safe-from-text.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/cell-types/index.ts",
           "type": "registry:component",
           "target": "components/data-grid/cell-types/index.ts"
@@ -154,6 +159,16 @@
           "path": "registry/default/blocks/data-grid/columns/column-helpers.ts",
           "type": "registry:component",
           "target": "components/data-grid/columns/column-helpers.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/columns/column-pin.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/columns/column-pin.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/columns/legacy-filter-keys.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/columns/legacy-filter-keys.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/columns/index.ts",
@@ -606,6 +621,11 @@
           "target": "components/data-grid/store/hidden-checked-rows.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/row-operation-targets.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/row-operation-targets.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/selected-rows.ts"
@@ -797,6 +817,11 @@
           "target": "components/data-grid-fill/data-grid-fill.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-fill/fill-keymap.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-fill/fill-keymap.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-fill/detect-series.ts",
           "type": "registry:component",
           "target": "components/data-grid-fill/detect-series.ts"
@@ -880,6 +905,16 @@
           "target": "components/data-grid-pinned-rows/pinned-row-band.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-pinned-rows/pinned-row-source.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-pinned-rows/pinned-source-row.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-pinned-rows/pinned-source-row.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts",
           "type": "registry:component",
           "target": "components/data-grid-pinned-rows/use-data-grid-aggregate.ts"
@@ -949,6 +984,11 @@
           "path": "registry/default/blocks/data-grid-history/data-grid-history.ts",
           "type": "registry:component",
           "target": "components/data-grid-history/data-grid-history.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-history/history-keymap.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-history/history-keymap.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-history/use-data-grid-history.ts",
@@ -1150,9 +1190,9 @@
           "target": "components/data-grid-keybindings/keybindings-dialog.tsx"
         },
         {
-          "path": "registry/default/blocks/data-grid-keybindings/keybindings-shortcut.tsx",
+          "path": "registry/default/blocks/data-grid-keybindings/use-data-grid-keybindings.tsx",
           "type": "registry:component",
-          "target": "components/data-grid-keybindings/keybindings-shortcut.tsx"
+          "target": "components/data-grid-keybindings/use-data-grid-keybindings.tsx"
         },
         {
           "path": "registry/default/blocks/data-grid-keybindings/binding-label.tsx",
@@ -1896,7 +1936,7 @@
       "name": "data-grid-filter-operators-demo",
       "type": "registry:example",
       "title": "Data Grid Filter Operators Demo",
-      "description": "Per-column filter operator overrides via operatorsForColumn and ColumnDef.filterOperators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
+      "description": "Per-column filter operator overrides via ColumnDef.filter.operators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -3142,7 +3182,7 @@
       "name": "data-grid-validation-demo",
       "type": "registry:example",
       "title": "Data Grid Validation Demo",
-      "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft onInvalid rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
+      "description": "Nine rejection paths in one grid: a sync function (Age), hand-rolled sync/async/coercing Standard Schemas (Email, SKU, Price), a soft validationMode rule (Notes), and one column per major library that implements Standard Schema natively — Zod (Score), Joi (Code), Valibot (Tag). Pasting mixed valid/invalid values shows the bulk-rejection path.",
       "author": "gridcn",
       "dependencies": [
         "joi@^18.2.9",
