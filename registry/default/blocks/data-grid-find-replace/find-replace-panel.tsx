@@ -235,21 +235,22 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const canReplace = !readOnly && find.trim() !== "";
 
-  const refOfMatch = (): { rowId: string; columnId: string } | null => {
+  const refOfMatch = (): { ref: { rowId: string; columnId: string }; index: number } | null => {
     const s = api.store.getState();
     const active = s.activeCell;
     const activeColumnId = active ? s.visibleColumns[active.col]?.id : undefined;
     const start = pageStartOf(s.viewIndex);
-    const onActive = active && s.searchMatches.find((m) => m.row === active.row + start && m.columnId === activeColumnId);
-    const match = onActive || s.searchMatches[cursor];
+    const activeIndex = active ? s.searchMatches.findIndex((m) => m.row === active.row + start && m.columnId === activeColumnId) : -1;
+    const index = activeIndex === -1 ? cursor : activeIndex;
+    const match = s.searchMatches[index];
     if (!match) return null;
     const dataIndex = fullViewOf(s.viewIndex)[match.row];
     const row = dataIndex === undefined ? undefined : s.data[dataIndex];
     if (dataIndex === undefined || row === undefined) return null;
-    return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };
+    return { ref: { rowId: s.getRowId(row, dataIndex), columnId: match.columnId }, index };
   };
 
-  const apply = (only: { rowId: string; columnId: string } | undefined) => {
+  const apply = (only: { rowId: string; columnId: string } | undefined, nextIndex = cursor) => {
     const s = api.store.getState();
     if (s.readOnly || s.editing !== null || find.trim() === "") return;
     const replaced = replacedRef.current;
@@ -272,7 +273,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         runSearch(find, searchOptions);
         if (only) {
           const left = api.store.getState().searchMatches.length;
-          if (left > 0) goTo(Math.min(cursor, left - 1));
+          if (left > 0) goTo(Math.min(nextIndex, left - 1));
         }
       };
       if (verdict?.pending) {
@@ -332,8 +333,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   };
 
   const replaceOne = () => {
-    const ref = refOfMatch();
-    if (ref) apply(ref);
+    const target = refOfMatch();
+    if (target) apply(target.ref, target.index);
   };
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

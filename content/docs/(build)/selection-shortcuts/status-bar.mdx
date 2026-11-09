@@ -60,7 +60,7 @@ A cell counts as numeric if its raw value is a finite `number`. Detection reads 
 
 The aggregates show once the selection covers two cells whose value is not `undefined`. A `null` or empty-text cell counts. `count` always shows. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
 
-When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. Otherwise the bar uses `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. `formatValue` overrides both.
+When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option shows currency. A `number` column without `format` does not count: the bar uses `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`, as it does when the numeric cells span several columns. `formatValue` overrides both.
 
 The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show, it renders nothing.
 

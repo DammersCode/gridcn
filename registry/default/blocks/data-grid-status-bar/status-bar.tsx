@@ -11,6 +11,7 @@ import {
   useDataGridLabels,
   useDataGridSelectedRows,
   useDataGridVisibleColumns,
+  numberCellType,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -27,7 +28,7 @@ export type DataGridStatusBarProps = {
   /**
    * Formats the shown aggregate values. When omitted, the single-column rule applies: if every
    * numeric cell comes from one column, its `toDisplayText` formats sum/avg/min/max (a `number`
-   * column's `options.format` shows currency); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
+   * column needs `options.format`, which shows currency); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
    */
   formatValue?: (value: number, aggregate: StatusBarAggregate) => string;
   /** Locale for the default number format. Default `"en-US"` (the date type's SSR-safe default). */
@@ -71,6 +72,7 @@ export function DataGridStatusBar({
     const cellType = column ? (cellTypes[column.type ?? "text"] ?? cellTypes["text"]) : undefined;
     const toDisplayText = cellType?.toDisplayText;
     if (!column || !toDisplayText) return null;
+    if (toDisplayText === numberCellType.toDisplayText && !(column.options as { format?: unknown } | undefined)?.format) return null;
     return (value: number) => toDisplayText(value, column.options);
   }, [stats.numericColumnId, visibleColumns, cellTypes]);
 

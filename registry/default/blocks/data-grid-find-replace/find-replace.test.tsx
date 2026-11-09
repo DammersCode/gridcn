@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DataGridProvider,
   DataGridRoot,
+  useDataGridActions,
   type ColumnDef,
   type DataChange,
   type GridValidationErrorEvent,
@@ -25,14 +26,16 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 
 afterEach(cleanup);
 
-function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; onReplace?: UseDataGridFindReplaceOptions["onReplace"] } = {}) {
-  let data: readonly Row[] = rows;
+function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; onReplace?: UseDataGridFindReplaceOptions["onReplace"]; rows?: readonly Row[] } = {}) {
+  let data: readonly Row[] = props.rows ?? rows;
+  let actions!: ReturnType<typeof useDataGridActions>;
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
   let findReplace!: ReturnType<typeof useDataGridFindReplace>;
   let storeApi!: ReturnType<typeof useDataGridStoreApi>;
   function Probe() {
     storeApi = useDataGridStoreApi();
+    actions = useDataGridActions();
     return null;
   }
   function Harness() {
@@ -57,7 +60,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
     );
   }
   render(<Harness />);
-  return { data: () => data, changes, history: () => history, findReplace: () => findReplace, searchText: () => storeApi.getState().searchText };
+  return { data: () => data, changes, history: () => history, findReplace: () => findReplace, searchText: () => storeApi.getState().searchText, actions: () => actions, activeCell: () => storeApi.getState().activeCell };
 }
 
 async function search(find: string, replacement: string) {
@@ -107,6 +110,16 @@ describe("useDataGridFindReplace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
     expect(harness.data().map((r) => r.name)).toEqual(["x one", "two", "Foo three"]);
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("1 replaced"));
+  });
+
+  it("Replace on a clicked match moves the active cell to the next match", async () => {
+    const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 2 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    expect(harness.data().map((r) => r.name)).toEqual(["foo a", "foo b", "x c", "foo d"]);
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 3 }));
   });
 
   it("disables Replace in a read-only grid and writes nothing", async () => {
