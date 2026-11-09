@@ -129,7 +129,7 @@ export function parseClipboardText(text: string, maxCells?: number): string[][] 
       continue;
     }
 
-    if (ch === '"' && field === "") {
+    if (ch === '"' && !fieldPending) {
       inQuotes = true;
       fieldPending = true;
       i += 1;

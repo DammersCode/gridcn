@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: a plain-text paste with a quote inside a field, such as `5" pipe`, keeps the tabs and line breaks after it as cell and row separators. The quote opened a quoted cell that swallowed the rest of the paste into one cell. Only a quote at the start of a field opens a quoted cell.
 - Fix: filling a `select` column copies the stored values when the continued label is no choice, such as `Tier 3` after `Tier 1` and `Tier 2`. The fill cleared the cells.
 - Fix: plain numbers in exponent or bare-decimal form, such as `-1e-7`, `-1e+21`, and `-.5`, stay unchanged in CSV export and in copy with `sanitizeClipboardFormulas`. They got the formula quote (`'-1e-7`).
 - Fix: Ctrl/Cmd+Arrow, also with Shift, from an empty cell lands on the first non-empty cell in that direction. It skipped to the end of the run behind it. With Shift, each press scans from the far end of the selection, so repeated presses grow it past each boundary. They scanned from the anchor again.
