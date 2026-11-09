@@ -36,6 +36,12 @@ describe("parseImportFile — csv", () => {
     ]);
   });
 
+  it("detects only a delimiter that the dialog menu offers", async () => {
+    const result = await parseImportFile(makeCsvFile("name|age\nAlice|30\nBob|40"));
+    expect(result.delimiter).toBe(",");
+    expect(result.rows[0]).toEqual(["name|age"]);
+  });
+
   it("honors a user-supplied delimiter override even when another delimiter would auto-detect differently", async () => {
     // this text reads as one comma-delimited column per papaparse's auto-detect;
     // forcing ';' proves the override wins.
