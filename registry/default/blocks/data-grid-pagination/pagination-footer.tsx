@@ -9,7 +9,7 @@ import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/defaul
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
-import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ATTR, useDataGridLabelsIfPresent } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
 const DEFAULT_PAGE_WINDOW_SIZE = 5;
@@ -38,9 +38,8 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
   pageSizeOptions?: readonly number[];
   className?: string;
   /**
-   * i18n override for this footer's strings, merged key by key over the built-in
-   * `labels.pagination` defaults. The grid's own `labels` prop does not reach the footer, also
-   * inside a `DataGridProvider`: pass the pagination strings here.
+   * i18n override for this footer's strings, merged key by key over the enclosing grid's
+   * `labels.pagination` (the built-in defaults outside a `DataGridProvider`).
    */
   labels?: Partial<DataGridPaginationLabels>;
   /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). Default 5. */
@@ -73,7 +72,8 @@ function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
 
 function PaginationBarView(props: DataGridPaginationBarProps & { controls: DataGridPaginationControls }): ReactNode {
   const { controls, className, labels: labelsOverride, windowSize, children } = props;
-  const labels = { ...DEFAULT_LABELS.pagination, ...labelsOverride };
+  const gridLabels = useDataGridLabelsIfPresent();
+  const labels = { ...DEFAULT_LABELS.pagination, ...gridLabels?.pagination, ...labelsOverride };
 
   return (
     <PaginationBarContext value={{ controls, labels }}>

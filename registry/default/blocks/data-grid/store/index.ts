@@ -27,7 +27,7 @@ export type {
   DataGridRowCellState,
   LiveAnnouncement,
 } from "./types";
-export { DataGridProvider, createDataGridSelector, useDataGridInstanceId, useDataGridSelector, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
+export { DataGridProvider, createDataGridSelector, useDataGridInstanceId, useDataGridLabelsIfPresent, useDataGridSelector, useDataGridStore, useDataGridStoreApi, useDataGridStoreProps } from "./provider";
 export { cellErrorKey } from "./compute";
 export { getFocusCell } from "./hooks";
 export { getInternalActions } from "./internal-actions";

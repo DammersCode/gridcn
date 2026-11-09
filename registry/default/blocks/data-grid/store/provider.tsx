@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -13,6 +13,7 @@ import { createDataGridStore } from "./create-store";
 import { watchClientViewOverHoles } from "./hole-view-guard";
 import { toInternalSyncProps } from "./types";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
+import type { DataGridLabels } from "../labels";
 import type { ViewCellRef, ViewCoord } from "../types";
 
 /** The event payload for a cursor: the record's stable id (the index-derived placeholder id for an unloaded hole) plus its view position. */
@@ -301,6 +302,15 @@ function useDataGridStoreApiInternal(): StoreApi<DataGridStoreState> {
     throw new Error("gridcn: this hook must be used inside a <DataGridProvider>.");
   }
   return store;
+}
+
+const noopSubscribe = () => () => {};
+
+/** The enclosing grid's labels, or `null` outside a {@link DataGridProvider}. */
+export function useDataGridLabelsIfPresent(): DataGridLabels | null {
+  const store = use(DataGridStoreContext);
+  const read = () => store?.getState().labels ?? null;
+  return useSyncExternalStore(store ? store.subscribe : noopSubscribe, read, read);
 }
 
 export function useDataGridStore<T>(selector: (state: DataGridStoreState) => T): T {
