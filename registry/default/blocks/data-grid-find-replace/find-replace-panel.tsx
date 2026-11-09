@@ -235,6 +235,15 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const canReplace = !readOnly && find.trim() !== "";
 
+  const refOfIndex = (s: ReturnType<typeof api.store.getState>, index: number): { rowId: string; columnId: string } | null => {
+    const match = s.searchMatches[index];
+    if (!match) return null;
+    const dataIndex = fullViewOf(s.viewIndex)[match.row];
+    const row = dataIndex === undefined ? undefined : s.data[dataIndex];
+    if (dataIndex === undefined || row === undefined) return null;
+    return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };
+  };
+
   const refOfMatch = (): { ref: { rowId: string; columnId: string }; index: number } | null => {
     const s = api.store.getState();
     const active = s.activeCell;
@@ -242,12 +251,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const start = pageStartOf(s.viewIndex);
     const activeIndex = active ? s.searchMatches.findIndex((m) => m.row === active.row + start && m.columnId === activeColumnId) : -1;
     const index = activeIndex === -1 ? cursor : activeIndex;
-    const match = s.searchMatches[index];
-    if (!match) return null;
-    const dataIndex = fullViewOf(s.viewIndex)[match.row];
-    const row = dataIndex === undefined ? undefined : s.data[dataIndex];
-    if (dataIndex === undefined || row === undefined) return null;
-    return { ref: { rowId: s.getRowId(row, dataIndex), columnId: match.columnId }, index };
+    const ref = refOfIndex(s, index);
+    return ref ? { ref, index } : null;
   };
 
   const apply = (only: { rowId: string; columnId: string } | undefined, nextIndex = cursor) => {
@@ -272,8 +277,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         });
         runSearch(find, searchOptions);
         if (only) {
-          const left = api.store.getState().searchMatches.length;
-          if (left > 0) goTo(Math.min(nextIndex, left - 1));
+          const after = api.store.getState();
+          const stillMatches = refOfIndex(after, nextIndex);
+          const replacedStays = stillMatches?.rowId === only.rowId && stillMatches.columnId === only.columnId;
+          goTo(replacedStays ? nextIndex + 1 : nextIndex);
         }
       };
       if (verdict?.pending) {

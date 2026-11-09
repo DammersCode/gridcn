@@ -122,6 +122,29 @@ describe("useDataGridFindReplace", () => {
     await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 3 }));
   });
 
+  it("Replace on the last match wraps the active cell to the first match", async () => {
+    const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 3 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    expect(harness.data().map((r) => r.name)).toEqual(["foo a", "foo b", "foo c", "x d"]);
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 0 }));
+  });
+
+  it("Replace with text that still matches moves past the replaced cell", async () => {
+    const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
+    act(() => harness.findReplace().open());
+    await search("foo", "FOO");
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 1 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    expect(harness.data().map((r) => r.name)).toEqual(["foo a", "FOO b", "foo c", "foo d"]);
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 2 }));
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 3 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 0 }));
+  });
+
   it("disables Replace in a read-only grid and writes nothing", async () => {
     const harness = setup({ readOnly: true });
     act(() => harness.findReplace().open());

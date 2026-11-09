@@ -689,7 +689,8 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
   if (!inBounds(next)) return active;
 
   if (!isEmptyAt(next)) {
-    // scan the contiguous non-empty run, land on the last non-empty cell before an empty one or the edge
+    // from an empty cell the first non-empty cell is the target; from a filled one, land on the last cell of the run
+    if (isEmptyAt(active)) return next;
     let coord = next;
     while (true) {
       const after = { col: coord.col + dx, row: coord.row + dy };

@@ -9,8 +9,10 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
-- Fix: the status bar formats the aggregates of a single `number` column without a `format` option with `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. It showed the raw number, such as `21.333333333333332`, and ignored `locale`.
-- Fix: Replace on a match you clicked moves the active cell to the next match. It jumped to the match at the panel position instead.
+- Fix: plain numbers in exponent or bare-decimal form, such as `-1e-7`, `-1e+21`, and `-.5`, stay unchanged in CSV export and in copy with `sanitizeClipboardFormulas`. They got the formula quote (`'-1e-7`).
+- Fix: Ctrl/Cmd+Arrow, also with Shift, from an empty cell lands on the first non-empty cell in that direction. It skipped to the end of the run behind it.
+- Fix: the status bar formats the aggregates of a single `number` column with neither a `format` nor a `decimals` option with `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`. A column with `decimals` and no `format` rounds to `decimals`. It showed the raw number, such as `21.333333333333332`, and ignored `locale`.
+- Fix: Replace moves the active cell to the next match, also when you clicked the match. It jumped to the match at the panel position. After the last match it moves to the first (it moved back to the previous match), and when the new text still matches the Find text it moves past the replaced cell (it stayed on it).
 - Fix: a column with `pin` and `pinnable: false` keeps its pin when the layout changes. The first resize, autosize, reorder, hide, pin of another column, `setColumnLayout`, `columnLayout`, `defaultColumnLayout`, saved view, or URL state unpinned it. The `pins` of a layout are ignored for a `pinnable: false` column.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
 - A plugin `keymap` entry binds only the six pluggable actions. A plugin that named another built-in action, such as `selectAll`, in `commands` and `keymap` lost the command but replaced the action's default keys. The development warning for such an entry says that the action is not pluggable.

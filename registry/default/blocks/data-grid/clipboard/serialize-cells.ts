@@ -9,8 +9,8 @@ function quoteTsvField(cell: string): string {
 /** A leading one of these makes a CSV/TSV cell a formula in Excel, LibreOffice, and Sheets. */
 const FORMULA_LEAD_CHARS = new Set(["=", "+", "-", "@", "\t", "\r"]);
 
-/** Values where a leading `+` or `-` is still a plain number. */
-const PLAIN_NUMBER_RE = /^[+-]?\d+(\.\d+)?$/;
+/** Values where a leading `+` or `-` is still a plain number, including the exponent and bare-decimal forms `String(number)` can produce. */
+const PLAIN_NUMBER_RE = /^[+-]?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
 
 /**
  * Prefixes a formula-like cell (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers exempt) with a

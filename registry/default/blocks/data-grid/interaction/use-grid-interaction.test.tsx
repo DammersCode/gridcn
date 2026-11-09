@@ -56,6 +56,20 @@ describe("jumpToDataBoundary", () => {
     expect(jumpToDataBoundary(state, { col: 0, row: 0 }, "down")).toEqual({ col: 0, row: 2 });
   });
 
+  it("from an empty cell lands on the first non-empty cell, not the end of the run", () => {
+    const data: Row[] = [
+      { id: "1", name: "", qty: null },
+      { id: "2", name: "b", qty: 2 },
+      { id: "3", name: "c", qty: 3 },
+      { id: "4", name: "d", qty: 4 },
+    ];
+    expect(jumpToDataBoundary(fakeState(data), { col: 0, row: 0 }, "down")).toEqual({ col: 0, row: 1 });
+    expect(jumpToDataBoundary(fakeState([...data].reverse()), { col: 0, row: 3 }, "up")).toEqual({ col: 0, row: 2 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "", qty: null }]), { col: 0, row: 0 }, "right")).toEqual({ col: 1, row: 0 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "x", qty: null }]), { col: 1, row: 0 }, "left")).toEqual({ col: 0, row: 0 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "", qty: 5 }]), { col: 0, row: 0 }, "right")).toEqual({ col: 1, row: 0 });
+  });
+
   it("clamps to the grid edge when no boundary is found", () => {
     const data: Row[] = [
       { id: "1", name: "", qty: null },

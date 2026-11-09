@@ -44,6 +44,13 @@ describe("DataGridStatusBar number formatting", () => {
     expect(text).not.toContain("21.33333");
   });
 
+  it("rounds the aggregates of a number column to its decimals", () => {
+    renderBar([{ id: "age", header: "Age", accessorKey: "age", type: "number", options: { decimals: 0 } }]);
+    const text = select({ row: 0, col: 0 }, { row: 2, col: 0 });
+    expect(text).toContain("Avg 21");
+    expect(text).not.toContain("Avg 21.3");
+  });
+
   it("keeps the format option of a single number column", () => {
     renderBar([{ id: "score", header: "Score", accessorKey: "score", type: "number", options: { format: { style: "currency", currency: "USD" } } }]);
     const text = select({ row: 0, col: 0 }, { row: 2, col: 0 });

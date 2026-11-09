@@ -73,10 +73,10 @@ The Find field waits for the `inputDebounceMs` prop of the grid (default 200 ms)
 
 Find reads each cell as its search text, which is the text the user sees. For a `select` cell, that is the choice label. Replace swaps the Find text in that text and converts the result with the column type's `fromText`. A `select` label maps back to its value. A `number` cell parses again.
 
-- **Replace** changes the current match and moves to the next one. When the active cell is a match, Replace changes that cell.
+- **Replace** changes the current match and moves to the next one. After the last match, it moves to the first. When the active cell is a match, Replace changes that cell. When the new text still matches the Find text, the active cell still moves on.
 - **Replace all** changes every matching cell in the view.
 
-Each click writes one change with the source `"replace"`. With the [undo add-on](/docs/clipboard-undo/undo-redo) mounted, one undo reverts it. Replace all leaves the selection and the active cell where they are. Replace moves the active cell to the next match.
+Each click writes one change with the source `"replace"`. With the [undo add-on](/docs/clipboard-undo/undo-redo) mounted, one undo reverts it. Replace all leaves the selection and the active cell where they are.
 
 Replace skips a cell when:
 

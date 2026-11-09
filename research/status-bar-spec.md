@@ -62,7 +62,7 @@ pattern, `labels.ts:212-226`); `selectionRects` (`selection/line-ops.ts:35`) joi
   shows; `sum`, `avg`, `min`, `max` show only when `numeric > 0`. With `approximate`, every value
   gets a "≈" prefix and the bar's `title` says "From the first 200,000 cells".
 - **Formatting.** When every numeric cell comes from one column, sum, avg, min, and max use that
-  column's `toDisplayText` (a `number` column needs `format`, which shows currency). Otherwise `formatValue`, default
+  column's `toDisplayText` (a `number` column needs `format`, such as currency or percent, or `decimals`). Otherwise `formatValue`, default
   `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })` built once per `locale` (prop,
   default `"en-US"`, the date type's SSR-safe default).
 - **Sum.** Compensated (Neumaier) summation, so 0.1 + 0.2 shows 0.3.

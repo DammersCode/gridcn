@@ -105,6 +105,20 @@ describe("sanitizeFormulaCell", () => {
     expect(sanitizeFormulaCell("+1+cmd|' /C calc'!A0")).toBe("'+1+cmd|' /C calc'!A0");
   });
 
+  it("leaves exponent and bare-decimal numbers untouched", () => {
+    for (const plain of ["-1e-7", "-1e+21", "+1E5", "-.5", "+.5", "-5.", "-0.0000001"]) {
+      expect(sanitizeFormulaCell(plain)).toBe(plain);
+    }
+  });
+
+  it("still prefixes formula-like text that only resembles a number", () => {
+    for (const risky of ["=1+1", "+1+1", "-1+1", "@SUM(A1)", "-1e", "--1", "+-1", "-1e5+1", "-.", "-e5", "+1e+"]) {
+      expect(sanitizeFormulaCell(risky)).toBe(`'${risky}`);
+    }
+    expect(sanitizeFormulaCell("1e5+cmd")).toBe("1e5+cmd");
+    expect(sanitizeFormulaCell("e5")).toBe("e5");
+  });
+
   it("leaves plain numbers and other text untouched", () => {
     expect(sanitizeFormulaCell("-5")).toBe("-5");
     expect(sanitizeFormulaCell("+5")).toBe("+5");
