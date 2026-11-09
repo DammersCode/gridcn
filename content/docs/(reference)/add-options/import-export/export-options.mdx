@@ -12,7 +12,7 @@ The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and
 
 | Function | Returns | What it does |
 | --- | --- | --- |
-| `exportGrid(state, options?)` | `Promise<void>` | Writes a CSV or XLSX file and starts the download. |
+| `exportGrid(state, options?)` | `Promise<ExportResult>` | Writes a CSV or XLSX file and starts the download. |
 | `buildXlsx(state, options?)` | `Promise<Blob>` | Builds the workbook and starts no download. |
 | `printGrid(state, options?)` | `void` | Opens the print dialog for a paged table. It does nothing without a DOM. |
 | `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
@@ -94,7 +94,7 @@ XLSX export and print cut a cell text at 32,767 characters. CSV export cuts only
 
 | Hook | Result |
 | --- | --- |
-| `useDataGridExport()` | `UseDataGridExportResult`, `{ exportGrid }`. `exportGrid(options?)` returns `Promise<void>`. |
+| `useDataGridExport()` | `UseDataGridExportResult`, `{ exportGrid }`. `exportGrid(options?)` returns `Promise<ExportResult>`. |
 | `useDataGridPrint()` | `UseDataGridPrintResult`, `{ printGrid }`. `printGrid(options?)` returns `void`. |
 
 ## Related

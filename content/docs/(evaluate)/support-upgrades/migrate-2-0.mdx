@@ -89,7 +89,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 ## Pagination [#pagination]
 
 - `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
-- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. The options type is `UseDataGridServerPagerOptions`.
+- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. The options type `UseDataGridPaginationServerOptions` is `UseDataGridServerPagerOptions`.
 - `total` is `totalRowCount` in the pager and in `useDataGridUrlPagination`. `null` marks an unknown size.
 - `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
 - To page the grid view, set `pageSize` on the provider instead of `pageData`.
@@ -101,7 +101,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 
 ## Selection [#selection]
 
-- The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells, unchecks every checked row, and ends all matching. To check every row from code, call `setAllRowsSelected(true)`.
+- The header checkbox, the row marker checkboxes, the row `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells, unchecks every checked row, and ends all matching. To check every row from code, call `setAllRowsSelected(true)`.
 - `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
 
 | 1.x props | 2.0 prop |
@@ -111,11 +111,13 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 | `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
 | `keepHiddenCheckedRows` alone | Drop it. It had no effect. |
 
+`useDataGridSelectionConfig()` and the store state return `checkedRowsLifetime` in place of `keepCheckedRows` and `keepHiddenCheckedRows`. A custom `CompactSelectionLike` implements `runs()`.
+
 ## Removed exports [#removed-exports]
 
 Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the same values. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
 
-The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop untaught helpers such as `operatorLabel` and `downloadBlob`.
+The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop `operatorLabel`, `operatorsForColumnType`, `operatorHasValue`, `downloadBlob`, `buildExportHeaders`, `quoteCsvField`, `IMPORT_PREVIEW_ROW_COUNT`, `KEYBINDING_CATEGORIES`, `ACTION_CATEGORY`, `categoryForAction`, `categoryLabel`, `KeybindingCategory`, and `labelForAction`.
 
 ## Related
 

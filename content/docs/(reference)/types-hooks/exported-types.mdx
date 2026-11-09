@@ -37,7 +37,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `DataOp<TData>` | An `update`, `insert`, `delete`, or `move` operation | One row operation, addressed by row id. |
 | `RowPatch` | `{ rowId, changes }` | One whole-row update for `actions.updateRows`. `changes` maps column ids to new values. |
-| `DataChange<TData>` | `{ ops, source, label?, reverts? }` | One batch of operations with its origin. |
+| `DataChange<TData>` | `{ ops, source, label?, reverts?, serverRowIds? }` | One batch of operations with its origin. |
 
 [Operation engine contract](/docs/contracts/operation-engine-contract) covers `applyChange` and `invertChange`. [Data change events](/docs/events-state/data-change-events) covers `source`.
 

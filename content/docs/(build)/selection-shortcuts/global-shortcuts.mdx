@@ -52,7 +52,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
   return (
     <>
       {/* a toolbar here, outside the grid */}
-      <DataGrid {...grid} columns={columns}>
+      <DataGrid {...grid} className="h-96" columns={columns}>
         <DataGridGlobalShortcuts />
         <DataGridHeader />
         <DataGridBody />
@@ -94,7 +94,7 @@ Keep <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> in every remapped binding of a flagged actio
 
 ## Multiple grids [#multiple-grids]
 
-When several grids with the component share a page, the last focused grid owns the shortcut. When focus moves to grid B, undo and redo target the history of B. Until focus returns to grid A, they target the history of A.
+When several grids with the component share a page, the last focused grid owns the shortcut. When focus moves to grid B, undo and redo target the history of B. They stay with B until focus returns to grid A.
 
 A grid without the component never claims the shortcut. If you add the component to one of two grids, the layer does nothing until the user focuses that grid.
 

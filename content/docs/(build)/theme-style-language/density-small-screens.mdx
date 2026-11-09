@@ -88,7 +88,7 @@ Set these CSS variables on the grid or on any ancestor:
 | Variable | Effect | Default |
 | --- | --- | --- |
 | `--grid-scroll-shadow` | color of the edge shadows | `--grid-pin-shadow` |
-| `--grid-pin-shadow` | color of the shadows at pinned zones | 10% black in light mode, 40% in dark mode |
+| `--grid-pin-shadow` | color of the shadows at pinned zones | `oklch(0 0 0 / 10%)`. The CLI install sets 10% for light mode and 40% for dark mode |
 | `--grid-shadow-size` | width of the side shadows and height of the top and bottom shadows | `8px` |
 
 `--grid-scroll-shadow: transparent` hides the edge shadows and keeps the shadows at pinned zones:

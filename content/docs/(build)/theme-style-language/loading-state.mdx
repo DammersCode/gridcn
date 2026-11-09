@@ -32,6 +32,7 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
       <DataGrid
         className="h-80"
         data={rows}
+        readOnly
         columns={columns}
         loading={loading}
       />
