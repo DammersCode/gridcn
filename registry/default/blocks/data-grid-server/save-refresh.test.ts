@@ -116,6 +116,43 @@ describe("useSaveRefresh", () => {
     expect(m.refresh).toHaveBeenCalledTimes(1);
   });
 
+  it("refreshes after each later save settles while an earlier save still hangs past the max wait", async () => {
+    const [hanging, b, d] = [deferred(), deferred(), deferred()];
+    const queue = [hanging, b, d];
+    const m = mount({ onSave: () => queue.shift()!.promise as Promise<void> });
+    void m.save();
+    const second = m.save();
+    const third = m.save();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(SAVE_REFRESH_MAX_WAIT_MS + 500)));
+    b.resolve(undefined);
+    await second;
+    await flush();
+    expect(m.refresh).toHaveBeenCalledTimes(1);
+    d.resolve(undefined);
+    await third;
+    await flush();
+    expect(m.refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes for a save that settles after the max wait expired with an earlier save settled", async () => {
+    const [hanging, b, d] = [deferred(), deferred(), deferred()];
+    const queue = [hanging, b, d];
+    const m = mount({ onSave: () => queue.shift()!.promise as Promise<void> });
+    void m.save();
+    const second = m.save();
+    const third = m.save();
+    b.resolve(undefined);
+    await second;
+    await flush();
+    expect(m.refresh).not.toHaveBeenCalled();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(SAVE_REFRESH_MAX_WAIT_MS)));
+    expect(m.refresh).toHaveBeenCalledTimes(1);
+    d.resolve(undefined);
+    await third;
+    await flush();
+    expect(m.refresh).toHaveBeenCalledTimes(2);
+  });
+
   it("passes the ack through unchanged", async () => {
     const ack = { rejected: [] };
     const m = mount({ onSave: async () => ack });

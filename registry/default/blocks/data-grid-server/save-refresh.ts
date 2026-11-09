@@ -79,7 +79,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       if (force) current.waitExpired = true;
       return;
     }
-    current.waitExpired = false;
+    current.waitExpired = (force || current.waitExpired) && current.inflight > 0;
     const report: SaveRefreshReport = { ...current.counts, changes: current.changes, pending: current.inflight };
     current.counts = { saved: 0, rejected: 0, failed: 0 };
     current.changes = [];
