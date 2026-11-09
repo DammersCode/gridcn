@@ -28,7 +28,7 @@ export type DataGridStatusBarProps = {
   /**
    * Formats the shown aggregate values. When omitted, the single-column rule applies: if every
    * numeric cell comes from one column, its `toDisplayText` formats sum/avg/min/max (a `number`
-   * column needs `options.format`, such as currency or percent, or `options.decimals`); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
+   * column needs `options.format`, such as currency or percent, or `options.decimals`, which rounds with `Intl.NumberFormat(locale, { maximumFractionDigits: decimals })`); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
    */
   formatValue?: (value: number, aggregate: StatusBarAggregate) => string;
   /** Locale for the default number format. Default `"en-US"` (the date type's SSR-safe default). */
@@ -73,9 +73,16 @@ export function DataGridStatusBar({
     const toDisplayText = cellType?.toDisplayText;
     if (!column || !toDisplayText) return null;
     const options = column.options as { format?: unknown; decimals?: unknown } | undefined;
-    if (toDisplayText === numberCellType.toDisplayText && !options?.format && options?.decimals === undefined) return null;
+    if (toDisplayText === numberCellType.toDisplayText && !options?.format) {
+      const decimals = options?.decimals;
+      if (decimals === undefined) return null;
+      if (typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0 && decimals <= 20) {
+        const rounded = new Intl.NumberFormat(locale, { maximumFractionDigits: decimals });
+        return (value: number) => rounded.format(value);
+      }
+    }
     return (value: number) => toDisplayText(value, column.options);
-  }, [stats.numericColumnId, visibleColumns, cellTypes]);
+  }, [stats.numericColumnId, visibleColumns, cellTypes, locale]);
 
   const showStats = stats.cells >= 2;
   const total = useDataGridSelector((s) => s.totalRowCount);

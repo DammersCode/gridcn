@@ -51,6 +51,13 @@ describe("DataGridStatusBar number formatting", () => {
     expect(text).not.toContain("Avg 21.3");
   });
 
+  it("keeps the locale grouping of a number column with decimals and no format", () => {
+    renderBar([{ id: "score", header: "Score", accessorKey: "score", type: "number", options: { decimals: 1 } }]);
+    const text = select({ row: 0, col: 0 }, { row: 2, col: 0 });
+    expect(text).toContain("Sum 6,000");
+    expect(text).toContain("Max 3,000");
+  });
+
   it("keeps the format option of a single number column", () => {
     renderBar([{ id: "score", header: "Score", accessorKey: "score", type: "number", options: { format: { style: "currency", currency: "USD" } } }]);
     const text = select({ row: 0, col: 0 }, { row: 2, col: 0 });
