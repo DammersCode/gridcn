@@ -104,7 +104,7 @@ export type UseDataGridHistoryResult<TData> = {
 /**
  * Operation-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
  * runs after the store write and after the consumer's `onDataChange`), and undoes/redoes by
- * applying the inverted operation batch back through the grid's `commitChange` — one write, one emit,
+ * applying the inverted operation batch back through the grid's `commitChange` (an update with `cells` writes only those cells onto the current row) — one write, one emit,
  * so a controlled `data` prop sees the same change the user made.
  *
  * Design: the plugin does not take `data`/`setData` — the grid's store is the write target, and

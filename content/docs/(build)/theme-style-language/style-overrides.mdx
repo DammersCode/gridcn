@@ -219,7 +219,7 @@ export function ChangedRows({ rows }: { rows: Row[] }) {
 }
 ```
 
-Result: an edited, pasted, filled, cleared, or replaced row gets a tint. An undo puts the old row object back, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either. The `WeakSet` keeps one identity, so `getRowClassName` stays stable.
+Result: an edited, pasted, filled, cleared, or replaced row gets a tint. An undo writes a new row object that the set lacks, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either. The `WeakSet` keeps one identity, so `getRowClassName` stays stable.
 
 ## Style by state with CSS [#styling-by-state-with-css-only]
 

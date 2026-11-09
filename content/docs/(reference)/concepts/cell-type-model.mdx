@@ -29,7 +29,7 @@ Each feature reads a value through its own surface:
 - Sort uses `compare`. Without it, sort uses a numeric-aware collation of the raw `String(value)`.
 - When the type has no `toSearchText`, quick search uses `toText`. Otherwise it uses `toSearchText`.
 - Filter matches the raw value, through `filter.match` or the built-in text matcher.
-- Fill reads the source cells through `toText` and writes each target cell through the `fromText` of its column. A repeat inside one column writes the stored source value. A column takes a series only when `fromText` gives no empty value for it.
+- Fill reads the source cells through `toText` and writes each target cell through the `fromText` of its column. A repeat inside one column writes the stored source value. A series needs a non-empty `fromText` result, per column (vertical fill) or row (horizontal fill).
 
 Search matches text, and filter matches the stored value. A `select` column searches the choice label. Its filters take the stored choice values and not the labels.
 

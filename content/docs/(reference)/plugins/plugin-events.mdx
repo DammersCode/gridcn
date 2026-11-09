@@ -69,7 +69,7 @@ The write emits its own change, and every observer sees it. That includes the ob
 
 On a read-only grid, `commitChange` writes nothing and emits nothing, except for a change with `source: "stream"`.
 
-The [undo and redo](/docs/clipboard-undo/undo-redo) add-on uses this path. Its observer records each change. Its `undo` and `redo` commands apply the inverted batch through `commitChange`.
+The [undo and redo](/docs/clipboard-undo/undo-redo) add-on uses this path. Its observer records each change. Its `undo` and `redo` commands apply the inverted batch through `commitChange`. An update with `cells` writes only those cells onto the current row.
 
 ## Related
 

@@ -97,8 +97,8 @@ The answer is untrusted. The editor keeps only entries with a non-empty `value` 
 ## Clipboard, fill, import, and export
 
 - Copy and export write the label.
-- Paste and import turn a label or a key back into the option when the editor listed it or the grid wrote it as text. Copy, export, and the source cells of a fill write text. Any other text follows `unresolvedPaste`.
-- A plain fill inside the lookup column copies the stored `{ value, label }`, also a bare key and a label that two options share. A fill that continues a series of labels resolves each label like a paste. If one label resolves to no option, the fill copies the stored values of the column instead. With `unresolvedPaste: "keep"` every label is accepted, so the series stores each new label as a bare key, such as `Store 3`. A fill into another lookup column resolves each label like a paste into that column.
+- Paste and import turn a label or a key back into the option when the editor listed it or the grid wrote it as text. Copy, export, print, the source cells of a fill, autosize, and the filter value list write text. Any other text follows `unresolvedPaste`.
+- A plain fill inside the lookup column copies the stored `{ value, label }`, also a bare key and a label that two options share. A fill that continues a series of labels resolves each label like a paste. If one label resolves to no option, a vertical fill copies the stored values instead. A horizontal fill repeats the source text of that row. With `unresolvedPaste: "keep"` every label is accepted, so the series stores each new label as a bare key, such as `Store 3`. A fill into another lookup column resolves each label like a paste into that column.
 - Clear and <kbd>Delete</kbd> store `null`.
 
 ## Sort, search, and filter

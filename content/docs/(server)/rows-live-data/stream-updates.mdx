@@ -96,7 +96,7 @@ In controlled mode, store the array that `onDataChange` gives you in state, and 
 
 ## Undo and save [#undo-history]
 
-A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it. Undo writes only the cells of its edit, so pushed values stay. A push into a row with a save in flight is skipped with reason `saving`. Push the value again after the save settles.
+A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is skipped with reason `saving`. Push it again after the save settles.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, list the sources for the history add-on. The list replaces the default, so keep the default sources in it:
 

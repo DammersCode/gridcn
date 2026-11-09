@@ -118,7 +118,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
-  `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+  `undo`/`redo` apply the inverted batch through the grid's `commitChange`; an update with `cells` writes only those cells onto the current row.
 - **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
 
 ## Async gates
