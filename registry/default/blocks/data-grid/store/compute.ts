@@ -890,18 +890,20 @@ export function computeSearchMatches(
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(searched[viewRow]!, columnId),
     filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
   };
-  const searchMatches = findSearchMatches(
+  const scanned = findSearchMatches(
     searched.length,
     viewAccessor,
     searchText,
     visibleColumns.map((c) => c.id),
-    MAX_SEARCH_MATCHES,
+    MAX_SEARCH_MATCHES + 1,
     searchOptions,
   );
+  const searchMatchesCapped = scanned.length > MAX_SEARCH_MATCHES;
+  const searchMatches = searchMatchesCapped ? scanned.slice(0, MAX_SEARCH_MATCHES) : scanned;
   const onPage = searched === viewIndex ? searchMatches : searchMatches.filter((m) => m.row >= pageStart && m.row < pageStart + viewIndex.length).map((m) => ({ ...m, row: m.row - pageStart }));
   const searchMatchSet = new Set(onPage.map((m) => searchMatchKey(m.row, m.columnId)));
   const searchMatchRows = buildSearchMatchRows(onPage, visibleColumns);
-  return { searchMatches, searchMatchSet, searchMatchRows, searchMatchesCapped: searchMatches.length >= MAX_SEARCH_MATCHES };
+  return { searchMatches, searchMatchSet, searchMatchRows, searchMatchesCapped };
 }
 
 /** Cycles a column's sort direction: asc -> desc -> none (removed). */
