@@ -16,7 +16,7 @@ import {
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, pin: "start" },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 190 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
   {
@@ -51,7 +51,7 @@ const columns = defineColumns<DemoRow>()([
     type: "text",
     width: 110,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "right" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "end" },
 ] as const);
 
 const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", name: "Average" } });

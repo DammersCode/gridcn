@@ -139,9 +139,9 @@ export type DataGridContextMenuLabels = {
   sortAsc: string;
   sortDesc: string;
   clearSort: string;
-  /** Menu item that pins a column to the start side (`pin: "left"`). */
+  /** Menu item that pins a column to the start side (`pin: "start"`). */
   pinStart: string;
-  /** Menu item that pins a column to the end side (`pin: "right"`). */
+  /** Menu item that pins a column to the end side (`pin: "end"`). */
   pinEnd: string;
   unpin: string;
   hideColumn: string;

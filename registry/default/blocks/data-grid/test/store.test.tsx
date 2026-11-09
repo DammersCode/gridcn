@@ -2581,7 +2581,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     });
 
     it("keeps a pinned column inside its own pin zone: dropping it onto an unpinned target is a no-op", () => {
-      const cols = threeColumns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
+      const cols = threeColumns.map((c) => (c.id === "id" ? { ...c, pin: "start" as const } : c));
       const wrapper = makeConfigWrapper({ columns: cols });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
@@ -2591,7 +2591,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     });
 
     it("reorders two pinned-left columns within their own zone", () => {
-      const cols = threeColumns.map((c) => (c.id === "id" || c.id === "name" ? { ...c, pin: "left" as const } : c));
+      const cols = threeColumns.map((c) => (c.id === "id" || c.id === "name" ? { ...c, pin: "start" as const } : c));
       const wrapper = makeConfigWrapper({ columns: cols });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
@@ -2606,12 +2606,12 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
-      act(() => result.current.actions.setColumnPin("id", "left"));
+      act(() => result.current.actions.setColumnPin("id", "start"));
       expect(result.current.visibleIds).toEqual(["id", "name", "age"]);
     });
 
     it("unpins a column back into the unpinned band", () => {
-      const cols = threeColumns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
+      const cols = threeColumns.map((c) => (c.id === "id" ? { ...c, pin: "start" as const } : c));
       const wrapper = makeConfigWrapper({ columns: cols });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
@@ -2624,7 +2624,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns, enableColumnPinning: false });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
-      act(() => result.current.actions.setColumnPin("id", "left"));
+      act(() => result.current.actions.setColumnPin("id", "start"));
       expect(result.current.visibleIds).toEqual(["name", "age", "id"]);
     });
 
@@ -2633,7 +2633,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: cols });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
-      act(() => result.current.actions.setColumnPin("id", "left"));
+      act(() => result.current.actions.setColumnPin("id", "start"));
       expect(result.current.visibleIds).toEqual(["name", "age", "id"]);
     });
   });
@@ -2734,7 +2734,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
     it("a new columns array keeps a runtime pin, a runtime unpin, and seeds the pin of a new id", () => {
       const defs = (): readonly ColumnDef<Row, unknown>[] => [
         { id: "name", header: "Name", accessorKey: "name" },
-        { id: "age", header: "Age", accessorKey: "age", pin: "right" },
+        { id: "age", header: "Age", accessorKey: "age", pin: "end" },
       ];
       let actionsRef: ReturnType<typeof useDataGridInternalActions> | null = null;
       let pins: Record<string, string | undefined> = {};
@@ -2751,17 +2751,17 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
         );
       }
       const { rerender } = render(<Harness cols={defs()} />);
-      expect(pins).toEqual({ name: undefined, age: "right" });
+      expect(pins).toEqual({ name: undefined, age: "end" });
 
       act(() => {
-        actionsRef!.setColumnPin("name", "left");
+        actionsRef!.setColumnPin("name", "start");
         actionsRef!.setColumnPin("age", null);
       });
       rerender(<Harness cols={defs()} />);
-      expect(pins).toEqual({ name: "left", age: undefined });
+      expect(pins).toEqual({ name: "start", age: undefined });
 
-      rerender(<Harness cols={[...defs(), { id: "city", header: "City", accessorKey: "name", pin: "right" }]} />);
-      expect(pins).toEqual({ name: "left", age: undefined, city: "right" });
+      rerender(<Harness cols={[...defs(), { id: "city", header: "City", accessorKey: "name", pin: "end" }]} />);
+      expect(pins).toEqual({ name: "start", age: undefined, city: "end" });
     });
   });
 
@@ -2974,13 +2974,13 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: threeColumns, onColumnLayoutChange });
       const { result } = renderHook(() => ({ actions: useDataGridInternalActions() }), { wrapper });
 
-      act(() => result.current.actions.setColumnPin("id", "left"));
+      act(() => result.current.actions.setColumnPin("id", "start"));
 
       expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
       expect(onColumnLayoutChange).toHaveBeenLastCalledWith({
         widths: {},
         order: ["name", "age", "id"],
-        pins: { id: "left" },
+        pins: { id: "start" },
         hidden: [],
       });
     });
@@ -3022,7 +3022,7 @@ describe("defaultColumnLayout", () => {
       defaultColumnLayout: {
         widths: { name: 300 },
         order: ["id", "age", "name"],
-        pins: { id: "left" },
+        pins: { id: "start" },
         hidden: ["age"],
       },
     });

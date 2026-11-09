@@ -88,7 +88,7 @@ describe("useDataGridViews", () => {
 
   it("selectView applies sort, filter, search, and layout", async () => {
     const doc = seeded();
-    doc.views[0]!.state.columnLayout = { widths: { name: 222 }, order: ["age", "name"], pins: { age: "left" }, hidden: [] };
+    doc.views[0]!.state.columnLayout = { widths: { name: 222 }, order: ["age", "name"], pins: { age: "start" }, hidden: [] };
     const { probe } = setup({ storage: createMemoryViewsStorage(doc) });
     await ready(probe);
     act(() => probe.current!.views.selectView("a"));

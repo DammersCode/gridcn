@@ -46,7 +46,7 @@ export function usePinShadowEdges(
       // pinned band inverts with direction: the last pinned-INLINE-START cell is the one furthest
       // from the inline start, i.e. largest `right` in LTR but smallest `left` in RTL.
       if (hasPinnedLeft) {
-        const last = furthestFromInlineStart(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "left")}`), direction);
+        const last = furthestFromInlineStart(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`), direction);
         if (last) {
           const edge = inlineEndEdge(last.getBoundingClientRect(), direction);
           viewport.style.setProperty("--grid-pin-shadow-left-x", `${inlineDistanceFromStart(edge, viewportRect, direction)}px`);
@@ -58,7 +58,7 @@ export function usePinShadowEdges(
         }
       }
       if (hasPinnedRight) {
-        const first = furthestFromInlineEnd(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "right")}`), direction);
+        const first = furthestFromInlineEnd(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "end")}`), direction);
         if (first) {
           const edge = inlineStartEdge(first.getBoundingClientRect(), direction);
           viewport.style.setProperty("--grid-pin-shadow-right-x", `${inlineDistanceFromEnd(edge, viewportRect, direction)}px`);

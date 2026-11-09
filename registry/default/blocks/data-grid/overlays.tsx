@@ -77,17 +77,17 @@ export type RectSegment = {
 export function splitRectByPinZones(rect: GridRect, track: PinTrackData): RectSegment[] {
   const { pins, renderedUnpinnedRange } = track;
   let leftEnd = 0;
-  while (leftEnd < pins.length && pins[leftEnd] === "left") leftEnd++;
+  while (leftEnd < pins.length && pins[leftEnd] === "start") leftEnd++;
   let rightStart = pins.length;
-  while (rightStart > leftEnd && pins[rightStart - 1] === "right") rightStart--;
+  while (rightStart > leftEnd && pins[rightStart - 1] === "end") rightStart--;
 
   const zones: Array<{ start: number; end: number; pin?: AnyColumnDef["pin"] }> = [
-    { start: 0, end: leftEnd, pin: "left" },
+    { start: 0, end: leftEnd, pin: "start" },
     // clamped to the rendered unpinned column window: unlike pinned zones (always fully rendered),
     // the unpinned middle is virtualized, so an unclamped segment would place its far edge at an
     // off-screen track position, breaking the "no gaps" visual tiling with the pinned segments.
     { start: Math.max(leftEnd, renderedUnpinnedRange.start), end: Math.min(rightStart, renderedUnpinnedRange.end), pin: undefined },
-    { start: rightStart, end: pins.length, pin: "right" },
+    { start: rightStart, end: pins.length, pin: "end" },
   ];
 
   const segments: RectSegment[] = [];
@@ -216,7 +216,7 @@ export type OverlayPluginCtx = {
 
 /** True when any column is pinned — segmentation is a no-op (and skippable) otherwise. */
 export function hasAnyPin(pinTrack: PinTrackData | undefined): pinTrack is PinTrackData {
-  return Boolean(pinTrack && pinTrack.pins.some((p) => p === "left" || p === "right"));
+  return Boolean(pinTrack && pinTrack.pins.some((p) => p === "start" || p === "end"));
 }
 
 /**

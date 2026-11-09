@@ -460,7 +460,7 @@ describe("data-grid-fill add-on", () => {
     data[0]!.value = 2;
     data[1]!.value = 4;
     const pinnedColumns = defineColumns<NumRow>()([
-      { id: "label", header: "Label", accessorKey: "label", type: "text", width: 120, pin: "left" },
+      { id: "label", header: "Label", accessorKey: "label", type: "text", width: 120, pin: "start" },
       { id: "value", header: "Value", accessorKey: "value", type: "number", width: 100 },
     ] as const);
 
@@ -489,7 +489,7 @@ describe("data-grid-fill add-on", () => {
     expect(handle).not.toBeNull();
     expect(handle.style.insetInlineStart).toContain("--grid-pin-left-0");
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const handleRect = handle.getBoundingClientRect();
     const cellRect = pinnedCell.getBoundingClientRect();
     // the handle's own edge must line up with the pinned cell's real screen position, not its scrolled-away track position.

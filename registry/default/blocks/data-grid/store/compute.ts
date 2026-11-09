@@ -1,4 +1,5 @@
 import type {
+  ColumnPin,
   CellType,
   ColumnLayout,
   CompactSelectionLike,
@@ -33,6 +34,7 @@ import { CompactSelection, forEachMember } from "../selection/compact-selection"
 import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
+import { readColumnPin, withLogicalPin } from "../columns/column-pin";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -361,7 +363,8 @@ export function withGridLocale(columns: readonly AnyColumnDef[], locale: string)
   return resolved ?? columns;
 }
 
-function resolveColumnLocale(column: AnyColumnDef, locale: string): AnyColumnDef {
+function resolveColumnLocale(source: AnyColumnDef, locale: string): AnyColumnDef {
+  const column = withLogicalPin(source);
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
   if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
@@ -646,9 +649,9 @@ export function computeVisibleColumns(
   const ordered = completeColumnOrder(columns, columnOrder, groups)
     .map((id) => byId.get(id)!)
     .filter((c) => !hidden.has(c.id));
-  const left = ordered.filter((c) => c.pin === "left");
-  const right = ordered.filter((c) => c.pin === "right");
-  const middle = ordered.filter((c) => c.pin !== "left" && c.pin !== "right");
+  const left = ordered.filter((c) => c.pin === "start");
+  const right = ordered.filter((c) => c.pin === "end");
+  const middle = ordered.filter((c) => c.pin !== "start" && c.pin !== "end");
   return [...left, ...middle, ...right];
 }
 
@@ -660,9 +663,9 @@ export function computeColumnLayout(
   hiddenColumns: readonly string[],
   groups?: ColumnGroupModel | null,
 ): ColumnLayout {
-  const pins: Record<string, "left" | "right"> = {};
+  const pins: Record<string, ColumnPin> = {};
   for (const c of columns) {
-    if (c.pin === "left" || c.pin === "right") pins[c.id] = c.pin;
+    if (c.pin === "start" || c.pin === "end") pins[c.id] = c.pin;
   }
   return {
     widths: { ...columnWidths },
@@ -679,7 +682,7 @@ export function computeColumnLayout(
 export type ColumnLayoutParts = {
   widths?: Record<string, number>;
   order?: string[] | null;
-  pins?: Record<string, "left" | "right">;
+  pins?: Record<string, ColumnPin>;
   hidden?: readonly string[];
 };
 
@@ -701,9 +704,9 @@ export function normalizeColumnLayout(
   const pins = isRecord(parts.pins) ? parts.pins : null;
   const nextColumns = pins
     ? columns.map((c) => {
-        const pin = pins[c.id];
+        const pin = readColumnPin(pins[c.id]);
         // The given pins map is authoritative: a column it does not pin drops a stale pin.
-        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
+        return (pin === "start" || pin === "end") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
   const columnWidths: Record<string, number> = {};
@@ -1023,8 +1026,8 @@ export function columnFlag(column: AnyColumnDef | undefined, key: "resizable" | 
 }
 
 /** Which pin zone a column belongs to, for reorder zone-containment (pinned columns reorder only within their pin zone). */
-export function pinZone(column: AnyColumnDef | undefined): "left" | "right" | "middle" {
-  return column?.pin === "left" ? "left" : column?.pin === "right" ? "right" : "middle";
+export function pinZone(column: AnyColumnDef | undefined): ColumnPin | "middle" {
+  return column?.pin ?? "middle";
 }
 
 /**

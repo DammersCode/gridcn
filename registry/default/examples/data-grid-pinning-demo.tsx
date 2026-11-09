@@ -16,7 +16,7 @@ import { DataGridToolbar, DataGridColumnsMenu } from "@/registry/default/blocks/
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160, pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160, pin: "start" },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200, resizable: false },
   {
     id: "role",
@@ -44,7 +44,7 @@ const columns = defineColumns<DemoRow>()([
     width: 140,
     flex: 1,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "right" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "end" },
 ] as const);
 
 /**

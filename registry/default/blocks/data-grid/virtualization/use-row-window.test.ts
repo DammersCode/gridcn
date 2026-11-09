@@ -365,7 +365,7 @@ describe("useRowWindow + useColumnWindow single-commit-per-tick", () => {
     const el = makeScrollElement2D(0, 0, 360, 1000);
     const ref = { current: el };
     const widths = Array<number>(100).fill(100);
-    const pins = Array<"left" | "right" | undefined>(100).fill(undefined);
+    const pins = Array<"start" | "end" | undefined>(100).fill(undefined);
     let renders = 0;
 
     const { result } = renderHook(() => {
@@ -394,7 +394,7 @@ describe("useRowWindow + useColumnWindow single-commit-per-tick", () => {
     const el = makeScrollElement2D(0, 0, 360, 1000);
     const ref = { current: el };
     const widths = Array<number>(100).fill(100);
-    const pins = Array<"left" | "right" | undefined>(100).fill(undefined);
+    const pins = Array<"start" | "end" | undefined>(100).fill(undefined);
     let renders = 0;
 
     const { result } = renderHook(() => {

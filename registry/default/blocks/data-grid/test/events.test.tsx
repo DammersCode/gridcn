@@ -351,7 +351,7 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
       wrapper: makeWrapper({ onActiveCellChange, enableColumnPinning: true }),
     });
     act(() => result.current.selectCellAt({ col: 0, row: 0 }));
-    act(() => result.current.setColumnPin("qty", "left"));
+    act(() => result.current.setColumnPin("qty", "start"));
     expect(onActiveCellChange).toHaveBeenCalledTimes(2);
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "1", columnId: "name", viewRowIndex: 0, viewColumnIndex: 1 });
   });

@@ -88,7 +88,7 @@ mirror the change there.
 | lookup | A cell type whose options a server searches as the user types. It stores a value and a label. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
-| start side, end side | The two ends of the inline axis. The start side is the `pin: "left"` zone, the end side the `pin: "right"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
+| start side, end side | The two ends of the inline axis. The start side is the `pin: "start"` zone, the end side the `pin: "end"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
 
 ## Selection and input
 

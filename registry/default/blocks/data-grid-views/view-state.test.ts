@@ -23,7 +23,7 @@ const state: DataGridViewState = {
   filters: [{ columnId: "name", operator: "contains", value: "a" }],
   searchText: "bob",
   searchOptions: { matchCase: false, wholeCell: false },
-  columnLayout: { widths: { name: 120 }, order: ["age", "name", "secret"], pins: { name: "left" }, hidden: ["secret"] },
+  columnLayout: { widths: { name: 120 }, order: ["age", "name", "secret"], pins: { name: "start" }, hidden: ["secret"] },
 };
 
 describe("captureViewState", () => {
@@ -49,6 +49,11 @@ describe("viewStateKey", () => {
 });
 
 describe("sanitizeViewState", () => {
+  it("reads saved left and right pins as start and end", () => {
+    const legacy = { ...state, columnLayout: { ...state.columnLayout, pins: { name: "left", age: "right" } } };
+    expect(sanitizeViewState(legacy, columns).state.columnLayout?.pins).toEqual({ name: "start", age: "end" });
+  });
+
   it("keeps a valid state unchanged", () => {
     const result = sanitizeViewState(state, columns);
     expect(result.state).toEqual({ ...state, sorts: state.sorts, columnLayout: state.columnLayout });
@@ -61,7 +66,7 @@ describe("sanitizeViewState", () => {
         ...state,
         sorts: [{ columnId: "gone", direction: "asc" }, { columnId: "age", direction: "asc" }],
         filters: [{ columnId: "gone", operator: "equals", value: "x" }],
-        columnLayout: { widths: { gone: 10 }, order: ["gone", "name"], pins: { gone: "left" }, hidden: ["gone"] },
+        columnLayout: { widths: { gone: 10 }, order: ["gone", "name"], pins: { gone: "start" }, hidden: ["gone"] },
       },
       columns,
     );
@@ -170,7 +175,7 @@ describe("sanitizeViewState", () => {
   });
 
   it("does not let a prototype key reach the layout", () => {
-    const hostile = JSON.parse('{"widths":{"__proto__":10,"name":120},"order":[],"pins":{"__proto__":"left"},"hidden":[]}');
+    const hostile = JSON.parse('{"widths":{"__proto__":10,"name":120},"order":[],"pins":{"__proto__":"start"},"hidden":[]}');
     const result = sanitizeViewState({ ...state, columnLayout: hostile }, columns);
     expect(Object.keys(result.state.columnLayout.widths)).toEqual(["name"]);
     expect(Object.keys(result.state.columnLayout.pins)).toEqual([]);

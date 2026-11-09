@@ -194,7 +194,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
     );
   }
 
-  const pinnedStartEdge = layout.pins.reduce((edge, pin, i) => (pin === "left" ? edge + layout.widths[i]! : edge), layout.markerWidth);
+  const pinnedStartEdge = layout.pins.reduce((edge, pin, i) => (pin === "start" ? edge + layout.widths[i]! : edge), layout.markerWidth);
   return (
     <div role="rowgroup" style={layerStyle} className={className} data-grid-header-layer="">
       {Array.from({ length: headerRowCount }, (_, level) => (

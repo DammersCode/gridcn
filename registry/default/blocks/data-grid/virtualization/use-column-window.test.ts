@@ -19,8 +19,8 @@ function makeScrollElement(scrollLeft: number, clientWidth: number): HTMLDivElem
 function makeWidths(count: number): number[] {
   return Array<number>(count).fill(100);
 }
-function makePins(count: number): (("left" | "right") | undefined)[] {
-  return Array<"left" | "right" | undefined>(count).fill(undefined);
+function makePins(count: number): (("start" | "end") | undefined)[] {
+  return Array<"start" | "end" | undefined>(count).fill(undefined);
 }
 
 describe("useColumnWindow", () => {
@@ -44,7 +44,7 @@ describe("useColumnWindow", () => {
     const ref = createRef<HTMLElement | null>();
     const widths = makeWidths(100);
     const pins = makePins(100);
-    pins[50] = "right";
+    pins[50] = "end";
     const { result } = renderHook(() => useColumnWindow(ref, { widths, pins }));
     expect(result.current.indices).toContain(50);
     expect(result.current.indices[result.current.indices.length - 1]).toBe(50);
@@ -109,8 +109,8 @@ describe("useColumnWindow", () => {
     const ref = { current: el };
     const widths = makeWidths(100);
     const pins = makePins(100);
-    pins[0] = "left";
-    pins[1] = "left";
+    pins[0] = "start";
+    pins[1] = "start";
     const { result } = renderHook(() => useColumnWindow(ref, { widths, pins, overscan: 0 }));
     expect(result.current.indices.slice(0, 2)).toEqual([0, 1]);
   });
@@ -120,8 +120,8 @@ describe("useColumnWindow", () => {
     const ref = { current: el };
     const widths = makeWidths(100);
     const pins = makePins(100);
-    pins[98] = "right";
-    pins[99] = "right";
+    pins[98] = "end";
+    pins[99] = "end";
     const { result } = renderHook(() => useColumnWindow(ref, { widths, pins, overscan: 0 }));
     expect(result.current.indices.slice(-2)).toEqual([98, 99]);
   });
@@ -131,8 +131,8 @@ describe("useColumnWindow", () => {
     const el = makeScrollElement(0, 1000);
     const ref = { current: el };
     const widths = [200, ...makeWidths(99)];
-    const pins: (("left" | "right") | undefined)[] = [
-      "left",
+    const pins: (("start" | "end") | undefined)[] = [
+      "start",
       ...makePins(99),
     ];
     const { result } = renderHook(() => useColumnWindow(ref, { widths, pins, overscan: 0 }));
@@ -150,7 +150,7 @@ describe("useColumnWindow", () => {
     const el = makeScrollElement(9_000, 1000);
     const ref = { current: el };
     const widths = [...makeWidths(99), 200];
-    const pins: (("left" | "right") | undefined)[] = [...makePins(99), "right"];
+    const pins: (("start" | "end") | undefined)[] = [...makePins(99), "end"];
     const { result } = renderHook(() => useColumnWindow(ref, { widths, pins, overscan: 0 }));
     expect(result.current.indices[result.current.indices.length - 1]).toBe(99); // pinned-right always present
     const unpinnedIndices = result.current.indices.filter((i) => i !== 99);

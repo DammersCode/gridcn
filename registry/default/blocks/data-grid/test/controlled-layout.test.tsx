@@ -142,37 +142,37 @@ describe("the controlled columnLayout prop", () => {
       columnLayout: {
         widths: { a: 999, c: 10, ghost: 120 },
         order: ["ghost", "c", "a"],
-        pins: { a: "left", b: "right", ghost: "left" },
+        pins: { a: "start", b: "end", ghost: "start" },
         hidden: ["ghost"],
       },
     });
 
     const s = store().getState();
     expect(s.columns.find((column) => column.id === "a")?.pin).toBeUndefined();
-    expect(s.columns.find((column) => column.id === "b")?.pin).toBe("right");
+    expect(s.columns.find((column) => column.id === "b")?.pin).toBe("end");
     expect(s.columnWidths).toEqual({ a: 200, c: 60 });
     expect(s.columnOrder).toEqual(["c", "a", "b"]);
     expect(s.hiddenColumns).toEqual([]);
   });
 
   it("a new columns array re-applies the controlled parts over the new defs", () => {
-    const { store, rerender } = mount({ columns: twoColumns, columnLayout: { pins: { a: "left" } } });
-    expect(store().getState().columns.find((column) => column.id === "a")?.pin).toBe("left");
+    const { store, rerender } = mount({ columns: twoColumns, columnLayout: { pins: { a: "start" } } });
+    expect(store().getState().columns.find((column) => column.id === "a")?.pin).toBe("start");
 
-    rerender({ columns: threeColumns, columnLayout: { pins: { a: "left" } } });
+    rerender({ columns: threeColumns, columnLayout: { pins: { a: "start" } } });
 
-    expect(store().getState().columns.find((column) => column.id === "a")?.pin).toBe("left");
+    expect(store().getState().columns.find((column) => column.id === "a")?.pin).toBe("start");
     expect(visibleIds(store())).toEqual(["a", "b", "c"]);
   });
 
   it("a columns swap followed by a pin fires exactly once", () => {
     const onColumnLayoutChange = vi.fn();
-    const { store, rerender } = mount({ columns: twoColumns, onColumnLayoutChange, columnLayout: { pins: { a: "left" } } });
+    const { store, rerender } = mount({ columns: twoColumns, onColumnLayoutChange, columnLayout: { pins: { a: "start" } } });
 
-    rerender({ columns: threeColumns, onColumnLayoutChange, columnLayout: { pins: { a: "left" } } });
+    rerender({ columns: threeColumns, onColumnLayoutChange, columnLayout: { pins: { a: "start" } } });
     expect(onColumnLayoutChange).not.toHaveBeenCalled();
 
-    act(() => store().getState().actions.setColumnPin("c", "left"));
+    act(() => store().getState().actions.setColumnPin("c", "start"));
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
   });
 });

@@ -28,8 +28,8 @@ function makeColumns(count: number, opts?: { lastPinnedRight?: boolean; firstPin
     type: "number" as const,
     width: 100,
   }));
-  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "left" | "right" }).pin = "left";
-  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "left" | "right" }).pin = "right";
+  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "start" | "end" }).pin = "start";
+  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "start" | "end" }).pin = "end";
   return cols;
 }
 
@@ -129,7 +129,7 @@ describe("multiplayer presence — paint placement", () => {
     const pinnedOverlay = overlays.find((el) => el.dataset["pinned"] !== undefined)!;
     expect(pinnedOverlay).toBeDefined();
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const cellRect = pinnedCell.getBoundingClientRect();
     let overlayRect = pinnedOverlay.getBoundingClientRect();
     expect(Math.abs(overlayRect.left - cellRect.left)).toBeLessThan(1);
@@ -139,7 +139,7 @@ describe("multiplayer presence — paint placement", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    const pinnedCellAfter = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCellAfter = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const pinnedOverlayAfter = document.querySelector<HTMLElement>(gridAttrSelector("presenceOverlay") + gridAttrSelector("pinned"))!;
     overlayRect = pinnedOverlayAfter.getBoundingClientRect();
     expect(Math.abs(overlayRect.left - pinnedCellAfter.getBoundingClientRect().left)).toBeLessThan(1);

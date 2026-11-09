@@ -14,7 +14,7 @@ function rows(): Row[] {
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "a", header: "A", accessorKey: "a", width: 100 },
-  { id: "b", header: "B", accessorKey: "b", width: 120, pin: "left" },
+  { id: "b", header: "B", accessorKey: "b", width: 120, pin: "start" },
 ];
 // useColumnLayout's public signature is over the store's internal row-agnostic ColumnDef<unknown, ...>,
 // same widening every other internal-hook test in this suite performs at its own call boundary.
@@ -85,7 +85,7 @@ describe("useColumnLayout marker column integration", () => {
 
   it("shifts pinned-left static offsets by the marker width so the marker always renders before pinned data columns", () => {
     const { result } = renderHook(() => useColumnLayout(internalColumns), { wrapper: wrapperWithMarkers("number") });
-    // column "b" (index 1) is pin:"left" — its static offset must start right after the marker (44px),
+    // column "b" (index 1) is pin:"start" — its static offset must start right after the marker (44px),
     // not at 0 (which would render it under/before the marker).
     expect(result.current.leftOffsets[1]).toBe(44);
   });

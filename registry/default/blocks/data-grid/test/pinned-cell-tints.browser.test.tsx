@@ -9,7 +9,7 @@ type Row = { id: string; name: string; email: string };
 const rows: Row[] = Array.from({ length: 12 }, (_, i) => ({ id: `row-${i}`, name: `Person ${i}`, email: `p${i}@example.com` }));
 
 const columns: readonly ColumnDef<Row, unknown>[] = [
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, pin: "start" },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
 ];
 

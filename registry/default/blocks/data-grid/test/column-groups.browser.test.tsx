@@ -14,7 +14,7 @@ const COLUMN_WIDTH = 100;
 const ROW_HEIGHT = 36;
 const rows: Row[] = Array.from({ length: 40 }, (_, i) => ({ id: `r${i}`, v: i }));
 
-function makeColumns(count: number, pins: Record<number, "left" | "right"> = {}) {
+function makeColumns(count: number, pins: Record<number, "start" | "end"> = {}) {
   return Array.from({ length: count }, (_, i) => ({
     id: `c${i}`,
     header: `Col ${i}`,
@@ -160,11 +160,11 @@ describe.each(["ltr", "rtl"] as const)("column groups: alignment while scrolling
 
 describe("column groups: pinned columns", () => {
   it("splits a group at a pin boundary and keeps the pinned segment in place while the rest scrolls", async () => {
-    const columns = makeColumns(30, { 0: "left", 1: "left", 29: "right" });
+    const columns = makeColumns(30, { 0: "start", 1: "start", 29: "end" });
     await renderGroups({ columns, groups: [{ id: "all", header: "All", children: range(0, 30) }] });
     const segments = groupCells("all");
     expect(segments.length).toBeGreaterThanOrEqual(2);
-    const pinnedLeft = segments.find((s) => s.dataset["pinned"] === "left")!;
+    const pinnedLeft = segments.find((s) => s.dataset["pinned"] === "start")!;
     const middle = segments.find((s) => s.dataset["pinned"] === undefined)!;
     expect(pinnedLeft.getAttribute("aria-colspan")).toBe("2");
     expect(middle.getAttribute("aria-colspan")).toBe("27");
@@ -174,7 +174,7 @@ describe("column groups: pinned columns", () => {
     expect(Math.abs(rect(pinnedLeft).left - before)).toBeLessThan(1.5);
     expect(Math.abs(rect(pinnedLeft).width - 2 * COLUMN_WIDTH)).toBeLessThan(1.5);
     expect(rect(middle).left).toBeLessThan(before + 1);
-    const pinnedRight = groupCells("all").find((s) => s.dataset["pinned"] === "right")!;
+    const pinnedRight = groupCells("all").find((s) => s.dataset["pinned"] === "end")!;
     expect(pinnedRight.getAttribute("aria-colspan")).toBe("1");
     expect(Math.abs(rect(pinnedRight).right - rect(leaf("c29")!).right)).toBeLessThan(1.5);
   });

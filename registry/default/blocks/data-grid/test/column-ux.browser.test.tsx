@@ -419,7 +419,7 @@ describe("sort mode (headerClickBehavior)", () => {
 
 describe("pinned-edge shadow", () => {
   it("appears only after horizontal scroll reveals content beneath the pinned-left group", async () => {
-    const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
+    const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "start" as const } : c));
     await render(
       <div style={{ height: 400, width: 300 }}>
         <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
@@ -450,7 +450,7 @@ describe("pinned-edge shadow", () => {
   });
 
   it("colors edge shadows from --grid-scroll-shadow and marks pinned-band shadows with data-pinned", async () => {
-    const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "left" as const } : c));
+    const pinnedColumns = columns.map((c) => (c.id === "id" ? { ...c, pin: "start" as const } : c));
     await render(
       <div style={{ height: 400, width: 300, "--grid-scroll-shadow": "rgb(255, 0, 0)" } as React.CSSProperties}>
         <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
@@ -466,7 +466,7 @@ describe("pinned-edge shadow", () => {
   });
 
   it("draws column dividers from --grid-column-border, on the band side of right-pinned columns", async () => {
-    const pinnedColumns = columns.map((c, i) => (i === columns.length - 1 ? { ...c, pin: "right" as const } : c));
+    const pinnedColumns = columns.map((c, i) => (i === columns.length - 1 ? { ...c, pin: "end" as const } : c));
     await render(
       <div style={{ height: 400, width: 300, "--grid-column-border": "rgb(0, 128, 0)" } as React.CSSProperties}>
         <DataGrid data={makeRows(20)} columns={pinnedColumns} getRowId={(r) => r.id} className="h-[400px] w-75" />
@@ -474,7 +474,7 @@ describe("pinned-edge shadow", () => {
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const unpinned = getComputedStyle(document.querySelector<HTMLElement>(`[role="gridcell"]:not([data-pinned])`)!);
-    const pinnedRight = getComputedStyle(document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!);
+    const pinnedRight = getComputedStyle(document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!);
 
     expect(unpinned.borderInlineEndWidth).toBe("1px");
     expect(unpinned.borderInlineEndColor).toBe("rgb(0, 128, 0)");

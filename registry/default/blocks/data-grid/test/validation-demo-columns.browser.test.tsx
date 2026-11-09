@@ -164,13 +164,13 @@ describe("inline message in pinned columns", () => {
   const rows = Array.from({ length: 6 }, (_, i) => ({ id: `r${i}`, a: i, b: i, c: i }));
   const reject = (value: unknown) => (typeof value === "number" && value > 10 ? "Too large" : null);
   const columns = defineColumns<(typeof rows)[number]>()([
-    { id: "a", header: "A", accessorKey: "a", type: "number", pin: "left", width: 60, validate: reject },
+    { id: "a", header: "A", accessorKey: "a", type: "number", pin: "start", width: 60, validate: reject },
     { id: "b", header: "B", accessorKey: "b", type: "number", width: 200 },
-    { id: "c", header: "C", accessorKey: "c", type: "number", pin: "right", width: 60, validate: reject },
+    { id: "c", header: "C", accessorKey: "c", type: "number", pin: "end", width: 60, validate: reject },
   ] as const);
 
   for (const column of ["a", "c"]) {
-    it(`a ${column === "a" ? "left" : "right"}-pinned cell paints its inline message on top`, async () => {
+    it(`a ${column === "a" ? "start" : "end"}-pinned cell paints its inline message on top`, async () => {
       await render(
         <div style={{ height: 240, width: 360 }}>
           <DataGrid data={rows} columns={columns} getRowId={(row) => row.id} />

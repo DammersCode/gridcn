@@ -92,7 +92,7 @@ export default function DataGridI18nDemo(): ReactNode {
   const columns = useMemo(
     () =>
       defineColumns<DemoRow>()([
-        { id: "name", header: values.columns.name, accessorKey: "name", type: "text", width: 100, flex: 1, pin: "left" },
+        { id: "name", header: values.columns.name, accessorKey: "name", type: "text", width: 100, flex: 1, pin: "start" },
         { id: "email", header: values.columns.email, accessorKey: "email", type: "text", width: 130, flex: 2 },
         { id: "role", header: values.columns.role, accessorKey: "role", type: "text", width: 90, flex: 1 },
         { id: "age", header: values.columns.age, accessorKey: "age", type: "number", options: { format: { maximumFractionDigits: 0 } }, width: 70, flex: 1 },

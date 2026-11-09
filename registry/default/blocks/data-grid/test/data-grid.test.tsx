@@ -146,14 +146,14 @@ describe("DataGrid headerHeight", () => {
 
 describe("DataGrid pinned columns", () => {
   const pinnedColumns: readonly ColumnDef<Row, unknown>[] = [
-    { id: "name", header: "Name", accessorKey: "name", pin: "left" },
+    { id: "name", header: "Name", accessorKey: "name", pin: "start" },
     { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
   ];
 
   it("marks pinned header cells relative with a calc() inset formula (position:sticky can't work under the transformed canvas)", () => {
     render(<DataGrid data={makeRows(3)} columns={pinnedColumns} getRowId={(r) => r.id} />);
     const header = screen.getByRole("columnheader", { name: "Name" });
-    expect(header).toHaveAttribute(GRID_ATTR.pinned, "left");
+    expect(header).toHaveAttribute(GRID_ATTR.pinned, "start");
     expect(header.style.position).toBe("relative");
     expect(header.style.insetInlineStart).toBe(
       "calc(var(--grid-scroll-left, 0px) + var(--grid-pin-left-0) - var(--grid-track-left-0))",
@@ -163,7 +163,7 @@ describe("DataGrid pinned columns", () => {
   it("marks pinned data cells relative with a calc() inset formula", () => {
     render(<DataGrid data={makeRows(3)} columns={pinnedColumns} getRowId={(r) => r.id} />);
     const cell = screen.getAllByRole("gridcell")[0]!;
-    expect(cell).toHaveAttribute(GRID_ATTR.pinned, "left");
+    expect(cell).toHaveAttribute(GRID_ATTR.pinned, "start");
     expect(cell.style.position).toBe("relative");
     expect(cell.style.insetInlineStart).toBe(
       "calc(var(--grid-scroll-left, 0px) + var(--grid-pin-left-0) - var(--grid-track-left-0))",
@@ -172,8 +172,8 @@ describe("DataGrid pinned columns", () => {
 
   it("sets the --grid-pin-left and --grid-track-left CSS vars on the Viewport based on cumulative widths", () => {
     const widerColumns: readonly ColumnDef<Row, unknown>[] = [
-      { id: "name", header: "Name", accessorKey: "name", pin: "left", width: 200 },
-      { id: "qty", header: "Qty", accessorKey: "qty", pin: "left", width: 100 },
+      { id: "name", header: "Name", accessorKey: "name", pin: "start", width: 200 },
+      { id: "qty", header: "Qty", accessorKey: "qty", pin: "start", width: 100 },
     ];
     render(<DataGrid data={makeRows(3)} columns={widerColumns} getRowId={(r) => r.id} />);
     const grid = screen.getByRole("grid");
@@ -1362,7 +1362,7 @@ describe("DataGridCell memo prop-stability audit", () => {
     const rows = makeRows(2); // stable reference across rerenders — isolates the column pin flip as the only changed input
     const { rerender } = render(<DataGrid data={rows} columns={probeColumns} getRowId={(r) => r.id} />);
     const before = renderCount;
-    const pinnedColumns = probeColumns.map((c) => (c.id === "name" ? { ...c, pin: "left" as const } : c));
+    const pinnedColumns = probeColumns.map((c) => (c.id === "name" ? { ...c, pin: "start" as const } : c));
     rerender(<DataGrid data={rows} columns={pinnedColumns} getRowId={(r) => r.id} />);
     // `column` object identity changed (new pin field) — pin state is never read from anywhere else,
     // so a memo that dropped `column` from its comparator would swallow this entirely; it must fire.

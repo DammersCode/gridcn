@@ -217,6 +217,7 @@ export type {
   AutosizeOptions,
   ColumnGroupDef,
   ColumnLayout,
+  ColumnPin,
   GetRowClassName,
   GetCellClassName,
   CellClassNameCtx,

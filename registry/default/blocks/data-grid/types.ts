@@ -547,8 +547,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * column and removes it from flex distribution.
    */
   flex?: number;
-  /** Initial pin side, applied when the column id first appears; `"left"` is the inline start and `"right"` the inline end, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
-  pin?: "left" | "right";
+  /** Initial pin side, applied when the column id first appears; `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
+  pin?: ColumnPin;
   /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
@@ -1033,10 +1033,13 @@ export interface GridCellTypes {
  * holds only columns the user has actually resized (a def's own `width` isn't duplicated in here);
  * `order` is always the full current column-id order, not just the moved one.
  */
+/** Which inline side a pinned column sticks to; `"start"` and `"end"` flip in a right-to-left page. */
+export type ColumnPin = "start" | "end";
+
 export type ColumnLayout = {
   widths: Record<string, number>;
   order: string[];
-  pins: Record<string, "left" | "right">;
+  pins: Record<string, ColumnPin>;
   hidden: string[];
 };
 

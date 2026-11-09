@@ -91,7 +91,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
   ])("in $theme mode, the left pin-shadow's darkest pixel column sits on the pinned cell's right edge", async ({ setup }) => {
     setup();
     const columns = defineColumns<Row>()([
-      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200 },
     ] as const);
     await render(
@@ -108,7 +108,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
     await vi.waitFor(() => expect(getComputedStyle(shadow).opacity).toBe("1"));
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const cellRect = pinnedCell.getBoundingClientRect();
     // 2px above the row's bottom border, not vertical-center: text glyphs sit mid-row and would
     // pollute the "darkest pixel" scan with their own antialiasing, not the shadow's.
@@ -122,7 +122,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
     setup();
     const columns = defineColumns<Row>()([
       { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120 },
-      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200, pin: "right" },
+      { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200, pin: "end" },
     ] as const);
     await render(
       <div style={{ height: 300, width: 300 }}>
@@ -140,7 +140,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "right"))!;
     await vi.waitFor(() => expect(getComputedStyle(shadow).opacity).toBe("1"));
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
     const cellRect = pinnedCell.getBoundingClientRect();
     await assertShadowFlushWithEdge(shadow, cellRect.left, cellRect.bottom - 2);
   });
@@ -155,7 +155,7 @@ describe("bug fix - unpinning the last pinned column does not strand the shadow 
     function Harness() {
       const [pinned, setPinned] = useState(true);
       const columns = defineColumns<Row>()([
-        { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, ...(pinned ? { pin: "left" as const } : {}) },
+        { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, ...(pinned ? { pin: "start" as const } : {}) },
         { id: "email", header: "Email", accessorKey: "email", type: "text", width: 300 },
       ] as const);
       return (
@@ -169,10 +169,10 @@ describe("bug fix - unpinning the last pinned column does not strand the shadow 
     await render(<Harness />);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     // measured while pinned, so the stale value the bug left behind is a real one
-    await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "left")}`)).not.toBeNull());
+    await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`)).not.toBeNull());
 
     await page.getByRole("button", { name: "unpin" }).click();
-    await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "left")}`)).toBeNull());
+    await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`)).toBeNull());
 
     const marker = document.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
@@ -191,7 +191,7 @@ describe("bug fix - the shadow re-anchors when the marker column appears or chan
   // pinned column's old edge, sitting INSIDE the widened pinned band.
   it("follows the pinned edge when row markers are switched on and then widened", async () => {
     const columns = defineColumns<Row>()([
-      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 300 },
     ] as const);
 
@@ -208,7 +208,7 @@ describe("bug fix - the shadow re-anchors when the marker column appears or chan
 
     const flushAgainstPinnedEdge = async () => {
       await vi.waitFor(() => {
-        const pinned = document.querySelector<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "left")}`)!;
+        const pinned = document.querySelector<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`)!;
         const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
         const gap = shadow.getBoundingClientRect().left - pinned.getBoundingClientRect().right;
         expect(Math.abs(gap), `shadow is ${gap}px from the pinned edge`).toBeLessThanOrEqual(1);

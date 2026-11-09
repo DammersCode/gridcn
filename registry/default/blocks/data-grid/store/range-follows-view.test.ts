@@ -75,7 +75,7 @@ describe("the active cell after a view rebuild", () => {
     store.getState().actions.setColumnOrder("id", "note", "after");
     expect(store.getState().activeCell).toEqual({ row: 1, col: 2 });
 
-    store.getState().actions.setColumnPin("id", "left");
+    store.getState().actions.setColumnPin("id", "start");
     expect(store.getState().activeCell).toEqual({ row: 1, col: 0 });
     expect(store.getState().selection.current?.cell).toEqual({ row: 1, col: 0 });
   });

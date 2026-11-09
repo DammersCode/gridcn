@@ -102,7 +102,7 @@ const columns = defineColumns<DemoRow>()([
     // accessorFn (no accessorKey) keeps the column readable but read-only by construction; the
     // value is unused — renderCell renders the buttons instead.
     accessorFn: () => "",
-    pin: "right",
+    pin: "end",
     readOnly: true,
     width: 110,
     renderCell: ({ viewRowIndex }) => <RowActions rowIndex={viewRowIndex} />,

@@ -113,7 +113,7 @@ describe("DataGridOverlays selection-range clamping", () => {
 describe("splitRectByPinZones", () => {
   // 5 columns: 0 pinned-left, 1-3 unpinned, 4 pinned-right; unpinned window fully rendered (no virtualization clamp in play).
   const track: PinTrackData = {
-    pins: ["left", undefined, undefined, undefined, "right"],
+    pins: ["start", undefined, undefined, undefined, "end"],
     trackLefts: [0, 80, 180, 280, 380],
     trackRights: [80, 180, 280, 380, 480],
     renderedUnpinnedRange: { start: 1, end: 4 },
@@ -130,7 +130,7 @@ describe("splitRectByPinZones", () => {
   it("splits a rect spanning pinned-left + unpinned into 2 segments", () => {
     const segments = splitRectByPinZones({ x: 0, y: 0, width: 2, height: 1 }, track);
     expect(segments).toHaveLength(2);
-    expect(segments[0]!.pin).toBe("left");
+    expect(segments[0]!.pin).toBe("start");
     expect(segments[0]!.rect).toEqual({ x: 0, y: 0, width: 1, height: 1 });
     expect(segments[0]!.pinStyle?.position).toBe("relative");
     expect(segments[1]!.pin).toBeUndefined();
@@ -140,7 +140,7 @@ describe("splitRectByPinZones", () => {
   it("splits a full-width rect into 3 contiguous segments: pinned-left, unpinned, pinned-right", () => {
     const segments = splitRectByPinZones({ x: 0, y: 0, width: 5, height: 2 }, track);
     expect(segments).toHaveLength(3);
-    expect(segments.map((s) => s.pin)).toEqual(["left", undefined, "right"]);
+    expect(segments.map((s) => s.pin)).toEqual(["start", undefined, "end"]);
     expect(segments[0]!.rect).toEqual({ x: 0, y: 0, width: 1, height: 2 });
     expect(segments[1]!.rect).toEqual({ x: 1, y: 0, width: 3, height: 2 });
     expect(segments[2]!.rect).toEqual({ x: 4, y: 0, width: 1, height: 2 });
@@ -149,21 +149,21 @@ describe("splitRectByPinZones", () => {
   it("returns a single pinned-right segment when the rect is entirely inside that zone", () => {
     const segments = splitRectByPinZones({ x: 4, y: 3, width: 1, height: 4 }, track);
     expect(segments).toHaveLength(1);
-    expect(segments[0]!.pin).toBe("right");
+    expect(segments[0]!.pin).toBe("end");
     expect(segments[0]!.rect).toEqual({ x: 4, y: 3, width: 1, height: 4 });
   });
 
   it("shares one offset across a multi-column contiguous pinned segment (uses the first column's track)", () => {
     const wideTrack: PinTrackData = {
-      pins: ["left", "left", undefined, "right", "right"],
+      pins: ["start", "start", undefined, "end", "end"],
       trackLefts: [0, 80, 180, 280, 380],
       trackRights: [80, 180, 280, 380, 480],
       renderedUnpinnedRange: { start: 2, end: 3 },
     };
     const segments = splitRectByPinZones({ x: 0, y: 0, width: 2, height: 1 }, wideTrack);
     expect(segments).toHaveLength(1);
-    expect(segments[0]!.pin).toBe("left");
-    // firstCol of the segment is 0, so the offset must be pinnedInsetStyle("left", 0, trackLefts[0], trackRights[0])
+    expect(segments[0]!.pin).toBe("start");
+    // firstCol of the segment is 0, so the offset must be pinnedInsetStyle("start", 0, trackLefts[0], trackRights[0])
     expect(segments[0]!.pinStyle?.insetInlineStart).toContain("--grid-pin-left-0");
   });
 
@@ -197,7 +197,7 @@ describe("splitRectByPinZones", () => {
 
 describe("DataGridOverlays pin-aware segmentation", () => {
   const pinTrack: PinTrackData = {
-    pins: ["left", undefined, "right"],
+    pins: ["start", undefined, "end"],
     trackLefts: [0, 80, 180],
     trackRights: [80, 180, 280],
     renderedUnpinnedRange: { start: 1, end: 2 },

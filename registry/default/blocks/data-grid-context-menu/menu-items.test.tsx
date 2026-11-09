@@ -32,7 +32,7 @@ function item(specs: GridMenuItemSpec[], id: string): ItemSpec | undefined {
 type ProbeProps = {
   createRow?: () => Row;
   duplicateRow?: (row: Row) => Row;
-  pin?: "left" | "right";
+  pin?: "start" | "end";
   hideable?: false;
   readOnly?: boolean;
   headerColumnId?: string;
@@ -173,23 +173,23 @@ describe("useDefaultHeaderMenuItems", () => {
   it("builds the full built-in set for a sortable, pinnable, resizable column", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
     expect(item(header, "unpin")).toBeUndefined();
     // `disabled: !pinnable` is explicit; only `true` renders inert
-    expect(item(header, "pin-left")?.disabled).toBe(false);
+    expect(item(header, "pin-start")?.disabled).toBe(false);
   });
 
   it("omits the hide item for a column with hideable false", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ hideable: false, onSpecs: (_c, h) => { header = h; } });
     expect(item(header, "hide-column")).toBeUndefined();
-    expect(item(header, "pin-left")).toBeDefined();
+    expect(item(header, "pin-start")).toBeDefined();
   });
 
   it("adds the unpin entry for a pinned column", () => {
     let header: GridMenuItemSpec[] = [];
-    renderProbe({ pin: "left", onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "unpin", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
+    renderProbe({ pin: "start", onSpecs: (_c, h) => { header = h; } });
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "unpin", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
   });
 
   it("returns no items for an unknown column id", () => {

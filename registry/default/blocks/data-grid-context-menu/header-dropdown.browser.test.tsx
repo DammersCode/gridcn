@@ -113,7 +113,7 @@ describe("DataGridHeaderDropdown", () => {
     // the click landed on "Pin to start" only — it must not have also cycled the header's own click-to-sort
     // gesture (which a bubbled-through-React click would otherwise trigger on the same pointerdown).
     const header = document.querySelector('[data-column-id="name"]')!;
-    await expect.poll(() => header.getAttribute(GRID_ATTR.pinned)).toBe("left");
+    await expect.poll(() => header.getAttribute(GRID_ATTR.pinned)).toBe("start");
     expect(header).toHaveAttribute("aria-sort", "none");
   });
 

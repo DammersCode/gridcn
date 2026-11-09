@@ -25,8 +25,8 @@ function makeColumns(count: number, opts?: { lastPinnedRight?: boolean; firstPin
     type: "number" as const,
     width: 100,
   }));
-  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "left" | "right" }).pin = "left";
-  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "left" | "right" }).pin = "right";
+  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "start" | "end" }).pin = "start";
+  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "start" | "end" }).pin = "end";
   return cols;
 }
 
@@ -63,7 +63,7 @@ function gridCells(): HTMLElement[] {
   return [...document.querySelectorAll<HTMLElement>('[role="gridcell"]')];
 }
 
-describe("pin-right min(viewport, content) anchor", () => {
+describe("pin-end min(viewport, content) anchor", () => {
   it("floats the pinned-right cell flush against the previous column when content is narrower than the viewport", async () => {
     // 8 columns * 100px = 800px content, inside a 1400px-wide container — content underflows.
     await renderEngine({ columns: makeColumns(8, { lastPinnedRight: true }), width: 1400, rowCount: 20 });
@@ -71,7 +71,7 @@ describe("pin-right min(viewport, content) anchor", () => {
 
     const cells = gridCells().filter((c) => c.getAttribute("aria-colindex") !== null);
     const firstRowCells = cells.filter((c) => c.closest('[role="row"]') === document.querySelectorAll('[role="row"]')[1]);
-    const pinnedCell = firstRowCells.find((c) => c.dataset["pinned"] === "right")!;
+    const pinnedCell = firstRowCells.find((c) => c.dataset["pinned"] === "end")!;
     const secondToLast = firstRowCells.find((c) => Number(c.getAttribute("aria-colindex")) === 7)!;
 
     expect(pinnedCell).toBeDefined();
@@ -90,7 +90,7 @@ describe("pin-right min(viewport, content) anchor", () => {
       grid.dispatchEvent(new Event("scroll"));
       await new Promise((r) => setTimeout(r, 100));
 
-      const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
+      const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
       const gridRect = grid.getBoundingClientRect();
       const expectedRight = gridRect.right - grid.clientLeft;
       expect(Math.abs(pinnedCell.getBoundingClientRect().right - expectedRight)).toBeLessThan(1);
@@ -106,7 +106,7 @@ describe("pin-right min(viewport, content) anchor", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const gridRect = grid.getBoundingClientRect();
     const expectedLeft = gridRect.left + grid.clientLeft;
     expect(pinnedCell.getBoundingClientRect().left).toBeCloseTo(expectedLeft, 0);
@@ -130,7 +130,7 @@ describe("pin-aware overlay segmentation", () => {
     const pinnedOverlay = overlays.find((el) => el.dataset["pinned"] !== undefined)!;
     expect(pinnedOverlay).toBeDefined();
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const cellRect = pinnedCell.getBoundingClientRect();
     let overlayRect = pinnedOverlay.getBoundingClientRect();
     expect(Math.abs(overlayRect.left - cellRect.left)).toBeLessThan(1);
@@ -140,7 +140,7 @@ describe("pin-aware overlay segmentation", () => {
     grid.scrollLeft = 5_500;
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
-    const pinnedCellAfter = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCellAfter = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const pinnedOverlayAfter = document.querySelector<HTMLElement>(gridAttrSelector("selectionOverlay") + gridAttrSelector("pinned"))!;
     overlayRect = pinnedOverlayAfter.getBoundingClientRect();
     const cellRectAfter = pinnedCellAfter.getBoundingClientRect();
@@ -163,7 +163,7 @@ describe("pin-aware overlay segmentation", () => {
     const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
     expect(ring.dataset["pinned"]).toBe("");
 
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
     const ringRect = ring.getBoundingClientRect();
     const cellRect = pinnedCell.getBoundingClientRect();
     expect(Math.abs(ringRect.left - cellRect.left)).toBeLessThan(1);
@@ -225,7 +225,7 @@ describe("pin-aware overlay segmentation", () => {
 
 describe("bug fix — pinned cell hover opacity", () => {
   const hoverColumns = defineColumns<Row>()([
-    { id: "id", header: "ID", accessorKey: "id", type: "text", width: 80, pin: "left" },
+    { id: "id", header: "ID", accessorKey: "id", type: "text", width: 80, pin: "start" },
     { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
   ] as const);
 
@@ -238,7 +238,7 @@ describe("bug fix — pinned cell hover opacity", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const cells = gridCells();
-    const pinnedCell = cells.find((c) => c.dataset["pinned"] === "left")!;
+    const pinnedCell = cells.find((c) => c.dataset["pinned"] === "start")!;
     const hoveredRow = pinnedCell.closest<HTMLElement>('[role="row"]')!;
 
     await userEvent.hover(pinnedCell);
@@ -259,7 +259,7 @@ describe("bug fix — pinned cell hover opacity", () => {
         </div>,
       );
       await expect.element(page.getByRole("grid")).toBeInTheDocument();
-      const pinnedCell = gridCells().find((c) => c.dataset["pinned"] === "left")!;
+      const pinnedCell = gridCells().find((c) => c.dataset["pinned"] === "start")!;
 
       await userEvent.hover(pinnedCell);
       await new Promise((r) => setTimeout(r, 250));
@@ -274,11 +274,11 @@ describe("bug fix — pinned cell hover opacity", () => {
 describe("bug fix — pinned-edge shadow alignment", () => {
   function fractionalColumns() {
     return [
-      { id: "c0", header: "C0", accessorFn: (r: Row) => r.age, type: "number" as const, width: 83.37, pin: "left" as const },
-      { id: "c1", header: "C1", accessorFn: (r: Row) => r.age, type: "number" as const, width: 100.61, pin: "left" as const },
-      { id: "c2", header: "C2", accessorFn: (r: Row) => r.age, type: "number" as const, width: 91.29, pin: "left" as const },
+      { id: "c0", header: "C0", accessorFn: (r: Row) => r.age, type: "number" as const, width: 83.37, pin: "start" as const },
+      { id: "c1", header: "C1", accessorFn: (r: Row) => r.age, type: "number" as const, width: 100.61, pin: "start" as const },
+      { id: "c2", header: "C2", accessorFn: (r: Row) => r.age, type: "number" as const, width: 91.29, pin: "start" as const },
       { id: "c3", header: "C3", accessorFn: (r: Row) => r.age, type: "number" as const, width: 77.53 },
-      { id: "c4", header: "C4", accessorFn: (r: Row) => r.age, type: "number" as const, width: 63.81, pin: "right" as const },
+      { id: "c4", header: "C4", accessorFn: (r: Row) => r.age, type: "number" as const, width: 63.81, pin: "end" as const },
     ];
   }
 
@@ -291,7 +291,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
-    const pinnedLeftCells = [...document.querySelectorAll<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)];
+    const pinnedLeftCells = [...document.querySelectorAll<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)];
     const lastPinnedLeftCell = pinnedLeftCells.reduce((a, b) => (a.getBoundingClientRect().right > b.getBoundingClientRect().right ? a : b));
 
     // exact, not "within 1px": the shadow now reads its position straight off the boundary
@@ -311,7 +311,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "right"))!;
-    const pinnedRightCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
+    const pinnedRightCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
 
     const diff = shadow.getBoundingClientRect().right - pinnedRightCell.getBoundingClientRect().left;
     expect(diff).toBe(0);
@@ -329,7 +329,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
-    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const diff = shadow.getBoundingClientRect().left - pinnedCell.getBoundingClientRect().right;
     expect(diff).toBe(0);
   });
@@ -341,7 +341,7 @@ describe("bug fix - an active cell never floats over the pinned column", () => {
   // guarantee; active is a focus state - see GRID_LAYER in ../layers.ts.
   it("ranks a pinned cell above an active unpinned cell", async () => {
     const columns = defineColumns<Row>()([
-      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+      { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
       { id: "email", header: "Email", accessorKey: "email", type: "text", width: 260 },
       { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
     ] as const);
@@ -358,7 +358,7 @@ describe("bug fix - an active cell never floats over the pinned column", () => {
     )!;
     await userEvent.click(emailCell);
 
-    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     await vi.waitFor(() => {
       const activeZ = Number(getComputedStyle(emailCell).zIndex);
       const pinnedZ = Number(getComputedStyle(pinned).zIndex);
@@ -375,7 +375,7 @@ describe("bug fix - the active-cell ring never floats over the pinned column", (
   // when the active unpinned cell scrolled under it (reading as "pinned column is selected"),
   // while burying a pinned cell's own ring under its own opaque background.
   const columns = defineColumns<Row>()([
-    { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+    { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
     { id: "email", header: "Email", accessorKey: "email", type: "text", width: 260 },
     { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
   ] as const);
@@ -398,7 +398,7 @@ describe("bug fix - the active-cell ring never floats over the pinned column", (
     )!;
     await userEvent.click(emailCell);
     const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"))!;
-    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
 
     // the reported repro: slide the active email cell partially under the pinned-left column
     grid.scrollLeft = 200;
@@ -418,7 +418,7 @@ describe("bug fix - the active-cell ring never floats over the pinned column", (
   it("ranks with its own pinned cell, so a pinned active cell's ring is not buried under the cell", async () => {
     await renderGrid();
 
-    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     await userEvent.click(pinned);
     await vi.waitFor(() => {
       const ring = document.querySelector<HTMLElement>(gridAttrSelector("activeCellOverlay"));

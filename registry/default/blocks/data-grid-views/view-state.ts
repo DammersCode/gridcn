@@ -1,4 +1,4 @@
-import type { ColumnLayout, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ColumnLayout, ColumnPin, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
@@ -261,7 +261,7 @@ function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: {
 function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): ColumnLayout {
   const layout = asRecord<RawLayout>(raw) ?? {};
   const widths: [string, number][] = [];
-  const pins: [string, "left" | "right"][] = [];
+  const pins: [string, ColumnPin][] = [];
   const widthEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, width] of widthEntries) {
     if (acceptsColumnId(id, columns) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
@@ -269,7 +269,8 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: {
   }
   const pinEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, side] of pinEntries) {
-    if (acceptsColumnId(id, columns) && (side === "left" || side === "right")) pins.push([id, side]);
+    const pin = side === "start" || side === "left" ? "start" : side === "end" || side === "right" ? "end" : null;
+    if (acceptsColumnId(id, columns) && pin) pins.push([id, pin]);
     else tally.dropped++;
   }
   return {

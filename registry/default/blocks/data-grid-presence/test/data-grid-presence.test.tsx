@@ -1020,7 +1020,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
 
     render(<Harness />);
     act(() => setPresenceHighlights!([viewEntry]));
-    act(() => actions!.setColumnPin("qty", "left"));
+    act(() => actions!.setColumnPin("qty", "start"));
     expect(warn).toHaveBeenCalledTimes(3);
     warn.mockRestore();
   });

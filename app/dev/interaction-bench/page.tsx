@@ -12,7 +12,7 @@ const DEPARTMENTS = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"].map((value) =
 type Row = { id: string; name: string; email: string; age: number; department: string; salary: number; active: boolean; note: string; city: string; score: number };
 
 const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160, pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160, pin: "start" },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 220 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
   { id: "department", header: "Department", accessorKey: "department", type: "select", options: { choices: DEPARTMENTS }, width: 150 },
@@ -20,7 +20,7 @@ const columns = defineColumns<Row>()([
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 100 },
   { id: "note", header: "Note", accessorKey: "note", type: "text", width: 200 },
   { id: "city", header: "City", accessorKey: "city", type: "text", width: 160 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 100, pin: "right" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 100, pin: "end" },
 ] as const);
 
 function generateRows(count: number): Row[] {

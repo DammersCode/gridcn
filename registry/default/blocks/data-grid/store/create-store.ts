@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { CellRef, ColumnLayout, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
+import type { CellRef, ColumnLayout, ColumnPin, CompactSelectionLike, DataGridPlugin, GridCommand, GridRect, GridSelection, SelectionState, ViewCoord, CellType, DataOp, FilterNode, Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, PLUGGABLE_ACTIONS, validateKeymap, validateSharedBindings } from "../keyboard";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
@@ -207,8 +207,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
   // so the server render and the first client paint already show the controlled layout. Omitted
   // parts fall back to the seeded values (there is no store state yet).
-  const seededPins: Record<string, "left" | "right"> = {};
-  for (const column of seeded.columns) if (column.pin === "left" || column.pin === "right") seededPins[column.id] = column.pin;
+  const seededPins: Record<string, ColumnPin> = {};
+  for (const column of seeded.columns) if (column.pin === "start" || column.pin === "end") seededPins[column.id] = column.pin;
   const effectiveLayout =
     init.columnLayout !== undefined
       ? normalizeColumnLayout(
@@ -799,8 +799,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
      */
     const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
       const s = get();
-      const pins: Record<string, "left" | "right"> = {};
-      for (const column of s.columns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+      const pins: Record<string, ColumnPin> = {};
+      for (const column of s.columns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
       const merged: ColumnLayoutParts = {
         widths: changedParts.widths ?? s.columnWidths,
         order: changedParts.order !== undefined ? changedParts.order : s.columnOrder,
@@ -1139,8 +1139,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               // The echo and every older entry leave the queue (decision 4); newer entries stay.
               layoutEchoQueue.splice(0, echoIndex + 1);
             } else {
-              const pins: Record<string, "left" | "right"> = {};
-              for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+              const pins: Record<string, ColumnPin> = {};
+              for (const column of nextColumns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
               const normalized = normalizeColumnLayout(
                 nextColumns,
                 {
@@ -1717,8 +1717,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
-        const pins: Record<string, "left" | "right"> = {};
-        for (const column of nextColumns) if (column.pin === "left" || column.pin === "right") pins[column.id] = column.pin;
+        const pins: Record<string, ColumnPin> = {};
+        for (const column of nextColumns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
         commitLayout({ pins });
       },
       setColumnHidden(id, hidden) {

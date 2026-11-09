@@ -11,11 +11,15 @@ import {
 const layout: ColumnLayout = {
   widths: { name: 240, "a,b": 80 },
   order: ["age", "name", "a,b"],
-  pins: { name: "left", age: "right" },
+  pins: { name: "start", age: "end" },
   hidden: ["age"],
 };
 
 describe("layout param codec", () => {
+  it("reads the legacy l and r pin values as start and end", () => {
+    expect(parseLayoutPart("pins", "name:l,age:r")).toEqual({ pins: { name: "start", age: "end" } });
+  });
+
   it("round trips every part", () => {
     expect(parseLayoutPart("order", serializeLayoutPart("order", layout))).toEqual({ order: layout.order });
     expect(parseLayoutPart("hidden", serializeLayoutPart("hidden", layout))).toEqual({ hidden: layout.hidden });
@@ -25,7 +29,7 @@ describe("layout param codec", () => {
 
   it("writes start/end pin codes and reads the legacy left/right codes", () => {
     expect(serializeLayoutPart("pins", layout)).toBe("name:s,age:e");
-    expect(parseLayoutPart("pins", "name:l,age:r")).toEqual({ pins: { name: "left", age: "right" } });
+    expect(parseLayoutPart("pins", "name:l,age:r")).toEqual({ pins: { name: "start", age: "end" } });
   });
 
   it("percent-encodes ids that contain separators", () => {
@@ -33,7 +37,7 @@ describe("layout param codec", () => {
   });
 
   it("round-trips pin ids that contain a colon or a pin code", () => {
-    const pins: ColumnLayout["pins"] = { "a:s": "left", "x:l": "right", "b:e": "left", "c:r": "right" };
+    const pins: ColumnLayout["pins"] = { "a:s": "start", "x:l": "end", "b:e": "start", "c:r": "end" };
     const raw = serializeLayoutPart("pins", { ...layout, pins });
     expect(parseLayoutPart("pins", raw)).toEqual({ pins });
   });
@@ -58,7 +62,7 @@ describe("layout param codec", () => {
   it("drops undecodable, empty, and duplicate ids (first wins)", () => {
     expect(parseLayoutPart("order", "a,%E0%A4%A,,b,a")).toEqual({ order: ["a", "b"] });
     expect(parseLayoutPart("widths", "a:100,a:200")).toEqual({ widths: { a: 100 } });
-    expect(parseLayoutPart("pins", "a:l,a:r")).toEqual({ pins: { a: "left" } });
+    expect(parseLayoutPart("pins", "a:l,a:r")).toEqual({ pins: { a: "start" } });
   });
 
   it("drops bad widths", () => {
@@ -67,7 +71,7 @@ describe("layout param codec", () => {
   });
 
   it("drops bad pins", () => {
-    expect(parseLayoutPart("pins", "a:x,b:left,c:l,d:r,e:s,f:e")).toEqual({ pins: { c: "left", d: "right", e: "left", f: "right" } });
+    expect(parseLayoutPart("pins", "a:x,b:left,c:l,d:r,e:s,f:e")).toEqual({ pins: { c: "start", d: "end", e: "start", f: "end" } });
   });
 
   it("ignores a param over the length cap", () => {

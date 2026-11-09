@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
+import type { ColumnPin, ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
 import type { SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
@@ -72,7 +72,7 @@ export type InteractionLayout = {
   /** Total pinned-right band width in px (cells must stay clear of this on the right). */
   pinnedRightWidth: number;
   /** Per-column pin state, same order/index as trackLefts/trackRights — lets pointer math hit-test the static pinned bands instead of the scrolled content space. */
-  pins: readonly (("left" | "right") | undefined)[];
+  pins: readonly (ColumnPin | undefined)[];
   /**
    * Layout direction of the grid. Every physical pointer coordinate is converted to the
    * inline-start-relative axis this layout's offsets are expressed in before any hit-test runs, so
@@ -109,7 +109,7 @@ function columnAtX(
   contentX: number,
   trackLefts: readonly number[],
   trackRights: readonly number[],
-  pins: readonly (("left" | "right") | undefined)[],
+  pins: readonly (ColumnPin | undefined)[],
   pinnedLeftWidth: number,
   viewportWidth: number,
   pinnedRightWidth: number,
@@ -119,14 +119,14 @@ function columnAtX(
     // which is numerically the same as trackLefts/trackRights restricted to that prefix.
     // trackLefts/trackRights/pins are same-length parallel arrays (built together by the caller)
     for (let i = 0; i < trackLefts.length; i++) {
-      if (pins[i] === "left" && inlineX >= trackLefts[i]! && inlineX < trackRights[i]!) return i;
+      if (pins[i] === "start" && inlineX >= trackLefts[i]! && inlineX < trackRights[i]!) return i;
     }
   } else if (inlineX >= viewportWidth - pinnedRightWidth) {
     // pinned-right band: mirror the same static-position reasoning from the inline-END edge.
     const fromRight = viewportWidth - inlineX;
     let acc = 0;
     for (let i = trackLefts.length - 1; i >= 0; i--) {
-      if (pins[i] !== "right") continue;
+      if (pins[i] !== "end") continue;
       const width = trackRights[i]! - trackLefts[i]!;
       if (fromRight >= acc && fromRight < acc + width) return i;
       acc += width;

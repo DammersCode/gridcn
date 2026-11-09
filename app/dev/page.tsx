@@ -35,7 +35,7 @@ const baseColumns = defineColumns<BenchmarkRow>()([
     accessorKey: "id",
     type: "text",
     width: 120,
-    pin: "left",
+    pin: "start",
   },
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 180 },
   {

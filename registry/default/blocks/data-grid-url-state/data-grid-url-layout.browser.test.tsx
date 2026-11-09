@@ -62,7 +62,7 @@ describe("column layout round trip through the URL", () => {
     actions.setColumnOrder("city", "name", "before");
     actions.setColumnHidden("age", true);
     actions.setColumnWidth("name", 150);
-    actions.setColumnPin("city", "left");
+    actions.setColumnPin("city", "start");
     await expect.poll(() => query().get("hide")).toBe("age");
     await expect.poll(() => query().get("widths")).toBe("name:150");
     await expect.poll(() => query().get("pins")).toContain("city");

@@ -27,7 +27,7 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 const pinnedColumns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, pin: "start" },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
 ] as const);
 
@@ -124,7 +124,7 @@ describe("column layout URL sync", () => {
     const h = renderGrid({});
     await act(async () => {
       h.actions().setColumnWidth("name", 222);
-      h.actions().setColumnPin("age", "left");
+      h.actions().setColumnPin("age", "start");
     });
     await flush();
     expect(h.updates.every((u) => !u.searchParams.has("widths") && !u.searchParams.has("pins"))).toBe(true);

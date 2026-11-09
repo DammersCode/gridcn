@@ -6,7 +6,7 @@ export function pinLeftOffsets(widths: number[], pins: (AnyColumnDef["pin"] | un
   let acc = 0;
   for (let i = 0; i < widths.length; i++) {
     offsets.push(acc);
-    if (pins[i] === "left") acc += widths[i]!; // i < widths.length by loop condition
+    if (pins[i] === "start") acc += widths[i]!; // i < widths.length by loop condition
   }
   return offsets;
 }
@@ -17,7 +17,7 @@ export function pinRightOffsets(widths: number[], pins: (AnyColumnDef["pin"] | u
   let acc = 0;
   for (let i = widths.length - 1; i >= 0; i--) {
     offsets[i] = acc;
-    if (pins[i] === "right") acc += widths[i]!; // 0 <= i < widths.length by loop condition
+    if (pins[i] === "end") acc += widths[i]!; // 0 <= i < widths.length by loop condition
   }
   return offsets;
 }

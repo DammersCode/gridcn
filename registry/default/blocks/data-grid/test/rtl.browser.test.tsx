@@ -31,8 +31,8 @@ function makeColumns(count: number, opts?: { firstPinnedLeft?: boolean; lastPinn
     type: "number" as const,
     width: 100,
   }));
-  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "left" | "right" }).pin = "left";
-  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "left" | "right" }).pin = "right";
+  if (opts?.firstPinnedLeft) (cols[0] as { pin?: "start" | "end" }).pin = "start";
+  if (opts?.lastPinnedRight) (cols[cols.length - 1] as { pin?: "start" | "end" }).pin = "end";
   return cols;
 }
 
@@ -141,7 +141,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
     const out: number[] = [];
     for (const offset of [0, 250, 700]) {
       await scrollInlineTo(offset, direction);
-      const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+      const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
       out.push(Math.round(inlineStartOf(pinned, direction)));
     }
     return out;
@@ -169,7 +169,7 @@ describe("RTL — scroll geometry (the probe scenario)", () => {
 
     for (const offset of [0, 400, 1200]) {
       await scrollInlineTo(offset, "rtl");
-      const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "right")}`)!;
+      const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
       const gridRect = grid().getBoundingClientRect();
       // inline end under RTL is the physical LEFT edge
       expect(Math.abs(pinned.getBoundingClientRect().left - gridRect.left)).toBeLessThan(2);
@@ -246,11 +246,11 @@ describe("RTL — pointer hit-testing", () => {
 
     // Clicking the pinned cell must select the pinned column, not whatever unpinned column happens
     // to sit under it in content space — the pinned-band branch of columnAtX is what this covers.
-    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+    const pinned = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     await userEvent.click(pinned);
 
     const active = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("active")}`);
-    expect(active?.dataset["pinned"]).toBe("left");
+    expect(active?.dataset["pinned"]).toBe("start");
   });
 });
 

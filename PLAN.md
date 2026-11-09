@@ -164,7 +164,7 @@ Escape hatches: `processCellForClipboard`, `processCellFromClipboard`, `processP
 ## 6. Styling rules
 
 - shadcn tokens only: `bg-background`, `text-foreground`, `border-border`, `bg-muted`, `accent`, `primary`, `ring`, `destructive`. No hex values, no bespoke palette. Dark mode must need zero extra work.
-- State via data attributes, styled in Tailwind: `data-active`, `data-selected`, `data-editing`, `data-pinned="left|right"`, `data-invalid`, `data-readonly`, `data-sorted="asc|desc"`.
+- State via data attributes, styled in Tailwind: `data-active`, `data-selected`, `data-editing`, `data-pinned="start|end"`, `data-invalid`, `data-readonly`, `data-sorted="asc|desc"`.
 - Selection overlay: `bg-primary/10` fill, `border-primary` active ring; invalid: `data-invalid:ring-destructive`.
 - Density: default row height 36px (`--grid-row-height`); `tabular-nums` on numeric columns.
 - Most parts accept `className`; `cn()` merges. `DataGridHeader` and `DataGridBody` take no props yet. No CSS files — Tailwind utilities only (grid-template values are inline styles).

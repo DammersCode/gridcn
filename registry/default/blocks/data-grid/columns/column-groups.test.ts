@@ -4,7 +4,7 @@ import { MAX_GROUP_DEPTH, buildColumnGroupModel, columnGroupModelsEqual, compute
 
 const CI_FACTOR = process.env["CI"] ? 2 : 1;
 const ids = (...list: string[]) => list;
-const col = (id: string, pin?: "left" | "right") => ({ id, pin });
+const col = (id: string, pin?: "start" | "end") => ({ id, pin });
 
 describe("buildColumnGroupModel", () => {
   it("returns null for no groups", () => {
@@ -192,11 +192,11 @@ describe("computeHeaderRows", () => {
 
   it("splits a segment at a pin zone boundary and tags the pin", () => {
     const model = buildColumnGroupModel([{ id: "g", header: "G", children: ["a", "b", "c"] }], ids("a", "b", "c"));
-    expect(computeHeaderRows([col("a", "left"), col("b"), col("c", "right")], model)).toEqual([
+    expect(computeHeaderRows([col("a", "start"), col("b"), col("c", "end")], model)).toEqual([
       [
-        { groupId: "g", start: 0, end: 1, pin: "left", depth: 0 },
+        { groupId: "g", start: 0, end: 1, pin: "start", depth: 0 },
         { groupId: "g", start: 1, end: 2, depth: 0 },
-        { groupId: "g", start: 2, end: 3, pin: "right", depth: 0 },
+        { groupId: "g", start: 2, end: 3, pin: "end", depth: 0 },
       ],
     ]);
   });

@@ -7,7 +7,7 @@ export function pinnedInsetStyle(
   index: number,
 ): CSSProperties {
   if (!pinned) return {};
-  if (pinned === "left") {
+  if (pinned === "start") {
     // Cell's flow position is trackLeft, then the ancestor canvas applies -scrollLeft; to land the
     // cell at the static offset regardless of scroll, add scrollLeft back and cancel trackLeft.
     return {

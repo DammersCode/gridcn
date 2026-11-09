@@ -580,7 +580,7 @@ describe("DataGridContextMenu — menu resolvers", () => {
     await vi.waitFor(() => expect(menuItem("Hide column")).toBeTruthy());
     expect(seen.columnId).toBe("name");
     expect(seen.scrollRootRole).toBe("grid");
-    expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-left", "pin-right", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
+    expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
     await expect.element(page.getByRole("menuitem", { name: "Pin to start" })).not.toBeInTheDocument();
   });
 

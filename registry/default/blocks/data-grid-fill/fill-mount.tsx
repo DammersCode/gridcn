@@ -16,8 +16,8 @@ function useInteractionLayoutFromContext(): InteractionLayout {
     let pinnedLeftWidth = layout.markerWidth;
     let pinnedRightWidth = 0;
     for (let i = 0; i < layout.widths.length; i++) {
-      if (layout.pins[i] === "left") pinnedLeftWidth += layout.widths[i]!;
-      if (layout.pins[i] === "right") pinnedRightWidth += layout.widths[i]!;
+      if (layout.pins[i] === "start") pinnedLeftWidth += layout.widths[i]!;
+      if (layout.pins[i] === "end") pinnedRightWidth += layout.widths[i]!;
     }
     return {
       trackLefts: layout.trackLefts,

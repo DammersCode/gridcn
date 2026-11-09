@@ -169,7 +169,7 @@ describe("pinned rows — frozen-edge shadow", () => {
   });
 
   it("clips each shadow to its own axis so none crosses a pinned band or corner", async () => {
-    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "left" as const } : i === columns.length - 1 ? { ...c, pin: "right" as const } : c));
+    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "start" as const } : i === columns.length - 1 ? { ...c, pin: "end" as const } : c));
     await render(
       <div style={{ height: 360, width: 400 }}>
         <PinnedGrid data={makeRows(200)} className="h-90 w-100" cols={pinnedColumns} topRows={[totals]} bottomRows={[totals]} />
@@ -180,8 +180,8 @@ describe("pinned rows — frozen-edge shadow", () => {
     const shadow = (side: "left" | "right" | "top" | "bottom") => rect(gridAttrSelector("pinShadow", side));
     const topBand = rect(gridAttrSelector("pinnedRowBand", "top"));
     const bottomBand = rect(gridAttrSelector("pinnedRowBand", "bottom"));
-    const leftCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "left")}`);
-    const rightCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "right")}`);
+    const leftCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "start")}`);
+    const rightCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "end")}`);
 
     for (const side of ["left", "right"] as const) {
       expect(shadow(side).top).toBeGreaterThanOrEqual(topBand.bottom - 1);
@@ -311,7 +311,7 @@ describe("pinned rows — compose with resize and pinned columns", () => {
   });
 
   it("a pinned-left data column keeps its pinned cell fixed in a pinned-row band while scrolling horizontally", async () => {
-    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "left" as const } : c));
+    const pinnedColumns = columns.map((c, i) => (i === 0 ? { ...c, pin: "start" as const } : c));
     await render(
       <div style={{ height: 360, width: 400 }}>
         <PinnedGrid data={makeRows(20)} className="h-90 w-100" cols={pinnedColumns} topRows={[totals]} />
@@ -320,14 +320,14 @@ describe("pinned rows — compose with resize and pinned columns", () => {
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
 
-    const pinnedCellBefore = document.querySelector<HTMLElement>(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCellBefore = document.querySelector<HTMLElement>(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "start")}`)!;
     const leftBefore = pinnedCellBefore.getBoundingClientRect().left;
 
     grid.scrollLeft = 300;
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    const pinnedCellAfter = document.querySelector<HTMLElement>(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "left")}`)!;
+    const pinnedCellAfter = document.querySelector<HTMLElement>(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "start")}`)!;
     expect(pinnedCellAfter.getBoundingClientRect().left).toBeCloseTo(leftBefore, 0);
   });
 

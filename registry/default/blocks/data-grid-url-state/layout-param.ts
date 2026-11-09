@@ -41,7 +41,7 @@ export function serializeLayoutPart(part: UrlLayoutPart, layout: ColumnLayout): 
         .join(",");
     case "pins": {
       const pins = Object.entries(layout.pins);
-      return pins.length === 0 ? NONE : pins.map(([id, side]) => serializePair(id, side === "left" ? "s" : "e")).join(",");
+      return pins.length === 0 ? NONE : pins.map(([id, side]) => serializePair(id, side === "start" ? "s" : "e")).join(",");
     }
     default:
       return "";
@@ -85,7 +85,7 @@ function parsePairs<V>(raw: string, parseValue: (value: string) => V | null): [s
  * {@link MAX_URL_LAYOUT_COLUMNS} segments; undecodable, empty, and repeated ids and malformed values
  * are dropped (the first segment of an id wins). Never throws.
  *
- * @example parseLayoutPart("pins", "name:s,age:e") // => { pins: { name: "left", age: "right" } }
+ * @example parseLayoutPart("pins", "name:s,age:e") // => { pins: { name: "start", age: "end" } }
  */
 export function parseLayoutPart(part: UrlLayoutPart, raw: string): Partial<ColumnLayout> {
   if (raw === "" || raw.length > MAX_URL_LAYOUT_PARAM_LENGTH) return {};
@@ -98,7 +98,7 @@ export function parseLayoutPart(part: UrlLayoutPart, raw: string): Partial<Colum
       return { widths: Object.fromEntries(parsePairs(raw, (v) => (WIDTH_PATTERN.test(v) ? Number(v) : null))) };
     case "pins":
       return {
-        pins: Object.fromEntries(parsePairs(raw, (v) => (v === "l" || v === "s" ? "left" : v === "r" || v === "e" ? "right" : null))) as ColumnLayout["pins"],
+        pins: Object.fromEntries(parsePairs(raw, (v) => (v === "l" || v === "s" ? "start" : v === "r" || v === "e" ? "end" : null))) as ColumnLayout["pins"],
       };
     default:
       return {};

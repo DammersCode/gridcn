@@ -43,7 +43,7 @@ export function DataGridGroupHeaderCell({ segment, group, gridColOffset, width, 
     gridRow: depth + 1,
     gridColumn: `${start + gridColOffset} / ${end + gridColOffset}`,
     zIndex: pin ? 3 : 2,
-    ...pinnedInsetStyle(pin, pin === "right" ? end - 1 : start),
+    ...pinnedInsetStyle(pin, pin === "end" ? end - 1 : start),
   };
   const followsScroll = !pin && width > MIN_VISIBLE_LABEL_PX;
   const labelStyle: CSSProperties | undefined = followsScroll

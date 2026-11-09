@@ -18,7 +18,7 @@ function makeRows(count: number): Row[] {
 }
 
 const columns = defineColumns<Row>()([
-  { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "left" },
+  { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 260 },
 ] as const);

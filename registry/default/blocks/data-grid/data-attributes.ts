@@ -1,3 +1,4 @@
+import type { ColumnPin } from "./types";
 /**
  * Every grid-owned `data-*` DOM attribute, in one place. Each is stamped by exactly one component
  * (noted per entry) and read back by selectors/tests elsewhere — collecting them here means a typo
@@ -6,7 +7,7 @@
  * identifiers (`data-column-id`) that carry a consumer value rather than a fixed grid enum.
  */
 export const GRID_ATTR = {
-  /** cell.tsx: `"left" | "right"` when the column is pinned, absent otherwise. Also stamped boolean-style (`""`/absent) by the selection/fill/presence overlays when their rect falls in a pinned zone. */
+  /** cell.tsx: `"start" | "end"` when the column is pinned, absent otherwise. Also stamped boolean-style (`""`/absent) by the selection/fill/presence overlays when their rect falls in a pinned zone. */
   pinned: "data-pinned",
   /** cell.tsx: present (`""`) on a `data-grid-pinned-rows` band cell (rendered via `DataGridCell`'s `pinned` mode). */
   pinnedRow: "data-grid-pinned-row",
@@ -157,7 +158,7 @@ export type GridAttr = (typeof GRID_ATTR)[GridAttrName];
  * which is what `toHaveAttribute(attr, "true")` in tests is actually asserting against.
  */
 export type GridAttrValue = {
-  [GRID_ATTR.pinned]: "left" | "right" | "";
+  [GRID_ATTR.pinned]: ColumnPin | "";
   [GRID_ATTR.pinShadow]: "left" | "right" | "top" | "bottom";
   [GRID_ATTR.pinnedRowBand]: "top" | "bottom";
   [GRID_ATTR.sortIndicator]: "asc" | "desc";

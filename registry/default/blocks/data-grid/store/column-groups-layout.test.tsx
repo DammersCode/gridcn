@@ -119,7 +119,7 @@ describe("column groups and the column layout", () => {
     act(() => locked.store().getState().actions.setColumnOrder("ab", "c", "after"));
     expect(visibleIds(locked.store())).toEqual(["a", "b", "c"]);
 
-    const pinned = mount({ columns: [col("a"), col("b"), col("c", { pin: "right" })], columnGroups: [{ id: "ab", header: "AB", children: ["a", "b"] }] });
+    const pinned = mount({ columns: [col("a"), col("b"), col("c", { pin: "end" })], columnGroups: [{ id: "ab", header: "AB", children: ["a", "b"] }] });
     act(() => pinned.store().getState().actions.setColumnOrder("ab", "c", "after"));
     expect(visibleIds(pinned.store())).toEqual(["a", "b", "c"]);
   });

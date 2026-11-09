@@ -95,14 +95,14 @@ describe("defaultColumnLayout normalization", () => {
       defaultColumnLayout: {
         widths: { a: 999, c: 10, ghost: 120 },
         order: ["ghost", "c", "a"],
-        pins: { a: "left", b: "right", ghost: "left" },
+        pins: { a: "start", b: "end", ghost: "start" },
         hidden: ["ghost"],
       },
     });
 
     const s = store().getState();
     expect(s.columns.find((column) => column.id === "a")?.pin).toBeUndefined();
-    expect(s.columns.find((column) => column.id === "b")?.pin).toBe("right");
+    expect(s.columns.find((column) => column.id === "b")?.pin).toBe("end");
     expect(s.columnWidths).toEqual({ a: 200, c: 60 });
     expect(s.columnOrder).toEqual(["c", "a", "b"]);
     expect(s.hiddenColumns).toEqual([]);
@@ -110,7 +110,7 @@ describe("defaultColumnLayout normalization", () => {
 });
 
 describe("onColumnLayoutChange on no-op layout actions", () => {
-  const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "left" }), col("b"), col("c", { pinnable: false })];
+  const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "start" }), col("b"), col("c", { pinnable: false })];
 
   function mountWithSpy() {
     const onColumnLayoutChange = vi.fn();
@@ -121,11 +121,11 @@ describe("onColumnLayoutChange on no-op layout actions", () => {
   it("does not fire when setColumnPin keeps the pin", () => {
     const { actions, onColumnLayoutChange } = mountWithSpy();
 
-    act(() => actions().setColumnPin("a", "left"));
+    act(() => actions().setColumnPin("a", "start"));
     act(() => actions().setColumnPin("b", null));
 
     expect(onColumnLayoutChange).not.toHaveBeenCalled();
-    act(() => actions().setColumnPin("b", "right"));
+    act(() => actions().setColumnPin("b", "end"));
     expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
   });
 
@@ -177,7 +177,7 @@ describe("the column channel follows column identity", () => {
     act(() => store().getState().actions.setColumnHidden("a", true));
     expect(selectedColumnIds(store())).toEqual(["b"]);
 
-    act(() => store().getState().actions.setColumnPin("c", "left"));
+    act(() => store().getState().actions.setColumnPin("c", "start"));
     expect(selectedColumnIds(store())).toEqual(["b"]);
 
     rerender({ columns: [col("b"), col("a"), col("c")] });

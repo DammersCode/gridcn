@@ -1,4 +1,4 @@
-import type { ColumnGroupDef } from "../types";
+import type { ColumnGroupDef, ColumnPin } from "../types";
 
 /** Deepest nesting a group tree keeps; a deeper group is dropped with an issue. */
 export const MAX_GROUP_DEPTH = 8;
@@ -18,7 +18,7 @@ export type ColumnGroupModel = {
 };
 
 /** One group header cell: the visible columns `[start, end)` that share a group at one level. */
-export type HeaderSegment = { groupId: string; start: number; end: number; pin?: "left" | "right"; depth: number };
+export type HeaderSegment = { groupId: string; start: number; end: number; pin?: ColumnPin; depth: number };
 
 const NO_PATH: readonly string[] = [];
 const EMPTY_ROWS: readonly (readonly HeaderSegment[])[] = [];
@@ -243,7 +243,7 @@ export function moveGroupBlock(orderedIds: readonly string[], model: ColumnGroup
  * half-open column range. A segment ends at a group change or a pin zone change. O(columns x depth).
  */
 export function computeHeaderRows(
-  visibleColumns: readonly { id: string; pin?: "left" | "right" }[],
+  visibleColumns: readonly { id: string; pin?: ColumnPin }[],
   model: ColumnGroupModel | null,
 ): readonly (readonly HeaderSegment[])[] {
   if (!model) return EMPTY_ROWS;
@@ -260,7 +260,7 @@ export function computeHeaderRows(
     for (let index = 0; index < visibleColumns.length; index++) {
       const column = visibleColumns[index]!;
       const groupId = model.paths.get(column.id)?.[level];
-      const pin = column.pin === "left" || column.pin === "right" ? column.pin : undefined;
+      const pin = column.pin === "start" || column.pin === "end" ? column.pin : undefined;
       if (groupId === undefined) {
         open = null;
         continue;

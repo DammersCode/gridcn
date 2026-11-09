@@ -52,7 +52,7 @@ const columns = defineColumns<BenchRow>()([
   { id: "isActive", header: "Active", accessorKey: "isActive", type: "checkbox", width: 140 },
   { id: "website", header: "Website", accessorKey: "website", type: "url", width: 240 },
   { id: "attachments", header: "Attachments", accessorKey: "attachments", type: "text", width: 240 },
-  { id: "actions", header: "Actions", accessorKey: "actions", type: "text", readOnly: true, pin: "right", width: 60 },
+  { id: "actions", header: "Actions", accessorKey: "actions", type: "text", readOnly: true, pin: "end", width: 60 },
 ] as const);
 
 function generateRows(count: number): BenchRow[] {

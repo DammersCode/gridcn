@@ -1,5 +1,6 @@
 "use client";
 
+import type { ColumnPin } from "../types";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { getElementStore, type ScrollSnapshot } from "./use-scroll-snapshot";
 import { createVelocityEstimator, updateVelocityEstimate, VELOCITY_OVERSCAN_CAP_PX, type VelocityEstimator } from "./velocity-estimator";
@@ -9,7 +10,7 @@ export type UseColumnWindowOptions = {
   /** Resolved px width per visible column, in display order. */
   widths: number[];
   /** Pin state per visible column, in the same display order as `widths`. */
-  pins: (("left" | "right") | undefined)[];
+  pins: (ColumnPin | undefined)[];
   /** Extra unpinned columns rendered beyond the visible viewport on each side. */
   overscan?: number;
   /** Marker column width (px), 0 when `rowMarkers` is 'none'; shifts the viewport band into the real DOM coordinate space, which includes the marker track (`layout.totalWidth`). */
@@ -57,24 +58,24 @@ function findLastIndexAt(rights: number[], x: number): number {
 
 function buildIndices(
   widths: number[],
-  pins: (("left" | "right") | undefined)[],
+  pins: (ColumnPin | undefined)[],
   unpinnedStart: number,
   unpinnedEnd: number,
 ): number[] {
   const indices: number[] = [];
   for (let i = 0; i < widths.length; i++) {
-    if (pins[i] === "left") indices.push(i);
+    if (pins[i] === "start") indices.push(i);
   }
   for (let i = Math.max(0, unpinnedStart); i < Math.min(widths.length, unpinnedEnd); i++) {
     if (pins[i] === undefined) indices.push(i);
   }
   for (let i = 0; i < widths.length; i++) {
-    if (pins[i] === "right") indices.push(i);
+    if (pins[i] === "end") indices.push(i);
   }
   return indices;
 }
 
-function initialIndices(widths: number[], pins: (("left" | "right") | undefined)[]): number[] {
+function initialIndices(widths: number[], pins: (ColumnPin | undefined)[]): number[] {
   return buildIndices(widths, pins, 0, Math.min(widths.length, INITIAL_PREVIEW_COUNT));
 }
 
@@ -86,8 +87,8 @@ function computeIndices(snapshot: ScrollSnapshot, opts: Required<UseColumnWindow
   let pinnedRightWidth = 0;
   for (let i = 0; i < widths.length; i++) {
     // hot loop (per-scroll-tick): i < widths.length by loop condition, pins is same-length parallel array
-    if (pins[i] === "left") pinnedLeftWidth += widths[i]!;
-    if (pins[i] === "right") pinnedRightWidth += widths[i]!;
+    if (pins[i] === "start") pinnedLeftWidth += widths[i]!;
+    if (pins[i] === "end") pinnedRightWidth += widths[i]!;
   }
 
   // dir="rtl" scroll containers report scrollLeft <= 0 growing negative as the user scrolls;

@@ -10,6 +10,7 @@ import type {
   ColumnDef,
   ColumnGroupDef,
   ColumnLayout,
+  ColumnPin,
   DataChange,
   DataGridApi,
   DataGridPlugin,
@@ -1090,7 +1091,7 @@ export type DataGridActions = {
    */
   setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
   /** Pins/unpins a column (`null` = unpinned). No-op when the id is unknown, the column's `pinnable: false`, grid-wide `enableColumnPinning` is false, or the pin already matches. Fires `onColumnLayoutChange` once on a real change. */
-  setColumnPin(id: string, pin: "left" | "right" | null): void;
+  setColumnPin(id: string, pin: ColumnPin | null): void;
   /**
    * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
    * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW

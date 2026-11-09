@@ -666,7 +666,7 @@ describe("pointerToCoord pinned-column hit-testing", () => {
     pinnedBottomHeight: 0,
     pinnedLeftWidth: 100,
     pinnedRightWidth: 100,
-    pins: ["left", undefined, undefined, "right"],
+    pins: ["start", undefined, undefined, "end"],
   };
 
   function scrolledElement(scrollLeft: number, clientWidth = 300): HTMLElement {

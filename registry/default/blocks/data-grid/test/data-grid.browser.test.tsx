@@ -133,7 +133,7 @@ describe("DataGrid in a real browser", () => {
         accessorFn: (r: Row) => (r.age * 31 + i) % 1000,
         type: "number" as const,
         width: 100,
-        ...(opts?.firstPinnedLeft && i === 0 ? { pin: "left" as const } : {}),
+        ...(opts?.firstPinnedLeft && i === 0 ? { pin: "start" as const } : {}),
       }));
       return cols;
     }
@@ -354,7 +354,7 @@ describe("DataGrid in a real browser", () => {
 
     it("keeps a pinned-left column cell at the grid's left edge after horizontal scroll", async () => {
       const pinnedColumns = [
-        { id: "id", header: "ID", accessorKey: "id" as const, type: "text" as const, width: 120, pin: "left" as const },
+        { id: "id", header: "ID", accessorKey: "id" as const, type: "text" as const, width: 120, pin: "start" as const },
         ...Array.from({ length: 40 }, (_, i) => ({
           id: `x${i}`,
           header: `X${i}`,
@@ -375,7 +375,7 @@ describe("DataGrid in a real browser", () => {
       grid.dispatchEvent(new Event("scroll"));
       await new Promise((r) => setTimeout(r, 200));
 
-      const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "left")}`)!;
+      const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
       // grid's own 1px border offsets its bounding rect from its content box, where the cell sits.
       const gridRect = grid.getBoundingClientRect();
       const expectedLeft = gridRect.left + grid.clientLeft;

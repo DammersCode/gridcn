@@ -325,8 +325,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     let pinnedRightWidth = 0;
     for (let i = 0; i < widths.length; i++) {
       // i < widths.length by loop condition, pins is same-length parallel array
-      if (pins[i] === "left") pinnedLeftWidth += widths[i]!;
-      if (pins[i] === "right") pinnedRightWidth += widths[i]!;
+      if (pins[i] === "start") pinnedLeftWidth += widths[i]!;
+      if (pins[i] === "end") pinnedRightWidth += widths[i]!;
     }
     return {
       trackLefts: lefts,

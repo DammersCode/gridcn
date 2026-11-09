@@ -50,7 +50,7 @@ import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-gr
  */
 export type GridMenuItemSpec =
   | {
-      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `fill-down`, `fill-right`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
+      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `fill-down`, `fill-right`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
       id: string;
       /** Display label; i18n is the caller's (the built-ins use `labels.contextMenu`). */
       label: string;
@@ -230,8 +230,8 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
     specs.push({ id: "sep-sort", separator: true });
   }
   specs.push(
-    { id: "pin-left", label: labels.contextMenu.pinStart, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "left") },
-    { id: "pin-right", label: labels.contextMenu.pinEnd, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "right") },
+    { id: "pin-start", label: labels.contextMenu.pinStart, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "start") },
+    { id: "pin-end", label: labels.contextMenu.pinEnd, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "end") },
   );
   if (column.pin != null) {
     specs.push({ id: "unpin", label: labels.contextMenu.unpin, icon: <PinOff className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, null) });
