@@ -242,7 +242,7 @@ export type DataGridSyncProps<TData = unknown> = {
   announceResults?: boolean;
   /**
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
-   * item, and `actions.deleteRows` / `deleteRowsById`. `rowIds` are the rows that go; `hiddenCount`
+   * item, and `actions.deleteRows` / `deleteRowsById` (except `deleteRowsById` with `source: "stream"`). `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
    * A pending promise blocks a second delete. A throw or a rejection cancels. `signal` aborts when
    * the grid goes read-only, the rows or the checked rows change, or the grid unmounts; an aborted

@@ -549,7 +549,7 @@ const ACTION_PURPOSE = {
   checkRowRange: "Checks or unchecks the rows from the anchor row to a target view index.",
   setAllRowsSelected: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching.",
   selectAllMatching: "Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or without `checkedRowsLifetime='across-filters'`.",
-  setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row.",
+  setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size.",
   cancelEditing: "Discards the open edit. It writes nothing.",
   pushRange: "Adds a new range at a `CellRef`, as a Ctrl or Cmd click does.",
   updateRows: "Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`.",

@@ -48,7 +48,7 @@ In a left-to-right page, start means left. In a right-to-left page, start means 
 
 The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
 
-At run time, users pin and unpin through the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface). Your code calls `setColumnPin(id, "left" | "right" | null)`. `pinnable: false` on a column and `enableColumnPinning={false}` on the grid turn pinning off.
+At run time, users pin and unpin through the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface). Your code calls `setColumnPin(id, "left" | "right" | null)`. `pinnable: false` on a column and `enableColumnPinning={false}` on the grid turn off pin changes at run time. The `pin` field of a column still applies.
 
 A soft shadow marks the edge of a pinned zone. It shows only while content scrolls out underneath. [Density and small screens](/docs/theme-style-language/density-small-screens#scroll-shadows) lists the CSS variables that style it.
 

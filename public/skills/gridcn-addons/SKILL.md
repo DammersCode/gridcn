@@ -128,7 +128,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - Every gate gets an `AbortSignal` as its last argument (`processPaste({ cells, target, signal })`, `validateRow(row, rowId, { signal })`, `onEditStart(cell, { signal })`, `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`, `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`). Pass it to `fetch`. It aborts when a newer run replaces the gate, when the result cannot apply, and on unmount.
 - `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `data-gate-pending` meanwhile.
 - `gateTimeoutMs` on `DataGridProvider` (one number, or one per gate name; off by default) aborts a gate whose promise never settles. `onGateAborted({ gate, reason })` reports each stop (`"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, `"reset"`).
-- Row actions return `{ ok: true }` or `{ ok: false, reason }`; `onRowActionSkipped({ action, reason })` on the provider reports every skip of an insert, duplicate, or delete call and of the matching shortcuts when the grid is read-only, a factory is missing, or hidden or all-matching rows are checked (a shortcut with no target row reports nothing); a disabled menu item fires nothing.
+- Row actions return `{ ok: true }` or `{ ok: false, reason }`; `onRowActionSkipped({ action, reason })` on the provider reports every skip of an insert, duplicate, or delete call and of the matching shortcuts when the grid is read-only, a factory is missing, or hidden or all-matching rows are checked (a shortcut calls the action otherwise, and Insert row with no active cell reports nothing); a disabled menu item fires nothing.
 
 ## Bounds and failure reporting
 

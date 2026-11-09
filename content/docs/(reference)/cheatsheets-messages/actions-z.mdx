@@ -61,7 +61,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setColumnWidth` | Writes a column width while a resize drag moves. Fires `onColumnResizing`. | [Column sizing](/docs/columns/column-sizing) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setRowSelected` | Checks or unchecks one row by view index. It sets the state and never toggles. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setSearch` | Sets the quick-search text. With `options`, it also sets the search options. | [Quick search](/docs/sort-filter-search/quick-search) |
 | `setSelection` | Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection. | [Selection and cell events](/docs/events-state/selection-cell-events) |

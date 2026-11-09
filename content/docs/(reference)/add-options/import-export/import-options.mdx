@@ -101,7 +101,7 @@ The result lists each cleared cell:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/build-imported-rows.ts" name="BuildImportedRowsResult" />
 
-The function returns the result itself for 5,000 data rows or fewer with synchronous validators, a synchronous `createRow`, and no `processCellFromText`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
+The function returns the result itself for 5,000 data rows or fewer with synchronous validators, a synchronous `createRow`, and no `processCellFromText`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows, or one with `processCellFromText`, rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
 
 `mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries.
 

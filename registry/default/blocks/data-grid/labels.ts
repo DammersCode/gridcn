@@ -196,7 +196,7 @@ export type DataGridMarkerLabels = {
 export type DataGridGridLabels = {
   /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
-  /** Shown instead of `emptyState` when a filter or the search leaves zero rows. */
+  /** Shown instead of `emptyState` when a filter or a server search leaves zero rows. */
   noResults: string;
   /** The built-in error state of `DataGridRoot` (`error`). */
   errorState: string;

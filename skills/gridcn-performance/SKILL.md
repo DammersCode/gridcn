@@ -14,7 +14,7 @@ Scope: render and scroll cost of an existing grid. Building a cell type → `gri
 Before changing anything, capture a baseline so the fix is verifiable:
 
 1. Open the browser console in a dev build (`NODE_ENV !== "production"`) and reproduce the slow interaction (scroll, type, edit). Note every `[data-grid]`-prefixed warning and the `gridcn: the grid viewport shows more than...` warning verbatim.
-2. Open React DevTools Profiler, record the same interaction, and note which row/cell components re-render on a single scroll tick or keystroke. A one-row scroll step should re-render only the entering row's cells — anything more is the symptom this checklist explains.
+2. Open React DevTools Profiler, record the same interaction, and note which row/cell components re-render on a single scroll tick or keystroke. A one-row scroll step should re-render about two rows of cells (the entering row plus one row of slack) — anything more is the symptom this checklist explains.
 
 Without a browser, skip the recording: for each fix, name the checklist symptom (warning text) it removes.
 

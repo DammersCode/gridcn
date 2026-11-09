@@ -158,7 +158,7 @@ Hidden checked rows stay out of the controlled `selection` and select all. Row o
 
 <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them, and so does a click on a row number. Switching to `sortMode="server"` or `filterMode="server"` without `totalRowCount` clears them.
 
-`useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two cells selected, it shows `3 hidden checked rows`.
+`useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two valued cells selected, it shows `3 hidden checked rows`.
 
 The grid remembers at most 100,000 hidden checked rows and warns once in development after it drops rows. Without `totalRowCount`, a grid that sorts or filters on the server behaves like `'until-cleared'`, and so does a grid with unloaded rows. Both warn once in development.
 
