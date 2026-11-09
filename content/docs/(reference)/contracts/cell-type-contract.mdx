@@ -43,7 +43,7 @@ Each feature reads the value through its own member. One override does not reach
 | Sort | The column's `sortCompare`, else `compare`, else a numeric-aware collation of `String(value)` |
 | Quick search | `toSearchText`, else `toText` |
 | Filter | The raw value, through the column's `filterMatch`, `filter.match`, or the built-in text matcher |
-| Fill | `toText` of the source cells, then the `fromText` of the target column |
+| Fill | `toText` of the source cells, then the `fromText` of the target column. A repeat inside one column writes the stored source value |
 
 A custom `toText` changes copy, export, and search. It does not change what a filter matches. A column with no declared type searches `String(value)`.
 
@@ -74,7 +74,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 `clearValue` is the value that Delete writes into a cleared cell. It is also the value that `fromText` returns for text it cannot parse.
 
-`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. The built-in types differ. `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one.
+`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. The built-in types differ. `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. Fill also reads `isEmpty`. If `fromText` returns an empty value for a generated text that is not blank, the fill writes no series to that column and repeats the source values.
 
 ### validate [#validate]
 

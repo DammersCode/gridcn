@@ -73,29 +73,24 @@ function cellText(s: DataGridReadState, viewRow: number, colIndex: number): stri
   return cellType.toText(value, column.options);
 }
 
-/**
- * The raw value the plain copy of the source puts at strip cell (`row`, `col`), or `undefined` when
- * that source cell has another column type. A closed value set (select, lookup) cannot read back a
- * series text or an unresolved key, so the fill copies the stored value instead of clearing the cell.
- */
-function tiledSourceValue(
+/** The source cell the plain copy puts at strip cell (`row`, `col`): its column and stored value. */
+function tiledSourceCell(
   s: DataGridReadState,
   source: GridRect,
   relativeStrip: GridRect,
   direction: FillDirection,
   row: number,
   col: number,
-  type: string | undefined,
-): unknown {
+): { columnId: string; value: unknown } | undefined {
   const wrap = (index: number, size: number) => ((index % size) + size) % size;
   const vertical = direction === "up" || direction === "down";
   const sourceRow = vertical ? wrap(relativeStrip.y + row, source.height) : relativeStrip.y + row;
   const sourceCol = vertical ? relativeStrip.x + col : wrap(relativeStrip.x + col, source.width);
   const column = s.visibleColumns[source.x + sourceCol];
-  if (!column || (column.type ?? "text") !== (type ?? "text")) return undefined;
   const dataRowIndex = s.viewIndex[source.y + sourceRow];
   const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-  return dataRow === undefined ? undefined : getCellValue<unknown, typeof column>(dataRow, column);
+  if (!column || dataRow === undefined) return undefined;
+  return { columnId: column.id, value: getCellValue<unknown, typeof column>(dataRow, column) };
 }
 
 /** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
@@ -128,7 +123,13 @@ export function buildFillCandidates(
   const relativeStrip = rectRelativeTo(strip, source);
   const filled = generateFill(sourceValues, relativeStrip, direction, opts);
 
-  const candidates: BulkCandidate[] = [];
+  const tiled = generateFill(sourceValues, relativeStrip, direction, { ...opts, forceCopy: true });
+  const vertical = direction === "up" || direction === "down";
+  // a run is the strip column of a vertical fill and the strip row of a horizontal one
+  const runOf = (row: number, col: number) => (vertical ? col : row);
+  const seriesRuns = new Set<number>();
+  const rejectedRuns = new Set<number>();
+  const entries: { row: number; col: number; viewRow: number; column: (typeof s.visibleColumns)[number]; cellType: NonNullable<(typeof s.cellTypes)[string]>; dataRow: Exclude<(typeof s.data)[number], undefined>; rowId: string; value: unknown }[] = [];
   let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
     const viewRow = strip.y + row;
@@ -153,13 +154,24 @@ export function buildFillCandidates(
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
       const text = filled[row]![col]!;
-      let value = cellType.fromText(text, column.options);
-      if (text !== "" && cellType.isEmpty(value)) {
-        value = tiledSourceValue(s, source, relativeStrip, direction, row, col, column.type) ?? value;
-      }
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
+      const value = cellType.fromText(text, column.options);
+      if (text !== tiled[row]![col]!) seriesRuns.add(runOf(row, col));
+      if (text !== "" && cellType.isEmpty(value)) rejectedRuns.add(runOf(row, col));
+      entries.push({ row, col, viewRow, column, cellType, dataRow, rowId, value });
     }
   }
+
+  const candidates: BulkCandidate[] = entries.map((entry) => {
+    const run = runOf(entry.row, entry.col);
+    const rejected = rejectedRuns.has(run);
+    let value = entry.value;
+    if (rejected || !seriesRuns.has(run)) {
+      const sourceCell = tiledSourceCell(s, source, relativeStrip, direction, entry.row, entry.col);
+      if (sourceCell?.columnId === entry.column.id) value = sourceCell.value;
+      else if (rejected) value = entry.cellType.fromText(tiled[entry.row]![entry.col]!, entry.column.options);
+    }
+    return { viewRowIndex: entry.viewRow, columnId: entry.column.id, value, validate: resolveColumnValidate(entry.column, entry.cellType), row: entry.dataRow, rowId: entry.rowId };
+  });
   if (skippedHoleRows > 0 && isDev()) {
     console.warn(
       `[data-grid-fill] the fill target skipped ${skippedHoleRows} unloaded row(s) (lazy grid): unloaded cells are never filled and the selection still expands over them. Fill over a lazy grid covers loaded rows only.`,
