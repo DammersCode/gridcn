@@ -157,8 +157,9 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "pag
  * sparse `data`) are skipped in every scope. `options.maxRows` caps the number of rows built.
  */
 export function buildExportRows(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
-  const { text = "export", maxRows } = options;
+  const { text = "export" } = options;
   const dataIndices = exportDataIndices(state, scope);
+  const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
   return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), text) as string[][];
 }
 
@@ -176,7 +177,8 @@ function buildRowsAt<TData>(
 type ExportColumn = DataGridReadState["visibleColumns"][number];
 
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
-function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", maxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
+function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
+  const maxRows = rawMaxRows === undefined ? undefined : normalizeLimit(rawMaxRows, Number.POSITIVE_INFINITY);
   const columns = resolveExportColumns(state, shape.columns);
   const dataIndices = exportDataIndices(state, scope);
   if (maxRows !== undefined && dataIndices.length > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
@@ -242,8 +244,7 @@ export async function buildXlsx<TData = unknown>(state: DataGridReadState, optio
  */
 export function buildCsv<TData = unknown>(state: DataGridReadState, options: BuildCsvOptions<TData> = {}): Blob {
   const { scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true } = options;
-  const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
-  const rows = buildCappedExportRows(state, scope, maxRows, options, false) as string[][];
+  const rows = buildCappedExportRows(state, scope, options.maxRows, options, false) as string[][];
   const table = includeHeaders ? [buildExportHeaders(state, options.columns), ...rows] : rows;
   return new Blob([(csvBom ? BOM : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas)], { type: "text/csv;charset=utf-8;" });
 }
