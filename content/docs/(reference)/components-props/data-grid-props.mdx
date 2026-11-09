@@ -71,7 +71,7 @@ These props set the look and the states of the grid. When you compose the parts 
 | `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
 | `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
 | `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. |
-| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or the search hides every row. |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or a server search hides every row. |
 | `loading` | `boolean` | `false` | Shows the loading skeleton or the loading bar. |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none | Replaces the built-in loading display. |
 | `error` | `unknown` | none | Any value except `undefined` and `null` shows the error state. |

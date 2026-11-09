@@ -92,7 +92,7 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 By default a rejection blocks the commit. Set `onInvalid: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
-A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
+A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, and import still drop rejected cells in a soft column. Import writes an empty value.
 
 This column flags a note over 12 characters:
 
@@ -143,7 +143,7 @@ const columns = defineColumns<Contact>()([
 
 ## Report rejected cells [#onvalidationerror]
 
-After a paste, a fill, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value.
+After a paste, a fill, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
 
 {/* props: GridValidationErrorEvent */}
 

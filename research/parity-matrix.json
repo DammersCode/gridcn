@@ -1337,11 +1337,11 @@
       "cells": {
         "L": {
           "status": "n/a",
-          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See [Stream updates](/docs/rows-live-data/stream-updates)."
         },
         "PC": {
           "status": "n/a",
-          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See [Stream updates](/docs/rows-live-data/stream-updates)."
         },
         "PS": {
           "status": "supported",

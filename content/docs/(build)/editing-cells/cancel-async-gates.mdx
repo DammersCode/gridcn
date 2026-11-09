@@ -48,7 +48,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
 
-`gateTimeoutMs` covers the first six gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working.
+`gateTimeoutMs` covers the first six gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working. `processCellFromClipboard` can return a promise, but it receives no `signal`, has no `gateTimeoutMs` timeout, and is not in the pending set.
 
 ## Stop waiting for a slow gate [#gate-timeout]
 

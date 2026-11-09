@@ -1,11 +1,4 @@
 # Names that are not gridcn symbols but appear in docs prose. Names separated by spaces, reason after #.
-onMutate # TanStack Query option
-useDataGridLazyRows # removed in 2.0, named on the Migrate to 2.0 page
-useDataGridInfiniteRows # removed in 2.0, named on the Migrate to 2.0 page
-DataGridLazyGuard # removed in 2.0, named on the Migrate to 2.0 page
-onWriteRejected # renamed in 2.0, named on the Migrate to 2.0 page
-useDataGridRowWriteStatus # renamed in 2.0, named on the Migrate to 2.0 page
-useDataGridPendingWriteCount # renamed in 2.0, named on the Migrate to 2.0 page
 # Internal exports that docs name for another reason. A "page.mdx: names" line allows them on that page only.
 selectRow selectColumn # keymap action names
 selectCell extendTo pushRange extendSelection # store actions on api.actions
@@ -13,4 +6,4 @@ formatValue # DataGridStatusBar prop
 clampRectToWindow splitRectByPinZones # members of OverlayPluginCtx
 MAX_COPY_CELLS MAX_PASTE_CELLS # named in the truncation warnings
 StandardSchemaV1 # column-def.mdx tells the reader to import it from data-grid/types
-migrate-2-0.mdx: useDataGridRowCount useDataGridHasActiveCell useDataGridIsSearchMatch useDataGridIsRowSelected useDataGridIsRowChannelSelected useDataGridIsRowCellSelected useDataGridAllRowsSelected useDataGridHeaderClickBehavior useDataGridRowMarkers deepMergeLabels measureTextWidths pageCount clampPage pageRange pageWindow DEFAULT_PAGE_SIZES operatorLabel downloadBlob operatorsForColumnType operatorHasValue buildExportHeaders quoteCsvField IMPORT_PREVIEW_ROW_COUNT KEYBINDING_CATEGORIES ACTION_CATEGORY categoryForAction categoryLabel KeybindingCategory labelForAction UseDataGridPaginationServerOptions # removed exports
+migrate-2-0.mdx: useDataGridLazyRows DataGridLazyGuard useDataGridRowCount useDataGridHasActiveCell useDataGridIsSearchMatch useDataGridIsRowSelected useDataGridIsRowChannelSelected useDataGridIsRowCellSelected useDataGridAllRowsSelected useDataGridHeaderClickBehavior useDataGridRowMarkers deepMergeLabels measureTextWidths pageCount clampPage pageRange pageWindow DEFAULT_PAGE_SIZES operatorLabel downloadBlob operatorsForColumnType operatorHasValue buildExportHeaders quoteCsvField IMPORT_PREVIEW_ROW_COUNT KEYBINDING_CATEGORIES ACTION_CATEGORY categoryForAction categoryLabel KeybindingCategory labelForAction UseDataGridPaginationServerOptions # removed exports

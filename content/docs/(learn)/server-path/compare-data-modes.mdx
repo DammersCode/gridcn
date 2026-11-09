@@ -27,7 +27,7 @@ With a local array, the grid sorts, filters, and searches `data` itself. With a 
 
 The browser limits how many rows one grid scrolls. See [Row limits](/docs/performance/row-limits). A result above that limit needs pages mode, because a scroll mode source with a row count shows every row in one list.
 
-Scroll mode picks random access or a sequential source from the first answer. An answer with `totalRowCount` and no `nextCursor` gives random access. Any other first answer gives a sequential source.
+By default, scroll mode picks random access or a sequential source from the first answer. Set `source: "indexed"` or `source: "cursor"` to fix the choice. An answer with `totalRowCount` and no `nextCursor` gives random access. Any other first answer gives a sequential source.
 
 ## See the difference in code [#see-the-difference]
 

@@ -89,7 +89,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 ## Pagination [#pagination]
 
 - `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
-- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. The options type `UseDataGridPaginationServerOptions` is `UseDataGridServerPagerOptions`.
+- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. The options type `UseDataGridPaginationServerOptions` is renamed `UseDataGridServerPagerOptions`.
 - `total` is `totalRowCount` in the pager and in `useDataGridUrlPagination`. `null` marks an unknown size.
 - `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
 - To page the grid view, set `pageSize` on the provider instead of `pageData`.
@@ -97,7 +97,7 @@ Scroll mode starts a block request after `loadDelay` milliseconds (default 100).
 ## Filters [#filters]
 
 - `FilterOperator` accepts any string. A `switch` over it needs a default branch. `BuiltInFilterOperator` is the closed set.
-- A grid that a filter or the search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
+- A grid that a filter or a server search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
 
 ## Selection [#selection]
 
