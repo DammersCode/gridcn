@@ -585,6 +585,7 @@ function buildDefaultLabels(locale: string): DataGridLabels {
         openFind: "Find",
         focusSearch: "Search",
         openFindReplace: "Find and replace",
+        openKeybindings: "Show keyboard shortcuts",
 
         edit: "Edit cell",
         typeToReplace: "Type to replace",

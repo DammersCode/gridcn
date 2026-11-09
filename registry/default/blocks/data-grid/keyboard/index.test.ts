@@ -380,7 +380,7 @@ describe("GridAction coverage", () => {
   const IMPLICIT_FALLBACK_ACTIONS: readonly GridAction[] = ["typeToReplace"];
 
   // Bound only through the keymap of the add-on that implements them (find-replace binds its own keys).
-  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace", "openFind"];
+  const PLUGIN_BOUND_ACTIONS: readonly GridAction[] = ["openFindReplace", "openFind", "openKeybindings"];
 
   // Record<GridAction, true> makes this exhaustive at compile time: adding a new GridAction member
   // without adding it here is a tsc error, not a silently-passing test.
@@ -406,6 +406,7 @@ describe("GridAction coverage", () => {
     openLink: true,
     openFindReplace: true,
     openFind: true,
+    openKeybindings: true,
     focusSearch: true,
   };
 
@@ -563,11 +564,11 @@ describe("matchKeymap - bare punctuation ignores Shift", () => {
   });
 
   it("requires Shift when the binding names it, and prefers that binding", () => {
-    const keymap2 = { openFind: ["mod+/"], openKeybindings: ["mod+shift+/"] } as Keymap;
+    const keymap2 = { openFind: ["mod+/"], openKeybindings: ["mod+shift+/"] } satisfies Keymap;
     const slash = (shiftKey: boolean): KeymapEvent => ({ key: "/", ctrlKey: true, metaKey: false, shiftKey, altKey: false });
     expect(matchKeymap(slash(true), keymap2, false)).toBe("openKeybindings");
     expect(matchKeymap(slash(false), keymap2, false)).toBe("openFind");
-    expect(matchKeymap(slash(false), { openKeybindings: ["mod+shift+/"] } as Keymap, false)).toBeNull();
+    expect(matchKeymap(slash(false), { openKeybindings: ["mod+shift+/"] }, false)).toBeNull();
   });
 
   it("keeps Shift exact for a letter binding", () => {

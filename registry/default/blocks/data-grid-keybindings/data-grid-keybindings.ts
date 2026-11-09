@@ -7,3 +7,10 @@ export {
   type UseDataGridKeybindingsResult,
 } from "./use-data-grid-keybindings";
 export { BindingChips } from "./binding-label";
+
+// Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.
+declare module "../data-grid/types" {
+  interface GridActions {
+    openKeybindings: true;
+  }
+}
