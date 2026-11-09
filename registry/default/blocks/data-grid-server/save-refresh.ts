@@ -50,7 +50,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   useLayoutEffect(() => {
     live.current = { options, refresh };
   });
-  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
+  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, waitExpired: false, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
@@ -76,8 +76,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
     if (current.counts.saved + current.counts.rejected === 0) {
       current.counts = { saved: 0, rejected: 0, failed: 0 };
       current.changes = [];
+      if (force) current.waitExpired = true;
       return;
     }
+    current.waitExpired = false;
     const report: SaveRefreshReport = { ...current.counts, changes: current.changes, pending: current.inflight };
     current.counts = { saved: 0, rejected: 0, failed: 0 };
     current.changes = [];
@@ -100,7 +102,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       if (current.changes.length < 100) current.changes.push(change);
       if (current.scheduled) return;
       current.scheduled = true;
-      setTimeout(() => decide(), 0); // after the grid has settled the row, so the refresh sees it as saved
+      setTimeout(() => decide(current.waitExpired), 0); // after the grid has settled the row, so the refresh sees it as saved
     },
     [decide],
   );
@@ -134,7 +136,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       }
       if (!isThenable(result)) return result;
       state.current.inflight += 1;
-      if (state.current.maxWait === null) state.current.maxWait = setTimeout(() => decide(true), SAVE_REFRESH_MAX_WAIT_MS);
+      if (state.current.maxWait === null) {
+        state.current.waitExpired = false;
+        state.current.maxWait = setTimeout(() => decide(true), SAVE_REFRESH_MAX_WAIT_MS);
+      }
       return Promise.resolve(result).then(
         (ack) => {
           state.current.inflight -= 1;

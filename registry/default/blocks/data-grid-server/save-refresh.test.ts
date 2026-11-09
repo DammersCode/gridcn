@@ -101,6 +101,21 @@ describe("useSaveRefresh", () => {
     expect(m.refresh).toHaveBeenCalledTimes(1);
   });
 
+  it("refreshes when a save settles after the max wait ran out with nothing settled", async () => {
+    const hanging = deferred();
+    const late = deferred();
+    const queue = [hanging, late];
+    const m = mount({ onSave: () => queue.shift()!.promise as Promise<void> });
+    void m.save();
+    const second = m.save();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(SAVE_REFRESH_MAX_WAIT_MS + 500)));
+    expect(m.refresh).not.toHaveBeenCalled();
+    late.resolve(undefined);
+    await second;
+    await flush();
+    expect(m.refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("passes the ack through unchanged", async () => {
     const ack = { rejected: [] };
     const m = mount({ onSave: async () => ack });
