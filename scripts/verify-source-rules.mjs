@@ -10,7 +10,6 @@ export const CHANNEL_LIST_ALLOWLIST = new Map([
   ["registry/default/blocks/data-grid/selection/compact-selection.ts", { count: 1, reason: "adopt rebuilds a structural channel that has only toArray" }],
   ["registry/default/blocks/data-grid/selection/selected-view-rows.ts", { count: 2, reason: "getSelectedViewRows returns every selected view row as a list" }],
   ["registry/default/blocks/data-grid/body.tsx", { count: 1, reason: "reorderRows takes the dragged rows as a list, and its move plan is linear in the row count" }],
-  ["registry/default/blocks/data-grid/interaction/use-grid-interaction.ts", { count: 1, reason: "moveRowsBy takes the rows as a list, and its move plan is linear in the row count" }],
   ["registry/default/blocks/data-grid/clipboard/use-grid-clipboard.ts", { count: 1, reason: "the column channel holds at most one member per visible column" }],
 ]);
 

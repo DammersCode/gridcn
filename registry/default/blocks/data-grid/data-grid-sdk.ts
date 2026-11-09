@@ -30,6 +30,7 @@ export {
   type GridDirection,
 } from "./virtualization/direction";
 
+export { rowOperationTargets } from "./store/row-operation-targets";
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
 export { hasAnyPin } from "./overlays";
 

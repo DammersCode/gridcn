@@ -39,9 +39,8 @@ import {
   useDataGridSelection,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { rowOperationTargets, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
-import { rowOperationTargets } from "@/registry/default/blocks/data-grid/store/row-operation-targets";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**

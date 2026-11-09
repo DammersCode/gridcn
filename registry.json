@@ -161,6 +161,11 @@
                "target": "components/data-grid/columns/column-helpers.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/columns/column-pin.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/columns/column-pin.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/columns/index.ts",
                "type": "registry:component",
                "target": "components/data-grid/columns/index.ts"
