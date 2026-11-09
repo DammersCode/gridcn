@@ -148,7 +148,7 @@ The OS or the browser owns some key combinations. A binding on one of them never
 
 | Chord | Owner |
 | --- | --- |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. If a user types a character such as `@` on a German layout, a `ctrl+alt` or `mod+alt` binding fires. |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. On a German layout, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Q</kbd> types `@`, so a `mod+alt+q` or `ctrl+alt+q` binding never fires there. The grid matches the typed character, so only a binding on that character, such as `mod+alt+@`, fires. |
 | <kbd>Cmd</kbd>+<kbd>Space</kbd> | macOS Spotlight. |
 | <kbd>Ctrl</kbd>+<kbd>Option</kbd> with any key | VoiceOver on macOS, while it runs. For example, <kbd>Ctrl</kbd>+<kbd>Option</kbd>+<kbd>Space</kbd> activates an item. |
 | `mod` with <kbd>+</kbd>, <kbd>-</kbd>, or <kbd>=</kbd> | Browser zoom. The page cannot stop it. |

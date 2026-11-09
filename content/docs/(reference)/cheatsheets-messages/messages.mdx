@@ -36,6 +36,7 @@ These warnings come from the props that you pass to the grid.
 | `[data-grid] onEditEnd threw: <error>` | Fix the error in the `onEditEnd` of an edit that a view change ends. The grid prints the error after the text, and its other updates still run. This one is a console error. | [Event shapes](/docs/events-state/event-shapes#callback-errors) |
 | `[data-grid] select all matching is cleared: more than 100000 rows were excluded` | Uncheck fewer rows while all matching is on, or narrow the filter and select all matching again. | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `[data-grid] remembered checked rows are capped at 100000; the rest are dropped` | The grid remembers at most 100,000 hidden checked rows. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `[data-grid] invalid date format options, showing the ISO text: <error>` | Fix the `displayFormat` or `locale` of the date column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] invalid number format options, showing the raw value: <error>` | Fix the `format` options of the number column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] autosizeColumns: unknown column id "<id>"` | Pass column ids that exist. | [Column sizing](/docs/columns/column-sizing) |
 | `[data-grid] <action> found no <trigger> for "<id>"; wire <slot> to enable it` | Render the header menu or header filter that the slot prop names. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |

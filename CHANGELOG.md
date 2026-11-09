@@ -9,10 +9,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: `exportGrid`, `buildXlsx`, and `buildExportRows` count a `maxRows` below 0 as 0 and read `NaN` as no cap. A negative `maxRows` dropped rows from the end, and `NaN` exported no rows.
+- Fix: `history.rollback` on a lazy grid with unloaded rows skips the unloaded rows. It threw in `getRowId`.
 - Fix: a `date` column with a `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning. It threw a `RangeError` while the cell rendered.
 - Fix: `DataGridPaginationBar` reads the `labels.pagination` of the enclosing `DataGridProvider`, with its own `labels` prop on top. A `labels` prop on the grid never reached the bar. Add-on authors get `useDataGridLabelsIfPresent` from `data-grid-sdk`.
 - Fix: on Windows, a character typed with AltGr, such as `@`, `€`, `{`, `\`, or `ł`, on the active cell starts an edit seeded with that character. Windows reports AltGr as Ctrl+Alt, so the grid ignored it. Ctrl+Alt+letter on a layout without AltGr still starts no edit.
-- Fix: `deleteRows` and `deleteRowsById` return `{ ok: false, reason: "nothing-to-do" }` and fire `onRowActionSkipped` when no row matches, also without `onBeforeDeleteRows`. They returned `{ ok: true }`.
 - Fix: the quick-search counter shows `1000+` only when more than 1,000 cells match. With exactly 1,000 matches it showed `1000+`.
 - The import dialog delimiter menu offers pipe (`|`), and `CsvDelimiter` includes `"|"`. The `labels.io` object has a `delimiterPipe` label. Detection guesses only comma, semicolon, tab, and pipe. It no longer guesses the U+001E and U+001F control characters, so a file that uses one of them as separator reads as one comma column.
 - Fix: the development warning for an unbounded grid height fires only when the viewport itself holds more than 200 rows. It also fired for a bounded grid when the overscan of a fast fling pushed the rendered rows past 200.

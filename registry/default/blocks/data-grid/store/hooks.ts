@@ -354,7 +354,7 @@ export function useDataGridSearchMatches(): SearchMatch[] {
   return useDataGridStore(useShallow((s) => s.searchMatches));
 }
 
-/** True when `searchMatches` hit the 1000-match cap — drives the toolbar's "1000+" badge. */
+/** True when more than 1000 cells match, so `searchMatches` holds the first 1000 — drives the toolbar's "1000+" badge. */
 export function useDataGridSearchCapped(): boolean {
   return useDataGridStore((s) => s.searchMatchesCapped);
 }

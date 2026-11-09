@@ -147,7 +147,7 @@ The grid compares `labels` <NewBadge /> by content, so a literal object of strin
 
 ## RTL layout
 
-`labels` translates strings. It does not format numbers and dates: `options.locale` on each `number` and `date` column sets that language. See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
+`labels` translates strings. It does not format numbers and dates: `options.locale` sets the language of `options.format` on a `number` column and of `options.displayFormat` on a `date` column. Without a format, a `number` cell shows the plain number and a `date` cell shows the ISO text. See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
 
 ```tsx
 import {

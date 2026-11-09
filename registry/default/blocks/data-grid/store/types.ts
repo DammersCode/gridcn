@@ -884,7 +884,7 @@ export type DataGridStoreState = Omit<
    * search-text change and doing an O(1) `Map.get` per row per tick instead).
    */
   searchMatchRows: ReadonlyMap<number, ReadonlySet<number>>;
-  /** True when `searchMatches` hit the 1000-match cap (more matches exist but weren't collected). */
+  /** True when more than 1000 cells match; `searchMatches` then holds the first 1000. */
   searchMatchesCapped: boolean;
   /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. */
   viewIndex: number[];

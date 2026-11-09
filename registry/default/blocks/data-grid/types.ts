@@ -984,7 +984,7 @@ export interface GridCellTypes {
       decimals?: number;
       /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
       format?: Intl.NumberFormatOptions;
-      /** Locale for `format`; default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+      /** Language of `format` (`format: {}` groups the digits by it); default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
       locale?: string;
     };
   };
@@ -1003,7 +1003,7 @@ export interface GridCellTypes {
   };
   date: {
     value: string | null;
-    /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+    /** `locale` sets the language of `displayFormat` and defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
     options: {
       min?: string;
       max?: string;

@@ -15,7 +15,7 @@ export type DataGridToolbarLabels = {
   searchNextMatch: string;
   /** e.g. "3/17". */
   searchMatches: (current: number, total: number) => string;
-  /** e.g. "3/1000+" when the match count hit the cap. */
+  /** e.g. "3/1000+" when more than 1,000 cells match. */
   searchMatchesCapped: (current: number) => string;
   /** No search performed yet / zero matches ("0/0"). */
   searchNoMatches: string;
