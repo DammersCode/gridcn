@@ -1194,8 +1194,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     let writtenWarnings: readonly CellErrorEntry[] = [];
     if (prevalidatedWarnings?.length) {
       const written = new Set<string>();
-      for (const op of batch.ops) if (op.type === "update") for (const cell of op.cells ?? []) written.add(`${op.rowId} ${cell.columnId}`);
-      writtenWarnings = prevalidatedWarnings.filter(({ rowId, columnId }) => written.has(`${rowId} ${columnId}`));
+      for (const op of batch.ops) if (op.type === "update") for (const cell of op.cells ?? []) written.add(cellErrorKey(op.rowId, cell.columnId));
+      writtenWarnings = prevalidatedWarnings.filter(({ rowId, columnId }) => written.has(cellErrorKey(rowId, columnId)));
     }
     const allWarnings = writtenWarnings.length > 0 ? [...batch.warnings, ...writtenWarnings] : batch.warnings;
     const cellErrors = allWarnings.length > 0 ? mergeCellErrors(validated, allWarnings) : validated;
@@ -1596,7 +1596,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
       if (!s.duplicateRow) {
-        warnDev("duplicateRows is a no-op because no `duplicateRow` prop was provided");
+        warnGateOnce("no duplicateRow", "duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return skippedBy("duplicateRows", "no-factory");
       }
       if (duplicateRun && !duplicateRun.aborted) {

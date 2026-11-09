@@ -110,6 +110,15 @@ describe("validationMode warn in bulk writes", () => {
     expect([...store.getState().cellErrors.keys()]).toEqual([cellErrorKey("r0", "soft")]);
   });
 
+  it("undo of deleteRows re-flags an invalid warn cell of the restored row", () => {
+    const changes: DataChange<unknown>[] = [];
+    const { store } = mount(2, { data: [{ id: "r0", hard: "ok", soft: "toolong" }, { id: "r1", hard: "ok", soft: "ok" }], onDataChange: (_next: unknown, change: DataChange<unknown>) => void changes.push(change) } as Partial<InternalSyncProps>);
+    store.getState().actions.deleteRows(["r0"]);
+    expect(store.getState().cellErrors.size).toBe(0);
+    store.getState().actions.commitChange(invertChange(changes[0]!));
+    expect([...store.getState().cellErrors.keys()]).toEqual([cellErrorKey("r0", "soft")]);
+  });
+
   it("500-cell paste: one data write, one cellErrors write, no per-cell callbacks", () => {
     const onDataChange = vi.fn();
     const onValidationError = vi.fn();

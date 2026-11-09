@@ -6,7 +6,7 @@ import { gridAttrSelector } from "../data-attributes";
 
 /**
  * Measures the ACTUAL rendered edge of the last pinned-left / first pinned-right HEADER cell and
- * writes it as `--grid-pin-shadow-start-x`/`-right-x` on `viewportRef`, instead of trusting a
+ * writes it as `--grid-pin-shadow-start-x`/`-end-x` on `viewportRef`, instead of trusting a
  * JS-summed column-width total. CSS Grid rounds each track's flow position independently
  * (subpixel snapping), so a pinned cell's real rendered edge can drift a fraction of a px from
  * the sum of its own + preceding columns' declared widths — invisible with whole-px widths, but

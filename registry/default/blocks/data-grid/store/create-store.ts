@@ -175,12 +175,12 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
   return keys.every((key) => key in b && a[key] === b[key]);
 }
 
+const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
+
 /**
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
  */
-const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
-
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const initLocale = init.locale ?? DEFAULT_LOCALE;
   const initColumns = withGridLocale(init.columns, initLocale);
@@ -990,10 +990,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
         if (props.commands && !warnedMovedCommands && isDev()) {
           const keymap = (nextKeymap ?? get().keymap) as Record<string, readonly unknown[] | undefined>;
-          const unbound = MOVED_COMMAND_NAMES.filter((name) => props.commands && name in props.commands && !keymap[name]?.length);
+          const unbound = MOVED_COMMAND_NAMES.filter((name) => props.commands && name in props.commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
           if (unbound.length > 0) {
             warnedMovedCommands = true;
-            warnDev(`commands ${unbound.join(", ")} no longer run from a built-in key; bind the action in the keymap, for example keymap={{ undo: ["mod+z"] }}`);
+            warnDev(`commands ${unbound.join(", ")} no longer run from a built-in key; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["mod+z"] }}`);
           }
         }
         set((s) => {

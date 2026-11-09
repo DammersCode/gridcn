@@ -33,8 +33,7 @@ export function useScrolledEdges(
       const { scrollTop, clientWidth, clientHeight } = snapshot;
       // Normalized once, here, onto the positive inline-start axis — after which "> 0" means
       // "scrolled away from the inline start" in BOTH directions and nothing re-branches on
-      // direction. The two attributes stay named left/right because the CSS selectors that read
-      // them sit on elements already positioned with inset-inline-*, which mirror themselves.
+      // direction.
       const scrollLeft = normalizeScrollLeft(snapshot.scrollLeft);
       // Read off the snapshot, not the element — the element's geometry was already read once (and
       // possibly dirtied by a same-tick style write) upstream in commit(); a second direct read here

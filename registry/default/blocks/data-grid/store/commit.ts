@@ -3,7 +3,7 @@ import { getCellValue, setCellValue } from "../columns/column-helpers";
 import { isDev } from "../is-dev";
 import { isStandardSchema, runValidateSync, type ValidateResult } from "../validation/validate-cell";
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
-import { isColumnReadOnly } from "./compute";
+import { cellErrorKey, isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { GateContext } from "./gate-signal";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
@@ -139,19 +139,24 @@ export function checkDevGuardrails(
   }
 }
 
-/** Flags for the cells of `update` operations that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
+/** Flags for the cells of `update` and `insert` operations that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
 export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): CellErrorEntry[] {
   const flags: CellErrorEntry[] = [];
-  let warnColumns: Map<string, AnyColumnDef> | null = null;
+  const warnColumns = s.columns.filter((column) => column.validationMode === "warn");
+  if (warnColumns.length === 0) return flags;
+  const check = (rowId: string, row: unknown, column: AnyColumnDef, value: unknown): void => {
+    const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, row);
+    if ("error" in result && !result.thrown) flags.push({ rowId, columnId: column.id, message: result.error });
+  };
+  const byId = new Map(warnColumns.map((column) => [column.id, column] as const));
   for (const op of ops) {
-    if (op.type !== "update" || !op.cells) continue;
-    warnColumns ??= new Map(s.columns.filter((column) => column.validationMode === "warn").map((column) => [column.id, column] as const));
-    if (warnColumns.size === 0) return flags;
-    for (const cell of op.cells) {
-      const column = warnColumns.get(cell.columnId);
-      if (!column) continue;
-      const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), cell.value, op.row);
-      if ("error" in result && !result.thrown) flags.push({ rowId: op.rowId, columnId: column.id, message: result.error });
+    if (op.type === "insert") {
+      for (const column of warnColumns) check(op.rowId, op.row, column, getCellValue(op.row, column));
+    } else if (op.type === "update" && op.cells) {
+      for (const cell of op.cells) {
+        const column = byId.get(cell.columnId);
+        if (column) check(op.rowId, op.row, column, cell.value);
+      }
     }
   }
   return flags;
@@ -369,7 +374,7 @@ export function computeCellPatchBatch(
       skipped.push({ patchIndex, reason: "no-op" });
       continue;
     }
-    const warningKey = `${patch.rowId} ${column.id}`;
+    const warningKey = cellErrorKey(patch.rowId, column.id);
     if (warning === undefined) warnings.delete(warningKey);
     else warnings.set(warningKey, { rowId: patch.rowId, columnId: column.id, message: warning });
 
@@ -461,7 +466,7 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
   const warned = new Map<string, CellErrorEntry>();
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
-    const cellKey = `${patches[i]!.rowId}\u0000${patches[i]!.columnId}`;
+    const cellKey = cellErrorKey(patches[i]!.rowId, patches[i]!.columnId);
     if (result && "error" in result && warnByPatch[i] && !result.thrown) {
       warned.set(cellKey, { rowId: patches[i]!.rowId, columnId: patches[i]!.columnId, message: result.error });
       out.accepted.push(patches[i]!);

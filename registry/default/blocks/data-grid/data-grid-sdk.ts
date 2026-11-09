@@ -138,7 +138,7 @@ export function useDataGridFlaggedCommit(): (change: DataChange<unknown>, flags:
 }
 
 export { matchKeymap } from "./keyboard";
-export { GateRun, type GateAbortReason, type GateTracker } from "./store/gate-signal";
+export type { GateAbortReason, GateRun, GateTracker } from "./store/gate-signal";
 
 /** The grid's gate tracker: an add-on that runs a consumer hook of its own holds a {@link GateRun} on it, so `gateTimeoutMs`, `onGateAborted`, and `useDataGridGatePending` cover that hook. */
 export function useDataGridGateTracker(): GateTracker {

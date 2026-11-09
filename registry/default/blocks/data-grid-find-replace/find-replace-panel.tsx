@@ -27,8 +27,8 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   GRID_ATTR,
-  GateRun,
   type GateAbortReason,
+  type GateRun,
   isComposingKey,
   isDev,
   useDataGridInputDebounce,
@@ -144,7 +144,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     findRef.current?.select();
     return () => {
       applyTokenRef.current++;
-      abortHook();
+      abortHook("cancelled");
     };
   }, []);
 
@@ -303,7 +303,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       return;
     }
     abortHook();
-    const hookRun = new GateRun("processReplace", (now) => now.readOnly || now.editing !== null);
+    const hookRun = gates.begin("processReplace", (now) => now.readOnly || now.editing !== null);
     hookRunRef.current = hookRun;
     const hookToken = ++applyTokenRef.current;
     setStatus({ kind: "validating" });
