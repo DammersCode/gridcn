@@ -205,7 +205,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 | `run` | `(ctx: GridCommandCtx) => void` | required | Runs when a bound key fires. The grid calls `preventDefault` first, so `mod+s` opens no browser save dialog. |
 | `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key. The browser then runs its own action. |
 | `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. |
-| `label` | `string` | humanized name | The row label in the dialog. |
+| `label` | `string` | `labels.keybindings.actions[name]`, else the humanized name | The row label in the dialog. |
 | `group` | `CommandGroup` | `"other"` | The section in the dialog. |
 
 {/* props: GridCommandCtx */}

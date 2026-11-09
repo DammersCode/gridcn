@@ -140,10 +140,10 @@ const views = useDataGridViews({ storage: serverViews });
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange` and `onFilterChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A filter on a set column keeps its saved values even when they are not in the `choices` of the column.
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A filter on a set column keeps its saved values even when they are not in the `choices` of the column.
 - **Controlled state.** Your props receive the change callbacks.
 
-A view saves no page number. A view that changes the sort or the filters sends server rows back to page 1. A view that changes only the layout keeps the page.
+A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A view that changes only the layout keeps the page.
 
 A view can hold up to 16 sorts and a search text of 500 characters.
 

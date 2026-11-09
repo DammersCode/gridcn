@@ -27,29 +27,20 @@ This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `ap
 ```tsx
 "use client";
 
-import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { DataGrid } from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
 import { columns, type Order } from "./orders";
-import { loadPage } from "./api";
-
-async function saveOrders(change: DataChange<Order>) {
-  const response = await fetch("/api/orders/changes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(change.ops),
-  });
-  if (!response.ok) throw new Error("Save refused");
-}
+import { loadPage, sendChange } from "./api";
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     fetchRows: loadPage,
-    onSave: saveOrders,
+    onSave: sendChange,
   });
 
-  return <DataGrid {...server.gridProps} columns={columns} />;
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
 }
 ```
 

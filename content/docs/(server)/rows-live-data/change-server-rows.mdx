@@ -94,7 +94,7 @@ Pass `onSave` <NewBadge /> to `useDataGridServerRows` and the hook refreshes aft
 
 ## Confirm a delete [#confirm-a-delete]
 
-`onBeforeDeleteRows` runs before every delete, from the shortcut, the context menu, and `deleteRows` or `deleteRowsById`. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` runs before every delete, from the shortcut, the context menu, and `deleteRows` or `deleteRowsById`. A `deleteRowsById` call with `source: "stream"` skips the gate. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
 When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do nothing. See [Select server rows](/docs/rows-live-data/select-server-rows).
 

@@ -14,7 +14,7 @@ Readers who want a numbered page, a page size, and a "21-40 of 240" label need a
 
 ## Page the grid [#client-mode]
 
-Pass the whole array as `data` and set `defaultPageSize` on the provider. The grid keeps every row and shows one page of the sorted and filtered view. `DataGridPaginationBar` with no props reads the pager from the provider:
+Pass the whole array as `data` or `defaultData` and set `defaultPageSize` on the provider. The grid keeps every row and shows one page of the sorted and filtered view. `DataGridPaginationBar` with no props reads the pager from the provider:
 
 ```tsx
 import {
@@ -45,7 +45,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off.
+The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off for an uncontrolled page size.
 
 If the data shrinks, the grid <NewBadge /> shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 

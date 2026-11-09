@@ -53,7 +53,7 @@ export function PeopleGrid() {
 }
 ```
 
-`className="h-96"` gives the grid a fixed height. Without a bounded height the grid cannot virtualize. It draws at most 200 rows and, in development, prints a console warning. In a flex column or a CSS grid track, give the grid `min-h-0 flex-1` or `h-full min-h-0` instead. Without `min-h-0`, a flex or grid item grows to fit every row.
+`className="h-96"` gives the grid a fixed height. Without a bounded height the grid cannot virtualize. It draws at most 200 rows and, when more than 200 rows fit, warns once in development. In a flex column or a CSS grid track, give the grid `min-h-0 flex-1` or `h-full min-h-0` instead. Without `min-h-0`, a flex or grid item grows to fit every row.
 
 To keep the rows in your own state, see [Keep edits in your state](/docs/learning-path/keep-edits-state).
 
@@ -77,7 +77,7 @@ Click a cell, then use these keys:
 
 - In the Name and Age columns, type a character to replace the value of the cell.
 - In the same columns, press <kbd>F2</kbd>, <kbd>Enter</kbd>, or <kbd>Space</kbd> to edit the value in place. A double-click does the same.
-- In the Active column, a click, <kbd>Space</kbd>, or <kbd>Enter</kbd> toggles the checkbox. Typing does nothing there.
+- In the Active column, a click on the box, <kbd>Space</kbd>, or <kbd>Enter</kbd> toggles the checkbox. Typing does nothing there.
 - While you edit, press <kbd>Enter</kbd> to commit and move down. Press <kbd>Escape</kbd> to cancel.
 - Press <kbd>Delete</kbd> to empty the selected cells.
 

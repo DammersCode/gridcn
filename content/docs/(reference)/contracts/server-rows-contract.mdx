@@ -315,7 +315,7 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
 
 <NewBadge />
 
-The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state or saved views, raise the two limits:
+The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. The toolbar search box has no length bound, and Shift+click multi-sort has no cap. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state, saved views, a search box, or multi-sort, raise the two limits:
 
 ```ts
 const spec = parseServerSpec(body.spec, {

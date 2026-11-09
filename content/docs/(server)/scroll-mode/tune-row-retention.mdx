@@ -81,7 +81,7 @@ Call the hook's own `onRenderedRowsChange` first. A prop after the spread replac
 Two behaviors matter for a policy of your own:
 
 - `evict` aborts the requests it covers, and a request that started before the evict drops its answer. It keeps rows with an open edit, a pending save, or an unsaved change, and the row under the active cell.
-- An evicted row loses an edit that you did not persist, because the hook does not own persistence. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
+- An unsaved change stays in the row until its block loads again. The answer then replaces the unsaved value, because the hook does not own persistence. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
 
 `evict` clamps the row range to `[0, totalRowCount)`. A sequential source ignores it.
 

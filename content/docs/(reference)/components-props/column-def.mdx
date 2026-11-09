@@ -15,7 +15,7 @@ A `ColumnDef` describes one column. It names the column, says how to read and wr
 | Cell type | `type`, `options` | [Fields](#fields) |
 | Validation | `validate`, `onInvalid` | [Validation](#validation) |
 | Size | `width`, `minWidth`, `maxWidth`, `flex`, `resizable` | [Width and flex](#width) |
-| Sort and filter | `sortable`, `sortCompare`, `filterable`, `filterMatch`, `filterOperators` | [Sort and filter](#sort-and-filter) |
+| Sort and filter | `sortable`, `sortCompare`, `filterable`, `filterMatch`, `filterCompare`, `filterOperators` | [Sort and filter](#sort-and-filter) |
 | Layout | `pin`, `pinnable`, `reorderable`, `hidden` | [Fields](#fields) |
 
 `defineColumns` checks each literal. The `type` key sets the value type and the `options` type of the column. A column without `type` is a `text` column. `accessorKey` must name a row field of that value type, and `accessorFn` must return it:

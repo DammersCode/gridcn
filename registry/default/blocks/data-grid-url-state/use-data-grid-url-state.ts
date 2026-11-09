@@ -64,9 +64,8 @@ export type UseDataGridUrlStateResult = {
  * Syncs the grid store's `sortState`/`filterState`/`searchText` with the URL via
  * nuqs: applies any URL params to the store once on mount, then writes store changes back to the
  * URL (replacing, never pushing, history entries). Requires a `NuqsAdapter` (or the testing
- * adapter) above it in the tree — nuqs itself is router-agnostic. Search writes are debounced so
- * typing doesn't spam `history.replaceState`; sort/filter writes (menu-driven, not
- * keystroke-driven) are immediate. A filter group lives inside the `filter` param. A legacy
+ * adapter) above it in the tree — nuqs itself is router-agnostic. Writes are not delayed: the search
+ * input debounces typing and nuqs coalesces the `history.replaceState` calls. A filter group lives inside the `filter` param. A legacy
  * `join=or` param is read once (it wraps a flat filter list in one `or` group) and every filter
  * write removes it.
  *

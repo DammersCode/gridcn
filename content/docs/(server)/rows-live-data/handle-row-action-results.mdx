@@ -22,7 +22,7 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"unloaded-rows"` | A target row is not loaded. |
 | `"gate-pending"` | The promise of `createRow`, `duplicateRow`, or `onBeforeDeleteRows` has not settled. |
 | `"no-factory"` | `createRow` or `duplicateRow` is missing. |
-| `"gate-declined"` | `onBeforeDeleteRows` returned `false`. |
+| `"gate-declined"` | `onBeforeDeleteRows` returned `false` synchronously. |
 | `"gate-threw"` | `onBeforeDeleteRows` threw. |
 | `"nothing-to-do"` | No target row matched, or `count` was 0. |
 

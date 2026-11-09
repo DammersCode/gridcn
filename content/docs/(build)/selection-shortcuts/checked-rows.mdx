@@ -179,7 +179,7 @@ A server grid defaults to `checkedRowsLifetime="across-filters"` when it sets `t
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
 - `announceResults` reads the row count of the view after a filter or sort change. See [Screen reader support](/docs/accessibility/screen-reader-support).
-- `onBeforeDeleteRows` runs before every row delete. A `false` result cancels the delete. See [Row operations](/docs/rows-pages-menus/row-operations).
+- `onBeforeDeleteRows` runs before every row delete, except a `source: "stream"` delete. A `false` result cancels the delete. See [Row operations](/docs/rows-pages-menus/row-operations).
 
 ## Related
 

@@ -20,7 +20,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 ## The pager and the count [#pager]
 
 - **The footer shows "Page 3" in place of a range, and Last stays disabled.** The count is unknown. The first answer omitted `totalRowCount`, sent `null`, or sent a value that is not a non-negative integer. Send the count of the filtered result.
-- **The count stays unknown although the server sends `total`.** The hook reads `totalRowCount` and `hasMore` only. Rename them to `totalRowCount` and `hasMore`. Development builds warn.
+- **The count stays unknown although the server sends `total` or `hasNextPage`.** The hook reads `totalRowCount` and `hasMore` only. Rename them to `totalRowCount` and `hasMore`. Development builds warn.
 - **The count stops at 10,000,000.** The hook clamps a larger count to that value.
 - **The page goes back to page 1.** Nothing needs a fix. The pages hold other rows after a change from the page-size select, the sort, the filter, or the search text. The hook resets the page.
 - **The page-size select does nothing.** With `useDataGridServerPager`, pass `onPageSizeChange`. Without it, the bar hides the page-size select.
@@ -29,7 +29,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 
 - **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`. The hook's merge keeps the edit in its rows, and a spread override drops the merge. Pass your handler as the `onDataChange` option of the hook.
 - **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Put `...server.gridProps.plugins` first. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
-- **A failed save does not revert the edit.** Your `onSave` returns no promise, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
+- **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row or with `actions.clearSaveStatus()`.
 - **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row, and refuse the row with `current`. Then `resolveSaveConflict` picks the row that wins. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).
 - **A new row keeps its client id after the save.** Call `actions.replaceRowId(oldId, row)` with the server row. See [Save edits](/docs/save-server/save-edits#id-swap).

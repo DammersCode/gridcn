@@ -47,7 +47,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onEditStart`, and `import`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
-| `RowActionSkipReason` | A union of 7 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
+| `RowActionSkipReason` | A union of 9 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
 | `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
 
 ## Sort and filter [#sort-and-filter]
