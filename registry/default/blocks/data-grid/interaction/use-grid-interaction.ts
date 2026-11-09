@@ -546,13 +546,13 @@ export function dispatchGridAction(args: {
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow) runRowOperation("duplicateRows", (rows) => actions.duplicateRowsAt(viewIndexes(rows)));
+      runRowOperation("duplicateRows", (rows) => actions.duplicateRowsAt(viewIndexes(rows)));
       break;
     }
     case "moveRowsUp":
     case "moveRowsDown": {
       preventDefault();
-      if (state.readOnly || !isReorderMarkerMode(state.rowMarkers)) break;
+      if (!isReorderMarkerMode(state.rowMarkers)) break;
       let moved = false;
       runRowOperation("moveRows", (rows) => {
         moved = actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1);
@@ -568,7 +568,7 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly) runRowOperation("deleteRows", (rows) => actions.deleteRowsAt(viewIndexes(rows)));
+      runRowOperation("deleteRows", (rows) => actions.deleteRowsAt(viewIndexes(rows)));
       break;
     }
     case "openLink": {

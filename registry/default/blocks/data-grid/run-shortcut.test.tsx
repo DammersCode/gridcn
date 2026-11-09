@@ -56,10 +56,22 @@ describe("api.runShortcut", () => {
     expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "deleteRows", reason: "all-matching" });
   });
 
-  it("does nothing for a built-in guard such as readOnly", () => {
-    const m = mount({ readOnly: true });
+  it("reports a readOnly refusal of delete and duplicate through onRowActionSkipped", () => {
+    const onRowActionSkipped = vi.fn();
+    const m = mount({ readOnly: true, onRowActionSkipped, duplicateRow: (row: Row) => ({ ...row, id: `${row.id}2` }) });
     act(() => m.api().actions.selectCellAt({ col: 0, row: 0 }));
     act(() => m.api().runShortcut("deleteRows"));
+    act(() => m.api().runShortcut("duplicateRow"));
     expect(m.onDataChange).not.toHaveBeenCalled();
+    expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "deleteRows", reason: "readOnly" });
+    expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "duplicateRows", reason: "readOnly" });
+  });
+
+  it("reports a duplicate without a duplicateRow factory", () => {
+    const onRowActionSkipped = vi.fn();
+    const m = mount({ onRowActionSkipped });
+    act(() => m.api().actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => m.api().runShortcut("duplicateRow"));
+    expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "duplicateRows", reason: "no-factory" });
   });
 });
