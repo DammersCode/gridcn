@@ -35,7 +35,7 @@ import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
-import { warnLegacyFilterKeys } from "../columns/legacy-filter-keys";
+import { warnLegacyFilterKeys, withLogicalFilter } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -366,7 +366,7 @@ export function withGridLocale(columns: readonly AnyColumnDef[], locale: string)
 
 function resolveColumnLocale(source: AnyColumnDef, locale: string): AnyColumnDef {
   warnLegacyFilterKeys(source);
-  const column = withLogicalPin(source);
+  const column = withLogicalFilter(withLogicalPin(source));
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
   if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
