@@ -301,4 +301,22 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     expect(run).toHaveBeenCalledTimes(1);
     warn.mockRestore();
   });
+
+  it("dev-warns once for a command named like a moved action with no keymap binding", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = vi.fn();
+    const { rerender } = render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ undo: { run }, redo: { run } }} />);
+    rerender(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ undo: { run }, redo: { run: vi.fn() } }} />);
+    const moved = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes('keymap={{ undo: ["mod+z"] }}'));
+    expect(moved).toHaveLength(1);
+    expect(moved[0]).toContain("undo, redo");
+    warn.mockRestore();
+  });
+
+  it("does not warn a moved command name that the keymap binds", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ undo: { run: vi.fn() } }} keymap={{ undo: ["mod+z"] } as Keymap} />);
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("no longer run from a built-in key"))).toBe(false);
+    warn.mockRestore();
+  });
 });

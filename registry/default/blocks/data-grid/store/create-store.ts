@@ -178,6 +178,8 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
  */
+const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
+
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const initLocale = init.locale ?? DEFAULT_LOCALE;
   const initColumns = withGridLocale(init.columns, initLocale);
@@ -270,6 +272,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let lastPropsFilterState: FilterNode[] | undefined = init.filterState;
   // A `commands` entry named after a built-in action silently disables the built-in — warn once about it.
   let warnedCommandShadow = false;
+  let warnedMovedCommands = false;
   // Plugin-conflict dev warnings, once per key per store (resolution re-runs on list changes; a static conflict must not re-warn).
   const pluginWarnedKeys = new Set<string>();
   const pluginWarnOnce = (key: string, message: string): void => {
@@ -982,6 +985,14 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           lastPluginsProp = props.plugins;
           lastKeymapProp = props.keymap;
           lastCommandsProp = props.commands;
+        }
+        if (props.commands && !warnedMovedCommands && isDev()) {
+          const keymap = (nextKeymap ?? get().keymap) as Record<string, readonly unknown[] | undefined>;
+          const unbound = MOVED_COMMAND_NAMES.filter((name) => props.commands && name in props.commands && !keymap[name]?.length);
+          if (unbound.length > 0) {
+            warnedMovedCommands = true;
+            warnDev(`commands ${unbound.join(", ")} no longer run from a built-in key; bind the action in the keymap, for example keymap={{ undo: ["mod+z"] }}`);
+          }
         }
         set((s) => {
           const selectionConfig = resolveSelectionConfig(props);
