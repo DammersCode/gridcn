@@ -871,6 +871,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     restartClockRef.current();
     const core = getCore();
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
+      core.failed.clear();
+      setError(null);
       runFetch({ start: 0, end: blockSize() });
       return;
     }
