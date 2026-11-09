@@ -181,7 +181,7 @@ function dataLength(hook: ReturnType<typeof renderInteraction>["hook"]): number 
 function pressKey(
   hook: ReturnType<typeof renderInteraction>["hook"],
   key: string,
-  modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+  modifiers: { ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; altGraph?: boolean } = {},
   preventDefault?: () => void,
 ) {
   act(() => {
@@ -190,7 +190,8 @@ function pressKey(
       ctrlKey: modifiers.ctrlKey ?? false,
       metaKey: false,
       shiftKey: modifiers.shiftKey ?? false,
-      altKey: false,
+      altKey: modifiers.altKey ?? false,
+      getModifierState: (name: string) => name === "AltGraph" && (modifiers.altGraph ?? false),
       nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
       preventDefault: preventDefault ?? (() => {}),
     } as unknown as React.KeyboardEvent<HTMLElement>);
@@ -379,6 +380,30 @@ describe("useGridInteraction onKeyDown", () => {
     pressKey(hook, "k");
     const editing = hook.result.current.storeApi.getState().editing;
     expect(editing?.initialText).toBe("k");
+  });
+
+  it("an AltGr character on Windows (Ctrl+Alt with AltGraph) starts an edit seeded with it", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "@", { ctrlKey: true, altKey: true, altGraph: true });
+    expect(hook.result.current.storeApi.getState().editing?.initialText).toBe("@");
+  });
+
+  it("an AltGr letter such as ł starts an edit seeded with it", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "ł", { ctrlKey: true, altKey: true, altGraph: true });
+    expect(hook.result.current.storeApi.getState().editing?.initialText).toBe("ł");
+  });
+
+  it("Ctrl+Alt+C without AltGraph does not start an edit", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "c", { ctrlKey: true, altKey: true });
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
   });
 
   it("disables implicit type-to-replace when the keymap defines typeToReplace (even empty)", () => {

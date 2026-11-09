@@ -2,12 +2,13 @@ import type { KeymapEvent } from "./match-keymap";
 
 /**
  * True when the event represents a single printable Unicode character with no
- * Ctrl or Meta held. Gates the implicit type-to-replace
+ * Ctrl or Meta held (AltGr counts as neither). Gates the implicit type-to-replace
  * fallback (`typeToReplace`'s default trigger, see the GridAction doc) and seeds the
  * typed char when a printable binding dispatches `typeToReplace`.
  */
 export function isPrintableKey(event: KeymapEvent): boolean {
-  if (event.ctrlKey || event.metaKey) return false;
+  if (event.metaKey) return false;
+  if (event.ctrlKey && !(event.altKey && event.altGraph)) return false;
   if (event.key.length !== 1) return false;
   return /[\p{L}\p{N}\p{S}\p{P}]/u.test(event.key);
 }

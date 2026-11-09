@@ -33,6 +33,8 @@ export type KeymapEvent = {
   metaKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  /** Windows reports AltGr as Ctrl+Alt; `getModifierState("AltGraph")` tells it apart from a real Ctrl+Alt chord. */
+  altGraph?: boolean;
 };
 
 function keysEqual(eventKey: string, bindingKey: string): boolean {

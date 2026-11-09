@@ -289,6 +289,7 @@ describe("matchKeymap - alt-modifier exactness", () => {
     const keymap = { moveLeft: ["mod+q"] };
     const event = makeEvent({ key: "@", ctrlKey: true, altKey: true });
     expect(matchKeymap(event, keymap, false)).toBe(null);
+    expect(matchKeymap({ ...event, altGraph: true }, keymap, false)).toBe(null);
   });
 
   it("does not match an alt+key binding when mod is also held", () => {
@@ -352,6 +353,14 @@ describe("isPrintableKey", () => {
   it("rejects when ctrl or meta is held, e.g. ctrl+c", () => {
     expect(isPrintableKey(makeEvent({ key: "c", ctrlKey: true }))).toBe(false);
     expect(isPrintableKey(makeEvent({ key: "c", metaKey: true }))).toBe(false);
+  });
+
+  it("accepts an AltGr character (Ctrl+Alt with altGraph) but not Ctrl+Alt+key without it", () => {
+    expect(isPrintableKey(makeEvent({ key: "@", ctrlKey: true, altKey: true, altGraph: true }))).toBe(true);
+    expect(isPrintableKey(makeEvent({ key: "ł", ctrlKey: true, altKey: true, altGraph: true }))).toBe(true);
+    expect(isPrintableKey(makeEvent({ key: "c", ctrlKey: true, altKey: true }))).toBe(false);
+    expect(isPrintableKey(makeEvent({ key: "@", ctrlKey: true, altGraph: true }))).toBe(false);
+    expect(isPrintableKey(makeEvent({ key: "@", metaKey: true, altKey: true, altGraph: true }))).toBe(false);
   });
 
   it("accepts alt+key (e.g. macOS Option+m producing 'µ') per spec: only ctrl/meta gate type-to-edit", () => {

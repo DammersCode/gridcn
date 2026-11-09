@@ -1100,6 +1100,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         metaKey: event.metaKey,
         shiftKey: event.shiftKey,
         altKey: event.altKey,
+        altGraph: event.getModifierState?.("AltGraph"),
       };
 
       const dispatch = (action: GridAction) =>
