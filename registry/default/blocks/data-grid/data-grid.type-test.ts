@@ -502,8 +502,8 @@ assertEqual<"data-grid-pin-shadow", typeof GRID_ATTR.pinShadow>(true);
 assertEqual<"data-grid-cell-editor", typeof GRID_ATTR.cellEditor>(true);
 assertEqual<"data-grid-selection-overlay", typeof GRID_ATTR.selectionOverlay>(true);
 assertEqual<"data-grid-active-cell-overlay", typeof GRID_ATTR.activeCellOverlay>(true);
-assertEqual<"data-scrolled-left", typeof GRID_ATTR.scrolledLeft>(true);
-assertEqual<"data-scrolled-right", typeof GRID_ATTR.scrolledRight>(true);
+assertEqual<"data-scrolled-start", typeof GRID_ATTR.scrolledStart>(true);
+assertEqual<"data-scrolled-end", typeof GRID_ATTR.scrolledEnd>(true);
 assertEqual<"data-scrolled-top", typeof GRID_ATTR.scrolledTop>(true);
 assertEqual<"data-scrolled-bottom", typeof GRID_ATTR.scrolledBottom>(true);
 

@@ -290,7 +290,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
     const pinnedLeftCells = [...document.querySelectorAll<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)];
     const lastPinnedLeftCell = pinnedLeftCells.reduce((a, b) => (a.getBoundingClientRect().right > b.getBoundingClientRect().right ? a : b));
 
@@ -310,7 +310,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 100));
 
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "right"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "end"))!;
     const pinnedRightCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
 
     const diff = shadow.getBoundingClientRect().right - pinnedRightCell.getBoundingClientRect().left;
@@ -328,7 +328,7 @@ describe("bug fix — pinned-edge shadow alignment", () => {
     actions().previewColumnWidth("c0", 137.42);
     await new Promise((r) => setTimeout(r, 100));
 
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
     const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
     const diff = shadow.getBoundingClientRect().left - pinnedCell.getBoundingClientRect().right;
     expect(diff).toBe(0);

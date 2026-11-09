@@ -105,7 +105,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
     grid.scrollLeft = grid.scrollWidth - grid.clientWidth;
     grid.dispatchEvent(new Event("scroll"));
 
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
     await vi.waitFor(() => expect(getComputedStyle(shadow).opacity).toBe("1"));
 
     const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "start")}`)!;
@@ -132,12 +132,12 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
-    // scroll partway, not to the end — data-scrolled-right requires content still hidden beyond
+    // scroll partway, not to the end — data-scrolled-end requires content still hidden beyond
     // the right edge (use-scrolled-edges.ts); scrolling all the way there would hide the shadow.
     grid.scrollLeft = Math.round((grid.scrollWidth - grid.clientWidth) / 2);
     grid.dispatchEvent(new Event("scroll"));
 
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "right"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "end"))!;
     await vi.waitFor(() => expect(getComputedStyle(shadow).opacity).toBe("1"));
 
     const pinnedCell = document.querySelector<HTMLElement>(`[role="gridcell"]${gridAttrSelector("pinned", "end")}`)!;
@@ -147,7 +147,7 @@ describe("bug fix — pin-shadow paints flush against the pinned edge, not offse
 });
 
 describe("bug fix - unpinning the last pinned column does not strand the shadow at its old edge", () => {
-  // usePinShadowEdges only ever WROTE --grid-pin-shadow-left-x. With a marker column present the
+  // usePinShadowEdges only ever WROTE --grid-pin-shadow-start-x. With a marker column present the
   // pinned-left band survives unpinning the last pinned COLUMN, so hasPinnedLeft stayed true, the
   // effect never re-ran, and the stale measurement kept the shadow floating at the unpinned
   // column's old width instead of hugging the marker.
@@ -175,7 +175,7 @@ describe("bug fix - unpinning the last pinned column does not strand the shadow 
     await vi.waitFor(() => expect(document.querySelector(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`)).toBeNull());
 
     const marker = document.querySelector<HTMLElement>(gridAttrSelector("markerCell"))!;
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
 
     // the shadow's own left edge must land on the marker's right edge, not the ex-pinned column's
     await vi.waitFor(() => {
@@ -209,7 +209,7 @@ describe("bug fix - the shadow re-anchors when the marker column appears or chan
     const flushAgainstPinnedEdge = async () => {
       await vi.waitFor(() => {
         const pinned = document.querySelector<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`)!;
-        const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+        const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
         const gap = shadow.getBoundingClientRect().left - pinned.getBoundingClientRect().right;
         expect(Math.abs(gap), `shadow is ${gap}px from the pinned edge`).toBeLessThanOrEqual(1);
       });

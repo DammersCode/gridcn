@@ -9,7 +9,7 @@ import { GRID_ATTR } from "../data-attributes";
 const EDGE_EPSILON = 1;
 
 /**
- * Writes `data-scrolled-left`/`data-scrolled-right`/`data-scrolled-top`/`data-scrolled-bottom`
+ * Writes `data-scrolled-start`/`data-scrolled-end`/`data-scrolled-top`/`data-scrolled-bottom`
  * directly onto `viewportRef`'s element on every scroll tick — imperative DOM writes, no React
  * state, no per-tick re-render, matching the existing `--grid-scroll-*` var writer in
  * use-row-window.ts. CSS reads these attributes to show/hide a pinned boundary's shadow only when
@@ -41,10 +41,10 @@ export function useScrolledEdges(
       // would force a redundant reflow.
       const maxLeft = snapshot.scrollWidth - clientWidth;
       const maxTop = snapshot.scrollHeight - clientHeight;
-      if (scrollLeft > EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledLeft, "");
-      else viewport.removeAttribute(GRID_ATTR.scrolledLeft);
-      if (scrollLeft < maxLeft - EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledRight, "");
-      else viewport.removeAttribute(GRID_ATTR.scrolledRight);
+      if (scrollLeft > EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledStart, "");
+      else viewport.removeAttribute(GRID_ATTR.scrolledStart);
+      if (scrollLeft < maxLeft - EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledEnd, "");
+      else viewport.removeAttribute(GRID_ATTR.scrolledEnd);
       if (scrollTop > EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledTop, "");
       else viewport.removeAttribute(GRID_ATTR.scrolledTop);
       if (scrollTop < maxTop - EDGE_EPSILON) viewport.setAttribute(GRID_ATTR.scrolledBottom, "");

@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type DataOp, type FilterNode, type Keymap } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
+import { readColumnPin } from "../columns/column-pin";
 import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
 import { getCellValue } from "../columns/column-helpers";
@@ -1730,9 +1731,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
         commitLayout({ order: nextIds });
       },
-      setColumnPin(id, pin) {
+      setColumnPin(id, requestedPin) {
         const s = get();
         if (!s.enableColumnPinning) return;
+        const pin = requestedPin === null ? null : (readColumnPin(requestedPin) ?? null);
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));

@@ -177,13 +177,13 @@ describe("pinned rows — frozen-edge shadow", () => {
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
-    const shadow = (side: "left" | "right" | "top" | "bottom") => rect(gridAttrSelector("pinShadow", side));
+    const shadow = (side: "start" | "end" | "top" | "bottom") => rect(gridAttrSelector("pinShadow", side));
     const topBand = rect(gridAttrSelector("pinnedRowBand", "top"));
     const bottomBand = rect(gridAttrSelector("pinnedRowBand", "bottom"));
     const leftCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "start")}`);
     const rightCell = rect(`${gridAttrSelector("pinnedRowBand", "top")} ${gridAttrSelector("pinned", "end")}`);
 
-    for (const side of ["left", "right"] as const) {
+    for (const side of ["start", "end"] as const) {
       expect(shadow(side).top).toBeGreaterThanOrEqual(topBand.bottom - 1);
       expect(shadow(side).bottom).toBeLessThanOrEqual(bottomBand.top + 1);
     }

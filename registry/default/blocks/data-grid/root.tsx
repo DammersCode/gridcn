@@ -417,7 +417,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [internalActions, renderHeaderMenu, renderHeaderFilter]);
 
   useViewportElement(scrollRef, viewportRef);
-  // Imperative data-scrolled-left/right writer (for the pinned-edge shadows) — no React re-render per tick.
+  // Imperative data-scrolled-start/end writer (for the pinned-edge shadows) — no React re-render per tick.
   useScrolledEdges(scrollRef, viewportRef);
   useRowHover(scrollRef, rowHeight);
   // Measures the pin-shadow's real anchor from the boundary header cell's own rendered edge,
@@ -745,12 +745,12 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   <DataGridLoadingBar headerHeight={effectiveHeaderHeight} />
                 ))}
               <div
-                data-grid-pin-shadow="left"
+                data-grid-pin-shadow="start"
                 data-pinned={hasPinnedLeft ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-left:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-start:opacity-100"
                 style={{
-                  insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                  insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetBlockStart: effectiveHeaderHeight,
                   insetBlockEnd: pinnedBottomHeight,
                   width: SHADOW_SIZE,
@@ -764,12 +764,12 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 }}
               />
               <div
-                data-grid-pin-shadow="right"
+                data-grid-pin-shadow="end"
                 data-pinned={hasPinnedRight ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-right:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-end:opacity-100"
                 style={{
-                  insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                  insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   insetBlockStart: effectiveHeaderHeight,
                   insetBlockEnd: pinnedBottomHeight,
                   width: SHADOW_SIZE,
@@ -784,8 +784,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
                 style={{
                   insetBlockStart: effectiveHeaderHeight,
-                  insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
-                  insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                  insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                  insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,
                   backgroundImage: `linear-gradient(to bottom, ${shadowColor(topBandRowCount > 0)}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,
@@ -798,8 +798,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
                 style={{
                   insetBlockEnd: pinnedBottomHeight,
-                  insetInlineStart: `var(--grid-pin-shadow-left-x, ${interactionLayout.pinnedLeftWidth}px)`,
-                  insetInlineEnd: `var(--grid-pin-shadow-right-x, ${interactionLayout.pinnedRightWidth}px)`,
+                  insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
+                  insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,
                   backgroundImage: `linear-gradient(to top, ${shadowColor(bottomBandRowCount > 0)}, transparent)`,
                   zIndex: GRID_LAYER.pinShadow,

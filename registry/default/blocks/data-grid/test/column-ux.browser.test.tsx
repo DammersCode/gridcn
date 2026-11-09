@@ -427,7 +427,7 @@ describe("pinned-edge shadow", () => {
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
-    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "left"))!;
+    const shadow = document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", "start"))!;
     expect(shadow).not.toBeNull();
 
     expect(getComputedStyle(shadow).opacity).toBe("0");
@@ -435,10 +435,10 @@ describe("pinned-edge shadow", () => {
     grid.scrollLeft = 50;
     grid.dispatchEvent(new Event("scroll"));
     // the shadow's own transition-opacity means a short wait can sample mid-transition; the
-    // data-scrolled-left attribute (the actual signal under test) flips synchronously with the
+    // data-scrolled-start attribute (the actual signal under test) flips synchronously with the
     // scroll event, so assert on that directly rather than waiting out the CSS transition.
     await new Promise((r) => setTimeout(r, 50));
-    expect(document.querySelector('[style*="--grid-row-height"]')).toHaveAttribute(GRID_ATTR.scrolledLeft);
+    expect(document.querySelector('[style*="--grid-row-height"]')).toHaveAttribute(GRID_ATTR.scrolledStart);
     await new Promise((r) => setTimeout(r, 250));
     expect(getComputedStyle(shadow).opacity).toBe("1");
 
@@ -457,12 +457,12 @@ describe("pinned-edge shadow", () => {
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    const shadow = (side: "left" | "right") => document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!;
+    const shadow = (side: "start" | "end") => document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!;
 
-    expect(shadow("left")).toHaveAttribute("data-pinned");
-    expect(shadow("right")).not.toHaveAttribute("data-pinned");
-    expect(getComputedStyle(shadow("right")).backgroundImage).toContain("rgb(255, 0, 0)");
-    expect(getComputedStyle(shadow("left")).backgroundImage).not.toContain("rgb(255, 0, 0)");
+    expect(shadow("start")).toHaveAttribute("data-pinned");
+    expect(shadow("end")).not.toHaveAttribute("data-pinned");
+    expect(getComputedStyle(shadow("end")).backgroundImage).toContain("rgb(255, 0, 0)");
+    expect(getComputedStyle(shadow("start")).backgroundImage).not.toContain("rgb(255, 0, 0)");
   });
 
   it("draws column dividers from --grid-column-border, on the band side of right-pinned columns", async () => {
@@ -489,12 +489,12 @@ describe("pinned-edge shadow", () => {
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    const opacity = (side: "left" | "right" | "top" | "bottom") => getComputedStyle(document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!).opacity;
+    const opacity = (side: "start" | "end" | "top" | "bottom") => getComputedStyle(document.querySelector<HTMLElement>(gridAttrSelector("pinShadow", side))!).opacity;
 
     await new Promise((r) => setTimeout(r, 250));
-    expect(opacity("right")).toBe("1");
+    expect(opacity("end")).toBe("1");
     expect(opacity("bottom")).toBe("1");
-    expect(opacity("left")).toBe("0");
+    expect(opacity("start")).toBe("0");
     expect(opacity("top")).toBe("0");
 
     const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
@@ -502,9 +502,9 @@ describe("pinned-edge shadow", () => {
     grid.scrollTop = grid.scrollHeight;
     grid.dispatchEvent(new Event("scroll"));
     await new Promise((r) => setTimeout(r, 250));
-    expect(opacity("left")).toBe("1");
+    expect(opacity("start")).toBe("1");
     expect(opacity("top")).toBe("1");
-    expect(opacity("right")).toBe("0");
+    expect(opacity("end")).toBe("0");
     expect(opacity("bottom")).toBe("0");
   });
 });

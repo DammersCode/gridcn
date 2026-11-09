@@ -525,12 +525,12 @@ div[style*="--callout-color"] {
 
 
 
-[data-component-preview] [role="grid"]:has([data-scrolled-right])::after {
+[data-component-preview] [role="grid"]:has([data-scrolled-end])::after {
   inset-inline-end: 0;
   background-image: linear-gradient(to left, var(--grid-pin-shadow), transparent);
 }
 
-[data-component-preview] [role="grid"]:has([data-scrolled-left])::before {
+[data-component-preview] [role="grid"]:has([data-scrolled-start])::before {
   inset-inline-start: 0;
   background-image: linear-gradient(to right, var(--grid-pin-shadow), transparent);
 }

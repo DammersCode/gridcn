@@ -6,7 +6,7 @@ import { gridAttrSelector } from "../data-attributes";
 
 /**
  * Measures the ACTUAL rendered edge of the last pinned-left / first pinned-right HEADER cell and
- * writes it as `--grid-pin-shadow-left-x`/`-right-x` on `viewportRef`, instead of trusting a
+ * writes it as `--grid-pin-shadow-start-x`/`-right-x` on `viewportRef`, instead of trusting a
  * JS-summed column-width total. CSS Grid rounds each track's flow position independently
  * (subpixel snapping), so a pinned cell's real rendered edge can drift a fraction of a px from
  * the sum of its own + preceding columns' declared widths — invisible with whole-px widths, but
@@ -49,21 +49,21 @@ export function usePinShadowEdges(
         const last = furthestFromInlineStart(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "start")}`), direction);
         if (last) {
           const edge = inlineEndEdge(last.getBoundingClientRect(), direction);
-          viewport.style.setProperty("--grid-pin-shadow-left-x", `${inlineDistanceFromStart(edge, viewportRect, direction)}px`);
+          viewport.style.setProperty("--grid-pin-shadow-start-x", `${inlineDistanceFromStart(edge, viewportRect, direction)}px`);
         } else {
           // No pinned-left COLUMN, but the band still exists when a marker column is on. Leaving
           // a previously-measured value here strands the shadow at the unpinned column's old
           // edge; removing it hands the style back to its marker-width fallback.
-          viewport.style.removeProperty("--grid-pin-shadow-left-x");
+          viewport.style.removeProperty("--grid-pin-shadow-start-x");
         }
       }
       if (hasPinnedRight) {
         const first = furthestFromInlineEnd(viewport.querySelectorAll<HTMLElement>(`[role="columnheader"]${gridAttrSelector("pinned", "end")}`), direction);
         if (first) {
           const edge = inlineStartEdge(first.getBoundingClientRect(), direction);
-          viewport.style.setProperty("--grid-pin-shadow-right-x", `${inlineDistanceFromEnd(edge, viewportRect, direction)}px`);
+          viewport.style.setProperty("--grid-pin-shadow-end-x", `${inlineDistanceFromEnd(edge, viewportRect, direction)}px`);
         } else {
-          viewport.style.removeProperty("--grid-pin-shadow-right-x");
+          viewport.style.removeProperty("--grid-pin-shadow-end-x");
         }
       }
     };

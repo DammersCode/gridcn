@@ -28,9 +28,9 @@ export const GRID_ATTR = {
   /** virtualization/use-row-hover.ts: present (`""`) on the body row under the pointer. */
   hovered: "data-hovered",
   /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its inline-start edge. */
-  scrolledLeft: "data-scrolled-left",
+  scrolledStart: "data-scrolled-start",
   /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its inline-end edge. */
-  scrolledRight: "data-scrolled-right",
+  scrolledEnd: "data-scrolled-end",
   /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while scrolled away from its top edge. */
   scrolledTop: "data-scrolled-top",
   /** virtualization/use-scrolled-edges.ts: present (`""`) on the viewport while there's more to scroll toward its bottom edge. */
@@ -159,7 +159,7 @@ export type GridAttr = (typeof GRID_ATTR)[GridAttrName];
  */
 export type GridAttrValue = {
   [GRID_ATTR.pinned]: ColumnPin | "";
-  [GRID_ATTR.pinShadow]: "left" | "right" | "top" | "bottom";
+  [GRID_ATTR.pinShadow]: "start" | "end" | "top" | "bottom";
   [GRID_ATTR.pinnedRowBand]: "top" | "bottom";
   [GRID_ATTR.sortIndicator]: "asc" | "desc";
   [GRID_ATTR.active]: "true";
@@ -170,7 +170,7 @@ export type GridAttrValue = {
   [GRID_ATTR.pinnedRow]: "true";
 };
 
-/** Builds a `[data-grid-marker-cell]` / `[data-grid-pin-shadow="left"]` CSS-attribute-selector string for `querySelector`/`closest`. */
+/** Builds a `[data-grid-marker-cell]` / `[data-grid-pin-shadow="start"]` CSS-attribute-selector string for `querySelector`/`closest`. */
 export function gridAttrSelector<TName extends GridAttrName>(
   name: TName,
   value?: (typeof GRID_ATTR)[TName] extends keyof GridAttrValue ? GridAttrValue[(typeof GRID_ATTR)[TName]] : never,

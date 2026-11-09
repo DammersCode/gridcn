@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeColumnLayout } from "../store/compute";
-import type { AnyColumnDef } from "../store/types";
+import { createDataGridStore } from "../store/create-store";
+import type { AnyColumnDef, InternalSyncProps } from "../store/types";
 import { readColumnPin, withLogicalPin } from "./column-pin";
 
 const column = (pin?: unknown) => ({ id: "a", header: "A", pin }) as unknown as AnyColumnDef;
@@ -37,5 +38,14 @@ describe("legacy pin values", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { columns } = normalizeColumnLayout([column(), { ...column(), id: "b" }], { pins: { a: "left", b: "right" } as never }, []);
     expect(columns.map((c) => c.pin)).toEqual(["start", "end"]);
+  });
+});
+
+describe("setColumnPin", () => {
+  it("reads a legacy side as its logical name", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const store = createDataGridStore({ data: [], columns: [{ id: "a", header: "A", accessorKey: "a" }], getRowId: () => "x" } as unknown as InternalSyncProps);
+    store.getState().actions.setColumnPin("a", "left" as never);
+    expect(store.getState().columns[0]!.pin).toBe("start");
   });
 });
