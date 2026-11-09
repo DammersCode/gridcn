@@ -97,6 +97,7 @@ Design every public hook, function, and component from the caller's side.
 ### API principles
 
 - Simplify the common case, never take capability away. A simplification is a sensible default plus an override. A capability that must go needs a strong reason in the commit and a fallback.
+- A breaking shape change lands before release and fails loudly with a migration note: a type error, or a development warning that names the old and the new form. It never changes meaning silently.
 - Every automatic behavior has an opt-out, a manual equivalent (such as `refresh()`), and a policy hook where policies differ (batching, timing, merging).
 - Keep escape hatches: callbacks with a ctx object, controlled mode, the ability to take over.
 - State in the commit body, or in `research/api-caveat-fixes.md`, what a developer could do before and that they still can.
