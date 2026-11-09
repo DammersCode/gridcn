@@ -88,7 +88,7 @@ function MyGrid() {
 
 Result: copying the cell puts `'=SUM(A1:A3)` on the clipboard.
 
-If the prop is on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5` and `+5` stay unchanged. A paste back into gridcn restores the raw value.
+If the prop is on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5`, `+5`, and `-1e-7` stay unchanged. A paste back into gridcn restores the raw value.
 
 The context menu writes through the async Clipboard API. If the browser lacks or denies that API, the copy writes plain text only. A paste back from that copy keeps the quote.
 

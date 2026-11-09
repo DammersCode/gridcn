@@ -59,7 +59,7 @@ export function UploadReport() {
 | valid `Date` | ISO 8601 text | a date cell |
 | `NaN`, `Infinity`, invalid `Date`, `null`, `undefined` | empty | empty |
 
-A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB, or CR still gets the quote prefix, except a plain number. An XLSX string is always a text cell. The limits `maxRows` and `maxBytes` count the formatted output.
+A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB, or CR still gets the quote prefix. A plain number such as `-5` or `-1e-7` is the exception. An XLSX string is always a text cell. The limits `maxRows` and `maxBytes` count the formatted output.
 
 ## Build the file without a download
 

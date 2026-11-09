@@ -649,9 +649,10 @@ export type JumpDirection = "up" | "down" | "left" | "right";
 
 /**
  * Excel-style Ctrl/Cmd+Arrow "jump to data boundary": from `active`, scans view rows/columns in
- * `direction` using the cell type's `isEmpty`. If the next cell is non-empty, jumps to the last
- * non-empty cell of the contiguous run; if the next cell is empty, jumps to the first non-empty
- * cell found (or the grid edge if none). Clamped at the grid edges either way.
+ * `direction` using the cell type's `isEmpty`. If `active` and the next cell are both non-empty, jumps
+ * to the last non-empty cell of the contiguous run; if `active` is empty and the next cell is not,
+ * jumps to the next cell; otherwise jumps to the first non-empty cell found (or the grid edge if none).
+ * Clamped at the grid edges either way.
  * Exported for direct unit testing of the boundary-scan math; not part of the public hook surface.
  */
 export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord, direction: JumpDirection): ViewCoord {

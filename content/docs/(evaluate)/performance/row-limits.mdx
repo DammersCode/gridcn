@@ -46,7 +46,7 @@ If the row count times the row height passes 17.8 million px, a development buil
 
 ## Rendered rows [#rendered-rows]
 
-Virtualization mounts only the rows in view. If the grid has no bounded height, the grid mounts at most 200 rows and logs a warning. See [Give the grid a bounded height](/docs/performance/virtualization#bounded-height).
+Virtualization mounts only the rows in view. If the grid has no bounded height, the grid mounts at most 200 rows. A development build warns once when the viewport covers more than 200 rows. See [Give the grid a bounded height](/docs/performance/virtualization#bounded-height).
 
 ## Go past the limit [#go-past-the-limit]
 

@@ -29,7 +29,7 @@ const EMPTY_ROWS: readonly never[] = [];
  * that arithmetic and calls this plugin's `rowBands.render` per band segment). Cells render via the
  * same `DataGridCell`/cell-type pipeline as data rows (same columns, alignment, formatting) but
  * never edit: they have no pointer, click, or double-click handlers and no tab stop, so they are not
- * keyboard-navigable. A column's `readOnly: false` changes only their `data-readonly` attribute.
+ * keyboard-navigable. A column's `readOnly: false` changes only their `data-readonly` attribute, unless the column has no `accessorKey` and no `setValue`.
  */
 export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}): UseDataGridPinnedRowsResult {
   const { topRows = EMPTY_ROWS, bottomRows = EMPTY_ROWS, status = "ready" } = options;

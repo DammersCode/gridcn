@@ -81,7 +81,7 @@ Every scope writes all visible columns in view order. Hidden columns stay out. A
 
 A CSV file holds UTF-8 text with a byte order mark. Excel reads UTF-8 from a file that starts with that mark. Set `csvBom: false` for a reader that fails on the mark. `csvDelimiter` sets the separator (comma by default). The writer quotes a field that holds the delimiter, a quote, or a line break. Lines end with CRLF.
 
-A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
+A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are, also in exponent form such as `-1e-7`. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
 
 <Callout type="warn">
   `sanitizeFormulas: false` writes the raw text. A spreadsheet runs a cell that starts with `=` as a formula. Set it only for a program that expects the exact text.

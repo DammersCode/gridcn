@@ -239,12 +239,12 @@ The grid keeps these data attributes up to date. Scope each selector to the grid
 These rules outline the active cell and border a right-pinned cell:
 
 ```css
-[role="gridcell"][data-active] {
+[role="grid"] [role="gridcell"][data-active] {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 
-[role="gridcell"][data-pinned="right"] {
+[role="grid"] [role="gridcell"][data-pinned="right"] {
   border-inline-start: 1px solid var(--color-border);
 }
 ```
