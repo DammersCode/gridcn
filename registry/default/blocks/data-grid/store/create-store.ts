@@ -1746,7 +1746,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         if (pageSize === null) {
           if (s.pageSize === null || s.pageSizeControlled) return;
-          set((s2) => rebuildPageView(s2, 1, null));
+          set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : 1, null));
+          emitAfterWrites(dataWrite, () => {
+            if (s.page !== 1) s.onPageChange?.(1);
+          });
           return;
         }
         if (!Number.isFinite(pageSize) || pageSize < 1) return;
