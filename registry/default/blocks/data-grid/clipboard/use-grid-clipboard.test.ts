@@ -356,6 +356,7 @@ describe("buildPasteWrites", () => {
         { viewRowIndex: 0, columnId: "qty", value: 90, rowId: "1" },
       ],
       rejected: [],
+      warnings: [],
     });
   });
 
@@ -379,6 +380,7 @@ describe("buildPasteWrites", () => {
         { viewRowIndex: 1, columnId: "qty", value: 3, rowId: "2" },
       ],
       rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+      warnings: [],
     });
   });
 });
@@ -399,6 +401,7 @@ describe("pasteText", () => {
         { viewRowIndex: 1, columnId: "qty", value: 9 },
       ],
       "paste",
+      [],
       [],
     );
   });
@@ -467,6 +470,7 @@ describe("pasteText", () => {
       [{ viewRowIndex: 0, columnId: "name", value: "x" }],
       "paste",
       [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "must be >= 0" }],
+      [],
     );
     expect(onValidationError).toHaveBeenCalledWith({
       source: "paste",
@@ -533,6 +537,7 @@ describe("pasteText", () => {
       [{ viewRowIndex: 0, columnId: "name", value: "x", rowId: "1" }],
       "paste",
       [{ rowId: "1", viewRowIndex: 0, columnId: "qty", value: -5, message: "bad" }],
+      [],
     );
     expect(onValidationError).toHaveBeenCalledWith({
       source: "paste",

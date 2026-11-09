@@ -46,7 +46,7 @@ function useHarness() {
 }
 
 describe("validationMode: 'warn' — commit + flag instead of block", () => {
-  it("a bulk updateCells drops a rejected cell of a warn column instead of committing and flagging it", async () => {
+  it("a bulk updateCells commits and flags a rejected cell of a warn column", async () => {
     const onDataChange = vi.fn();
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper(onDataChange) });
 
@@ -58,9 +58,9 @@ describe("validationMode: 'warn' — commit + flag instead of block", () => {
     });
 
     const next = onDataChange.mock.calls[0]![0] as readonly Row[];
-    expect(next[0]!.note).toBe("ok");
+    expect(next[0]!.note).toBe("way too long");
     expect(next[1]!.note).toBe("short");
-    expect(result.current.cellErrors.size).toBe(0);
+    expect(result.current.cellErrors.size).toBe(1);
   });
 
   it("a warn rejection commits the raw value, flags the cell in cellErrors, and closes the editor", () => {

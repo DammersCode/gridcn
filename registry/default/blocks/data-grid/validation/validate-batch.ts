@@ -1,3 +1,4 @@
+import type { CellErrorEntry } from "../store/types";
 import type { GridBulkValidationError, StandardSchemaV1Result } from "../types";
 import { resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
 
@@ -49,7 +50,7 @@ function runValidateOne(item: ValidateBatchItem): ValidateResult | Promise<Stand
   try {
     return runValidatePending(item.validate, item.value, item.row);
   } catch (error) {
-    return { error: errorMessage(error) };
+    return { error: errorMessage(error), thrown: true };
   }
 }
 
@@ -93,7 +94,7 @@ async function settle(pending: Promise<StandardSchemaV1Result<unknown>>): Promis
   try {
     return resolveSchemaResult(await pending);
   } catch (error) {
-    return { error: errorMessage(error) };
+    return { error: errorMessage(error), thrown: true };
   }
 }
 
@@ -107,13 +108,15 @@ export type BulkCandidate = {
   row: unknown;
   /** The target row's stable id, so a held batch can re-resolve its position after a reorder. */
   rowId: string;
+  /** A `validationMode: "warn"` column: a rejected value still commits and lands in `warnings`. */
+  warn?: boolean;
 };
 
 /** One accepted cell, in `applyCellUpdates`' write shape. `value` is the validator's OUTPUT, so a transforming schema's result is what commits. */
 export type BulkWrite = { viewRowIndex: number; columnId: string; value: unknown; rowId?: string };
 
 /** The settled answer of {@link resolveBulkWrites}: the accepted writes plus every rejected cell (the `onValidationError` payload). */
-export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidationError[] };
+export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidationError[]; warnings: CellErrorEntry[] };
 
 /**
  * Validates `candidates` and splits them into accepted writes and rejected cells — the shared tail
@@ -139,9 +142,17 @@ export function resolveBulkWrites(candidates: readonly BulkCandidate[]): BulkRes
 function toResolution(candidates: readonly BulkCandidate[], results: readonly ValidateResult[], carryRowId: boolean): BulkResolution {
   const writes: BulkWrite[] = [];
   const rejected: GridBulkValidationError[] = [];
+  const warnings: CellErrorEntry[] = [];
   for (let i = 0; i < candidates.length; i++) {
     const result = results[i];
     const candidate = candidates[i]!; // i < candidates.length by loop condition
+    if (result && "error" in result && candidate.warn && !result.thrown) {
+      warnings.push({ rowId: candidate.rowId, columnId: candidate.columnId, message: result.error });
+      const write: BulkWrite = { viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: candidate.value };
+      if (carryRowId) write.rowId = candidate.rowId;
+      writes.push(write);
+      continue;
+    }
     if (!result || "error" in result) {
       if (result && "error" in result) rejected.push({ rowId: candidate.rowId, viewRowIndex: candidate.viewRowIndex, columnId: candidate.columnId, value: candidate.value, message: result.error });
       continue;
@@ -150,5 +161,5 @@ function toResolution(candidates: readonly BulkCandidate[], results: readonly Va
     if (carryRowId) write.rowId = candidate.rowId;
     writes.push(write);
   }
-  return { writes, rejected };
+  return { writes, rejected, warnings };
 }

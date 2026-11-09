@@ -6,7 +6,7 @@ import { runValidateBatch, type ValidateBatchItem } from "../validation/validate
 import { isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { GateContext } from "./gate-signal";
-import type { AnyColumnDef, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
+import type { AnyColumnDef, CellErrorEntry, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
 
 export function warnDev(message: string): void {
   if (isDev()) console.warn(`[data-grid] ${message}`);
@@ -296,11 +296,13 @@ export function computeCellPatchBatch(
   touchedRows: number[];
   skipped: UpdateCellsSkip[];
   rejected: PatchRejection[];
+  warnings: CellErrorEntry[];
 } {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
   const rowEdits = new Map<number, RowEdit>();
   const skipped: UpdateCellsSkip[] = [];
   const rejected: PatchRejection[] = [];
+  const warnings: CellErrorEntry[] = [];
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex]!;
@@ -334,11 +336,13 @@ export function computeCellPatchBatch(
     if (!skipValidation) {
       const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
       if ("error" in validated) {
-        skipped.push({ patchIndex, reason: "invalid" });
-        rejected.push({ patchIndex, message: validated.error });
-        continue;
-      }
-      value = validated.value;
+        if (column.validationMode !== "warn" || validated.thrown) {
+          skipped.push({ patchIndex, reason: "invalid" });
+          rejected.push({ patchIndex, message: validated.error });
+          continue;
+        }
+        warnings.push({ rowId: patch.rowId, columnId: column.id, message: validated.error });
+      } else value = validated.value;
     }
 
     const prevValue = getCellValue<unknown, typeof column>(baseRow, column);
@@ -354,7 +358,7 @@ export function computeCellPatchBatch(
     rowEdits.set(dataRowIndex, { row, cells });
   }
 
-  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected };
+  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected, warnings };
 
   const nextData = s.data.slice();
   const ops: DataOp<unknown>[] = [];
@@ -372,7 +376,7 @@ export function computeCellPatchBatch(
       cells: Array.from(cells.values()),
     });
   }
-  return { nextData, ops, touchedRows, skipped, rejected };
+  return { nextData, ops, touchedRows, skipped, rejected, warnings };
 }
 
 /**
@@ -406,9 +410,11 @@ export function prevalidatePatches(
   rowIndex: ReadonlyMap<string, number>,
 ): PrevalidatedPatches | Promise<PrevalidatedPatches> {
   const columnsById = new Map(s.columns.map((c) => [c.id, c] as const));
+  const warnByPatch: boolean[] = [];
   const items: ValidateBatchItem[] = patches.map((patch) => {
     const dataRowIndex = rowIndex.get(patch.rowId);
     const column = columnsById.get(patch.columnId);
+    warnByPatch.push(column?.validationMode === "warn");
     return {
       validate: column ? resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]) : undefined,
       value: patch.value,
@@ -417,20 +423,26 @@ export function prevalidatePatches(
   });
 
   const results = runValidateBatch(items);
-  if (results instanceof Promise) return results.then((resolved) => keepAccepted(patches, resolved));
-  return keepAccepted(patches, results);
+  if (results instanceof Promise) return results.then((resolved) => keepAccepted(patches, resolved, warnByPatch));
+  return keepAccepted(patches, results, warnByPatch);
 }
 
 /** A patch the column's validator refused: its index in the caller's array and the validator's message. */
 export type PatchRejection = { patchIndex: number; message: string };
 
 /** Accepted patches with their index in the caller's array, and the rejected ones. */
-export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejected: PatchRejection[] };
+export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: number[]; rejected: PatchRejection[]; warnings: CellErrorEntry[] };
 
-function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[]): PrevalidatedPatches {
-  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejected: [] };
+function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[], warnByPatch: readonly boolean[]): PrevalidatedPatches {
+  const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejected: [], warnings: [] };
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
+    if (result && "error" in result && warnByPatch[i] && !result.thrown) {
+      out.warnings.push({ rowId: patches[i]!.rowId, columnId: patches[i]!.columnId, message: result.error });
+      out.accepted.push(patches[i]!);
+      out.acceptedIndexes.push(i);
+      continue;
+    }
     if (!result || "error" in result) {
       out.rejected.push({ patchIndex: i, message: result?.error ?? "" });
       continue;

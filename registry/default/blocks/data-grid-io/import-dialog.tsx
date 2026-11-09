@@ -48,6 +48,8 @@ export type ImportContext = {
   signal: AbortSignal;
   /** Cells whose value failed `column.validate`; each was cleared and its row is in `rows`. */
   rejected: readonly ImportRejectedCell[];
+  /** Cells of `validationMode: "warn"` columns whose value failed `validate`; each keeps its value in `rows`. The default append flags them in `cellErrors`. */
+  flagged: readonly ImportRejectedCell[];
   fileName: string;
   /** The sheet the rows came from; undefined for CSV. */
   sheetName?: string;
@@ -180,7 +182,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const [buildError, setBuildError] = useState<ImportErrorKey | "importBuildFailed" | null>(null);
   const warnedMissingOnImportRef = useRef(false);
   const appendRows = useCallback(
-    (rows: TData[]) => {
+    (rows: TData[], flagged: readonly ImportRejectedCell[]) => {
       const state = storeApi.getState();
       if (state.totalRowCount != null) {
         if (isDev() && !warnedMissingOnImportRef.current) {
@@ -194,18 +196,23 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         source: "import",
         ops: rows.map((row, offset) => ({ type: "insert" as const, rowId: state.getRowId(row, start + offset), row, index: start + offset })),
       });
+      const flags = flagged.flatMap(({ rowIndex, gridColumnId, message }) => {
+        const row = rows[rowIndex];
+        return row === undefined ? [] : [{ rowId: state.getRowId(row, start + rowIndex), columnId: gridColumnId, message: message ?? "" }];
+      });
+      if (flags.length > 0) actions.setCellErrors(flags);
     },
     [actions, storeApi],
   );
   const finish = useCallback(
-    (rows: TData[], rejected: readonly ImportRejectedCell[], source: ImportSource) => {
+    (rows: TData[], rejected: readonly ImportRejectedCell[], flagged: readonly ImportRejectedCell[], source: ImportSource) => {
       setMergeFailed(false);
       setMergeMessage(null);
       setIsValidating(true);
       const token = ++confirmTokenRef.current;
       const signal = abortControllerRef.current?.signal ?? new AbortController().signal;
       void Promise.resolve()
-        .then(() => (onImport ? onImport(rows, { signal, rejected, ...source }) : appendRows(rows)))
+        .then(() => (onImport ? onImport(rows, { signal, rejected, flagged, ...source }) : appendRows(rows, flagged)))
         .then(() => {
           if (confirmTokenRef.current === token) actions.clearSelection();
         })
@@ -275,7 +282,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       return;
     }
     if (built !== null && !(built instanceof Promise)) {
-      finish(built.rows, built.rejected, source);
+      finish(built.rows, built.rejected, built.flagged, source);
       return;
     }
     // A large import (chunked so the dialog can repaint and Cancel can land), a row or cell hook, or an
@@ -285,7 +292,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     void Promise.resolve(built).then((result) => {
       if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
       setIsValidating(false);
-      if (result !== null) finish(result.rows, result.rejected, source);
+      if (result !== null) finish(result.rows, result.rejected, result.flagged, source);
     }, fail);
   }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText]);
 

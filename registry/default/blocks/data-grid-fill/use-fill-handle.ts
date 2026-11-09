@@ -138,7 +138,7 @@ export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRec
       const text = filled[row]?.[col];
       if (text === undefined) continue;
       const { value, validate } = safeFromText(cellType, text, column.options, resolveColumnValidate(column, cellType));
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row: dataRow, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row: dataRow, rowId, warn: column.validationMode === "warn" });
     }
   }
   if (skippedHoleRows > 0 && isDev()) {
@@ -276,13 +276,13 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const applied = guard.reresolve(current, resolved.writes);
           const flashed = flashCellsFor(current, applied);
           // rejected cells are reported by the write itself (same source, after the write's emit)
-          actions.applyCellUpdates(applied, "fill", resolved.rejected);
+          actions.applyCellUpdates(applied, "fill", resolved.rejected, resolved.warnings);
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
           actions.flashCells(flashed);
         });
       } else {
         const flashed = flashCellsFor(storeApi.getState(), resolution.writes);
-        actions.applyCellUpdates(resolution.writes, "fill", resolution.rejected);
+        actions.applyCellUpdates(resolution.writes, "fill", resolution.rejected, resolution.warnings);
         actions.flashCells(flashed);
       }
 

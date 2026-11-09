@@ -223,6 +223,7 @@ describe("buildFillWrites with an async schema", () => {
         { rowId: "3", viewRowIndex: 2, columnId: "qty", value: 6, message: "too big" },
         { rowId: "4", viewRowIndex: 3, columnId: "qty", value: 8, message: "too big" },
       ],
+      warnings: [],
     });
   });
 
@@ -240,6 +241,7 @@ describe("buildFillWrites with an async schema", () => {
         { viewRowIndex: 3, columnId: "qty", value: 2, rowId: "4" },
       ],
       rejected: [],
+      warnings: [],
     });
   });
 

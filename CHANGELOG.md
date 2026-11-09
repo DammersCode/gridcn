@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** a column with `validationMode: "warn"` also accepts invalid values in paste, fill, `updateCells`, and import, and flags them in `cellErrors` (before, only single-cell commits did). Each bulk write updates `cellErrors` once and does not call `onValidationError` for warned cells. Use `validationMode: "block"` (the default) or `processPaste` to keep dropping invalid values. `buildImportedRows` returns the kept cells in a new `flagged` list, and `onImport` receives it as `ctx.flagged`.
 - **Breaking:** row actions take a stable row id unless the name ends in `At`, which takes view indexes. `deleteRows` and `duplicateRows` take row ids, and `deleteRowsAt` and `duplicateRowsAt` take view indexes wrapped in `viewIndexes([...])`, so a plain number array is a type error. `setRowChecked(rowId, checked)` is new, and `setRowSelected` and `setAllRowsSelected` are `setRowCheckedAt` and `setAllRowsChecked`. In development, `deleteRows`, `duplicateRows`, and `setRowChecked` warn once per grid when a number that is no row id is a view index, because a JavaScript call from before this change would otherwise do nothing silently. `onRowActionSkipped` keeps `action: "deleteRows"` for both addressings. `insertRow(s)`, `reorderRows`, `moveRowsBy`, `selectRow`, and `checkRowRange` keep their view-index parameters.
 
   | Before | After |

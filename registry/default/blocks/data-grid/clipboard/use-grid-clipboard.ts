@@ -289,7 +289,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
         : safeFromText(cellType, text, column.options, columnValidate);
 
       if (isThenable(value)) pending++;
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row, rowId });
+      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row, rowId, warn: column.validationMode === "warn" });
     }
   }
   return { candidates, pending };
@@ -478,7 +478,7 @@ function applyResolution(
   const resolution = resolveBulkWrites(afterAwait ? reresolveBulkWrites(s, candidates) : candidates);
   if (!(resolution instanceof Promise)) {
     // rejected cells are reported by the write itself (same source, after the write's emit)
-    actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected);
+    actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected, resolution.warnings);
     return true;
   }
 
@@ -488,7 +488,7 @@ function applyResolution(
     const current = storeApi?.getState() ?? s;
     if (current.readOnly) return;
     if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
-    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected);
+    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected, resolved.warnings);
   });
   return true;
 }

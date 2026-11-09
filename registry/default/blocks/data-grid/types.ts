@@ -546,13 +546,13 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    */
   validate?: ((value: TValidate, row: TData) => string | null) | StandardSchemaV1<TValidate>;
   /**
-   * What a `validate` rejection does in a single-cell commit. `"block"` (default): the commit is
-   * refused — the editor stays open with the message and the value never enters `data`. `"warn"`:
-   * the value commits and the cell is flagged in `cellErrors` (same ring/tint/tooltip as server
-   * errors, auto-cleared by the next valid commit of that cell). A rejection carries no
-   * transformed value, so `"warn"` commits the RAW value; per-row softness is expressed inside the
-   * function form via its `row` argument (return `null` to skip the rule for that row). Bulk paths
-   * (paste/fill/updateCells) still drop rejected cells even for `"warn"` columns.
+   * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor
+   * stays open with the message); paste, fill, `updateCells`, and import drop or clear the value. `"warn"`:
+   * every one of those writes commits the value and flags the cell in `cellErrors` (same ring/tint/tooltip as
+   * server errors, auto-cleared by the next valid write of that cell, and by undo of the write). A rejection
+   * carries no transformed value, so `"warn"` commits the RAW value. A validator that throws blocks on both
+   * modes. Warned cells are not reported through `onValidationError`. Per-row softness is expressed inside
+   * the function form via its `row` argument (return `null` to skip the rule for that row).
    */
   validationMode?: "block" | "warn";
   /** Rendered width in px; default 150. A resize clamps to `minWidth` and the 32px absolute floor. */

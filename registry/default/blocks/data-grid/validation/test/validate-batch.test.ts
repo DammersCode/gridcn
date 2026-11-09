@@ -72,7 +72,7 @@ describe("runValidateBatch — async branch", () => {
         row: {},
       },
     ]);
-    expect(results).toEqual([{ value: 2 }, { error: "boom" }]);
+    expect(results).toEqual([{ value: 2 }, { error: "boom", thrown: true }]);
   });
 
   it("a rejected schema promise is that cell's rejection", async () => {
@@ -80,7 +80,7 @@ describe("runValidateBatch — async branch", () => {
       { validate: schema(async () => Promise.reject(new Error("network"))), value: 1, row: {} },
       { validate: asyncDouble, value: 2, row: {} },
     ]);
-    expect(results).toEqual([{ error: "network" }, { value: 4 }]);
+    expect(results).toEqual([{ error: "network", thrown: true }, { value: 4 }]);
   });
 });
 
@@ -155,12 +155,13 @@ describe("resolveBulkWrites", () => {
         { viewRowIndex: 1, columnId: "a", value: 3, rowId: "2" },
       ],
       rejected: [{ rowId: "1", viewRowIndex: 0, columnId: "b", value: 2, message: "nope" }],
+      warnings: [],
     });
   });
 
   it("stays synchronous when no candidate is async", () => {
     const resolution = resolveBulkWrites([{ viewRowIndex: 0, columnId: "a", value: 4, validate: syncDouble, row: {}, rowId: "1" }]);
     expect(resolution).not.toBeInstanceOf(Promise);
-    expect(resolution).toEqual({ writes: [{ viewRowIndex: 0, columnId: "a", value: 8 }], rejected: [] });
+    expect(resolution).toEqual({ writes: [{ viewRowIndex: 0, columnId: "a", value: 8 }], rejected: [], warnings: [] });
   });
 });

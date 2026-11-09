@@ -1161,8 +1161,9 @@ export type DataGridActions = {
    * (last write wins), skips readOnly cells and no-op writes, preserves identity of untouched rows,
    * suppresses an empty batch entirely, and moves the selection to cover the touched view rect.
    * With `rejected` present, fires `onValidationError` (same `source`) after the write settles.
+   * `warnings` (cells of `validationMode: "warn"` columns whose value failed validation but is in `updates`) merge into `cellErrors` in the same store write.
    */
-  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"], rejected?: readonly GridBulkValidationError[]): void;
+  applyCellUpdates(updates: { viewRowIndex: number; columnId: string; value: unknown }[], source: DataChange<unknown>["source"], rejected?: readonly GridBulkValidationError[], warnings?: readonly CellErrorEntry[]): void;
   /**
    * The streaming write path: applies row-id-based {@link CellPatch}es in ONE `set()` and skips the
    * `computeViewIndex`/`computeSearchMatches` rebuild that a `data` prop replacement forces. This is

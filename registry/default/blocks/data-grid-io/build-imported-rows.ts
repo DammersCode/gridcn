@@ -45,6 +45,8 @@ export type BuildImportedRowsResult<TData> = {
   rows: TData[];
   /** Cells whose value failed `column.validate` and was cleared. Their rows are still built. */
   rejected: ImportRejectedCell[];
+  /** Cells of `validationMode: "warn"` columns whose value failed validation. The value stays in its row, uncleared. */
+  flagged: ImportRejectedCell[];
 };
 
 /** Inputs for {@link buildImportedRows}. */
@@ -71,6 +73,7 @@ type ImportCell = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same TValidate erasure as BuildImportedRowsOptions.columns.
   column: ColumnDef<any, unknown, any>;
   clearedValue: unknown;
+  warn: boolean;
 };
 
 /** Thrown from the chunked path when `options.signal` is aborted between chunks. */
@@ -133,11 +136,12 @@ function finishSmallImport<TData>(
   rows: TData[],
 ): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const rejected: ImportRejectedCell[] = [];
+  const flagged: ImportRejectedCell[] = [];
   const { items, cells } = buildCellsForRange(dataRows, 0, dataRows.length, activeMappings, columnsById, cellTypes, rows);
 
   const results = runValidateBatch(items);
-  if (results instanceof Promise) return results.then((resolved) => ({ rows: writeCells(rows, cells, resolved, rejected), rejected }));
-  return { rows: writeCells(rows, cells, results, rejected), rejected };
+  if (results instanceof Promise) return results.then((resolved) => ({ rows: writeCells(rows, cells, items, resolved, rejected, flagged), rejected, flagged }));
+  return { rows: writeCells(rows, cells, items, results, rejected, flagged), rejected, flagged };
 }
 
 /** One resolved mapping entry: the source column index paired with its target column definition. */
@@ -172,7 +176,7 @@ function buildCellsForRange<TData>(
         ? { value: processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal, fromText: (raw) => cellType.fromText(raw, column.options) }), validate: columnValidate }
         : safeFromText(cellType, text, column.options, columnValidate);
       items.push({ validate: parsed.validate as never, value: parsed.value, row: rows[rowIndex] });
-      cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options) });
+      cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options), warn: column.validationMode === "warn" });
     }
   }
   return { items, cells };
@@ -213,6 +217,7 @@ async function buildImportedRowsChunked<TData>(
   const created = dataRows.map((_, index) => createRow(index, gateCtx));
   const rows = created.some((row) => isThenable(row)) ? await Promise.all(created) : (created as TData[]);
   const rejected: ImportRejectedCell[] = [];
+  const flagged: ImportRejectedCell[] = [];
 
   for (let start = 0; start < dataRows.length; start += CHUNK_SIZE) {
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
@@ -221,12 +226,12 @@ async function buildImportedRowsChunked<TData>(
     await settleItemValues(items);
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const results = await runValidateBatch(items);
-    writeCells(rows, cells, results, rejected);
+    writeCells(rows, cells, items, results, rejected, flagged);
     await yieldToEventLoop();
   }
   if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
 
-  return { rows, rejected };
+  return { rows, rejected, flagged };
 }
 
 function rejectionMessage(result: ValidateResult): string | undefined {
@@ -245,7 +250,14 @@ function rejectionMessage(result: ValidateResult): string | undefined {
  * boundary. A column with a custom `setValue` keeps writing through `setCellValue` per cell, since
  * only `setValue` knows how to fold its own value into the row.
  */
-function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results: readonly ValidateResult[], rejected: ImportRejectedCell[]): TData[] {
+function writeCells<TData>(
+  rows: TData[],
+  cells: readonly ImportCell[],
+  items: readonly { value: unknown }[],
+  results: readonly ValidateResult[],
+  rejected: ImportRejectedCell[],
+  flagged: ImportRejectedCell[],
+): TData[] {
   let pendingRow = -1;
   let pendingPatch: Record<string, unknown> | null = null;
   const flush = () => {
@@ -260,8 +272,9 @@ function writeCells<TData>(rows: TData[], cells: readonly ImportCell[], results:
     const result = results[i];
     if (!result) continue;
     const isRejected = "error" in result;
-    if (isRejected) rejected.push({ rowIndex: cell.rowIndex, importColumnIndex: cell.importColumnIndex, gridColumnId: cell.column.id, message: rejectionMessage(result) });
-    const value = isRejected ? cell.clearedValue : result.value;
+    const keepsValue = isRejected && cell.warn && !result.thrown;
+    if (isRejected) (keepsValue ? flagged : rejected).push({ rowIndex: cell.rowIndex, importColumnIndex: cell.importColumnIndex, gridColumnId: cell.column.id, message: rejectionMessage(result) });
+    const value = keepsValue ? items[i]!.value : isRejected ? cell.clearedValue : result.value;
 
     if (cell.rowIndex !== pendingRow) flush();
     pendingRow = cell.rowIndex;

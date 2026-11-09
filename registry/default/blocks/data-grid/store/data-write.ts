@@ -1156,9 +1156,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const rowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       const validated = prevalidatePatches(s, patches, rowIndex);
       // Skips report indexes into the caller's `patches`, not into the accepted subset.
-      const apply = ({ accepted, acceptedIndexes, rejected }: PrevalidatedPatches): UpdateCellsVerdict => {
+      const apply = ({ accepted, acceptedIndexes, rejected, warnings }: PrevalidatedPatches): UpdateCellsVerdict => {
         const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
         const verdict = accepted.length === 0 ? null : updateCellsCore(accepted, { ...options, skipValidation: true });
+        if (warnings.length > 0) set({ cellErrors: mergeCellErrors(get().cellErrors, warnings) });
         emitStreamRejections(patches, rejected, options?.source);
         if (!verdict) return { applied: 0, skipped: invalid, pending: false };
         const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
@@ -1190,7 +1191,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const stale = marks.state;
     const change = { source: options?.source ?? "stream", ops: batch.ops };
     // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
-    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
+    const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
+    const cellErrors = batch.warnings.length > 0 ? mergeCellErrors(validated, batch.warnings) : validated;
 
     // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
     if (reorder !== "immediate") {
@@ -1374,7 +1376,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
       commitClearWrites(s, writes);
     },
-    applyCellUpdates(updates, source, rejected) {
+    applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();
       if (s.readOnly) return;
       if (updates.length === 0) {
@@ -1387,7 +1389,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.rowIndexCache.rebase(batch.nextData);
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
-      const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
+      const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
+      const cellErrors = warnings ? mergeCellErrors(validated, warnings) : validated;
 
       // move selection to cover the touched view rect (paste's anchored-expand result).
       let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
