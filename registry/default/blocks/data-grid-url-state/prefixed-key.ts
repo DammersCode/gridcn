@@ -20,7 +20,7 @@ export function useWarnSharedPrefix(hook: "useDataGridUrlState" | "useDataGridUr
       console.warn(`[data-grid-url-state] two ${hook} instances use ${prefix ? `the prefix "${prefix}"` : "no prefix"}; give each grid its own prefix`);
     }
     return () => {
-      const left = (mountedByScope.get(scope) ?? 1) - 1;
+      const left = (mountedByScope.get(scope) as number) - 1;
       if (left > 0) mountedByScope.set(scope, left);
       else mountedByScope.delete(scope);
     };
