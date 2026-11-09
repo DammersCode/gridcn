@@ -259,7 +259,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const s = api.store.getState();
     if (s.readOnly || s.editing !== null || find.trim() === "") return;
     const replaced = replacedRef.current;
-    const replacedAt = only ? s.searchMatches[nextIndex] : undefined;
+    const replacedAt = only ? refOfIndex(s, nextIndex) : null;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
     const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
     const run = (finalPlan: ReplacePlan) => {
@@ -280,9 +280,14 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         if (only) {
           const after = api.store.getState();
           const columnOrder = (columnId: string) => after.visibleColumns.findIndex((c) => c.id === columnId);
-          const next = replacedAt
-            ? after.searchMatches.findIndex((m) => m.row > replacedAt.row || (m.row === replacedAt.row && columnOrder(m.columnId) > columnOrder(replacedAt.columnId)))
-            : nextIndex;
+          const replacedRow = replacedAt ? fullViewOf(after.viewIndex).findIndex((dataIndex) => {
+            const row = after.data[dataIndex];
+            return row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
+          }) : -1;
+          const next =
+            replacedAt && replacedRow !== -1
+              ? after.searchMatches.findIndex((m) => m.row > replacedRow || (m.row === replacedRow && columnOrder(m.columnId) > columnOrder(replacedAt.columnId)))
+              : nextIndex;
           goTo(next === -1 ? 0 : next);
         }
       };

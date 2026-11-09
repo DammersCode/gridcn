@@ -158,6 +158,26 @@ describe("useDataGridFindReplace", () => {
     await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 3 }));
   });
 
+  it("Replace moves past the replaced row by id when a sort reorders the view during an async onReplace", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const harness = setup({
+      rows: ["a", "b", "c"].map((id, i) => ({ id, name: `foo ${3 - i}` })),
+      onReplace: async ({ plan }) => {
+        await gate;
+        return plan;
+      },
+    });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 0 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    act(() => harness.actions().toggleSort("name", false));
+    release();
+    await waitFor(() => expect(harness.data().map((r) => r.name)).toEqual(["x 3", "foo 2", "foo 1"]));
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 0 }));
+  });
+
   it("disables Replace in a read-only grid and writes nothing", async () => {
     const harness = setup({ readOnly: true });
     act(() => harness.findReplace().open());
