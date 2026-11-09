@@ -36,10 +36,16 @@ describe("parseImportFile — csv", () => {
     ]);
   });
 
-  it("detects only a delimiter that the dialog menu offers", async () => {
+  it("detects a pipe delimiter", async () => {
     const result = await parseImportFile(makeCsvFile("name|age\nAlice|30\nBob|40"));
+    expect(result.delimiter).toBe("|");
+    expect(result.rows[0]).toEqual(["name", "age"]);
+  });
+
+  it("reads a file with another separator as one comma column", async () => {
+    const result = await parseImportFile(makeCsvFile("name~age\nAlice~30\nBob~40"));
     expect(result.delimiter).toBe(",");
-    expect(result.rows[0]).toEqual(["name|age"]);
+    expect(result.rows[0]).toEqual(["name~age"]);
   });
 
   it("honors a user-supplied delimiter override even when another delimiter would auto-detect differently", async () => {

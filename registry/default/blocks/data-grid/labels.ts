@@ -252,6 +252,7 @@ export type DataGridIOLabels = {
   delimiterComma: string;
   delimiterSemicolon: string;
   delimiterTab: string;
+  delimiterPipe: string;
   hasHeaderRow: string;
   mapColumns: string;
   /** One-line hint under the mapping grid explaining why mapped columns disappear from other selects. */
@@ -617,6 +618,7 @@ export const DEFAULT_LABELS: DataGridLabels = {
     delimiterComma: "Comma (,)",
     delimiterSemicolon: "Semicolon (;)",
     delimiterTab: "Tab",
+    delimiterPipe: "Pipe (|)",
     hasHeaderRow: "First row is a header",
     mapColumns: "Map columns",
     mapColumnsHint: "Each grid column can only be mapped from one source column.",

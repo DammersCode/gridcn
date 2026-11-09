@@ -73,7 +73,7 @@ Clear the "first row is a header" toggle, which starts on, for a file without he
 
 ### Delimiter [#delimiter]
 
-A CSV or TSV file shows a delimiter menu with comma, semicolon, and tab. The dialog detects the delimiter on load. If `importDefaults` sets one, the dialog uses it. A delimiter change drops the column mapping that the user set by hand. An Excel file has no delimiter menu.
+A CSV or TSV file shows a delimiter menu with comma, semicolon, tab, and pipe. The dialog detects one of these four on load. A file with another separator reads as one column with a comma. If `importDefaults` sets one, the dialog uses it. A delimiter change drops the column mapping that the user set by hand. An Excel file has no delimiter menu.
 
 ### Map columns [#map-columns]
 

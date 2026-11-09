@@ -32,10 +32,11 @@ const IMPORT_ACCEPT: DropzoneAccept = {
 
 export type { ImportDefaults };
 
-const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "delimiterSemicolon" | "delimiterTab" }[] = [
+const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "delimiterSemicolon" | "delimiterTab" | "delimiterPipe" }[] = [
   { value: ",", labelKey: "delimiterComma" },
   { value: ";", labelKey: "delimiterSemicolon" },
   { value: "\t", labelKey: "delimiterTab" },
+  { value: "|", labelKey: "delimiterPipe" },
 ];
 
 /** Mapping-select value for a source column that maps to no grid column. */

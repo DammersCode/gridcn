@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import type { CellValue } from "hucre";
 
 /** CSV delimiter choices exposed in the import dialog; `undefined` means auto-detect. */
-export type CsvDelimiter = "," | ";" | "\t";
+export type CsvDelimiter = "," | ";" | "\t" | "|";
 
 /**
  * Default bounds for every import. Unbounded parsing is a memory/CPU DoS vector: a tiny xlsx with
@@ -187,7 +187,7 @@ function parseCsvText(text: string, csvDelimiter: CsvDelimiter | undefined, limi
   const sample = text.slice(0, CSV_SAMPLE_CHARS);
   const newline = detectNewline(sample);
   const delimiter =
-    csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true, delimitersToGuess: [",", ";", "	"] }).meta.delimiter as CsvDelimiter | undefined) || ",");
+    csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true, delimitersToGuess: [",", ";", "	", "|"] }).meta.delimiter as CsvDelimiter | undefined) || ",");
   assertCsvWithinLimits(text, delimiter, newline, limits);
   const result = Papa.parse<string[]>(text, { delimiter, newline, skipEmptyLines: true });
   return { rows: result.data.map((row) => row.map((cell) => cell ?? "")), delimiter };

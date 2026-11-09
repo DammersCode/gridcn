@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The import dialog delimiter menu offers pipe (`|`), and `CsvDelimiter` includes `"|"`. The `labels.io` object has a `delimiterPipe` label.
 - Fix: the development warning for an unbounded grid height fires only when the viewport itself holds more than 200 rows. It also fired for a bounded grid when the overscan of a fast fling pushed the rendered rows past 200.
 - Fix: Undo and Redo write only the cells of the history entry onto the row as it is now. They wrote the whole row from the time of the edit, which reverted the other columns of that row to their old values after a stream push or a refetch. `onSave` and `onDataChange` receive the current row in the `"history"` change.
 - Fix: a plain-text paste with a quote inside a field, such as `5" pipe`, keeps the tabs and line breaks after it as cell and row separators. The quote opened a quoted cell that swallowed the rest of the paste into one cell. Only a quote at the start of a field opens a quoted cell.
