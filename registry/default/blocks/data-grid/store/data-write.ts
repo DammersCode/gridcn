@@ -824,13 +824,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const s = get();
     if (s.readOnly) return skippedBy("deleteRows", "readOnly");
     if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skippedBy("deleteRows", "unloaded-rows");
+    if (!dataRowIndexes.some((i) => s.data[i] !== undefined)) return skippedBy("deleteRows", "nothing-to-do");
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
       return OK;
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
-    if (rowIds.length === 0) return skippedBy("deleteRows", "nothing-to-do");
     if (deleteRun && !deleteRun.aborted) {
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
       return skippedBy("deleteRows", "gate-pending");

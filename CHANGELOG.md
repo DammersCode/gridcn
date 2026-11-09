@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: `deleteRows` and `deleteRowsById` return `{ ok: false, reason: "nothing-to-do" }` and fire `onRowActionSkipped` when no row matches, also without `onBeforeDeleteRows`. They returned `{ ok: true }`.
 - Fix: the quick-search counter shows `1000+` only when more than 1,000 cells match. With exactly 1,000 matches it showed `1000+`.
 - The import dialog delimiter menu offers pipe (`|`), and `CsvDelimiter` includes `"|"`. The `labels.io` object has a `delimiterPipe` label.
 - Fix: the development warning for an unbounded grid height fires only when the viewport itself holds more than 200 rows. It also fired for a bounded grid when the overscan of a fast fling pushed the rendered rows past 200.

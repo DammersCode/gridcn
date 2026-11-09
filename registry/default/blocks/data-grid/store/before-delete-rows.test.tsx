@@ -55,6 +55,17 @@ describe("onBeforeDeleteRows", () => {
     expect(m.dataIds()).toEqual(["b", "c", "d", "e"]);
   });
 
+  it("without the prop a delete that matches no row reports nothing-to-do", () => {
+    const m = mount(undefined);
+    const skipped = vi.fn();
+    m.rerender({ onRowActionSkipped: skipped });
+    const nothing = { ok: false, reason: "nothing-to-do" };
+    expect(m.state().actions.deleteRowsById(["missing"])).toEqual(nothing);
+    expect(m.state().actions.deleteRows([])).toEqual(nothing);
+    expect(skipped).toHaveBeenCalledTimes(2);
+    expect(m.dataIds()).toHaveLength(5);
+  });
+
   it("gets the row ids that go and the hidden count, and a true result deletes synchronously", () => {
     const gate = vi.fn<Gate>(() => true);
     const m = mount(gate, { checkedRowsLifetime: "across-filters" });
