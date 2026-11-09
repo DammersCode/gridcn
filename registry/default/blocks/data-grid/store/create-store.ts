@@ -874,12 +874,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       endEditSession,
       renameRowKeys,
     });
-    const { _deleteCellsById, _commitCellEdit, _skipRowAction, ...otherWriteActions } = dataWriteActions;
+    const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, ...otherWriteActions } = dataWriteActions;
     const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
     const internal: DataGridInternalActions = {
       _deleteCellsById,
       _skipRowAction,
       _commitCellEdit,
+      _commitChange,
       _armRowDragAnchor(index) {
         const s = get();
         if (!s.enableRowSelection) return;
@@ -1355,6 +1356,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       _registerFocusSearch(impl) {
         set({ focusSearchImpl: impl });
+        return () => {
+          if (get().focusSearchImpl === impl) set({ focusSearchImpl: null });
+        };
       },
       _registerMeasureFonts(impl) {
         set({ measureFonts: impl });

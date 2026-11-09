@@ -1251,9 +1251,8 @@ export type DataGridActions = {
    * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
    * `validateRow` runs for every inserted and updated row, except in a `source: "stream"` change.
    * Updated cells of `validationMode: "warn"` columns that fail their sync `validate` land in `cellErrors` in the same write.
-   * `flags` (internal) merge into `cellErrors` in that write; flags of rows the change did not leave in the data drop.
    */
-  commitChange(change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void;
+  commitChange(change: DataChange<unknown>): void;
 };
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
@@ -1266,6 +1265,8 @@ export type DataGridInternalActions = {
    * Promise's issues, so the layer forwards the message to flag the cell.
    */
   _commitCellEdit(value: unknown, movement?: { dx: number; dy: number }, rejection?: string): void;
+  /** @internal {@link DataGridActions.commitChange} plus `flags`, which merge into `cellErrors` in the same write; flags of rows the change did not leave in the data drop. */
+  _commitChange(change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void;
   /**
    * @internal Sets `editingError` and bumps `editingRejectionCount` (the editors' commit-guard re-arm
    * nonce) without touching `editing`/`data`. An async `validate` resolves after `commitCellEdit` would
@@ -1334,8 +1335,8 @@ export type DataGridInternalActions = {
   _registerFocus(impl: (() => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its keymap-action runner on mount/unmount; `api.runShortcut` calls it. Not part of the public hook surface. */
   _registerRunShortcut(impl: DataGridStoreState["runShortcutImpl"]): void;
-  /** @internal `DataGridSearch` registers/clears its input focus on mount/unmount; not part of the public hook surface. */
-  _registerFocusSearch(impl: (() => void) | null): void;
+  /** @internal `DataGridSearch` registers its input focus on mount; the returned function clears it only while `impl` is still the registered one. Not part of the public hook surface. */
+  _registerFocusSearch(impl: () => void): () => void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
   /**

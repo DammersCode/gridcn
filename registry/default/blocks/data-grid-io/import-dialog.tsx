@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, isDev, useDataGridMarkGatePending, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, isDev, useDataGridFlaggedCommit, useDataGridMarkGatePending, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +107,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
+  const commitWithFlags = useDataGridFlaggedCommit();
   const allColumns = useDataGridAllColumns<TData>();
   const [isValidating, setIsValidating] = useState(false);
   /** Generation guard for a held async import: a newer confirm, or closing the dialog, drops the older batch. */
@@ -197,7 +198,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         const row = rows[rowIndex];
         return row === undefined ? [] : [{ rowId: state.getRowId(row, start + rowIndex), columnId: gridColumnId, message: message ?? "" }];
       });
-      actions.commitChange(
+      commitWithFlags(
         {
           source: "import",
           ops: rows.map((row, offset) => ({ type: "insert" as const, rowId: state.getRowId(row, start + offset), row, index: start + offset })),
@@ -205,7 +206,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         flags,
       );
     },
-    [actions, storeApi],
+    [commitWithFlags, storeApi],
   );
   const finish = useCallback(
     (rows: TData[], rejected: readonly ImportRejectedCell[], flagged: readonly ImportRejectedCell[], source: ImportSource) => {

@@ -11,10 +11,10 @@ import { useCallback, useEffect } from "react";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
-import type { LiveAnnouncementKind } from "./store/types";
+import type { CellErrorEntry, LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
-import type { DataGridStoreWrapper } from "./types";
+import type { DataChange, DataGridStoreWrapper } from "./types";
 
 export type { DataGridReadState, DataGridStoreWrapper } from "./types";
 
@@ -127,9 +127,13 @@ export function useDataGridStoreApi(): DataGridStoreWrapper {
 export function useDataGridFocusSearchRegistration(focus: () => void): void {
   const internalActions = useDataGridInternalActions();
   useEffect(() => {
-    internalActions._registerFocusSearch(focus);
-    return () => internalActions._registerFocusSearch(null);
+    return internalActions._registerFocusSearch(focus);
   }, [internalActions, focus]);
+}
+
+/** Returns a stable `commitChange` that also merges `flags` into `cellErrors` in the same write; flags of rows the change did not leave in the data drop. */
+export function useDataGridFlaggedCommit(): (change: DataChange<unknown>, flags: readonly CellErrorEntry[]) => void {
+  return useDataGridInternalActions()._commitChange;
 }
 
 export { matchKeymap } from "./keyboard";

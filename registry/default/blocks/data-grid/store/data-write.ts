@@ -428,6 +428,7 @@ export type DataWriteActions = Pick<
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
   _commitCellEdit: DataGridInternalActions["_commitCellEdit"];
+  _commitChange: DataGridInternalActions["_commitChange"];
   _skipRowAction: DataGridInternalActions["_skipRowAction"];
 };
 
@@ -1240,6 +1241,62 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return { applied, skipped: batch.skipped, pending: false };
 };
 
+  const commitChangeCore = (change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void => {
+    const s = get();
+    if (s.readOnly && change.source !== "stream") return;
+    if (change.ops.length === 0) return;
+    const nextData = applyChange(s.data, change, s.getRowId);
+    followStaleRows(ctx, change.ops);
+    // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
+    let applied = nextData.length !== s.data.length;
+    if (!applied) {
+      for (let i = 0; i < nextData.length; i++) {
+        if (nextData[i] !== s.data[i]) {
+          applied = true;
+          break;
+        }
+      }
+    }
+    if (!applied) return;
+    const movesRows = change.ops.some((op) => op.type !== "update");
+    ctx.rowIndexCache.invalidate();
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = nextData;
+    pruneRowValidationKeys(nextData, s.getRowId);
+    const cleared = clearErrorsForOps(s.cellErrors, change.ops);
+    const opFlags = change.source !== UNVALIDATED_SOURCE ? warnFlagsForOps(s, change.ops) : [];
+    const allFlags = flags ? [...opFlags, ...flags] : opFlags;
+    const pruned = pruneCellErrors(allFlags.length > 0 ? mergeCellErrors(cleared, allFlags) : cleared, nextData, s.getRowId);
+    const cellErrors = change.source !== UNVALIDATED_SOURCE ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
+    const view = rebuildRowOpView(s, nextData);
+    if (!movesRows) {
+      writeThenEmit(ctx, s, nextData, change, () =>
+        set({ data: nextData, cellErrors, ...view, ...followView(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId, true) }),
+      );
+      return;
+    }
+    const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
+    const followed = followActiveRow(s, nextData, view.viewIndex!);
+    const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
+    const base = editRemap.selection ?? followed.selection;
+    writeThenEmit(ctx, s, nextData, change, () =>
+      set({
+        data: nextData,
+        rowIdentityVersion: s.rowIdentityVersion + 1,
+        cellErrors,
+        ...followed,
+        ...view,
+        ...editRemap,
+        selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
+        hiddenCheckedRowIds: withoutHiddenCheckedRows(
+          carried.hiddenCheckedRowIds,
+          change.ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])),
+        ),
+        allMatching: carried.allMatching,
+      }),
+    );
+  };
+
   return {
     _commitCellEdit(value, movement, rejection) {
       const s = get();
@@ -1670,60 +1727,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       failedRows.clear();
       publishSaveStatus();
     },
-    commitChange(change, flags) {
-      const s = get();
-      if (s.readOnly && change.source !== "stream") return;
-      if (change.ops.length === 0) return;
-      const nextData = applyChange(s.data, change, s.getRowId);
-      followStaleRows(ctx, change.ops);
-      // applyChange keeps row references for untouched rows, so an all-skipped batch comes back element-identical.
-      let applied = nextData.length !== s.data.length;
-      if (!applied) {
-        for (let i = 0; i < nextData.length; i++) {
-          if (nextData[i] !== s.data[i]) {
-            applied = true;
-            break;
-          }
-        }
-      }
-      if (!applied) return;
-      const movesRows = change.ops.some((op) => op.type !== "update");
-      ctx.rowIndexCache.invalidate();
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = nextData;
-      pruneRowValidationKeys(nextData, s.getRowId);
-      const cleared = clearErrorsForOps(s.cellErrors, change.ops);
-      const opFlags = change.source !== UNVALIDATED_SOURCE ? warnFlagsForOps(s, change.ops) : [];
-      const allFlags = flags ? [...opFlags, ...flags] : opFlags;
-      const pruned = pruneCellErrors(allFlags.length > 0 ? mergeCellErrors(cleared, allFlags) : cleared, nextData, s.getRowId);
-      const cellErrors = change.source !== UNVALIDATED_SOURCE ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
-      const view = rebuildRowOpView(s, nextData);
-      if (!movesRows) {
-        writeThenEmit(ctx, s, nextData, change, () =>
-          set({ data: nextData, cellErrors, ...view, ...followView(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId, true) }),
-        );
-        return;
-      }
-      const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, nextData, s.getRowId);
-      const followed = followActiveRow(s, nextData, view.viewIndex!);
-      const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
-      const base = editRemap.selection ?? followed.selection;
-      writeThenEmit(ctx, s, nextData, change, () =>
-        set({
-          data: nextData,
-          rowIdentityVersion: s.rowIdentityVersion + 1,
-          cellErrors,
-          ...followed,
-          ...view,
-          ...editRemap,
-          selection: carried.rows === base.rows ? base : { ...base, rows: carried.rows },
-          hiddenCheckedRowIds: withoutHiddenCheckedRows(
-            carried.hiddenCheckedRowIds,
-            change.ops.flatMap((op) => (op.type === "delete" ? [op.rowId] : [])),
-          ),
-          allMatching: carried.allMatching,
-        }),
-      );
+    commitChange(change) {
+      commitChangeCore(change);
     },
+    _commitChange: commitChangeCore,
   };
 }
