@@ -28,6 +28,7 @@ import {
   patchesNeedAsyncCheck,
   prevalidatePatches,
   startDuplicateCopies,
+  warnFlagsForOps,
   type PatchRejection,
   type PrevalidatedPatches,
   warnDev,
@@ -54,7 +55,7 @@ import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
-import type { AnyColumnDef, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
+import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -1133,7 +1134,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     state.actions.flashCells(cells);
   };
 
-  const updateCellsCore: DataWriteActions["updateCells"] = (patches, options) => {
+  const updateCellsCore = (patches: Parameters<DataWriteActions["updateCells"]>[0], options?: Parameters<DataWriteActions["updateCells"]>[1], prevalidatedWarnings?: readonly CellErrorEntry[]): UpdateCellsVerdict => {
     const s = get();
     if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
     if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
@@ -1143,7 +1144,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       const beyond: UpdateCellsSkip[] = [];
       for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
-      const verdict = updateCellsCore(patches.slice(0, MAX_STREAM_PATCHES), options);
+      const verdict = updateCellsCore(patches.slice(0, MAX_STREAM_PATCHES), options, prevalidatedWarnings);
       const withBeyond = (v: UpdateCellsVerdict): UpdateCellsVerdict => ({ ...v, skipped: [...v.skipped, ...beyond] });
       return verdict.settled ? { ...verdict, settled: verdict.settled.then(withBeyond) } : withBeyond(verdict);
     }
@@ -1156,8 +1157,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // Skips report indexes into the caller's `patches`, not into the accepted subset.
       const apply = ({ accepted, acceptedIndexes, rejected, warnings }: PrevalidatedPatches): UpdateCellsVerdict => {
         const invalid = rejected.map(({ patchIndex }) => ({ patchIndex, reason: "invalid" as const }));
-        const verdict = accepted.length === 0 ? null : updateCellsCore(accepted, { ...options, skipValidation: true });
-        if (warnings.length > 0) set({ cellErrors: mergeCellErrors(get().cellErrors, warnings) });
+        const verdict = accepted.length === 0 ? null : updateCellsCore(accepted, { ...options, skipValidation: true }, warnings);
         emitStreamRejections(patches, rejected, options?.source);
         if (!verdict) return { applied: 0, skipped: invalid, pending: false };
         const remapped = verdict.skipped.map((skip) => ({ ...skip, patchIndex: acceptedIndexes[skip.patchIndex]! }));
@@ -1190,7 +1190,14 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const change = { source: options?.source ?? "stream", ops: batch.ops };
     // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
     const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
-    const cellErrors = batch.warnings.length > 0 ? mergeCellErrors(validated, batch.warnings) : validated;
+    let writtenWarnings: readonly CellErrorEntry[] = [];
+    if (prevalidatedWarnings?.length) {
+      const written = new Set<string>();
+      for (const op of batch.ops) if (op.type === "update") for (const cell of op.cells ?? []) written.add(`${op.rowId} ${cell.columnId}`);
+      writtenWarnings = prevalidatedWarnings.filter(({ rowId, columnId }) => written.has(`${rowId} ${columnId}`));
+    }
+    const allWarnings = writtenWarnings.length > 0 ? [...batch.warnings, ...writtenWarnings] : batch.warnings;
+    const cellErrors = allWarnings.length > 0 ? mergeCellErrors(validated, allWarnings) : validated;
 
     // Fast path: one set() writing `data` alone, so only touched rows re-render and view-derived state keeps its identity.
     if (reorder !== "immediate") {
@@ -1663,7 +1670,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       failedRows.clear();
       publishSaveStatus();
     },
-    commitChange(change) {
+    commitChange(change, flags) {
       const s = get();
       if (s.readOnly && change.source !== "stream") return;
       if (change.ops.length === 0) return;
@@ -1685,7 +1692,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = nextData;
       pruneRowValidationKeys(nextData, s.getRowId);
-      const pruned = pruneCellErrors(clearErrorsForOps(s.cellErrors, change.ops), nextData, s.getRowId);
+      const cleared = clearErrorsForOps(s.cellErrors, change.ops);
+      const opFlags = change.source !== UNVALIDATED_SOURCE ? warnFlagsForOps(s, change.ops) : [];
+      const allFlags = flags ? [...opFlags, ...flags] : opFlags;
+      const pruned = pruneCellErrors(allFlags.length > 0 ? mergeCellErrors(cleared, allFlags) : cleared, nextData, s.getRowId);
       const cellErrors = change.source !== UNVALIDATED_SOURCE ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;
       const view = rebuildRowOpView(s, nextData);
       if (!movesRows) {

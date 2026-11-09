@@ -73,6 +73,43 @@ describe("validationMode warn in bulk writes", () => {
     expect(rowsNow().map((r) => r.soft)).toEqual(["ok", "ok", "ok"]);
   });
 
+  it("redo of a bulk write re-flags the warn cells it writes", () => {
+    const changes: DataChange<unknown>[] = [];
+    const { store, paste } = mount(3, { onDataChange: (_next: unknown, change: DataChange<unknown>) => void changes.push(change) } as Partial<InternalSyncProps>);
+    store.getState().actions.selectCellAt({ col: 1, row: 0 });
+    paste("toolong\nab");
+    const original = changes[0]!;
+    store.getState().actions.commitChange(invertChange(original));
+    expect(store.getState().cellErrors.size).toBe(0);
+    store.getState().actions.commitChange({ ...original, source: "history" });
+    expect([...store.getState().cellErrors.keys()]).toEqual([cellErrorKey("r0", "soft")]);
+  });
+
+  it("updateCells: a no-op patch on a warn column flags nothing", () => {
+    const { store } = mount(3, { data: [{ id: "r0", hard: "ok", soft: "toolong" }] } as Partial<InternalSyncProps>);
+    store.getState().actions.updateCells([{ rowId: "r0", columnId: "soft", value: "toolong" }], { source: "stream" });
+    expect(store.getState().cellErrors.size).toBe(0);
+  });
+
+  it("updateCells: an async schema flags only the cells that were written", async () => {
+    const schema = {
+      "~standard": { version: 1, vendor: "t", validate: async (v: unknown) => (String(v).length > 3 ? { issues: [{ message: "Too long" }] } : { value: v }) },
+    };
+    const { store, rowsNow } = mount(3, { columns: [{ id: "soft", header: "Soft", accessorKey: "soft", validate: schema, validationMode: "warn" }] } as never);
+    const verdict = store.getState().actions.updateCells(
+      [
+        { rowId: "r0", columnId: "soft", value: "toolong" },
+        { rowId: "r1", columnId: "soft", value: "ok" },
+        { rowId: "r2", columnId: "soft", value: "longer!" },
+        { rowId: "r2", columnId: "soft", value: "ok" },
+      ],
+      { source: "stream" },
+    );
+    await verdict.settled;
+    expect(rowsNow().map((r) => r.soft)).toEqual(["toolong", "ok", "ok"]);
+    expect([...store.getState().cellErrors.keys()]).toEqual([cellErrorKey("r0", "soft")]);
+  });
+
   it("500-cell paste: one data write, one cellErrors write, no per-cell callbacks", () => {
     const onDataChange = vi.fn();
     const onValidationError = vi.fn();

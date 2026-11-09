@@ -191,16 +191,19 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         }
         throw new Error("");
       }
+      if (state.readOnly) throw new Error("");
       const start = state.data.length;
-      actions.commitChange({
-        source: "import",
-        ops: rows.map((row, offset) => ({ type: "insert" as const, rowId: state.getRowId(row, start + offset), row, index: start + offset })),
-      });
       const flags = flagged.flatMap(({ rowIndex, gridColumnId, message }) => {
         const row = rows[rowIndex];
         return row === undefined ? [] : [{ rowId: state.getRowId(row, start + rowIndex), columnId: gridColumnId, message: message ?? "" }];
       });
-      if (flags.length > 0) actions.setCellErrors(flags);
+      actions.commitChange(
+        {
+          source: "import",
+          ops: rows.map((row, offset) => ({ type: "insert" as const, rowId: state.getRowId(row, start + offset), row, index: start + offset })),
+        },
+        flags,
+      );
     },
     [actions, storeApi],
   );

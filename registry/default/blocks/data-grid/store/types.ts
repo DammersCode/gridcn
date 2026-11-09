@@ -1250,8 +1250,10 @@ export type DataGridActions = {
    * records no second entry. Column `validate` does NOT run - that is `updateCells`' job; build import
    * rows validated (the io add-on does it) and undo/redo reverts to previously applied states.
    * `validateRow` runs for every inserted and updated row, except in a `source: "stream"` change.
+   * Updated cells of `validationMode: "warn"` columns that fail their sync `validate` land in `cellErrors` in the same write.
+   * `flags` (internal) merge into `cellErrors` in that write; flags of rows the change did not leave in the data drop.
    */
-  commitChange(change: DataChange<unknown>): void;
+  commitChange(change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void;
 };
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */

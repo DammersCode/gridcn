@@ -139,6 +139,24 @@ export function checkDevGuardrails(
   }
 }
 
+/** Flags for the cells of `update` ops that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
+export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): CellErrorEntry[] {
+  const flags: CellErrorEntry[] = [];
+  let warnColumns: Map<string, AnyColumnDef> | null = null;
+  for (const op of ops) {
+    if (op.type !== "update" || !op.cells) continue;
+    warnColumns ??= new Map(s.columns.filter((column) => column.validationMode === "warn").map((column) => [column.id, column] as const));
+    if (warnColumns.size === 0) return flags;
+    for (const cell of op.cells) {
+      const column = warnColumns.get(cell.columnId);
+      if (!column) continue;
+      const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), cell.value, op.row);
+      if ("error" in result && !result.thrown) flags.push({ rowId: op.rowId, columnId: column.id, message: result.error });
+    }
+  }
+  return flags;
+}
+
 /**
  * Shared value-write path for both `commitCellEdit` (editing session) and `commitCellValue` (direct
  * write, e.g. checkbox toggle). `value` may already be schema-validated+transformed (the async
@@ -302,7 +320,7 @@ export function computeCellPatchBatch(
   const rowEdits = new Map<number, RowEdit>();
   const skipped: UpdateCellsSkip[] = [];
   const rejected: PatchRejection[] = [];
-  const warnings: CellErrorEntry[] = [];
+  const warnings = new Map<string, CellErrorEntry>();
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex]!;
@@ -333,6 +351,7 @@ export function computeCellPatchBatch(
     }
 
     let value = patch.value;
+    let warning: string | undefined;
     if (!skipValidation) {
       const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
       if ("error" in validated) {
@@ -341,7 +360,7 @@ export function computeCellPatchBatch(
           rejected.push({ patchIndex, message: validated.error });
           continue;
         }
-        warnings.push({ rowId: patch.rowId, columnId: column.id, message: validated.error });
+        warning = validated.error;
       } else value = validated.value;
     }
 
@@ -350,6 +369,9 @@ export function computeCellPatchBatch(
       skipped.push({ patchIndex, reason: "no-op" });
       continue;
     }
+    const warningKey = `${patch.rowId} ${column.id}`;
+    if (warning === undefined) warnings.delete(warningKey);
+    else warnings.set(warningKey, { rowId: patch.rowId, columnId: column.id, message: warning });
 
     const row = setCellValue<unknown, typeof column>(baseRow, column, value);
     const cells = entry?.cells ?? new Map<string, { columnId: string; value: unknown; prev: unknown }>();
@@ -358,7 +380,8 @@ export function computeCellPatchBatch(
     rowEdits.set(dataRowIndex, { row, cells });
   }
 
-  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected, warnings };
+  const flagged = Array.from(warnings.values());
+  if (rowEdits.size === 0) return { nextData: null, ops: [], touchedRows: [], skipped, rejected, warnings: flagged };
 
   const nextData = s.data.slice();
   const ops: DataOp<unknown>[] = [];
@@ -376,7 +399,7 @@ export function computeCellPatchBatch(
       cells: Array.from(cells.values()),
     });
   }
-  return { nextData, ops, touchedRows, skipped, rejected, warnings };
+  return { nextData, ops, touchedRows, skipped, rejected, warnings: flagged };
 }
 
 /**
@@ -435,14 +458,17 @@ export type PrevalidatedPatches = { accepted: CellPatch[]; acceptedIndexes: numb
 
 function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateResult[], warnByPatch: readonly boolean[]): PrevalidatedPatches {
   const out: PrevalidatedPatches = { accepted: [], acceptedIndexes: [], rejected: [], warnings: [] };
+  const warned = new Map<string, CellErrorEntry>();
   for (let i = 0; i < patches.length; i++) {
     const result = results[i];
+    const cellKey = `${patches[i]!.rowId}\u0000${patches[i]!.columnId}`;
     if (result && "error" in result && warnByPatch[i] && !result.thrown) {
-      out.warnings.push({ rowId: patches[i]!.rowId, columnId: patches[i]!.columnId, message: result.error });
+      warned.set(cellKey, { rowId: patches[i]!.rowId, columnId: patches[i]!.columnId, message: result.error });
       out.accepted.push(patches[i]!);
       out.acceptedIndexes.push(i);
       continue;
     }
+    if (result && !("error" in result)) warned.delete(cellKey);
     if (!result || "error" in result) {
       out.rejected.push({ patchIndex: i, message: result?.error ?? "" });
       continue;
@@ -450,6 +476,7 @@ function keepAccepted(patches: readonly CellPatch[], results: readonly ValidateR
     out.accepted.push({ ...patches[i]!, value: result.value }); // i < patches.length by loop condition
     out.acceptedIndexes.push(i);
   }
+  out.warnings.push(...warned.values());
   return out;
 }
 
