@@ -32,6 +32,16 @@ describe("useWarnSharedPrefix", () => {
     warn.mockRestore();
   });
 
+  it("keeps counting the remaining instances after one unmounts", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    renderHook(() => useWarnSharedPrefix("useDataGridUrlState", "trio"));
+    const second = renderHook(() => useWarnSharedPrefix("useDataGridUrlState", "trio"));
+    second.unmount();
+    renderHook(() => useWarnSharedPrefix("useDataGridUrlState", "trio"));
+    expect(sharedWarnings(warn)).toHaveLength(2);
+    warn.mockRestore();
+  });
+
   it("stays quiet for distinct prefixes and for the two hook kinds", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     renderHook(() => useWarnSharedPrefix("useDataGridUrlState", "a"));
