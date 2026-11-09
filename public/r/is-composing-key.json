@@ -9,7 +9,7 @@
   "files": [
     {
       "path": "registry/default/lib/is-composing-key.ts",
-      "content": "import type { KeyboardEvent as ReactKeyboardEvent } from \"react\";\n\n/** Whether a key belongs to an IME composition; Safari sends the confirming Enter with `isComposing` false and keyCode 229. */\nexport function isComposingKey(event: ReactKeyboardEvent | Pick<KeyboardEvent, \"isComposing\" | \"keyCode\">): boolean {\n  const native = \"nativeEvent\" in event ? event.nativeEvent : event;\n  return native.isComposing || native.keyCode === 229;\n}\n",
+      "content": "import type { KeyboardEvent as ReactKeyboardEvent } from \"react\";\r\n\r\n/** Whether a key belongs to an IME composition; Safari sends the confirming Enter with `isComposing` false and keyCode 229. */\r\nexport function isComposingKey(event: ReactKeyboardEvent | Pick<KeyboardEvent, \"isComposing\" | \"keyCode\">): boolean {\r\n  const native = \"nativeEvent\" in event ? event.nativeEvent : event;\r\n  return native.isComposing || native.keyCode === 229;\r\n}\r\n",
       "type": "registry:lib",
       "target": "components/gridcn/is-composing-key.ts"
     }
