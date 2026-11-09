@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import type { SortSpec } from "../types";
 import { useOptionalDataGridStore } from "../store/provider";
 
@@ -10,6 +11,7 @@ export type DataGridSortIndicatorProps = {
   columnId: string;
   /** The sort to read. Default: the grid's sort from the provider; outside a provider the indicator renders nothing. */
   sortState?: readonly SortSpec[];
+  className?: string;
 };
 
 /**
@@ -18,7 +20,7 @@ export type DataGridSortIndicatorProps = {
  * `<DataGridSortIndicator columnId="score" />` inside a node header reads the sort itself.
  */
 export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactNode {
-  const { columnId } = props;
+  const { columnId, className } = props;
   const providerSortState = useOptionalDataGridStore((s) => s.sortState);
   const sortState = props.sortState ?? providerSortState;
   if (!sortState) return null;
@@ -27,9 +29,9 @@ export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactN
   const { direction } = sortState[index]!; // index !== -1 checked above, so it's a valid position
   const Icon = direction === "asc" ? ChevronUp : ChevronDown;
   return (
-    <span className="ms-1 inline-flex items-center gap-0.5 text-muted-foreground" data-grid-sort-indicator={direction}>
+    <span className={cn("ms-1 inline-flex items-center gap-0.5 text-muted-foreground", className)} data-grid-sort-indicator={direction}>
       <Icon className="size-3.5" />
-      {sortState.length > 1 && <span className="text-[0.625rem] tabular-nums">{index + 1}</span>}
+      {sortState.length > 1 && <span className="text-xs tabular-nums">{index + 1}</span>}
     </span>
   );
 }

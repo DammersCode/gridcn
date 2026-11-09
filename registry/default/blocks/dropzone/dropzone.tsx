@@ -103,6 +103,8 @@ export type DropzoneProps = {
   description?: string;
   /** Accessible name for the drop surface. */
   "aria-label"?: string;
+  /** Id of the element that names the drop surface; used instead of `aria-label` when both are set. */
+  "aria-labelledby"?: string;
   /** Single-row layout (icon + content inline) instead of the tall centered box — for reuse in a compact spot, e.g. next to an existing preview. Default false. */
   compact?: boolean;
 };
@@ -188,6 +190,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
         aria-label={rest["aria-label"]}
+        aria-labelledby={rest["aria-labelledby"]}
         aria-describedby={`${inputId}-description`}
         onClick={openPicker}
         onKeyDown={onKeyDown}

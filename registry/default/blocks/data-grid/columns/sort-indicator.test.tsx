@@ -25,6 +25,15 @@ describe("DataGridSortIndicator", () => {
     expect(container.querySelector("[data-grid-sort-indicator='asc']")).not.toBeNull();
   });
 
+  it("merges a className onto the root", () => {
+    const { container } = render(
+      <DataGridProvider data={data} columns={columns} sortState={[{ columnId: "score", direction: "desc" }]}>
+        <DataGridSortIndicator columnId="score" className="text-primary" />
+      </DataGridProvider>,
+    );
+    expect(container.querySelector("[data-grid-sort-indicator='desc']")?.className).toContain("text-primary");
+  });
+
   it("renders nothing outside a provider", () => {
     const { container } = render(<DataGridSortIndicator columnId="score" />);
     expect(container.innerHTML).toBe("");
