@@ -109,6 +109,31 @@ describe("defaultColumnLayout normalization", () => {
   });
 });
 
+describe("a pinnable:false column with a definition pin", () => {
+  const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "left", pinnable: false }), col("b"), col("c")];
+  const pinOfA = (store: StoreApi<DataGridStoreState>) => store.getState().columns.find((column) => column.id === "a")?.pin;
+
+  it("keeps its pin when another column resizes", () => {
+    const { store } = mount({ columns });
+
+    act(() => store().getState().actions.setColumnWidth("b", 200));
+    act(() => store().getState().actions.setColumnPin("c", "right"));
+
+    expect(pinOfA(store())).toBe("left");
+  });
+
+  it("keeps its pin when a layout unpins it or pins it to the other side", () => {
+    const { store } = mount({ columns, defaultColumnLayout: { pins: {} } });
+    expect(pinOfA(store())).toBe("left");
+
+    act(() => store().getState().actions.setColumnLayout({ pins: { a: "right" } }));
+    expect(pinOfA(store())).toBe("left");
+
+    act(() => store().getState().actions.setColumnLayout({ pins: {} }));
+    expect(pinOfA(store())).toBe("left");
+  });
+});
+
 describe("onColumnLayoutChange on no-op layout actions", () => {
   const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "left" }), col("b"), col("c", { pinnable: false })];
 

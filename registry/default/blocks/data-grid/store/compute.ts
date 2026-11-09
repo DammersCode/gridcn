@@ -634,8 +634,8 @@ export type ColumnLayoutParts = {
 /**
  * Normalizes a (partial) layout against `columns`: unknown column ids are dropped from every part,
  * `order` gets missing ids appended in def order (a layout from before a column was added still
- * renders that column), widths pass through `clampColumnWidth`, and a pin on a `pinnable: false`
- * column is dropped. Size is bounded by the column count, so a hostile input cannot allocate past
+ * renders that column), widths pass through `clampColumnWidth`, and a `pinnable: false`
+ * column keeps the pin of its definition whatever the given pins say. Size is bounded by the column count, so a hostile input cannot allocate past
  * it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
  */
 export function normalizeColumnLayout(
@@ -649,9 +649,10 @@ export function normalizeColumnLayout(
   const pins = isRecord(parts.pins) ? parts.pins : null;
   const nextColumns = pins
     ? columns.map((c) => {
+        if (!columnFlag(c, "pinnable")) return c;
         const pin = pins[c.id];
         // The given pins map is authoritative: a column it does not pin drops a stale pin.
-        return (pin === "left" || pin === "right") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
+        return pin === "left" || pin === "right" ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
   const columnWidths: Record<string, number> = {};

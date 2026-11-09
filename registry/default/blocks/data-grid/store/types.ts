@@ -363,7 +363,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
    * Partial layouts are normalized the same way `columnLayout` is: unknown column ids are dropped,
    * `order` gets missing ids appended in def order, widths are clamped, and pins on
-   * `pinnable: false` columns are dropped.
+   * `pinnable: false` columns are ignored.
    */
   defaultColumnLayout?: Partial<ColumnLayout>;
   /**
@@ -1090,7 +1090,7 @@ export type DataGridActions = {
    * Applies a partial column layout as ONE commit (the imperative twin of the `columnLayout`
    * prop): each given part (`widths`, `order`, `pins`, `hidden`) replaces that part, omitted
    * parts keep the current value. Normalized like `columnLayout` (unknown ids dropped, missing
-   * order ids appended in def order, widths clamped, unpinnable pins dropped), and fires
+   * order ids appended in def order, widths clamped, pins on `pinnable: false` columns ignored), and fires
    * `onColumnLayoutChange` once only when the layout actually changed.
    */
   setColumnLayout(parts: Partial<ColumnLayout>): void;
