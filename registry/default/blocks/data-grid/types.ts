@@ -485,7 +485,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   id: string;
   /**
    * String headers render truncated and get the built-in sort-direction arrow
-   * while the column is sorted, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
+   * while the column is sorted and not `sortable: false`, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;

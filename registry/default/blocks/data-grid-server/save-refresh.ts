@@ -21,7 +21,7 @@ export type SaveRefreshReport = {
 /**
  * When the hook fetches again after `onSave` settles.
  * - `"settled"`: once, after every save in flight has settled (or after 10 seconds, so one stuck save cannot stop the refresh). A burst of saves costs one request.
- * - `"each"`: after every save that settles.
+ * - `"each"`: after saves settle, without waiting for the saves still in flight. Saves that settle in the same task share one refresh.
  * - `false`: never. Call `refresh()` yourself.
  * - a function: once after every save in flight has settled (or after the same 10 seconds), when it returns `true`. A throw counts as `false`.
  *

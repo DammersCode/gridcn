@@ -1,5 +1,5 @@
 /**
- * i18n via a typed labels object: every user-facing string across core + add-ons lives here with
+ * i18n via a typed labels object: nearly every user-facing string across core + add-ons lives here with
  * English defaults. Consumers pass a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to
  * `DataGridProvider`; no i18n library dependency — wiring translated strings into
  * `DEFAULT_LABELS`'s shape is the consumer's job.

@@ -47,7 +47,7 @@ export function OrdersGrid() {
 }
 ```
 
-The button opens a menu with XLSX and CSV. With one format, such as `formats={["csv"]}`, a click exports at once. The `options` prop passes every `exportGrid` option except `format`. `onError(error, format)` receives the error and the format of a failed export. Without it, a failure logs a warning in development only.
+The button opens a menu with XLSX and CSV. With one format and no `source`, such as `formats={["csv"]}`, a click exports at once. The `options` prop passes every `exportGrid` option except `format`. `onError(error, format)` receives the error and the format of a failed export. Without it, a failure logs a warning in development only.
 
 To start an export from your own control, call `exportGrid` from `useDataGridExport()`:
 

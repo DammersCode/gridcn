@@ -67,7 +67,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
-  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after saves settle without waiting for the saves in flight, `false` never, or a function that gets the counts and returns whether to refresh. */
   refreshAfterSave?: SaveRefreshPolicy;
 };
 

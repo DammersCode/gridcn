@@ -346,7 +346,11 @@ function keyboardShortcuts() {
     ...sections,
     "## Other keys [#other-keys]",
     "",
-    table(["Action", "Keys", "Page"], [["Open the shortcuts dialog", `${code("?")} with ${code("DataGridKeybindingsShortcut")} mounted`, link("/docs/selection-shortcuts/shortcut-remapping")]]),
+    table(["Action", "Keys", "Page"], [
+      ["Open the shortcuts dialog", `${code("?")} with ${code("DataGridKeybindingsShortcut")} mounted`, link("/docs/selection-shortcuts/shortcut-remapping")],
+      ["Open the cell menu", `${code("Shift+F10")} with ${code("DataGridContextMenu")} mounted, on Windows and Linux`, link("/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items")],
+      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted and ${code("data-grid-find-replace")} not mounted`, link("/docs/sort-filter-search/quick-search")],
+    ]),
     related(["/docs/selection-shortcuts/shortcut-remapping", "change the keys"], ["/docs/selection-shortcuts/global-shortcuts", "keys outside the grid"], ["/docs/plugins/plugin-commands-shortcuts", "keys from a plugin"]),
   ].join("\n");
 }
@@ -445,7 +449,7 @@ const PURPOSE = {
   "DataGridSyncProps.enableColumnSelection": "Turns on whole-column selection by a header click. Default `true`.",
   "DataGridSyncProps.enableRangeSelection": "Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`.",
   "DataGridSyncProps.enableMultiRange": "Turns on several ranges by Ctrl or Cmd click. Default `true`.",
-  "DataGridSyncProps.inputDebounceMs": "Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace.",
+  "DataGridSyncProps.inputDebounceMs": "Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor.",
   "DataGridSyncProps.keymap": "Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding.",
   "DataGridSyncProps.sanitizeClipboardFormulas": "Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`.",
   "DataGridSyncProps.duplicateRow": "Builds the new row for `duplicateRows` from the source row and its new data index.",

@@ -52,7 +52,7 @@ Props of DataGrid, DataGridProvider.
 | `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `headerClickBehavior` | How a plain header click behaves. Default 'select'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `labels` | Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `page` | The current page, 1-based. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -115,7 +115,7 @@ Props of ColumnDef.
 | `filterMatch` | Replaces the text matcher for this column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterOperators` | Operators that the filter menu offers. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `header` | A string header shows a sort arrow once you sort the column. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `header` | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `headerClassName` | Adds classes to the header cell. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `headerText` | Plain-text name for a node header. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `hidden` | `true` hides the column at start. | [ColumnDef](/docs/components-props/column-def#fields) |
@@ -125,7 +125,7 @@ Props of ColumnDef.
 | `onInvalid` | What a rejection does to a single-cell commit. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `options` | Settings for the cell type, such as the choices of a select. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `pin` | Starting pin side. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `pinnable` | `false` removes pin and unpin. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `pinnable` | `false` turns off pin and unpin. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `readOnly` | Blocks edits. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `renderCell` | Replaces how the cell looks. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `reorderable` | `false` stops the drag of this column. | [ColumnDef](/docs/components-props/column-def#fields) |

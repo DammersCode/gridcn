@@ -13,7 +13,7 @@ The demo has three locales: English, Deutsch, and Arabic. Each locale sets the `
 
 ## The labels prop [#the-labels-prop]
 
-The grid keeps every user-facing string in one `DataGridLabels` object with English defaults. The `labels` prop of `DataGridProvider` and `DataGrid` deep-merges over it. Only the keys you set change. A label that holds a value, such as `searchMatches`, is a function that receives the values.
+The grid keeps nearly every user-facing string in one `DataGridLabels` object with English defaults. The `labels` prop of `DataGridProvider` and `DataGrid` deep-merges over it. Only the keys you set change. A label that holds a value, such as `searchMatches`, is a function that receives the values.
 
 Column headers are not labels. They belong to the column definitions, so build the columns from the locale and memoize them.
 

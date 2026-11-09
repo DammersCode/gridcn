@@ -97,7 +97,7 @@ const coreTraits = [
     icon: Languages,
     title: "i18n & RTL ready",
     description:
-      "Typed label objects for every UI string, full RTL with mirrored pinning and pointer math.",
+      "Typed label objects for nearly every UI string, full RTL with mirrored pinning and pointer math.",
     href: "/docs/theme-style-language/labels-i18n",
   },
 ];

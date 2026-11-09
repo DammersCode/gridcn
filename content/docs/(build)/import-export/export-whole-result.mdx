@@ -64,7 +64,7 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 
 - Each batch must be an array. Any other value rejects the export and downloads nothing.
 - The export skips `null` and `undefined` rows.
-- A source that returns only empty batches, or far more `null` rows than `maxRows`, rejects.
+- A source that returns more than 1,000 empty batches in a row rejects. So does a source that returns, over the whole export, more than twice `maxRows` `null` or `undefined` rows.
 - A source that returns more rows than `maxRows` is cut at `maxRows`.
 - A `maxRows` or `maxBytes` below 0 counts as 0.
 - A CSV cell that looks like a formula gets the same quote prefix as in a loaded export.

@@ -75,8 +75,8 @@ export const ADDONS = [
  * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
  */
 export const FEATURE_SINCE = {
-  "1.2.0": ["find-replace"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "filter-values"],
+  "1.2.0": ["find-replace", "filter-values"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });

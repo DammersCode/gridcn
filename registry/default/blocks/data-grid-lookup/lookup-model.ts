@@ -34,7 +34,7 @@ export type LookupOptions = {
   minQueryLength?: number;
   /** Most options shown; extra options are dropped. Default `50`, at most `200`. */
   maxResults?: number;
-  /** A pasted or imported text that matches no known option: `"clear"` empties the cell, `"keep"` stores the text as a key without a label, shown as unresolved. Default `"clear"`. */
+  /** A pasted or imported text that matches no known option: `"clear"` empties the cell, `"keep"` stores the trimmed text as `{ value: text, label: "" }`, shown as unresolved. Default `"clear"`. */
   unresolvedPaste?: "clear" | "keep";
   labels?: Partial<LookupLabels>;
 };

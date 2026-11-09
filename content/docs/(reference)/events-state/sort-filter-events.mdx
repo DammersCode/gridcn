@@ -91,7 +91,7 @@ The callback receives the new text. If the text equals the current text, it does
 
 The callback <NewBadge /> runs after the grid writes the text. If it throws, the text stays, and the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
-The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, and find and replace. The `debounceMs` prop of `DataGridSearch` wins for that search box.
+The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, find and replace, and the lookup editor. The `debounceMs` prop of `DataGridSearch` wins for that search box.
 
 ## Related
 

@@ -195,7 +195,7 @@ export type DataGridSyncProps<TData = unknown> = {
   checkedRowsLifetime?: CheckedRowsLifetime;
   /**
    * Wait in ms between the last keystroke and the commit of the grid's own text inputs: the toolbar search, the
-   * filter value inputs, the set-filter search, and find & replace. `0` commits each keystroke. A component's own
+   * filter value inputs, the set-filter search, find & replace, and the lookup editor. `0` commits each keystroke. A component's own
    * prop (such as `DataGridSearch debounceMs`) wins. Default 200.
    */
   inputDebounceMs?: number;

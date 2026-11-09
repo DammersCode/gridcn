@@ -55,9 +55,9 @@ A row stops being stale when:
 - Its id leaves `data`, for example by a page change, an eviction, or a delete.
 - The sort, filter, or search text changes.
 
-`reconcileView()` asks `useDataGridServerRows` to reshape and keeps the marks until the answer delivers the rows again. A sequential source sends no request while the rendered rows end beyond 10 blocks, so the marks stay until `refresh()` or a spec change. Without the hook, it clears the marks. When the view turns stale, the live region reads `labels.grid.viewStale` once, at most once every 30 seconds, in every data mode.
+`reconcileView()` asks `useDataGridServerRows` to reshape and keeps the marks until the answer delivers the rows again. A sequential source sends no request while the rendered rows plus `overscan` end beyond 10 blocks. The marks then stay until `refresh()` or a spec change. Without the hook, it clears the marks. When the view turns stale, the live region reads `labels.grid.viewStale` once, at most once every 30 seconds, in every data mode.
 
-A reshape is a `refresh()` that the hook runs, so the server places the rows again. Set `reshapeDelay` (milliseconds, at least 250, off by default) on the hook to reshape on its own after a push. A stale row then starts one throttled `refresh()` after the delay. A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. A sequential source skips that refresh while the rendered rows end beyond 10 blocks. Call `server.refresh()` there. Without `reshapeDelay`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
+A reshape is a `refresh()` that the hook runs, so the server places the rows again. Set `reshapeDelay` (milliseconds, at least 250, off by default) on the hook to reshape on its own after a push. A stale row then starts one throttled `refresh()` after the delay. A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. A sequential source skips that refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there. Without `reshapeDelay`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
 
 To remove a row that the server deleted, push a delete:
 

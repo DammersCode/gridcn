@@ -58,7 +58,7 @@ export function RowsGrid({ rows }: { rows: Row[] }) {
 
 `rollback` applies the inverse change with `source: "rollback"` and removes the entry from the stack. A cell reverts only while it still holds the change's value, so later edits stay. If the user already undid the change, `rollback` writes nothing. `onSave` never receives a `"rollback"` change, and history never records a `"history"`, `"rollback"`, `"merge"`, or `"id-swap"` change. `createHistory` from `@/components/data-grid/data-grid-sdk` exposes the same removal as `discard(change)`.
 
-If the server refuses an undo or a redo, the grid <NewBadge /> reverts the data and puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A change that took server content (`serverRowIds`) removes the older operations on those rows from the stacks. [Undo and redo](/docs/clipboard-undo/undo-redo#server-mode) lists the rules.
+If the server refuses an undo or a redo, the grid <NewBadge /> reverts the data and, when the revert writes, puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A change that took server content (`serverRowIds`) removes the older operations on those rows from the stacks. [Undo and redo](/docs/clipboard-undo/undo-redo#server-mode) lists the rules.
 
 ## Run history with scroll mode [#with-scroll-mode]
 

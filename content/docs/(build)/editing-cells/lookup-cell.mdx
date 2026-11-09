@@ -59,7 +59,7 @@ Keep `fetchOptions` and the `options` object outside the render, or memoize them
 
 A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
 
-A row can also hold a bare key, for example `"c9"`. The cell shows the key in muted text with a `data-unresolved` attribute until the user picks an option.
+A row can also hold a bare key, for example `"c9"`. The cell shows a bare key in muted text with a `data-unresolved` attribute until the user picks an option. An option with an empty `label` shows the same way.
 
 ## Editing
 
@@ -87,7 +87,7 @@ A new request aborts the one before it through `signal`. The editor drops a late
 | `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
 | `minQueryLength` | `0` | Fewest typed characters that start a request. |
 | `maxResults` | `50` | Most options shown. The limit is `200`. |
-| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }` and shows it as unresolved. |
+| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }`, with the pasted text trimmed, and shows it as unresolved. |
 | `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
 
 [Lookup options](/docs/add-options/editing-cells/lookup-options) <NewBadge /> lists every option, the request fields, and the label defaults.
