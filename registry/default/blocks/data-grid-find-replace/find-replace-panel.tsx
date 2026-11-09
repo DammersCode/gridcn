@@ -259,6 +259,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     const s = api.store.getState();
     if (s.readOnly || s.editing !== null || find.trim() === "") return;
     const replaced = replacedRef.current;
+    const replacedAt = only ? s.searchMatches[nextIndex] : undefined;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
     const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
     const run = (finalPlan: ReplacePlan) => {
@@ -278,9 +279,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         runSearch(find, searchOptions);
         if (only) {
           const after = api.store.getState();
-          const stillMatches = refOfIndex(after, nextIndex);
-          const replacedStays = stillMatches?.rowId === only.rowId && stillMatches.columnId === only.columnId;
-          goTo(replacedStays ? nextIndex + 1 : nextIndex);
+          const columnOrder = (columnId: string) => after.visibleColumns.findIndex((c) => c.id === columnId);
+          const next = replacedAt
+            ? after.searchMatches.findIndex((m) => m.row > replacedAt.row || (m.row === replacedAt.row && columnOrder(m.columnId) > columnOrder(replacedAt.columnId)))
+            : nextIndex;
+          goTo(next === -1 ? 0 : next);
         }
       };
       if (verdict?.pending) {

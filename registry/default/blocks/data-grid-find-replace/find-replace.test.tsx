@@ -145,6 +145,19 @@ describe("useDataGridFindReplace", () => {
     await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 0 }));
   });
 
+  it("Replace moves to the next match after the replaced cell when onReplace also patches an earlier match", async () => {
+    const harness = setup({
+      rows: ["a", "b", "c", "d", "e"].map((id) => ({ id, name: `foo ${id}` })),
+      onReplace: ({ plan }) => ({ ...plan, patches: [...plan.patches, { rowId: "a", columnId: "name", value: "x a" }] }),
+    });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    act(() => harness.actions().setActiveCellAt({ col: 0, row: 2 }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    await waitFor(() => expect(harness.data().map((r) => r.name)).toEqual(["x a", "foo b", "x c", "foo d", "foo e"]));
+    await waitFor(() => expect(harness.activeCell()).toEqual({ col: 0, row: 3 }));
+  });
+
   it("disables Replace in a read-only grid and writes nothing", async () => {
     const harness = setup({ readOnly: true });
     act(() => harness.findReplace().open());
