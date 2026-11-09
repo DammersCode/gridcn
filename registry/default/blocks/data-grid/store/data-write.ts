@@ -128,14 +128,12 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
   return coord;
 }
 
-/** Dev-warns once per grid when an id-first row action got a number that is no row id but is a view index: a call from before the `At` suffix. */
-export function warnViewIndexIds(ctx: DataWriteContext, s: DataGridStoreState, rowIds: readonly unknown[], action: string): void {
+/** Dev-warns once per grid when an id-first row action got a number (the default `getRowId` returns strings): a call from before the `At` suffix. */
+export function warnViewIndexIds(ctx: DataWriteContext, rowIds: readonly unknown[], action: string): void {
   if (ctx.warnedViewIndexIds) return;
-  const indexById = ctx.rowIndexCache.resolve(s.data, s.getRowId);
-  const looksLikeViewIndex = (id: unknown): boolean => typeof id === "number" && Number.isInteger(id) && id >= 0 && id < s.viewIndex.length && !indexById.has(String(id));
-  if (!rowIds.some(looksLikeViewIndex)) return;
+  if (!rowIds.some((id) => typeof id === "number")) return;
   ctx.warnedViewIndexIds = true;
-  warnDev(`${action} takes stable row ids, and a number here matches no row id: it did nothing for that number. To address rows by view index, call ${action}At with viewIndexes([...])`);
+  warnDev(`${action} takes stable row ids, and a number here is not a row id. To address rows by view index, call ${action}At with viewIndexes([...])`);
 }
 
 /**
@@ -1496,7 +1494,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRows(rowIds, options) {
       const s = get();
-      warnViewIndexIds(ctx, s, rowIds, "deleteRows");
+      warnViewIndexIds(ctx, rowIds, "deleteRows");
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       if (options?.source === "stream") {
         if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
@@ -1520,7 +1518,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     duplicateRows(rowIds) {
       const s = get();
-      warnViewIndexIds(ctx, s, rowIds, "duplicateRows");
+      warnViewIndexIds(ctx, rowIds, "duplicateRows");
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       const viewRows: number[] = [];
       for (const rowId of rowIds) {

@@ -1574,7 +1574,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       setRowChecked(rowId, checked) {
         const s = get();
-        warnViewIndexIds(dataWrite, s, [rowId], "setRowChecked");
+        warnViewIndexIds(dataWrite, [rowId], "setRowChecked");
         const dataRowIndex = rowIndexCache.resolveOne(s.data, s.getRowId, rowId);
         const viewRow = dataRowIndex === undefined ? -1 : viewRowOfDataIndex(s.viewIndex, dataRowIndex);
         if (viewRow >= 0) get().actions.setRowCheckedAt(viewIndex(viewRow), checked);
