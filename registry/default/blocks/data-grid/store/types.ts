@@ -263,7 +263,7 @@ export type DataGridSyncProps<TData = unknown> = {
   enableMultiRange?: boolean;
   /** Enables the header resize handle grid-wide; default true. Per-column `resizable: false` still wins. */
   enableColumnResize?: boolean;
-  /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
+  /** Enables drag-to-reorder columns grid-wide; default true. `false` also makes `setColumnOrder` do nothing. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
   /**
    * Enables drag-to-reorder rows grid-wide; default true. The gesture is zone-based: it lives on
@@ -274,7 +274,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * stay the row-select gesture, so a selection drag never reorders.
    */
   enableRowReorder?: boolean;
-  /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
+  /** Enables pin/unpin actions grid-wide; default true. `false` also makes `setColumnPin` do nothing. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
   headerClickBehavior?: HeaderClickBehavior;

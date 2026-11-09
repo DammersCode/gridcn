@@ -13,6 +13,8 @@ A dense table shows more rows, and a roomy table is easier to tap. `density` pic
 
 `density` takes `compact`, `default`, or `comfortable`. The presets give rows a height of 28, 36, and 44 px. `rowHeight` sets exact pixels and wins over `density`. Header rows do not follow either one. `headerHeight` sets the height of one header row. [Column groups](/docs/columns/column-headers-groups#column-groups) add header rows of the same height.
 
+This grid starts compact and switches to comfortable when you click the button:
+
 ```tsx
 import { useState } from "react";
 import {

@@ -28,7 +28,7 @@ Written against the API after Wave 5: W5-11 `setColumnLayout`, `state.columnLayo
    frames (W5-11 decision 10 keeps that action live-only). Rejected: a debounce over live widths —
    a slow drag would still write mid-gesture.
 4. **Apply through `setColumnLayout`.** URL input goes through the one normalizer (unknown ids
-   dropped, missing ids appended, widths clamped, unpinnable pins dropped). Rationale: one bounds
+   dropped, missing ids appended, widths clamped, pins ignored for unpinnable columns). Rationale: one bounds
    check for prop, action, and URL. Rejected: a URL-only parser that writes `columnOrder` directly.
 
 ## API

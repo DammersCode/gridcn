@@ -52,6 +52,8 @@ Four hooks add classes by value:
 
 `ctx` holds `value`, `row`, `rowId`, `columnId`, `viewRowIndex`, and `column`. All four merge through `cn()` after the built-in classes, so a conflicting utility wins. The column classes apply last, so they win over a grid-wide default. The callbacks skip rows that are not loaded yet.
 
+This grid fades archived rows and colors negative balances:
+
 ```tsx
 import {
   DataGrid,
@@ -233,6 +235,8 @@ The grid keeps these data attributes up to date. Scope each selector to the grid
 | `data-invalid` | a cell with a validation error |
 | `data-filtered` | a header cell of a filtered column |
 | `data-hovered` | the row under the pointer |
+
+These rules outline the active cell and border a right-pinned cell:
 
 ```css
 [role="gridcell"][data-active] {

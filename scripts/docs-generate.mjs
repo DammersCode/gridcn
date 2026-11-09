@@ -463,6 +463,8 @@ const PURPOSE = {
   "DataGridSyncProps.onGateAborted": "Fires once for every async gate that the grid stopped waiting for, with its name and the reason.",
   "DataGridSyncProps.sortMode": "Who sorts: `\"client\"` sorts `data`, `\"server\"` only tracks the sort. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
   "DataGridSyncProps.filterMode": "Who filters: `\"client\"` filters `data`, `\"server\"` only tracks the filters. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
+  "DataGridSyncProps.enableColumnReorder": "Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing.",
+  "DataGridSyncProps.enableColumnPinning": "Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing.",
   "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
   "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",

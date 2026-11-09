@@ -50,7 +50,7 @@ A pinned row is display-only. It is not part of `data` or the view index. As a r
 - It never sorts or filters. It stays in the order that you pass.
 - It never joins the selection. A click on it does nothing, and it never becomes the active cell.
 - It has no tab stop, and arrow keys skip it.
-- Unless the column sets `readOnly` to `false` or to a function that returns `false` for the row, its cells carry `data-readonly`.
+- Unless the column sets `readOnly` to `false` or to a function that returns `false` for the row, its cells carry `data-readonly`. A column with `accessorFn` and no `accessorKey` or `setValue` always carries it.
 
 A pinned row goes through the `getRowId` of the grid, so `ctx.rowId` in a pinned cell is that id. If `getRowId` throws or returns an empty or non-string value, the row gets a band id. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where `<index>` is the position of the row in its band.
 
