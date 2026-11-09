@@ -70,6 +70,9 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
       if (s.activeCell) s.scrollToCellImpl?.(s.activeCell);
       s.focusImpl?.();
     },
+    runShortcut(action) {
+      read().runShortcutImpl?.(action);
+    },
     getSelection() {
       return getInternalActions(storeApi)._deriveSelection();
     },

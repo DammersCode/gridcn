@@ -12,6 +12,7 @@ import {
   defineColumns,
   useDataGridActions,
   useDataGridActiveCell,
+  useDataGridApi,
   useDataGridSelection,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridContextMenu } from "@/registry/default/blocks/data-grid-context-menu/data-grid-context-menu";
@@ -73,6 +74,7 @@ function RowOpsControls({
   onReadOnlyChange: (value: boolean) => void;
 }): ReactNode {
   const actions = useDataGridActions();
+  const api = useDataGridApi();
   const selection = useDataGridSelection();
   const activeCell = useDataGridActiveCell();
   // Whole-row selection channel first; fall back to the active cell's row.
@@ -108,7 +110,7 @@ function RowOpsControls({
         size="sm"
         variant="outline"
         disabled={!enabled}
-        onClick={() => actions.duplicateRows(targets)}
+        onClick={() => api.runShortcut("duplicateRow")}
       >
         Duplicate
       </Button>
@@ -116,7 +118,7 @@ function RowOpsControls({
         size="sm"
         variant="outline"
         disabled={!enabled}
-        onClick={() => actions.deleteRows(targets)}
+        onClick={() => api.runShortcut("deleteRows")}
       >
         Delete
       </Button>

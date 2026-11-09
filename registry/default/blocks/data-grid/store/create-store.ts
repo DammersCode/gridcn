@@ -1342,6 +1342,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       _registerFocus(impl) {
         set({ focusImpl: impl });
       },
+      _registerRunShortcut(impl) {
+        set({ runShortcutImpl: impl });
+      },
       _registerFocusSearch(impl) {
         set({ focusSearchImpl: impl });
       },
@@ -1404,6 +1407,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     visibleColumns,
     scrollToCellImpl: null,
     focusImpl: null,
+    runShortcutImpl: null,
     focusSearchImpl: null,
     measureFonts: null,
     dataWrite,

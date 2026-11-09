@@ -802,6 +802,12 @@ export type DataGridApi<TData> = {
   scrollTo(ref: CellRef): void;
   /** Focuses the active cell's element, first scrolling an off-window active cell into view; with no active cell it focuses the grid (whose focus onboarding seeds (0,0)). No-ops while an edit session is open — focusing would blur the editor and commit it. */
   focus(): void;
+  /**
+   * Runs what the key bound to `action` runs, whether or not a key is bound: a `commands` entry with its
+   * `when` and `scope`, else the built-in with its guards (`readOnly`, checked-row targets, `createRow`).
+   * Does nothing before the grid mounts.
+   */
+  runShortcut(action: GridAction): void;
   /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
   getSelection(): SelectionState;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
@@ -840,6 +846,7 @@ export type DataGridReadState = Omit<
   | "onRenderedRowsChange"
   | "scrollToCellImpl"
   | "focusImpl"
+  | "runShortcutImpl"
   | "focusSearchImpl"
   | "measureFonts"
   | "dataWrite"

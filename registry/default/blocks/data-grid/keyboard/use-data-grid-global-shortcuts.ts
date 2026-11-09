@@ -6,10 +6,7 @@ import { bareGlobalBindings, enabledGlobalActions, isMacPlatform, resolveGlobalS
 import { isDev } from "../is-dev";
 import { isPrintableKey } from "./is-printable-key";
 import { useDataGridContainer } from "../interaction/use-data-grid-container";
-import { dispatchGridAction } from "../interaction/use-grid-interaction";
-import { useDataGridRootContext } from "../layout-context";
 import {
-  useDataGridActions,
   useDataGridKeymap,
   useDataGridStoreApi,
 } from "../store";
@@ -20,16 +17,13 @@ let nextGridId = 0;
 
 /**
  * While DOM focus is outside the grid, dispatches the enabled global actions (default: undo/redo)
- * on window keydown. Each action runs through the grid's own keymap-dispatch path
- * ({@link dispatchGridAction}), so it behaves exactly like its in-grid binding — same scrolling,
+ * on window keydown. Each action runs through `api.runShortcut`, so it behaves exactly like its in-grid binding — same scrolling,
  * same store-side guards. Mount inside `DataGridRoot`; prefer {@link DataGridGlobalShortcuts}.
  */
 export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void {
   const containerRef = useDataGridContainer();
   const storeApi = useDataGridStoreApi();
   const keymap = useDataGridKeymap();
-  const actions = useDataGridActions();
-  const { rowHeight, interaction } = useDataGridRootContext();
 
   // content-based dep (not the `config` object) so an inline config doesn't recompute per render;
   // sorted keys since the flag set is open (add-ons augment it) so no fixed list of deps works
@@ -41,8 +35,8 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
   );
 
   // the window handler reads fresh values per event without re-attaching on every config change
-  const latestRef = useRef({ keymap, enabled, actions, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight });
-  latestRef.current = { keymap, enabled, actions, scrollCellIntoView: interaction.scrollCellIntoView, rowHeight };
+  const latestRef = useRef({ keymap, enabled });
+  latestRef.current = { keymap, enabled };
 
   // one id per mount: a fresh id on every effect run would drop the grid's focus ownership
   // (lastFocusedGrid would no longer match) whenever the effect re-runs
@@ -89,13 +83,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         include: (a) => storeApi.getState().commands?.[a]?.scope !== "editing",
       });
       if (action === null) return;
-      dispatchGridAction({
-        action,
-        actions: latest.actions,
-        storeApi,
-        scrollRef: containerRef,
-        scrollCellIntoView: latest.scrollCellIntoView,
-        rowHeight: latest.rowHeight,
+      storeApi.getState().runShortcutImpl?.(action, {
         triggerKey: isPrintableKey(event) ? event.key : undefined,
         preventDefault: () => event.preventDefault(),
       });

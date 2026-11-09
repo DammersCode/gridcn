@@ -36,7 +36,7 @@ import { useElementDimensions, useViewportElement } from "./virtualization/use-s
 import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
 import { useColumnWindow } from "./virtualization/use-column-window";
 import { useRowHover } from "./virtualization/use-row-hover";
-import { useGridInteraction, type InteractionLayout } from "./interaction/use-grid-interaction";
+import { dispatchGridAction, useGridInteraction, type InteractionLayout } from "./interaction/use-grid-interaction";
 import { useGridClipboard } from "./clipboard/use-grid-clipboard";
 import {
   useColumnLayout,
@@ -367,6 +367,25 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     });
     return () => internalActions._registerFocus(null);
   }, [internalActions]);
+
+  useEffect(() => {
+    internalActions._registerRunShortcut((action, event) => {
+      const state = storeApi.getState();
+      const scope = state.commands?.[action]?.scope;
+      if (state.editing ? scope !== "editing" && scope !== "always" : scope === "editing") return;
+      dispatchGridAction({
+        action,
+        actions,
+        storeApi,
+        scrollRef,
+        scrollCellIntoView: interaction.scrollCellIntoView,
+        rowHeight,
+        triggerKey: event?.triggerKey,
+        preventDefault: event?.preventDefault ?? (() => {}),
+      });
+    });
+    return () => internalActions._registerRunShortcut(null);
+  }, [internalActions, actions, storeApi, interaction.scrollCellIntoView, rowHeight]);
 
   // Registers the autosize measure context (fonts, mounted row window, header-menu flag) so
   // store actions can size columns with canvas `measureText` without their own DOM query;

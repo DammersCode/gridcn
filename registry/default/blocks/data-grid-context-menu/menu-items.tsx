@@ -174,17 +174,12 @@ export function useDefaultCellMenuItems(args: {
     { id: "clear-contents", label: labels.contextMenu.clearContents, icon: <Eraser className="size-4 text-muted-foreground" />, shortcut: keymap.clearContents?.[0], disabled: readOnly, onClick: () => actions.deleteSelection() },
     { id: "sep-rows", separator: true },
   ];
-  const runCommand = (name: "fillDown" | "fillRight") => {
-    const ctx = { api, cell: null, viewRowIndex: null, viewColumnIndex: null, row: undefined, readOnly };
-    const command = commands?.[name];
-    if (command && command.when?.(ctx) !== false) command.run(ctx);
-  };
   if (selectionPointer === "touch" && commands?.["fillDown"] && commands["fillRight"]) {
     specs.splice(
       specs.findIndex((spec) => spec.id === "clear-contents") + 1,
       0,
-      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => runCommand("fillDown") },
-      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => runCommand("fillRight") },
+      { id: "fill-down", label: labels.contextMenu.fillDown, disabled: readOnly, onClick: () => api.runShortcut("fillDown") },
+      { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => api.runShortcut("fillRight") },
     );
   }
   if (canInsertRow) {
