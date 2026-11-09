@@ -78,7 +78,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
-  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. A sequential source skips the refresh while the rendered rows end beyond 10 blocks. */
   refreshAfterSave?: SaveRefreshPolicy;
 };
 
@@ -136,7 +136,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
    * Call it after the `onSave` promise settles to pick up server-computed fields.
    */
   refresh: () => void;
-  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. */
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelay` when it is set. Calls in one frame join. A sequential source skips it while the rendered rows end beyond 10 blocks. */
   reshape: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;

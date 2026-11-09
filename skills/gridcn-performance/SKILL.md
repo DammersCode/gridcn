@@ -84,7 +84,7 @@ Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or
 
 ## Done when
 
-Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows more than...` warning appear in the dev console while scrolling and editing, every checklist item above is either fixed or confirmed not applicable, and the React DevTools Profiler recording from step 0 now shows only the entering row/cell re-rendering per scroll tick or keystroke.
+Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows more than...` warning appear in the dev console while scrolling and editing, every checklist item above is either fixed or confirmed not applicable, and the React DevTools Profiler recording from step 2 now shows at most about two rows of cells (the entering row plus one row of slack) re-rendering per scroll tick or keystroke.
 
 ## Docs
 

@@ -77,7 +77,7 @@ The hook <NewBadge /> sets `sortMode` and `filterMode` to `"server"`. A grid wit
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
 | `maxLoadedRows` | `10000` | Most rows kept loaded. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
 | `revalidateInterval` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. |
-| `reshapeDelay` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. |
+| `reshapeDelay` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows end beyond 10 blocks. |
 
 The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row-retention).
 
@@ -100,7 +100,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 | Option | Default | Effect |
 | --- | --- | --- |
 | `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
-| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of the save report returns whether to refresh. |
+| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of the save report returns whether to refresh. A sequential source skips the refresh while the rendered rows end beyond 10 blocks. |
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 

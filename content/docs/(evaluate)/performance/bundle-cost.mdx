@@ -12,7 +12,7 @@ gridcn copies its source into your project, so your bundler builds the grid with
 | --- | --- | --- |
 | Core (`data-grid`) | About 594 KiB minified, 200 KiB gzip, with React left out. See [Core](#core). | With the grid |
 | `data-grid-io` | `papaparse` for CSV import. The xlsx reader and writer of `hucre`. | `papaparse` with the add-on. `hucre` on the first xlsx or xls file. See [Parts that load on first use](#lazy-parts). |
-| `data-grid-toolbar`, `data-grid-sort-list` | `@dnd-kit/dom` and `@dnd-kit/react` for drag to reorder | With the filter menu or the sort list |
+| `data-grid-toolbar`, `data-grid-sort-list` | `@dnd-kit/dom` and `@dnd-kit/react` for drag to reorder | With the toolbar or sort list import. A bundler that tree-shakes drops it when you import no filter menu. |
 | `data-grid-url-state` | `nuqs` | With the URL state hooks |
 | Other add-ons | Their own source and the shadcn/ui components they use. Their npm packages, such as `lucide-react` and `zustand`, are packages of the core too. | With the add-on |
 

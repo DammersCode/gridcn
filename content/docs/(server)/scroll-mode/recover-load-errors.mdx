@@ -74,7 +74,7 @@ Leave out `errorState` to keep the built-in error state. With rows, it is a bar 
 - A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure.
 - The next report of the rendered rows that covers the block requests it again. Scroll away and back to trigger it.
 - Until block 0 lands, the hook requests no other block. This holds on mount and after a spec change, so scrolling cannot request block 0 again. Call `retry()` or `refresh()` to load it.
-- An aborted request is no failure, and `onError` does not fire for it. The hook aborts a request on a spec change, a changed row count, `refresh()`, or an unmount. The first three also clear `error`.
+- An aborted request is no failure, and `onError` does not fire for it. The hook aborts a request on a spec change, a changed row count, `refresh()`, `evict()`, an unmount, or a block that leaves the rendered rows. The first three also clear `error`.
 - A failed block that leaves the same range <NewBadge /> stops counting as an error.
 - A throw inside `onError` or `onLoaded` does not break the hook. The hook logs it to the console.
 

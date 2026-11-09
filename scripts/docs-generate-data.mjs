@@ -76,7 +76,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "filter-values"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });

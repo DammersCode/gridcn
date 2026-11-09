@@ -110,7 +110,7 @@
     },
     {
       "id": "filter",
-      "feature": "Filter (flat and groups)",
+      "feature": "Filter",
       "options": [
         "filterState",
         "defaultFilterState",

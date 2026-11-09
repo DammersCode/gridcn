@@ -25,7 +25,7 @@ A `lookup` column takes a `LookupOptions` object in its `options` field. You mus
 | `debounceMs` | `number` | the grid's `inputDebounceMs` | The wait after the last keystroke before a request starts. |
 | `minQueryLength` | `number` | `0` | The fewest typed characters that start a request. With `0`, an opened editor loads the default list. |
 | `maxResults` | `number` | `50` | The most options that the editor shows. The editor uses at most `200`. |
-| `unresolvedPaste` | `"clear" \| "keep"` | `"clear"` | The result of a pasted or imported text that matches no known option. `"clear"` empties the cell. `"keep"` stores the text as a key without a label. |
+| `unresolvedPaste` | `"clear" \| "keep"` | `"clear"` | The result of a pasted or imported text that matches no known option. `"clear"` empties the cell. `"keep"` stores `{ value: text, label: "" }`, which shows as unresolved. |
 | `labels` | `Partial<LookupLabels>` | English | The text of the editor. Each field that you leave out stays English. |
 
 Keep `fetchOptions` stable: define it outside the render, or memoize it. The cell type resolves a pasted label through a cache that belongs to the `fetchOptions` function. The cache holds at most 5,000 labels and drops the oldest first.
