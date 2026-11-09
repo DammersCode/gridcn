@@ -22,7 +22,7 @@ Done when: you have a warning list (possibly empty) and a profiler recording to 
 
 ## 1. Bounded height (cheapest check)
 
-Grep the grid's JSX for the element carrying `className`/`style` on `DataGridRoot` or `DataGrid`. If it has no bounded height (no fixed height, no `h-full` inside a sized parent), the viewport's `clientHeight` covers the whole dataset and virtualization cannot activate — every row renders regardless of dataset size.
+Grep the grid's JSX for the element carrying `className`/`style` on `DataGridRoot` or `DataGrid`. If it has no bounded height (no fixed height, no `h-full` inside a sized parent), the viewport's `clientHeight` covers the whole dataset and virtualization cannot activate — the grid renders up to 200 rows and stops there.
 
 - Symptom in console: `gridcn: the grid viewport shows more than {N} rows at once — its height is probably unbounded, which disables virtualization.`
 - Fix: give the grid, or a sized parent, an explicit height, e.g. `className="h-150"` or `h-full` inside a container with its own bounded height.
