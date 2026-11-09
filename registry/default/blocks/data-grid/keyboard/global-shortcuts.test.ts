@@ -3,6 +3,7 @@ import { HISTORY_KEYMAP } from "../../data-grid-history/history-keymap";
 import { DEFAULT_KEYMAP as CORE_KEYMAP } from "./default-keymap";
 import {
   enabledGlobalActions,
+  globalShortcutsConfigKey,
   bareGlobalBindings,
   resolveGlobalShortcut,
   type GlobalShortcutContext,
@@ -61,6 +62,18 @@ describe("enabledGlobalActions", () => {
 
   it("an undefined flag keeps the default", () => {
     expect(enabledGlobalActions({ undo: undefined })).toEqual(["undo", "redo"]);
+  });
+});
+
+describe("globalShortcutsConfigKey", () => {
+  it("changes when a default flag toggles at runtime", () => {
+    const keys = [{}, { undo: false }, { undo: true }, { undo: false, redo: false }].map(globalShortcutsConfigKey);
+    expect(new Set(keys).size).toBe(4);
+  });
+
+  it("ignores undefined flags and key order", () => {
+    expect(globalShortcutsConfigKey({ undo: undefined })).toBe(globalShortcutsConfigKey());
+    expect(globalShortcutsConfigKey({ selectAll: true, deleteRows: true })).toBe(globalShortcutsConfigKey({ deleteRows: true, selectAll: true }));
   });
 });
 

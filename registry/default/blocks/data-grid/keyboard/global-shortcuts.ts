@@ -39,12 +39,20 @@ export type GlobalShortcutsConfig = {
 };
 
 /** The actions enabled by default: undo/redo only (the safe set — see {@link GlobalShortcutAction}). */
-const DEFAULT_GLOBAL_ACTIONS = ["undo", "redo"] as readonly string[] as readonly GridAction[];
+// undo and redo are the history add-on's action names; without that add-on they stay inert strings.
+const DEFAULT_GLOBAL_ACTIONS: readonly string[] = ["undo", "redo"];
+
+/** A stable content key of a config: every defined flag with its value, so `undo={false}` and `undo={true}` differ. */
+export function globalShortcutsConfigKey(config?: GlobalShortcutsConfig): string {
+  if (!config) return "";
+  const flags = config as Record<string, boolean | undefined>;
+  return Object.keys(flags).filter((name) => flags[name] !== undefined).sort().map((name) => `${name}=${flags[name]}`).join("|");
+}
 
 /** The enabled actions of a config: the default set minus every `false` flag, plus every `true` flag. */
 export function enabledGlobalActions(config?: GlobalShortcutsConfig): readonly GlobalShortcutAction[] {
   const flags = (config ?? {}) as Partial<Record<GlobalShortcutAction, boolean>>;
-  const kept = DEFAULT_GLOBAL_ACTIONS.filter((action) => flags[action] !== false);
+  const kept = DEFAULT_GLOBAL_ACTIONS.filter((action) => flags[action as GlobalShortcutAction] !== false) as GlobalShortcutAction[];
   const added = (Object.keys(flags) as GlobalShortcutAction[]).filter((action) => flags[action] === true && !kept.includes(action));
   return [...kept, ...added];
 }

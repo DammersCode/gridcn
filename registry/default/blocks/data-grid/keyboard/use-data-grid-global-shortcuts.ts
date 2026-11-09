@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { GlobalShortcutsConfig } from "./global-shortcuts";
-import { bareGlobalBindings, enabledGlobalActions, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
+import { bareGlobalBindings, enabledGlobalActions, globalShortcutsConfigKey, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
 import { isDev } from "../is-dev";
 import { isPrintableKey } from "./is-printable-key";
 import { useDataGridContainer } from "../interaction/use-data-grid-container";
@@ -27,7 +27,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
 
   // content-based dep (not the `config` object) so an inline config doesn't recompute per render;
   // sorted keys since the flag set is open (add-ons augment it) so no fixed list of deps works
-  const configKey = config ? Object.keys(config).filter((k) => config[k as keyof GlobalShortcutsConfig]).sort().join("|") : "";
+  const configKey = globalShortcutsConfigKey(config);
   const enabled = useMemo(
     () => enabledGlobalActions(config),
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- deliberate content-based dep (configKey)
