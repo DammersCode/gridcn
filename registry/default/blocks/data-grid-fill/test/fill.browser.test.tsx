@@ -145,9 +145,9 @@ describe("data-grid-fill add-on", () => {
     }
   });
 
-  it("processFill's values is the computed fill pattern, not the destination's stale content", async () => {
+  it("processFill's cells is the computed fill pattern, not the destination's stale content", async () => {
     const onDataChange = mockDataChangeFn();
-    const processFill = vi.fn((ctx: ProcessFillContext): string[][] | false => ctx.values);
+    const processFill = vi.fn((ctx: ProcessFillContext): string[][] | false => ctx.cells);
     const data = makeFillRows(6);
     data[0]!.value = 2;
     data[1]!.value = 4;
@@ -159,8 +159,8 @@ describe("data-grid-fill add-on", () => {
 
     expect(processFill).toHaveBeenCalledTimes(1);
     const [args] = processFill.mock.calls[0]!;
-    // the destination rows were 2,3,4 (untouched) before the fill — values must be the extrapolated 6,8,10, not that.
-    expect(args.values).toEqual([["6"], ["8"], ["10"]]);
+    // the destination rows were 2,3,4 (untouched) before the fill — cells must be the extrapolated 6,8,10, not that.
+    expect(args.cells).toEqual([["6"], ["8"], ["10"]]);
   });
 
   it("Alt-drag forces plain-copy tiling instead of series extrapolation", async () => {

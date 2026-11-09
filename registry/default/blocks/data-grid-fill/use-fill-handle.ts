@@ -45,7 +45,7 @@ export type ProcessFillContext = {
   /** The new cells the fill writes. */
   target: GridRect;
   /** The fill text for `target`, before parsing and validation. */
-  values: string[][];
+  cells: string[][];
 };
 
 /** Options for {@link useFillHandle}. */
@@ -262,7 +262,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       const s = storeApi.getState();
       const { processFill, detectSeries } = callbacksRef.current;
       const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
-      const processed = processFill ? processFill({ source, target: strip, values: filled }) : filled;
+      const processed = processFill ? processFill({ source, target: strip, cells: filled }) : filled;
       if (processed === false) return;
       const candidates = buildFillCandidatesFromText(s, strip, processed);
 

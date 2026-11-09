@@ -385,7 +385,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
 
   it("processFill can rewrite the values that the fill parses and writes", () => {
     const onDataChange = vi.fn();
-    const result = setUpFill(makeWrapper(columns, { onDataChange }), ({ values }) => values.map((row) => row.map(() => "99")));
+    const result = setUpFill(makeWrapper(columns, { onDataChange }), ({ cells }) => cells.map((row) => row.map(() => "99")));
     act(() => result.current.fill.fillDown());
     expect(onDataChange).toHaveBeenCalledTimes(1);
     expect(onDataChange.mock.calls[0]![1].ops).toEqual([expect.objectContaining({ rowId: "2", cells: [expect.objectContaining({ columnId: "qty", value: 99 })] })]);
@@ -487,7 +487,7 @@ describe("useFillHandle callback identity", () => {
           scrollRef,
           layout: {} as InteractionLayout,
           fillStore: createFillStore(),
-          processFill: ({ values }) => values,
+          processFill: ({ cells }) => cells,
           detectSeries: () => {
             detectCalls.push(tag);
             return null;
