@@ -164,6 +164,49 @@ describe("buildFillWrites", () => {
   });
 });
 
+describe("buildFillWrites over a closed value set (select)", () => {
+  type TierRow = { id: string; tier: string | null };
+  const tierColumns: readonly ColumnDef<TierRow, unknown>[] = [
+    {
+      id: "tier",
+      header: "Tier",
+      accessorKey: "tier",
+      type: "select",
+      options: {
+        choices: [
+          { value: "t1", label: "Tier 1" },
+          { value: "t2", label: "Tier 2" },
+        ],
+      },
+    },
+  ];
+  function tierState(values: (string | null)[]): DataGridStoreState {
+    const data = values.map((tier, i) => ({ id: String(i), tier }));
+    return fakeState({ data, columns: tierColumns, visibleColumns: tierColumns });
+  }
+
+  it("copies the stored values when the label series continues past the last choice", () => {
+    const s = tierState(["t1", "t2", "t2", null]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 0, width: 1, height: 2 }, { x: 0, y: 2, width: 1, height: 2 });
+    expect(syncResolution(resolution).writes).toEqual([
+      { viewRowIndex: 2, columnId: "tier", value: "t1" },
+      { viewRowIndex: 3, columnId: "tier", value: "t2" },
+    ]);
+  });
+
+  it("copies a stored value that has no choice", () => {
+    const s = tierState(["orphan", "x"]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 0, y: 1, width: 1, height: 1 });
+    expect(syncResolution(resolution).writes).toEqual([{ viewRowIndex: 1, columnId: "tier", value: "orphan" }]);
+  });
+
+  it("copies upward from the far edge of the source", () => {
+    const s = tierState([null, "t1", "t2"]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 1, width: 1, height: 2 }, { x: 0, y: 0, width: 1, height: 1 });
+    expect(syncResolution(resolution).writes).toEqual([{ viewRowIndex: 0, columnId: "tier", value: "t2" }]);
+  });
+});
+
 describe("buildFillWrites over a lazy (sparse) grid", () => {
   it("skips unloaded rows and dev-warns once per fill", () => {
     const warn = vi.spyOn(console, "warn");

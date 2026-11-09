@@ -44,7 +44,7 @@ If the source cells form a series, the fill continues the series instead:
 - **Zero-padded numbers.** `001, 002` continues as `003, 004` and keeps the width.
 - **Text with a trailing number.** `Item 1, Item 2` continues as `Item 3, Item 4`.
 
-A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. A number with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own. The text detector continues the trailing number, so `2026-01-30, 2026-01-31` continues as `2026-01-32`. A custom detector below handles real dates.
+A series needs two source cells, because one value has no step. A `select` or `lookup` column copies its stored values instead of continuing a series, because a series text such as `Tier 3` is no option. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own. The text detector continues the trailing number, so `2026-01-30, 2026-01-31` continues as `2026-01-32`. A custom detector below handles real dates.
 
 After a fill commits, the written cells play a short fade pulse. The pulse plays only for cells in the viewport.
 

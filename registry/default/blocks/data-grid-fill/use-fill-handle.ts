@@ -21,7 +21,7 @@ import {
   type InteractionLayout,
   type DataGridReadState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
+import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type FillDirection, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
 /** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
@@ -71,6 +71,31 @@ function cellText(s: DataGridReadState, viewRow: number, colIndex: number): stri
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
   return cellType.toText(value, column.options);
+}
+
+/**
+ * The raw value the plain copy of the source puts at strip cell (`row`, `col`), or `undefined` when
+ * that source cell has another column type. A closed value set (select, lookup) cannot read back a
+ * series text or an unresolved key, so the fill copies the stored value instead of clearing the cell.
+ */
+function tiledSourceValue(
+  s: DataGridReadState,
+  source: GridRect,
+  relativeStrip: GridRect,
+  direction: FillDirection,
+  row: number,
+  col: number,
+  type: string | undefined,
+): unknown {
+  const wrap = (index: number, size: number) => ((index % size) + size) % size;
+  const vertical = direction === "up" || direction === "down";
+  const sourceRow = vertical ? wrap(relativeStrip.y + row, source.height) : relativeStrip.y + row;
+  const sourceCol = vertical ? relativeStrip.x + col : wrap(relativeStrip.x + col, source.width);
+  const column = s.visibleColumns[source.x + sourceCol];
+  if (!column || (column.type ?? "text") !== (type ?? "text")) return undefined;
+  const dataRowIndex = s.viewIndex[source.y + sourceRow];
+  const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  return dataRow === undefined ? undefined : getCellValue<unknown, typeof column>(dataRow, column);
 }
 
 /** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
@@ -127,7 +152,11 @@ export function buildFillCandidates(
       if (!cellType) continue;
 
       // filled is generateFill's strip.height x strip.width output; row/col loop bounds match exactly
-      const value = cellType.fromText(filled[row]![col]!, column.options);
+      const text = filled[row]![col]!;
+      let value = cellType.fromText(text, column.options);
+      if (text !== "" && cellType.isEmpty(value)) {
+        value = tiledSourceValue(s, source, relativeStrip, direction, row, col, column.type) ?? value;
+      }
       candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate: resolveColumnValidate(column, cellType), row: dataRow, rowId });
     }
   }

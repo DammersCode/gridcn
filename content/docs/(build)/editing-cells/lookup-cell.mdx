@@ -97,8 +97,8 @@ The answer is untrusted. The editor keeps only entries with a non-empty `value` 
 ## Clipboard, fill, import, and export
 
 - Copy and export write the label.
-- Paste and import turn a label or a key back into the option when the column has shown or copied that option before. Any other text follows `unresolvedPaste`.
-- Fill copies the stored `{ value, label }`.
+- Paste and import turn a label or a key back into the option when the editor listed that option or a copy wrote it. Any other text follows `unresolvedPaste`.
+- Fill copies the stored `{ value, label }`, also a bare key and a label that two options share.
 - Clear and <kbd>Delete</kbd> store `null`.
 
 ## Sort, search, and filter
