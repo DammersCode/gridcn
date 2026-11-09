@@ -611,6 +611,11 @@
                "target": "components/data-grid/store/hidden-checked-rows.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/row-operation-targets.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/row-operation-targets.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/selected-rows.ts"

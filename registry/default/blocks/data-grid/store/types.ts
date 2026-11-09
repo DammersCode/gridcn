@@ -1264,6 +1264,8 @@ export type DataGridInternalActions = {
    * cleared cells. Not part of the public hook surface.
    */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
+  /** @internal Reports a refused key or menu row action through `onRowActionSkipped`. */
+  _skipRowAction(action: RowActionName, reason: RowActionSkipReason): void;
   /** @internal Lets `announceResults` speak; view changes made before the provider's mount effects stay quiet. */
   _armResultsAnnouncement(): void;
   /** @internal Escape: `clearSelection` that announces the dropped checked rows. */
@@ -1335,8 +1337,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort or filter owns the row order. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort or filter owns the row order. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsById` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";

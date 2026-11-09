@@ -417,6 +417,7 @@ export type DataWriteActions = Pick<
   /** Clears every `rowIds` x `columnIds` cell still in view, as one `delete` batch (the cut-capture seam). */
   _deleteCellsById(rowIds: readonly string[], columnIds: readonly string[]): void;
   _commitCellEdit: DataGridInternalActions["_commitCellEdit"];
+  _skipRowAction: DataGridInternalActions["_skipRowAction"];
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -1335,6 +1336,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }
       }
       commitClearWrites(s, writes);
+    },
+    _skipRowAction(action, reason) {
+      skippedBy(action, reason);
     },
     _deleteCellsById(rowIds, columnIds) {
       const s = get();

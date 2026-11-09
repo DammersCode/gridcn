@@ -13,7 +13,7 @@ import {
 } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnPin, ViewCoord, GridSelection, CellType, GridAction, GridCommandCtx } from "../types";
-import type { SelectionPointer } from "../store/types";
+import type { RowActionName, SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { getCellValue } from "../columns/column-helpers";
@@ -37,7 +37,6 @@ import {
   type GridDirection,
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
-import { getSelectedViewRows } from "../selection";
 import { isRowRangeLive, selectionIsCursorOnly, type RowRangeGesture } from "../selection/row-range-gesture";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { warnDev } from "../store/commit";
@@ -45,7 +44,7 @@ import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
-import { onlyHiddenRowsChecked } from "../store/hidden-checked-rows";
+import { rowOperationTargets } from "../store/row-operation-targets";
 import { isComposingKey } from "./is-composing-key";
 import { isReorderMarkerMode } from "../rows/marker-width";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -287,6 +286,12 @@ export function dispatchGridAction(args: {
     command.run(ctx);
     return;
   }
+
+  const runRowOperation = (name: RowActionName, run: (rows: number[]) => void) => {
+    const targets = rowOperationTargets(state, state.activeCell?.row);
+    if (targets.reason) getInternalActions(storeApi)._skipRowAction(name, targets.reason);
+    else if (targets.rows.length > 0) run(targets.rows);
+  };
 
   const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
     getInternalActions(storeApi)._moveActiveCell(d, opts);
@@ -553,23 +558,19 @@ export function dispatchGridAction(args: {
     }
     case "duplicateRow": {
       preventDefault();
-      if (!state.readOnly && state.duplicateRow && !onlyHiddenRowsChecked(state)) {
-        // the context-menu item this shortcut labels duplicates the WHOLE selection; no
-        // selection, just the active row
-        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" });
-        if (selected.length > 0) actions.duplicateRows(selected);
-        else if (state.activeCell) actions.duplicateRows([state.activeCell.row]);
-      }
+      if (!state.readOnly && state.duplicateRow) runRowOperation("duplicateRows", (rows) => actions.duplicateRows(rows));
       break;
     }
     case "moveRowsUp":
     case "moveRowsDown": {
       preventDefault();
       if (state.readOnly || !isReorderMarkerMode(state.rowMarkers)) break;
-      const rows = rowsToMove(state);
-      if (rows.length === 0 || !actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1)) break;
+      let moved = false;
+      runRowOperation("moveRows", (rows) => {
+        moved = actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1);
+      });
       const active = storeApi.getState().activeCell;
-      if (active) scrollCellIntoView(active);
+      if (moved && active) scrollCellIntoView(active);
       break;
     }
     case "insertRowAbove": {
@@ -579,11 +580,7 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
-      if (!state.readOnly && !onlyHiddenRowsChecked(state)) {
-        const selected = getSelectedViewRows(state.selection, { checkedRowsOnly: state.checkedRowsLifetime !== "until-click" });
-        if (selected.length > 0) actions.deleteRows(selected);
-        else if (state.activeCell) actions.deleteRows([state.activeCell.row]);
-      }
+      if (!state.readOnly) runRowOperation("deleteRows", (rows) => actions.deleteRows(rows));
       break;
     }
     case "openLink": {
@@ -750,15 +747,6 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
 
 function hasCellSelection(selection: GridSelection): boolean {
   return selection.current !== null || selection.columns.length > 0;
-}
-
-/** The rows a keyboard move acts on: the checked rows, else the rows of the primary range, else the active row. */
-function rowsToMove(state: DataGridStoreState): number[] {
-  if (onlyHiddenRowsChecked(state)) return [];
-  if (state.selection.rows.length > 0) return state.selection.rows.toArray();
-  const range = state.selection.current?.range;
-  if (range) return Array.from({ length: range.height }, (_, i) => range.y + i);
-  return state.activeCell ? [state.activeCell.row] : [];
 }
 
 /** Handlers + drag state wiring for keyboard nav, mouse selection, and editing lifecycle. */

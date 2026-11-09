@@ -206,6 +206,20 @@ describe("select all matching", () => {
     m.dispatch("moveRowsDown");
     expect(m.state().data).toHaveLength(3);
   });
+
+  it("reports each refused key through onRowActionSkipped with the all-matching reason", () => {
+    const onRowActionSkipped = vi.fn();
+    const m = mount({ onRowActionSkipped, rowMarkers: "reorder", duplicateRow: (row: Row) => ({ ...row, id: `${row.id}2` }) });
+    act(() => m.state().actions.selectAllMatching());
+    m.dispatch("deleteRows");
+    m.dispatch("duplicateRow");
+    m.dispatch("moveRowsDown");
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "deleteRows", reason: "all-matching" },
+      { action: "duplicateRows", reason: "all-matching" },
+      { action: "moveRows", reason: "all-matching" },
+    ]);
+  });
 });
 
 describe("useDataGridSelectedRows", () => {

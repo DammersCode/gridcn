@@ -244,6 +244,16 @@ describe("hidden checked rows: row actions with only hidden checks", () => {
     expect(m.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
   });
 
+  it("reports the hidden-rows-only reason through onRowActionSkipped", () => {
+    const onRowActionSkipped = vi.fn();
+    const m = mount({ onRowActionSkipped });
+    m.check(0, 1);
+    m.filterToD();
+    act(() => m.state().actions.selectCellAt({ col: 0, row: 0 }));
+    m.dispatch("deleteRows");
+    expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "deleteRows", reason: "hidden-rows-only" });
+  });
+
   it("Delete rows still acts on the active row when no row is checked anywhere", () => {
     const onDataChange = vi.fn();
     const m = mount({ onDataChange });

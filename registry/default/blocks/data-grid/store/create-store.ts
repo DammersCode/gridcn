@@ -870,10 +870,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       endEditSession,
       renameRowKeys,
     });
-    const { _deleteCellsById, _commitCellEdit, ...otherWriteActions } = dataWriteActions;
+    const { _deleteCellsById, _commitCellEdit, _skipRowAction, ...otherWriteActions } = dataWriteActions;
     const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
     const internal: DataGridInternalActions = {
       _deleteCellsById,
+      _skipRowAction,
       _commitCellEdit,
       _armRowDragAnchor(index) {
         const s = get();

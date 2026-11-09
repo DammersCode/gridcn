@@ -36,12 +36,11 @@ import {
   useDataGridLabels,
   useDataGridReadOnly,
   useDataGridSelection,
-  useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridCommands, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
-import { selectedViewRows } from "./selection-queries";
+import { rowOperationTargets } from "@/registry/default/blocks/data-grid/store/row-operation-targets";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /**
@@ -122,9 +121,9 @@ export function useDefaultCellMenuItems(args: {
   const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
-  const checkedRowsOnly = useDataGridSelectionConfig().checkedRowsLifetime !== "until-click";
-  const hiddenCheckedCount = useDataGridHiddenCheckedCount();
-  const rowActionsBlocked = checkedRowsOnly && selection.rows.length === 0 && hiddenCheckedCount > 0;
+  const { checkedRowsLifetime } = useDataGridSelectionConfig();
+  const hiddenCheckedRowIds = useDataGridSelector((s) => s.hiddenCheckedRowIds);
+  const allMatching = useDataGridSelector((s) => s.allMatching);
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
@@ -135,8 +134,10 @@ export function useDefaultCellMenuItems(args: {
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
-  const targetRows = selectedViewRows(selection, { checkedRowsOnly });
-  const rows = targetRows.length > 0 ? targetRows : [row];
+  const targets = rowOperationTargets({ checkedRowsLifetime, selection, hiddenCheckedRowIds, allMatching }, row);
+  const rows = targets.rows;
+  const blockedTooltip = targets.reason === "all-matching" ? labels.contextMenu.rowActionAllMatching : targets.reason ? labels.contextMenu.rowActionHiddenChecked : undefined;
+  const rowActionsBlocked = targets.reason !== undefined;
 
   const onPaste = useCallback(() => {
     if (pasteBlocked || readOnly) return;
@@ -193,9 +194,9 @@ export function useDefaultCellMenuItems(args: {
     );
   }
   if (canDuplicateRow) {
-    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
+    specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRows(rows) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : rowActionsBlocked ? labels.contextMenu.rowActionHiddenChecked : undefined, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
+  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRows(rows) });
   return specs;
 }
 

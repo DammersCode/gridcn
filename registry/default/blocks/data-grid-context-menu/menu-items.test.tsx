@@ -270,6 +270,25 @@ describe("row items with only hidden checked rows", () => {
       expect(item(cell, id)?.tooltip).toBeUndefined();
     }
   });
+  it("disables the row items with the all-matching reason when every matching row is checked (server rows)", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    function AllMatching() {
+      const actions = useDataGridActions();
+      useEffect(() => actions.selectAllMatching(), [actions]);
+      cell = useDefaultCellMenuItems({ row: 0, canInsertRow: true, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} duplicateRow={(row) => ({ ...row, id: `${row.id}2` })} checkedRowsLifetime="across-filters" totalRowCount={9}>
+        <DataGridRoot>
+          <AllMatching />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
+    expect(item(cell, "delete-rows")?.tooltip).toBe("All matching rows are checked; use the bulk action");
+    expect(item(cell, "duplicate-rows")?.tooltip).toBe("All matching rows are checked; use the bulk action");
+  });
 });
 
 describe("MenuShortcut", () => {
