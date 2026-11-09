@@ -1141,3 +1141,27 @@ describe("touch input", () => {
     expect(hook.result.current.activeCell).toEqual({ col: 1, row: 5 });
   });
 });
+
+describe("Ctrl+Shift+Arrow extends from the far end of the selection", () => {
+  const gapColumns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorFn: (r: Row) => (["4", "5"].includes(r.id) ? "" : r.name), readOnly: true },
+    { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+  ];
+  it("repeated Ctrl+Shift+ArrowDown grows the selection past each boundary", () => {
+    const { hook } = renderInteraction(10, { columns: gapColumns });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 4 });
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 7 });
+  });
+  it("Ctrl+Shift+ArrowDown after Shift+ArrowDown scans from the focus cell", () => {
+    const { hook } = renderInteraction(10, { columns: gapColumns });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    for (let i = 0; i < 4; i++) pressKey(hook, "ArrowDown", { shiftKey: true });
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 7 });
+  });
+});

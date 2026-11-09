@@ -311,7 +311,7 @@ export function dispatchGridAction(args: {
   };
 
   const jumpAndScroll = (direction: JumpDirection, opts?: { extend?: boolean }) => {
-    const active = state.activeCell ?? { col: 0, row: 0 };
+    const active = (opts?.extend ? getFocusCell(state) : state.activeCell) ?? { col: 0, row: 0 };
     const target = jumpToDataBoundary(state, active, direction);
     if (opts?.extend) actions.extendToAt(target);
     else actions.selectCellAt(target);
