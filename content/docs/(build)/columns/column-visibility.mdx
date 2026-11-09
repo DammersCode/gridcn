@@ -174,7 +174,7 @@ The grid cleans a layout before it applies it:
 - It drops ids that match no column.
 - It adds columns that `order` does not list after the listed ones, in `columns` order. A `hidden: true` column that `order` does not list stays hidden.
 - It clamps each width to `minWidth` and `maxWidth`.
-- It drops a pin on a `pinnable: false` column. When `pins` is present, a column that it does not list loses its own `pin`.
+- It ignores the pins of a `pinnable: false` column. That column keeps the `pin` of its definition. For every other column, when `pins` is present, a column that it does not list loses its own `pin`.
 - It ignores a part with the wrong shape, so a damaged saved layout does not break the grid.
 
 To keep order and hidden columns in a shareable link, use the [URL state add-on](/docs/sort-filter-search/url-state#column-layout).

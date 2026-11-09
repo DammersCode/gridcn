@@ -168,7 +168,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
    * paste. The cell cap applies to the settled grid. `signal` aborts when the grid goes read-only,
-   * an edit starts, the target row is gone, or the grid unmounts; an aborted result is dropped.
+   * an edit starts, `gateTimeoutMs` runs out, or the grid unmounts; an aborted result is dropped.
    */
   processPaste?: (ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>;
   /**

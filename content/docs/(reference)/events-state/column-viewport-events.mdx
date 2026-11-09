@@ -44,7 +44,7 @@ The callback <NewBadge /> runs after the grid writes the layout. If it throws, t
 
 ### Save and restore [#save-and-restore]
 
-`defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It drops unknown column ids and clamps widths. It drops pins on columns with `pinnable: false`. It appends columns that the saved `order` lacks. It moves the columns of a group next to each other again:
+`defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It drops unknown column ids and clamps widths. It ignores pins on columns with `pinnable: false`. It appends columns that the saved `order` lacks. It moves the columns of a group next to each other again:
 
 ```tsx
 import {

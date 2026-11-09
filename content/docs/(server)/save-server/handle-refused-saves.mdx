@@ -78,7 +78,7 @@ import type { Order } from "./orders";
 const rejection = {
   rowId: "o-17",
   message: "Locked by another user",
-  current: { id: "o-17", status: "shipped" } as Order,
+  current: { id: "o-17", customer: "Acme", total: 120 },
 } satisfies SaveRejection<Order>;
 ```
 
@@ -137,14 +137,14 @@ Pick one of the three answers in this demo:
 
 `"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it. History does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
 
-This handler keeps the user's `note` and takes the server's other fields:
+This handler keeps the user's `customer` and takes the server's other fields:
 
 ```tsx
 import type { SaveConflictContext } from "@/components/data-grid/data-grid";
 import type { Order } from "./orders";
 
 function resolveSaveConflict({ mine, theirs }: SaveConflictContext<Order>) {
-  return { row: { ...theirs, note: mine.note } };
+  return { row: { ...theirs, customer: mine.customer } };
 }
 ```
 

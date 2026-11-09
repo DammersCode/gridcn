@@ -221,7 +221,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       role="columnheader"
       aria-colindex={index + 1}
       aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
-      // sort state is announced to AT in every click behavior — only the visual arrow below is click-gated
+      // sort state is announced to AT in every click behavior
       aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}
       data-pinned={pinned || undefined}

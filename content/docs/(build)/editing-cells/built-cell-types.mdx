@@ -132,7 +132,7 @@ const columns = defineColumns<Task>()([
 
 ## Select and checkbox [#select-checkbox]
 
-A `select` cell stores the choice `value` and shows its `label`. Display, search, sort, filter, and copy all use the label. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
+A `select` cell stores the choice `value` and shows its `label`. Display, search, sort, and copy use the label. A filter matches the stored choice `value`. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
 
 The grid caches lookups for each `choices` array. Pass a new array to change the choices, and never change the array in place.
 

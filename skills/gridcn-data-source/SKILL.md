@@ -67,7 +67,7 @@ Applies to `data-grid-pagination`:
 Applies to streaming on top of either:
 
 - A server-paged grid skips `updateCells`/`updateRows` patches addressed to rows not on the current page: no error, only an `unknown-row` skip reason in the batch verdict. Either apply the feed to the full dataset/fetched page before it reaches `data`, or accept that only on-page rows update live. A `DataGridProvider` with `pageSize` holds every row, so its patches reach rows on every page.
-- A scroll grid instead reports `unknown-row` in the batch verdict (`actions.updateCells(...)` return value) for a patch to a row that is not loaded, and `hole` for a patch addressed by the placeholder id of an unloaded row — check the verdict if silent loss there matters.
+- A scroll grid also reports `unknown-row` in the batch verdict (`actions.updateCells(...)` return value) for a patch to a row that is not loaded, and `hole` for a patch addressed by the placeholder id of an unloaded row — check the verdict if silent loss there matters.
 
 ## 5. Done when
 
@@ -97,7 +97,7 @@ Applies to streaming on top of either:
 ## Saving and refusals
 
 - Send changes to the server from `onSave(change)`, not from `onDataChange`. `onDataChange` keeps your state in step and returns nothing; the revert of a refusal reaches it with `source: "rollback"` exactly once.
-- On a `useDataGridServerRows` grid, pass `onSave` to the hook, not to `DataGrid`. `refreshAfterSave` (default `"settled"`: one `refresh()` after every save in flight; also `"each"`, `false`, or a function of the save report) replaces a hand-rolled refresh.
+- On a `useDataGridServerRows` grid, pass `onSave` to the hook, not to `DataGrid`. `refreshAfterSave` (default `"settled"`: one `refresh()` after every save in flight; also `"each"`, `false`, or a function of the save report) replaces a hand-rolled refresh. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks; call `server.refresh()` there.
 - Return a promise from `onSave`: resolve with nothing to accept, with `{ rejected: [{ rowId, columnId?, message?, current? }] }` to refuse rows or cells (`current` is the row as the server holds it now), or reject to refuse the whole change. The grid marks rows `saving` (`data-save-status`), reverts only the refused entries, and calls `onSaveRejected({ change, rejected })` for the toast.
 - `onSave` never receives `source: "rollback"` or `source: "stream"`. Undo and redo (`"history"`) reach it.
 - Resolve a refused save with `resolveSaveConflict({ rowId, mine, theirs, change, message, signal })`. It runs for a refused row that has `current`. Return `"theirs"` (the default), `"mine"`, or `{ row }` (a merged row with the same id). `"mine"` and `{ row }` commit one `source: "merge"` change that reaches `onSave`. An async resolver keeps the row `saving`.

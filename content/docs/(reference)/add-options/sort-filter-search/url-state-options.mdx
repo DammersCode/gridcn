@@ -110,7 +110,7 @@ A sort or filter row for a removed, hidden, or unsortable, or unfilterable colum
 
 ## Server mode
 
-On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. In server filter mode, a restored set-filter list keeps at most the larger of its choice count and 64 values. See [Data mode support](/docs/data-modes/data-mode-support).
+On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. In server filter mode, the `choices` of a column can hold fewer values than your server lists. The [Limits](#limits) bound still applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the filter. See [Data mode support](/docs/data-modes/data-mode-support).
 
 ## Related
 

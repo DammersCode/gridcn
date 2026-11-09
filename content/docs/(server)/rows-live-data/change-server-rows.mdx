@@ -29,7 +29,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
       defaultData={rows}
       columns={columns}
       getRowId={(row) => row.id}
-      createRow={() => ({ id: crypto.randomUUID(), item: "", quantity: 0 })}
+      createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
       duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
       onSave={onSave}
     />

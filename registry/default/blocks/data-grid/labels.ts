@@ -376,7 +376,7 @@ export interface DataGridLabels {
   findReplace: DataGridFindReplaceLabels;
 }
 
-/** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
+/** English defaults — nearly every string in the shipped UI, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
 export const DEFAULT_LABELS: DataGridLabels = {
   toolbar: {
     searchPlaceholder: "Search…",

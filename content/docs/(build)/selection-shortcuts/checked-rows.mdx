@@ -47,26 +47,26 @@ The row that you checked or unchecked last is the anchor. A <kbd>Shift</kbd> ste
 
 A sort or a filter ends the span. The next <kbd>Shift</kbd>+click then starts from the anchor row. The header checkbox and <kbd>Esc</kbd> clear the anchor. The next <kbd>Shift</kbd>+click then starts at the active row.
 
-For example, click row 1, <kbd>Shift</kbd>+click row 5, and <kbd>Shift</kbd>+click row 3. The grid checks rows 1 to 3.
+Click row 1, <kbd>Shift</kbd>+click row 5, and <kbd>Shift</kbd>+click row 3. The grid checks rows 1 to 3.
 
 ## Check rows by keyboard [#checking-rows-by-keyboard]
 
 The marker checkboxes are not tab stops. These keys check rows instead:
 
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (`toggleRow`) checks or unchecks the active row. The other checked rows stay checked.
-- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) does what the header checkbox does. When every row is checked, it unchecks them all.
+- <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`) does what the header checkbox does. When every row is checked, it unchecks them all. Firefox and Edge [reserve it on Windows and Linux](/docs/selection-shortcuts/shortcut-remapping#reserved-chords).
 - <kbd>Shift</kbd>+<kbd>Space</kbd> (`selectRow`) checks only the active row. It follows the rules of a click on a number.
 
 After `selectRow` or `toggleRow`, these keys move the end of the span and the active row:
 
-- <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) check the rows from the anchor to the new end. Reverse the direction to shrink the span.
+- <kbd>Shift</kbd>+<kbd>ArrowUp</kbd> and <kbd>Shift</kbd>+<kbd>ArrowDown</kbd> (`extendUp`, `extendDown`) check the rows from the anchor to the new end. Reverse to shrink the span.
 - <kbd>Shift</kbd>+<kbd>Home</kbd>, <kbd>End</kbd>, <kbd>PageUp</kbd>, and <kbd>PageDown</kbd> move the end to the first row, the last row, or one page away.
 
 After a click on a cell, <kbd>Shift</kbd>+<kbd>Arrow</kbd> extends the cell range. Without a row check, <kbd>Shift</kbd>+<kbd>Home</kbd> and its siblings do nothing, and the browser keeps them.
 
-To check rows that are not adjacent, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which keeps the selection. Then press `toggleRow` on each row.
+To check separate rows, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which keeps the selection. Then press `toggleRow` on each row.
 
-A check or an uncheck reads the checked-row count in the live region, for example "3 rows checked". <kbd>Esc</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> read the drop too. The count includes hidden checked rows, not the rows of a cell range. `labels.grid.rowsChecked` sets the text.
+A check or uncheck reads the checked-row count in the live region. <kbd>Esc</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> read the drop too. The count includes hidden checked rows, not the rows of a cell range. `labels.grid.rowsChecked` sets the text.
 
 ## Choose how long checks last [#checked-rows]
 

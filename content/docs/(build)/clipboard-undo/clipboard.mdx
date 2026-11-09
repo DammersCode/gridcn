@@ -135,7 +135,7 @@ function MyGrid() {
 
 - `processCellForClipboard(value, { row, column })` returns the text of one copied cell. Without it, the `toText` of the cell type decides.
 - `processCellFromClipboard(text, { row, column })` returns the value of one pasted cell. Without it, the `fromText` of the cell type decides.
-- `processPaste({ cells, target, signal })` <NewBadge /> receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, the target row is gone, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
+- `processPaste({ cells, target, signal })` <NewBadge /> receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
 `processPaste` <NewBadge /> and `processCellFromClipboard` also accept a promise:
 

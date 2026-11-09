@@ -77,7 +77,7 @@ The grid <NewBadge /> sets no time limit on a save. Pass `signal: AbortSignal.ti
 
 With `useDataGridServerRows`, pass `onSave` to the hook. `gridProps.onSave` runs your handler and fetches again by the `refreshAfterSave` policy. A refresh keeps the local value of a row with a pending save or an open edit.
 
-This grid sends the change, and the hook fetches the page again once the saves settle:
+This grid sends the change, and the hook fetches again once the saves settle:
 
 ```tsx
 "use client";
@@ -110,7 +110,7 @@ export function OrdersGrid() {
     },
   });
 
-  return <DataGrid {...server.gridProps} columns={columns} />;
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
 }
 ```
 
@@ -123,15 +123,15 @@ export function OrdersGrid() {
 | `false` | Never. Call `server.refresh()` yourself. |
 | a function <NewBadge /> | Once after the saves settle, when it returns `true`. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. |
 
-A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks.
+Beyond 10 blocks of rendered rows plus `overscan`, a [sequential source](/docs/add-options/server/server-rows-options#scroll-mode) skips the refresh: call `server.refresh()`.
 
-A refresh needs at least one `onSave` promise that resolved, with nothing or with `{ rejected }`. A throw or rejection, such as an HTTP error, does not count. A hook without `onSave` leaves a provider `onSave` of your own in place.
+A refresh needs at least one `onSave` promise that resolved, with nothing or with `{ rejected }`. A throw or rejection does not count. A hook without `onSave` leaves a provider `onSave` of your own in place.
 
 ## Swap a client id for the server id [#id-swap]
 
 <NewBadge />
 
-A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` the actions of its grid:
+A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` its actions:
 
 ```tsx
 "use client";

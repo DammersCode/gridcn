@@ -29,6 +29,9 @@ This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `ap
 
 import { DataGrid } from "@/components/data-grid/data-grid";
 import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
 import { columns, type Order } from "./orders";
@@ -40,7 +43,12 @@ export function OrdersGrid() {
     onSave: sendChange,
   });
 
-  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
 }
 ```
 
