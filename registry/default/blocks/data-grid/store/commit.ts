@@ -139,7 +139,7 @@ export function checkDevGuardrails(
   }
 }
 
-/** Flags for the cells of `update` ops that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
+/** Flags for the cells of `update` operations that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
 export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): CellErrorEntry[] {
   const flags: CellErrorEntry[] = [];
   let warnColumns: Map<string, AnyColumnDef> | null = null;
