@@ -50,17 +50,24 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   useLayoutEffect(() => {
     live.current = { options, refresh };
   });
-  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, waitExpired: false, maxWait: null as ReturnType<typeof setTimeout> | null });
+  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, settleTimer: null as ReturnType<typeof setTimeout> | null, mounted: true, waitExpired: false, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
-      state.current.mounted = false;
+      const current = state.current;
+      current.mounted = false;
+      if (current.maxWait !== null) clearTimeout(current.maxWait);
+      if (current.settleTimer !== null) clearTimeout(current.settleTimer);
+      current.maxWait = null;
+      current.settleTimer = null;
+      current.scheduled = false;
     };
   }, []);
 
   const decide = useCallback((force = false) => {
     const current = state.current;
     current.scheduled = false;
+    current.settleTimer = null;
     if (current.maxWait !== null && (force || current.inflight === 0)) {
       clearTimeout(current.maxWait);
       current.maxWait = null;
@@ -102,7 +109,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       if (current.changes.length < 100) current.changes.push(change);
       if (current.scheduled) return;
       current.scheduled = true;
-      setTimeout(() => decide(current.waitExpired), 0); // after the grid has settled the row, so the refresh sees it as saved
+      current.settleTimer = setTimeout(() => decide(current.waitExpired), 0); // after the grid has settled the row, so the refresh sees it as saved
     },
     [decide],
   );
