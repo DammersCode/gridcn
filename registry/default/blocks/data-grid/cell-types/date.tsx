@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
+import { warnDev } from "../store/commit";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -104,14 +105,25 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
   return formatter;
 }
 
+const warnedDateFormats = new WeakSet<Intl.DateTimeFormatOptions>();
+
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
   const text = toSafeText(value);
   if (!options?.displayFormat) return text;
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
-  // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
-  return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
+  try {
+    // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
+    return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
+  } catch (error) {
+    // engines differ on the thrown type (V8/Node: RangeError for a bad locale or timeZone)
+    if ((error instanceof RangeError || error instanceof TypeError) && !warnedDateFormats.has(options.displayFormat)) {
+      warnedDateFormats.add(options.displayFormat);
+      warnDev(`invalid date format options, showing the ISO text: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return text;
+  }
 }
 
 function DateCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["date"]["options"]>) {

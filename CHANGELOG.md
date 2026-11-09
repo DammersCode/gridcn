@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fix: a `date` column with a `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning. It threw a `RangeError` while the cell rendered.
 - Fix: `DataGridPaginationBar` reads the `labels.pagination` of the enclosing `DataGridProvider`, with its own `labels` prop on top. A `labels` prop on the grid never reached the bar. Add-on authors get `useDataGridLabelsIfPresent` from `data-grid-sdk`.
 - Fix: on Windows, a character typed with AltGr, such as `@`, `€`, `{`, `\`, or `ł`, on the active cell starts an edit seeded with that character. Windows reports AltGr as Ctrl+Alt, so the grid ignored it. Ctrl+Alt+letter on a layout without AltGr still starts no edit.
 - Fix: `deleteRows` and `deleteRowsById` return `{ ok: false, reason: "nothing-to-do" }` and fire `onRowActionSkipped` when no row matches, also without `onBeforeDeleteRows`. They returned `{ ok: true }`.
