@@ -31,7 +31,7 @@ export type UseDataGridServerAggregateOptions = {
   debounceMs?: number;
   /** Called once per failed request. */
   onError?: (error: unknown) => void;
-  /** `"settled"` (default) requests again once every save in flight has settled. `false` never does; call `refresh()` yourself. */
+  /** The `false | "settled"` subset of the server hooks' `refreshAfterSave` policy. `"settled"` (default) requests again once every save in flight has settled. `false` never does; call `refresh()` yourself. */
   refreshAfterSave?: false | "settled";
 };
 
