@@ -120,7 +120,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 - `sortCompare` receives two whole rows. A result of zero, a non-finite number such as `NaN`, or a thrown error defers that pair to the default text compare. The `SortSpec` direction still applies, and empty cells still sort last.
 - `filterable: false` hides the column from the filter column picker. Filters that already target the column keep applying.
 - `filterMatch` receives the raw cell value and the filter. A thrown error fails the row for that filter.
-- `filterOperators` wins over the `filter.operators` of the cell type and the defaults. The `operatorsForColumn` prop of the filter menu wins over it. A column with `filterMatch`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filterOperators` and without `filter.operators` on the cell type.
+- `filterOperators` wins over the `filter.operators` of the cell type and the defaults. The `operatorsForColumn` prop of the filter menu wins over it. A `text` or untyped column with `filterMatch`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filterOperators` and without `filter.operators` on the cell type. The `number`, `date`, and `select` types declare `filter.operators`, so they keep the set operators.
 - With `sortMode="server"`, the server orders the rows and `sortCompare` does not run. With `filterMode="server"`, the server filters and `filterMatch` does not run. `filterOperators` sets the operators of the filter menu in both modes.
 
 ## Types [#types]

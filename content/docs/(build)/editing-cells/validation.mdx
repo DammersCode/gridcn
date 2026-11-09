@@ -171,7 +171,7 @@ After a paste, a fill, or an `updateCells` call settles with at least one reject
 
 ## Server mode
 
-Validation runs in the browser in every data mode: local data, client and server pagination, scroll mode, controlled state, server sort, and server filter. `validate` runs before the grid emits `onDataChange` and `onSave`, so a blocking rule keeps a refused value from your server. A soft rule, a `validateRow` flag, `skipValidation`, a Delete or Cut clear, and undo or redo let the value through. Check the same rules on your server.
+Validation runs in the browser in every data mode: local data, client and server pagination, scroll mode, controlled state, server sort, and server filter. `validate` runs before the grid emits `onDataChange` and `onSave`, so a blocking rule keeps a refused value from your server. A soft rule, a `validateRow` flag, `skipValidation`, a Delete or Cut clear, undo or redo, and `actions.commitChange` let the value through. Check the same rules on your server.
 
 A server can still refuse a value after it commits. Paint that refusal with `actions.setCellErrors`. It marks the cell without a data change. See [Show errors on cells](/docs/save-server/show-errors-cells).
 

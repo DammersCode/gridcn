@@ -178,7 +178,7 @@ const agentSkills = [
   {
     icon: Database,
     title: "gridcn-data-source",
-    description: "Picks client, streaming, lazy, or paged data and wires server sort and filter.",
+    description: "Picks plain, server-page, scroll-loading, or streaming data and wires server sort and filter.",
   },
   {
     icon: Blocks,

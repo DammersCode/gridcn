@@ -76,7 +76,7 @@ The hook <NewBadge /> sets `sortMode` and `filterMode` to `"server"`. A grid wit
 | `loadDelay` | `100` | Milliseconds a block stays in the wanted range before its request starts. At most 2000. `0` starts at once. |
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
 | `maxLoadedRows` | `10000` | Most rows kept loaded. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
-| `revalidateInterval` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. |
+| `revalidateInterval` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. |
 | `reshapeDelay` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
 
 The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row-retention).

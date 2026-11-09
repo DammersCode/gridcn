@@ -91,9 +91,9 @@ Every value is text, even for number and date columns, as in `{ columnId: "stock
 Four fields change this behavior for one column:
 
 - `filterOperators` replaces the list of operators the filter menu offers.
-- `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A column with `filterMatch`, or a cell type with `filter.match`, has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filterOperators` lists them.
+- `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with `filterMatch` has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filterOperators` lists them. A cell type with `filter.match` and no `filter.operators` does the same. `number`, `date`, and `select` keep them.
 - `filterable: false` keeps the column out of the filter menu and the header filter.
-- `filterCompare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks, versions, or any order that the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order. A column with `filterMatch` ignores `filterCompare` for built-in operators.
+- `filterCompare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks or versions. A result of `NaN` or a thrown error falls back to the default order. A column with `filterMatch` ignores `filterCompare` for built-in operators.
 
 A cell type sets the same defaults with `filter.operators` and `filter.match`. The column's own fields win.
 

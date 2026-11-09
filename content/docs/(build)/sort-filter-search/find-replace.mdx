@@ -76,7 +76,7 @@ Find reads each cell as its search text, which is the text the user sees. For a 
 - **Replace** changes the current match and moves to the next one. When the active cell is a match, Replace changes that cell.
 - **Replace all** changes every matching cell in the view.
 
-Each click writes one change with the source `"replace"`. With the [undo add-on](/docs/clipboard-undo/undo-redo) mounted, one undo reverts it. Selection and active cell stay where they are.
+Each click writes one change with the source `"replace"`. With the [undo add-on](/docs/clipboard-undo/undo-redo) mounted, one undo reverts it. Replace all leaves the selection and the active cell where they are. Replace moves the active cell to the next match.
 
 Replace skips a cell when:
 
@@ -112,13 +112,14 @@ const findReplace = useDataGridFindReplace({
 });
 ```
 
-The hook can drop, add, or change patches. A patch holds the new value of one cell, and it goes through the column's `validate`. A patch for a hidden column is written too, so check what the hook adds.
+The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid writes that value as given, with no `fromText`, and runs the column's `validate` on it. A patch for a hidden column is written too, so check what the hook adds.
 
 The replace is cancelled, and the status line says `Replace cancelled`, when:
 
 - the returned plan holds more than `replaceAllLimit` patches,
-- the hook returns something that is not a plan, or rejects,
-- a row that the plan writes changes or goes away while the hook runs.
+- the hook returns `false`, returns something that is not a plan, or rejects,
+- a row that the plan writes changes or goes away while the hook runs,
+- the grid turns `readOnly`, or a cell editor opens, while the hook runs.
 
 A change of the find text, the replacement, or an option, a newer replace, or closing the panel aborts `signal` and drops a late answer.
 
