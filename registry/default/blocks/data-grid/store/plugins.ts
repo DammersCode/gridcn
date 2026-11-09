@@ -204,7 +204,7 @@ export function mergePluginKeymaps(
       }
       const takesSearchKey = !consumerKeymap?.focusSearch;
       const effective: Keymap = consumerKeymap ? { ...merged, ...consumerKeymap } : merged;
-      const taken = new Set<string>([...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])]);
+      const taken = new Set<string>(DEFAULT_KEYMAP[name as GridAction] ?? []);
       for (const [other, otherBindings] of Object.entries(effective)) {
         if (other === name || (other === "focusSearch" && takesSearchKey)) continue;
         for (const binding of otherBindings ?? []) taken.add(binding);

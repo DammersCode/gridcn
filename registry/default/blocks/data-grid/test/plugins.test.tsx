@@ -243,10 +243,8 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["cmd-builtin:p:selectAll", "keymap-unpluggable:p:selectAll"]);
   });
 
-  it("a plugin binding a key the consumer's keymap already owns is dropped; the consumer's binding wins", () => {
+  it("a consumer entry for a plugin action replaces the plugin binding without a collide warning", () => {
     const warn = vi.fn();
-    // the app bound mod+c to fillDown itself; the plugin's attempt to share that key is dropped
-    // and the app's binding stays the one that resolves
     const plugin = {
       name: "p",
       commands: { fillDown: { run: () => {} } },
@@ -254,7 +252,15 @@ describe("plugin conflicts (decision 3 table)", () => {
     };
     const merged = mergePluginKeymaps([plugin], { fillDown: ["mod+c"] }, warn);
     expect(merged.fillDown).toEqual(["mod+c"]);
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("a plugin binding a key the consumer gives to another action is dropped; the consumer's binding wins", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["mod+shift+k"] } };
+    const merged = mergePluginKeymaps([plugin], { selectAll: ["mod+shift+k"] }, warn);
+    expect(merged.fillDown).toBeUndefined();
+    expect(merged.selectAll).toEqual(["mod+shift+k"]);
     expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
   });
 
