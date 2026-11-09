@@ -1114,7 +1114,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize });
           // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
           // merged over the incoming column state; a new `columns` array re-applies the controlled
-          // parts over the new defs (normalize re-seeds def-hidden and drops unpinnable pins).
+          // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
           if (props.columnLayout === undefined) layoutEchoQueue = [];
           let layoutApply: Partial<DataGridStoreState> | null = null;
           if (props.columnLayout !== undefined) {

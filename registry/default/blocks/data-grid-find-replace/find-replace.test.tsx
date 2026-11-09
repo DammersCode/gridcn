@@ -9,7 +9,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/use-data-grid-history";
-import { useDataGridFindReplace } from "./use-data-grid-find-replace";
+import { useDataGridFindReplace, type UseDataGridFindReplaceOptions } from "./use-data-grid-find-replace";
 
 type Row = { id: string; name: string };
 
@@ -25,7 +25,7 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 
 afterEach(cleanup);
 
-function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number } = {}) {
+function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; onReplace?: UseDataGridFindReplaceOptions["onReplace"] } = {}) {
   let data: readonly Row[] = rows;
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
@@ -37,7 +37,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
   }
   function Harness() {
     history = useDataGridHistory<Row>();
-    findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit });
+    findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit, onReplace: props.onReplace });
     return (
       <DataGridProvider
         data={data}
@@ -150,6 +150,16 @@ describe("useDataGridFindReplace", () => {
     act(() => second.findReplace().close());
     expect(second.searchText()).toBe("ali");
     vi.useRealTimers();
+  });
+
+  it("clears Validating when the Replace field changes while onReplace is pending", async () => {
+    const harness = setup({ onReplace: () => new Promise(() => {}) });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Validating…"));
+    fireEvent.change(screen.getByLabelText("Replace with"), { target: { value: "xy" } });
+    expect(screen.getByRole("status").textContent).not.toBe("Validating…");
   });
 
   it("settles the status when an async validator rejects every cell", async () => {

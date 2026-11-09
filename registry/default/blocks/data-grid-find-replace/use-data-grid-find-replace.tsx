@@ -12,7 +12,7 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
   /**
    * Runs after the plan is built and before it is written. Return the plan to write (it may add, drop, or
    * change patches), or `false` to cancel. The returned plan may hold at most `replaceAllLimit` patches;
-   * more cancels the replace. Each patch still goes through the column's `fromText` and `validate`.
+   * more cancels the replace. Each patch value is written as given, with no `fromText`, and still goes through the column's `validate`.
    * `signal` aborts when a newer replace starts or the panel closes; a late answer is dropped.
    */
   onReplace?: PanelOptions["onReplace"];

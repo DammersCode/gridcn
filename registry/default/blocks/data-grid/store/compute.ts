@@ -635,8 +635,8 @@ export type ColumnLayoutParts = {
  * Normalizes a (partial) layout against `columns`: unknown column ids are dropped from every part,
  * `order` gets missing ids appended in def order (a layout from before a column was added still
  * renders that column), widths pass through `clampColumnWidth`, and a `pinnable: false`
- * column keeps the pin of its definition whatever the given pins say. Size is bounded by the column count, so a hostile input cannot allocate past
- * it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
+ * column keeps the pin of its definition whatever the given pins say. Size is bounded by the
+ * column count, so a hostile input cannot allocate past it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
  */
 export function normalizeColumnLayout(
   columns: readonly AnyColumnDef[],

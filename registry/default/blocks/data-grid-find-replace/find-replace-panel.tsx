@@ -461,6 +461,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
               replacedRef.current.clear();
               applyTokenRef.current++;
               hookControllerRef.current?.abort();
+              setStatus(null);
             }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}

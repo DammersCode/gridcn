@@ -89,7 +89,7 @@ describe("defaultColumnLayout normalization", () => {
     col("c", { minWidth: 60 }),
   ];
 
-  it("drops pins on unpinnable columns, clamps widths, and drops unknown ids", () => {
+  it("ignores pins on unpinnable columns, clamps widths, and drops unknown ids", () => {
     const { store } = mount({
       columns,
       defaultColumnLayout: {
@@ -113,11 +113,15 @@ describe("a pinnable:false column with a definition pin", () => {
   const columns: readonly ColumnDef<Row, unknown>[] = [col("a", { pin: "left", pinnable: false }), col("b"), col("c")];
   const pinOfA = (store: StoreApi<DataGridStoreState>) => store.getState().columns.find((column) => column.id === "a")?.pin;
 
-  it("keeps its pin when another column resizes", () => {
+  it.each<[string, (actions: DataGridStoreState["actions"]) => void]>([
+    ["another column commits a width", (actions) => actions.commitColumnWidth("b", 200)],
+    ["columns reorder", (actions) => actions.setColumnOrder("c", "b", "before")],
+    ["another column hides", (actions) => actions.setColumnHidden("b", true)],
+    ["another column pins", (actions) => actions.setColumnPin("c", "right")],
+  ])("keeps its pin when %s", (_name, act_) => {
     const { store } = mount({ columns });
 
-    act(() => store().getState().actions.setColumnWidth("b", 200));
-    act(() => store().getState().actions.setColumnPin("c", "right"));
+    act(() => act_(store().getState().actions));
 
     expect(pinOfA(store())).toBe("left");
   });

@@ -10,6 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - Fix: a column with `pin` and `pinnable: false` keeps its pin when the layout changes. The first resize, autosize, reorder, hide, pin of another column, `setColumnLayout`, `columnLayout`, `defaultColumnLayout`, saved view, or URL state unpinned it. The `pins` of a layout are ignored for a `pinnable: false` column.
+- Fix: editing the Replace field while `onReplace` is pending clears the "Validating…" status. It stayed until the next action.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
 - A plugin `keymap` entry binds only the six pluggable actions. A plugin that named another built-in action, such as `selectAll`, in `commands` and `keymap` lost the command but replaced the action's default keys. The development warning for such an entry says that the action is not pluggable.
 - Fix: the default `labels.io.errorUnsupportedFile` text names `.tsv`, which the import accepts.
