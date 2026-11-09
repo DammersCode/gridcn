@@ -57,7 +57,7 @@ A soft shadow marks the edge of a pinned zone. It shows only while content scrol
 The shadow marks the edge of the zone, not each pinned header. Header and body cells of a pinned column carry `data-pinned="left"` or `data-pinned="right"`. Style the marker with CSS:
 
 ```css
-[role="columnheader"][data-pinned] {
+[role="grid"] [role="columnheader"][data-pinned] {
   border-bottom-color: var(--color-primary);
 }
 ```

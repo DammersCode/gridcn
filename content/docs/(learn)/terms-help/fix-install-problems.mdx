@@ -122,7 +122,7 @@ If the grid renders nothing, shows no rows, or has no styles, check these causes
 - The page throws "a row has no string or number `id` field". Add an `id` to each row, or pass `getRowId`.
 - The grid has no styles. Make sure your global CSS imports Tailwind and that the base tokens of shadcn/ui exist. The grid reads tokens such as `--background` and `--border`. The CLI adds `--grid-pin-shadow` and `--search-highlight` for light and dark mode.
 - The grid fails or loses its styles on an older stack. gridcn needs React 19 and Tailwind v4. See [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
-- The grid draws 200 rows and, in a development build, warns in the console when the viewport covers more than 200 rows. Give it a fixed height, for example `className="h-96"`.
+- The grid draws 200 rows and, in a development build, warns in the console when the rendered rows, the viewport plus its overscan, pass 200. Give it a fixed height, for example `className="h-96"`.
 
 ## Related
 

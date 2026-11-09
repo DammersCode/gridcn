@@ -103,10 +103,10 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 Range, row, and column selection draw as overlay elements, not cell attributes. A selection change does not re-render a cell. These rules style a cell by its state:
 
 ```css
-[data-readonly] {
+[role="grid"] [data-readonly] {
   color: var(--muted-foreground);
 }
-[data-save-status="failed"] {
+[role="grid"] [data-save-status="failed"] {
   background-color: color-mix(in oklch, var(--destructive) 10%, transparent);
 }
 ```

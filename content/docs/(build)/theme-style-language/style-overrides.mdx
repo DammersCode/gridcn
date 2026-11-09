@@ -29,13 +29,13 @@ The built-in classes are Tailwind utilities in the `utilities` cascade layer. A 
 }
 
 /* invalid cell: a rail instead of the inset ring, the tint stays */
-[role="gridcell"][data-invalid] {
+[role="grid"] [role="gridcell"][data-invalid] {
   box-shadow: none;
   border-inline-start: 2px solid var(--color-destructive);
 }
 
 /* search match: an underline instead of the background tint */
-[role="gridcell"][data-search-match] {
+[role="grid"] [role="gridcell"][data-search-match] {
   background-color: transparent;
   text-decoration: underline solid var(--search-highlight, currentColor) 2px;
 }
