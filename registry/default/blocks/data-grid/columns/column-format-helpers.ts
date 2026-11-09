@@ -8,7 +8,7 @@ function collectNodeText(node: ReactNode, depth: number, parts: string[]): void 
   if (typeof node === "string" || typeof node === "number") {
     parts.push(String(node));
   } else if (Array.isArray(node)) {
-    for (const child of node) collectNodeText(child, depth, parts);
+    for (const child of node as ReactNode[]) collectNodeText(child, depth, parts);
   } else if (isValidElement<{ children?: ReactNode }>(node) && (typeof node.type === "string" || node.type === Fragment)) {
     collectNodeText(node.props.children, depth + 1, parts);
   }
