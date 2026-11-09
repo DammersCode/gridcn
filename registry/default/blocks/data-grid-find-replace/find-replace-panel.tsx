@@ -27,10 +27,13 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   GRID_ATTR,
+  GateRun,
+  type GateAbortReason,
   isComposingKey,
   isDev,
   useDataGridInputDebounce,
   useDataGridInstanceId,
+  useDataGridGateTracker,
   useDataGridSelector,
   useDataGridSearchCapped,
   useDataGridSearchMatches,
@@ -125,7 +128,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const [position, setPosition] = useState<{ top: number; end: number; rtl: boolean }>({ top: 8, end: 8, rtl: false });
   const findRef = useRef<HTMLInputElement | null>(null);
   const applyTokenRef = useRef(0);
-  const hookControllerRef = useRef<AbortController | null>(null);
+  const hookRunRef = useRef<GateRun | null>(null);
+  const gates = useDataGridGateTracker();
+  const abortHook = (reason?: GateAbortReason) => {
+    if (hookRunRef.current) gates.abortRun(hookRunRef.current, reason);
+  };
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
   const [openedFromGrid] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
@@ -137,7 +144,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     findRef.current?.select();
     return () => {
       applyTokenRef.current++;
-      hookControllerRef.current?.abort();
+      abortHook();
     };
   }, []);
 
@@ -149,7 +156,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     replacedRef.current.clear();
     setStatus(null);
     applyTokenRef.current++;
-    hookControllerRef.current?.abort();
+    abortHook();
   }, [searchedText, searchOptions]);
 
   const closePanel = () => {
@@ -219,7 +226,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const onFindChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStatus(null);
     applyTokenRef.current++;
-    hookControllerRef.current?.abort();
+    abortHook();
     replacedRef.current.clear();
     jumpOnCommitRef.current = null;
     findInput.inputProps.onChange(event);
@@ -295,17 +302,22 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       run(plan);
       return;
     }
-    hookControllerRef.current?.abort();
-    const controller = new AbortController();
-    hookControllerRef.current = controller;
+    abortHook();
+    const hookRun = new GateRun("processReplace", (now) => now.readOnly || now.editing !== null);
+    hookRunRef.current = hookRun;
     const hookToken = ++applyTokenRef.current;
     setStatus({ kind: "validating" });
     const limit = resolveReplaceLimit(panelStore.getOptions().replaceAllLimit);
-    const current = () => hookToken === applyTokenRef.current && !controller.signal.aborted;
+    const current = () => hookToken === applyTokenRef.current && !hookRun.aborted;
+    hookRun.signal.addEventListener("abort", () => {
+      if (hookToken === applyTokenRef.current) setStatus({ kind: "cancelled" });
+    });
+    gates.hold(hookRun);
     void Promise.resolve()
-      .then(() => processReplace({ plan, signal: controller.signal }))
+      .then(() => processReplace({ plan, signal: hookRun.signal }))
       .then(
         (result) => {
+          gates.settle(hookRun);
           if (!current()) return;
           const latest = api.store.getState();
           if (latest.readOnly || latest.editing !== null || result === false) {
@@ -324,6 +336,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           run({ patches: result.patches, skipped: Array.isArray(result.skipped) ? result.skipped : [], remaining: result.remaining === true });
         },
         (error: unknown) => {
+          gates.settle(hookRun);
           if (!current()) return;
           if (isDev()) console.warn("[data-grid-find-replace] processReplace threw; the replace is cancelled", error);
           setStatus({ kind: "cancelled" });
@@ -460,7 +473,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
               setReplacement(event.target.value);
               replacedRef.current.clear();
               applyTokenRef.current++;
-              hookControllerRef.current?.abort();
+              abortHook();
             }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}

@@ -1,7 +1,7 @@
 import type { DataGridStoreState } from "./types";
 
-/** The consumer hooks that may answer with a promise; `import` is the import dialog's parse and build. */
-export type GateName = "processPaste" | "validateRow" | "onBeforeEditStart" | "createRow" | "duplicateRow" | "onBeforeDeleteRows" | "import";
+/** The consumer hooks that may answer with a promise; `import` is the import dialog's parse and build, `processReplace` the find-replace panel's hook. */
+export type GateName = "processPaste" | "validateRow" | "onBeforeEditStart" | "createRow" | "duplicateRow" | "onBeforeDeleteRows" | "import" | "processReplace";
 
 /** The last argument of an async gate: `signal` aborts when a newer run supersedes this one, the result can no longer apply, or the grid unmounts. */
 export type GateContext = { signal: AbortSignal };

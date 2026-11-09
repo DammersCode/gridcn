@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- The find-replace `processReplace` hook is a tracked gate named `processReplace`: `gateTimeoutMs`, `onGateAborted`, and `useDataGridGatePending` cover it like `onBeforeEditStart`. A timed-out replace shows "Replace cancelled".
 - **Breaking:** `ProcessFillContext.values` is now `cells`, the name `processPaste` already uses. Rename the field in a `processFill` callback: `({ target, values })` becomes `({ target, cells })`.
 - **Breaking:** the pin-shadow and scroll-edge hooks use logical names. `data-grid-pin-shadow="left"` and `"right"` are now `"start"` and `"end"`, `data-scrolled-left` and `data-scrolled-right` are `data-scrolled-start` and `data-scrolled-end`, and `--grid-pin-shadow-left-x` and `--grid-pin-shadow-right-x` are `--grid-pin-shadow-start-x` and `--grid-pin-shadow-end-x`. Update custom CSS and selectors that target the old names. `setColumnPin` also reads `"left"` and `"right"` as `"start"` and `"end"`.
 - **Breaking:** a column with `validationMode: "warn"` also accepts invalid values in paste, fill, `updateCells`, and import, and flags them in `cellErrors` (before, only single-cell commits did). Each bulk write updates `cellErrors` once and does not call `onValidationError` for warned cells. Use `validationMode: "block"` (the default) or `processPaste` to keep dropping invalid values. `buildImportedRows` returns the kept cells in a new `flagged` list, and `onImport` receives it as `ctx.flagged`.

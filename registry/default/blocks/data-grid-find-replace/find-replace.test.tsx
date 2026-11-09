@@ -25,7 +25,7 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 
 afterEach(cleanup);
 
-function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number } = {}) {
+function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; processReplace?: () => Promise<never>; gateTimeoutMs?: number; onGateAborted?: (ctx: { gate: string; reason: string }) => void } = {}) {
   let data: readonly Row[] = rows;
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
@@ -37,7 +37,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
   }
   function Harness() {
     history = useDataGridHistory<Row>();
-    findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit });
+    findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit, processReplace: props.processReplace });
     return (
       <DataGridProvider
         data={data}
@@ -45,6 +45,8 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
         getRowId={(row: Row) => row.id}
         plugins={[history.plugin, findReplace.plugin]}
         readOnly={props.readOnly}
+        gateTimeoutMs={props.gateTimeoutMs}
+        onGateAborted={props.onGateAborted as never}
         onValidationError={props.onValidationError}
         onDataChange={(next, change) => {
           data = next;
@@ -84,6 +86,17 @@ describe("useDataGridFindReplace", () => {
     const notCancelled = fireEvent.keyDown(replace, { key: "f", ctrlKey: true });
     expect(notCancelled).toBe(false);
     expect(document.activeElement).toBe(find);
+  });
+
+  it("a hanging processReplace is a tracked gate: gateTimeoutMs aborts it and onGateAborted reports it", async () => {
+    const onGateAborted = vi.fn();
+    const harness = setup({ processReplace: () => new Promise<never>(() => {}), gateTimeoutMs: 30, onGateAborted });
+    act(() => harness.findReplace().open());
+    await search("foo", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    await waitFor(() => expect(onGateAborted).toHaveBeenCalledWith({ gate: "processReplace", reason: "timeout" }));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Replace cancelled"));
+    expect(harness.data()).toBe(rows);
   });
 
   it("Replace all writes one change with source replace and one undo entry", async () => {

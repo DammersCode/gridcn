@@ -11,6 +11,7 @@ import { useCallback, useEffect } from "react";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
+import type { GateTracker } from "./store/gate-signal";
 import type { CellErrorEntry, LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
@@ -137,6 +138,12 @@ export function useDataGridFlaggedCommit(): (change: DataChange<unknown>, flags:
 }
 
 export { matchKeymap } from "./keyboard";
+export { GateRun, type GateAbortReason, type GateTracker } from "./store/gate-signal";
+
+/** The grid's gate tracker: an add-on that runs a consumer hook of its own holds a {@link GateRun} on it, so `gateTimeoutMs`, `onGateAborted`, and `useDataGridGatePending` cover that hook. */
+export function useDataGridGateTracker(): GateTracker {
+  return useDataGridInternalActions()._gates();
+}
 
 /** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */
 export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: number, partial?: boolean) => void {
