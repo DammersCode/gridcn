@@ -34,8 +34,10 @@ void FILTER_OPERATORS;
 const typo: ColumnDef<unknown, unknown> = {
   id: "x",
   header: "X",
-  // @ts-expect-error a misspelled built-in operator is not a custom operator
-  filterOperators: ["contians"],
+  filter: {
+    // @ts-expect-error a misspelled built-in operator is not a custom operator
+    operators: ["contians"],
+  },
 };
 void typo;
 

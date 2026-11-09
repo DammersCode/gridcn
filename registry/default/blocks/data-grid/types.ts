@@ -402,7 +402,7 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
  *   declared type searches `String(rawValue)` (a `select` column searches the choice LABEL; a
  *   `number` with `decimals` searches the rounded value; a `date` with a `displayFormat` searches
  *   the ISO string).
- * - filter = the raw-value predicate (`filter.match`, or the column's own `filterMatch`), else the
+ * - filter = the raw-value predicate (`filter.match` of the column or of its cell type), else the
  *   built-in text matcher over `String(rawValue)`.
  * - fill = `toText` of the source cells, then the target column's `fromText`.
  */
@@ -465,14 +465,21 @@ export type FilterValueInputProps = {
 /**
  * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
  * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
- * (same raw-value contract as {@link ColumnDef.filterMatch}), and `valueInput` picks the filter
- * row's widget: a built-in one by name, or a component that renders for every operator with a value.
+ * (it receives the cell's RAW value and the spec and returns whether the row passes; a throw fails the
+ * row; a custom operator uses its own `match`), `compare` orders cell text against a filter bound for
+ * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order for
+ * that pair), and `valueInput` picks the filter row's widget: a built-in one by name, or a component that
+ * renders for every operator with a value. `ColumnDef.filter` takes the same shape and wins per member.
  */
 export type CellTypeFilter = {
   operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
+  compare?: (text: string, bound: string) => number;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
 };
+
+/** The filter capabilities of one column: the shape of {@link CellTypeFilter}. */
+export type ColumnFilter = CellTypeFilter;
 
 /**
  * `TValidate` defaults to `TValue` for normal authoring (nothing changes for consumers) but is a
@@ -553,26 +560,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;
-  /**
-   * Per-column filter predicate that REPLACES the built-in text matcher (`matchesFilter`/
-   * `createFilterMatcher`) for this column: it receives the cell's RAW value — not
-   * `String(value)` — and the spec, and returns whether the row passes. The built-in matcher runs
-   * when this is absent. A thrown result fails the row for that filter. A custom operator from
-   * `filterOperators` uses its own `match` instead.
-   */
-  filterMatch?: (value: unknown, filter: FilterSpec) => boolean;
-  /**
-   * The operator list the filter menu offers for this column, replacing the
-   * `operatorsForColumnType` default derived from its `type` — e.g. numeric comparison operators
-   * for a consumer-registered numeric cell type (`type: "currency"`).
-   */
-  filterOperators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
-  /**
-   * Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`, replacing the
-   * numeric-then-text default (a version string, a rank, a locale). A NaN result or a throw
-   * falls back to the default order for that pair.
-   */
-  filterCompare?: (text: string, bound: string) => number;
+  /** Filter capabilities of this column; each member overrides the same member of the cell type's `filter`. */
+  filter?: ColumnFilter;
   /**
    * Sort comparator over the whole data row (not the cell value); it replaces the column's
    * cell-type `compare`. A non-zero result orders the pair; a zero,
@@ -635,7 +624,7 @@ export type BuiltInFilterOperator =
   | "isAnyOf"
   | "isNoneOf";
 
-/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filterOperators`. */
+/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filter.operators`. */
 export type FilterOperator = BuiltInFilterOperator | (string & {});
 
 /** The value shape a filter operator takes: no value, one text, an inclusive `[min, max]` pair, or a list of texts. */
@@ -643,7 +632,7 @@ export type FilterOperatorInput = "none" | "single" | "range" | "list";
 
 /**
  * An operator a column registers next to the built-ins, usually to name a server vocabulary
- * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filterOperators` or `CellTypeFilter.operators`;
+ * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filter.operators` or `CellTypeFilter.operators`;
  * `filterMode="server"` sends `{ columnId, operator: id, value }` in the spec and never calls `match`.
  */
 export type CustomFilterOperator = {

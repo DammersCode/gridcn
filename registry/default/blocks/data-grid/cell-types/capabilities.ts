@@ -33,25 +33,25 @@ export function operatorsForColumnType(columnType: string | undefined): BuiltInF
   return [...TEXT_FILTER_OPERATORS];
 }
 
-/** `column.filterOperators ?? cellType.filter.operators ??` the type-name default, without set operators when a custom `filterMatch` cannot evaluate them. */
+/** `column.filter.operators ?? cellType.filter.operators ??` the type-name default, without set operators when a custom `filter.match` cannot evaluate them. */
 export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): readonly FilterOperator[] {
-  const declared = column.filterOperators ?? cellType?.filter?.operators;
+  const declared = column.filter?.operators ?? cellType?.filter?.operators;
   if (declared) return declared.every((operator) => typeof operator === "string") ? (declared as readonly FilterOperator[]) : declared.map((operator) => (typeof operator === "string" ? operator : operator.id));
   const defaults = operatorsForColumnType(column.type);
-  const hasCustomMatcher = Boolean(column.filterMatch ?? cellType?.filter?.match);
+  const hasCustomMatcher = Boolean(column.filter?.match ?? cellType?.filter?.match);
   return hasCustomMatcher ? defaults.filter((operator) => !SET_FILTER_OPERATORS.includes(operator)) : defaults;
 }
 
-/** The custom operators a column registers in `filterOperators` (or its cell type in `filter.operators`), by id; a built-in id never shadows. */
+/** The custom operators a column registers in `filter.operators` (or its cell type does), by id; a built-in id never shadows. */
 export function resolveCustomFilterOperators<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): ReadonlyMap<string, CustomFilterOperator> {
   const custom = new Map<string, CustomFilterOperator>();
-  for (const operator of column.filterOperators ?? cellType?.filter?.operators ?? []) {
+  for (const operator of column.filter?.operators ?? cellType?.filter?.operators ?? []) {
     if (typeof operator !== "string" && !isBuiltInOperator(operator.id) && !custom.has(operator.id)) custom.set(operator.id, operator);
   }
   return custom;
@@ -72,12 +72,12 @@ export function offersSetFilter(column: AnyColumnDef, cellType: CellType | undef
   return SET_FILTER_OPERATORS.some((operator) => operators.includes(operator));
 }
 
-/** The filter row's value widget: `cellType.filter.valueInput`, else the type-name default. */
+/** The filter row's value widget: `column.filter.valueInput ?? cellType.filter.valueInput`, else the type-name default. */
 export function resolveFilterValueInput<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): CellTypeValueInput | ComponentType<FilterValueInputProps> {
-  const declared = cellType?.filter?.valueInput;
+  const declared = column.filter?.valueInput ?? cellType?.filter?.valueInput;
   if (declared) return declared;
   if (column.type === "number" || column.type === "date") return column.type;
   if (column.type === "checkbox") return "boolean";

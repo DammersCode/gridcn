@@ -647,7 +647,7 @@ describe("findSearchMatches", () => {
   });
 });
 
-describe("custom filterMatch (raw-value predicate)", () => {
+describe("custom filter.match (raw-value predicate)", () => {
   // raw values are numbers, but getText stringifies them — the built-in matcher can't see the type
   const values = [10, 25, 300];
   const rawAccessor: CellAccessor = {
@@ -656,7 +656,7 @@ describe("custom filterMatch (raw-value predicate)", () => {
     filterMatch: (columnId) => (columnId === "n" ? (value: unknown, _filter: FilterSpec) => typeof value === "number" && value >= 100 : undefined),
   };
 
-  it("makeFilterTest prefers the column's filterMatch over the built-in text matcher", () => {
+  it("makeFilterTest prefers the column's filter.match over the built-in text matcher", () => {
     const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
     const test = makeFilterTest(rawAccessor, filter);
     // built-in matcher on "10"/"25"/"300" with gte 100: "10"<, "25"<, "300">= → only row 2
@@ -675,20 +675,20 @@ describe("custom filterMatch (raw-value predicate)", () => {
     expect([test(0), test(1), test(2)]).toEqual([false, false, true]);
   });
 
-  it("buildViewIndex filters by the raw value through filterMatch", () => {
+  it("buildViewIndex filters by the raw value through filter.match", () => {
     const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
     const result = buildViewIndex(values.length, rawAccessor, { sorts: [], filters: [filter] });
     expect(result).toEqual([2]);
   });
 
-  it("makeFilterPredicate (incremental path) agrees with buildViewIndex on filterMatch", () => {
+  it("makeFilterPredicate (incremental path) agrees with buildViewIndex on filter.match", () => {
     const filter: FilterSpec = { columnId: "n", operator: "gte", value: "100" };
     const predicate = makeFilterPredicate(rawAccessor, [filter]);
     const surviving = values.map((_, row) => row).filter(predicate);
     expect(surviving).toEqual([2]);
   });
 
-  it("a thrown filterMatch fails the row for that filter", () => {
+  it("a thrown filter.match fails the row for that filter", () => {
     const throwing: CellAccessor = {
       getText: (rowIndex) => String(values[rowIndex]!),
       getValue: (rowIndex) => values[rowIndex],

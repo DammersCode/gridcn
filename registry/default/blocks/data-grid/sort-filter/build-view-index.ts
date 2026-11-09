@@ -23,7 +23,7 @@ export type CellAccessor = {
   compare?(columnId: string): ((a: number, b: number) => number) | undefined;
   /** Whether a row's cell in `columnId` is empty for sort placement; defaults to `getText() === ""`. */
   isEmpty?(rowIndex: number, columnId: string): boolean;
-  /** The column's raw (un-stringified) cell value; only needed by a column's `filterMatch`. */
+  /** The column's raw (un-stringified) cell value; only needed by a column's `filter.match`. */
   getValue?(rowIndex: number, columnId: string): unknown;
   /**
    * Opts a column into the keyed sort when its comparator is exactly a built-in one (see
@@ -31,9 +31,9 @@ export type CellAccessor = {
    * without it sorts through `compare`.
    */
   sortKeys?(columnId: string): SortKeyReader | undefined;
-  /** The column's `filterMatch` predicate, if the column declares one. */
+  /** The column's `filter.match` predicate, if the column declares one. */
   filterMatch?(columnId: string): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
-  /** The column's `filterCompare`, ordering text against a filter bound. */
+  /** The column's `filter.compare`, ordering text against a filter bound. */
   filterCompare?(columnId: string): ((text: string, bound: string) => number) | undefined;
   /** The `match` of the custom operator `operator` registered on the column, if any. */
   customFilterMatch?(columnId: string, operator: string): ((text: string, filter: FilterSpec) => boolean) | undefined;
@@ -43,9 +43,9 @@ const MAX_WARNED_OPERATORS = 100;
 const warnedUnwiredOperators = new Set<string>();
 
 /**
- * One filter's per-row test: the column's `filterMatch` (raw value) when the accessor provides
+ * One filter's per-row test: the column's `filter.match` (raw value) when the accessor provides
  * both the predicate and raw values and the operator is built in, else the text matcher with the
- * column's `filterCompare` and the custom operator's `match`. Both the rebuild and the
+ * column's `filter.compare` and the custom operator's `match`. Both the rebuild and the
  * incremental path build through this so a custom predicate can never desync between them.
  */
 export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row: number) => boolean {

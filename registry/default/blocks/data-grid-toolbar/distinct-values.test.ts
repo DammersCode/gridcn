@@ -146,7 +146,7 @@ describe("isOwnSetFilter", () => {
 
 describe("distinctColumnValues with a custom list row", () => {
   const tagged = { id: "tagged", label: "tagged", input: "list" as const, match: (text: string, filter: FilterSpec) => Array.isArray(filter.value) && filter.value.includes(text) };
-  const cols = [{ id: "city", accessorKey: "city", header: "City", filterOperators: [tagged] }] as AnyColumnDef[];
+  const cols = [{ id: "city", accessorKey: "city", header: "City", filter: { operators: [tagged] } }] as AnyColumnDef[];
   const data: Row[] = [{ city: "a" }, { city: "b" }];
   const state = { ...input(data, [{ columnId: "city", operator: "tagged", value: ["a"] }]), columns: cols };
 

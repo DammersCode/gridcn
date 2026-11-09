@@ -143,10 +143,12 @@ describe("DataGridFilterValueInput", () => {
         id: "level",
         header: "Level",
         accessorKey: "level",
-        filterOperators: [
-          { id: "span", label: "spans", input: "range" },
-          { id: "tagged", label: "tagged", input: "list" },
-        ],
+        filter: {
+          operators: [
+            { id: "span", label: "spans", input: "range" },
+            { id: "tagged", label: "tagged", input: "list" },
+          ],
+        },
       },
     ];
     const view = render(

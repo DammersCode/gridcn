@@ -29,7 +29,7 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140 },
   { id: "city", header: "City", accessorKey: "city", type: "text", width: 160 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 100 },
-  { id: "note", header: "Note", accessorKey: "note", type: "text", width: 100, filterOperators: ["contains"] },
+  { id: "note", header: "Note", accessorKey: "note", type: "text", width: 100, filter: { operators: ["contains"] } },
 ] as const);
 
 const trigger = (columnId: string) => document.querySelector<HTMLElement>(`[data-column-id="${columnId}"] ${gridAttrSelector("headerFilterTrigger")}`);

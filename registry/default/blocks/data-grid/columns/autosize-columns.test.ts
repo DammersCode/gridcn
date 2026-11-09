@@ -114,7 +114,7 @@ describe("computeAutosizeWidths", () => {
       hasHeaderFilter: true,
       columns: [
         { id: "a", header: "Alpha", accessorKey: "a" },
-        { id: "b", header: "Beta", accessorKey: "b", filterOperators: ["contains"] },
+        { id: "b", header: "Beta", accessorKey: "b", filter: { operators: ["contains"] } },
       ] as AnyColumnDef[],
     });
     state.visibleColumns = state.columns;

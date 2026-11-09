@@ -101,7 +101,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const filterableColumns = columns.filter((c) => c.filterable !== false);
   const rowCount = countFilterSpecs(filters);
 
-  // per-column operator list: the column's filterOperators > the cell type's declared operators > the name-based type default
+  // per-column operator list: the column's filter.operators > the cell type's declared operators > the name-based type default
   const operatorsFor = useCallback(
     (column: AnyColumnDef | undefined): readonly FilterOperator[] => {
       if (!column) return operatorsForColumnType(undefined);

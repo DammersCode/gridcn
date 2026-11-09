@@ -13,13 +13,13 @@ import { DataGridSortList } from "@/registry/default/blocks/data-grid-sort-list/
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, flex: 1, filterOperators: ["equals", "notEquals"] },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, flex: 1, filter: { operators: ["equals", "notEquals"] } },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 130, flex: 2, hidden: true },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1, filterOperators: ["gt", "lt"] },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1, filter: { operators: ["gt", "lt"] } },
 ] as const);
 
 /**
- * Name offers exact-match operators only and Score offers gt/lt, both through column `filterOperators`. Sort list shows every column via `allColumns`, including the hidden Email column.
+ * Name offers exact-match operators only and Score offers gt/lt, both through column `filter.operators`. Sort list shows every column via `allColumns`, including the hidden Email column.
  */
 export default function DataGridFilterOperatorsDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(60), []);

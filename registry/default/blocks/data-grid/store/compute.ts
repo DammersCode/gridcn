@@ -35,6 +35,7 @@ import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
+import { warnLegacyFilterKeys } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
 import type {
   AnyColumnDef,
@@ -364,6 +365,7 @@ export function withGridLocale(columns: readonly AnyColumnDef[], locale: string)
 }
 
 function resolveColumnLocale(source: AnyColumnDef, locale: string): AnyColumnDef {
+  warnLegacyFilterKeys(source);
   const column = withLogicalPin(source);
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
@@ -500,10 +502,13 @@ export function textAccessorFor(
       const column = byId.get(columnId);
       if (!column) return undefined;
       const cellType = column.type ? cellTypes?.[column.type] : undefined;
-      return column.filterMatch ?? cellType?.filter?.match;
+      return column.filter?.match ?? cellType?.filter?.match;
     },
     filterCompare(columnId) {
-      return byId.get(columnId)?.filterCompare;
+      const column = byId.get(columnId);
+      if (!column) return undefined;
+      const cellType = column.type ? cellTypes?.[column.type] : undefined;
+      return column.filter?.compare ?? cellType?.filter?.compare;
     },
     customFilterMatch(columnId, operator) {
       const column = byId.get(columnId);

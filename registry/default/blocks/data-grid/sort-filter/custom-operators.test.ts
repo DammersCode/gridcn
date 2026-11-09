@@ -5,7 +5,7 @@ import type { FilterSpec } from "../types";
 const ranks = ["low", "mid", "high"];
 const versionCompare = (text: string, bound: string) => ranks.indexOf(text) - ranks.indexOf(bound);
 
-describe("filterCompare", () => {
+describe("filter.compare", () => {
   const gt: FilterSpec = { columnId: "v", operator: "gt", value: "mid" };
 
   it("orders by the column comparator instead of the text default", () => {
@@ -73,7 +73,7 @@ describe("custom operators", () => {
 });
 
 describe("custom operator precedence", () => {
-  it("runs the registered match even when the column has a filterMatch", () => {
+  it("runs the registered match even when the column has a filter.match", () => {
     const getText: CellAccessor["getText"] = () => "Berlin";
     const accessor: CellAccessor = {
       getText,

@@ -102,8 +102,8 @@ describe("resolveFilterOperators", () => {
   const typeOperators = ["equals", "gt"] as const;
   const customType = { ...cellTypes.text, filter: { operators: typeOperators } };
 
-  it("prefers the column's filterOperators, then the type's, then the type-name default", () => {
-    expect(resolveFilterOperators({ ...noopColumn, filterOperators: ["contains"] }, customType)).toEqual(["contains"]);
+  it("prefers the column's filter.operators, then the type's, then the type-name default", () => {
+    expect(resolveFilterOperators({ ...noopColumn, filter: { operators: ["contains"] } }, customType)).toEqual(["contains"]);
     expect(resolveFilterOperators({ ...noopColumn, type: "custom" }, customType)).toBe(typeOperators);
     expect(resolveFilterOperators({ ...noopColumn, type: "number" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
     expect(resolveFilterOperators({ ...noopColumn, type: "date" }, undefined)).toEqual([...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
@@ -115,17 +115,17 @@ describe("resolveFilterOperators", () => {
   });
 });
 
-describe("set operators with a custom filterMatch", () => {
-  const filterMatch = () => true;
+describe("set operators with a custom filter.match", () => {
+  const match = () => true;
 
   it("drops the set operators of the default list", () => {
-    const column = { ...noopColumn, type: "text", filterMatch } as AnyColumnDef;
+    const column = { ...noopColumn, type: "text", filter: { match } } as AnyColumnDef;
     expect(resolveFilterOperators(column, cellTypes.text)).toEqual(TEXT_FILTER_OPERATORS);
     expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(false);
   });
 
   it("keeps explicitly declared operators", () => {
-    const column = { ...noopColumn, type: "text", filterMatch, filterOperators: ["isAnyOf"] } as AnyColumnDef;
+    const column = { ...noopColumn, type: "text", filter: { match, operators: ["isAnyOf"] } } as AnyColumnDef;
     expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(true);
   });
 });
@@ -135,6 +135,11 @@ describe("resolveFilterValueInput", () => {
     const Custom = () => null;
     expect(resolveFilterValueInput({ ...noopColumn, type: "money" }, { ...cellTypes.text, filter: { valueInput: "number" } })).toBe("number");
     expect(resolveFilterValueInput({ ...noopColumn, type: "money" }, { ...cellTypes.text, filter: { valueInput: Custom } })).toBe(Custom);
+  });
+
+  it("prefers the column's valueInput over the type's", () => {
+    const column = { ...noopColumn, type: "money", filter: { valueInput: "date" } } as AnyColumnDef;
+    expect(resolveFilterValueInput(column, { ...cellTypes.text, filter: { valueInput: "number" } })).toBe("date");
   });
 
   it("derives the widget from the type name when the type declares none", () => {

@@ -16,8 +16,8 @@ const inRegion: CustomFilterOperator = { id: "inRegion", label: "in region", mat
 const ranks = ["low", "mid", "high"];
 
 const columns = (operator: CustomFilterOperator = inRegion): ColumnDef<Row, unknown>[] => [
-  { id: "city", header: "City", accessorKey: "city", filterOperators: ["contains", operator] },
-  { id: "rank", header: "Rank", accessorKey: "rank", filterOperators: ["gt"], filterCompare: (a, b) => ranks.indexOf(a) - ranks.indexOf(b) },
+  { id: "city", header: "City", accessorKey: "city", filter: { operators: ["contains", operator] } },
+  { id: "rank", header: "Rank", accessorKey: "rank", filter: { operators: ["gt"], compare: (a, b) => ranks.indexOf(a) - ranks.indexOf(b) } },
 ];
 
 afterEach(cleanup);
@@ -36,7 +36,7 @@ describe("custom filter operators in the view", () => {
     expect(viewOf([{ columnId: "city", operator: "inRegion", value: "eu" }])).toEqual([0, 2]);
   });
 
-  it("orders gt through the column's filterCompare", () => {
+  it("orders gt through the column's filter.compare", () => {
     expect(viewOf([{ columnId: "rank", operator: "gt", value: "low" }])).toEqual([1, 2]);
   });
 

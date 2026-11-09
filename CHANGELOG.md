@@ -9,6 +9,14 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- **Breaking:** `ColumnDef.filter` replaces `filterOperators`, `filterMatch`, and `filterCompare`. It takes the shape of the cell type's `filter` (`operators`, `match`, `compare`, `valueInput`), and each member wins over the same member of the type's `filter`. `CellTypeFilter` gains `compare`, and the type's `valueInput` is now available per column. `filterable` stays a flat column prop. The old flat keys are no longer in `ColumnDef`, so they are a type error. In development a column that still has one warns once per key; the key has no effect. Every capability stays: a column-level operator list, raw-value matcher, and bound order work as before, and a custom operator still works on the client and on the server (`parseServerSpec` reads the operators you pass it).
+
+  | Before | After |
+  | --- | --- |
+  | `filterOperators: ["gt", "lt"]` | `filter: { operators: ["gt", "lt"] }` |
+  | `filterMatch: (value, spec) => ...` | `filter: { match: (value, spec) => ... }` |
+  | `filterCompare: (text, bound) => ...` | `filter: { compare: (text, bound) => ... }` |
+  | all three | `filter: { operators, match, compare }` |
 - `api.runShortcut(action)` runs what the key bound to a keymap action runs: the `commands` entry with its `when` and `scope`, else the built-in with its guards. An unbound action still runs. A toolbar button is `onClick={() => api.runShortcut("deleteRows")}`, with no target computation. `DataGridGlobalShortcuts` and the context menu fill items use it.
 - Fix: Delete rows, Duplicate rows, and the move keys, and the cell menu items, pick their rows with one rule. A multi-range selection moves every covered row (the move keys used only the first range). With "all matching" on, or with only hidden rows checked, the keys and menu items do nothing and `onRowActionSkipped` reports `reason: "all-matching"` or `"hidden-rows-only"`; the menu items disable with a reason tooltip (`labels.contextMenu.rowActionAllMatching`). `actions.deleteRows(rows)` and `deleteRowsById` act on the rows they get.
 - **Breaking:** column pin values are `"start"` and `"end"` instead of `"left"` and `"right"` in `ColumnDef.pin`, `ColumnLayout.pins`, `setColumnPin`, the `data-pinned` attribute, and the header menu item ids (`pin-start`, `pin-end`). Saved views, URL layouts, and persisted layouts that hold `"left"` or `"right"` still load and read as start and end. A `pin: "left"` or `"right"` in a column def is a type error and, in development, warns once and reads as start or end. Every pin state stays available; consumer CSS that selects `[data-pinned="left"]` selects `[data-pinned="start"]` instead.

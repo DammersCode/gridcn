@@ -841,8 +841,8 @@ describe("DataGridFilterMenu typed value inputs", () => {
 });
 
 describe("DataGridFilterMenu operator list overrides", () => {
-  it("column.filterOperators replaces the built-in list for that column", async () => {
-    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["contains"] as const } : c));
+  it("column.filter.operators replaces the built-in list for that column", async () => {
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filter: { operators: ["contains"] as const } } : c));
     await renderRichGrid(undefined, {}, cols);
     await openFilterMenu();
     await switchFilterColumn("Age");
@@ -851,9 +851,9 @@ describe("DataGridFilterMenu operator list overrides", () => {
     expect(document.querySelector('[role="option"][data-value="isBetween"]')).toBeNull();
   });
 
-  it("a filterOperators column filters with its custom operators", async () => {
+  it("a filter.operators column filters with its custom operators", async () => {
     // age is number-typed; a custom list offering only gt still filters with the built-in gt matcher
-    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filterOperators: ["gt"] as const } : c));
+    const cols = richColumns.map((c) => (c.id === "age" ? { ...c, filter: { operators: ["gt"] as const } } : c));
     await renderRichGrid(undefined, {}, cols);
     await openFilterMenu();
     await switchFilterColumn("Age"); // the row's operator defaults to the custom list's first entry
