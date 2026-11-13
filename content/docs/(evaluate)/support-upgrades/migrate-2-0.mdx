@@ -22,6 +22,7 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 ### Changed defaults [#changed-defaults]
 
 - If you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`. Set both to `"client"` to sort or filter the window in the browser.
+- Text sorts use the `"en-US"` collation, not the language of the runtime. The same setting decides text range filters and the filter value lists. An app on a runtime with another language, such as Swedish, sees a different order for letters like `ä`. To pin another language, pass a `sortLocale` tag, and pass the same tag on the server and in the browser.
 - Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]

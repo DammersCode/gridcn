@@ -34,6 +34,10 @@ function labelFor(cellType: CellType | undefined, raw: unknown, options: unknown
  * new keys stop counting and `capped` is set. A custom list row also stays out of the count unless `excludeCustomLists` is `false` (the header filter, which does not write that row).
  */
 export function distinctColumnValues(state: DistinctValuesInput, columnId: string, excludeCustomLists = true): DistinctValues {
+  return withSortLocale(state.sortLocale, () => collectDistinctValues(state, columnId, excludeCustomLists));
+}
+
+function collectDistinctValues(state: DistinctValuesInput, columnId: string, excludeCustomLists: boolean): DistinctValues {
   const column = state.columns.find((c) => c.id === columnId);
   if (!column) return { values: [], capped: false, hasHoles: false };
   const { data } = state;
@@ -64,6 +68,6 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
     values.push({ key, text, label: labelFor(cellType, accessor.getValue?.(row, columnId), column.options), count, row });
   }
   const compare = accessor.compare?.(columnId);
-  withSortLocale(state.sortLocale, () => values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => sortCollator().compare(a.label, b.label)));
+  values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => sortCollator().compare(a.label, b.label));
   return { values: values.map(({ key, text, label, count }) => ({ key, text, label, count })), capped, hasHoles };
 }

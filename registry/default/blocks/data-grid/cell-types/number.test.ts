@@ -9,6 +9,11 @@ describe("number display formatting", () => {
     vi.restoreAllMocks();
   });
 
+  it("a null-prototype value with a format falls back to safe text", () => {
+    const hostile = Object.create(null) as never;
+    expect(() => toDisplayText(hostile, { format: { style: "currency", currency: "USD" } })).not.toThrow();
+  });
+
   it("formats currency, percent, and compact from options.format", () => {
     expect(toDisplayText(1234.5, { format: { style: "currency", currency: "USD" } })).toBe("$1,234.50");
     expect(toDisplayText(0.25, { format: { style: "percent" } })).toBe("25%");

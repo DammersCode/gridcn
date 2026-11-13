@@ -32,6 +32,7 @@ export const MESSAGES = [
       dev("invalid date format options, showing the ISO text: <error>", "cell-types/date.tsx", "invalid date format options, showing the ISO text", "Fix the `displayFormat` or `locale` of the date column.", "/docs/editing-cells/built-cell-types"),
       dev("invalid number format options, showing the raw value: <error>", "cell-types/number.tsx", "invalid number format options, showing the raw value", "Fix the `format` options of the number column.", "/docs/editing-cells/built-cell-types"),
       dev('sortLocale "<tag>" is not a valid language tag. The grid sorts with "en-US".', "sort-filter/sort-collator.ts", "is not a valid language tag", "Pass a BCP 47 tag, such as `\"sv-SE\"`, to `sortLocale`.", "/docs/sort-filter-search/sorting#sort-order"),
+      dev('sortLocale "<tag>" is not supported by this runtime. The grid sorts with "en-US".', "sort-filter/sort-collator.ts", "is not supported by this runtime", "Pass a tag that `Intl.Collator.supportedLocalesOf` lists.", "/docs/sort-filter-search/sorting#sort-order"),
       dev('autosizeColumns: unknown column id "<id>"', "columns/autosize-columns.ts", "autosizeColumns: unknown column id", "Pass column ids that exist.", "/docs/columns/column-sizing"),
       dev("<action> found no <trigger> for \"<id>\"; wire <slot> to enable it", "interaction/use-grid-interaction.ts", "found no ${triggerLabel} for", "Render the header menu or header filter that the slot prop names.", "/docs/components-props/data-grid-props#root-props"),
     ],

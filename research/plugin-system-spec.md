@@ -77,7 +77,7 @@ Conflicts:
 | Merge order of keymaps | `DEFAULT_KEYMAP` ← plugin keymaps (array order) ← consumer `keymap` | The consumer always wins |
 
 The custom-commands tie rule (spec 5c: the more specific binding wins, a non-default binding beats
-a default) applies to consumer bindings only. Rejected: first plugin wins — it inverts the precedence that the
+a default) applies to every non-default binding, plugin bindings included. Rejected: first plugin wins — it inverts the precedence that the
 keymap merge and object spread both use.
 
 ### 4. Pluggable built-in actions

@@ -39,6 +39,7 @@ These warnings come from the props that you pass to the grid.
 | `[data-grid] invalid date format options, showing the ISO text: <error>` | Fix the `displayFormat` or `locale` of the date column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] invalid number format options, showing the raw value: <error>` | Fix the `format` options of the number column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] sortLocale "<tag>" is not a valid language tag. The grid sorts with "en-US".` | Pass a BCP 47 tag, such as `"sv-SE"`, to `sortLocale`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
+| `[data-grid] sortLocale "<tag>" is not supported by this runtime. The grid sorts with "en-US".` | Pass a tag that `Intl.Collator.supportedLocalesOf` lists. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 | `[data-grid] autosizeColumns: unknown column id "<id>"` | Pass column ids that exist. | [Column sizing](/docs/columns/column-sizing) |
 | `[data-grid] <action> found no <trigger> for "<id>"; wire <slot> to enable it` | Render the header menu or header filter that the slot prop names. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
 

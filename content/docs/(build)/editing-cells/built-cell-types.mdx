@@ -80,7 +80,7 @@ Text that a type cannot parse becomes an empty value. A `number` editor commits 
 
 The type parses a comma as the decimal separator, rounds to `decimals`, and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
 
-The clamp <NewBadge /> runs before a column `validate`. The `validate` function sees the clamped value, so a value outside `min` and `max` never reaches it.
+The clamp <NewBadge /> runs before a column `validate`. The `validate` function sees the clamped value, so a typed, pasted, imported, or filled value outside `min` and `max` never reaches it. A value that code writes with `updateCells` is not clamped.
 
 The type <NewBadge /> reads the first comma as the decimal point and reads no thousands separator. The text `1,234` stores `1.234`, and `1,234.50` clears the cell without an error. To read grouped numbers, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
 

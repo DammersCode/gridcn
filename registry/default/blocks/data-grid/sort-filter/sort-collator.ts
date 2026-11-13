@@ -11,9 +11,16 @@ let activeLocale = DEFAULT_SORT_LOCALE;
 
 function buildCollators(locale: string): Collators {
   return {
-    base: new Intl.Collator(locale, { numeric: true, sensitivity: "base" }),
-    variant: new Intl.Collator(locale),
+    base: new Intl.Collator([locale, DEFAULT_SORT_LOCALE], { numeric: true, sensitivity: "base" }),
+    variant: new Intl.Collator([locale, DEFAULT_SORT_LOCALE]),
   };
+}
+
+function warnOnce(locale: string, message: string) {
+  if (isDev() && warned.size < MAX_CACHED_LOCALES && !warned.has(locale)) {
+    warned.add(locale);
+    console.warn(message);
+  }
 }
 
 function collatorsFor(locale: string): Collators {
@@ -22,11 +29,11 @@ function collatorsFor(locale: string): Collators {
   let built: Collators;
   try {
     built = buildCollators(locale);
-  } catch {
-    if (isDev() && warned.size < MAX_CACHED_LOCALES && !warned.has(locale)) {
-      warned.add(locale);
-      console.warn(`[data-grid] sortLocale "${locale}" is not a valid language tag. The grid sorts with "en-US".`);
+    if (Intl.Collator.supportedLocalesOf(locale).length === 0) {
+      warnOnce(locale, `[data-grid] sortLocale "${locale}" is not supported by this runtime. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
     }
+  } catch {
+    warnOnce(locale, `[data-grid] sortLocale "${locale}" is not a valid language tag. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
     built = collatorsFor(DEFAULT_SORT_LOCALE);
   }
   if (cache.size >= MAX_CACHED_LOCALES) cache.delete(cache.keys().next().value as string);

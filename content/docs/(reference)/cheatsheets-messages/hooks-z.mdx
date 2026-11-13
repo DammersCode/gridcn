@@ -54,14 +54,16 @@ Call these hooks inside a `DataGridProvider`. `useDataGridStoreProps` runs outsi
 | `useDataGridViewStale` | Returns whether rows keep an old view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridviewstale) |
 | `useDataGridVisibleColumns` | Returns the visible columns. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridvisiblecolumns) |
 
-## SDK hook
+## SDK exports
 
-Import it from `@/components/data-grid/data-grid-sdk`.
+Import them from `@/components/data-grid/data-grid-sdk`.
 
-| Hook | Purpose | Page |
+| Export | Purpose | Page |
 | --- | --- | --- |
 | `useDataGridStoreApi` | Returns the read-only store view for `exportGrid` and the import helpers. | [Export options](/docs/add-options/import-export/export-options) |
 | `useDataGridLabelsIfPresent` <NewBadge /> | Returns the labels of the enclosing `DataGridProvider`, or `null` outside one. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
+| `sortCollator` <NewBadge /> | Returns the collator of the `sortLocale` in scope. A custom text `compare` calls it. | [Cell type contract](/docs/contracts/cell-type-contract) |
+| `withSortLocale` <NewBadge /> | Runs a function with a `sortLocale` in scope. Wrap a sort or text compare that runs outside the view build. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 
 ## Cell editor hooks
 

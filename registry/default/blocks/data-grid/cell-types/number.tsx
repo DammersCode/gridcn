@@ -133,7 +133,7 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   },
   toDisplayText: (value, options) => {
     if (value == null) return "";
-    if (!options?.format) return numberCellType.toText(value, options);
+    if (!options?.format || typeof value !== "number") return numberCellType.toText(value, options);
     const formatter = getNumberFormatter(options.format, options.locale ?? "en-US", options.decimals);
     return formatter ? formatter.format(roundToDecimals(value, options)) : numberCellType.toText(value, options);
   },
