@@ -42,8 +42,8 @@ function ActionsProbe(props: { onActions: (actions: ReturnType<typeof useDataGri
 }
 
 /** Calls the hook directly so the test can reach its result (the component discards it). */
-function UrlStateProbe(props: { prefix?: string; specParts?: UseDataGridUrlStateOptions["specParts"]; onResult: (result: UseDataGridUrlStateResult) => void }) {
-  const result = useDataGridUrlState({ prefix: props.prefix, specParts: props.specParts });
+function UrlStateProbe(props: { prefix?: string; spec?: UseDataGridUrlStateOptions["spec"]; onResult: (result: UseDataGridUrlStateResult) => void }) {
+  const result = useDataGridUrlState({ prefix: props.prefix, spec: props.spec });
   props.onResult(result);
   return null;
 }
@@ -64,7 +64,7 @@ const statusColumns = defineColumns<StatusRow>()([
 function renderGrid(options: {
   searchParams?: string;
   prefix?: string;
-  specParts?: UseDataGridUrlStateOptions["specParts"];
+  spec?: UseDataGridUrlStateOptions["spec"];
   onUrlUpdate?: (event: UrlUpdateEvent) => void;
   exposeUrlState?: (result: UseDataGridUrlStateResult) => void;
 }) {
@@ -74,9 +74,9 @@ function renderGrid(options: {
     <NuqsTestingAdapter searchParams={options.searchParams} onUrlUpdate={options.onUrlUpdate}>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
         {options.exposeUrlState ? (
-          <UrlStateProbe prefix={options.prefix} specParts={options.specParts} onResult={options.exposeUrlState} />
+          <UrlStateProbe prefix={options.prefix} spec={options.spec} onResult={options.exposeUrlState} />
         ) : (
-          <DataGridUrlState prefix={options.prefix} specParts={options.specParts} />
+          <DataGridUrlState prefix={options.prefix} spec={options.spec} />
         )}
         <StateProbe onState={(s) => (latestState = s)} />
         <ActionsProbe onActions={(a) => (actions = a)} />
@@ -446,24 +446,24 @@ describe("DataGridUrlState applyFromUrl (URL→store after mount)", () => {
   });
 });
 
-describe("DataGridUrlState specParts", () => {
+describe("DataGridUrlState spec", () => {
   const url = "?sort=name%3Aasc&filter=age%3Agt%3A30&q=alice";
 
   it("applies only the listed parts from the URL on mount", () => {
-    const { getState } = renderGrid({ searchParams: url, specParts: ["sort"] });
+    const { getState } = renderGrid({ searchParams: url, spec: ["sort"] });
     expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
     expect(getState().filter).toEqual([]);
     expect(getState().search).toBe("");
   });
 
   it("applies nothing for an empty list", () => {
-    const { getState } = renderGrid({ searchParams: url, specParts: [] });
+    const { getState } = renderGrid({ searchParams: url, spec: [] });
     expect(getState()).toEqual({ sort: [], filter: [], search: "" });
   });
 
   it("writes only the listed parts to the URL", async () => {
     const onUrlUpdate = vi.fn();
-    const { getActions } = renderGrid({ onUrlUpdate, specParts: ["sort"] });
+    const { getActions } = renderGrid({ onUrlUpdate, spec: ["sort"] });
     await act(async () => {
       getActions().setSorts([{ columnId: "name", direction: "asc" }]);
       getActions().setFilters([{ columnId: "age", operator: "gt", value: "30" }]);
@@ -480,7 +480,7 @@ describe("DataGridUrlState specParts", () => {
 
   it("applyFromUrl leaves the unlisted parts alone", async () => {
     let urlState: UseDataGridUrlStateResult | undefined;
-    const { getState, getActions } = renderGrid({ searchParams: url, specParts: ["sort"], exposeUrlState: (r) => (urlState = r) });
+    const { getState, getActions } = renderGrid({ searchParams: url, spec: ["sort"], exposeUrlState: (r) => (urlState = r) });
     await act(async () => {
       getActions().setSearch("bob");
     });

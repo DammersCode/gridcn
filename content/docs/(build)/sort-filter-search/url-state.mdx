@@ -102,7 +102,7 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 
 - URL params apply to the store once, on mount. A missing param keeps the grid's initial state. After that, the store drives the URL.
 - `useDataGridUrlState()` returns `applyFromUrl()`. Call it when the URL changed outside the grid's own writes, such as back and forward navigation. The grid then mirrors the URL. A param that is missing from the URL clears its sort, filter, or search, and resets its layout part to the starting layout. It reads the params of the current render, so call it after your router has updated them.
-- `specParts` <NewBadge /> lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `specParts={["sort"]}` keeps filter values and search text out of the URL.
+- `spec` <NewBadge /> lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
 - Every write uses `history: "replace"`, so changes never add browser history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes, so typing does not spam the history.
 - The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column. The grid also drops a layout entry for a removed column, with one warning that counts them.

@@ -79,7 +79,7 @@ The grid makes no network request of its own. It has no telemetry and loads no r
 | Saved views | Named sorts, filters, search text, and layouts | `DataGridViews` writes them to `localStorage` of the origin by default. See [Saved views](/docs/sort-filter-search/saved-views#storage). |
 | Cell links | The link of a `url` cell, opened in a new tab without a referrer | A click on the link. |
 
-A URL keeps its query in the browser history, in server logs, and in the `Referer` header of the next request. If a filter or the search can hold personal data, leave `"filter"` and `"search"` out of the `specParts` option of `DataGridUrlState`.
+A URL keeps its query in the browser history, in server logs, and in the `Referer` header of the next request. If a filter or the search can hold personal data, leave `"filter"` and `"search"` out of the `spec` option of `DataGridUrlState`.
 
 ## Related
 

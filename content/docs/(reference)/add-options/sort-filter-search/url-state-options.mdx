@@ -14,7 +14,7 @@ aliases: ["nuqs", "share a link"]
 | [`useDataGridUrlState`](#usedatagridurlstate) | Hook behind the component | [URL state](/docs/sort-filter-search/url-state) |
 | [`useDataGridUrlPagination`](#usedatagridurlpagination) | Hook for `page` and `pageSize` | [URL state](/docs/sort-filter-search/url-state) |
 
-Filter values and search text go into the URL. The browser history, server logs, and the `Referer` header of the next request keep the query. Leave `"filter"` and `"search"` out of `specParts` when they can hold personal data. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress).
+Filter values and search text go into the URL. The browser history, server logs, and the `Referer` header of the next request keep the query. Leave `"filter"` and `"search"` out of `spec` when they can hold personal data. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress).
 
 ## DataGridUrlState [#datagridurlstate]
 
@@ -68,11 +68,11 @@ export function OrdersGrid() {
 
 The prefix and an underscore start every key of the grid. `prefix="orders"` gives `orders_sort`, `orders_filter`, `orders_q`, `orders_join`, and `orders_cols`. The pagination hook uses the same rule for `page` and `pageSize`.
 
-### specParts [#specparts]
+### spec [#spec]
 
 <NewBadge />
 
-The option picks which parts of the view spec go into the URL. The default is `["sort", "filter", "search"]`. `specParts={[]}` turns spec sync off. `specParts={["sort"]}` keeps the sort in the URL and leaves the filter values and the search text out.
+The option picks which parts of the view spec go into the URL. The default is `["sort", "filter", "search"]`. `spec={[]}` turns spec sync off. `spec={["sort"]}` keeps the sort in the URL and leaves the filter values and the search text out.
 
 | Part | Keys |
 | --- | --- |

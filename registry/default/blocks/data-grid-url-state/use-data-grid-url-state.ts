@@ -47,7 +47,7 @@ export type UseDataGridUrlStateOptions = {
    * View-spec parts synced to the URL: `sort` (`sort`), `filter` (`filter` and the legacy `join`), and `search` (`q`).
    * `[]` turns spec sync off. Default `["sort", "filter", "search"]`.
    */
-  specParts?: readonly UrlSpecPart[];
+  spec?: readonly UrlSpecPart[];
   /**
    * Layout parts synced to the URL under `cols` (`order`), `hide` (`hidden`), `widths`, and `pins`.
    * A part is written only while it differs from the layout the grid started with. `[]` turns
@@ -83,7 +83,7 @@ export type UseDataGridUrlStateResult = {
  * re-runs the mount apply when the URL changed outside the grid's own writes.
  */
 export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): UseDataGridUrlStateResult {
-  const { prefix, layout = DEFAULT_LAYOUT_PARTS, specParts = DEFAULT_SPEC_PARTS } = options;
+  const { prefix, layout = DEFAULT_LAYOUT_PARTS, spec: specParts = DEFAULT_SPEC_PARTS } = options;
   const syncSort = specParts.includes("sort");
   const syncFilter = specParts.includes("filter");
   const syncSearch = specParts.includes("search");

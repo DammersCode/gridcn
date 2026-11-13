@@ -69,7 +69,7 @@ Everything else mounts as a plain child component, inside the provider:
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
 | Keybindings dialog (custom placement) | `DataGridKeybindingsDialog` (controlled `open`, own trigger) | inside the provider; `useDataGridKeybindings` is the default wiring |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
-| URL state | `DataGridUrlState` (option `specParts` lists the synced `"sort"`, `"filter"`, `"search"` parts, default all; option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
+| URL state | `DataGridUrlState` (option `spec` lists the synced `"sort"`, `"filter"`, `"search"` parts, default all; option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
 | Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
