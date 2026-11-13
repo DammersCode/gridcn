@@ -78,6 +78,13 @@ const NAMED_KEYS: ReadonlySet<string> = new Set([
 // Same class as is-printable-key.ts: single code points the matcher can hit via `KeyboardEvent.key`.
 const SINGLE_CODE_POINT = /[\p{L}\p{N}\p{S}\p{P}]/u;
 
+const REPEATED_MODIFIER_ISSUE = "repeats modifier";
+
+/** Whether the matcher can hit `binding`: no issue except a repeated modifier, which still matches. */
+export function bindingCanMatch(binding: string): boolean {
+  return validateKeyBinding(binding).every((issue) => issue.startsWith(REPEATED_MODIFIER_ISSUE));
+}
+
 /**
  * Issues for one binding string; empty means valid. Accepts single code points (printable or
  * space, any case) and exact-case stable named keys — exactly what the matcher can hit; the
@@ -96,7 +103,7 @@ export function validateKeyBinding(binding: string): string[] {
   const seen = new Set<string>();
   for (const token of modifiers) {
     if (!MODIFIER_TOKENS.includes(token)) continue;
-    if (seen.has(token)) issues.push(`repeats modifier "${token}"`);
+    if (seen.has(token)) issues.push(`${REPEATED_MODIFIER_ISSUE} "${token}"`);
     seen.add(token);
   }
 

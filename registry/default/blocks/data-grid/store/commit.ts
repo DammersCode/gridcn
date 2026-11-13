@@ -155,6 +155,7 @@ export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: un
   const target = resolveEditTarget(s, coord);
   if (!target) return { noop: true };
   const { column, dataRowIndex, row, cellType } = target;
+  if (isColumnReadOnly(column, row)) return { noop: true };
   const validated = runValidateSync(resolveColumnValidate(column, cellType), value, row);
   let nextValue: unknown;
   let warning: string | undefined;

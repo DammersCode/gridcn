@@ -10,15 +10,15 @@ The grid follows the WAI-ARIA grid pattern.
 
 ## Conformance target [#conformance-target]
 
-The target is WCAG 2.1 AA. gridcn makes no conformance claim, and no conformance audit has run. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. The repository records no manual pass with a screen reader.
+The target is WCAG 2.1 AA. gridcn makes no conformance claim and has had no conformance audit. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. No manual screen reader pass is on record.
 
 ## Roles and indices [#semantics]
 
 ### Roles [#grid-semantics]
 
-The scroll root has `role="grid"`. Each rendered row has `role="row"`. Each data cell has `role="gridcell"`. Each column header has `role="columnheader"`.
+The scroll root has `role="grid"`, a rendered row `role="row"`, a data cell `role="gridcell"`, and a column header `role="columnheader"`.
 
-The marker column holds `gridcell` cells and a `columnheader` with a screen-reader-only label (`labels.markers.columnHeader`). A checkbox cell is a display-only `role="checkbox"` with `aria-checked`. Its `aria-label` is the column `headerText`, a string header, or the column id.
+The marker column holds `gridcell` cells and a `columnheader` with a screen-reader-only label (`labels.markers.columnHeader`). A checkbox cell is a display-only `role="checkbox"` with `aria-checked`. Its `aria-label` is the `headerText`, a string header, or the column id.
 
 ### Counts and indices [#the-aria-index-and-count-model]
 
@@ -49,9 +49,9 @@ A cell with a validation error has `aria-invalid="true"` and the message in `ari
 
 ### Roving tabindex [#roving-tabindex]
 
-The grid uses the roving tabindex pattern. Before a cell is active, a grid with rows gives the root `tabindex="0"`, and the root is the one tab stop. Once a cell is active, that cell alone has `tabindex="0"`. The other cells have `-1`, and the root drops to `-1`.
+The grid uses the roving tabindex pattern. Before a cell is active, the root of a grid with rows is the one tab stop (`tabindex="0"`). Once a cell is active, only that cell has `tabindex="0"`. The other cells and the root have `-1`. With zero rows, the root has `-1`. Each column header has one tab stop. <NewBadge />
 
-DOM focus follows the active cell. The grid keeps the active row mounted after it scrolls out of view, so focus stays in place. Pinned-row cells and skeleton cells have no `tabindex`.
+DOM focus follows the active cell. The active row stays mounted after it scrolls out of view, so focus stays. Pinned-row cells and skeleton cells have no `tabindex`.
 
 ### Selection [#selection-announcement-model]
 

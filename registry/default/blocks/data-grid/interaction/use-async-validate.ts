@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toSafeText } from "../cell-types/safe-text";
 import type { AnyColumnDef, DataGridActions } from "../store";
 import type { StandardSchemaV1Result } from "../types";
 import { formatIssues, isStandardSchema, type CellValidate } from "../validation/validate-cell";
@@ -95,5 +96,5 @@ export function useAsyncValidate(actions: DataGridActions, column: AnyColumnDef,
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? error.message : toSafeText(error);
 }

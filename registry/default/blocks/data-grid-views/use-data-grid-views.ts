@@ -19,6 +19,7 @@ import {
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
+  overLimitPart,
   savableViewState,
   serializeViewFile,
   viewPartKeys,
@@ -27,6 +28,7 @@ import {
   type DataGridViewState,
   type DataGridViewsDocument,
   type ViewColumns,
+  type ViewStatePart,
 } from "./view-state";
 import { createLocalStorageViewsStorage, type DataGridViewsStorage } from "./view-storage";
 
@@ -62,8 +64,11 @@ export type UseDataGridViewsResult = {
   activeView: DataGridView | null;
   /** The grid differs from the active view. */
   modified: boolean;
-  /** The grid state exceeds a view limit (1,000 characters per filter value, 1,000 list entries, 16 sorts, 500 search characters), so `saveView` returns `null` and `updateView` returns `false`. */
-  overLimit: boolean;
+  /**
+   * The part of the grid state that exceeds a view limit, or `false`. `saveView` returns `null` and `updateView` returns `false` while it is set.
+   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, a column id over 200 characters, 1,000 entries per layout list.
+   */
+  overLimit: false | ViewStatePart;
   defaultViewId: string | null;
   /** The stored views are being read. */
   loading: boolean;
@@ -295,7 +300,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   );
 
   const overLimit = useMemo(
-    () => savableViewState(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout })) === null,
+    () => overLimitPart(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout })),
     [sortState, filterState, searchText, searchOptions, columnLayout],
   );
 

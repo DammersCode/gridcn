@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `DataGridKeybindingsDialog` lists the effective keymap with your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `DataGridKeybindingsDialog` lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. <NewBadge /> `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -206,7 +206,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 | `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key. The browser then runs its own action. |
 | `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. |
 | `label` | `string` | `labels.keybindings.actions[name]`, else the humanized name | The row label in the dialog. |
-| `group` | `CommandGroup` | `"other"` | The section in the dialog. |
+| `group` | `CommandGroup` | `"other"`, or the section of the built-in action that the command names | The section in the dialog. |
 
 {/* props: GridCommandCtx */}
 

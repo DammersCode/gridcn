@@ -40,7 +40,25 @@ function OverLimitSearch() {
   return null;
 }
 
+function OverLimitWidth() {
+  const actions = useDataGridActions();
+  useEffect(() => actions.setColumnLayout({ widths: { name: 12_000 }, order: [], pins: {}, hidden: [] }), [actions]);
+  return null;
+}
+
 describe("DataGridViews", () => {
+  it("names the layout limits when a column is wider than 10,000 px", async () => {
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <OverLimitWidth />
+        <DataGridViews storage={createMemoryViewsStorage(doc())} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /views/i }));
+    await screen.findByRole("button", { name: "Alpha" });
+    expect(screen.getByText(/column layout is over a view limit.*wider than 10,000 px/)).toBeInTheDocument();
+  });
+
   it("disables Save and Update and says why while the grid is over a view limit", async () => {
     render(
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
@@ -52,7 +70,7 @@ describe("DataGridViews", () => {
     await screen.findByRole("button", { name: "Alpha" });
     fireEvent.change(screen.getByRole("textbox", { name: "View name" }), { target: { value: "Mine" } });
     expect(screen.getByRole("button", { name: "Save as new view" })).toBeDisabled();
-    expect(screen.getByText(/over the view limits/)).toBeInTheDocument();
+    expect(screen.getByText(/search text is over the view limit of 500 characters/)).toBeInTheDocument();
   });
 
   it("lists the views and marks the picked one", async () => {

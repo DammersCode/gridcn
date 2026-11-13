@@ -44,7 +44,7 @@ import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
-import { holeRowId } from "../store/compute";
+import { holeRowId, isColumnReadOnly } from "../store/compute";
 import { keepsCheckedRows, onlyHiddenRowsChecked } from "../store/hidden-checked-rows";
 import { reportRowActionSkipped } from "../store/row-action-skip";
 import { isComposingKey } from "./is-composing-key";
@@ -52,6 +52,9 @@ import { isReorderMarkerMode } from "../rows/marker-width";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
 
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
+
+const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
+  (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
 
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
@@ -637,8 +640,7 @@ function activateCell(state: DataGridStoreState, actions: DataGridActions, coord
   const dataRowIndex = state.viewIndex[coord.row];
   const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
   if (row === undefined) return;
-  const readOnly = typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly);
-  if (readOnly) return;
+  if (isColumnReadOnly(column, row)) return;
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
   actions.commitCellValueAt(coord, cellType.activate(value, column.options));
@@ -1075,7 +1077,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (lastKeyEvent.current === event.nativeEvent) return;
       lastKeyEvent.current = event.nativeEvent;
 
-      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it; a focused header trigger keeps Enter and Space for its click.
+      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it; a focused header trigger keeps only Enter and Space for its click.
       const target = event.target as HTMLElement | null;
       const fromEditorInput =
         target !== null &&
@@ -1083,7 +1085,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
           target.isContentEditable ||
           target.closest(gridAttrSelector("cellEditor")) !== null ||
-          target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}`) !== null ||
+          (isActivationKey(event) && target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}`) !== null) ||
           !event.currentTarget.contains(target));
 
       const state = storeApi.getState();

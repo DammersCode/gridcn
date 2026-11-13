@@ -15,7 +15,7 @@ Scope: one cell type, from value pipeline to registration. Auditing a slow grid 
 - **A built-in-typed column (number, date, select, checkbox) broke after touching `cellTypes`** → a `null` entry removed that type from the registry. Go to step 4.
 - **Paste throws or aborts the whole paste** → `fromText` threw. Go to step 2.
 - **A popover/portal editor (date-picker, combobox, color picker) closes the instant you click into it** → go to step 6, `data-grid-cell-editor`.
-- **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Filter always matches the raw value, never `toText`; search matches `toSearchText ?? toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. A text `compare` calls `sortCollator().compare` from `data-grid-sdk` so it follows `sortLocale`; `localeCompare` follows the runtime language. See `custom-cell-types.md#value-pipeline`.
+- **Values look right on screen but sort/search/fill act on the wrong thing** → you conflated `toText`/`toDisplayText` with the raw value. Filter always matches the raw value, never `toText`; search matches `toSearchText ?? toText`; sort's default (no `compare`) is a numeric-aware collation of that same raw string. A text `compare` calls `sortCollator().compare` from `data-grid-sdk` so it follows `sortLocale`; `localeCompare` follows the runtime language. See `https://gridcn.vercel.app/docs/contracts/cell-type-contract.md#value-pipeline`.
 - **A column declares `type: "x" as never` (or `as any`)** → remove the cast and augment `GridCellTypes` (step 5).
 
 Put the type in your own folder (for example `src/components/grid-cells/currency.tsx`), with its `declare module` block in the same file. Add no files to and edit no files under `components/data-grid*`: an upgrade overwrites them. Import only from the `@/components/data-grid/data-grid` barrel; it exports `useCellEditor`, `useCommitGuard`, `useSeedFocus`, `defineCellType`, `CellSpan`, and `displayText` for editors and cells.
@@ -102,18 +102,7 @@ Grid data and imported text are untrusted. A cell type renders and parses values
 
 - Render values as React text nodes. Never pass a value to `innerHTML` or `dangerouslySetInnerHTML`.
 - Build links only through `safeHref` (barrel export): it keeps `http`, `https`, and `mailto`. Declare `href` on the type and let the grid call it.
-- `toText`, `toDisplayText`, `Cell`, `compare`, and `isEmpty` never throw. `String(value)` throws on a null-prototype object and on a proxy whose `toString` throws. The barrel does not export the repo's `toSafeText`, so keep a guarded helper in your type's folder:
-
-```ts
-function toSafeText(value: unknown): string {
-  if (value == null) return "";
-  try {
-    return String(value);
-  } catch {
-    return "";
-  }
-}
-```
+- `toText`, `toDisplayText`, `Cell`, `compare`, and `isEmpty` never throw. `String(value)` throws on a null-prototype object and on a proxy whose `toString` throws. Import `toSafeText` from `data-grid-sdk` instead of calling `String(value)`. It returns `""` when the conversion throws.
 
 - `fromText` runs in linear time. Use no nested quantifiers and no overlapping alternatives in a regex. A string of 200,000 digits plus a letter must return in milliseconds. Bound the input length before you parse.
 - For numbers, reject `NaN`, `Infinity`, hex (`0x10`), binary (`0b1`), and underscore forms (`1_000`). `Number()` accepts them. Match a strict decimal pattern first.

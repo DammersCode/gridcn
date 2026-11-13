@@ -43,39 +43,45 @@ function aggregateColumn<TData>(reducer: AggregateReducer<TData>, column: AnyCol
   return undefined;
 }
 
-// Fires at most once per app, dev-only: a sparse (lazy) data array reached the reducer.
-let warnedSparseData = false;
+const warnedKinds = new WeakMap<object, Set<string>>();
 
-function warnSparseData(scope: "view" | "page" | "all", holes: number): void {
-  if (!isDev() || warnedSparseData) return;
-  warnedSparseData = true;
-  console.warn(
+/** Dev-only warning, once per grid instance and kind. */
+function warnOnce(owner: object, kind: string, message: string): void {
+  if (!isDev()) return;
+  const kinds = warnedKinds.get(owner) ?? new Set<string>();
+  warnedKinds.set(owner, kinds);
+  if (kinds.has(kind)) return;
+  kinds.add(kind);
+  console.warn(message);
+}
+
+function warnSparseData(owner: object, scope: "view" | "page" | "all", holes: number): void {
+  warnOnce(
+    owner,
+    "sparse",
     `[data-grid-pinned-rows] useDataGridAggregate (scope "${scope}") skipped ${holes} unloaded row(s): the data array is sparse (lazy loading), so the result covers loaded rows only. Use server-side totals or compute them outside the grid.`,
   );
 }
 
-// Fires at most once per app, dev-only: a spec key that matches no column id.
-let warnedUnknownSpecKey = false;
-
-function warnUnknownSpecKey(columnId: string): void {
-  if (!isDev() || warnedUnknownSpecKey) return;
-  warnedUnknownSpecKey = true;
-  console.warn(
+function warnUnknownSpecKey(owner: object, columnId: string): void {
+  warnOnce(
+    owner,
+    "spec-key",
     `[data-grid-pinned-rows] useDataGridAggregate: spec key "${columnId}" matches no column id and is ignored (check for a typo)`,
   );
 }
 
-function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "page" | "all"): Record<string, unknown> {
+function computeAggregate<TData>(owner: object, state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "page" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
   const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex : fullViewOf(state.viewIndex)).map((i) => state.data[i]);
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
   const rows = scoped.filter((row) => row !== undefined);
-  if (rows.length !== scoped.length) warnSparseData(scope, scoped.length - rows.length);
+  if (rows.length !== scoped.length) warnSparseData(owner, scope, scoped.length - rows.length);
   const result: Record<string, unknown> = {};
   for (const [columnId, reducer] of Object.entries(specs)) {
     const column = byId.get(columnId);
     if (!column) {
-      warnUnknownSpecKey(columnId);
+      warnUnknownSpecKey(owner, columnId);
       continue;
     }
     result[columnId] = aggregateColumn(reducer, column, rows);
@@ -96,9 +102,9 @@ function computeAggregate<TData>(state: DataGridReadState, specs: AggregateSpecs
  * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
  * those) never recomputes — same identity-guardrailed contract as the `plugins` prop; define
  * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
- * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once — on a
+ * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once per grid — on a
  * lazy grid the result covers loaded rows only. A spec key that matches no column id is ignored
- * and a dev warning fires once. `TData` types `rows` in custom reducers (see {@link AggregateReducer}).
+ * and a dev warning fires once per grid. `TData` types `rows` in custom reducers (see {@link AggregateReducer}).
  */
 export function useDataGridAggregate<TData = unknown>(specs: AggregateSpecs<TData>, options: UseDataGridAggregateOptions = {}): Record<string, unknown> {
   const { scope = "view" } = options;
@@ -110,7 +116,7 @@ export function useDataGridAggregate<TData = unknown>(specs: AggregateSpecs<TDat
     if (c && c.viewIndex === state.viewIndex && c.data === state.data && c.scope === scope && c.specs === specs) {
       return c.result;
     }
-    const result = computeAggregate(state, specs, scope);
+    const result = computeAggregate(storeApi, state, specs, scope);
     cache.current = { viewIndex: state.viewIndex, data: state.data, scope, specs, result };
     return result;
   });

@@ -10,6 +10,7 @@ import {
   defineColumns,
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/use-data-grid-history";
 import { useDataGridFindReplace } from "@/registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace";
 import { DataGridKeybindingsDialog } from "./keybindings-dialog";
 import { DataGridKeybindingsShortcut } from "./keybindings-shortcut";
@@ -31,8 +32,9 @@ const columnsWithHeaderInput = defineColumns<Row>()([
 
 function Harness({ gridColumns = columns }: { gridColumns?: typeof columns | typeof columnsWithHeaderInput }) {
   const [open, setOpen] = useState(false);
+  const history = useDataGridHistory();
   return (
-    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id}>
+    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id} plugins={[history.plugin]}>
       <DataGridKeybindingsDialog open={open} onOpenChange={setOpen} />
       <DataGridRoot className="h-[300px]">
         <DataGridKeybindingsShortcut onOpen={() => setOpen(true)} />
@@ -153,8 +155,9 @@ describe("DataGridKeybindingsShortcut + DataGridKeybindingsDialog", () => {
 
 function FindReplaceDialog({ keymap }: { keymap?: Keymap }) {
   const findReplace = useDataGridFindReplace();
+  const history = useDataGridHistory();
   return (
-    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} keymap={keymap}>
+    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin, history.plugin]} keymap={keymap}>
       <DataGridKeybindingsDialog open />
       <DataGridRoot className="h-[300px]">
         <DataGridHeader />

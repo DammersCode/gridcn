@@ -39,7 +39,7 @@ import {
   useDataGridHiddenCheckedCount,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { keepsCheckedRows, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { keepsCheckedRows, useDataGridStoreApi, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { selectedViewRows } from "./selection-queries";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -112,6 +112,8 @@ export const DataGridHeaderMenuItemsContext = createContext<HeaderMenuItemsResol
 /** The built-in cell-surface set as specs, resolved for the current grid state (labels, keymap, selection, clipboard gating). */
 export function useDefaultCellMenuItems(args: {
   row: number;
+  /** The row's stable id; Insert row follows it if the view rebuilds before the click. */
+  rowId?: string;
   canInsertRow: boolean;
   canDuplicateRow: boolean;
   pasteBlocked: boolean;
@@ -119,7 +121,7 @@ export function useDefaultCellMenuItems(args: {
   clipboardFailed?: boolean;
   onClipboardFailed?: () => void;
 }): GridMenuItemSpec[] {
-  const { row, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
+  const { row, rowId, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
   const selection = useDataGridSelection();
   const checkedRowsOnly = keepsCheckedRows(useDataGridSelectionConfig());
@@ -133,6 +135,15 @@ export function useDefaultCellMenuItems(args: {
   const commands = useDataGridCommands();
   const selectionPointer = useDataGridSelectionPointer();
   const api = useDataGridApi();
+  const storeApi = useDataGridStoreApi();
+  const insertRow = (position: "above" | "below") => {
+    const state = storeApi.getState();
+    const anchor = rowId === undefined ? row : state.viewIndex.findIndex((dataIndex) => {
+      const dataRow = state.data[dataIndex];
+      return dataRow !== undefined && state.getRowId(dataRow, dataIndex) === rowId;
+    });
+    if (anchor !== -1) actions.insertRow(anchor, position);
+  };
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
@@ -189,8 +200,8 @@ export function useDefaultCellMenuItems(args: {
   }
   if (canInsertRow) {
     specs.push(
-      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "above") },
-      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => actions.insertRow(row, "below") },
+      { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => insertRow("above") },
+      { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => insertRow("below") },
     );
   }
   if (canDuplicateRow) {

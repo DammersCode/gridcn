@@ -22,7 +22,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `clearSaveStatus` | Drops the `"failed"` mark of each row whose save the server refused. A row that is still `"saving"` keeps its mark. | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | `clearSelection` | Clears the cell ranges, the column selection, and the checked rows. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `commitCellEdit` | Validates and commits the open edit. A refused value keeps the editor open. A commit moves the active cell by `movement`. | [Edit and validation events](/docs/events-state/edit-validation-events) |
-| `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Cell type model](/docs/concepts/cell-type-model) |
+| `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. It writes nothing to a locked column or in a `readOnly` grid. <NewBadge /> | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitChange` | Applies a whole `DataChange` in one write and fires `onDataChange` once. | [Data change events](/docs/events-state/data-change-events) |
 | `commitColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |

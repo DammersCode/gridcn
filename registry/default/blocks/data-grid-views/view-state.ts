@@ -108,8 +108,10 @@ function sortKeys(_key: string, value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 }
 
+export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
+
 /** One string per part of a state; equal strings mean the part restores the same grid. */
-export function viewPartKeys(state: DataGridViewState): { sorts: string; filters: string; search: string; layout: string } {
+export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart, string> {
   // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
   const captured = captureViewState(state);
   captured.filters = withoutUnusedValues(captured.filters);
@@ -125,6 +127,13 @@ export function viewPartKeys(state: DataGridViewState): { sorts: string; filters
 /** A string that is equal for two states that restore the same view. */
 export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
+}
+
+/** The part of `state` that a view limit would cut or drop, or `false` when none. Layout covers a width over 10,000 px, a column id over 200 characters, and a list over 1,000 entries. */
+export function overLimitPart(state: DataGridViewState): ViewStatePart | false {
+  const kept = viewPartKeys(sanitizeViewState(state, undefined).state);
+  const wanted = viewPartKeys(state);
+  return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
 }
 
 /** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */

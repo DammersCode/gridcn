@@ -7,7 +7,9 @@ aliases: ["arrow keys", "tab key", "keyboard shortcuts in the grid", "default ke
 demos: none
 ---
 
-The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. <kbd>Tab</kbd> moves focus into the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid. <NewBadge /> While the view has no rows, no cell can take focus, so the header filter button and the header menu button become tab stops. Press <kbd>Enter</kbd> on the filter button to open it and clear the filter that emptied the grid.
+The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. <kbd>Tab</kbd> moves focus into the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid. <NewBadge />
+
+With zero rows, no cell can take focus. Each column header then has one tab stop. It is the filter button, or the menu button when the column has no filter button. Press <kbd>Enter</kbd> or <kbd>Space</kbd> on the filter button to open it and clear the filter that emptied the grid. A focused header button takes only those two keys. Every other key, such as <kbd>ArrowRight</kbd> and <kbd>Delete</kbd>, still goes to the grid.
 
 ## Keyboard map [#keyboard-map]
 

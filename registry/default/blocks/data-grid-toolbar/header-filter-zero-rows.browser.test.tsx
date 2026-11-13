@@ -70,6 +70,36 @@ describe("header filter trigger while the view has no rows", () => {
     await vi.waitFor(() => expect(onFilterChange).toHaveBeenLastCalledWith([]));
   });
 
+  it("a column with a filter button has one tab stop: the filter button, not the menu button", async () => {
+    await render(
+      <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot
+          className="h-75"
+          renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
+          renderHeaderMenu={({ trigger }) => trigger}
+        >
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(trigger()).toBeTruthy());
+    expect(trigger()).toHaveAttribute("tabindex", "0");
+    expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("after the keyboard clears the filter, ArrowDown from the grid focus moves the active cell", async () => {
+    const api = await renderGrid(rows, "client");
+    await tabToTrigger();
+    await userEvent.keyboard("{Enter}");
+    await vi.waitFor(() => expect(popup()).toBeTruthy());
+    await userEvent.click(clearButton());
+    await vi.waitFor(() => expect(api().getState().viewIndex).toHaveLength(2));
+    trigger().focus();
+    await userEvent.keyboard("{ArrowDown}");
+    await vi.waitFor(() => expect(api().getState().activeCell).not.toBeNull());
+  });
+
   it("keeps the trigger out of the tab order while rows exist", async () => {
     await render(
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>

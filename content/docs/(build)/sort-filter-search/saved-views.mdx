@@ -139,7 +139,7 @@ const views = useDataGridViews({ storage: serverViews });
 
 <NewBadge />
 
-A save never cuts a view. While the grid state is over a limit, `overLimit` is `true`. "Save as new view" and "Update" are off with a line that says why. `saveView` returns `null` and `updateView` returns `false`. Shorten the filter, the sorts, or the search text to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
+A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. "Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
 
 ## Server mode [#server-mode]
 

@@ -105,7 +105,7 @@ function valueStrings(value: FilterSpec["value"]): readonly string[] {
   return typeof value === "string" ? [value] : [];
 }
 
-/** True when {@link parseFilterState} would keep the leaf, so a written URL never differs from its reload. */
+/** True unless {@link parseFilterState} would drop the leaf. An `isAnyOf` list over its bound stays and the reader cuts it. */
 function readerKeeps(node: FilterSpec, options: SerializeFilterStateOptions): boolean {
   if (valueStrings(node.value).some((part) => part.length > MAX_URL_FILTER_VALUE_LENGTH)) return false;
   if (node.operator !== "isNoneOf" || !Array.isArray(node.value)) return true;

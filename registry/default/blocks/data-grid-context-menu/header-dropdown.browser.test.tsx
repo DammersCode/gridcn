@@ -241,3 +241,49 @@ describe("DataGridHeaderDropdown", () => {
     warn.mockRestore();
   });
 });
+
+describe("DataGridHeaderDropdown trigger and the keyboard", () => {
+  const menuTriggers = () => [...document.querySelectorAll<HTMLElement>(gridAttrSelector("headerMenuTrigger"))];
+
+  function renderEmptyGrid() {
+    return render(
+      <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+  }
+
+  it("zero rows: each header menu button is the one tab stop of its column, and Enter and Space open the menu", async () => {
+    await renderEmptyGrid();
+    await vi.waitFor(() => expect(menuTriggers()).toHaveLength(2));
+    expect(menuTriggers().map((t) => t.getAttribute("tabindex"))).toEqual(["0", "0"]);
+    for (const key of ["{Enter}", "{ }"]) {
+      menuTriggers()[0]!.focus();
+      await userEvent.keyboard(key);
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+      await userEvent.keyboard("{Escape}");
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    }
+  });
+
+  it("a mouse-opened menu returns focus to its trigger, and ArrowRight and Delete still reach the grid", async () => {
+    await renderGrid(5);
+    await vi.waitFor(() => expect(menuTriggers()).toHaveLength(2));
+    const nameCell = () => document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]')!;
+    await userEvent.click(nameCell());
+    const trigger = menuTriggers()[0]!;
+    await userEvent.click(trigger);
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
+
+    await userEvent.keyboard("{ArrowRight}");
+    const active = () => document.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]');
+    await vi.waitFor(() => expect(active()?.getAttribute("aria-colindex")).toBe("2"));
+    await userEvent.keyboard("{Delete}");
+    await vi.waitFor(() => expect(active()?.textContent).toBe(""));
+  });
+});

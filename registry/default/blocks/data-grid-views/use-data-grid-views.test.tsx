@@ -14,7 +14,7 @@ import {
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridViews, type UseDataGridViewsOptions, type UseDataGridViewsResult } from "./use-data-grid-views";
 import { createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
-import { emptyViewState, type DataGridViewsDocument } from "./view-state";
+import { emptyViewState, type DataGridViewState, type DataGridViewsDocument } from "./view-state";
 
 afterEach(cleanup);
 
@@ -653,11 +653,13 @@ describe("useDataGridViews limits", () => {
   });
 
   it.each([
-    ["a filter value of 1,001 characters", () => ({ filters: [{ columnId: "name", operator: "contains", value: "x".repeat(1001) }] as FilterNode[] })],
-    ["an isAnyOf list of 1,001 entries", () => ({ filters: [{ columnId: "name", operator: "isAnyOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
-    ["an isNoneOf list of 1,001 entries", () => ({ filters: [{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
-    ["a search text of 501 characters", () => ({ search: "s".repeat(501) })],
-  ])("%s is refused: overLimit is true, saveView returns null, updateView returns false", async (_name, make) => {
+    ["a filter value of 1,001 characters", "filters", () => ({ filters: [{ columnId: "name", operator: "contains", value: "x".repeat(1001) }] as FilterNode[] })],
+    ["an isAnyOf list of 1,001 entries", "filters", () => ({ filters: [{ columnId: "name", operator: "isAnyOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
+    ["an isNoneOf list of 1,001 entries", "filters", () => ({ filters: [{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
+    ["65 short filters", "filters", () => ({ filters: Array.from({ length: 65 }, (_, i) => ({ columnId: "name", operator: "contains", value: `v${i}` })) as FilterNode[] })],
+    ["a search text of 501 characters", "search", () => ({ search: "s".repeat(501) })],
+    ["a column width of 12,000 px", "layout", () => ({ layout: { widths: { name: 12_000 }, order: [], pins: {}, hidden: [] } })],
+  ])("%s is refused: overLimit names %s, saveView returns null, updateView returns false", async (_name, part, make) => {
     const { probe } = setup({ storage: createMemoryViewsStorage() });
     await ready(probe);
     let first: ReturnType<UseDataGridViewsResult["saveView"]> = null;
@@ -665,12 +667,13 @@ describe("useDataGridViews limits", () => {
       first = probe.current!.views.saveView("Fine");
     });
     expect(first).not.toBeNull();
-    const change = make() as { filters?: FilterNode[]; search?: string };
+    const change = make() as { filters?: FilterNode[]; search?: string; layout?: DataGridViewState["columnLayout"] };
     act(() => {
       if (change.filters) probe.current!.actions.setFilters(change.filters);
       if (change.search) probe.current!.actions.setSearch(change.search);
+      if (change.layout) probe.current!.actions.setColumnLayout(change.layout);
     });
-    expect(probe.current!.views.overLimit).toBe(true);
+    expect(probe.current!.views.overLimit).toBe(part);
     let result: unknown = "unset";
     let updated: boolean | undefined;
     act(() => {
@@ -688,7 +691,7 @@ describe("useDataGridViews limits", () => {
     act(() => probe.current!.actions.setSorts(Array.from({ length: 16 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
     expect(probe.current!.views.overLimit).toBe(false);
     act(() => probe.current!.actions.setSorts(Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
-    expect(probe.current!.views.overLimit).toBe(true);
+    expect(probe.current!.views.overLimit).toBe("sorts");
     let result: unknown = "unset";
     act(() => {
       result = probe.current!.views.saveView("Many sorts");

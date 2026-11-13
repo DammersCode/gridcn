@@ -13,7 +13,20 @@ import { useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAct
 import { KEYBINDING_CATEGORIES, categoryForAction, categoryLabel, type KeybindingCategory } from "./action-groups";
 import { labelForAction } from "./action-labels";
 import { BindingChips } from "./binding-label";
-import { useDataGridCommands } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useDataGridCommands, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+
+/** Built-in actions whose body is empty until a plugin or a `commands` entry names them. */
+const NEEDS_COMMAND: ReadonlySet<string> = new Set(["fillDown", "fillRight", "undo", "redo", "openFindReplace", "openFind"]);
+const INSERT_ROW_ACTIONS: ReadonlySet<string> = new Set(["insertRowAbove", "insertRowBelow"]);
+
+type WiredRowFactories = { createRow: boolean; duplicateRow: boolean };
+
+function isWired(action: string, commands: Record<string, GridCommand> | null, factories: WiredRowFactories): boolean {
+  if (commands?.[action]) return true;
+  if (NEEDS_COMMAND.has(action)) return false;
+  if (INSERT_ROW_ACTIONS.has(action)) return factories.createRow;
+  return action !== "duplicateRow" || factories.duplicateRow;
+}
 
 /** One always-on native clipboard shortcut not covered by the keymap (copy/cut/paste are native browser events, see use-grid-clipboard.ts); labels come from `labels.keybindings.native*` (i18n). */
 function nativeClipboardBindings(labels: DataGridLabels): { label: string; binding: string }[] {
@@ -28,7 +41,7 @@ function nativeClipboardBindings(labels: DataGridLabels): { label: string; bindi
 type KeymapRow = { key: string; label: string; bindings: string[] };
 
 /** Every bound action in `keymap` plus the native clipboard bindings, grouped by category in {@link KEYBINDING_CATEGORIES} order; categories with no rows are omitted. Custom commands (`commands`) override a row's label and category. */
-function groupKeymap(keymap: Keymap, labels: DataGridLabels, commands: Record<string, GridCommand> | null): { category: KeybindingCategory; rows: KeymapRow[] }[] {
+function groupKeymap(keymap: Keymap, labels: DataGridLabels, commands: Record<string, GridCommand> | null, factories: WiredRowFactories): { category: KeybindingCategory; rows: KeymapRow[] }[] {
   const byCategory = new Map<KeybindingCategory, KeymapRow[]>();
   const pushRow = (category: KeybindingCategory, row: KeymapRow) => {
     const list = byCategory.get(category) ?? [];
@@ -37,7 +50,7 @@ function groupKeymap(keymap: Keymap, labels: DataGridLabels, commands: Record<st
   };
 
   for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
-    if (!bindings || bindings.length === 0) continue;
+    if (!bindings || bindings.length === 0 || !isWired(action, commands, factories)) continue;
     const command = commands?.[action];
     pushRow(command?.group ?? categoryForAction(action), {
       key: action,
@@ -67,7 +80,7 @@ export type DataGridKeybindingsDialogProps = {
 };
 
 /**
- * Lists every bound `GridAction` from the mounted grid's EFFECTIVE keymap (`DEFAULT_KEYMAP` merged
+ * Lists every bound `GridAction` that does something on the mounted grid, from its EFFECTIVE keymap (`DEFAULT_KEYMAP` merged
  * with the plugins' keymaps, then the `keymap` prop, via `useDataGridKeymap`) — never a hardcoded shortcut list, so
  * consumer overrides/extensions show up automatically. Grouped by category, platform-aware `<kbd>`
  * chips (⌘ on mac, Ctrl elsewhere; Space/arrow glyphs). Copy/Cut/Paste are appended separately since
@@ -78,7 +91,9 @@ export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps)
   const keymap = useDataGridKeymap();
   const labels = useDataGridLabels();
   const commands = useDataGridCommands();
-  const groups = useMemo(() => groupKeymap(keymap, labels, commands), [keymap, labels, commands]);
+  const createRow = useDataGridSelector((s) => s.createRow != null);
+  const duplicateRow = useDataGridSelector((s) => s.duplicateRow != null);
+  const groups = useMemo(() => groupKeymap(keymap, labels, commands, { createRow, duplicateRow }), [keymap, labels, commands, createRow, duplicateRow]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>

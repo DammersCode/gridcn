@@ -137,7 +137,14 @@ describe("useDataGridAggregate — unknown spec key", () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain("quants");
   });
 
-  it("does not re-warn for a different unknown key (warn-once per app)", () => {
+  it("warns once on one grid across recomputes", () => {
+    const data = makeRows([1, 2, 3]);
+    const view = render(<Capture data={data} specs={{ quants: "sum" }} onResult={() => {}} />);
+    view.rerender(<Capture data={data} specs={{ quants: "sum" }} onResult={() => {}} />);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns again on another grid (warn-once per grid)", () => {
     const results: Record<string, unknown>[] = [];
     render(
       <Capture
@@ -147,7 +154,7 @@ describe("useDataGridAggregate — unknown spec key", () => {
       />,
     );
     expect(results.at(-1)).toEqual({});
-    expect(warn).toHaveBeenCalledTimes(0);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -308,7 +315,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("skips holes over the raw sparse array too (scope all), without re-warning", () => {
+  it("skips holes over the raw sparse array too (scope all), and warns once on this grid", () => {
     const results: Record<string, unknown>[] = [];
     function AllInner() {
       const row = useDataGridAggregate({ qty: "sum" }, { scope: "all" });
@@ -321,8 +328,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
       </DataGrid>,
     );
     expect(results.at(-1)).toEqual({ qty: 4 });
-    // the warn fires at most once per app, so this second grid stays quiet
-    expect(warn).toHaveBeenCalledTimes(0);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   afterEach(() => warn.mockClear());

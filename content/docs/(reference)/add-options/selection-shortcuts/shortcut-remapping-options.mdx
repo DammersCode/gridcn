@@ -44,7 +44,7 @@ A `keymap` name runs the entry of the same name in `commands`. An entry named li
 
 ## DataGridKeybindingsDialog [#datagridkeybindingsdialogprops]
 
-The dialog lists the effective keymap, so it shows your overrides. Mount it inside `DataGridProvider`.
+The dialog lists the effective keymap, so it shows your overrides. It leaves out an action that does nothing on this grid. <NewBadge /> Undo and Redo need the history add-on. Fill down and Fill right need the fill add-on. Find needs the find and replace add-on. The row actions need `createRow` or `duplicateRow`. Mount it inside `DataGridProvider`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-dialog.tsx" name="DataGridKeybindingsDialogProps" />
 

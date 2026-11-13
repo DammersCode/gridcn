@@ -124,3 +124,16 @@ describe("runValidatePending", () => {
     await promise;
   });
 });
+
+describe("runValidateSync with a hostile thrown value", () => {
+  it("reports a null-prototype throw instead of throwing again", () => {
+    const result = runValidateSync(
+      () => {
+        throw Object.create(null);
+      },
+      "x",
+      {},
+    );
+    expect(result).toEqual({ error: "", thrown: true });
+  });
+});

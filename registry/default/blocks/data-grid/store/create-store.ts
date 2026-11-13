@@ -649,7 +649,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       if (dataRowIndex === undefined) continue;
       const row = nextData[dataRowIndex];
       const run = gates.begin("validateRow");
-      const verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
+      let verdict: Record<string, string> | null | PromiseLike<Record<string, string> | null>;
+      try {
+        verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
+      } catch (error) {
+        warnGateOnce("validateRow", `validateRow threw, so the row gets no verdict: ${String(error)}`);
+        continue;
+      }
       if (isThenable<Record<string, string> | null>(verdict)) {
         holdRowVerdict(rowId, run, verdict);
         continue;

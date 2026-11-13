@@ -120,7 +120,7 @@ Hooks for text, keys, and server results.
 | Hook | Returns | Meaning |
 | --- | --- | --- |
 | <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. |
-| <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. |
+| <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. It leaves out a binding that never matches: an unknown modifier, an unknown key name, or an empty key. An action with no live binding reads `[]`. |
 | <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of cell errors, keyed `"rowId:columnId"`. The server sets them with `setCellErrors`, and a column with `onInvalid: "warn"` sets them on a rejected commit. A cell renders its own error through `useDataGridCellState`. |
 | <a id="usedatagridrowsavestatus"></a>`useDataGridRowSaveStatus` | `RowSaveStatus \| undefined` | `"saving"` while the `onSave` promise of the row is pending, `"failed"` after a refusal, else `undefined`. |
 | <a id="usedatagridpendingsavecount"></a>`useDataGridPendingSaveCount` | `number` | The count of `onSave` promises that have not settled. |

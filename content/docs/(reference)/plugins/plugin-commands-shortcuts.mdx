@@ -62,7 +62,7 @@ The keymap resolves in this order, and a later step wins:
 2. The plugin keymaps, in array order.
 3. Your `keymap` prop.
 
-Inside `DataGridProvider`, `useDataGridKeymap()` returns the merged keymap, for a surface outside `DataGridRoot` such as a shortcut list.
+Inside `DataGridProvider`, `useDataGridKeymap()` returns the merged keymap without bindings that never match, for a surface outside `DataGridRoot` such as a shortcut list.
 
 When a plugin entry for `fillDown` leaves out <kbd>Mod</kbd>+<kbd>D</kbd>, the key has no binding, and the browser default of the key runs.
 

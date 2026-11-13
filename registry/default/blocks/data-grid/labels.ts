@@ -202,7 +202,7 @@ export type DataGridGridLabels = {
   errorState: string;
   /** The Retry button of the built-in error state. */
   errorRetry: string;
-  /** aria-label for the loading skeleton region (`loading && rowCount === 0`); also used as the indeterminate progress bar's aria-label when rows are present. */
+  /** Label of the screen reader progress element that the grid renders while `loading` is true. The skeleton and the bar are `aria-hidden`. */
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;

@@ -510,6 +510,22 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
     warn.mockRestore();
   });
 
+  it("looks up each visible column once, not once per columnId of every entry", () => {
+    let idReads = 0;
+    const visibleColumns = Array.from({ length: 100 }, (_, i) => ({
+      get id() {
+        idReads++;
+        return `c${i}`;
+      },
+    }));
+    const columnIds = Array.from({ length: 2000 }, (_, i) => `x${i}`);
+    columnIds[0] = "c0";
+    const entries = Array.from({ length: 20 }, (_, i) => ({ id: `e${i}`, color: "#f00", rowIds: ["0"], columnIds }));
+    const resolved = resolveHighlights(entries, new Map([["0", 0]]), visibleColumns);
+    expect(resolved).toHaveLength(20);
+    expect(idReads).toBeLessThanOrEqual(visibleColumns.length * 2);
+  });
+
   it("caps one range entry at MAX_RESOLVED_RECTS fragments and reports the excess", () => {
     // 1200 non-contiguous rows (evens only) x 1 column = 1200 fragments, above the budget
     const rowIds = Array.from({ length: 1200 }, (_, i) => String(i * 2));

@@ -123,11 +123,15 @@ export function resolveHighlights(
   maxRects: number = MAX_RESOLVED_RECTS,
 ): PresenceHighlight[] {
   const resolved: PresenceHighlight[] = [];
+  const columnIndex = new Map<string, number>();
+  visibleColumns.forEach((c, i) => {
+    if (!columnIndex.has(c.id)) columnIndex.set(c.id, i);
+  });
   for (const entry of entries) {
     if (isRowIdPresenceHighlight(entry)) {
       const viewRow = rowIdToViewRow.get(entry.rowId);
       if (viewRow === undefined) continue;
-      const col = visibleColumns.findIndex((c) => c.id === entry.columnId);
+      const col = columnIndex.get(entry.columnId) ?? -1;
       if (col === -1) {
         onDroppedColumn?.(entry);
         continue;
@@ -142,7 +146,7 @@ export function resolveHighlights(
     }
     if (isRowIdRangePresenceHighlight(entry)) {
       const viewRows = entry.rowIds.map((rowId) => rowIdToViewRow.get(rowId)).filter((v): v is number => v !== undefined);
-      const colIndexes = entry.columnIds.map((columnId) => visibleColumns.findIndex((c) => c.id === columnId));
+      const colIndexes = entry.columnIds.map((columnId) => columnIndex.get(columnId) ?? -1);
       const viewCols = colIndexes.filter((col) => col !== -1);
       if (viewRows.length === 0 || viewCols.length === 0) continue;
       if (colIndexes.some((col) => col === -1)) {

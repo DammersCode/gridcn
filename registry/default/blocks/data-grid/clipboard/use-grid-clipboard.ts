@@ -10,6 +10,7 @@ import { closestGridRoot } from "../interaction/closest-grid-root";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
+import { isColumnReadOnly } from "../store/compute";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { createWarnOnce, isThenable } from "../store/async-gate";
 import { GateRun } from "../store/gate-signal";
@@ -280,7 +281,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
       if (col >= colCount) break;
       const column = s.visibleColumns[col];
       if (!column) continue;
-      if (typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly)) continue;
+      if (isColumnReadOnly(column, row)) continue;
 
       const cellType = s.cellTypes[column.type ?? "text"];
       if (!cellType) continue;

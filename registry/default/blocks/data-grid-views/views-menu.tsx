@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type ImportViewResult, type UseDataGridViewsOptions } from "./use-data-grid-views";
-import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
+import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView, type ViewStatePart } from "./view-state";
 
 /** User-facing strings of {@link DataGridViews}. */
 export type DataGridViewsLabels = {
@@ -21,7 +21,7 @@ export type DataGridViewsLabels = {
   loadFailed: string;
   saveFailed: string;
   limit: string;
-  overLimit: string;
+  overLimit: (part: ViewStatePart) => string;
   importedName: string;
   retry: string;
   setDefault: (name: string) => string;
@@ -48,6 +48,13 @@ export type DataGridViewsLabels = {
   importFailed: (reason: Extract<ImportViewResult, { ok: false }>["reason"]) => string;
 };
 
+const OVER_LIMIT_LINES: Record<ViewStatePart, string> = {
+  sorts: "The sorts are over the view limit of 16. Remove one to save the view.",
+  filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. Remove or shorten them to save the view.",
+  search: "The search text is over the view limit of 500 characters. Shorten it to save the view.",
+  layout: "The column layout is over a view limit: a column wider than 10,000 px, a column id over 200 characters, or a layout list over 1,000 entries. Reset the layout to save the view.",
+};
+
 export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   views: "Views",
   modified: "Modified",
@@ -56,7 +63,7 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   loadFailed: "Saved views could not be loaded.",
   saveFailed: "Your last change could not be saved.",
   limit: `The limit of ${MAX_VIEWS} views is reached.`,
-  overLimit: "The filters, sorts, or search are over the view limits. Shorten them to save the view.",
+  overLimit: (part) => OVER_LIMIT_LINES[part],
   importedName: "Imported view",
   retry: "Retry",
   setDefault: (name) => `Use ${name} as the default view`,
@@ -293,7 +300,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               type="button"
               variant="outline"
               size="sm"
-              disabled={views.overLimit}
+              disabled={views.overLimit !== false}
               onClick={() => {
                 if (views.updateView()) {
                   announce(labels.updated(activeView.name));
@@ -341,7 +348,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
             </div>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
-          {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit}</p> : null}
+          {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit(views.overLimit)}</p> : null}
           {problem ? <p className="text-destructive">{problem}</p> : null}
           <p role="status" className="sr-only">
             {/* a trailing no-break space on every second message makes a repeated text change, so it is announced again */}

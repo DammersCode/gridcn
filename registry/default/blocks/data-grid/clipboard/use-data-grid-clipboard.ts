@@ -141,6 +141,8 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
   }, [storeApi, internalActions, sanitizeFormulas]);
 
   const pasteFromClipboard = useCallback(async (): Promise<PasteFromClipboardResult> => {
+    const before = storeApi.getState();
+    if (before.readOnly || before.editing) return "refused";
     let text: string;
     try {
       text = await navigator.clipboard.readText();

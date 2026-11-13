@@ -80,7 +80,7 @@ XLSX export and print cut a cell text at 32,767 characters. CSV export cuts only
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
 
-`pageSize` takes a `PrintPageSize`: `"A3"`, `"A4"`, `"Letter"`, or `"Legal"`. The printed rows are `min(maxRows, floor(500,000 / visible columns))`. `maxRows` defaults to `10,000`. Print uses the display text of each cell (`toDisplayText`, else `toText`).
+`pageSize` takes a `PrintPageSize`: `"A3"`, `"A4"`, `"Letter"`, or `"Legal"`. The printed rows are `min(maxRows, floor(500,000 / visible columns))`. `maxRows` defaults to `10,000`. `NaN` reads as the default and a negative value counts as 0. <NewBadge /> Print uses the display text of each cell (`toDisplayText`, else `toText`).
 
 ## DataGridExportButtonProps [#datagridexportbuttonprops]
 

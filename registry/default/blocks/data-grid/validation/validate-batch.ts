@@ -1,4 +1,5 @@
 import type { GridBulkValidationError, StandardSchemaV1Result } from "../types";
+import { toSafeText } from "../cell-types/safe-text";
 import { resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
 
 /** How many async cell validations may be in flight at once. A 10k-cell paste against a network-backed schema must not open 10k requests. */
@@ -54,7 +55,7 @@ function runValidateOne(item: ValidateBatchItem): ValidateResult | Promise<Stand
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? error.message : toSafeText(error);
 }
 
 /**

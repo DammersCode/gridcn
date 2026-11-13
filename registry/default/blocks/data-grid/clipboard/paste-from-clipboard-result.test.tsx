@@ -38,3 +38,24 @@ it("a paste that does not start on a readOnly grid resolves 'refused', not 'empt
 it("an empty clipboard resolves 'empty'", async () => {
   expect(await pasteResult("", false)).toBe("empty");
 });
+
+it("a readOnly grid resolves 'refused' without reading the clipboard", async () => {
+  const readText = vi.fn(() => Promise.resolve("hello"));
+  vi.stubGlobal("navigator", { ...navigator, clipboard: { readText } });
+  let clip: UseDataGridClipboardResult | null = null;
+  function Probe() {
+    clip = useDataGridClipboard();
+    return null;
+  }
+  render(
+    <DataGridProvider columns={columns} defaultData={[{ id: "a", n: "x" }]} readOnly>
+      <Probe />
+    </DataGridProvider>,
+  );
+  let result: string | undefined;
+  await act(async () => {
+    result = await clip!.pasteFromClipboard();
+  });
+  expect(result).toBe("refused");
+  expect(readText).not.toHaveBeenCalled();
+});

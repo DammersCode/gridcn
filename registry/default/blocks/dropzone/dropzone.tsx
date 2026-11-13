@@ -97,12 +97,14 @@ export type DropzoneProps = {
   disabled?: boolean;
   /** Called with accepted files and any rejections after a drop or a file-picker selection. */
   onDrop?: (acceptedFiles: File[], rejections: DropzoneRejection[]) => void;
-  /** Called when the native file read itself fails; filter rejections go through `onDrop` instead. */
+  /** Called when filtering the files or the `onDrop` callback throws; filter rejections go through `onDrop` instead. */
   onError?: (error: Error) => void;
   /** Currently held files, for `DropzoneContent`'s default rendering. */
   src?: File[];
   /** Accessible name for the drop surface. */
   "aria-label"?: string;
+  /** Screen reader description of the accepted files. Default: the accepted types in English. */
+  description?: string;
   /** Single-row layout (icon + content inline) instead of the tall centered box — for reuse in a compact spot, e.g. next to an existing preview. Default false. */
   compact?: boolean;
 };
@@ -115,7 +117,7 @@ export type DropzoneProps = {
  * the pointer crosses a child element.
  */
 export function Dropzone(props: DropzoneProps): ReactNode {
-  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, onError, src, compact = false, ...rest } = props;
+  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, onError, src, compact = false, description, ...rest } = props;
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -229,7 +231,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
           }}
         />
         <span id={`${inputId}-description`} className="sr-only">
-          {accept ? `Accepted file types: ${Object.values(accept).flat().join(", ")}.` : "All file types accepted."}
+          {description ?? (accept ? `Accepted file types: ${Object.values(accept).flat().join(", ")}.` : "All file types accepted.")}
         </span>
         {children ?? (
           <>

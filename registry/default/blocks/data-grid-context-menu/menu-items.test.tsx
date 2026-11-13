@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
+import { useDataGridStoreApi } from "../data-grid/data-grid-sdk";
 import {
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
@@ -276,6 +277,28 @@ describe("row items with only hidden checked rows", () => {
       expect(item(cell, id)?.disabled).toBeFalsy();
       expect(item(cell, id)?.tooltip).toBeUndefined();
     }
+  });
+});
+
+describe("Insert row anchor", () => {
+  it("follows the row id when the view re-sorts before the click", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    let api!: ReturnType<typeof useDataGridStoreApi>;
+    function Anchor() {
+      api = useDataGridStoreApi();
+      cell = useDefaultCellMenuItems({ row: 0, rowId: "r0", canInsertRow: true, canDuplicateRow: false, pasteBlocked: false, onPasteBlocked: () => {} });
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} createRow={() => ({ id: "new", name: "New", score: 0 })}>
+        <DataGridRoot>
+          <Anchor />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await act(async () => api.getState().actions.setSorts([{ columnId: "score", direction: "desc" }]));
+    await act(async () => item(cell, "insert-row-below")?.onClick?.());
+    expect((api.getState().data as Row[]).map((r) => r.id)).toEqual(["r0", "new", "r1"]);
   });
 });
 
