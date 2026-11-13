@@ -322,6 +322,20 @@ describe("a column id over 200 characters", () => {
     const state = { ...empty, columnLayout: { widths: {}, order: ["a", long], pins: {}, hidden: [] } } as DataGridViewState;
     expect(savableViewState(state, new Map([["a", {}], [long, {}]]))).not.toBeNull();
   });
+  it("survives save then reload of a stored document when the column is live", () => {
+    const state = {
+      sorts: [{ columnId: long, direction: "desc" }],
+      filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }],
+      searchText: "",
+      searchOptions: { matchCase: false, wholeCell: false },
+      columnLayout: { widths: { [long]: 120 }, order: [long], pins: { [long]: "left" }, hidden: [long] },
+    } as DataGridViewState;
+    const saved = savableViewState(state, live)!;
+    const stored = JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "Long", state: saved }] }));
+    expect(parseViewDocument(stored, live)!.views[0]!.state).toEqual(state);
+    expect(parseViewDocument(stored)!.views[0]!.state.sorts).toEqual([]);
+    expect(parseViewDocument(stored, new Map([["other", {}]]))!.views[0]!.state.sorts).toEqual([]);
+  });
   it("is dropped from a state read without live columns", () => {
     expect(overLimitPart({ ...empty, sorts: [{ columnId: long, direction: "asc" }] })).toBe("sorts");
     expect(overLimitPart({ ...empty, sorts: [{ columnId: "c".repeat(200), direction: "asc" }] })).toBe(false);

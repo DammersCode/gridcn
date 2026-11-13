@@ -262,7 +262,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
         return;
       }
       if (controller.signal.aborted) return;
-      const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
+      const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw, latest.current.knownColumns);
       if (!parsed) {
         reportError("load", new Error("The saved views are in an unknown format"));
         return;

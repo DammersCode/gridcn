@@ -33,7 +33,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 /** What a storage adapter persists. */
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
-/** The live columns a view is checked against; `undefined` accepts every id up to 200 characters (structure only). */
+/** The live columns a view is checked against; `undefined` accepts every id up to 200 characters (structure only); a live column id passes at any length. */
 export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
@@ -160,17 +160,21 @@ function asRecord<T extends object>(value: unknown): T | undefined {
 }
 
 /** Counts the entries beyond `cap` as dropped, then returns the first `cap`. */
-function boundedEntries<T>(entries: readonly T[], cap: number, tally: { dropped: number }): readonly T[] {
+function boundedEntries<T>(entries: readonly T[], cap: number, tally: Tally): readonly T[] {
   if (entries.length > cap) tally.dropped += entries.length - cap;
   return entries.slice(0, cap);
 }
 
-function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
+type Tally = { dropped: number; live?: ViewColumns };
+
+/** One rule for save, apply, and read: a live column id passes at any length; without a column set, an id passes up to the length cap. */
+function acceptsColumnId(id: unknown, columns: ViewColumns | undefined, tally: Tally): id is string {
   if (typeof id !== "string" || id === "" || id === "__proto__") return false;
-  return columns ? columns.has(id) : id.length <= MAX_COLUMN_ID_LENGTH;
+  if (columns) return columns.has(id);
+  return id.length <= MAX_COLUMN_ID_LENGTH || tally.live?.has(id) === true;
 }
 
-function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): SortSpec[] {
+function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: Tally): SortSpec[] {
   if (!Array.isArray(raw)) return [];
   const sorts: SortSpec[] = [];
   const seen = new Set<string>();
@@ -178,7 +182,7 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { 
     const entry = asRecord<RawSort>(item);
     const columnId = entry?.columnId;
     const direction = entry?.direction;
-    if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.sortable === false || (direction !== "asc" && direction !== "desc") || seen.has(columnId) || sorts.length >= MAX_SORTS) {
+    if (!acceptsColumnId(columnId, columns, tally) || columns?.get(columnId)?.sortable === false || (direction !== "asc" && direction !== "desc") || seen.has(columnId) || sorts.length >= MAX_SORTS) {
       tally.dropped++;
       continue;
     }
@@ -190,7 +194,7 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { 
 
 type FilterBudget = { leaves: number; groups: number };
 
-function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeFilterValue(operator: string, raw: unknown, tally: Tally): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   const text = (v: unknown): v is string => typeof v === "string" && v.length <= MAX_TEXT_LENGTH;
   if (operator === "empty" || operator === "notEmpty") return { ok: true, value: undefined };
   if (operator === "isBetween") return Array.isArray(raw) && raw.length === 2 && text(raw[0]) && text(raw[1]) ? { ok: true, value: [raw[0], raw[1]] } : { ok: false };
@@ -221,7 +225,7 @@ function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown): 
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 
-function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: Tally): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   if (typeof operator !== "string") return { ok: false };
   if (FILTER_OPERATOR_IDS.has(operator)) return sanitizeFilterValue(operator, raw, tally);
   if (operator.length === 0 || operator.length > MAX_OPERATOR_ID_LENGTH) return { ok: false };
@@ -231,7 +235,7 @@ function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknow
   return input ? sanitizeCustomValue(input, raw) : { ok: false };
 }
 
-function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: { dropped: number }): FilterNode[] {
+function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: Tally): FilterNode[] {
   if (!Array.isArray(raw)) return [];
   const out: FilterNode[] = [];
   for (const item of boundedEntries(raw, MAX_FILTERS * 4, tally)) {
@@ -254,7 +258,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
     }
     const { columnId, operator } = entry;
     const value = sanitizeOperatorValue(operator, columnId, entry.value, columns, tally);
-    if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
+    if (!acceptsColumnId(columnId, columns, tally) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
       tally.dropped++;
       continue;
     }
@@ -266,28 +270,28 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
   return out;
 }
 
-function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): string[] {
+function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: Tally): string[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
   for (const id of boundedEntries(raw, MAX_LAYOUT_ENTRIES, tally)) {
-    if (acceptsColumnId(id, columns) && !seen.has(id)) seen.add(id);
+    if (acceptsColumnId(id, columns, tally) && !seen.has(id)) seen.add(id);
     else tally.dropped++;
   }
   return [...seen];
 }
 
-function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): ColumnLayout {
+function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: Tally): ColumnLayout {
   const layout = asRecord<RawLayout>(raw) ?? {};
   const widths: [string, number][] = [];
   const pins: [string, "left" | "right"][] = [];
   const widthEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, width] of widthEntries) {
-    if (acceptsColumnId(id, columns) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
+    if (acceptsColumnId(id, columns, tally) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
     else tally.dropped++;
   }
   const pinEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, side] of pinEntries) {
-    if (acceptsColumnId(id, columns) && (side === "left" || side === "right")) pins.push([id, side]);
+    if (acceptsColumnId(id, columns, tally) && (side === "left" || side === "right")) pins.push([id, side]);
     else tally.dropped++;
   }
   return {
@@ -302,10 +306,10 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: {
  * Checks untrusted view state: unknown shapes, operators, and columns drop, lists and strings are
  * bounded. `dropped` counts every rejected or cut entry so the caller can tell the user; text cut to its limit is not counted.
  */
-export function sanitizeViewState(raw: unknown, columns: ViewColumns | undefined): { state: DataGridViewState; dropped: number } {
+export function sanitizeViewState(raw: unknown, columns: ViewColumns | undefined, live?: ViewColumns): { state: DataGridViewState; dropped: number } {
   const source = asRecord<RawState>(raw);
   if (!source) return { state: emptyViewState(), dropped: 0 };
-  const tally = { dropped: 0 };
+  const tally: Tally = { dropped: 0, live };
   const options = asRecord<RawSearchOptions>(source.searchOptions) ?? {};
   return {
     state: {
@@ -323,8 +327,8 @@ export function cleanViewName(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().slice(0, MAX_VIEW_NAME_LENGTH) : "";
 }
 
-/** Reads a stored document, or `null` when `raw` is not a version 1 document. Column ids are not checked here: a view keeps the columns that return later. */
-export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
+/** Reads a stored document, or `null` when `raw` is not a version 1 document. A view keeps the columns that return later, so an id passes up to the length cap; an id of a `live` column passes at any length. */
+export function parseViewDocument(raw: unknown, live?: ViewColumns): DataGridViewsDocument | null {
   const source = asRecord<RawDocument>(raw);
   if (!source || source.version !== 1 || !Array.isArray(source.views)) return null;
   const views: DataGridView[] = [];
@@ -337,7 +341,7 @@ export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
     const name = cleanViewName(entry?.name);
     if (name === "") continue;
     ids.add(id);
-    views.push({ id, name, state: sanitizeViewState(entry?.state, undefined).state });
+    views.push({ id, name, state: sanitizeViewState(entry?.state, undefined, live).state });
   }
   const defaultViewId = typeof source.defaultViewId === "string" && ids.has(source.defaultViewId) ? source.defaultViewId : null;
   return { version: 1, defaultViewId, views };

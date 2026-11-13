@@ -125,7 +125,7 @@ Pass it as `storage`. A thrown error from `save` shows in the popover with a Ret
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filterOperators` keeps a value of the shape its `input` names. Any other shape drops the filter.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
 - A view keeps at most 16 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
-- A column id over 200 characters goes away when the stored document loads. It also goes away from a view file, unless a column of the grid has that id. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
+- A column id of the grid passes at any length. Any other column id over 200 characters goes away when the stored document loads and when you import a view file. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
 
