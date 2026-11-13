@@ -4,6 +4,7 @@ import {
   MAX_VIEW_NAME_LENGTH,
   captureViewState,
   overLimitPart,
+  savableViewState,
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
@@ -301,8 +302,9 @@ describe("view files", () => {
   });
 });
 
-describe("overLimitPart for a column id over 200 characters", () => {
+describe("a column id over 200 characters", () => {
   const long = "c".repeat(201);
+  const live: ViewColumns = new Map([[long, {}]]);
   const empty = { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
   it.each([
     ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
@@ -311,10 +313,17 @@ describe("overLimitPart for a column id over 200 characters", () => {
     ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "left" }, hidden: [] } }],
     ["the order", { columnLayout: { widths: {}, order: [long], pins: {}, hidden: [] } }],
     ["the hidden list", { columnLayout: { widths: {}, order: [], pins: {}, hidden: [long] } }],
-  ])("names columnId for %s, not the part that holds it", (_name, change) => {
-    expect(overLimitPart({ ...empty, ...change } as DataGridViewState)).toBe("columnId");
+  ])("is not over a limit for %s when the column is live", (_name, change) => {
+    const state = { ...empty, ...change } as DataGridViewState;
+    expect(overLimitPart(state, live)).toBe(false);
+    expect(savableViewState(state, live)).not.toBeNull();
   });
-  it("keeps a column id of exactly 200 characters", () => {
+  it("stays savable for an untouched live column with the full order", () => {
+    const state = { ...empty, columnLayout: { widths: {}, order: ["a", long], pins: {}, hidden: [] } } as DataGridViewState;
+    expect(savableViewState(state, new Map([["a", {}], [long, {}]]))).not.toBeNull();
+  });
+  it("is dropped from a state read without live columns", () => {
+    expect(overLimitPart({ ...empty, sorts: [{ columnId: long, direction: "asc" }] })).toBe("sorts");
     expect(overLimitPart({ ...empty, sorts: [{ columnId: "c".repeat(200), direction: "asc" }] })).toBe(false);
   });
 });

@@ -44,6 +44,20 @@ describe("gate abort reasons", () => {
     expect(onGateAborted).toHaveBeenCalledWith({ gate: "onEditStart", reason: "changed" });
   });
 
+  it("an onGateAborted that throws a value without a string form does not break the abort", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({
+      onGateAborted: () => {
+        throw Object.create(null);
+      },
+      onEditStart: () => new Promise<boolean>(() => {}),
+    });
+    act(() => m.state().actions.selectCellAt({ row: 0, col: 0 }));
+    act(() => m.state().actions.startEditingAt({ row: 0, col: 0 }));
+    expect(() => act(() => m.state().actions.selectCellAt({ row: 1, col: 0 }))).not.toThrow();
+    await flush();
+  });
+
   it("a second startEditing while onEditStart is pending starts no newer run", () => {
     const gate = vi.fn(() => new Promise<boolean>(() => {}));
     const m = mount({ onEditStart: gate });

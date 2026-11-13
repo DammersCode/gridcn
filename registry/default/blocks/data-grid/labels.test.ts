@@ -47,6 +47,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
     expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1000 rows");
     expect(DEFAULT_LABELS.io.sheet).toBe("Sheet");
+    expect(DEFAULT_LABELS.io.acceptedTypes(".csv, .xlsx", "up to 50 MB")).toBe("Accepted types: .csv, .xlsx — up to 50 MB");
     expect(DEFAULT_LABELS.io.maxFileSize(50 * 1024 * 1024)).toBe("up to 50 MB");
     expect(DEFAULT_LABELS.io.maxFileSize(1536 * 1024)).toBe("up to 1.5 MB");
     expect(DEFAULT_LABELS.io.maxFileSize(512 * 1024)).toBe("up to 512 KB");

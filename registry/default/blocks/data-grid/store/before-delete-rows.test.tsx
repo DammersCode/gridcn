@@ -186,6 +186,33 @@ describe("onBeforeDeleteRows", () => {
     expect(rejecting.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
   });
 
+  it("cancels the delete when the gate throws or rejects a value without a string form", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const throwing = mount(() => {
+      throw Object.create(null);
+    });
+    expect(() => act(() => throwing.state().actions.deleteRows([0]))).not.toThrow();
+    expect(throwing.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
+
+    const rejecting = mount(() => Promise.reject(Object.create(null)));
+    act(() => rejecting.state().actions.deleteRows([0]));
+    await flush();
+    expect(rejecting.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("returns the skip when onRowActionSkipped throws a value without a string form", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount(undefined, {
+      readOnly: true,
+      onRowActionSkipped: () => {
+        throw Object.create(null);
+      },
+    });
+    let result: unknown;
+    expect(() => act(() => void (result = m.state().actions.deleteRows([0])))).not.toThrow();
+    expect(result).toMatchObject({ ok: false, reason: "readOnly" });
+  });
+
   it("does not run for a readOnly grid", () => {
     const gate = vi.fn<Gate>(() => true);
     const m = mount(gate, { readOnly: true });

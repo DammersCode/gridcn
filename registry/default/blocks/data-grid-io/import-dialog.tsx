@@ -273,7 +273,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const dropzoneDescription = `${labels.io.chooseFile}: ${Object.values(accept).flat().join(", ")} — ${labels.io.maxFileSize(maxFileBytes)}`;
+  const dropzoneDescription = labels.io.acceptedTypes(Object.values(accept).flat().join(", "), labels.io.maxFileSize(maxFileBytes));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

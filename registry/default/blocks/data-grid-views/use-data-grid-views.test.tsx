@@ -686,6 +686,30 @@ describe("useDataGridViews limits", () => {
     expect(probe.current!.views.activeView!.name).toBe("Fine");
   });
 
+  it("a grid with a column id over 200 characters can save, sort on it, and reads as not modified", async () => {
+    const longId = "c".repeat(201);
+    const longColumns = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
+      { id: longId, header: "Age", accessorKey: "age", type: "number", width: 80 },
+    ] as never);
+    const probe: { current: Probe | null } = { current: null };
+    render(
+      <DataGridProvider data={rows} columns={longColumns} getRowId={(r) => r.id}>
+        <Harness options={{ storage: createMemoryViewsStorage() }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>,
+    );
+    await ready(probe);
+    expect(probe.current!.views.overLimit).toBe(false);
+    act(() => probe.current!.actions.setSorts([{ columnId: longId, direction: "desc" }]));
+    expect(probe.current!.views.overLimit).toBe(false);
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Long id");
+    });
+    expect(saved).not.toBeNull();
+    expect(probe.current!.views.modified).toBe(false);
+  });
+
   it("17 sorts are refused and 16 are saved", async () => {
     const probe = await setupWide();
     act(() => probe.current!.actions.setSorts(Array.from({ length: 16 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));

@@ -127,9 +127,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const applyTokenRef = useRef(0);
   const hookControllerRef = useRef<AbortController | null>(null);
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
-  const [openedFromGrid] = useState(() => {
+  const [opener] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
-    return grid !== null && grid.contains(document.activeElement);
+    return grid !== null && grid.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
   });
 
   useEffect(() => {
@@ -154,7 +154,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const closePanel = () => {
     panelStore.close();
-    if (openedFromGrid) api.focus();
+    if (!opener) return;
+    if (opener.isConnected && opener.closest("[role='columnheader']")) opener.focus();
+    else api.focus();
   };
 
   useLayoutEffect(() => {

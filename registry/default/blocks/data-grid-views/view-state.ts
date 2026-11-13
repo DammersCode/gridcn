@@ -33,7 +33,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 /** What a storage adapter persists. */
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
-/** The live columns a view is checked against; `undefined` accepts every id (structure only). */
+/** The live columns a view is checked against; `undefined` accepts every id up to 200 characters (structure only). */
 export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
@@ -110,8 +110,8 @@ function sortKeys(_key: string, value: unknown): unknown {
 
 export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
 
-/** The part of a view state that a view limit cuts: a {@link ViewStatePart}, or `"columnId"` for a column id over 200 characters. */
-export type OverLimitPart = ViewStatePart | "columnId";
+/** The part of a view state that a view limit cuts. */
+export type OverLimitPart = ViewStatePart;
 
 /** One string per part of a state; equal strings mean the part restores the same grid. */
 export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart, string> {
@@ -132,27 +132,16 @@ export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
 }
 
-function filterColumnIds(nodes: readonly FilterNode[]): string[] {
-  return nodes.flatMap((node) => (isFilterGroup(node) ? filterColumnIds(node.filters) : [node.columnId]));
-}
-
-function hasLongColumnId(state: DataGridViewState): boolean {
-  const { widths, pins, order, hidden } = state.columnLayout;
-  const ids = [...state.sorts.map((sort) => sort.columnId), ...filterColumnIds(state.filters), ...Object.keys(widths), ...Object.keys(pins), ...order, ...hidden];
-  return ids.some((id) => id.length > MAX_COLUMN_ID_LENGTH);
-}
-
-/** The part of `state` that a view limit would cut or drop, or `false` when none. `"columnId"` is a column id over 200 characters anywhere in the state. Layout covers a width over 10,000 px and a list over 1,000 entries. */
-export function overLimitPart(state: DataGridViewState): OverLimitPart | false {
-  if (hasLongColumnId(state)) return "columnId";
-  const kept = viewPartKeys(sanitizeViewState(state, undefined).state);
+/** The part of `state` that a view limit would cut or drop, or `false` when none. A column id in `columns` passes at any length. Layout covers a width over 10,000 px and a list over 1,000 entries. */
+export function overLimitPart(state: DataGridViewState, columns?: ViewColumns): OverLimitPart | false {
+  const kept = viewPartKeys(sanitizeViewState(state, columns).state);
   const wanted = viewPartKeys(state);
   return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
 }
 
 /** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */
-export function savableViewState(state: DataGridViewState): DataGridViewState | null {
-  const clean = sanitizeViewState(state, undefined).state;
+export function savableViewState(state: DataGridViewState, columns?: ViewColumns): DataGridViewState | null {
+  const clean = sanitizeViewState(state, columns).state;
   return viewStateKey(clean) === viewStateKey(state) ? clean : null;
 }
 
@@ -177,8 +166,8 @@ function boundedEntries<T>(entries: readonly T[], cap: number, tally: { dropped:
 }
 
 function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
-  if (typeof id !== "string" || id === "" || id.length > MAX_COLUMN_ID_LENGTH || id === "__proto__") return false;
-  return columns === undefined || columns.has(id);
+  if (typeof id !== "string" || id === "" || id === "__proto__") return false;
+  return columns ? columns.has(id) : id.length <= MAX_COLUMN_ID_LENGTH;
 }
 
 function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): SortSpec[] {

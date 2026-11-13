@@ -194,6 +194,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
   const api = useDataGridApi();
   const [open, setOpen] = useState(false);
   const keyboardOpenedRef = useRef(false);
+  const openerRef = useRef<HTMLElement | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const columnLabel = columnLabelText(column);
 
@@ -201,7 +202,11 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
     <Popover
       open={open}
       onOpenChange={(next, details) => {
-        if (next) keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        if (next) {
+          keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+          const focused = document.activeElement as HTMLElement | null;
+          openerRef.current = keyboardOpenedRef.current && focused?.closest("[role='columnheader']") ? focused : null;
+        }
         setOpen(next);
       }}
     >
@@ -229,7 +234,10 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;
           const focusIsFree = !active || active === document.body || active.closest("[data-grid-header-filter-popup], [data-grid-header-filter-trigger]") !== null;
-          if (focusIsFree) api.focus();
+          if (focusIsFree) {
+            if (openerRef.current?.isConnected) openerRef.current.focus();
+            else api.focus();
+          }
           return false;
         }}
       >

@@ -32,6 +32,7 @@ import {
   type PrevalidatedPatches,
   warnDev,
 } from "./commit";
+import { toSafeText } from "../cell-types/safe-text";
 import { createWarnOnce, isThenable } from "./async-gate";
 import { reportRowActionSkipped, type RowActionName } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
@@ -842,7 +843,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     try {
       verdict = confirm({ rowIds, hiddenCount, signal: run.signal });
     } catch (error) {
-      warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
+      warnGateOnce("threw", () => `onBeforeDeleteRows threw, so the delete is cancelled: ${toSafeText(error)}`);
       return skippedBy("deleteRows", "gate-threw");
     }
     if (typeof verdict === "boolean") {
@@ -867,7 +868,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (confirmed === true && !changed(get())) deleteDataRows(dataRowIndexes);
       },
       (error: unknown) => {
-        if (finish()) warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+        if (finish()) warnGateOnce("rejected", () => `onBeforeDeleteRows rejected, so the delete is cancelled: ${toSafeText(error)}`);
       },
     );
     return OK;
@@ -982,7 +983,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("createRow rejected", `createRow rejected, so the insert is cancelled: ${String(error)}`);
+        warnGateOnce("createRow rejected", () => `createRow rejected, so the insert is cancelled: ${toSafeText(error)}`);
       },
     );
   };
@@ -1020,7 +1021,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("duplicateRow rejected", `duplicateRow rejected, so the duplicate is cancelled: ${String(error)}`);
+        warnGateOnce("duplicateRow rejected", () => `duplicateRow rejected, so the duplicate is cancelled: ${toSafeText(error)}`);
       },
     );
   };

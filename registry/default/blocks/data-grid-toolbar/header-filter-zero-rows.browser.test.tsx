@@ -71,6 +71,49 @@ describe("header filter trigger while the view has no rows", () => {
     await vi.waitFor(() => expect(onFilterChange).toHaveBeenLastCalledWith([]));
   });
 
+  it.each([
+    ["column menu", "{ArrowDown}", "[data-grid-header-dropdown]"],
+    ["column filter", "{ArrowUp}", "[data-grid-header-filter-popup]"],
+  ] as const)("Escape from the %s opened by the keyboard from the focused filter button returns the focus to that button", async (_name, arrow, popupSelector) => {
+    const filter: FilterNode[] = [{ filterId: "f", columnId: "city", operator: "isAnyOf", value: ["Nowhere"] }];
+    await render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} defaultFilterState={filter}>
+        <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />} renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(trigger()).toBeTruthy());
+    trigger().focus();
+    await userEvent.keyboard(`{Shift>}{Alt>}${arrow}{/Alt}{/Shift}`);
+    await vi.waitFor(() => expect(document.querySelector(popupSelector)).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.querySelector(popupSelector)).toBeFalsy());
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger()));
+  });
+
+  it("Shift+Alt+ArrowDown on a focused filter button opens its own column, not the column of the active cell", async () => {
+    const twoColumns = defineColumns<Row & { name: string }>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 160 },
+      { id: "city", header: "City", accessorKey: "city", type: "text", width: 160 },
+    ] as const);
+    await render(
+      <DataGridProvider data={rows.map((r) => ({ ...r, name: "n" }))} columns={twoColumns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />} renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    const expandedColumns = () => [...document.querySelectorAll<HTMLElement>(`${gridAttrSelector("headerMenuTrigger")}[aria-expanded="true"]`)].map((t) => t.closest<HTMLElement>("[data-column-id]")!.dataset["columnId"]);
+    await vi.waitFor(() => expect(document.querySelector('[role="gridcell"][aria-colindex="1"]')).toBeTruthy());
+    await userEvent.click(document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]')!);
+    document.querySelector<HTMLElement>(`[data-column-id="city"] ${gridAttrSelector("headerFilterTrigger")}`)!.focus();
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(expandedColumns()).toEqual(["city"]));
+  });
+
   it("a column with a filter button has one tab stop: the filter button, not the menu button", async () => {
     await render(
       <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(r) => r.id}>

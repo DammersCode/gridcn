@@ -1,3 +1,4 @@
+import { toSafeText } from "../cell-types/safe-text";
 import { warnDev } from "./commit";
 import type { DataGridStoreState, RowActionResult, RowActionSkipReason } from "./types";
 
@@ -10,7 +11,7 @@ export function reportRowActionSkipped(state: Pick<DataGridStoreState, "onRowAct
     try {
       handler({ action, reason });
     } catch (error) {
-      warnDev(`onRowActionSkipped threw: ${String(error)}`);
+      warnDev(`onRowActionSkipped threw: ${toSafeText(error)}`);
     }
   }
   return { ok: false, reason };

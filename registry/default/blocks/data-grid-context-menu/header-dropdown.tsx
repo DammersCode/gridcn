@@ -64,11 +64,15 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
   const inheritedResolver = useContext(DataGridHeaderMenuItemsContext);
   const api = useDataGridApi();
   const keyboardOpenedRef = useRef(false);
+  const openerRef = useRef<HTMLElement | null>(null);
 
   return (
     <DropdownMenu
       onOpenChange={(open, details) => {
-        if (open) keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        if (!open) return;
+        keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        const focused = document.activeElement as HTMLElement | null;
+        openerRef.current = keyboardOpenedRef.current && focused?.closest("[role='columnheader']") ? focused : null;
       }}
     >
       <DropdownMenuTrigger render={trigger} />
@@ -85,7 +89,10 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;
           const focusIsFree = !active || active === document.body || active.closest("[data-grid-header-menu-popup], [" + GRID_ATTR.headerMenuTrigger + "]") !== null;
-          if (focusIsFree) api.focus();
+          if (focusIsFree) {
+            if (openerRef.current?.isConnected) openerRef.current.focus();
+            else api.focus();
+          }
           return false;
         }}
       >

@@ -11,7 +11,7 @@ The `keymap` is one data table that binds keys to grid actions. The grid handles
 
 With zero rows, no cell can take focus. Each column header then has one tab stop. It is the filter button, or the menu button when the column has no filter button. Press <kbd>Enter</kbd> or <kbd>Space</kbd> on the filter button to open it and clear the filter that emptied the grid.
 
-With a filter button focused, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> opens the column menu of that column. It works with `DataGridHeaderDropdown` alone, without `DataGridContextMenu`. The grid uses the column of the focused header button when no cell is active. A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with or without <kbd>Shift</kbd>. Every other key, such as <kbd>ArrowRight</kbd> and <kbd>Delete</kbd>, still goes to the grid.
+With a header button focused, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> opens the column menu of that column, even when a cell in another column is active. It works with `DataGridHeaderDropdown` alone, without `DataGridContextMenu`. Without a focused header button, the grid uses the column of the active cell. A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with or without <kbd>Shift</kbd>. Every other key, such as <kbd>ArrowRight</kbd> and <kbd>Delete</kbd>, still goes to the grid.
 
 ## Keyboard map [#keyboard-map]
 

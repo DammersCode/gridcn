@@ -53,7 +53,6 @@ const OVER_LIMIT_LINES: Record<OverLimitPart, string> = {
   filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. Remove or shorten them to save the view.",
   search: "The search text is over the view limit of 500 characters. Shorten it to save the view.",
   layout: "The column layout is over a view limit: a column wider than 10,000 px or a layout list over 1,000 entries. Reset the layout to save the view.",
-  columnId: "A column id is over the view limit of 200 characters, so a view cannot hold a sort, filter, or layout setting for that column. Remove those settings to save the view.",
 };
 
 export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {

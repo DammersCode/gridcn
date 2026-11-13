@@ -308,7 +308,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         try {
           onGateAborted({ gate, reason });
         } catch (error) {
-          warnDev(`onGateAborted threw: ${String(error)}`);
+          warnDev(`onGateAborted threw: ${toSafeText(error)}`);
         }
       }
     },
