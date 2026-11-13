@@ -121,7 +121,7 @@ describe("find and replace in a browser", () => {
     await expect.element(status).toHaveTextContent("2 of 27 cells");
   });
 
-  it("a single Replace keeps the position on the next match instead of restarting", async () => {
+  it("a single Replace on the last match wraps to the first match, and Enter steps on from there", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
     await userEvent.keyboard("{Control>}h{/Control}");
@@ -135,9 +135,10 @@ describe("find and replace in a browser", () => {
     await page.getByRole("textbox", { name: "Replace with" }).fill("pin");
     await page.getByRole("button", { name: "Replace", exact: true }).click();
     await expect.element(status).toHaveTextContent("1 replaced");
+    await expect.element(page.getByRole("gridcell", { name: "needle 5" })).toHaveAttribute("tabindex", "0");
     await page.getByRole("textbox", { name: "Find" }).click();
     await userEvent.keyboard("{Enter}");
-    await expect.element(page.getByRole("gridcell", { name: "needle 5" })).toHaveAttribute("tabindex", "0");
+    await expect.element(page.getByRole("gridcell", { name: "needle 15" })).toHaveAttribute("tabindex", "0");
   });
 
   it("Next match button keeps focus on the button and opens no editor", async () => {
