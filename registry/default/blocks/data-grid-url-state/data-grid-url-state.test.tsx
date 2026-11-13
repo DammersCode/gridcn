@@ -154,6 +154,11 @@ describe("DataGridUrlState mount-apply", () => {
     expect(getState().search).toBe("alice");
   });
 
+  it("cuts the search text from the URL to 500 characters", () => {
+    const { getState } = renderGrid({ searchParams: `?q=${"a".repeat(600)}` });
+    expect(getState().search).toHaveLength(500);
+  });
+
   it("falls back to defaults silently for malformed URL params", () => {
     const { getState } = renderGrid({ searchParams: "?sort=!!!garbage!!!&filter=also-garbage" });
     expect(getState().sort).toEqual([]);

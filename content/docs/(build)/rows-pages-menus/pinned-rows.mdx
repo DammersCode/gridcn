@@ -146,7 +146,7 @@ function TotalsGrid() {
 }
 ```
 
-A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not `null` or `undefined`. The aggregate ignores a spec key that matches no column id and warns once in development.
+A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers <NewBadge /> use finite numbers only, so they skip numeric strings and dates. `count` counts the values that are not `null` or `undefined`. A function receives every value, so use one for dates or numeric strings. The aggregate ignores a spec key that matches no column id and warns once in development.
 
 <Callout type="warn" title="Keep the band arrays stable">
   `useDataGridPinnedRows` returns a stable `plugin` only while `topRows` and `bottomRows` keep their identity and `status` keeps its value. A fresh array on every render rebuilds the plugin on every render. Memoize the arrays, as the sample does.

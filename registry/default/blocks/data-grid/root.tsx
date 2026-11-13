@@ -696,7 +696,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                     columnCount={visibleColumns.length}
                     rowHeight={rowHeight}
                     headerHeight={effectiveHeaderHeight}
-                    ariaLabel={gridLabels.loading}
                   />
                 ))}
               {showLoadingBar &&
@@ -776,7 +775,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
           </div>
         </div>
       </div>
-      {showLoadingBar && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
+      {loading && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
     </DataGridRootContext>
     </DirectionProvider>
   );

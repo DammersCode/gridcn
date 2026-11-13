@@ -5,7 +5,7 @@ import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Built-in reducers skip `null` and `undefined` values; `sum`/`avg`/`min`/`max` give `undefined` when no value is left. A function receives every resolved value plus its source rows (empty values included — unlike the built-ins, a custom reducer owns its own empty handling). `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
+/** `count` counts every value that is not `null` or `undefined`. `sum`/`avg`/`min`/`max` reduce over finite numbers only (a numeric string, `NaN`, or a `Date` is skipped) and give `undefined` when none is left. A function receives every resolved value plus its source rows (empty values included, so a custom reducer owns its own empty handling). Use a function to aggregate dates or numeric strings. `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
 
 /** One reducer per column id to aggregate. */
@@ -38,9 +38,8 @@ function aggregateColumn<TData>(reducer: AggregateReducer<TData>, column: AnyCol
   // Boundary cast: the store keeps rows as unknown[], the user's reducer gets them typed.
   if (typeof reducer === "function") return reducer(values, rows as readonly TData[]);
 
-  const nonEmpty = values.filter((v) => v !== null && v !== undefined);
-  if (reducer === "count") return nonEmpty.length;
-  if (NUMERIC_REDUCERS.has(reducer)) return reduceNumeric(reducer, nonEmpty as number[]);
+  if (reducer === "count") return values.filter((v) => v !== null && v !== undefined).length;
+  if (NUMERIC_REDUCERS.has(reducer)) return reduceNumeric(reducer, values.filter((v): v is number => typeof v === "number" && Number.isFinite(v)));
   return undefined;
 }
 

@@ -117,6 +117,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
+| paste result | The value `pasteFromClipboard` resolves: `"ok"` (a paste started), `"permission-denied"` (the browser denied the clipboard read), `"empty"` (the clipboard held no text), or `"refused"` (the grid started no paste). | paste outcome |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |

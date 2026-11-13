@@ -357,6 +357,7 @@ describe("isPrintableKey", () => {
 
   it("accepts an AltGr character (Ctrl+Alt with altGraph) but not Ctrl+Alt+key without it", () => {
     expect(isPrintableKey(makeEvent({ key: "@", ctrlKey: true, altKey: true, altGraph: true }))).toBe(true);
+    expect(isPrintableKey(makeEvent({ key: "@", ctrlKey: true, altKey: true, altGraph: true }), true)).toBe(false);
     expect(isPrintableKey(makeEvent({ key: "ł", ctrlKey: true, altKey: true, altGraph: true }))).toBe(true);
     expect(isPrintableKey(makeEvent({ key: "c", ctrlKey: true, altKey: true }))).toBe(false);
     expect(isPrintableKey(makeEvent({ key: "@", ctrlKey: true, altGraph: true }))).toBe(false);

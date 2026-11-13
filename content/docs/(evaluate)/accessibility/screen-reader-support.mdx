@@ -66,8 +66,8 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 ### Loading state [#aria-busy-and-loading]
 
 - The root has `aria-busy="true"` while `loading` is true.
-- With `loading` and zero rows, the skeleton block has `role="presentation"` and an `aria-label` from `labels.grid.loading`.
-- With `loading` and rows present, a slim bar shows. The bar is hidden from the accessibility tree. A visually hidden `role="progressbar"` outside the grid announces it, with `aria-label` and `aria-valuetext` from `labels.grid.loading`.
+- The skeleton (zero rows) and the slim bar (rows present) are hidden from the accessibility tree.
+- While the grid draws its own loading state, a visually hidden `role="progressbar"` outside the grid exposes `aria-label` and `aria-valuetext` from `labels.grid.loading`. <NewBadge /> A screen reader does not read it aloud.
 - A custom `loadingState` replaces the skeleton or the bar. The grid adds no role, label, or progressbar. The node owns its accessibility.
 - In scroll mode, a row and its cells that have not arrived have `aria-busy="true"`.
 
@@ -83,7 +83,7 @@ The region waits 500 ms after the last change. A marker range drag gets one read
 
 With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers every page, like the footer.
 
-A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
+A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. A load that began with zero rows also reads its result count. <NewBadge /> See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
 
 `announceResults` is a `boolean` grid prop with the default `false`. [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
 

@@ -172,6 +172,43 @@ describe("useDataGridAggregate — empty-value skipping", () => {
   });
 });
 
+describe("useDataGridAggregate — values that are not finite numbers", () => {
+  type MixedRow = { id: string; amount: unknown };
+  const mixedColumns: readonly ColumnDef<MixedRow, unknown>[] = [{ id: "amount", header: "Amount", accessorKey: "amount", width: 80 }];
+  const mixed: MixedRow[] = [{ id: "a", amount: 3 }, { id: "b", amount: "5" }, { id: "c", amount: Number.NaN }, { id: "d", amount: 7 }];
+
+  function aggregateOf(reducer: AggregateSpecs["amount"]): unknown {
+    let value: unknown;
+    function Probe() {
+      value = useDataGridAggregate({ amount: reducer })["amount"];
+      return null;
+    }
+    render(
+      <DataGrid data={mixed} columns={mixedColumns} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGrid>,
+    );
+    return value;
+  }
+
+  it.each([
+    ["sum", 10],
+    ["avg", 5],
+    ["min", 3],
+    ["max", 7],
+  ] as const)("%s reduces over finite numbers only", (reducer, expected) => {
+    expect(aggregateOf(reducer)).toBe(expected);
+  });
+
+  it("count counts every non-empty value", () => {
+    expect(aggregateOf("count")).toBe(4);
+  });
+
+  it("a function reducer receives every value", () => {
+    expect(aggregateOf((values) => values.length)).toBe(4);
+  });
+});
+
 describe("useDataGridAggregate — filter-awareness", () => {
   it("reduces over the filtered view by default, and the aggregate changes when a filter is applied", () => {
     const results: Record<string, unknown>[] = [];

@@ -12,7 +12,7 @@ export type CsvDelimiter = "," | ";" | "\t" | "|";
  * (xlsx/xls) or by the parser's own row callback and a delimiter count (CSV). A file over a cap is rejected, never truncated.
  */
 export const DEFAULT_IMPORT_LIMITS = {
-  /** Maximum file size in bytes; default 50 MB. */
+  /** Maximum file size in bytes; default 50 MiB. */
   maxFileBytes: 50 * 1024 * 1024,
   /** Maximum rows, header row included; default 1,000,000. */
   maxRows: 1_000_000,

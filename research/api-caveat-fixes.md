@@ -75,6 +75,11 @@ Low value, touches the context-menu resolver contract; only worth doing together
 ### F14 (done, see the pagination wave below)
 One shared `{ ok: false, reason }` result for every mode-dependent row action touches a dozen actions, their menu and shortcut gating, and the return types. Spec below.
 
+### sortLocale (done, see `research/sort-locale-spec.md`)
+- Before: a text sort followed the language of the runtime, so a server and a browser disagreed.
+- After: the sort language is `"en-US"`, and `sortLocale` sets another tag. A developer who wants the runtime language passes `sortLocale={navigator.language}` after mount, or sets a column `sortCompare`. Nothing is removed.
+- SDK: `sortCollator()` and `withSortLocale()` stay synchronous; a promise from the callback warns once in development.
+
 ## The pagination wave (F1, F4, F5, F18) and F14: done
 
 **F1, paginate the view.** `DataGridProvider` takes `pageSize` / `defaultPageSize`, `page` / `defaultPage`, `onPageChange`, `onPageSizeChange`; `actions.setPage` / `setPageSize`. The store keeps the full sorted and filtered list; `viewIndex` holds the shown page and `fullViewOf(viewIndex)` returns the full list (a module `WeakMap`, so the 9 view-building call sites changed by one argument). A filter change goes back to page 1 and calls `onPageChange(1)`; a page past the end shows the last. `reorderRows`, inserts, and deletes treat a page like an active sort. The pager comes from `useDataGridPager()`; `<DataGridPaginationBar />` with no props reads it. Aggregates (`useDataGridAggregate`, scope view) and `exportGrid` (scope view) read the full view.

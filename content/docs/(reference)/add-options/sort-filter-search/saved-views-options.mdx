@@ -33,6 +33,7 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 | `loadFailed` | `Saved views could not be loaded.` | none |
 | `saveFailed` | `Your last change could not be saved.` | none |
 | `limit` | The limit of 50 views is reached. | none |
+| `overLimit` <NewBadge /> | The filters, sorts, or search are over the view limits. Shorten them to save the view. | none |
 | `importedName` | Imported view | none |
 | `retry` | Retry | none |
 | `setDefault` | Use `{name}` as the default view | `name` |
@@ -67,6 +68,7 @@ The result reads and changes the views:
 
 - `activeViewId` and `activeView` name the open view, or are `null`.
 - `modified` is `true` when the grid differs from the active view.
+- `overLimit` <NewBadge /> is `true` when the grid state exceeds a view limit. `saveView` then returns `null` and `updateView` returns `false`. See [Limits](/docs/sort-filter-search/saved-views#limits).
 - `defaultViewId` names the view that opens first.
 - `selectView(id)` opens a view. `saveView(name)` saves the grid state under a name. `updateView(id)` replaces a view with the grid state. `renameView(id, name)` and `deleteView(id)` edit the list. `setDefaultView(id)` picks the default view.
 

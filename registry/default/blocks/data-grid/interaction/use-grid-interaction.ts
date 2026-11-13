@@ -1075,7 +1075,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (lastKeyEvent.current === event.nativeEvent) return;
       lastKeyEvent.current = event.nativeEvent;
 
-      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it.
+      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it; a focused header trigger keeps Enter and Space for its click.
       const target = event.target as HTMLElement | null;
       const fromEditorInput =
         target !== null &&
@@ -1083,6 +1083,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
           target.isContentEditable ||
           target.closest(gridAttrSelector("cellEditor")) !== null ||
+          target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}`) !== null ||
           !event.currentTarget.contains(target));
 
       const state = storeApi.getState();
@@ -1111,7 +1112,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           scrollRef,
           scrollCellIntoView: scrollActiveCellIntoView,
           rowHeight: layoutRef.current.rowHeight,
-          triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
+          triggerKey: isPrintableKey(keymapEvent, isMacRef.current) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
           pendingFrameRef: pendingActionFrameRef,
         });
@@ -1134,7 +1135,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =
         matchKeymap(keymapEvent, keymap, isMacRef.current, notEditorOnly) ??
-        (isPrintableKey(keymapEvent) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
+        (isPrintableKey(keymapEvent, isMacRef.current) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
 
       if (action) dispatch(action);
     },

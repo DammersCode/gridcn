@@ -7,7 +7,7 @@ import { rowIdAtViewRow } from "../store/compute";
 import { useBulkGeneration } from "../validation/bulk-generation";
 import { copyScopeCellIds, pasteText, resolveCopyScope, serializeCopyScope } from "./use-grid-clipboard";
 
-/** Result of {@link useDataGridClipboard.prototype.pasteFromClipboard}'s permission/content outcome. */
+/** The paste result: `"ok"` (a paste started), `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` (the grid started no paste). */
 export type PasteFromClipboardResult = "ok" | "permission-denied" | "empty" | "refused";
 
 /** Options for {@link useDataGridClipboard}. */
@@ -54,7 +54,8 @@ export type UseDataGridClipboardResult = {
    * rejected (no `clipboard-read` permission — the context-menu add-on falls back to a
    * "press Ctrl+V" hint), else `'ok'` when a paste started. Resolves `'empty'` when the clipboard held no
    * text, and `'refused'` when no paste started: the grid is `readOnly`, a cell editor is open, there is no paste target,
-   * a sync `processPaste` vetoed it, or an earlier async gate is still pending.
+   * a sync `processPaste` vetoed it, an earlier async gate is still pending, or the text parses to no cells.
+   * An async `processPaste` decides after `'ok'`.
    */
   pasteFromClipboard: () => Promise<PasteFromClipboardResult>;
 };

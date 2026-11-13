@@ -41,12 +41,19 @@ function collatorsFor(locale: string): Collators {
   return built;
 }
 
-/** Runs `run` with `locale` as the sort locale of every built-in text compare. The scope is synchronous, so grids with different locales never mix. */
+let warnedThenable = false;
+
+/** Runs `run` with `locale` as the sort locale of every built-in text compare. The scope ends when `run` returns, so the callback must be synchronous: work after an `await` sorts with "en-US". Grids with different locales never mix. */
 export function withSortLocale<T>(locale: string | undefined, run: () => T): T {
   const previous = activeLocale;
   activeLocale = locale ?? DEFAULT_SORT_LOCALE;
   try {
-    return run();
+    const result = run();
+    if (isDev() && !warnedThenable && typeof (result as { then?: unknown } | null)?.then === "function") {
+      warnedThenable = true;
+      console.warn("[data-grid] withSortLocale received a promise. The sort locale scope ends when the callback returns, so work after an await sorts with the default locale. Pass a synchronous callback.");
+    }
+    return result;
   } finally {
     activeLocale = previous;
   }

@@ -40,6 +40,7 @@ These warnings come from the props that you pass to the grid.
 | `[data-grid] invalid number format options, showing the raw value: <error>` | Fix the `format` options of the number column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] sortLocale "<tag>" is not a valid language tag. The grid sorts with "en-US".` | Pass a BCP 47 tag, such as `"sv-SE"`, to `sortLocale`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 | `[data-grid] sortLocale "<tag>" is not supported by this runtime. The grid sorts with "en-US".` | Pass a tag that `Intl.Collator.supportedLocalesOf` lists. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
+| `[data-grid] withSortLocale received a promise. The sort locale scope ends when the callback returns, so work after an await sorts with the default locale. Pass a synchronous callback.` | Pass a synchronous callback to `withSortLocale`. Work after an `await` sorts with `"en-US"`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 | `[data-grid] autosizeColumns: unknown column id "<id>"` | Pass column ids that exist. | [Column sizing](/docs/columns/column-sizing) |
 | `[data-grid] <action> found no <trigger> for "<id>"; wire <slot> to enable it` | Render the header menu or header filter that the slot prop names. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
 
@@ -172,7 +173,7 @@ The grid throws these errors. Fix the cause in your code.
 | --- | --- | --- |
 | `gridcn: a row has no string or number id field. Pass getRowId to identify rows.` | Pass `getRowId`, or give every row an `id` field. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | `gridcn: this hook must be used inside a <DataGridProvider>.` | Call the hook in a component below `DataGridProvider`. | [Store hooks](/docs/types-hooks/store-hooks) |
-| `gridcn: DataGridHeader, DataGridBody, DataGridGlobalShortcuts, DataGridKeybindingsShortcut, and DataGridHeaderDropdown must be used inside a <DataGridRoot>.` | Render the named component inside `DataGridRoot`. | [DataGridProvider](/docs/components-props/data-grid-provider#compose) |
+| `gridcn: this component or hook must be rendered inside a <DataGridRoot>.` | Render the component, or call the hook, below `DataGridRoot`. | [DataGridProvider](/docs/components-props/data-grid-provider#compose) |
 | `gridcn: no internal actions registered for this store` | Use the store that the provider or `useDataGridStoreProps` created. | [DataGridProvider](/docs/components-props/data-grid-provider#store-external-store-ownership) |
 | `<component> must be rendered inside <Dropzone>` | Render the dropzone parts inside `Dropzone`. | [Import options](/docs/add-options/import-export/import-options) |
 | `fetchRows of useDataGridServerRows must resolve with { rows: TData[] }` | Return an object with a `rows` array from `fetchRows`. | [Server rows contract](/docs/contracts/server-rows-contract) |

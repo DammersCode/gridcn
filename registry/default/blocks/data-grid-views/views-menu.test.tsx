@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { DataGridProvider, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { useEffect } from "react";
+import { DataGridProvider, defineColumns, useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridViews } from "./views-menu";
 import { createMemoryViewsStorage } from "./view-storage";
 import { emptyViewState, type DataGridViewsDocument } from "./view-state";
@@ -33,7 +34,27 @@ async function open(storage = createMemoryViewsStorage(doc())) {
   return storage;
 }
 
+function OverLimitSearch() {
+  const actions = useDataGridActions();
+  useEffect(() => actions.setSearch("s".repeat(501)), [actions]);
+  return null;
+}
+
 describe("DataGridViews", () => {
+  it("disables Save and Update and says why while the grid is over a view limit", async () => {
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <OverLimitSearch />
+        <DataGridViews storage={createMemoryViewsStorage(doc())} />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /views/i }));
+    await screen.findByRole("button", { name: "Alpha" });
+    fireEvent.change(screen.getByRole("textbox", { name: "View name" }), { target: { value: "Mine" } });
+    expect(screen.getByRole("button", { name: "Save as new view" })).toBeDisabled();
+    expect(screen.getByText(/over the view limits/)).toBeInTheDocument();
+  });
+
   it("lists the views and marks the picked one", async () => {
     await open();
     fireEvent.click(list().getByRole("button", { name: "Alpha" }));

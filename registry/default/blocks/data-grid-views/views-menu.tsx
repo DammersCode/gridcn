@@ -21,6 +21,7 @@ export type DataGridViewsLabels = {
   loadFailed: string;
   saveFailed: string;
   limit: string;
+  overLimit: string;
   importedName: string;
   retry: string;
   setDefault: (name: string) => string;
@@ -55,6 +56,7 @@ export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {
   loadFailed: "Saved views could not be loaded.",
   saveFailed: "Your last change could not be saved.",
   limit: `The limit of ${MAX_VIEWS} views is reached.`,
+  overLimit: "The filters, sorts, or search are over the view limits. Shorten them to save the view.",
   importedName: "Imported view",
   retry: "Retry",
   setDefault: (name) => `Use ${name} as the default view`,
@@ -213,7 +215,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
   };
   const focusNameField = () => requestAnimationFrame(() => nameField.current?.focus());
   const atLimit = views.views.length >= MAX_VIEWS;
-  const canSave = !views.loading && views.failed !== "load" && !atLimit && newName.trim() !== "";
+  const canSave = !views.loading && views.failed !== "load" && !atLimit && !views.overLimit && newName.trim() !== "";
 
   const save = () => {
     if (!canSave) return;
@@ -291,6 +293,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               type="button"
               variant="outline"
               size="sm"
+              disabled={views.overLimit}
               onClick={() => {
                 if (views.updateView()) {
                   announce(labels.updated(activeView.name));
@@ -338,6 +341,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
             </div>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
+          {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit}</p> : null}
           {problem ? <p className="text-destructive">{problem}</p> : null}
           <p role="status" className="sr-only">
             {/* a trailing no-break space on every second message makes a repeated text change, so it is announced again */}

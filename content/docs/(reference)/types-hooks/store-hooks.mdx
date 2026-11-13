@@ -30,7 +30,7 @@ Hooks that reach the grid from code.
 | <a id="usedatagridstoreprops"></a>`useDataGridStoreProps` | `{ store, actions }` | Creates the store outside the provider. Feed `store` to `DataGridProvider`. |
 | <a id="usedatagridscrolltocell"></a>`useDataGridScrollToCell` | `(ref: CellRef) => void` | Scrolls a cell into view. It does nothing before `DataGridRoot` mounts, and warns in development for a ref that does not resolve. |
 | <a id="usedatagridscrolltocellat"></a>`useDataGridScrollToCellAt` | `(coord: ViewCoord) => void` | The same scroll for a view coordinate. |
-| <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, `"empty"` (the clipboard holds no text), or `"refused"` <NewBadge /> (no paste started). The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
+| <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, `"empty"` (the clipboard holds no text), or `"refused"` <NewBadge /> (the grid started no paste, as [Clipboard](/docs/clipboard-undo/clipboard) lists). The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
 
 ## Rows and addresses [#rows]
 

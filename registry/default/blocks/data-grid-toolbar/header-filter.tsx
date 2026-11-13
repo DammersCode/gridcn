@@ -17,6 +17,7 @@ import {
   pruneFilterSpecs,
   resolveFilterOperators,
   useDataGridIsColumnFiltered,
+  useDataGridSelector,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
@@ -187,6 +188,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
   const { column } = props;
   const labels = useDataGridLabels().toolbar;
   const filtered = useDataGridIsColumnFiltered(column.id);
+  const viewIsEmpty = useDataGridSelector((s) => s.viewIndex.length === 0);
   const api = useDataGridApi();
   const [open, setOpen] = useState(false);
   const keyboardOpenedRef = useRef(false);
@@ -206,7 +208,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           <button
             type="button"
             data-grid-header-filter-trigger=""
-            tabIndex={-1}
+            tabIndex={viewIsEmpty ? 0 : -1}
             aria-label={labels.headerFilterAriaLabel(columnLabel, filtered)}
             className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-1.5 text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary")}
           >

@@ -127,6 +127,12 @@ export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
 }
 
+/** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */
+export function savableViewState(state: DataGridViewState): DataGridViewState | null {
+  const clean = sanitizeViewState(state, undefined).state;
+  return viewStateKey(clean) === viewStateKey(state) ? clean : null;
+}
+
 type RawSort = { columnId?: unknown; direction?: unknown };
 type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };

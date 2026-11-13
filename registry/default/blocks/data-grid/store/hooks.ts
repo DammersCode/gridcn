@@ -6,6 +6,7 @@ import type {
   ViewCoord,
   CellType,
   FilterNode,
+  GridAction,
   GridCommand,
   GridSelection,
   HeaderClickBehavior,
@@ -21,6 +22,7 @@ import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selec
 import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
+import { parseBinding } from "../keyboard/match-keymap";
 import { useDataGridStore, useDataGridStoreApi } from "./provider";
 import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
@@ -91,11 +93,20 @@ export function useDataGridReadOnly(): boolean {
 /**
  * The grid's effective keymap — `DEFAULT_KEYMAP` merged with the plugins' keymaps, then the
  * provider's `keymap` prop over everything — the single source of truth for every bound action
- * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list).
+ * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list). A binding that never matches (an unknown modifier) is left out.
  * Seeded from the provider's props, so it is live from the first render, SSR included.
  */
 export function useDataGridKeymap(): Keymap {
-  return useDataGridStore((s) => s.keymap);
+  const keymap = useDataGridStore((s) => s.keymap);
+  return useMemo(() => withoutDeadBindings(keymap), [keymap]);
+}
+
+function withoutDeadBindings(keymap: Keymap): Keymap {
+  const live: Keymap = {};
+  for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
+    if (bindings) live[action] = bindings.filter((binding) => parseBinding(binding).key !== "");
+  }
+  return live;
 }
 
 /** The input that wrote the current selection. */

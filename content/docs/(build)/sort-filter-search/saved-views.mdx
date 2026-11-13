@@ -135,6 +135,12 @@ const views = useDataGridViews({ storage: serverViews });
 <button onClick={() => views.saveView("My view")}>Save</button>;
 ```
 
+### Limits [#limits]
+
+<NewBadge />
+
+A save never cuts a view. While the grid state is over a limit, `overLimit` is `true`. "Save as new view" and "Update" are off with a line that says why. `saveView` returns `null` and `updateView` returns `false`. Shorten the filter, the sorts, or the search text to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
+
 ## Server mode [#server-mode]
 
 A view stores the grid state only, so it works in every data mode:
@@ -145,7 +151,7 @@ A view stores the grid state only, so it works in every data mode:
 
 A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A view that changes only the layout keeps the page.
 
-A view can hold up to 16 sorts and a search text of 500 characters.
+A view can hold up to 16 sorts and a search text of 500 characters. See [Limits](#limits).
 
 The `parseServerSpec` <NewBadge /> defaults allow 8 sorts and 200 characters, so raise `maxSorts` and `maxSearchLength`. See [Match the limits to the grid](/docs/contracts/server-rows-contract#match-limits).
 

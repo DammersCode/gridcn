@@ -529,15 +529,16 @@ describe("useDataGridViews", () => {
     expect(probe.current!.sort).toEqual([{ columnId: "age", direction: "asc" }]);
   });
 
-  it("stores a view in the form that reloads unchanged", async () => {
+  it("stores a search text at its limit unchanged", async () => {
     const { probe } = setup({ storage: createMemoryViewsStorage() });
     await ready(probe);
-    act(() => probe.current!.actions.setSearch("x".repeat(900)));
+    act(() => probe.current!.actions.setSearch("x".repeat(500)));
     let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
     act(() => {
       saved = probe.current!.views.saveView("Long search");
     });
     expect(saved!.state.searchText).toHaveLength(500);
+    expect(probe.current!.views.modified).toBe(false);
   });
 
   it("clears an uncontrolled active view when the storage key changes", async () => {
@@ -606,5 +607,92 @@ describe("useDataGridViews", () => {
     act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => String(i)) }]));
     act(() => probe.current!.views.selectView("a"));
     expect(probe.current!.filter).toEqual([]);
+  });
+});
+
+describe("useDataGridViews limits", () => {
+  const wide = defineColumns<Record<string, string> & { id: string }>()(
+    Array.from({ length: 17 }, (_, i) => ({ id: `c${i}`, header: `C${i}`, accessorKey: `c${i}`, type: "text", width: 80 })) as never,
+  );
+  const wideRows = [{ id: "r0", ...Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`c${i}`, "x"])) }];
+
+  async function setupWide() {
+    const probe: { current: Probe | null } = { current: null };
+    render(
+      <DataGridProvider data={wideRows} columns={wide} getRowId={(r) => r.id}>
+        <Harness options={{ storage: createMemoryViewsStorage() }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>,
+    );
+    await ready(probe);
+    return probe;
+  }
+
+  it("a state with every kind of part saves unchanged and reads as not modified", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage() });
+    await ready(probe);
+    act(() => {
+      probe.current!.actions.setSorts([{ columnId: "age", direction: "desc" }, { columnId: "name", direction: "asc" }]);
+      probe.current!.actions.setFilters([
+        { columnId: "name", operator: "contains", value: "a" },
+        { columnId: "age", operator: "isBetween", value: ["1", "99"] },
+        { columnId: "name", operator: "isAnyOf", value: ["Alice", ""] },
+        { columnId: "name", operator: "isNoneOf", value: ["Bob"] },
+        { columnId: "name", operator: "empty" },
+        { join: "or", filters: [{ columnId: "age", operator: "gt", value: "3" }, { columnId: "age", operator: "lte", value: "9" }] },
+      ]);
+      probe.current!.actions.setSearch("ali", { matchCase: true, wholeCell: false });
+      probe.current!.actions.setColumnLayout({ widths: { name: 150 }, order: ["age", "name"], pins: { age: "left" }, hidden: [] });
+    });
+    expect(probe.current!.views.overLimit).toBe(false);
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("All parts");
+    });
+    expect(saved).not.toBeNull();
+    expect(probe.current!.views.modified).toBe(false);
+  });
+
+  it.each([
+    ["a filter value of 1,001 characters", () => ({ filters: [{ columnId: "name", operator: "contains", value: "x".repeat(1001) }] as FilterNode[] })],
+    ["an isAnyOf list of 1,001 entries", () => ({ filters: [{ columnId: "name", operator: "isAnyOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
+    ["an isNoneOf list of 1,001 entries", () => ({ filters: [{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => `v${i}`) }] as FilterNode[] })],
+    ["a search text of 501 characters", () => ({ search: "s".repeat(501) })],
+  ])("%s is refused: overLimit is true, saveView returns null, updateView returns false", async (_name, make) => {
+    const { probe } = setup({ storage: createMemoryViewsStorage() });
+    await ready(probe);
+    let first: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      first = probe.current!.views.saveView("Fine");
+    });
+    expect(first).not.toBeNull();
+    const change = make() as { filters?: FilterNode[]; search?: string };
+    act(() => {
+      if (change.filters) probe.current!.actions.setFilters(change.filters);
+      if (change.search) probe.current!.actions.setSearch(change.search);
+    });
+    expect(probe.current!.views.overLimit).toBe(true);
+    let result: unknown = "unset";
+    let updated: boolean | undefined;
+    act(() => {
+      result = probe.current!.views.saveView("Too much");
+      updated = probe.current!.views.updateView();
+    });
+    expect(result).toBeNull();
+    expect(updated).toBe(false);
+    expect(probe.current!.views.views).toHaveLength(1);
+    expect(probe.current!.views.activeView!.name).toBe("Fine");
+  });
+
+  it("17 sorts are refused and 16 are saved", async () => {
+    const probe = await setupWide();
+    act(() => probe.current!.actions.setSorts(Array.from({ length: 16 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
+    expect(probe.current!.views.overLimit).toBe(false);
+    act(() => probe.current!.actions.setSorts(Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
+    expect(probe.current!.views.overLimit).toBe(true);
+    let result: unknown = "unset";
+    act(() => {
+      result = probe.current!.views.saveView("Many sorts");
+    });
+    expect(result).toBeNull();
   });
 });

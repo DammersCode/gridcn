@@ -68,8 +68,8 @@ describe("plugin keymap through real key events", () => {
   });
 });
 
-describe("unknown modifier tokens [api-trap probe]", () => {
-  it("a binding with an unknown modifier never matches (key-syntax.ts: 'a typo never matches at runtime')", () => {
+describe("unknown modifier tokens", () => {
+  it("a binding with an unknown modifier never matches", () => {
     expect(parseBinding("Mod+Z").mod).toBe(false);
     const keymap = { ...DEFAULT_KEYMAP, undo: ["Mod+Z"] } as Keymap;
     const bareZ = { key: "z", ctrlKey: false, metaKey: false, shiftKey: false, altKey: false };

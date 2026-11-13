@@ -47,7 +47,12 @@ Each feature reads the value through its own member. One override does not reach
 
 A custom `toText` changes copy, export, and search. It does not change what a filter matches. A column with no declared type searches `String(value)`.
 
-A text `compare` <NewBadge /> calls `sortCollator().compare` from `data-grid-sdk`, so it follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently.
+A text `compare` <NewBadge /> calls `sortCollator().compare` from `data-grid-sdk`, so it follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently. Call it synchronously. The scope ends at the first `await`, and outside a scope the collator uses `"en-US"`. The sample compares two texts:
+
+```ts
+import { sortCollator } from "@/components/data-grid/data-grid-sdk";
+const compare = (a: string, b: string) => sortCollator().compare(a, b);
+```
 
 ## Members [#the-contract-member-by-member]
 

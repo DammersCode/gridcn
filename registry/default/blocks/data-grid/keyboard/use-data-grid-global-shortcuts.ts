@@ -85,7 +85,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
         scrollRef: containerRef,
         scrollCellIntoView: latest.scrollCellIntoView,
         rowHeight: latest.rowHeight,
-        triggerKey: isPrintableKey({ key: event.key, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: event.shiftKey, altKey: event.altKey, altGraph: event.getModifierState?.("AltGraph") }) ? event.key : undefined,
+        triggerKey: isPrintableKey({ key: event.key, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: event.shiftKey, altKey: event.altKey, altGraph: event.getModifierState?.("AltGraph") }, isMacPlatform()) ? event.key : undefined,
         preventDefault: () => event.preventDefault(),
       });
     }

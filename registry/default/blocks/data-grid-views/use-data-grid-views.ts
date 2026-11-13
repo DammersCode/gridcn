@@ -19,6 +19,7 @@ import {
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
+  savableViewState,
   serializeViewFile,
   viewPartKeys,
   viewStateKey,
@@ -61,6 +62,8 @@ export type UseDataGridViewsResult = {
   activeView: DataGridView | null;
   /** The grid differs from the active view. */
   modified: boolean;
+  /** The grid state exceeds a view limit (1,000 characters per filter value, 1,000 list entries, 16 sorts, 500 search characters), so `saveView` returns `null` and `updateView` returns `false`. */
+  overLimit: boolean;
   defaultViewId: string | null;
   /** The stored views are being read. */
   loading: boolean;
@@ -74,9 +77,9 @@ export type UseDataGridViewsResult = {
   retry: () => void;
   /** Opens a view (again, to revert changes) and makes it active; `null` only clears the active view. With a controlled `value`, a pick only calls `onValueChange`. */
   selectView: (id: string | null) => void;
-  /** Saves the grid state under `name` (trimmed, at most 80 characters) and makes the new view active. `null` for a blank name, the limit of 50 views, or before the load ends. */
+  /** Saves the grid state under `name` (trimmed, at most 80 characters) and makes the new view active. `null` for a blank name, the limit of 50 views, a grid state over a view limit (see `overLimit`), or before the load ends. */
   saveView: (name: string) => DataGridView | null;
-  /** Replaces a view's state with the grid state. Default: the active view. `false` for an unknown id, no active view, or before the load ends. */
+  /** Replaces a view's state with the grid state. Default: the active view. `false` for an unknown id, no active view, a grid state over a view limit (see `overLimit`), or before the load ends. */
   updateView: (id?: string) => boolean;
   /** Renames a view. `false` for an unknown id, a blank name, or before the load ends. */
   renameView: (id: string, name: string) => boolean;
@@ -160,8 +163,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     return captureViewState({ sorts: s.sortState, filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
   }, [storeApi]);
 
-  /** The grid state in the form that reloads unchanged: lists and strings already at their limits. */
-  const readSavableState = useCallback(() => sanitizeViewState(readState(), undefined).state, [readState]);
+  const readSavableState = useCallback(() => savableViewState(readState()), [readState]);
 
   const reportError = useCallback((kind: "load" | "save", cause: unknown) => {
     failedRef.current = kind;
@@ -292,6 +294,11 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     [activeView, sortState, filterState, searchText, searchOptions, columnLayout],
   );
 
+  const overLimit = useMemo(
+    () => savableViewState(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout })) === null,
+    [sortState, filterState, searchText, searchOptions, columnLayout],
+  );
+
   const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);
 
   const selectView = useCallback(
@@ -315,7 +322,9 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const current = documentRef.current;
       const clean = cleanViewName(name);
       if (!current || clean === "" || current.views.length >= MAX_VIEWS) return null;
-      const view: DataGridView = { id: createViewId(), name: clean, state: readSavableState() };
+      const state = readSavableState();
+      if (!state) return null;
+      const view: DataGridView = { id: createViewId(), name: clean, state };
       commit({ ...current, views: [...current.views, view] });
       setAppliedKey(viewStateKey(view.state));
       setActive(view.id);
@@ -330,6 +339,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const targetId = id ?? activeIdNow();
       if (!current || !targetId || !current.views.some((v) => v.id === targetId)) return false;
       const state = readSavableState();
+      if (!state) return false;
       commit({ ...current, views: current.views.map((v) => (v.id === targetId ? { ...v, state } : v)) });
       if (targetId === activeIdNow()) setAppliedKey(viewStateKey(state));
       return true;
@@ -409,6 +419,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     activeViewId,
     activeView,
     modified: currentKey !== null && appliedKey !== null && currentKey !== appliedKey,
+    overLimit,
     defaultViewId: document?.defaultViewId ?? null,
     loading: document === null && failed !== "load",
     saving,

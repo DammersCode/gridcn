@@ -99,6 +99,7 @@ A term row links to the page that explains it.
 | long-press | A touch press held for 500 ms without moving more than 10 px. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | selection handle | One of the two circles at the corners of a touch selection. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | result count | The number of rows in the view after a filter or sort change. | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | [Validation](/docs/editing-cells/validation) |
@@ -180,6 +181,7 @@ A word in this table names a term from the first table.
 | `range handle` | selection handle | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `touch mode` | coarse pointer | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `escape hatch` | override | [Display override](/docs/editing-cells/display-override) |
+| `paste outcome` | paste result | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `write result` | save acknowledgement | [Save edits](/docs/save-server/save-edits) |
 | `save state` | save status | [Save edits](/docs/save-server/save-edits) |
 | `edit conflict` | save conflict | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |

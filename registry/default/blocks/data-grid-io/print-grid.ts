@@ -1,4 +1,5 @@
 import { type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { normalizeLimit } from "./normalize-limit";
 import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
 
 /** Default number of rows printed when `maxRows` is not given. */
@@ -78,7 +79,7 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const scope = options.scope ?? "view";
   const includeHeaders = options.includeHeaders ?? true;
   const colCount = state.visibleColumns.length;
-  const maxRows = Math.min(options.maxRows ?? DEFAULT_PRINT_MAX_ROWS, Math.floor(PRINT_CELL_CEILING / Math.max(colCount, 1)));
+  const maxRows = Math.min(normalizeLimit(options.maxRows, DEFAULT_PRINT_MAX_ROWS), Math.floor(PRINT_CELL_CEILING / Math.max(colCount, 1)));
   const total = exportDataIndices(state, scope).length;
   const rows = buildExportRows(state, scope, { text: "display", maxRows });
   const headers = buildExportHeaders(state);

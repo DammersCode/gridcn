@@ -58,7 +58,6 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
     <DataGrid
       defaultData={orders}
       columns={columns}
-      getRowId={(row) => row.id}
       className="h-96"
     />
   );

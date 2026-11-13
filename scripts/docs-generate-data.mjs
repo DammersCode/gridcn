@@ -210,6 +210,7 @@ export const TERM_PAGES = {
   "long-press": "/docs/selection-shortcuts/pointer-selection",
   "selection handle": "/docs/selection-shortcuts/pointer-selection",
   "coarse pointer": "/docs/selection-shortcuts/pointer-selection",
+  "paste result": "/docs/clipboard-undo/clipboard",
   "result count": "/docs/accessibility/screen-reader-support",
   override: "/docs/editing-cells/display-override",
   "Standard Schema": "/docs/editing-cells/validation",

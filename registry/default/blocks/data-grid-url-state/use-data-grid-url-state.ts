@@ -21,6 +21,18 @@ import { prefixedKey } from "./prefixed-key";
 const MIN_CHOICE_BOUND = 64;
 
 
+/** Longest search text read from or written to the URL. */
+const MAX_URL_SEARCH_LENGTH = 500;
+
+function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
+  return new Map(
+    columns.map((c) => {
+      const choices = (c.options as { choices?: unknown } | undefined)?.choices;
+      return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
+    }),
+  );
+}
+
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
 
 const LAYOUT_KEYS: Record<UrlLayoutPart, string> = { order: "cols", hidden: "hide", widths: "widths", pins: "pins" };
@@ -169,12 +181,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
-    const choiceBounds = new Map(
-      allColumns.map((c) => {
-        const choices = (c.options as { choices?: unknown } | undefined)?.choices;
-        return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
-      }),
-    );
+    const choiceBounds = choiceBoundsOf(allColumns);
     const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId), operatorInput });
     const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(joinParam) === "or" && !parsedFilters.some(isFilterGroup);
     const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
@@ -185,7 +192,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (sorts.length > 0 || !keepMountDefaults) actions.setSorts(sorts);
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
-    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam);
+    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam.slice(0, MAX_URL_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
   }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
@@ -209,7 +216,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!appliedRef.current) return;
-    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput }) || null);
+    const choiceBounds = choiceBoundsOf(allColumns);
+    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null);
     void setJoinParamRef.current(null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState]);
@@ -232,7 +240,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
     if (!appliedRef.current) return;
-    void setSearchParamRef.current(searchText || null);
+    void setSearchParamRef.current(searchText.slice(0, MAX_URL_SEARCH_LENGTH) || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 

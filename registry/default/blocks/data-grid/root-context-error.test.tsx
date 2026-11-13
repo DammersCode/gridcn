@@ -32,13 +32,13 @@ function thrownBy(child: ReactNode): string {
 }
 
 describe("a root-only part mounted under the provider but outside DataGridRoot", () => {
-  it("DataGridKeybindingsShortcut outside DataGridRoot throws an error that names it", () => {
-    const message = thrownBy(<DataGridKeybindingsShortcut onOpen={() => {}} />);
-    expect(message).toMatch(/DataGridKeybindingsShortcut.*DataGridRoot/);
+  const message = "gridcn: this component or hook must be rendered inside a <DataGridRoot>.";
+
+  it("DataGridKeybindingsShortcut outside DataGridRoot throws the shared message", () => {
+    expect(thrownBy(<DataGridKeybindingsShortcut onOpen={() => {}} />)).toBe(message);
   });
 
-  it("DataGridGlobalShortcuts outside DataGridRoot throws an error that names it", () => {
-    const message = thrownBy(<DataGridGlobalShortcuts />);
-    expect(message).toMatch(/DataGridGlobalShortcuts.*DataGridRoot/);
+  it("DataGridGlobalShortcuts outside DataGridRoot throws the shared message", () => {
+    expect(thrownBy(<DataGridGlobalShortcuts />)).toBe(message);
   });
 });

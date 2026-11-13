@@ -46,7 +46,7 @@ Follow these rules for the methods:
 `Cell` renders once per visible cell, and scrolling mounts cells all the time.
 
 - Create costly objects once. The `date` type keeps its `Intl.DateTimeFormat` instances in a cache.
-- Key a cache on serialized option values and not on object identity. A column definition often creates its `options` object again on every render, so an identity key never hits. The `date` and `number` caches key on the locale and the JSON of the format, so an equal literal reuses one formatter.
+- Key a cache on serialized option values, not on object identity. A column definition creates its `options` object on every render, so an identity key never hits. The `date` and `number` caches key on the locale and the JSON of the format. The JSON is computed once per `format` object, so replace the object to change the format.
 - Pin every locale. `Intl` formatters fall back to the runtime locale, and a server and a browser can differ. The `date` type defaults to `en-US`, so server and client text match.
 
 ### Editor UX [#editor-ux]
