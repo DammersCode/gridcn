@@ -1,4 +1,5 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { normalizeLimit } from "./normalize-limit";
 import { displayText, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it, CSV only a `formatCell` string. */
@@ -144,9 +145,9 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
       const slice = batch.slice(from, from + SLICE_ROWS);
       const present = slice.filter((row) => row !== undefined && row !== null);
       skippedRows += slice.length - present.length;
-      if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
       const room = maxRows - rowCount;
       if (present.length > room) truncated = true;
+      else if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
       const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, "export", formatCell, typed) as TCell[]);
       rowCount += rows.length;
       byteCount += onBatch(rows);
@@ -245,10 +246,4 @@ export function mapExportRow<TData>(
     const formatted = formatCell({ value, text: cellText, row, column });
     return typed ? toTypedCell(formatted) : toCsvCell(formatted);
   });
-}
-
-/** Clamps a caller limit to a non-negative integer: `NaN` falls back, `Infinity` becomes the largest safe integer. */
-export function normalizeLimit(value: number | undefined, fallback: number): number {
-  if (value === undefined || Number.isNaN(value)) return fallback;
-  return Math.min(Math.max(0, Math.floor(value)), Number.MAX_SAFE_INTEGER);
 }

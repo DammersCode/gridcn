@@ -42,7 +42,7 @@ A view index is valid for the render that read it. Keep a row id or a `CellRef` 
 - The active cell and the selection sit in the store as view indexes. After a rebuild, the grid moves them back onto their records. [Selection model](/docs/concepts/selection-model#selection-follows-records) lists the rules.
 - Cell events such as `onActiveCellChange` hand out both addresses. `ViewCellRef` holds the row id, the column id, and the view position at the time of the event.
 - Cell actions take a `CellRef`. Each has an `*At` variant, such as `selectCellAt`, that takes a `ViewCoord`.
-- An edit, paste, fill, or cleared selection can write a column that the active sort or filter reads. The rows then keep their old view index, and `useDataGridViewStale` returns `true`. `actions.reconcileView()` rebuilds the view. See [Stream updates](/docs/rows-live-data/stream-updates).
+- An edit, paste, fill, or cell clear can write a column that the active sort or filter reads. The rows then keep their old view index, and `useDataGridViewStale` returns `true`. `actions.reconcileView()` rebuilds the view. See [Stream updates](/docs/rows-live-data/stream-updates).
 
 ## Read an address
 

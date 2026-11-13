@@ -1,5 +1,6 @@
 import { sanitizeFormulaCell } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, fullViewOf, getSelectedViewRows, isDev, keepsCheckedRows, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { normalizeLimit } from "./normalize-limit";
 import type { CsvDelimiter } from "./parse-import-file";
 import {
   DEFAULT_SOURCE_MAX_BYTES,
@@ -8,7 +9,6 @@ import {
   exportCellSize,
   exportRows,
   mapExportRow,
-  normalizeLimit,
   resolveExportColumns,
   type ExportCell,
   type ExportCellContext,

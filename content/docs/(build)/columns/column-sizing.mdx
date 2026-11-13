@@ -103,7 +103,7 @@ const columns = defineColumns<Row>()([
 
 Here `email` grows twice as fast as `name`, and `age` stays at 80 px. `maxWidth` caps the growth, and the other flex columns take the unused share. A flex column never gets narrower than its `width`.
 
-A flex column that the user resizes keeps the new width and leaves the flex share. `resetColumnWidth` puts it back.
+A flex column that the user resizes keeps the new width and leaves the flex share. An autosize pass stores a width for every column it measures, so it also fixes a flex column. Pass `columnIds` to leave the flex columns out. `resetColumnWidth` puts a column back.
 
 ## Server mode
 

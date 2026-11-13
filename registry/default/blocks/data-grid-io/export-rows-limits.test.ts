@@ -34,6 +34,15 @@ describe("exportRows limits", () => {
     expect((await run({ maxRows: 2.9 })).names).toEqual(["a", "b"]);
   });
 
+  it("maxRows 0 with empty rows in the batch ends truncated instead of throwing", async () => {
+    const result = await exportRows<Row>(state, { source: () => [null, null, null, rows[0]] as never, maxRows: 0 }, () => 1);
+    expect(result).toEqual({ rowCount: 0, truncated: true });
+  });
+
+  it("a batch of only empty rows beyond twice maxRows still rejects", async () => {
+    await expect(exportRows<Row>(state, { source: () => [null, null, null] as never, maxRows: 1 }, () => 1)).rejects.toThrow("too many empty rows");
+  });
+
   it("stops at a negative maxBytes after the first batch", async () => {
     const { result } = await run({ maxBytes: -1 });
     expect(result.truncated).toBe(true);

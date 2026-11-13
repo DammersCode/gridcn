@@ -349,7 +349,7 @@ function keyboardShortcuts() {
     table(["Action", "Keys", "Page"], [
       ["Open the shortcuts dialog", `${code("?")} with ${code("DataGridKeybindingsShortcut")} mounted`, link("/docs/selection-shortcuts/shortcut-remapping")],
       ["Open the cell menu", `${code("Shift+F10")} with ${code("DataGridContextMenu")} mounted, on Windows and Linux`, link("/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items")],
-      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted, while focus is in the grid or its toolbar. With ${code("data-grid-find-replace")} mounted, ${code("Mod+F")} in the grid opens Find`, link("/docs/sort-filter-search/quick-search")],
+      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted, while focus is in the grid or its toolbar. With ${code("data-grid-find-replace")} mounted, ${code("Mod+F")} in the grid opens Find. On macOS, both ${code("Cmd+F")} and ${code("Ctrl+F")} match`, link("/docs/sort-filter-search/quick-search")],
     ]),
     related(["/docs/selection-shortcuts/shortcut-remapping", "change the keys"], ["/docs/selection-shortcuts/global-shortcuts", "keys outside the grid"], ["/docs/plugins/plugin-commands-shortcuts", "keys from a plugin"]),
   ].join("\n");

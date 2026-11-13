@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { createFormatterCache } from "./formatter-cache";
+import { createFormatterCache, formatKey } from "./formatter-cache";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -96,7 +96,7 @@ const cachedDateFormatter = createFormatterCache<Intl.DateTimeFormat>("invalid d
 
 /** Formatters keyed by serialized options, so a re-created column literal reuses one (build ~38us, reuse ~0.7us). `null` when the options are invalid. */
 function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat | null {
-  return cachedDateFormatter(`${locale}|${JSON.stringify(format)}`, () => new Intl.DateTimeFormat(locale, format));
+  return cachedDateFormatter(`${locale}|${formatKey(format)}`, () => new Intl.DateTimeFormat(locale, format));
 }
 
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */

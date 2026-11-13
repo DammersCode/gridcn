@@ -74,7 +74,7 @@ export function ReSortBar() {
 }
 ```
 
-`reconcileView()` clears the flag. A change of sort or filter does the same. An edit, paste, fill, or cleared selection that touches such a column also marks the view stale.
+`reconcileView()` clears the flag. A change of sort or filter does the same. An edit, paste, fill, or cell clear that touches such a column also marks the view stale.
 
 The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value and sets this behavior per call, for example `{ reorder: "immediate" }`:
 

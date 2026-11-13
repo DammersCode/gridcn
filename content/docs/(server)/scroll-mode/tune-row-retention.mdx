@@ -114,7 +114,7 @@ Undo and redo compose with the `onDataChange` of the hook. See [Run history with
 The limits, the timer, and `evict` follow the spec of the hook in every setup:
 
 - **Server sort and filter.** The hook sets `sortMode="server"` and `filterMode="server"`. A sort or filter change starts the blocks over, so no limit holds rows of the old order.
-- **Controlled state.** Pass `spec` with `onSpecChange`, or feed the hook from `sortState`, `filterState`, and `searchText` that your app owns. A changed spec drops the loaded rows and aborts the requests in flight.
+- **Controlled state.** Pass `spec` with `onSpecChange` to the hook, and the grid follows it. A changed spec drops the loaded rows and aborts the requests in flight.
 - **Your own `onDataChange`.** The `onDataChange` option of the hook runs after the merge. Rows that your handler keeps outside the hook are not covered by `maxLoadedRows`.
 
 ## Related

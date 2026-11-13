@@ -99,7 +99,7 @@ The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `
 
 ## Import limits [#import-limits]
 
-The dialog rejects a file over a limit with a message and never cuts a file.
+The dialog rejects a file over a limit with a message and never cuts a file. A limit that is `NaN` takes its default. A negative limit counts as 0.
 
 - `maxFileBytes`: 50 MiB, checked before the read.
 - `maxRows`: 1,000,000, header row included. `maxColumns`: 1,000.

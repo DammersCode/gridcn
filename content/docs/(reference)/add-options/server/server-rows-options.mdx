@@ -100,7 +100,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 | Option | Default | Effect |
 | --- | --- | --- |
 | `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
-| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight has settled, or after 10 seconds when at least one save has settled by then. After the 10 seconds, each save still in flight refreshes when it settles. `"each"` refreshes after saves settle, without waiting for the saves still in flight. `false` never refreshes. A function of the save report returns whether to refresh, once after every save in flight has settled or after the same 10 seconds. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there. |
+| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight has settled, or after 10 seconds when at least one save has settled by then. After the 10 seconds, each save still in flight refreshes when it settles. `"each"` refreshes after saves settle, without waiting for the saves still in flight. `false` never refreshes. A function of the save report returns whether to refresh, once after every save in flight has settled or after the same 10 seconds. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks, so call `server.refresh()` there. Only an `onSave` that returns a promise triggers a refresh. |
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 

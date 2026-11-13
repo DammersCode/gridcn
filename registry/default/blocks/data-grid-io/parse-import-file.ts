@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import type { CellValue } from "hucre";
+import { normalizeLimit } from "./normalize-limit";
 
 /** CSV delimiter choices exposed in the import dialog; `undefined` means auto-detect. */
 export type CsvDelimiter = "," | ";" | "\t" | "|";
@@ -48,6 +49,17 @@ export type ImportLimits = {
   /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default 256 MiB, and no more than `maxCells` times 10 bytes plus 1 MiB. Stops zip bombs. */
   maxDecompressedBytes?: number;
 };
+
+/** Every import bound with its default; a `NaN` bound takes the default, a negative one counts as 0. */
+export function resolveImportLimits(limits: ImportLimits = {}): Required<ImportLimits> {
+  return {
+    maxFileBytes: normalizeLimit(limits.maxFileBytes, DEFAULT_IMPORT_LIMITS.maxFileBytes),
+    maxRows: normalizeLimit(limits.maxRows, DEFAULT_IMPORT_LIMITS.maxRows),
+    maxColumns: normalizeLimit(limits.maxColumns, DEFAULT_IMPORT_LIMITS.maxColumns),
+    maxCells: normalizeLimit(limits.maxCells, DEFAULT_IMPORT_LIMITS.maxCells),
+    maxDecompressedBytes: normalizeLimit(limits.maxDecompressedBytes, DEFAULT_IMPORT_LIMITS.maxDecompressedBytes),
+  };
+}
 
 /** Options for {@link parseImportFile}. */
 export type ParseImportFileOptions = ImportLimits & {
@@ -601,16 +613,10 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
  * aborts the file read when set; an aborted parse rejects with an AbortError.
  */
 export async function parseImportFile(file: File, options: ParseImportFileOptions = {}, signal?: AbortSignal): Promise<ParsedImportFile> {
-  const maxFileBytes = options.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
-  const limits: GridLimits = {
-    maxRows: options.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
-    maxColumns: options.maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
-    maxCells: options.maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-  };
+  const { maxFileBytes, maxDecompressedBytes, ...limits } = resolveImportLimits(options);
   // before any file read: file.size is synchronous, so the DoS check costs nothing
   if (file.size > maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
   if (isExcelFile(file)) {
-    const maxDecompressedBytes = options.maxDecompressedBytes ?? DEFAULT_IMPORT_LIMITS.maxDecompressedBytes;
     return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
   }
   if (isCsvFile(file)) {
@@ -635,11 +641,8 @@ export const INVALID_IMPORT_ROWS_MESSAGE = "invalid-import-rows";
  */
 export function assertImportRows(rows: unknown, limits: ImportLimits, extraRows = 0): asserts rows is string[][] {
   if (!Array.isArray(rows)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);
-  const bounds: GridLimits = {
-    maxRows: limits.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
-    maxColumns: limits.maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
-    maxCells: limits.maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-  };
+  const { maxRows, maxColumns, maxCells } = resolveImportLimits(limits);
+  const bounds: GridLimits = { maxRows, maxColumns, maxCells };
   let columns = 0;
   for (const row of rows as unknown[]) {
     if (!Array.isArray(row)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);

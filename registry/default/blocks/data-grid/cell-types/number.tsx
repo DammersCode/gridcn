@@ -8,7 +8,7 @@ import { CELL_INPUT_CLASS, useCellEditorDraft } from "../interaction/use-cell-ed
 import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
-import { createFormatterCache } from "./formatter-cache";
+import { createFormatterCache, formatKey } from "./formatter-cache";
 import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -65,7 +65,7 @@ const cachedNumberFormatter = createFormatterCache<Intl.NumberFormat>("invalid n
 
 /** The formatter for the options, or `null` when they are invalid. A re-created literal with equal content reuses one formatter. */
 function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
-  return cachedNumberFormatter(`${locale}|${decimals ?? ""}|${JSON.stringify(format)}`, () => {
+  return cachedNumberFormatter(`${locale}|${decimals ?? ""}|${formatKey(format)}`, () => {
     // decimals fills in fraction digits the format left open (0.25 under style:"percent" + decimals:2 renders 25.00%)
     const effective =
       decimals !== undefined && format.minimumFractionDigits === undefined && format.maximumFractionDigits === undefined

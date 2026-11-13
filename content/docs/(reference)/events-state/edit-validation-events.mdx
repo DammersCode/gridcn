@@ -58,9 +58,10 @@ The payload is a `ViewCellRef` plus `result`. The committed value is not in the 
 
 Each session ends with exactly one `commit` or `cancel`. `rejected` fires once per refused attempt, so a session can report it many times before it ends.
 
-Four causes end a session with `cancel`:
+These causes end a session with `cancel`:
 
 - The user presses Escape.
+- `actions.cancelEditing()`, `api.stopEditing()`, or the `cancel()` of an editor discards the draft.
 - A second `startEditing` replaces the open session.
 - A filter, a hidden column, or a data change removes the edited cell from the view.
 - The grid becomes `readOnly`.

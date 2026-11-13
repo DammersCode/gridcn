@@ -134,7 +134,7 @@ The key is one of these:
 - Any single printable character.
 - The space bar, written as a literal space, as in `"shift+ "`.
 
-The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier or an unknown key name warns in the browser console in development. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`.
+The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier, such as `Mod+z` (modifiers are lowercase), never matches. A binding with an unknown modifier or an unknown key name also warns in the browser console in development. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`.
 
 When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination that includes a `keymap` binding.
 

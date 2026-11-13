@@ -79,8 +79,8 @@ function CellErrorsBar(): ReactNode {
 }
 
 /**
- * Edit a Quantity cell past 100 and commit: `onDataChange` calls a fake `saveOrders` that rejects
- * after ~600ms, and the `.catch()` handler calls `actions.setCellErrors` to paint the exact cell —
+ * Edit a Quantity cell past 100 and commit: `onSave` calls a fake `saveOrders` that rejects
+ * after ~600ms, and the `catch` block calls `actions.setCellErrors` to paint the exact cell —
  * the same ring/tint/aria-invalid a pre-commit `validate` rejection uses, but after the value already
  * committed. Editing that cell again, with any value, clears its error on the next successful commit.
  * The handler reaches the actions through the imperative handle — the rejection lands long after
@@ -90,15 +90,16 @@ export default function DataGridCellErrorsDemo(): ReactNode {
   const grid = useDataGridState(initialRows(), { getRowId });
   const gridRef = useRef<DataGridApi<Order> | null>(null);
 
-  function handleDataChange(next: readonly Order[], change: DataChange<Order>): void {
-    grid.onDataChange(next, change);
-    saveOrders(change.ops).catch((tooMany: RejectedCell[]) => {
-      gridRef.current?.actions.setCellErrors(tooMany.map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
-    });
+  async function handleSave(change: DataChange<Order>): Promise<void> {
+    try {
+      await saveOrders(change.ops);
+    } catch (tooMany) {
+      gridRef.current?.actions.setCellErrors((tooMany as RejectedCell[]).map((cell) => ({ ...cell, message: "Quantity cannot exceed 100" })));
+    }
   }
 
   return (
-    <DataGridProvider ref={gridRef} data={grid.data} getRowId={grid.getRowId} plugins={grid.plugins} columns={columns} onDataChange={handleDataChange}>
+    <DataGridProvider ref={gridRef} data={grid.data} getRowId={grid.getRowId} plugins={grid.plugins} columns={columns} onDataChange={grid.onDataChange} onSave={handleSave}>
       <div className="w-full flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
           Set a Quantity above 100 and press Enter: the fake server rejects it after ~600ms and the

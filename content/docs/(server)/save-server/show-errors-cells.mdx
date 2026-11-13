@@ -63,7 +63,7 @@ Because the `catch` block returns normally, the `onSave` promise resolves and th
 
 ## When the error clears
 
-When the user commits a new value to a cell, its error clears. Edit, paste, fill, `updateCells`, and a cleared selection all clear it. The server can set the error again for a value that is still wrong.
+When the user commits a new value to a cell, its error clears. An edit, paste, fill, `updateCells`, or cell clear (the Delete key) clears it. Clearing the selection keeps the errors. The server can set the error again for a value that is still wrong.
 
 A row that leaves `data` loses its errors. A refused save that reverts a cell also clears the error of that cell.
 

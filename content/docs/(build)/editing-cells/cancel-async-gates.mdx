@@ -13,7 +13,7 @@ A gate is a callback that runs before the grid acts, such as `processPaste` or `
 
 Every gate receives an `AbortSignal` as its last argument. The signal aborts in three cases:
 
-- A newer run of the same gate replaces the run. For example, the user moves to another cell before `onEditStart` settles.
+- A newer run of the same gate replaces the run. For example, the user edits a row again before `validateRow` settles for the row.
 - The grid unmounts.
 - The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
 
@@ -63,7 +63,7 @@ const gateTimeoutMs = { processPaste: 10_000, onEditStart: 3_000 };
 | Reason | Meaning |
 |---|---|
 | `"timeout"` | The gate ran longer than `gateTimeoutMs`. |
-| `"changed"` | The rows, the checked rows, or `readOnly` changed while the gate waited. |
+| `"changed"` | The rows, the checked rows, or `readOnly` changed while the gate waited. The active cell moved while `onEditStart` waited, or an edit started while `processPaste` waited. |
 | `"superseded"` | A newer run of the same gate replaced it. |
 | `"cancelled"` | The user pressed <kbd>Escape</kbd>. |
 | `"reset"` | The grid reset or unmounted. |

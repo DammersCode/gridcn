@@ -189,7 +189,7 @@ function CopyButton() {
 }
 ```
 
-`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` reads text from the clipboard and resolves `"ok"`, `"empty"`, or `"permission-denied"`. A paste through this hook carries no HTML.
+`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` <NewBadge /> (no paste started). A paste through this hook carries no HTML.
 
 ### Context menu paste [#context-menu-paste]
 

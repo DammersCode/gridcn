@@ -172,7 +172,7 @@ The grid throws these errors. Fix the cause in your code.
 | --- | --- | --- |
 | `gridcn: a row has no string or number id field. Pass getRowId to identify rows.` | Pass `getRowId`, or give every row an `id` field. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | `gridcn: this hook must be used inside a <DataGridProvider>.` | Call the hook in a component below `DataGridProvider`. | [Store hooks](/docs/types-hooks/store-hooks) |
-| `gridcn: DataGridHeader/DataGridBody must be used inside a <DataGridRoot>.` | Render `DataGridHeader` and `DataGridBody` inside `DataGridRoot`. | [DataGridProvider](/docs/components-props/data-grid-provider#compose) |
+| `gridcn: DataGridHeader, DataGridBody, DataGridGlobalShortcuts, DataGridKeybindingsShortcut, and DataGridHeaderDropdown must be used inside a <DataGridRoot>.` | Render the named component inside `DataGridRoot`. | [DataGridProvider](/docs/components-props/data-grid-provider#compose) |
 | `gridcn: no internal actions registered for this store` | Use the store that the provider or `useDataGridStoreProps` created. | [DataGridProvider](/docs/components-props/data-grid-provider#store-external-store-ownership) |
 | `<component> must be rendered inside <Dropzone>` | Render the dropzone parts inside `Dropzone`. | [Import options](/docs/add-options/import-export/import-options) |
 | `fetchRows of useDataGridServerRows must resolve with { rows: TData[] }` | Return an object with a `rows` array from `fetchRows`. | [Server rows contract](/docs/contracts/server-rows-contract) |
@@ -182,6 +182,7 @@ The grid throws these errors. Fix the cause in your code.
 | `The stored views are too large to read` | `createLocalStorageViewsStorage` throws it on load when the stored text is too long. `DataGridViews` shows the load error, and `onError` receives it. Clear the stored key. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 | `Browser storage is not available` | `createLocalStorageViewsStorage` throws it on save when `localStorage` is blocked. The views stay in memory, `DataGridViews` shows the save error, and `onError` receives it. Pass your own `storage`. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 | `The saved views are in an unknown format` | `useDataGridViews` reports it through `error` and `onError` when `load` resolves a value it cannot read. Return the document that `save` received. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
+| `The saved views are too large to store` | `useDataGridViews` reports it through `error` and `onError` and skips that save. Delete views until the document is smaller. | [Saved views](/docs/sort-filter-search/saved-views#storage) |
 | `unknown sheet "<name>"` | Pass the name of a sheet that the file has. | [Import options](/docs/add-options/import-export/import-options) |
 | `[data-grid-io] invalid xlsx sheet name: <name>` | Pass a `workbookName` of 1 to 31 characters, without an apostrophe at either end, other than `History`, and without `\ / ? * [ ] :`. | [Export options](/docs/add-options/import-export/export-options) |
 | `[data-grid-io] an export source batch must be an array` | Return an array of rows, or yield arrays of rows, from the export source. | [Export the whole result](/docs/import-export/export-whole-result) |
@@ -230,6 +231,7 @@ Each add-on prints its own prefix.
 | `[data-grid-presence] setPresenceHighlights: kept the first <max> entries and dropped the rest` | Send at most 1000 entries. Drop the peers that are off screen on your server. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: ignored a payload that is not an array` | Send an array of entries. The call clears every highlight. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — not an object` | Send `PresenceHighlightEntry` objects. | [Presence options](/docs/add-options/server/presence-options) |
+| `[data-grid-presence] setPresenceHighlights: dropped an entry — missing or oversized id` | Send a non-empty string `id` of at most 256 characters. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — rowId-native entries need a bounded rowId and columnId` | Send a non-empty `rowId` and `columnId` of at most 256 characters. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — rowId-native range entries need string arrays rowIds and columnIds` | Send `rowIds` and `columnIds` as arrays of strings. | [Presence options](/docs/add-options/server/presence-options) |
 | `[data-grid-presence] setPresenceHighlights: dropped an entry — empty rowIds/columnIds paint nothing` | Send at least one row id and one column id. | [Presence options](/docs/add-options/server/presence-options) |

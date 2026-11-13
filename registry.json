@@ -1317,6 +1317,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/normalize-limit.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/normalize-limit.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/export-source.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/export-source.ts"

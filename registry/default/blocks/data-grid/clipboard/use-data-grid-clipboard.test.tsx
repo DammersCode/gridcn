@@ -79,14 +79,14 @@ describe("useDataGridClipboard.pasteFromClipboard", () => {
     expect(change.source).toBe("paste");
   });
 
-  it("resolves 'empty' and never mutates on a readOnly grid, even with clipboard text available", async () => {
+  it("resolves 'refused' and never mutates on a readOnly grid, even with clipboard text available", async () => {
     vi.stubGlobal("navigator", { clipboard: { readText: vi.fn().mockResolvedValue("z") } });
     const onDataChange = vi.fn();
     const wrapper = makeWrapper({ onDataChange });
     const result = setUpGrid(wrapper, { readOnly: true });
 
     const outcome = await act(() => result.current.clipboard.pasteFromClipboard());
-    expect(outcome).toBe("empty");
+    expect(outcome).toBe("refused");
     expect(onDataChange).not.toHaveBeenCalled();
   });
 });

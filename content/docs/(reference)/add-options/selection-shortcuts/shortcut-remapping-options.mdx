@@ -21,7 +21,7 @@ A binding is a string of modifiers and one key, joined with `+`, for example `"m
 
 The key is a letter, a digit, a function key `F1` to `F24`, a named key, or a printable character. The typed named keys are `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, and `Delete`. Other stable key names, such as `Insert` or `MediaPlayPause`, bind the same way, in exact case. Write a letter in lowercase, and it matches in either case. Write the space bar as a literal space. The last `+` separates the key, so the plus key cannot bind.
 
-The modifiers of the key event must equal the modifiers of the binding. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`. A binding with an unknown modifier or key name warns in the browser console in development.
+The modifiers of the key event must equal the modifiers of the binding. A character that needs <kbd>Shift</kbd> on the keyboard, such as `?` on a US layout, needs `shift+` in the binding: `"shift+?"`. A binding with an unknown modifier never matches. A binding with an unknown modifier or key name warns in the browser console in development.
 
 ## Keymap
 

@@ -163,7 +163,7 @@ A server often rejects one field, for example with a 422. Paint that rejection o
 
 <NewBadge />
 
-With `useDataGridServerRows`, pass `onSave` and `refreshAfterSave` to the hook. The hook fetches again after the saves settle, so Strategy B needs no code of its own. [Save edits](/docs/save-server/save-edits#server-source) lists the policies. If your app owns the controlled `sortState`, `filterState`, or `searchText`, the refresh sends the current spec. The refetched rows keep the order of the view.
+With `useDataGridServerRows`, pass `onSave` and `refreshAfterSave` to the hook. The hook fetches again after the saves settle, so Strategy B needs no code of its own. [Save edits](/docs/save-server/save-edits#server-source) lists the policies. If your app owns the sort, filter, or search, pass them to the hook as `spec` with `onSpecChange`. The refresh sends the current spec. The refetched rows keep the order of the view.
 
 ## Result
 

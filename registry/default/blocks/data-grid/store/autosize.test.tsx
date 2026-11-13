@@ -93,6 +93,13 @@ describe("actions.autosizeColumns", () => {
     expect(store().getState().columnWidths).toEqual(MEASURED);
   });
 
+  it("stores a width for a flex column, which takes it out of the flex share", () => {
+    const { store } = mount({ columns: [col("a", { flex: 1 }), col("b")] });
+    registerFonts(store());
+    act(() => store().getState().actions.autosizeColumns());
+    expect(store().getState().columnWidths["a"]).toBe(MEASURED.a);
+  });
+
   it("fires no event when the measured widths equal the current ones", () => {
     const onColumnLayoutChange = vi.fn();
     const { store } = mount({

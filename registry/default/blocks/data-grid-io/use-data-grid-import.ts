@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  DEFAULT_IMPORT_LIMITS,
   FILE_TOO_LARGE_MESSAGE,
   IMPORT_TOO_MANY_CELLS_MESSAGE,
   PART_TOO_LARGE_MESSAGE,
   UNSUPPORTED_EXCEL_FORMAT_MESSAGE,
   assertImportRows,
   parseImportFile,
+  resolveImportLimits,
   type CsvDelimiter,
   type ImportLimits,
   type ParsedImportFile,
@@ -236,13 +236,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
   }, []);
 
   const effectiveLimits = useMemo<Required<ImportLimits>>(
-    () => ({
-      maxFileBytes: maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes,
-      maxRows: maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
-      maxColumns: maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
-      maxCells: maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-      maxDecompressedBytes: maxDecompressedBytes ?? DEFAULT_IMPORT_LIMITS.maxDecompressedBytes,
-    }),
+    () => resolveImportLimits({ maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes }),
     [maxFileBytes, maxRows, maxColumns, maxCells, maxDecompressedBytes],
   );
 

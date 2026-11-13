@@ -1957,7 +1957,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/data-modes/query-server-rows.mdx"
+            "content/docs/(server)/data-modes/query-server-rows.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {
@@ -2005,7 +2006,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {
@@ -2048,7 +2050,7 @@
           "status": "supported",
           "evidence": [
             "content/docs/(reference)/contracts/server-rows-contract.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "Z": {
@@ -2061,7 +2063,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {

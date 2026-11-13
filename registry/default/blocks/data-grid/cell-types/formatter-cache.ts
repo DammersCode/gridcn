@@ -3,6 +3,19 @@ import { warnDev } from "../store/commit";
 const MAX_FORMATTERS = 1000;
 const MAX_WARNINGS = 100;
 
+const serialized = new WeakMap<object, string>();
+
+/** Content key of an options object, serialized once per object so a stable options object costs a lookup per call. */
+export function formatKey(options: object): string {
+  if (typeof options !== "object" || options === null) return JSON.stringify(options);
+  let key = serialized.get(options);
+  if (key === undefined) {
+    key = JSON.stringify(options);
+    serialized.set(options, key);
+  }
+  return key;
+}
+
 /**
  * Caches `Intl` formatters by key. A key whose constructor threw caches `null`, so the cell falls
  * back without a second construction, and warns once; the warned keys never clear, so a hostile
