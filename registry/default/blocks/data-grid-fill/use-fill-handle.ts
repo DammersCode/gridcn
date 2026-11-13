@@ -5,6 +5,7 @@ import { getCellValue, useDataGridActions, type CellRef, type GridRect } from "@
 import {
   applyInlineScrollDelta,
   combineRects,
+  isColumnReadOnly,
   isDev,
   inlineAutoScrollStep,
   candidateRowIds,
@@ -147,7 +148,7 @@ export function buildFillCandidates(
       const colIndex = strip.x + col;
       const column = s.visibleColumns[colIndex];
       if (!column) continue;
-      if (typeof column.readOnly === "function" ? column.readOnly(dataRow) : Boolean(column.readOnly)) continue;
+      if (isColumnReadOnly(column, dataRow)) continue;
 
       const cellType = s.cellTypes[column.type ?? "text"];
       if (!cellType) continue;

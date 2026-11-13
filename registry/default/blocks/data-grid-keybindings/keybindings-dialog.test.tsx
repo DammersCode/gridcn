@@ -32,6 +32,18 @@ describe("DataGridKeybindingsDialog", () => {
     expect(actions).toEqual(expect.arrayContaining(["insertRowBelow", "insertRowAbove", "duplicateRow"]));
   });
 
+  it("merges className into the dialog content", () => {
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r: Row) => r.id}>
+        <DataGridKeybindingsDialog defaultOpen className="uppercase" />
+        <DataGridRoot />
+      </DataGridProvider>,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveClass("uppercase");
+    expect(dialog).toHaveClass("overflow-y-auto");
+  });
+
   it("lists an action that a command wires", () => {
     const actions = listedActions({ commands: { undo: { label: "Undo", run: () => {} } } });
     expect(actions).toContain("undo");

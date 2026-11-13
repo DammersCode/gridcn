@@ -54,7 +54,7 @@ import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSamp
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
 
 const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
-  (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey;
+  (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey;
 
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 /** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
@@ -252,10 +252,12 @@ export function dispatchGridAction(args: {
   /** The printable seed char for `typeToReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
+  /** The column of the focused header button; the column menu and filter actions use it when no cell is active. */
+  headerColumnId?: string;
   /** Holds the pending animation frame of a deferred action so the caller can cancel it on unmount. */
   pendingFrameRef?: RefObject<number | null>;
 }): void {
-  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, pendingFrameRef } = args;
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, headerColumnId, pendingFrameRef } = args;
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
@@ -329,15 +331,15 @@ export function dispatchGridAction(args: {
   const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string, offered: (column: (typeof state.visibleColumns)[number]) => boolean = () => true) => {
     preventDefault();
     const active = state.activeCell;
-    const column = active && state.visibleColumns[active.col];
-    if (!active || !column || !offered(column)) return;
+    const column = active ? state.visibleColumns[active.col] : state.visibleColumns.find((candidate) => candidate.id === headerColumnId);
+    if (!column || !offered(column)) return;
     const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector(triggerAttr)}`);
     const open = (trigger: HTMLElement) => {
       trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
       trigger.click();
       trigger.removeAttribute(GRID_ATTR.keyboardOpen);
     };
-    scrollCellIntoView(active);
+    if (active) scrollCellIntoView(active);
     const mounted = findTrigger();
     if (mounted) {
       open(mounted);
@@ -1116,6 +1118,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           rowHeight: layoutRef.current.rowHeight,
           triggerKey: isPrintableKey(keymapEvent, isMacRef.current) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
+          headerColumnId: target?.closest<HTMLElement>("[role='columnheader'][data-column-id]")?.dataset["columnId"],
           pendingFrameRef: pendingActionFrameRef,
         });
 

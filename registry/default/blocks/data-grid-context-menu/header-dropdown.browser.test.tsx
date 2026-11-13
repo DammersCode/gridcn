@@ -43,6 +43,19 @@ function menuItem(name: string): HTMLElement | undefined {
 }
 
 describe("DataGridHeaderDropdown", () => {
+  it("merges className into the menu content", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} className="uppercase" />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    document.querySelector<HTMLElement>(gridAttrSelector("headerMenuTrigger"))!.click();
+    await vi.waitFor(() => expect(document.querySelector("[data-grid-header-dropdown]")).toHaveClass("uppercase"));
+  });
+
   it("renders no chevron trigger when the root has no renderHeaderMenu prop", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

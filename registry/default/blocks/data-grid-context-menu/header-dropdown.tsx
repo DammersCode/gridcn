@@ -30,6 +30,8 @@ export type DataGridHeaderDropdownProps = {
    * resolver applies automatically; this prop overrides it for this dropdown only.
    */
   getHeaderMenuItems?: HeaderMenuItemsResolver;
+  /** Merged into the classes of the menu content. */
+  className?: string;
 };
 
 /**
@@ -55,7 +57,7 @@ function HeaderDropdownItems(props: {
  * menu. Wire via `<DataGridRoot renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>`.
  */
 export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): ReactNode {
-  const { column, trigger, getHeaderMenuItems } = props;
+  const { column, trigger, getHeaderMenuItems, className } = props;
   // rendered inline inside DataGridRoot's subtree (not portaled like the context menu), so the
   // container is reachable directly via the shared hook instead of a contextmenu-time ref capture.
   const scrollRoot = useDataGridContainer();
@@ -77,6 +79,7 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
         data-grid-header-dropdown=""
         data-grid-header-menu-popup=""
         align="end"
+        className={className}
         // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
         finalFocus={() => {
           if (!keyboardOpenedRef.current) return true;

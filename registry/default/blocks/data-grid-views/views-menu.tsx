@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type ImportViewResult, type UseDataGridViewsOptions } from "./use-data-grid-views";
-import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView, type ViewStatePart } from "./view-state";
+import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView, type OverLimitPart } from "./view-state";
 
 /** User-facing strings of {@link DataGridViews}. */
 export type DataGridViewsLabels = {
@@ -21,7 +21,7 @@ export type DataGridViewsLabels = {
   loadFailed: string;
   saveFailed: string;
   limit: string;
-  overLimit: (part: ViewStatePart) => string;
+  overLimit: (part: OverLimitPart) => string;
   importedName: string;
   retry: string;
   setDefault: (name: string) => string;
@@ -48,11 +48,12 @@ export type DataGridViewsLabels = {
   importFailed: (reason: Extract<ImportViewResult, { ok: false }>["reason"]) => string;
 };
 
-const OVER_LIMIT_LINES: Record<ViewStatePart, string> = {
+const OVER_LIMIT_LINES: Record<OverLimitPart, string> = {
   sorts: "The sorts are over the view limit of 16. Remove one to save the view.",
   filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. Remove or shorten them to save the view.",
   search: "The search text is over the view limit of 500 characters. Shorten it to save the view.",
-  layout: "The column layout is over a view limit: a column wider than 10,000 px, a column id over 200 characters, or a layout list over 1,000 entries. Reset the layout to save the view.",
+  layout: "The column layout is over a view limit: a column wider than 10,000 px or a layout list over 1,000 entries. Reset the layout to save the view.",
+  columnId: "A column id is over the view limit of 200 characters, so a view cannot hold a sort, filter, or layout setting for that column. Remove those settings to save the view.",
 };
 
 export const DEFAULT_VIEWS_LABELS: DataGridViewsLabels = {

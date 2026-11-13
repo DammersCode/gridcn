@@ -6,6 +6,7 @@ import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineCol
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { StoreProbe } from "@/registry/default/blocks/data-grid/test/store-probe.test-helper";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
+import { DataGridHeaderDropdown } from "@/registry/default/blocks/data-grid-context-menu/header-dropdown";
 import { DataGridHeaderFilter } from "./data-grid-toolbar";
 import "@/app/global.css";
 
@@ -88,6 +89,25 @@ describe("header filter trigger while the view has no rows", () => {
     expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toHaveAttribute("tabindex", "-1");
   });
 
+  it.each([
+    ["client", rows, "client"],
+    ["server", [] as Row[], "server"],
+  ] as const)("%s: Shift+Alt+ArrowDown on the focused filter button opens the column menu of a lone header dropdown", async (_name, data, filterMode) => {
+    const filter: FilterNode[] = [{ filterId: "f", columnId: "city", operator: "isAnyOf", value: ["Nowhere"] }];
+    await render(
+      <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id} defaultFilterState={filter} filterMode={filterMode}>
+        <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />} renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(trigger()).toBeTruthy());
+    trigger().focus();
+    await userEvent.keyboard("{Shift>}{Alt>}{ArrowDown}{/Alt}{/Shift}");
+    await vi.waitFor(() => expect(document.querySelector("[data-grid-header-dropdown]")).toBeTruthy());
+  });
+
   it("after the keyboard clears the filter, ArrowDown from the grid focus moves the active cell", async () => {
     const api = await renderGrid(rows, "client");
     await tabToTrigger();
@@ -98,6 +118,20 @@ describe("header filter trigger while the view has no rows", () => {
     trigger().focus();
     await userEvent.keyboard("{ArrowDown}");
     await vi.waitFor(() => expect(api().getState().activeCell).not.toBeNull());
+  });
+
+  it("merges className into the filter button", async () => {
+    await render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} className="uppercase" />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await vi.waitFor(() => expect(trigger()).toBeTruthy());
+    expect(trigger()).toHaveClass("uppercase");
+    expect(trigger()).toHaveClass("rounded-md");
   });
 
   it("keeps the trigger out of the tab order while rows exist", async () => {

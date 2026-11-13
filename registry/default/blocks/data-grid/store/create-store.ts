@@ -67,6 +67,7 @@ import {
   EMPTY_CELL_ERRORS,
   EMPTY_FLASHING_CELLS,
 } from "./compute";
+import { toSafeText } from "../cell-types/safe-text";
 import { isDev } from "../is-dev";
 import {
   MAX_HIDDEN_CHECKED_ROWS,
@@ -619,7 +620,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         if (settledVerdicts.size === 1) queueMicrotask(flushSettledVerdicts);
       },
       (error: unknown) => {
-        if (release()) warnGateOnce("validateRow", `validateRow rejected, so the row gets no verdict: ${String(error)}`);
+        if (release()) warnGateOnce("validateRow rejected", () => `validateRow rejected, so the row gets no verdict: ${toSafeText(error)}`);
       },
     );
   };
@@ -653,7 +654,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       try {
         verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
       } catch (error) {
-        warnGateOnce("validateRow", `validateRow threw, so the row gets no verdict: ${String(error)}`);
+        if (pendingRowVerdicts.size > 0 || settledVerdicts.size > 0) supersedeRowVerdict(rowId);
+        warnGateOnce("validateRow threw", () => `validateRow threw, so the row gets no verdict: ${toSafeText(error)}`);
         continue;
       }
       if (isThenable<Record<string, string> | null>(verdict)) {
@@ -705,7 +707,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("onEditStart rejected", `onEditStart rejected, so the edit does not start: ${String(error)}`);
+        warnGateOnce("onEditStart rejected", () => `onEditStart rejected, so the edit does not start: ${toSafeText(error)}`);
       },
     );
   };

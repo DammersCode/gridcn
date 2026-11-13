@@ -76,7 +76,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -122,6 +122,7 @@ export const FEATURES = {
   revalidate: F(["/docs/scroll-mode/tune-row-retention#revalidate"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "page-prefetch": F(["/docs/server-pagination/tune-page-loading#prefetch"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "lookup-cell": F(["/docs/editing-cells/lookup-cell"], ["/docs/add-options/editing-cells/lookup-options"], "data-grid-lookup"),
+  "zero-row-header": F(["/docs/selection-shortcuts/keyboard-navigation"], ["/docs/accessibility/screen-reader-support"]),
   "input-debounce": F(["/docs/types-hooks/use-debounced-input"], ["/docs/types-hooks/use-debounce"], "use-debounce"),
 };
 

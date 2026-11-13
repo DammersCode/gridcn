@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactElement, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -13,10 +14,10 @@ import { useDataGridKeymap, useDataGridLabels, type DataGridLabels, type GridAct
 import { KEYBINDING_CATEGORIES, categoryForAction, categoryLabel, type KeybindingCategory } from "./action-groups";
 import { labelForAction } from "./action-labels";
 import { BindingChips } from "./binding-label";
-import { useDataGridCommands, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { PLUGGABLE_ACTIONS, useDataGridCommands, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Built-in actions whose body is empty until a plugin or a `commands` entry names them. */
-const NEEDS_COMMAND: ReadonlySet<string> = new Set(["fillDown", "fillRight", "undo", "redo", "openFindReplace", "openFind"]);
+const NEEDS_COMMAND: ReadonlySet<string> = new Set(PLUGGABLE_ACTIONS);
 const INSERT_ROW_ACTIONS: ReadonlySet<string> = new Set(["insertRowAbove", "insertRowBelow"]);
 
 type WiredRowFactories = { createRow: boolean; duplicateRow: boolean };
@@ -77,6 +78,8 @@ export type DataGridKeybindingsDialogProps = {
   defaultOpen?: boolean;
   /** Rendered as the dialog's trigger (e.g. a `<Button>`); omit to drive `open` externally only. */
   trigger?: ReactElement;
+  /** Merged into the classes of the dialog content. */
+  className?: string;
 };
 
 /**
@@ -87,7 +90,7 @@ export type DataGridKeybindingsDialogProps = {
  * they're native browser clipboard events, not part of the keymap.
  */
 export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps): ReactNode {
-  const { open, onOpenChange, defaultOpen, trigger } = props;
+  const { open, onOpenChange, defaultOpen, trigger, className } = props;
   const keymap = useDataGridKeymap();
   const labels = useDataGridLabels();
   const commands = useDataGridCommands();
@@ -98,7 +101,7 @@ export function DataGridKeybindingsDialog(props: DataGridKeybindingsDialogProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
       {trigger && <DialogTrigger render={trigger} />}
-      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto sm:max-w-lg" data-slot="data-grid-keybindings-dialog">
+      <DialogContent className={cn("max-h-[80vh] max-w-lg overflow-y-auto sm:max-w-lg", className)} data-slot="data-grid-keybindings-dialog">
         <DialogHeader>
           <DialogTitle>{labels.keybindings.title}</DialogTitle>
           <DialogDescription>{labels.keybindings.description}</DialogDescription>

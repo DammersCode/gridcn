@@ -172,6 +172,7 @@ describe("DataGridImportButton (browser)", () => {
     );
     await userEvent.click(page.getByRole("button", { name: "Import" }));
     await expect.element(page.getByText("No file chosen — up to 50 MB")).toBeInTheDocument();
+    expect(document.querySelector(".sr-only")?.textContent).toMatch(/^Choose file: .+ — up to 50 MB$/);
 
     await rerender(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

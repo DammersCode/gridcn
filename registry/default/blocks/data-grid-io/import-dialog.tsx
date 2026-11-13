@@ -273,7 +273,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const dropzoneDescription = `${Object.values(accept).flat().join(", ")} — ${labels.io.maxFileSize(maxFileBytes)}`;
+  const dropzoneDescription = `${labels.io.chooseFile}: ${Object.values(accept).flat().join(", ")} — ${labels.io.maxFileSize(maxFileBytes)}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,13 +285,13 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <div className="flex min-w-0 flex-col gap-3">
           {preview ? (
-            <Dropzone compact accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile} description={dropzoneDescription}>
+            <Dropzone compact accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile} accessibleDescription={dropzoneDescription}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">{labels.io.replaceFile}</span>
             </Dropzone>
           ) : (
-            <Dropzone accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile} description={dropzoneDescription}>
+            <Dropzone accept={accept} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile} accessibleDescription={dropzoneDescription}>
               <DropzoneEmptyState title={labels.io.chooseFile} description={`${labels.io.noFileChosen} — ${labels.io.maxFileSize(maxFileBytes)}`} />
             </Dropzone>
           )}

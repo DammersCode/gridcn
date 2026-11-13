@@ -129,6 +129,16 @@ describe("buildFillWrites", () => {
     expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([]);
   });
 
+  it("skips a computed column that has no write path, without validating it", () => {
+    const computed: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "double", header: "Double", accessorFn: (r: Row) => (r.qty ?? 0) * 2, type: "number", validate: () => "never valid" },
+    ];
+    const s = fakeState({ columns: computed, visibleColumns: computed });
+    const settled = syncResolution(buildFillWrites(s, { x: 1, y: 0, width: 1, height: 2 }, { x: 1, y: 2, width: 1, height: 1 }).resolution);
+    expect({ writes: settled.writes, rejected: settled.rejected }).toEqual({ writes: [], rejected: [] });
+  });
+
   it("skips a destination value rejected by validate", () => {
     const validated: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name" },

@@ -133,8 +133,9 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
 
   const onContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement> & { preventBaseUIHandler: () => void }) => {
-      // Portaled popups (find field, filter inputs) bubble contextmenu through the React tree; a text-entry target keeps the browser menu.
-      if (event.target instanceof Element && event.target.closest(TEXT_ENTRY_SELECTOR) !== null) {
+      // Portaled popups (find panel, filter popover) bubble contextmenu through the React tree; they and any text-entry target keep the browser menu.
+      const outsideGrid = !event.currentTarget.contains(event.target as Node);
+      if (outsideGrid || (event.target instanceof Element && event.target.closest(TEXT_ENTRY_SELECTOR) !== null)) {
         event.preventBaseUIHandler();
         return;
       }

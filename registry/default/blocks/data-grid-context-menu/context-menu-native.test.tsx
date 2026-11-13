@@ -37,6 +37,13 @@ describe("DataGridContextMenu and text fields", () => {
     expect(fireEvent.contextMenu(input)).toBe(true);
   });
 
+  it("leaves the browser menu to a button of the Find panel, which is not a text field", async () => {
+    await mountWithFindPanel();
+    const button = screen.getAllByRole("button").find((candidate) => candidate.closest("[data-grid-instance]") === null)!;
+    expect(button).toBeTruthy();
+    expect(fireEvent.contextMenu(button)).toBe(true);
+  });
+
   it("still takes over the right-click on a column header", async () => {
     await mountWithFindPanel();
     const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;

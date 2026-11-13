@@ -79,6 +79,50 @@ describe("a validateRow that throws", () => {
     expect(api.getState().editing).toBeNull();
   });
 
+  it("keeps the write when it throws a null-prototype value", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], {
+      validateRow: () => {
+        throw Object.create(null);
+      },
+    });
+    api.getState().actions.startEditingAt({ row: 0, col: 0 });
+    expect(() => api.getState().actions.commitCellEdit("z")).not.toThrow();
+    expect((api.getState().data[0] as Row).name).toBe("z");
+  });
+
+  it("keeps the write when it rejects with a null-prototype value", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], { validateRow: () => Promise.reject(Object.create(null)) });
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "y" } }]);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    process.off("unhandledRejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
+    expect((api.getState().data[0] as Row).name).toBe("y");
+  });
+
+  it("warns once for a throw and once for a rejection", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let mode: "throw" | "reject" = "reject";
+    const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], {
+      validateRow: () => {
+        if (mode === "throw") throw new Error("boom");
+        return Promise.reject(new Error("no"));
+      },
+    });
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a1" } }]);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    mode = "throw";
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a2" } }]);
+    expect(warn.mock.calls.map((call) => String(call[0]).includes("rejected") ? "rejected" : "threw")).toEqual(["rejected", "threw"]);
+  });
+
   it("keeps a multi-row write whole", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], { validateRow: throwing });

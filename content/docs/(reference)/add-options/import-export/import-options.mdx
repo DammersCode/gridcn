@@ -136,7 +136,7 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 | `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Replaces the default content. |
 | `className` | `string` | none | Merges after the built-in classes. |
 | `aria-label` | `string` | none | Names the drop surface. |
-| `description` <NewBadge /> | `string` | The accepted types, in English | Describes the accepted files to screen readers. `DataGridImportDialog` sets it from `labels.io`. |
+| `accessibleDescription` <NewBadge /> | `string` | The accepted types, in English | Replaces the whole screen reader description of the accepted files. `DataGridImportDialog` sets it from `labels.io`. |
 
 A `DropzoneRejection` is `{ file, reasons }`. Each reason is `accept`, `maxSize`, `minSize`, or `maxFiles`. `filterFiles(files, options)` applies the same rules and returns a `FilterFilesResult`: `accepted` holds the accepted files, and `rejections` holds the rejections. `matchesAccept(file, accept)` tests one file. `DropzoneEmptyState` takes a `title` and a `description`. `DropzoneContent` shows its `children` in place of the file list.
 

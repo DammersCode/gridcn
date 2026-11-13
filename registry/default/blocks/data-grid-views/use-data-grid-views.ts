@@ -28,7 +28,7 @@ import {
   type DataGridViewState,
   type DataGridViewsDocument,
   type ViewColumns,
-  type ViewStatePart,
+  type OverLimitPart,
 } from "./view-state";
 import { createLocalStorageViewsStorage, type DataGridViewsStorage } from "./view-storage";
 
@@ -66,9 +66,9 @@ export type UseDataGridViewsResult = {
   modified: boolean;
   /**
    * The part of the grid state that exceeds a view limit, or `false`. `saveView` returns `null` and `updateView` returns `false` while it is set.
-   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, a column id over 200 characters, 1,000 entries per layout list.
+   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list; `"columnId"` a column id over 200 characters in a sort, filter, or layout.
    */
-  overLimit: false | ViewStatePart;
+  overLimit: false | OverLimitPart;
   defaultViewId: string | null;
   /** The stored views are being read. */
   loading: boolean;

@@ -55,6 +55,12 @@ describe("keys on a focused header menu trigger while rows exist", () => {
     expect(grid.api().selectAllStage).not.toBeNull();
   });
 
+  it("Shift+Space leaves the row unselected, because the button takes it as a click", () => {
+    const grid = mountWithFocusedTrigger();
+    grid.press({ key: " ", shiftKey: true });
+    expect(grid.api().selection.rows.length).toBe(0);
+  });
+
   it.each([["Enter", { key: "Enter" }], ["Space", { key: " " }]] as const)("%s opens no cell editor", (_name, init) => {
     const grid = mountWithFocusedTrigger();
     grid.press(init);

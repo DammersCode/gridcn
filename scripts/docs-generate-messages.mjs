@@ -97,6 +97,7 @@ export const MESSAGES = [
     intro: "These warnings come from gates that return a promise. The grid prints each one once per grid.",
     rows: [
       dev("validateRow rejected, so the row gets no verdict: <error>", "store/create-store.ts", "validateRow rejected, so the row gets no verdict", "Fix the error in `validateRow`, or catch it inside the function.", "/docs/editing-cells/validation"),
+      dev("validateRow threw, so the row gets no verdict: <error>", "store/create-store.ts", "validateRow threw, so the row gets no verdict", "Fix the error in `validateRow`, or catch it inside the function. The write stays.", "/docs/editing-cells/validate-rows-cross-field"),
       dev("onEditStart rejected, so the edit does not start: <error>", "store/create-store.ts", "onEditStart rejected, so the edit does not start", "Fix the error in `onEditStart`, or catch it inside the function.", "/docs/editing-cells/cancel-async-gates"),
       dev("createRow rejected, so the insert is cancelled: <error>", "store/data-write.ts", "createRow rejected, so the insert is cancelled", "Fix the error in `createRow`, or catch it inside the function.", "/docs/rows-pages-menus/row-operations#enable-props"),
       dev("duplicateRow rejected, so the duplicate is cancelled: <error>", "store/data-write.ts", "duplicateRow rejected, so the duplicate is cancelled", "Fix the error in `duplicateRow`, or catch it inside the function.", "/docs/rows-pages-menus/row-operations#enable-props"),
@@ -288,7 +289,7 @@ const CODE = "throws an internal code that the import dialog maps to a label in 
 export const OMITTED = [
   { file: `${B}/data-grid/cell-types/formatter-cache.ts`, line: "warnDev(`${failureMessage}", reason: "forwards the date and number format messages that a row quotes" },
   { file: `${B}/data-grid/interaction/use-grid-interaction.ts`, line: "warnDev(message);", reason: FORWARD },
-  { file: `${B}/data-grid/store/async-gate.ts`, line: "warnDev(message);", reason: FORWARD },
+  { file: `${B}/data-grid/store/async-gate.ts`, line: "warnDev(typeof message === \"function\" ? message() : message);", reason: FORWARD },
   { file: `${B}/data-grid/store/commit.ts`, line: "console.warn(`[data-grid] ${message}`)", reason: "the prefix of every core warning" },
   { file: `${B}/data-grid/store/create-store.ts`, line: "warnDev(issue);", reason: "forwards the column group messages" },
   { file: `${B}/data-grid/store/create-store.ts`, line: "warnDev(message);", reason: "forwards the plugin messages" },

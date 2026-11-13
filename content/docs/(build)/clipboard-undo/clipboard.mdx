@@ -189,7 +189,7 @@ function CopyButton() {
 }
 ```
 
-`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` <NewBadge />. It means the grid started no paste. The causes: a `readOnly` grid, an open editor, no paste target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
+`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` <NewBadge />. No paste started. Causes: a `readOnly` grid or an open editor (checked before any read), no target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
 
 ### Context menu paste [#context-menu-paste]
 

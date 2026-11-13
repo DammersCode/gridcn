@@ -78,6 +78,7 @@ export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { toSafeText } from "./cell-types/safe-text";
+export { PLUGGABLE_ACTIONS } from "./keyboard";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
@@ -88,7 +89,7 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
-export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
+export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";

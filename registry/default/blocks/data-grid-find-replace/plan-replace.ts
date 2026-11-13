@@ -1,5 +1,5 @@
 import { type AnyColumnDef, type CellPatch, type CellRef, type SearchOptions } from "@/registry/default/blocks/data-grid/data-grid";
-import { createTextMatcher, fullViewOf, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { createTextMatcher, fullViewOf, isColumnReadOnly, selectionContainsCell, toSafeText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest find or replacement text; longer input is cut. */
 export const MAX_REPLACE_INPUT_LENGTH = 1_000;
@@ -62,11 +62,6 @@ function planColumn(column: AnyColumnDef, cellTypes: ReplaceState["cellTypes"]):
     fromText: (text) => cellType.fromText(text, options),
     isEmpty: (value) => cellType.isEmpty(value),
   };
-}
-
-function isReadOnly(column: AnyColumnDef, row: unknown): boolean {
-  if (!column.setValue && !column.accessorKey) return true;
-  return typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly);
 }
 
 /** Lowercases `text` for matching; `sourceAt` maps each folded index to its source index when lowercasing changed the length. */
@@ -145,7 +140,7 @@ export function planReplace(
     if (!isMatch(text)) return true;
     const ref = { rowId, columnId: entry.column.id };
     if (skip?.(ref)) return true;
-    if (isReadOnly(entry.column, row)) {
+    if (isColumnReadOnly(entry.column, row)) {
       plan.skipped.push({ ref, reason: "readonly" });
       return true;
     }

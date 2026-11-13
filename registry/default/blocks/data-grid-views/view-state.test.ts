@@ -3,6 +3,7 @@ import {
   MAX_VIEWS,
   MAX_VIEW_NAME_LENGTH,
   captureViewState,
+  overLimitPart,
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
@@ -297,5 +298,23 @@ describe("view files", () => {
   it("reads a nameless file with an empty name", () => {
     const text = JSON.stringify({ format: "gridcn-view", version: 1, state });
     expect(parseViewFile(text, columns)).toMatchObject({ ok: true, name: "" });
+  });
+});
+
+describe("overLimitPart for a column id over 200 characters", () => {
+  const long = "c".repeat(201);
+  const empty = { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
+  it.each([
+    ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
+    ["a nested filter", { filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }] }],
+    ["a width", { columnLayout: { widths: { [long]: 100 }, order: [], pins: {}, hidden: [] } }],
+    ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "left" }, hidden: [] } }],
+    ["the order", { columnLayout: { widths: {}, order: [long], pins: {}, hidden: [] } }],
+    ["the hidden list", { columnLayout: { widths: {}, order: [], pins: {}, hidden: [long] } }],
+  ])("names columnId for %s, not the part that holds it", (_name, change) => {
+    expect(overLimitPart({ ...empty, ...change } as DataGridViewState)).toBe("columnId");
+  });
+  it("keeps a column id of exactly 200 characters", () => {
+    expect(overLimitPart({ ...empty, sorts: [{ columnId: "c".repeat(200), direction: "asc" }] })).toBe(false);
   });
 });

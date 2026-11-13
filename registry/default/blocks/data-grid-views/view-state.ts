@@ -110,6 +110,9 @@ function sortKeys(_key: string, value: unknown): unknown {
 
 export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
 
+/** The part of a view state that a view limit cuts: a {@link ViewStatePart}, or `"columnId"` for a column id over 200 characters. */
+export type OverLimitPart = ViewStatePart | "columnId";
+
 /** One string per part of a state; equal strings mean the part restores the same grid. */
 export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart, string> {
   // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
@@ -129,8 +132,19 @@ export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
 }
 
-/** The part of `state` that a view limit would cut or drop, or `false` when none. Layout covers a width over 10,000 px, a column id over 200 characters, and a list over 1,000 entries. */
-export function overLimitPart(state: DataGridViewState): ViewStatePart | false {
+function filterColumnIds(nodes: readonly FilterNode[]): string[] {
+  return nodes.flatMap((node) => (isFilterGroup(node) ? filterColumnIds(node.filters) : [node.columnId]));
+}
+
+function hasLongColumnId(state: DataGridViewState): boolean {
+  const { widths, pins, order, hidden } = state.columnLayout;
+  const ids = [...state.sorts.map((sort) => sort.columnId), ...filterColumnIds(state.filters), ...Object.keys(widths), ...Object.keys(pins), ...order, ...hidden];
+  return ids.some((id) => id.length > MAX_COLUMN_ID_LENGTH);
+}
+
+/** The part of `state` that a view limit would cut or drop, or `false` when none. `"columnId"` is a column id over 200 characters anywhere in the state. Layout covers a width over 10,000 px and a list over 1,000 entries. */
+export function overLimitPart(state: DataGridViewState): OverLimitPart | false {
+  if (hasLongColumnId(state)) return "columnId";
   const kept = viewPartKeys(sanitizeViewState(state, undefined).state);
   const wanted = viewPartKeys(state);
   return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
