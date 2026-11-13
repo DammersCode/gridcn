@@ -57,7 +57,7 @@ Without a `source` <NewBadge />, every scope covers the rows the grid holds. Tha
 
 <NewBadge />
 
-`columns`, `formatCell`, `output`, `source`, `maxBytes`, `signal`, and `onProgress` are fields of `ExportGridOptions`. `exportRows(state, options, onBatch)` is the engine of a `source` export. See [Shape the export file](/docs/import-export/shape-export-file).
+`columns`, `formatCell`, `output`, `source`, `maxBytes`, `signal`, and `onProgress` are fields of `ExportGridOptions`. `formatCell` returns an `ExportCellValue` (string, number, boolean, `Date`, `null`, or `undefined`). `exportRows(state, options, onBatch)` is the engine of a `source` export. See [Shape the export file](/docs/import-export/shape-export-file).
 
 ### Types [#types]
 
