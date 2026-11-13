@@ -38,6 +38,7 @@ These warnings come from the props that you pass to the grid.
 | `[data-grid] remembered checked rows are capped at 100000; the rest are dropped` | The grid remembers at most 100,000 hidden checked rows. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `[data-grid] invalid date format options, showing the ISO text: <error>` | Fix the `displayFormat` or `locale` of the date column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `[data-grid] invalid number format options, showing the raw value: <error>` | Fix the `format` options of the number column. | [Built-in cell types](/docs/editing-cells/built-cell-types) |
+| `[data-grid] sortLocale "<tag>" is not a valid language tag. The grid sorts with "en-US".` | Pass a BCP 47 tag, such as `"sv-SE"`, to `sortLocale`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 | `[data-grid] autosizeColumns: unknown column id "<id>"` | Pass column ids that exist. | [Column sizing](/docs/columns/column-sizing) |
 | `[data-grid] <action> found no <trigger> for "<id>"; wire <slot> to enable it` | Render the header menu or header filter that the slot prop names. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
 
@@ -147,7 +148,6 @@ These warnings come from the `plugins` prop. A plugin comes from an add-on hook.
 | `[data-grid] plugin "<name>"'s command "<command>" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)` | Rename the command. Only the listed actions accept a plugin command. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] plugin "<name>"'s keymap binds "<command>", which is not a pluggable built-in action; the entry is dropped — a plugin keymap binds only undo, redo, fillDown, fillRight, openFindReplace, and openFind (bind other commands through the consumer's keymap)` | Bind the command through your own `keymap` prop. A plugin keymap binds only the six pluggable actions. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries) |
 | `[data-grid] plugin "<name>"'s keymap binds "<command>" but the plugin defines no such command; the entry is dropped — a plugin keymap binds the plugin's own commands only` | Add the command to the plugin or remove the keymap entry. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
-| `[data-grid] plugin "<name>"'s binding for "<command>" repeats a key the grid's default keymap or the consumer's keymap already binds to "<command>"; the colliding binding is dropped` | Remove the key from the plugin `keymap`. The action already has that binding. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 
 ## Column group warnings [#column-group-warnings]
 

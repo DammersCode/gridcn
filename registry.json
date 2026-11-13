@@ -34,9 +34,6 @@
             "popover",
             "calendar",
             "input-group",
-            "dropdown-menu",
-            "context-menu",
-            "separator",
             "tooltip"
          ],
           "files": [
@@ -64,6 +61,11 @@
                "path": "registry/default/blocks/data-grid/cell-types/checkbox.tsx",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/checkbox.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/cell-types/formatter-cache.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/formatter-cache.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/cell-types/date.tsx",
@@ -504,6 +506,11 @@
                "path": "registry/default/blocks/data-grid/sort-filter/incremental-view-index.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/incremental-view-index.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/sort-filter/sort-collator.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/sort-collator.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/sort-filter/builtin-compare.ts",
@@ -1983,9 +1990,6 @@
          "title": "Data Grid Context Menu Slots Demo",
          "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
          "author": "gridcn",
-         "dependencies": [
-            "lucide-react@^1.46.0"
-         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu"

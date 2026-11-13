@@ -37,7 +37,7 @@ Follow these rules for the methods:
 
 - `fromText` never throws. Paste and import feed it any text. Return `clearValue()` for text it cannot parse.
 - Store serializable primitives. Use an ISO `yyyy-mm-dd` string and not a `Date`, and a plain number and not a money object. Compare, clipboard, and JSON then stay simple, and no time zone shifts a day.
-- Choose `isEmpty` for each type on purpose. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` is empty, so `0` and `false` count as values. For a column with a comparator (`compare` or `sortCompare`), `isEmpty` decides which cells sort last. `isEmpty` also decides where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
+- Choose `isEmpty` for each type. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. For a column with a comparator (`compare` or `sortCompare`), `isEmpty` decides which cells sort last. `isEmpty` also decides where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
 - Format for people in `toDisplayText`. Keep `toText` a plain string that `fromText` parses back.
 - Accept a stored value and a displayed label on paste. The `select` type writes the label in `toText`, and its `fromText` matches a pasted value first and a label second.
 
@@ -46,7 +46,7 @@ Follow these rules for the methods:
 `Cell` renders once per visible cell, and scrolling mounts cells all the time.
 
 - Create costly objects once. The `date` type keeps its `Intl.DateTimeFormat` instances in a cache.
-- Key a cache on serialized option values and not on object identity. A column definition often creates its `options` object again on every render, so an identity key never hits. The `date` cache keys on the locale and the JSON of the format. The `number` cache keys on the `format` object, so keep that object stable.
+- Key a cache on serialized option values and not on object identity. A column definition often creates its `options` object again on every render, so an identity key never hits. The `date` and `number` caches key on the locale and the JSON of the format, so an equal literal reuses one formatter.
 - Pin every locale. `Intl` formatters fall back to the runtime locale, and a server and a browser can differ. The `date` type defaults to `en-US`, so server and client text match.
 
 ### Editor UX [#editor-ux]

@@ -319,6 +319,11 @@ export type DataGridSyncProps<TData = unknown> = {
    * Default: `"server"` while `totalRowCount` is set (`data` is a window of the result), else `"client"`. Set `"client"` to sort the window locally.
    */
   sortMode?: "client" | "server";
+  /**
+   * BCP 47 language tag that orders text in the client sort and in the header filter's value list. Default `"en-US"`: the server render and the browser order rows alike.
+   * Pass `navigator.language` in a client-only tree to follow the browser. Under `sortMode="server"` the grid does not sort rows; the server owns their order. An invalid tag falls back to `"en-US"` with one development warning.
+   */
+  sortLocale?: string;
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
   defaultSortState?: SortSpec[];
   /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
@@ -845,6 +850,8 @@ export type DataGridStoreState = Omit<
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
+  /** Mirrors the `sortLocale` sync prop; the default is `"en-US"`. */
+  sortLocale: string;
   /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
   filterMode: "client" | "server";
   filterState: FilterNode[];
@@ -1006,7 +1013,7 @@ export type DataGridActions = {
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
-  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row and does nothing while `pageSize` is controlled. Calls `onPageSizeChange` with a number (not for `null`). */
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row and does nothing while `pageSize` is controlled. Calls `onPageSizeChange` with a number (not for `null`). `null` calls `onPageChange(1)` when the page was not 1. */
   setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
@@ -1343,6 +1350,7 @@ export type SyncInputs = {
   columnGroupModel: ColumnGroupModel | null;
   /** `"<page>|<pageSize>"`: a page change rebuilds the paged view. */
   pageKey: string;
+  sortLocale: string;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1356,7 +1364,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.columnOrder === b.columnOrder &&
     a.hiddenColumns === b.hiddenColumns &&
     a.columnGroupModel === b.columnGroupModel &&
-    a.pageKey === b.pageKey
+    a.pageKey === b.pageKey &&
+    a.sortLocale === b.sortLocale
   );
 }
 

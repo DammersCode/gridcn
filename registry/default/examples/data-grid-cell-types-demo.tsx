@@ -9,18 +9,19 @@ import {
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
 /** The shared demo row plus the fields the currency, link, and notes columns read. */
-type CellTypesDemoRow = DemoRow & { price: number; link: string; notes: string };
+type CellTypesDemoRow = DemoRow & { price: number; level: number; link: string; notes: string };
 
 function makeRows(): CellTypesDemoRow[] {
   return generateDemoRows(8).map((row, i) => ({
     ...row,
     price: Math.round((1250 + i * 317) % 20000) / 100,
+    level: 30 + i * 9,
     link: i % 4 === 0 ? "javascript:alert(1)" : `https://example.com/user-${i}`,
     notes: i % 5 === 0 ? "First line\nSecond line\nThird line" : "Short note",
   }));
 }
 
-const columns = defineColumns<CellTypesDemoRow>()([
+export const cellTypesDemoColumns = defineColumns<CellTypesDemoRow>()([
   { id: "name", header: "Text", accessorKey: "name", type: "text", width: 55, flex: 1 },
   {
     id: "email",
@@ -36,8 +37,16 @@ const columns = defineColumns<CellTypesDemoRow>()([
     header: "Validated",
     accessorKey: "age",
     type: "number",
-    options: { min: 18, max: 100 },
     validate: (value: unknown) => (typeof value === "number" && value < 18 ? "Must be 18 or older" : null),
+    width: 55,
+    flex: 1,
+  },
+  {
+    id: "level",
+    header: "Clamped",
+    accessorKey: "level",
+    type: "number",
+    options: { min: 18, max: 100 },
     width: 55,
     flex: 1,
   },
@@ -100,9 +109,9 @@ const columns = defineColumns<CellTypesDemoRow>()([
 ] as const);
 
 /**
- * Every built-in cell type in one grid, plus a read-only column, a `validate` rule (Age rejects
- * under-18 edits), a formatted currency column (display-only locale formatting), a `url` column
- * (its one `javascript:` value renders as plain text), a `longText` column (popover editor), and
+ * Every built-in cell type in one grid, plus a read-only column, a `validate` rule (Validated rejects
+ * under-18 edits), a clamped number column (Clamped keeps 18 to 100), a formatted currency column
+ * (display-only locale formatting), a `url` column (its one `javascript:` value renders as plain text), a `longText` column (popover editor), and
  * a `renderCell` override on Score that keeps the number type's edit/sort/clipboard pipeline but
  * renders a progress bar instead of plain text.
  */
@@ -113,14 +122,14 @@ export default function DataGridCellTypesDemo(): ReactNode {
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Try each column's editor: Read-only refuses edits, Validated rejects an age under 18,
-        Currency edits the raw number behind its locale format, Link opens with alt+Enter (its
+        Clamped moves a value into 18 to 100, Currency edits the raw number behind its locale format, Link opens with alt+Enter (its
         javascript: row stays plain text), Notes opens a multi-line editor, and renderCell shows
         a progress bar.
       </p>
       <div className="h-[360px] overflow-hidden rounded-md border border-border">
         <DataGrid
           defaultData={rows}
-          columns={columns}
+          columns={cellTypesDemoColumns}
           getRowId={(row) => row.id}
           className="h-full rounded-none border-none"
         />

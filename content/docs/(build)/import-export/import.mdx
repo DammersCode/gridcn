@@ -103,7 +103,7 @@ The dialog rejects a file over a limit with a message and never cuts a file.
 
 - `maxFileBytes`: 50 MiB, checked before the read.
 - `maxRows`: 1,000,000, header row included. `maxColumns`: 1,000.
-- `maxCells`: 5,000,000, rows times columns. A CSV file counts its widest row as its columns, before the parse.
+- `maxCells`: 5,000,000, rows times columns. A CSV file counts its widest row as its columns. The parser stops at the first row that breaks a limit. A CSV file with more delimiter characters than `maxCells` is rejected before the parse, even when quotes hide some of them.
 - `maxDecompressedBytes`: 256 MiB of unpacked data in one XLSX part, such as a worksheet or the shared strings.
 
 Each XLSX part also has a cap of `maxCells` times 10 bytes plus 1 MiB, about 51 million bytes at the default. The lower of the two caps applies. The shared strings of a workbook count as one part, so a text-heavy sheet with few cells can need a higher `maxCells`. A higher `maxCells` raises the part cap and the memory that a read can use. An XLS file counts the cells of all its sheets against `maxCells`. An XLSX file counts the selected sheet only.

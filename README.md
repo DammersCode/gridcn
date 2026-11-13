@@ -30,7 +30,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in an accessor key is a compile error.
 - **Validation.** A function or any [Standard Schema](https://standardschema.dev) library (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors.** `setCellErrors` paints an API rejection on the exact cell. The error clears when the user commits a fix.
-- **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
+- **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct; a test compares it with a full rebuild. `research/perf-sort-1m.md` records its timings at 100k rows.
 - **Virtualization.** CSS Grid with virtualized row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
 - **Touch.** A tap selects, a double-tap edits, a long-press opens the context menu, and selection handles extend a range. Touch targets grow under a coarse pointer.

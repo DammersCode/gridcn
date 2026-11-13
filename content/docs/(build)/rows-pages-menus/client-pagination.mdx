@@ -45,7 +45,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off for an uncontrolled page size.
+The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off for an uncontrolled page size. It calls `onPageChange(1)` when the page was not 1.
 
 If the data shrinks, the grid <NewBadge /> shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 

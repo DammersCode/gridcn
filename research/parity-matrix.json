@@ -57,13 +57,15 @@
         "defaultSortState",
         "onSortChange",
         "sortMode",
+        "sortLocale",
         "headerClickBehavior"
       ],
       "cells": {
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/sort-filter/index.test.ts"
+            "registry/default/blocks/data-grid/sort-filter/index.test.ts",
+            "registry/default/blocks/data-grid/store/sort-locale.test.ts"
           ]
         },
         "PC": {
@@ -93,7 +95,8 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/contracts/server-rows-contract.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx",
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
           ]
         },
         "FS": {

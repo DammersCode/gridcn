@@ -73,6 +73,7 @@ export {
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
 export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { sortCollator, withSortLocale } from "./sort-filter/sort-collator";
 export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";

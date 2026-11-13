@@ -251,10 +251,10 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const prevFull = fullViewOf(s.viewIndex);
   const incremental = pending
-    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes, s.sortLocale)
     : null;
   if (incremental) return windowView(sameElements(incremental, prevFull) ? prevFull : incremental, viewWindowOf(s), s.viewIndex);
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
 }
 
 /**
@@ -285,7 +285,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
   const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,

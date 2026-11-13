@@ -61,7 +61,7 @@ The search is a literal text match. It ignores spaces at both ends of the Find t
 - **Match case** matches letter case. It is off by default.
 - **Whole cell** matches only cells that equal the Find text. It is off by default.
 
-The status line is the last row of the panel. It shows `2 of 4 cells` for the current match, `No results` when nothing matches, and `Type to search` while the Find field is empty. The number gets a `+` when the highlight list stops at its cap of 1,000.
+The status line is the last row of the panel. It shows `2 of 4 cells` for the current match, `No results` when nothing matches, and `Type to search` while the Find field is empty. The number gets a `+` when more than 1,000 cells match.
 
 ### Typing
 
@@ -71,7 +71,9 @@ The Find field waits for the `inputDebounceMs` prop of the grid (default 200 ms)
 
 ## Replace
 
-Find reads each cell as its search text, which is the text the user sees. For a `select` cell, that is the choice label. Replace swaps the Find text in that text and converts the result with the column type's `fromText`. A `select` label maps back to its value. A `number` cell parses again.
+Find reads each cell as its search text: the `toSearchText` of its cell type, else its `toText`. A `select` cell searches its label. A `number` cell searches its value rounded to `decimals`, and a `date` cell its ISO text, so `12.5` matches `$12.50`. A custom cell type can set `toSearchText`.
+
+Replace swaps the Find text in that text and converts the result with `fromText`.
 
 - **Replace** changes the current match and moves to the next one. After the last match, it moves to the first. When the active cell is a match, Replace changes that cell. When the new text still matches the Find text, the active cell still moves on.
 - **Replace all** changes every matching cell in the view.
@@ -145,7 +147,7 @@ With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> with focus in 
 
 ## Server mode
 
-Find and Replace <NewBadge /> work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText` and let your server evaluate it.
+Find and Replace <NewBadge /> work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText`. Your server narrows the rows by `spec.searchText`.
 
 A grid with a `totalRowCount` <NewBadge />, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. Pass `showScope: true` to show it there, or `showScope: false` to hide it.
 

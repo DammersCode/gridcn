@@ -1,6 +1,7 @@
 import type { GridAction, Keymap } from "../types";
 import type { DataGridPlugin, GridCommand } from "../types";
 import { BUILTIN_ACTIONS, DEFAULT_KEYMAP, PLUGGABLE_ACTIONS } from "../keyboard";
+import { bindingSignature } from "../keyboard/match-keymap";
 import type {
   ResolvedBandSegment,
   ResolvedPluginMount,
@@ -173,12 +174,21 @@ export function mergePluginCommands(
   return Object.keys(merged).length > 0 ? merged : null;
 }
 
+function dedupeBySignature(bindings: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return bindings.filter((binding) => {
+    const signature = bindingSignature(binding);
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
 /**
  * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order; an entry naming no
- * pluggable action, or a command the plugin does not define, is dropped, dev-warned; a
- * binding the default keymap or the consumer's `keymap` already gives the same action is dropped,
- * dev-warned; the kept bindings replace that action's bindings) <- the
- * consumer's `keymap` (always last, and wins).
+ * pluggable action, or a command the plugin does not define, is dropped, dev-warned; an entry is
+ * the action's full binding list and replaces its bindings, like the consumer's `keymap`; an empty
+ * list unbinds the action) <- the consumer's `keymap` (always last, and wins).
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -203,15 +213,7 @@ export function mergePluginKeymaps(
         );
         continue;
       }
-      const taken = [...(DEFAULT_KEYMAP[name as GridAction] ?? []), ...(consumerKeymap?.[name as GridAction] ?? [])];
-      const kept = (bindings ?? []).filter((binding) => !taken.includes(binding));
-      if (kept.length < (bindings ?? []).length) {
-        warn(
-          `keymap-collide:${plugin.name}:${name}`,
-          `plugin "${plugin.name}"'s binding for "${name}" repeats a key the grid's default keymap or the consumer's keymap already binds to "${name}"; the colliding binding is dropped`,
-        );
-      }
-      if (kept.length > 0) merged[name as GridAction] = kept;
+      merged[name as GridAction] = dedupeBySignature(bindings ?? []);
     }
   }
   if (consumerKeymap) Object.assign(merged, consumerKeymap);

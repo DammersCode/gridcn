@@ -204,7 +204,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
               data-grid-header-menu-trigger=""
               tabIndex={-1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
-              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-[5px] pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
+              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-1.5 pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
@@ -244,7 +244,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
           data-grid-resize-handle=""
           data-resizing={resize.isResizing || undefined}
           role="presentation"
-          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none pointer-coarse:w-6 after:absolute after:inset-y-1.5 after:end-[2px] after:w-[3px] after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
+          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none pointer-coarse:w-6 after:absolute after:inset-y-1.5 after:end-0.5 after:w-1 after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
           style={{ touchAction: "none" }}
           onPointerDown={resize.onPointerDown}
           onDoubleClick={resize.onDoubleClick}

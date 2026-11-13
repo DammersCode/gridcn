@@ -25,6 +25,12 @@ describe("distinctColumnValues", () => {
     expect(result.capped).toBe(false);
   });
 
+  it("orders the values by sortLocale", () => {
+    const data: Row[] = [{ city: "ä" }, { city: "z" }];
+    expect(distinctColumnValues(input(data), "city").values.map((v) => v.text)).toEqual(["ä", "z"]);
+    expect(distinctColumnValues({ ...input(data), sortLocale: "sv" }, "city").values.map((v) => v.text)).toEqual(["z", "ä"]);
+  });
+
   it("keeps the first-seen original text of each key", () => {
     const data: Row[] = [{ city: "berlin" }, { city: "Berlin" }, { city: "BONN" }];
     expect(distinctColumnValues(input(data), "city").values.map((v) => [v.key, v.text])).toEqual([["berlin", "berlin"], ["bonn", "BONN"]]);

@@ -8,7 +8,7 @@ export type CsvDelimiter = "," | ";" | "\t" | "|";
  * Default bounds for every import. Unbounded parsing is a memory/CPU DoS vector: a tiny xlsx with
  * two far-apart cells expands to millions of cells. File size is checked before the file is read;
  * the row, column, and cell caps are checked against the real cell extent before any conversion
- * (xlsx/xls) or by a scan before the parse (CSV). A file over a cap is rejected, never truncated.
+ * (xlsx/xls) or by the parser's own row callback and a delimiter count (CSV). A file over a cap is rejected, never truncated.
  */
 export const DEFAULT_IMPORT_LIMITS = {
   /** Maximum file size in bytes; default 50 MB. */
@@ -130,67 +130,43 @@ function detectNewline(sample: string): "\n" | "\r\n" | "\r" {
   return sample[cr + 1] === "\n" ? "\r\n" : "\r";
 }
 
-/**
- * Checks the rows and the widest row against the limits without building a field. The counts
- * are upper bounds of papaparse's: it leaves a quoted field only at a quote before a delimiter or newline.
- * This mirrors the parser on purpose: papaparse has no row or cell limit option, and its parse
- * materializes a whole row at once. A regression test pins the counts against papaparse.
- */
-function assertCsvWithinLimits(text: string, delimiter: string, newline: string, limits: GridLimits): void {
-  const delimiterCode = delimiter.charCodeAt(0);
-  const newlineCode = newline.charCodeAt(0);
-  let rows = 0;
-  let columns = 0;
-  let fields = 1;
-  let lineLength = 0;
-  let inQuotes = false;
-  let fieldStart = true;
-  const endLine = () => {
-    if (lineLength > 0) {
-      rows += 1;
-      if (fields > columns) columns = fields;
-      assertWithinLimits(rows, columns, limits);
-    }
-    fields = 1;
-    lineLength = 0;
-    fieldStart = true;
-  };
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    if (inQuotes) {
-      lineLength += 1;
-      if (code !== 34) continue;
-      if (text.charCodeAt(i + 1) === 34) i += 1;
-      else inQuotes = false;
-      continue;
-    }
-    if (code === newlineCode && text.startsWith(newline, i)) {
-      endLine();
-      i += newline.length - 1;
-      continue;
-    }
-    lineLength += 1;
-    if (code === delimiterCode) {
-      fields += 1;
-      if (fields > limits.maxColumns) assertWithinLimits(rows + 1, fields, limits);
-      fieldStart = true;
-      continue;
-    }
-    if (fieldStart && code === 34) inQuotes = true;
-    fieldStart = false;
-  }
-  endLine();
+/** Counts `char` in `text`: a quote-agnostic upper bound of the fields on one line, so no quoting rule is mirrored. */
+function countChar(text: string, char: string): number {
+  let count = 0;
+  for (let at = text.indexOf(char); at !== -1; at = text.indexOf(char, at + 1)) count++;
+  return count;
 }
 
-/** Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it. The limits run before the parse, which builds a whole row at once. */
+/**
+ * Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it.
+ * papaparse builds a whole row before `step` sees it, so a delimiter count above `maxCells` rejects
+ * first: every field boundary is a delimiter, so one row cannot hold more fields than that. `step` then
+ * stops the real parser at the first row, column, or cell breach.
+ */
 function parseCsvText(text: string, csvDelimiter: CsvDelimiter | undefined, limits: GridLimits): ParsedImportFile {
   const sample = text.slice(0, CSV_SAMPLE_CHARS);
   const newline = detectNewline(sample);
   const delimiter =
     csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true, delimitersToGuess: [",", ";", "	", "|"] }).meta.delimiter as CsvDelimiter | undefined) || ",");
-  assertCsvWithinLimits(text, delimiter, newline, limits);
-  const result = Papa.parse<string[]>(text, { delimiter, newline, skipEmptyLines: true });
-  return { rows: result.data.map((row) => row.map((cell) => cell ?? "")), delimiter };
+  if (countChar(text, delimiter) > limits.maxCells) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  const rows: string[][] = [];
+  let columns = 0;
+  let exceeded = false;
+  Papa.parse<string[]>(text, {
+    delimiter,
+    newline,
+    skipEmptyLines: true,
+    step: (result, parser) => {
+      rows.push(result.data.map((cell) => cell ?? ""));
+      if (result.data.length > columns) columns = result.data.length;
+      if (rows.length > limits.maxRows || columns > limits.maxColumns || rows.length * columns > limits.maxCells) {
+        exceeded = true;
+        parser.abort();
+      }
+    },
+  });
+  if (exceeded) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  return { rows, delimiter };
 }
 
 /** Aborts the file read; rejected parses surface as an AbortError the caller can ignore. */

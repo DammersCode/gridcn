@@ -31,6 +31,7 @@ export const MESSAGES = [
       dev("remembered checked rows are capped at 100000; the rest are dropped", "store/create-store.ts", "remembered checked rows are capped at", "The grid remembers at most 100,000 hidden checked rows.", "/docs/selection-shortcuts/checked-rows"),
       dev("invalid date format options, showing the ISO text: <error>", "cell-types/date.tsx", "invalid date format options, showing the ISO text", "Fix the `displayFormat` or `locale` of the date column.", "/docs/editing-cells/built-cell-types"),
       dev("invalid number format options, showing the raw value: <error>", "cell-types/number.tsx", "invalid number format options, showing the raw value", "Fix the `format` options of the number column.", "/docs/editing-cells/built-cell-types"),
+      dev('sortLocale "<tag>" is not a valid language tag. The grid sorts with "en-US".', "sort-filter/sort-collator.ts", "is not a valid language tag", "Pass a BCP 47 tag, such as `\"sv-SE\"`, to `sortLocale`.", "/docs/sort-filter-search/sorting#sort-order"),
       dev('autosizeColumns: unknown column id "<id>"', "columns/autosize-columns.ts", "autosizeColumns: unknown column id", "Pass column ids that exist.", "/docs/columns/column-sizing"),
       dev("<action> found no <trigger> for \"<id>\"; wire <slot> to enable it", "interaction/use-grid-interaction.ts", "found no ${triggerLabel} for", "Render the header menu or header filter that the slot prop names.", "/docs/components-props/data-grid-props#root-props"),
     ],
@@ -140,7 +141,6 @@ export const MESSAGES = [
       dev('plugin "<name>"\'s command "<command>" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)', "store/plugins.ts", "names a built-in action and is dropped", "Rename the command. Only the listed actions accept a plugin command.", "/docs/plugins/plugin-commands-shortcuts"),
       dev('plugin "<name>"\'s keymap binds "<command>", which is not a pluggable built-in action; the entry is dropped — a plugin keymap binds only undo, redo, fillDown, fillRight, openFindReplace, and openFind (bind other commands through the consumer\'s keymap)', "store/plugins.ts", "which is not a pluggable built-in action", "Bind the command through your own `keymap` prop. A plugin keymap binds only the six pluggable actions.", "/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries"),
       dev('plugin "<name>"\'s keymap binds "<command>" but the plugin defines no such command; the entry is dropped — a plugin keymap binds the plugin\'s own commands only', "store/plugins.ts", "but the plugin defines no such command", "Add the command to the plugin or remove the keymap entry.", "/docs/plugins/plugin-commands-shortcuts"),
-      dev('plugin "<name>"\'s binding for "<command>" repeats a key the grid\'s default keymap or the consumer\'s keymap already binds to "<command>"; the colliding binding is dropped', "store/plugins.ts", "repeats a key the grid's default keymap or the consumer's keymap already binds to", "Remove the key from the plugin `keymap`. The action already has that binding.", "/docs/plugins/plugin-commands-shortcuts"),
     ],
   },
   {
@@ -282,6 +282,7 @@ const CODE = "throws an internal code that the import dialog maps to a label in 
 
 /** Call sites that print or throw a message without a row. `line` is a fragment of the call line. */
 export const OMITTED = [
+  { file: `${B}/data-grid/cell-types/formatter-cache.ts`, line: "warnDev(`${failureMessage}", reason: "forwards the date and number format messages that a row quotes" },
   { file: `${B}/data-grid/interaction/use-grid-interaction.ts`, line: "warnDev(message);", reason: FORWARD },
   { file: `${B}/data-grid/store/async-gate.ts`, line: "warnDev(message);", reason: FORWARD },
   { file: `${B}/data-grid/store/commit.ts`, line: "console.warn(`[data-grid] ${message}`)", reason: "the prefix of every core warning" },

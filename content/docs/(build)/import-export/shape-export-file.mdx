@@ -89,6 +89,8 @@ export async function toJsonLines(
 
 `onBatch` returns the size of the batch it kept, in characters or bytes, so `maxBytes` can stop the export.
 
+`maxRows` <NewBadge /> and `maxBytes` are optional. They default to 1,000,000 rows and 256 MiB. A negative value counts as 0, and `NaN` reads as the default.
+
 ## Related
 
 - [Export](/docs/import-export/export): formats, scopes, and print.

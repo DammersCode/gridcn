@@ -73,12 +73,11 @@ Conflicts:
 | Consumer `commands` vs a plugin command | The consumer wins, silently | The app owner's explicit choice |
 | Plugin command named after a built-in action | Dropped, dev-warns, unless the action is pluggable (decision 4) | A plugin never replaces core behavior |
 | Plugin `keymap` entry for a name not in its own `commands` | Dropped, dev-warns | A plugin cannot rebind copy, paste, or navigation |
-| Plugin binding equal to any `DEFAULT_KEYMAP` or consumer binding | That binding is dropped, dev-warns | A plugin never takes a key the grid or the app already uses, so `mod+c` stays copy |
+| Plugin `keymap` entry for a pluggable action | The entry is the action's full binding list and replaces its bindings; letter-case duplicates collapse | Same rule as the consumer `keymap`; restating a default key keeps it |
 | Merge order of keymaps | `DEFAULT_KEYMAP` ← plugin keymaps (array order) ← consumer `keymap` | The consumer always wins |
 
 The custom-commands tie rule (spec 5c: the more specific binding wins, a non-default binding beats
-a default) applies to consumer bindings only. Plugins never win a tie, because their colliding
-bindings are already dropped. Rejected: first plugin wins — it inverts the precedence that the
+a default) applies to consumer bindings only. Rejected: first plugin wins — it inverts the precedence that the
 keymap merge and object spread both use.
 
 ### 4. Pluggable built-in actions

@@ -1,5 +1,5 @@
 import type { AnyColumnDef, CellType, CustomFilterOperator, DataGridReadState, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { displayText, filterOperatorInput, isFilterGroup, resolveCustomFilterOperators, makeFilterPredicate, rowAccessorFor, toSafeText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { displayText, filterOperatorInput, isFilterGroup, resolveCustomFilterOperators, makeFilterPredicate, rowAccessorFor, sortCollator, toSafeText, withSortLocale } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
@@ -8,7 +8,7 @@ export type DistinctValue = { key: string; text: string; label: string; count: n
 
 export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHoles: boolean };
 
-export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server" };
+export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server"; sortLocale?: string };
 
 /** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a registered custom operator with `input: "list"`. */
 export const isOwnSetFilter = (node: FilterNode, columnId: string, custom?: ReadonlyMap<string, CustomFilterOperator>) =>
@@ -64,6 +64,6 @@ export function distinctColumnValues(state: DistinctValuesInput, columnId: strin
     values.push({ key, text, label: labelFor(cellType, accessor.getValue?.(row, columnId), column.options), count, row });
   }
   const compare = accessor.compare?.(columnId);
-  values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => a.label.localeCompare(b.label));
+  withSortLocale(state.sortLocale, () => values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => sortCollator().compare(a.label, b.label)));
   return { values: values.map(({ key, text, label, count }) => ({ key, text, label, count })), capped, hasHoles };
 }

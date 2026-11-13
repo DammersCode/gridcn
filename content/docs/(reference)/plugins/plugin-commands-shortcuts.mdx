@@ -14,7 +14,7 @@ A plugin adds named commands with its `commands` member. Its `keymap` member bin
 | Your `commands` prop defines a name that a plugin defines | Your command wins, with no warning. |
 | A plugin command has the name of a built-in action | The grid drops the command and warns in development. The six pluggable actions are the exception. |
 | A plugin `keymap` names an action that is not one of the six pluggable actions, or one that the plugin has no command for | The grid drops the entry and warns in development. |
-| A plugin binds a key that the default keymap or your `keymap` already binds to the same action | The grid drops that binding and warns in development. |
+| A plugin `keymap` lists the keys of a pluggable action | The list replaces the bindings of that action, like your `keymap` prop. List every key the action keeps. |
 
 ## Commands and keymaps [#commands-and-keymaps]
 
@@ -54,7 +54,7 @@ The core has no binding for `openFindReplace` and `openFind`. The find and repla
 
 An entry in the `keymap` of a plugin needs two things. Its name must be one of the six [pluggable actions](#pluggable-built-ins), and the plugin must define a command with that name. Bind any other command through your own `keymap` prop.
 
-The grid drops a binding that the default keymap or your `keymap` already gives to the same action. The kept bindings replace the bindings of that action.
+The entry is the full binding list of its action, like the same entry in your `keymap` prop. The list replaces the bindings of that action, so list every key the action keeps. Keys that differ only in letter case count once. An empty list unbinds the action.
 
 The keymap resolves in this order, and a later step wins:
 
@@ -64,7 +64,7 @@ The keymap resolves in this order, and a later step wins:
 
 Inside `DataGridProvider`, `useDataGridKeymap()` returns the merged keymap, for a surface outside `DataGridRoot` such as a shortcut list.
 
-When kept plugin bindings replace the bindings of `fillDown`, <kbd>Mod</kbd>+<kbd>D</kbd> has no binding, and the browser default of the key runs.
+When a plugin entry for `fillDown` leaves out <kbd>Mod</kbd>+<kbd>D</kbd>, the key has no binding, and the browser default of the key runs.
 
 This plugin backs `openFind` and binds it to <kbd>Mod</kbd>+<kbd>F</kbd>:
 

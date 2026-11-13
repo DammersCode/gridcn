@@ -24,6 +24,7 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
+import { withSortLocale } from "../sort-filter/sort-collator";
 import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
@@ -745,10 +746,11 @@ export function computeViewIndex(
   prevViewIndex?: readonly number[],
   cellTypes?: Record<string, CellType>,
   window: ViewWindow = null,
+  sortLocale?: string,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   // Quick-search never narrows viewIndex — it only highlights/navigates.
-  const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState });
+  const next = withSortLocale(sortLocale, () => buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState }));
   const prevFull = prevViewIndex ? fullViewOf(prevViewIndex) : undefined;
   const full = prevFull && sameElements(next, prevFull) ? (prevFull as number[]) : next;
   return windowView(full, window, prevViewIndex);
@@ -825,15 +827,16 @@ export function incrementalViewIndex(
   prevViewIndex: readonly number[],
   touchedRows: readonly number[],
   cellTypes?: Record<string, CellType>,
+  sortLocale?: string,
 ): number[] | null {
   // A view longer than the data can only come from a row removal the caller failed to declare.
   if (prevViewIndex.length > data.length) return null;
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   const opts = { sorts: sortState, filters: filterState };
-  const result = updateViewIndex(prevViewIndex, touchedRows, accessor, opts);
+  const result = withSortLocale(sortLocale, () => updateViewIndex(prevViewIndex, touchedRows, accessor, opts));
   if (result.viewIndex === null) return null;
   if (isDev() && Math.random() < incrementalAssertRate) {
-    const reference = buildViewIndex(data.length, accessor, opts);
+    const reference = withSortLocale(sortLocale, () => buildViewIndex(data.length, accessor, opts));
     if (!sameElements(result.viewIndex, reference)) {
       console.error(
         "[data-grid] incremental view index diverged from the full rebuild; using the rebuild. Please report this with the sort/filter state.",

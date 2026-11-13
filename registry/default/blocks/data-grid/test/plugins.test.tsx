@@ -216,33 +216,30 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["cmd-builtin:p:selectAll", "keymap-unpluggable:p:selectAll"]);
   });
 
-  it("a plugin binding equal to a DEFAULT_KEYMAP binding is dropped with a dev warn; the default keeps working", () => {
+  it("a plugin entry is the action's full binding list: a restated default key stays, an added key joins it", () => {
     const warn = vi.fn();
-    const plugin = {
-      name: "p",
-      commands: { fillDown: { run: () => {} } },
-      keymap: { fillDown: ["mod+d", "mod+shift+d"] },
-    };
-    const merged = mergePluginKeymaps([plugin], undefined, warn);
-    expect(merged.fillDown).toEqual(["mod+shift+d"]);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
-    expect(warn.mock.calls[0]![1]).toContain("colliding binding is dropped");
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["mod+d", "mod+shift+d"] } };
+    expect(mergePluginKeymaps([plugin], undefined, warn).fillDown).toEqual(["mod+d", "mod+shift+d"]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
-  it("a plugin binding a key the consumer's keymap already owns is dropped; the consumer's binding wins", () => {
+  it("a plugin entry keeps one binding for keys that differ only in letter case", () => {
     const warn = vi.fn();
-    // the app bound mod+c to fillDown itself; the plugin's attempt to share that key is dropped
-    // and the app's binding stays the one that resolves
-    const plugin = {
-      name: "p",
-      commands: { fillDown: { run: () => {} } },
-      keymap: { fillDown: ["mod+c"] },
-    };
-    const merged = mergePluginKeymaps([plugin], { fillDown: ["mod+c"] }, warn);
-    expect(merged.fillDown).toEqual(["mod+c"]);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
+    const plugin = { name: "p", commands: { undo: { run: () => {} } }, keymap: { undo: ["mod+Z", "mod+z", "alt+Backspace"] } };
+    expect(mergePluginKeymaps([plugin], undefined, warn).undo).toEqual(["mod+Z", "alt+Backspace"]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("an empty plugin entry unbinds the action like an empty consumer entry", () => {
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: [] } };
+    expect(mergePluginKeymaps([plugin], undefined, vi.fn()).fillDown).toEqual([]);
+  });
+
+  it("a consumer entry replaces the plugin's list", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["mod+d", "mod+shift+d"] } };
+    expect(mergePluginKeymaps([plugin], { fillDown: ["mod+c"] }, warn).fillDown).toEqual(["mod+c"]);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("keymap merge order: DEFAULT_KEYMAP <- plugin keymaps (array order) <- consumer keymap", () => {

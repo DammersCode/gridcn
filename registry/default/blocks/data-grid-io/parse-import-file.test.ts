@@ -161,10 +161,10 @@ describe("parseImportFile — csv edge cases", () => {
     vi.resetModules();
     vi.doMock("papaparse", () => ({
       default: {
-        parse: vi.fn(() => ({
-          data: [["Alice", null], ["Bob", undefined]],
-          meta: { delimiter: "," },
-        })),
+        parse: vi.fn((_input: string, config: { step?: (result: { data: unknown[] }, parser: { abort(): void }) => void }) => {
+          for (const data of [["Alice", null], ["Bob", undefined]]) config.step?.({ data }, { abort() {} });
+          return { data: [], meta: { delimiter: "," } };
+        }),
       },
     }));
 
@@ -183,7 +183,10 @@ describe("parseImportFile — csv edge cases", () => {
     vi.resetModules();
     vi.doMock("papaparse", () => ({
       default: {
-        parse: vi.fn(() => ({ data: [["a"]], meta: {} })),
+        parse: vi.fn((_input: string, config: { step?: (result: { data: unknown[] }, parser: { abort(): void }) => void }) => {
+          config.step?.({ data: ["a"] }, { abort() {} });
+          return { data: [], meta: {} };
+        }),
       },
     }));
 
@@ -248,14 +251,14 @@ describe("parseImportFile — size and dimension limits", () => {
 });
 
 // papaparse builds a whole row before any callback runs, so a line of millions of delimiters must be rejected before it parses
-describe("parseImportFile — csv limits before the parse", () => {
+describe("parseImportFile — csv limits", () => {
   // the delimiter guess reads a bounded preview; a full parse is any call without `preview`
   function fullParses(parse: { mock: { calls: unknown[][] } }, text: string): number {
     return parse.mock.calls.filter(([input, config]) => input === text && (config as { preview?: number } | undefined)?.preview === undefined).length;
   }
 
   it("rejects a single line of 5,000,000 delimiters without parsing it", async () => {
-    const text = ",".repeat(5_000_000);
+    const text = ",".repeat(5_000_001);
     const parse = vi.spyOn(Papa, "parse");
     try {
       await expect(parseImportFile(makeCsvFile(text))).rejects.toThrow("import-too-many-cells");
@@ -267,13 +270,30 @@ describe("parseImportFile — csv limits before the parse", () => {
     }
   });
 
-  it("rejects a file over maxRows or maxCells without parsing it", async () => {
-    const rows = "a,b\n".repeat(1_000);
+  it("rejects a row of more delimiters than maxCells without parsing it", async () => {
+    const text = `a${",".repeat(2_000)}\nb,c`;
     const parse = vi.spyOn(Papa, "parse");
     try {
-      await expect(parseImportFile(makeCsvFile(rows), { maxRows: 999 })).rejects.toThrow("import-too-many-cells");
-      await expect(parseImportFile(makeCsvFile(rows), { maxCells: 1_999 })).rejects.toThrow("import-too-many-cells");
-      expect(fullParses(parse, rows)).toBe(0);
+      await expect(parseImportFile(makeCsvFile(text), { maxCells: 1_000 })).rejects.toThrow("import-too-many-cells");
+      expect(fullParses(parse, text)).toBe(0);
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("stops the parser at the first breach of maxRows, maxColumns, or maxCells", async () => {
+    const rows = "a,b\n".repeat(10_000);
+    type Config = { step?: (...args: unknown[]) => void };
+    const original = Papa.parse.bind(Papa) as unknown as (input: string, config: Config) => unknown;
+    let steps = 0;
+    const parse = vi.spyOn(Papa, "parse").mockImplementation(((input: string, config: Config) =>
+      original(input, config.step ? { ...config, step: (...args: unknown[]) => (steps++, config.step!(...args)) } : config)) as never);
+    try {
+      for (const limit of [{ maxRows: 9 }, { maxColumns: 1 }, { maxCells: 19 }]) {
+        steps = 0;
+        await expect(parseImportFile(makeCsvFile(rows), limit)).rejects.toThrow("import-too-many-cells");
+        expect(steps).toBeLessThanOrEqual(11);
+      }
     } finally {
       parse.mockRestore();
     }
@@ -335,7 +355,7 @@ describe("parseImportFile — xlsx lazy loading", () => {
   });
 });
 
-describe("parseImportFile — csv pre-scan agrees with papaparse", () => {
+describe("parseImportFile — csv limits agree with papaparse", () => {
   const fixtures: Record<string, string> = {
     "quoted newline": 'a,"b\nc",d\ne,f,g',
     "escaped quotes": 'a,"say ""hi"", ok",c\nd,e,f',
@@ -359,12 +379,12 @@ describe("parseImportFile — csv pre-scan agrees with papaparse", () => {
   });
 });
 
-describe("parseImportFile — csv pre-scan errs on the safe side", () => {
-  it("counts a quote closed before text as a field boundary papaparse does not see, so it rejects at papaparse's own counts", async () => {
+describe("parseImportFile — csv limits follow papaparse's own counts", () => {
+  it("accepts a file at papaparse's column count when a quote closes before text", async () => {
     const text = 'a,"b"c,d\ne,f,g';
     const parsed = Papa.parse<string[]>(text, { delimiter: ",", newline: "\n", skipEmptyLines: true });
     const columns = Math.max(...parsed.data.map((row) => row.length));
     expect(columns).toBeLessThan(3);
-    await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: ",", maxColumns: columns })).rejects.toThrow("import-too-many-cells");
+    await expect(parseImportFile(makeCsvFile(text), { csvDelimiter: ",", maxColumns: columns })).resolves.toBeDefined();
   });
 });

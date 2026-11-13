@@ -61,8 +61,10 @@ export type ExportRowsOptions<TData = unknown> = {
   formatCell?: FormatExportCell<TData>;
   /** Keep numbers, booleans and Dates typed (XLSX). Default: every cell becomes a string (CSV). */
   typed?: boolean;
-  maxRows: number;
-  maxBytes: number;
+  /** Most data rows to write. Default `1_000_000`; a negative or fractional value rounds to a non-negative integer. */
+  maxRows?: number;
+  /** Most bytes to write (xlsx: characters). Default 256 MiB. */
+  maxBytes?: number;
   signal?: AbortSignal;
   onProgress?: (progress: ExportProgress) => void;
 };
@@ -97,7 +99,9 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
   options: ExportRowsOptions<TData>,
   onBatch: (rows: TCell[][]) => number,
 ): Promise<ExportResult> {
-  const { source, maxRows, maxBytes, signal: outer, onProgress, formatCell, typed = false } = options;
+  const { source, signal: outer, onProgress, formatCell, typed = false } = options;
+  const maxRows = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
+  const maxBytes = normalizeLimit(options.maxBytes, DEFAULT_SOURCE_MAX_BYTES);
   const columns = resolveExportColumns(state, options.columns);
   const columnIds = columns.map((column) => column.id);
   const inner = new AbortController();
