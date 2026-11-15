@@ -292,8 +292,9 @@ export function dispatchGridAction(args: {
     return;
   }
 
-  const runRowOperation = (name: RowActionName, run: (rows: number[]) => void) => {
-    const targets = rowOperationTargets(state, state.activeCell?.row);
+  const runRowOperation = (name: RowActionName, run: (rows: number[]) => void, { checkedWins = false } = {}) => {
+    // a move keeps acting on the checked rows alone, also while a cell click would clear them (until-click)
+    const targets = rowOperationTargets(checkedWins ? { ...state, checkedRowsLifetime: "until-cleared" } : state, state.activeCell?.row);
     if (targets.reason) getInternalActions(storeApi)._skipRowAction(name, targets.reason);
     else if (targets.rows.length > 0) run(targets.rows);
   };
@@ -565,7 +566,7 @@ export function dispatchGridAction(args: {
       let moved = false;
       runRowOperation("moveRows", (rows) => {
         moved = actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1);
-      });
+      }, { checkedWins: true });
       const active = storeApi.getState().activeCell;
       if (moved && active) scrollCellIntoView(active);
       break;
