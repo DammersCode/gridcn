@@ -239,7 +239,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
   const initSortMode = resolveSortMode(init);
-  const initSortLocale = init.sortLocale ?? DEFAULT_SORT_LOCALE;
+  const initSortLocale = init.sortLocale ?? init.locale ?? DEFAULT_SORT_LOCALE;
   const initFilterMode = resolveFilterMode(init);
   const initPageSize = init.pageSize !== undefined ? init.pageSize : (init.defaultPageSize ?? null);
   const initPage = init.page ?? init.defaultPage ?? 1;
@@ -1082,7 +1082,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextSortMode = resolveSortMode(props);
-          const nextSortLocale = props.sortLocale ?? DEFAULT_SORT_LOCALE;
+          const nextSortLocale = props.sortLocale ?? props.locale ?? DEFAULT_SORT_LOCALE;
           const nextFilterMode = resolveFilterMode(props);
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";

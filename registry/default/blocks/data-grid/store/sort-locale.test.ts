@@ -115,4 +115,38 @@ describe("sortLocale through the store", () => {
     const state = store.getState();
     expect(state.viewIndex.map((i) => (state.data[i] as { v: string }).v)).toEqual(["a", "z", "ä"]);
   });
+
+  const orderWith = async (extra: object) => {
+    const { createDataGridStore } = await import("./create-store");
+    const { cellTypes } = await import("../cell-types/cell-types");
+    const store = createDataGridStore(base({ cellTypes, ...extra }));
+    const order = () => store.getState().viewIndex.map((i) => (store.getState().data[i] as { v: string }).v);
+    return { store, order };
+  };
+
+  it("the locale prop alone sets the sort language", async () => {
+    expect((await orderWith({ locale: "sv" })).order()).toEqual(["a", "z", "ä"]);
+  });
+
+  it("an explicit sortLocale wins over the locale prop", async () => {
+    expect((await orderWith({ locale: "sv", sortLocale: "en-US" })).order()).toEqual(["a", "ä", "z"]);
+  });
+
+  it("no locale props sort with en-US", async () => {
+    expect((await orderWith({})).order()).toEqual(["a", "ä", "z"]);
+  });
+
+  it("a locale change rebuilds the view", async () => {
+    const { getInternalActions } = await import("./internal-actions");
+    const { cellTypes } = await import("../cell-types/cell-types");
+    const { store, order } = await orderWith({ locale: "en-US" });
+    getInternalActions(store)._syncProps(base({ cellTypes, locale: "sv" }));
+    expect(order()).toEqual(["a", "z", "ä"]);
+  });
+
+  it("a text range filter follows the locale prop", async () => {
+    const filterState = [{ columnId: "v", operator: "gt", value: "z" }];
+    expect((await orderWith({ locale: "sv", filterState })).order()).toEqual(["ä"]);
+    expect((await orderWith({ filterState })).order()).toEqual([]);
+  });
 });

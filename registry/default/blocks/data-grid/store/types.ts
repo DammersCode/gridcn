@@ -276,7 +276,7 @@ export type DataGridSyncProps<TData = unknown> = {
   labels?: DeepPartialLabels;
   /**
    * BCP 47 language tag, such as `"de-DE"`. It formats the numbers and dates of `number` and `date` columns, the status bar, and the default labels.
-   * A column `options.locale` and the status bar `formatValue` win. Default `"en-US"`, so the server and the browser render the same text.
+   * It also sets the sort language unless `sortLocale` is set. A column `options.locale` and the status bar `formatValue` win. Default `"en-US"`, so the server and the browser render the same text.
    */
   locale?: string;
   /**
@@ -319,7 +319,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   sortMode?: "client" | "server";
   /**
-   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `between`, and the lists of the header filter and the filter builder. Default `"en-US"`: the server render and the browser order rows alike.
+   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `between`, and the lists of the header filter and the filter builder. Defaults to `locale`, then `"en-US"`: the server render and the browser order rows alike.
    * To follow the browser, read `navigator.language` after mount. Under `sortMode="server"` the grid does not sort rows; the server owns their order. A malformed or unsupported tag falls back to `"en-US"` with one development warning.
    */
   sortLocale?: string;
@@ -864,7 +864,7 @@ export type DataGridStoreState = Omit<
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
-  /** Mirrors the `sortLocale` sync prop; the default is `"en-US"`. */
+  /** Mirrors the `sortLocale` sync prop; the default is `locale`, then `"en-US"`. */
   sortLocale: string;
   /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
   filterMode: "client" | "server";
