@@ -38,6 +38,16 @@ Installed files are your source. [Upgrade gridcn](/docs/support-upgrades/upgrade
 - A release can open with a list of its breaking entries, grouped by area.
 - The `Unreleased` section keeps the breaking entries and a short list of highlights. [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md) lists every other entry of release 2.0, grouped by area.
 
+### Removed exports
+
+<NewBadge />
+
+Release 2.0 removes these names from the barrels:
+
+Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the same values. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
+
+The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop `operatorLabel`, `operatorsForColumnType`, `operatorHasValue`, `downloadBlob`, `buildExportHeaders`, `quoteCsvField`, `IMPORT_PREVIEW_ROW_COUNT`, `KEYBINDING_CATEGORIES`, `ACTION_CATEGORY`, `categoryForAction`, `categoryLabel`, `KeybindingCategory`, and `labelForAction`.
+
 ## Pin a release [#pinned-installs]
 
 The hosted `@gridcn` registry serves the source of the most recent deployment of the `main` branch. To pin a release, add `#<ref>` to the GitHub registry path. The ref is a tag, a branch, or a full 40-character commit SHA. Without a ref, the CLI uses the default branch:
