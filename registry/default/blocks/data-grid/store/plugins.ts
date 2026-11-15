@@ -231,7 +231,7 @@ export function mergePluginKeymaps(
       }
       if (kept.length > 0 || given.length === 0) merged[name as GridAction] = kept;
       if (takesSearchKey && merged.focusSearch) {
-        const keptSignatures = new Set(kept.map(bindingSignature));
+        const keptSignatures = new Set(kept.map((binding) => bindingSignature(binding)));
         merged.focusSearch = merged.focusSearch.filter((binding) => !keptSignatures.has(bindingSignature(binding)));
       }
     }

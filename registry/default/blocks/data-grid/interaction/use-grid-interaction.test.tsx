@@ -1198,7 +1198,7 @@ describe("useGridInteraction: keyboard row moves", () => {
   const setup = (checked: number[], activeRow: number | null) => {
     const { hook } = renderInteraction(6, { uncontrolled: true, rowMarkers: "reorder-checkbox", checkedRowsLifetime: "until-click" });
     if (activeRow !== null) act(() => hook.result.current.actions.selectCellAt({ col: 0, row: activeRow }));
-    for (const row of checked) act(() => hook.result.current.actions.setRowCheckedAt(row, true));
+    for (const row of checked) act(() => hook.result.current.actions.setRowCheckedAt(row as never, true));
     hook.rerender();
     return hook;
   };

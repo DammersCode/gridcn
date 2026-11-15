@@ -20,7 +20,7 @@ Upgrade to 1.3.0 and commit your work first. For an older version, apply the **B
 ### Changed defaults [#changed-defaults]
 
 - If you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`. Set both to `"client"` to sort or filter the window in the browser.
-- Text sorts use the `locale` prop, then `"en-US"`, not the language of the runtime. The same setting decides text range filters and the filter value lists. To sort in another language, pass a `locale` or `sortLocale` tag, and pass the same tag on the server and in the browser.
+- Text sorts use the `locale` prop, then `"en-US"`, not the runtime language. The tag sets text range filters and value lists too. Pass it on server and browser.
 - `pasteFromClipboard` <NewBadge /> resolves `"refused"` when the grid starts no paste, where 1.3 resolved `"empty"`. `"empty"` means no text on the clipboard.
 - `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function of the modifier key. Handle both forms where you read them.
 - Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells.
@@ -90,7 +90,7 @@ Scroll mode starts a block request after `loadDelayMs` milliseconds (default 100
 | `deleteRows(viewIndexes)`, `duplicateRows(viewIndexes)` | `deleteRows(rowIds)`, `duplicateRows(rowIds)`. The `At` forms take `viewIndexes([2])`. |
 | `setRowSelected`, `setAllRowsSelected` | `setRowCheckedAt`, `setAllRowsChecked`. `setRowChecked(rowId, checked)` takes an id. |
 | `pin: "left"` and `"right"`, `pin-left`, `data-pinned="left"`, `data-scrolled-left`, `--grid-pin-shadow-left-x` | `start` and `end` in each name. The old `pin` values still read. |
-| A new `columns` array that changes `pin` or `hidden` of a known column id | The change has no effect, and a development warning names the column. Use `setColumnPin`, `setColumnHidden`, or the controlled `columnLayout`. A def `pin` and `hidden` seed a column once. <NewBadge /> |
+| Def `pin` or `hidden` on a known id | Ignored. Use `setColumnPin`, `setColumnHidden`, `columnLayout`. |
 | `filterOperators`, `filterMatch`, `filterCompare` | `filter: { operators, match, compare }` |
 | `processFill({ values })` | `processFill({ cells })` |
 | Keys of `undo`, `redo`, `fillDown`, `fillRight`, `openFind`, `openFindReplace` in the core | The add-on binds them. Your command [declares the name and binds a key](/docs/plugins/plugin-commands-shortcuts#add-on-actions). |
