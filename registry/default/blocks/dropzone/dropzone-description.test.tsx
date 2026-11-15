@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { Dropzone } from "./dropzone";
 
 afterEach(cleanup);
@@ -20,6 +20,11 @@ describe("Dropzone screen reader description", () => {
     expect(description()).toBe("Accepted file types: text/csv.");
   });
 
+  it("states the size limit when maxSize is set", () => {
+    render(<Dropzone accept={{ "text/csv": [".csv"] }} maxSize={2 * 1024 * 1024} />);
+    expect(description()).toBe("Accepted file types: .csv. Up to 2.0 MB.");
+  });
+
   it("sets the native input accept to MIME keys plus extensions", () => {
     render(<Dropzone accept={{ "text/csv": [] }} />);
     expect(document.querySelector("input")?.getAttribute("accept")).toBe("text/csv");
@@ -31,26 +36,31 @@ describe("Dropzone screen reader description", () => {
     expect(document.querySelector("input")?.hasAttribute("accept")).toBe(false);
   });
 
-  it("takes the description prop in place of the English text", () => {
-    render(<Dropzone accept={{ "text/csv": [".csv"] }} description=".csv, bis 2 MB" />);
+  it("takes the accessibleDescription prop in place of the English text", () => {
+    render(<Dropzone accept={{ "text/csv": [".csv"] }} accessibleDescription=".csv, bis 2 MB" />);
     expect(description()).toBe(".csv, bis 2 MB");
   });
 });
 
-describe("Dropzone onError", () => {
-  it("reports a null-prototype throw from onDrop as an Error", () => {
-    const onError = vi.fn();
+describe("Dropzone onDrop", () => {
+  it("lets a throw from onDrop propagate", () => {
+    const boom = new Error("boom");
     render(
       <Dropzone
         onDrop={() => {
-          throw Object.create(null);
+          throw boom;
         }}
-        onError={onError}
       />,
     );
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const thrown: unknown[] = [];
+    const onWindowError = (event: ErrorEvent) => {
+      thrown.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onWindowError);
     fireEvent.change(input, { target: { files: [new File(["a"], "a.csv")] } });
-    expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
-    expect(onError.mock.calls[0]?.[0].message).toBe("Unknown error");
+    window.removeEventListener("error", onWindowError);
+    expect(thrown).toContain(boom);
   });
 });

@@ -288,9 +288,12 @@ function keyboardShortcuts() {
   const labels = new Map([...actionsBlock.matchAll(/^\s{8}(\w+): "(.*)",$/gm)].map((m) => [m[1], m[2]]));
   const categories = new Map([...labelsText.slice(labelsText.indexOf("      categories: {"), labelsText.indexOf("      nativeCopy")).matchAll(/^\s{8}(\w+): "(.*)",$/gm)].map((m) => [m[1], m[2]]));
   const bindings = new Map(keymap);
+  for (const addOnKeymap of ["data-grid-history/history-keymap.ts", "data-grid-fill/fill-keymap.ts"]) {
+    for (const m of read(`${BLOCKS}/${addOnKeymap}`).matchAll(/^\s*(\w+): \[(.*?)\],/gm)) bindings.set(m[1], [...m[2].matchAll(/"([^"]*)"/g)].map((b) => b[1]));
+  }
   bindings.set("openFindReplace", ["ctrl+h"]);
   bindings.set("openFind", ["mod+f"]);
-  for (const action of [...keymap.keys(), "typeToReplace", "openFind", "openFindReplace"]) {
+  for (const action of [...bindings.keys(), "typeToReplace"]) {
     const group = groups.get(action);
     if (!group || group === "other") problems.push(`keyboard shortcuts: action ${action} has no category in action-groups.ts`);
     if (!labels.has(action)) problems.push(`keyboard shortcuts: no label for ${action}`);
@@ -306,7 +309,7 @@ function keyboardShortcuts() {
   const rowPage = { focusSearch: "/docs/sort-filter-search/quick-search", insertRowBelow: "/docs/rows-pages-menus/row-operations", insertRowAbove: "/docs/rows-pages-menus/row-operations", duplicateRow: "/docs/rows-pages-menus/row-operations", deleteRows: "/docs/rows-pages-menus/row-operations", moveRowsUp: "/docs/rows-pages-menus/row-order", moveRowsDown: "/docs/rows-pages-menus/row-order", openLink: "/docs/editing-cells/built-cell-types", openColumnMenu: "/docs/columns/column-headers-groups", openColumnFilter: "/docs/sort-filter-search/header-filter", toggleRow: "/docs/selection-shortcuts/checked-rows", toggleAllRows: "/docs/selection-shortcuts/checked-rows", openFind: "/docs/sort-filter-search/find-replace", openFindReplace: "/docs/sort-filter-search/find-replace", extendRowsToStart: "/docs/selection-shortcuts/checked-rows", extendRowsToEnd: "/docs/selection-shortcuts/checked-rows", extendRowsPageUp: "/docs/selection-shortcuts/checked-rows", extendRowsPageDown: "/docs/selection-shortcuts/checked-rows" };
   const keyName = (part) => (part === " " ? "Space" : part === "mod" ? "Mod" : part.length === 1 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1));
   const chord = (binding) => (binding === " " ? "Space" : binding.endsWith("+ ") ? `${binding.slice(0, -2).split("+").map(keyName).join("+")}+Space` : binding.split("+").map(keyName).join("+"));
-  const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace" };
+  const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace", undo: "data-grid-history", redo: "data-grid-history", fillDown: "data-grid-fill", fillRight: "data-grid-fill" };
   const COMMON = ["moveDown", "extendDown", "selectAll", "edit", "commitDown", "cancel", "clearContents", "undo", "redo", "fillDown"];
   const commonRows = COMMON.map((action) => {
     if (!bindings.has(action)) problems.push(`keyboard shortcuts: common action ${action} is not in the keymap`);

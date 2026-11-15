@@ -69,7 +69,7 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
     if (!warnedUnwiredOperators.has(key) && warnedUnwiredOperators.size < MAX_WARNED_OPERATORS) {
       warnedUnwiredOperators.add(key);
       console.warn(
-        `[data-grid] the filter operator "${filter.operator}" on column "${filter.columnId}" has no \`match\`, so the grid does not narrow rows with it. Give it a \`match\` in the column's \`filterOperators\`, or use filterMode="server".`,
+        `[data-grid] the filter operator "${filter.operator}" on column "${filter.columnId}" has no \`match\`, so the grid does not narrow rows with it. Give it a \`match\` in the column's \`filter.operators\`, or use filterMode="server".`,
       );
     }
   }

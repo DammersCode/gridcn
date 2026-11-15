@@ -44,6 +44,7 @@ These warnings come from the props that you pass to the grid.
 | `[data-grid] withSortLocale received a promise. The sort locale scope ends when the callback returns, so work after an await sorts with the default locale. Pass a synchronous callback.` | Pass a synchronous callback to `withSortLocale`. Work after an `await` sorts with `"en-US"`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 | `[data-grid] autosizeColumns: unknown column id "<id>"` | Pass column ids that exist. | [Column sizing](/docs/columns/column-sizing) |
 | `[data-grid] <action> found no <trigger> for "<id>"; wire <slot> to enable it` | Render the header menu or header filter that the slot prop names. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
+| `[data-grid] column "<id>": <old key> moved to <new key> (filter: { <member> }); the flat key is still read, rename it` | Move `filterOperators`, `filterMatch`, and `filterCompare` into the column's `filter` object. | [Filtering](/docs/sort-filter-search/filtering) |
 
 ## Keymap warnings [#keymap-warnings]
 
@@ -56,6 +57,7 @@ These warnings come from the `keymap` and `commands` props.
 | `[data-grid] keymap action "<action>" has no built-in handler and no custom command; the binding is a no-op` | Add a `commands` entry for the action or remove the binding. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] global shortcut binding(s) without Ctrl/Cmd never fire outside the grid (<bindings>); add mod+ to the binding or handle the key in your own window listener` | Add `mod+` to the binding, or handle the key in your own window listener. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 | `[data-grid] commands shadows built-in action(s) <names>; the command wins and the built-in no longer dispatches` | Rename the command if you want the built-in action to keep working. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
+| `[data-grid] commands <names> no longer run from a built-in key; bind the action in the keymap, for example keymap={{ <name>: ["mod+z"] }}` | Add the action to the `keymap` prop. `undo`, `redo`, `fillDown`, `fillRight`, `openFind`, and `openFindReplace` have no key of their own in the core; their add-on binds them. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 
 ## Data and row warnings [#data-warnings]
 
@@ -75,6 +77,7 @@ These warnings come from calls that change or read rows.
 | `[data-grid] CellRef { rowId: <rowId>, columnId: <columnId> } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op` | Pass a row id that is in the view and a column that is not hidden. | [State and view index](/docs/concepts/state-view-index) |
 | `[data-grid] a controlled selection value names rows, columns, or range corners that no longer resolve (a row left the data, a column is hidden); the resolvable subset was applied` | Update your `selection` state when rows leave the data or columns hide. | [Selection and cell events](/docs/events-state/selection-cell-events#controlling-the-selection) |
 | `[data-grid] a plugin onDataChange observer threw; the change was applied and the remaining observers still run` | Fix the error in the plugin. The grid prints the error object after the text. | [Plugin events](/docs/plugins/plugin-events) |
+| `[data-grid] <action> takes stable row ids, and a number here is not a row id. To address rows by view index, call <action>At with viewIndexes([...])` | Pass row ids, or call the `At` form of the action with `viewIndexes([...])`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 
 ## Save warnings and errors [#save-warnings]
 
@@ -106,8 +109,8 @@ These warnings come from gates that return a promise. The grid prints each one o
 | Message | What to do | Page |
 | --- | --- | --- |
 | `[data-grid] validateRow rejected, so the row gets no verdict: <error>` | Fix the error in `validateRow`, or catch it inside the function. | [Validation](/docs/editing-cells/validation) |
-| `[data-grid] validateRow threw, so the row gets no verdict: <error>` | Fix the error in `validateRow`, or catch it inside the function. The write stays. | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `[data-grid] onBeforeEditStart rejected, so the edit does not start: <error>` | Fix the error in `onBeforeEditStart`, or catch it inside the function. | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `[data-grid] validateRow threw, so the row gets no verdict: <error>` | Fix the error in `validateRow`, or catch it inside the function. The write stays. | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `[data-grid] createRow rejected, so the insert is cancelled: <error>` | Fix the error in `createRow`, or catch it inside the function. | [Row operations](/docs/rows-pages-menus/row-operations#enable-props) |
 | `[data-grid] duplicateRow rejected, so the duplicate is cancelled: <error>` | Fix the error in `duplicateRow`, or catch it inside the function. | [Row operations](/docs/rows-pages-menus/row-operations#enable-props) |
 | `[data-grid] onBeforeDeleteRows threw, so the delete is cancelled: <error>` | Fix the error in `onBeforeDeleteRows`. The action returns the reason `"gate-threw"`. | [Row operations](/docs/rows-pages-menus/row-operations) |
@@ -138,6 +141,7 @@ These warnings come from the size of the grid.
 | `gridcn: the grid viewport shows more than 200 rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at 200 rows.` | Give the grid a bounded height with `className` or a sized parent. | [Virtualization](/docs/performance/virtualization) |
 | `gridcn: <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...` | Show fewer rows at once. Page them with server pagination, or narrow the view with a filter. | [Row limits](/docs/performance/row-limits) |
 | `gridcn: rendered row count (<n>) does not match the expected window size (<expected>) — start=<start> end=<end> activeRowOffWindow=<flag>.` | Report this as a bug with the values in the text. | [Virtualization](/docs/performance/virtualization) |
+| `[data-grid] pin: "left" is now "start" and pin: "right" is now "end"; "<value>" is read as "<name>"` | Rename the `pin` value to `"start"` or `"end"`. The grid still reads the old value. | [Column order and pinning](/docs/columns/column-order-pinning) |
 
 ## Plugin warnings [#plugin-warnings]
 
@@ -150,8 +154,8 @@ These warnings come from the `plugins` prop. A plugin comes from an add-on hook.
 | `[data-grid] plugin "<name>"'s Overlay component identity changed; the overlay remounts and loses its state` | Keep the `Overlay` component the same function between renders. | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `[data-grid] plugin "<name>"'s Mount component identity changed; the mount remounts and loses its state` | Keep the `Mount` component the same function between renders. | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `[data-grid] plugins "<first>" and "<second>" both define command "<name>"; the later plugin wins` | Rename one of the commands. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
-| `[data-grid] plugin "<name>"'s command "<command>" names a built-in action and is dropped — plugins cannot replace core behavior (undo, redo, fillDown, fillRight, openFindReplace, openFind are the pluggable exceptions)` | Rename the command. Only the listed actions accept a plugin command. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
-| `[data-grid] plugin "<name>"'s keymap binds "<command>", which is a built-in action that is not pluggable; the entry is dropped — a plugin keymap binds the plugin's own commands and the pluggable actions (undo, redo, fillDown, fillRight, openFindReplace, openFind)` | Bind the core action through your own `keymap` prop. A plugin keymap binds its own commands and the six pluggable actions. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries) |
+| `[data-grid] plugin "<name>"'s command "<command>" names a built-in action and is dropped — plugins cannot replace core behavior` | Rename the command. A plugin command cannot take the name of a core action. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
+| `[data-grid] plugin "<name>"'s keymap binds "<command>", which is a built-in action; the entry is dropped — a plugin keymap binds the plugin's own commands` | Bind the core action through your own `keymap` prop. A plugin keymap binds the commands that the plugin defines. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries) |
 | `[data-grid] plugin "<name>"'s keymap binds "<command>" but the plugin defines no such command; the entry is dropped — a plugin keymap binds the plugin's own commands only` | Add the command to the plugin or remove the keymap entry. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `[data-grid] plugin "<name>"'s binding for "<command>" repeats a key that another action, the default keymap, or the consumer's keymap already binds; the colliding binding is dropped` | Pick another key in the plugin `keymap`. The first owner of a key keeps it. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 
@@ -258,7 +262,7 @@ Each add-on prints its own prefix.
 | `[data-grid-io] export truncated to <maxRows> of <total> rows (maxRows)` | Raise the `maxRows` export option. | [Export options](/docs/add-options/import-export/export-options) |
 | `[data-grid-io] buildImportedRows: grid column "<columnId>" is mapped by more than one import column - the later mapping wins` | Map each grid column from one import column. | [Import options](/docs/add-options/import-export/import-options) |
 | `[data-grid-io] mapColumn rejected, so the built-in column match is used` | Fix the error in `mapColumn`. The grid prints the error after the text. | [Import options](/docs/add-options/import-export/import-options) |
-| `[data-grid] the filter operator "<operator>" on column "<columnId>" has no match, so the grid does not narrow rows with it. Give it a match in the column's filterOperators, or use filterMode="server".` | Give the operator a `match` in the `filterOperators` of the column, or set `filterMode` to `"server"`. The grid prints this once for each column and operator. | [Filtering](/docs/sort-filter-search/filtering) |
+| `[data-grid] the filter operator "<operator>" on column "<columnId>" has no match, so the grid does not narrow rows with it. Give it a match in the column's filter.operators, or use filterMode="server".` | Give the operator a `match` in the `filterOperators` of the column, or set `filterMode` to `"server"`. The grid prints this once for each column and operator. | [Filtering](/docs/sort-filter-search/filtering) |
 | `[data-grid-find-replace] processReplace returned no plan or more patches than replaceAllLimit; the replace is cancelled` | Return a plan with at most `replaceAllLimit` patches from `processReplace`. | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options) |
 | `[data-grid-find-replace] processReplace threw; the replace is cancelled` | Fix the error in `processReplace`. The grid prints the error after the text. | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options) |
 | `[data-grid-io] onProgress threw` | Fix the error in `onProgress`. The grid prints the error after the text, and the export goes on. | [Export the whole result](/docs/import-export/export-whole-result) |

@@ -50,7 +50,7 @@ A term row links to the page that explains it.
 | save conflict | A refused save for which the server sent its current row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | [Save edits](/docs/save-server/save-edits#id-swap) |
 | lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
-| custom operator | A filter operator a column registers in `filterOperators` with an `id`, a `label`, an `input` shape, and an optional `match`. | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
+| custom operator | A filter operator a column registers in `filter.operators` with an `id`, a `label`, an `input` shape, and an optional `match`. | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
 | seed | The initial value a `default*` prop gives once, at mount. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
 | virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
 | rendered rows | The rows in the DOM. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
@@ -543,7 +543,6 @@ A search word in this table opens the page that answers it.
 | `onsave` | [Save edits](/docs/save-server/save-edits) |
 | `onsaverejected` | [Save edits](/docs/save-server/save-edits) |
 | `onvalidationerror` | [Edit and validation events](/docs/events-state/edit-validation-events) |
-| `onwriterejected` | [Migrate to 2.0](/docs/support-upgrades/migrate-2-0) |
 | `optimistic update` | [Revert or refetch after a save](/docs/save-server/save-revert) |
 | `option names` | [Options A to Z](/docs/cheatsheets-messages/options-z) |
 | `overdue` | [Style overrides](/docs/theme-style-language/style-overrides) |

@@ -95,14 +95,9 @@ function useDropzoneContext(component: string): DropzoneContextValue {
   return context;
 }
 
-/** An Error for a thrown value; a null-prototype object has no string form. */
-function toError(value: unknown): Error {
-  if (value instanceof Error) return value;
-  try {
-    return new Error(String(value));
-  } catch {
-    return new Error("Unknown error");
-  }
+function defaultDescription(typeNames: string[], maxSize: number | undefined): string {
+  const types = typeNames.length > 0 ? `Accepted file types: ${typeNames.join(", ")}.` : "All file types accepted.";
+  return maxSize === undefined ? types : `${types} Up to ${formatBytes(maxSize)}.`;
 }
 
 /** Props for {@link Dropzone}. */
@@ -120,12 +115,10 @@ export type DropzoneProps = {
   disabled?: boolean;
   /** Called with accepted files and any rejections after a drop or a file-picker selection. */
   onDrop?: (acceptedFiles: File[], rejections: DropzoneRejection[]) => void;
-  /** Called when filtering the files or the `onDrop` callback throws; filter rejections go through `onDrop` instead. */
-  onError?: (error: Error) => void;
   /** Currently held files, for `DropzoneContent`'s default rendering. */
   files?: File[];
-  /** Screen-reader description of the accepted file types. Default: an English list built from `accept`. */
-  description?: string;
+  /** Screen-reader description of the accepted file types and the size limit. Default: an English text built from `accept` and `maxSize`. */
+  accessibleDescription?: string;
   /** Accessible name for the drop surface. */
   "aria-label"?: string;
   /** Id of the element that names the drop surface; used instead of `aria-label` when both are set. */
@@ -142,7 +135,7 @@ export type DropzoneProps = {
  * the pointer crosses a child element.
  */
 export function Dropzone(props: DropzoneProps): ReactNode {
-  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, onError, files, description, compact = false, ...rest } = props;
+  const { className, children, accept, maxFiles, maxSize, minSize, disabled = false, onDrop, files, accessibleDescription, compact = false, ...rest } = props;
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -152,14 +145,10 @@ export function Dropzone(props: DropzoneProps): ReactNode {
   const emit = useCallback(
     (picked: FileList | null) => {
       if (!picked || picked.length === 0) return;
-      try {
-        const { accepted, rejections } = filterFiles(Array.from(picked), { accept, maxSize, minSize, maxFiles });
-        if (onDrop) onDrop(accepted, rejections);
-      } catch (error) {
-        if (onError) onError(toError(error));
-      }
+      const { accepted, rejections } = filterFiles(Array.from(picked), { accept, maxSize, minSize, maxFiles });
+      onDrop?.(accepted, rejections);
     },
-    [accept, maxSize, minSize, maxFiles, onDrop, onError],
+    [accept, maxSize, minSize, maxFiles, onDrop],
   );
 
   const openPicker = useCallback(() => {
@@ -258,7 +247,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
           }}
         />
         <span id={`${inputId}-description`} className="sr-only">
-          {description ?? (typeNames.length > 0 ? `Accepted file types: ${typeNames.join(", ")}.` : "All file types accepted.")}
+          {accessibleDescription ?? defaultDescription(typeNames, maxSize)}
         </span>
         {children ?? (
           <>

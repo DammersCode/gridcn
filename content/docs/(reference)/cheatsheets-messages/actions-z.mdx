@@ -25,10 +25,11 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitChange` | Applies a whole `DataChange` in one write and fires `onDataChange` once. | [Data change events](/docs/events-state/data-change-events) |
-| `deleteRows` | Deletes the rows at the given view indexes, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `deleteRows` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `deleteRowsAt` | Deletes the rows at the given view indexes, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `deleteSelection` | Clears every editable cell of the selection to its empty value, as one change. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
-| `duplicateRows` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `duplicateRows` | Duplicates the rows with the given ids through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `duplicateRowsAt` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Selection model](/docs/concepts/selection-model) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Selection model](/docs/concepts/selection-model) |
@@ -62,7 +63,8 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| `setRowSelected` | Checks or unchecks one row by view index. It sets the state and never toggles. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `setRowChecked` | Checks or unchecks one row by id. It sets the state and never toggles. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `setRowCheckedAt` | Checks or unchecks one row by view index. It sets the state and never toggles. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setSearch` | Sets the quick-search text. With `options`, it also sets the search options. | [Quick search](/docs/sort-filter-search/quick-search) |
 | `setSelection` | Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `setSorts` | Replaces the active sorts. | [Sorting](/docs/sort-filter-search/sorting) |
