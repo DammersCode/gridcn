@@ -334,6 +334,22 @@ describe("a long column id", () => {
     expect(parseViewFile(text, new Map([[long, {}]]))).toMatchObject({ ok: true, dropped: 0, state: { sorts: [{ columnId: long }] } });
     expect(parseViewFile(text, new Map([["a", {}]]))).toMatchObject({ ok: true, dropped: 1, state: { sorts: [] } });
   });
+  it("is not over a limit for a custom operator id of any length", () => {
+    const filters = [{ columnId: "a", operator: "op".repeat(40), value: "q" }];
+    expect(overLimitPart({ ...empty, filters })).toBe(false);
+    expect(savableViewState({ ...empty, filters })).not.toBeNull();
+  });
+  it("cannot save a column named __proto__", () => {
+    const sorts = [{ columnId: "__proto__", direction: "asc" as const }];
+    expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+  });
+  it.each([
+    ["a list on contains", { columnId: "a", operator: "contains", value: ["x"] }],
+    ["no value on equals", { columnId: "a", operator: "equals" }],
+  ])("reports %s as over the filters limit", (_name, filter) => {
+    expect(overLimitPart({ ...empty, filters: [filter] } as DataGridViewState)).toBe("filters");
+  });
   it("is still reported for a part over a real limit", () => {
     const sorts = Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
     expect(overLimitPart({ ...empty, sorts })).toBe("sorts");

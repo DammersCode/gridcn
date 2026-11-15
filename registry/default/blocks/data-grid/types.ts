@@ -849,7 +849,7 @@ export type DataGridReadState = Omit<
 >;
 
 /**
- * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState` and
+ * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState`, `getInitialState`, and
  * `subscribe` only — `setState` does not exist on it. The consumer's writable store (the
  * store-ownership path) is `useDataGridStoreProps`.
  */

@@ -60,7 +60,6 @@ const operatorsAreExhaustive: Exclude<BuiltInFilterOperator, (typeof OPERATORS)[
 void operatorsAreExhaustive;
 
 const FILTER_OPERATOR_IDS: ReadonlySet<string> = new Set(OPERATORS);
-const MAX_OPERATOR_ID_LENGTH = 64;
 
 export function emptyViewState(): DataGridViewState {
   return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
@@ -226,7 +225,7 @@ function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown): 
 function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: Tally): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   if (typeof operator !== "string") return { ok: false };
   if (FILTER_OPERATOR_IDS.has(operator)) return sanitizeFilterValue(operator, raw, tally);
-  if (operator.length === 0 || operator.length > MAX_OPERATOR_ID_LENGTH) return { ok: false };
+  if (operator.length === 0) return { ok: false };
   // a live-grid snapshot has no column map; a column map accepts only operators the column registers
   if (!columns) return sanitizeCustomValue("any", raw);
   const input = typeof columnId === "string" ? columns.get(columnId)?.operators?.get(operator) : undefined;

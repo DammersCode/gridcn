@@ -99,7 +99,7 @@ The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends on the core `data-grid`. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
+Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce` and `is-composing-key` utilities. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
 
 | Item | Adds | Docs |
 | --- | --- | --- |

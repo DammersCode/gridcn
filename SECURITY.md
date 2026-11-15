@@ -26,6 +26,7 @@ In scope:
 - The registry source under `registry/` and the payloads in `public/r/`.
 - The documentation site and its demos.
 - Handling of untrusted input: imported CSV, XLSX, and XLS files, clipboard content, URL state,
+  saved-view files and stored view documents, request bodies parsed with `parseServerSpec`,
   cell values rendered as text or links, and CSV export.
 
 Out of scope:

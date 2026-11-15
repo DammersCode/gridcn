@@ -89,6 +89,12 @@ export type DataGridImportDialogProps<TData> = {
   file?: File;
 };
 
+/** The extensions `accept` lists once each, or its MIME types when it lists no extension. */
+export function acceptedTypeNames(accept: DropzoneAccept): string[] {
+  const extensions = [...new Set(Object.values(accept).flat())];
+  return extensions.length > 0 ? extensions : Object.keys(accept);
+}
+
 /**
  * File-picker -> preview -> column-mapping -> confirm dialog. Parses via
  * {@link useDataGridImportPreview}, builds `TData` rows via {@link buildImportedRows} through each mapped
@@ -273,7 +279,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const dropzoneDescription = labels.io.dropzoneDescription(Object.values(accept).flat(), labels.io.maxFileSize(maxFileBytes));
+  const dropzoneDescription = labels.io.dropzoneDescription(acceptedTypeNames(accept), labels.io.maxFileSize(maxFileBytes));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

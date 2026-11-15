@@ -27,7 +27,7 @@ All gates must be green before you commit. Run them in order:
 
 ```powershell
 pnpm types:check && pnpm types:check:ts5                       # repo TypeScript, then consumer TypeScript 5.9
-pnpm lint                                                      # oxlint + the verify-* scripts
+pnpm lint                                                      # oxlint + the repo check scripts
 pnpm lint:typed                                                # type-checked no-unsafe-* on registry source (slow)
 npx vitest run registry tests --exclude "**/*.browser.test.*" --project unit --coverage
 npx vitest run --project browser --bail=1                      # real-Chromium tests, about 2 minutes

@@ -23,7 +23,7 @@ sorting and filtering the response a second time. The [Server rows example](/doc
 
 <NewBadge />
 
-For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `pager`, `status`, `loading`, `error`, `retry`, and `refresh`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
+For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `providerProps`, `rootProps`, `spec`, `totalRowCount`, `pager`, `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
 
 ## The contract
 
@@ -133,7 +133,7 @@ Both modes of `useDataGridServerRows` take the same spec. They differ in how row
 | | [Pages mode](/docs/add-options/server/server-rows-options#server-mode) | [Scroll mode](/docs/scroll-mode/load-rows-while-scrolling) |
 |---|---|---|
 | The grid shows | One page at a time | One continuous list of `totalRowCount` rows |
-| You send | `page`, `pageSize`, `start`, `end`, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
+| You send | `page`, `pageSize`, `start`, `end`, a `cursor` on a cursor source, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
 | The answer holds | The rows of one page, and the filtered `totalRowCount` or `hasMore` | The rows of one block, and `totalRowCount` or `nextCursor` |
 | After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
 | Stale requests | `fetchRows` receives an `AbortSignal` that aborts a replaced request | The same `AbortSignal` |
@@ -315,7 +315,7 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
 
 <NewBadge />
 
-The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. The toolbar search box has no length bound, and Shift+click multi-sort has no cap. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state, saved views, a search box, or multi-sort, raise the two limits:
+The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts and a search text of 500 characters. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. The toolbar search box has no length bound, and Shift+click multi-sort has no cap. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state, saved views, a search box, or multi-sort, raise the two limits:
 
 ```ts
 const spec = parseServerSpec(body.spec, {
@@ -324,7 +324,7 @@ const spec = parseServerSpec(body.spec, {
 });
 ```
 
-URL state does not bound the length of a filter value or of the search text. `maxValueLength` and `maxSearchLength` bound them on the server.
+URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
 ## Related
 

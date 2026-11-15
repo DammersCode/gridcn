@@ -66,7 +66,7 @@ export type UseDataGridViewsResult = {
   modified: boolean;
   /**
    * The part of the grid state that exceeds a view limit, or `false`. `saveView` returns `null` and `updateView` returns `false` while it is set.
-   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list. State of a column the grid lacks is not a limit.
+   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list. State of a column the grid lacks is not a limit. A column id `__proto__` and a filter value of the wrong shape for its operator are over the limit of their part.
    */
   overLimit: false | OverLimitPart;
   defaultViewId: string | null;
