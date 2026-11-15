@@ -606,6 +606,18 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
+/** The first column id whose def `pin` or `hidden` differs between two `columns` arrays, with the field that differs. */
+export function firstChangedSeedField(previous: readonly AnyColumnDef[], next: readonly AnyColumnDef[]): { id: string; field: "pin" | "hidden" } | null {
+  const before = new Map(previous.map((c) => [c.id, c]));
+  for (const def of next) {
+    const old = before.get(def.id);
+    if (!old) continue;
+    if (old.pin !== def.pin) return { id: def.id, field: "pin" };
+    if (Boolean(old.hidden) !== Boolean(def.hidden)) return { id: def.id, field: "hidden" };
+  }
+  return null;
+}
+
 /** `columns` with the `pin` of each id in `known` taken from the known column; the array itself when no pin differs. */
 export function carryRuntimePins(columns: readonly AnyColumnDef[], known: ReadonlyMap<string, AnyColumnDef>): readonly AnyColumnDef[] {
   let carried: AnyColumnDef[] | null = null;

@@ -38,6 +38,7 @@ import {
   viewSorts,
   viewFilters,
   carryRuntimePins,
+  firstChangedSeedField,
   defHiddenColumnIds,
   DEFAULT_LOCALE,
   withGridLocale,
@@ -293,6 +294,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   let releasePluginClaims: (() => void) | null = null;
   // A getRowId swap on the same data array keeps ids, errors, and the row index of the old function.
   let warnedGetRowIdSwap = false;
+  let warnedSeedChange = false;
   let warnedHiddenCheckedIgnored = false;
   let warnedHiddenCheckedCap = false;
   const warnHiddenCheckedIgnored = (reason: string): void => {
@@ -1115,7 +1117,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
             pruneRowValidationKeys(nextData, props.getRowId);
           }
           const propsColumnsChanged = props.columns !== lastPropsColumns;
+          const previousPropsColumns = lastPropsColumns;
           lastPropsColumns = props.columns;
+          if (propsColumnsChanged && !warnedSeedChange && props.columnLayout === undefined && isDev()) {
+            const changed = firstChangedSeedField(previousPropsColumns, props.columns);
+            if (changed) {
+              warnedSeedChange = true;
+              const action = changed.field === "pin" ? "setColumnPin" : "setColumnHidden";
+              warnDev(`the ${changed.field} of column "${changed.id}" changed in a new columns array, and a known column id keeps its runtime ${changed.field}; call ${action}, or control the layout with columnLayout`);
+            }
+          }
           // A def's `pin` and `hidden` seed when its id first appears; a known id keeps its runtime pin and visibility.
           const knownColumns = propsColumnsChanged ? new Map(s.columns.map((c) => [c.id, c])) : null;
           const nextLocale = props.locale ?? DEFAULT_LOCALE;
