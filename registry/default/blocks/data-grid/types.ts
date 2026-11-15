@@ -876,7 +876,7 @@ export type DataGridPlugin<TData = unknown> = {
   rowBands?: PluginRowBands;
   /** Observes every data change after the store write and the consumer's `onDataChange`; a throwing observer logs and does not stop the others. */
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
-  /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
+  /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped). */
   commands?: Record<string, GridCommand<TData>>;
   /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list unbinds the action. */
   keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;

@@ -224,7 +224,7 @@ export type DataGridSyncProps<TData = unknown> = {
   onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
-   * `"changed"` (the rows, the checked rows, or `readOnly` changed, the active cell moved during `onEditStart`, or an edit started during `processPaste`), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
+   * `"changed"` (the rows, the checked rows, or `readOnly` changed, the active cell moved during `onBeforeEditStart`, or an edit started during `processPaste`), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
    */
   onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
   /**
@@ -969,7 +969,7 @@ export type DataGridStoreState = Omit<
    * are content-equal (see `keymapContentEqual`). `DEFAULT_KEYMAP` when no prop is passed.
    */
   keymap: Keymap;
-  /** The merged command map: `DEFAULT_KEYMAP`'s pluggable bodies replaced by the plugins' and the consumer's `commands` (plugins in array order, the consumer last and silently winning). `null` when no plugin or consumer command exists. */
+  /** The merged command map: the plugins' commands in array order, then the consumer's `commands`, which win silently; a built-in action name is dropped. `null` when no plugin or consumer command exists. */
   commands: Record<string, GridCommand<unknown>> | null;
   /** {@link DEFAULT_LABELS} deep-merged with the `labels` sync prop; see {@link useDataGridLabels}. */
   labels: DataGridLabels;
