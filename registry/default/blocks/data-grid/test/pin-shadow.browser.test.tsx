@@ -2,7 +2,7 @@ import { page } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { render } from "vitest-browser-react";
-import { DataGrid, defineColumns } from "../data-grid";
+import { DataGrid, defineColumns, useDataGridActions } from "../data-grid";
 import { gridAttrSelector } from "../data-grid-sdk";
 // real stylesheet: the bug this file guards against is a CSS box-shadow painting its visible pixels
 // away from the element it's attached to — invisible unless Tailwind's real cascade is loaded.
@@ -152,16 +152,21 @@ describe("bug fix - unpinning the last pinned column does not strand the shadow 
   // effect never re-ran, and the stale measurement kept the shadow floating at the unpinned
   // column's old width instead of hugging the marker.
   it("re-anchors the shadow to the marker edge after the pinned column is unpinned", async () => {
+    let unpin = () => {};
+    const Mount = () => {
+      const actions = useDataGridActions();
+      unpin = () => actions.setColumnPin("id", null);
+      return null;
+    };
     function Harness() {
-      const [pinned, setPinned] = useState(true);
       const columns = defineColumns<Row>()([
-        { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, ...(pinned ? { pin: "start" as const } : {}) },
+        { id: "id", header: "ID", accessorKey: "id", type: "text", width: 120, pin: "start" },
         { id: "email", header: "Email", accessorKey: "email", type: "text", width: 300 },
       ] as const);
       return (
         <div style={{ width: 320, height: 300 }}>
-          <button type="button" onClick={() => setPinned(false)}>unpin</button>
-          <DataGrid data={makeRows(8)} columns={columns} getRowId={(r) => r.id} rowMarkers="number" className="h-[260px]" />
+          <button type="button" onClick={() => unpin()}>unpin</button>
+          <DataGrid plugins={[{ name: "unpin", Mount }]} data={makeRows(8)} columns={columns} getRowId={(r) => r.id} rowMarkers="number" className="h-[260px]" />
         </div>
       );
     }
