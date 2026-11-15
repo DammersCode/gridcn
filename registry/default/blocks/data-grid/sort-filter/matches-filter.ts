@@ -249,3 +249,26 @@ export function createFilterMatcher(filter: FilterSpec, options: FilterMatcherOp
       return () => true;
   }
 }
+
+/**
+ * A matcher over raw numbers for `gt`/`gte`/`lt`/`lte`/`isBetween`, or `null` when the filter has a bound that does not
+ * parse as a number. For a non-NaN number it returns what {@link createFilterMatcher} returns for `String(value)`,
+ * minus the number-to-text-to-number round trip.
+ */
+export function createNumberMatcher(filter: FilterSpec): ((value: number) => boolean) | null {
+  const op = filter.operator;
+  if (op === "isBetween") {
+    const [minRaw = "", maxRaw = ""] = Array.isArray(filter.value) ? filter.value : ["", ""];
+    const min = minRaw !== "" ? parseNumber(minRaw) : null;
+    const max = maxRaw !== "" ? parseNumber(maxRaw) : null;
+    if ((minRaw !== "" && min === null) || (maxRaw !== "" && max === null)) return null;
+    return (value) => !(min !== null && value - min < 0) && !(max !== null && value - max > 0);
+  }
+  if (op !== "gt" && op !== "gte" && op !== "lt" && op !== "lte") return null;
+  const bound = parseNumber(typeof filter.value === "string" ? filter.value : "");
+  if (bound === null) return null;
+  if (op === "gt") return (value) => value - bound > 0;
+  if (op === "gte") return (value) => value - bound >= 0;
+  if (op === "lt") return (value) => value - bound < 0;
+  return (value) => value - bound <= 0;
+}

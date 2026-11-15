@@ -2,7 +2,7 @@ import type { FilterNode, FilterSpec, SortSpec } from "../types";
 import { groupChildren, isFilterGroup } from "./filter-tree";
 import { isDev } from "../is-dev";
 import { sortCollator } from "./sort-collator";
-import { createFilterMatcher, isBuiltInOperator } from "./matches-filter";
+import { createFilterMatcher, createNumberMatcher, isBuiltInOperator } from "./matches-filter";
 import { KEYED_SORT_MIN_ROWS, sortByKeys, type SortKeyReader } from "./keyed-sort";
 
 /**
@@ -74,6 +74,13 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
     }
   }
   const test = createFilterMatcher(filter, { compare, custom: customMatch });
+  const numberTest = !compare && getValue ? createNumberMatcher(filter) : null;
+  if (numberTest) {
+    return (row: number) => {
+      const value = getValue!(row, filter.columnId);
+      return typeof value === "number" && value === value ? numberTest(value) : test(accessor.getText(row, filter.columnId));
+    };
+  }
   return (row: number) => test(accessor.getText(row, filter.columnId));
 }
 
