@@ -29,7 +29,7 @@ Done when the user answered and the working branch is the one they picked, or th
 Pick the commit you are upgrading to and pin it (a SHA) before anything else: the hosted `@gridcn`
 registry serves the current deploy of `main`, so an unpinned install can differ from the changelog
 you read. Read gridcn's changelog at that commit
-(`https://raw.githubusercontent.com/DammersCode/gridcn/<sha>/CHANGELOG.md`) top to bottom. If you
+(`https://raw.githubusercontent.com/DammersCode/gridcn/<sha>/CHANGELOG.md`) top to bottom. For an unreleased install, also read `CHANGELOG-2.0.md` next to it, which lists the non-breaking 2.0 entries. If you
 don't know which version is installed, there is no version file to check — compare against
 `git log` on your installed files instead (`git log -- components/data-grid`), find the commit of
 your last install, and match its date to the changelog's entries. Note every `**Breaking:**` entry
@@ -130,7 +130,7 @@ value, press Enter, confirm the grid renders styled) passes.
 - Install commands: `https://gridcn.vercel.app/docs/learning-path/install-gridcn.md`
 - Non-default alias pitfalls and the Verify smoke test:
   `https://gridcn.vercel.app/docs/terms-help/fix-install-problems.md`
-- Full changelog: `https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md`
+- Full changelog: `https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md` and, for 2.0, `https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md`
 
 ## Do not
 

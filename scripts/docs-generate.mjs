@@ -208,7 +208,8 @@ const FIRST_TAGGED_RELEASE = "1.0.0";
 
 // CHANGELOG.md lists releases newest first, so a higher index is an older release.
 function changelogReleases() {
-  const parts = read("CHANGELOG.md").split(/^## (\S+).*$/m);
+  const parts = `${read("CHANGELOG.md")}
+${read("CHANGELOG-2.0.md")}`.split(/^## (\S+).*$/m);
   const releases = [];
   for (let i = 1; i < parts.length; i += 2) releases.push({ name: parts[i], body: parts[i + 1] });
   const firstNamed = new Map();
