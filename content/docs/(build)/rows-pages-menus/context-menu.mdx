@@ -64,7 +64,7 @@ The header dropdown and the right-click header menu show the same items:
 - **Hide column**. A column with `hideable: false` does not show it.
 - **Autosize column** and **Autosize all columns**, only while column resize is on and the column is resizable.
 
-The `pin` field of a column sets the first pin. These items change it at run time. [Column order and pinning](/docs/columns/column-order-pinning) owns the pin behavior.
+[Column order and pinning](/docs/columns/column-order-pinning) owns the pin behavior.
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (the `openColumnMenu` action) opens the dropdown of the focused header button's column, or else the active cell's column. Arrow keys move through the items. <kbd>Escape</kbd> closes the menu and returns focus to where it was.
 
@@ -110,7 +110,7 @@ Built-in items have stable ids, so a resolver can keep or drop them by id:
 | Surface | Built-in ids, in order |
 | --- | --- |
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
 
 The fill items exist only for a touch selection while the fill add-on runs. An item is an object with `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`, `tooltip`, and `onClick`. `shortcut` is a keymap binding that the menu shows as keycaps. `tooltip` shows on hover while the item is off. A separator is `{ id, separator: true }`. The types are `GridMenuItemSpec`, `CellMenuItemsResolver`, and `HeaderMenuItemsResolver`.
 

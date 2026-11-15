@@ -33,15 +33,13 @@ export function ImportOrders() {
 
 `createRow(index)` builds the base row, with defaults for columns that the file lacks.
 
-`createRow` can return a promise. A rejected promise imports nothing, and Cancel stops a pending import.
+`createRow` can return a promise. A rejection imports nothing. Cancel stops a pending import.
 
-Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. A grid with a `totalRowCount` holds a window of its result, so it has no default. A confirm writes nothing, the dialog shows `The import could not be completed. Try again.`, and a development build warns once. Pass `onImport` on such a grid.
+Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` holds a window of its result, so it has no default. A confirm writes nothing, the dialog shows `The import could not be completed. Try again.`, and a development build warns once. Pass `onImport` on such a grid.
 
 `onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 
 A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
-
-`commitChange` reaches `onDataChange` and `onSave` like a gesture, and `useDataGridHistory` records one entry. Replacing `data` does neither.
 
 ## Walk through the dialog
 
@@ -81,7 +79,7 @@ The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `
 
 ## Import limits [#import-limits]
 
-The dialog rejects a file over a limit with a message and never cuts a file. A limit that is `NaN` takes its default. A negative limit counts as 0.
+The dialog rejects a file over a limit with a message and never cuts it. A `NaN` limit takes its default, and a negative limit counts as 0.
 
 - `maxFileBytes`: 50 MiB, checked before the read.
 - `maxRows`: 1,000,000, header row included. `maxColumns`: 1,000.

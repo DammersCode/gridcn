@@ -91,12 +91,11 @@ Every value is text, even for number and date columns, as in `{ columnId: "stock
 The `filter` object of a column changes this behavior for that column:
 
 - `filter.operators` replaces the list of operators the filter menu offers.
-- `filter.match(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with `filterMatch` has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filter.operators` lists them. A cell type with `filter.match` and no `filter.operators` does the same. `number`, `date`, and `select` keep them.
+- `filter.match(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with `filter.match` has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filter.operators` lists them. A cell type with `filter.match` and no `filter.operators` does the same. `number`, `date`, and `select` keep them.
 - `filterable: false` keeps the column out of the filter menu and the header filter.
 - `filter.compare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks or versions. A result of `NaN` or a thrown error falls back to the default order. A column with `filter.match` ignores `filter.compare` for built-in operators.
-- `filter.valueInput` <NewBadge /> picks the value widget of the filter row: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component.
 
-A cell type sets the same members in its own `filter` object. Each member of the column wins over the same member of the cell type.
+A cell type takes the same `filter` object, with a fourth member, `valueInput`, for the value widget of the filter row. Each member of the column wins over the same member of the cell type.
 
 ### Custom operators [#custom-operators]
 

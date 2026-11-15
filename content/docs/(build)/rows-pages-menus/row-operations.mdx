@@ -45,7 +45,7 @@ function MyGrid() {
 | `duplicateRow` | `(row: TData, index: number, ctx: { signal: AbortSignal }) => TData \| Promise<TData>` | none |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
-Without `createRow`, an insert does nothing and a development warning appears. The context menu hides its Insert items. `duplicateRow` follows the same rule for Duplicate.
+Without a factory, the operation does nothing, a development warning appears, and the context menu hides its item.
 
 `createRow` receives the data index where the new row lands. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id, because a copy with the id of its source collides with it.
 
@@ -85,9 +85,9 @@ function RowTools() {
 - `deleteRowsAt(viewIndexes)` deletes the rows at these view indexes as one change. `viewIndexes([4])` marks plain numbers as view indexes for the `At` forms.
 - `deleteRows(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-`api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button that calls `api.runShortcut("deleteRows")` computes no targets.
+`api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button needs no target code.
 
-Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay. An open edit that survives the delete keeps its cell.
+Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay.
 
 ## Shortcuts [#default-shortcuts]
 
@@ -111,7 +111,7 @@ A bulk delete button <NewBadge /> calls `deleteRows`, so this check runs too. [R
 The grid ships no dialog. This sample resolves a promise from the buttons of a dialog:
 
 ```tsx
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import { Button } from "@/components/ui/button";
 import {
@@ -132,7 +132,6 @@ const columns = defineColumns<Row>()([
 const rows: Row[] = [{ id: "1", name: "Ada" }];
 
 function GridWithConfirm() {
-  const cancelRef = useRef<HTMLButtonElement>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
 
   const confirmDelete = ({ rowIds }: { rowIds: readonly string[] }) =>
@@ -156,16 +155,12 @@ function GridWithConfirm() {
         open={ask !== null}
         onOpenChange={(open) => !open && settle(false)}
       >
-        <DialogContent initialFocus={cancelRef}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete {ask?.count} rows?</DialogTitle>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              ref={cancelRef}
-              variant="outline"
-              onClick={() => settle(false)}
-            >
+            <Button variant="outline" onClick={() => settle(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={() => settle(true)}>

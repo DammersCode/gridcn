@@ -7,7 +7,7 @@ aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedat
 demos: none
 ---
 
-Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Copy and paste cap at 200,000 cells each, as [Known limitations](#known-limitations) lists. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
+Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
 
 ## Paste [#paste]
 
@@ -23,12 +23,12 @@ A column with an async `validate` holds the paste until the schema answers. [Val
 
 ## Copy [#copy]
 
-Copy takes the range that the user selected last. Earlier Ctrl/Cmd+click ranges stay out of the copy. If no range exists, it takes the selected rows or the selected columns whole. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> writes two formats to the clipboard:
+Copy takes the range that the user selected last, and no earlier Ctrl/Cmd+click range. If no range exists, it takes the selected rows or the selected columns whole. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> writes two formats to the clipboard:
 
 - **`text/plain`**: tab-separated values (TSV), one row per line. A cell that contains a tab, a line break, or a quote gets wrapped in quotes, and the grid doubles each inner quote.
 - **`text/html`**: a `<table>`. Each cell carries its exact text in a `data-gridcn-raw` attribute.
 
-A paste back into gridcn reads that attribute, so tabs and runs of spaces survive. A paste into a spreadsheet app reads the table.
+A paste back into gridcn reads that attribute, so tabs and runs of spaces survive.
 
 <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> copies the same way and then clears the copied cells. On a `readOnly` grid, cut only copies. While a cell editor is open, the editor handles copy, cut, and paste itself.
 
@@ -118,11 +118,8 @@ function copyText(value: unknown, { column, text }: ClipboardCopyCtx<Row>) {
   return column.id === "price" ? `$${value}` : text;
 }
 
-function pasteValue(
-  text: string,
-  { column, fromText }: ClipboardPasteCtx<Row>,
-) {
-  if (column.id !== "price") return fromText(text);
+function pasteValue(text: string, ctx: ClipboardPasteCtx<Row>) {
+  if (ctx.column.id !== "price") return ctx.fromText(text);
   return Number(text.replace("$", ""));
 }
 

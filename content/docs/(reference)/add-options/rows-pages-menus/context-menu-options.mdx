@@ -64,7 +64,7 @@ A resolver keeps or drops a built-in item by its id. Separator ids start with `s
 | Menu | Ids, in order |
 | --- | --- |
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-left`, `pin-right`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
 
 These ids appear only under a condition:
 
@@ -78,7 +78,7 @@ These ids appear only under a condition:
 | `unpin` | On a pinned column |
 | `sep-autosize`, `autosize`, `autosize-all` | When the grid and the column allow resizing |
 
-A column that cannot pin gets disabled `pin-left`, `pin-right`, and `unpin` items.
+A column that cannot pin gets disabled `pin-start`, `pin-end`, and `unpin` items.
 
 ## Example
 
