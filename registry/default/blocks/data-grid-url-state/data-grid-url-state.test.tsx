@@ -342,8 +342,10 @@ describe("DataGridUrlState state -> URL write", () => {
       getActions().setSearch("a");
       getActions().setSearch("ab");
     });
-    const written = onUrlUpdate.mock.calls.map((c) => (c[0] as UrlUpdateEvent).searchParams.get("q")).filter((q) => q !== null);
-    expect(written.at(-1)).toBe("ab");
+    await vi.waitFor(() => {
+      const written = onUrlUpdate.mock.calls.map((c) => (c[0] as UrlUpdateEvent).searchParams.get("q")).filter((q) => q !== null);
+      expect(written.at(-1)).toBe("ab");
+    });
   });
 
   it("uses history replace, never push, for URL writes", async () => {
