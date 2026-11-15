@@ -7,6 +7,18 @@ import { cn } from "@/lib/utils";
 /** Maps a MIME type to the file extensions that count as a match, e.g. `{ "text/csv": [".csv"] }`. */
 export type DropzoneAccept = Record<string, string[]>;
 
+/** The extensions `accept` lists once each, or its MIME types when it lists no extension. */
+export function acceptedTypeNames(accept: DropzoneAccept): string[] {
+  const extensions = [...new Set(Object.values(accept).flat())];
+  return extensions.length > 0 ? extensions : Object.keys(accept);
+}
+
+/** The MIME types and extensions of `accept` for a native file input's `accept` attribute. */
+function inputAcceptValue(accept: DropzoneAccept): string | undefined {
+  const tokens = [...new Set([...Object.keys(accept), ...Object.values(accept).flat()])];
+  return tokens.length > 0 ? tokens.join(",") : undefined;
+}
+
 /** One reason a file was rejected; a file can carry more than one. */
 export type DropzoneRejectionReason = "accept" | "maxSize" | "minSize" | "maxFiles";
 
@@ -15,6 +27,7 @@ export type DropzoneRejection = { file: File; reasons: DropzoneRejectionReason[]
 
 /** True when `file` matches `accept` by MIME type (exact or `type/*` wildcard) or by extension. */
 export function matchesAccept(file: File, accept: DropzoneAccept): boolean {
+  if (Object.keys(accept).length === 0) return true;
   const name = file.name.toLowerCase();
   const type = file.type.toLowerCase();
   for (const [mime, extensions] of Object.entries(accept)) {
@@ -131,6 +144,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
   const dragDepthRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
+  const typeNames = accept ? acceptedTypeNames(accept) : [];
 
   const emit = useCallback(
     (files: FileList | null) => {
@@ -230,7 +244,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
           className="hidden"
           disabled={disabled}
           multiple={maxFiles !== 1}
-          accept={accept ? Object.values(accept).flat().join(",") : undefined}
+          accept={accept ? inputAcceptValue(accept) : undefined}
           // input.click() bubbles a real click back up to this element's own onClick=openPicker —
           // without stopping it here, opening the picker fires it a second time.
           onClick={(event) => event.stopPropagation()}
@@ -240,7 +254,7 @@ export function Dropzone(props: DropzoneProps): ReactNode {
           }}
         />
         <span id={`${inputId}-description`} className="sr-only">
-          {accessibleDescription ?? (accept ? `Accepted file types: ${Object.values(accept).flat().join(", ")}.` : "All file types accepted.")}
+          {accessibleDescription ?? (typeNames.length > 0 ? `Accepted file types: ${typeNames.join(", ")}.` : "All file types accepted.")}
         </span>
         {children ?? (
           <>
@@ -273,13 +287,14 @@ export type DropzoneEmptyStateProps = { title?: string; description?: string };
 export function DropzoneEmptyState(props: DropzoneEmptyStateProps): ReactNode {
   const { title = "Upload a file", description } = props;
   const { src, accept, maxSize } = useDropzoneContext("DropzoneEmptyState");
+  const typeNames = accept ? acceptedTypeNames(accept) : [];
   if (src && src.length > 0) return null;
 
   const caption =
     description ??
     [
       "Drag and drop or click to upload",
-      accept ? Object.values(accept).flat().join(", ") : undefined,
+      typeNames.length > 0 ? typeNames.join(", ") : undefined,
       maxSize !== undefined ? `up to ${formatBytes(maxSize)}` : undefined,
     ]
       .filter(Boolean)

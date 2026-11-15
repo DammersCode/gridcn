@@ -143,7 +143,7 @@ const views = useDataGridViews({ storage: serverViews });
 
 A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. These are the values of `OverLimitPart`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
 
-A column with the id `__proto__` is the one exception. A view never stores that id, so state for it is over the limit of its part. A filter whose value does not fit its operator is over the `"filters"` limit. Examples are a list on `contains` and no value on `equals`. Only `setFilters` can build such a filter.
+Two cases are over a limit although no count is. A view never stores the column id `__proto__`, so state for that column is over the limit of its part. A filter whose value does not fit its operator is over the `"filters"` limit, such as a list on `contains` or no value on `equals`. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`.
 
 "Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
 

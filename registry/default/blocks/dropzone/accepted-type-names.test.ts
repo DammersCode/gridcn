@@ -1,5 +1,5 @@
+import { acceptedTypeNames } from "./dropzone";
 import { describe, expect, it } from "vitest";
-import { acceptedTypeNames } from "./import-dialog";
 
 describe("acceptedTypeNames", () => {
   it("names an extension once when two MIME types list it", () => {

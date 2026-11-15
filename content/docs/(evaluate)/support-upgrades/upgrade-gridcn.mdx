@@ -56,7 +56,7 @@ Each file that you overwrote matches the version from step 5. Each file that you
 
 ## Heavily edited files
 
-When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- components/data-grid`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
+When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- 'components/data-grid*'`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
 
 ## Related
 

@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
 import { resolveImportLimits, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
-import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
+import { acceptedTypeNames, Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
 const IMPORT_ACCEPT: DropzoneAccept = {
@@ -88,12 +88,6 @@ export type DataGridImportDialogProps<TData> = {
   /** A file to load when the dialog opens, as if the user had chosen it. */
   file?: File;
 };
-
-/** The extensions `accept` lists once each, or its MIME types when it lists no extension. */
-export function acceptedTypeNames(accept: DropzoneAccept): string[] {
-  const extensions = [...new Set(Object.values(accept).flat())];
-  return extensions.length > 0 ? extensions : Object.keys(accept);
-}
 
 /**
  * File-picker -> preview -> column-mapping -> confirm dialog. Parses via

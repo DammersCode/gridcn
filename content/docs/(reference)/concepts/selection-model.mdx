@@ -54,7 +54,7 @@ Four props of `DataGridProvider` turn parts of the selection off. All default to
 - `enableRangeSelection` allows a range of more than one cell. When it is `false`, a drag or a Shift extension leaves a single active cell. <kbd>Mod</kbd>+<kbd>A</kbd> selects nothing. A Shift click on a marker or a header selects one row or one column.
 - `enableMultiRange` allows the stack. When it is `false`, a Ctrl or Cmd click acts as a plain click.
 
-A disabled channel loses its state and not only its gestures. With `enableColumnSelection={false}`, a header click does nothing, and the column channel does not exist.
+A disabled channel ignores its gestures and actions. With `enableColumnSelection={false}`, a header click does nothing. A controlled `selection` and `setSelection` still write the channel.
 
 ## Related
 

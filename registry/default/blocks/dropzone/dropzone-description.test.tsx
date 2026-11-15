@@ -12,6 +12,25 @@ describe("Dropzone screen reader description", () => {
     expect(description()).toBe("Accepted file types: .csv.");
   });
 
+  it("names an extension once and falls back to the MIME type", () => {
+    const { unmount } = render(<Dropzone accept={{ "text/csv": [".csv"], "application/csv": [".csv"] }} />);
+    expect(description()).toBe("Accepted file types: .csv.");
+    unmount();
+    render(<Dropzone accept={{ "text/csv": [] }} />);
+    expect(description()).toBe("Accepted file types: text/csv.");
+  });
+
+  it("sets the native input accept to MIME keys plus extensions", () => {
+    render(<Dropzone accept={{ "text/csv": [] }} />);
+    expect(document.querySelector("input")?.getAttribute("accept")).toBe("text/csv");
+  });
+
+  it("treats an empty accept as no restriction", () => {
+    render(<Dropzone accept={{}} />);
+    expect(description()).toBe("All file types accepted.");
+    expect(document.querySelector("input")?.hasAttribute("accept")).toBe(false);
+  });
+
   it("takes the accessibleDescription prop in place of the English text", () => {
     render(<Dropzone accept={{ "text/csv": [".csv"] }} accessibleDescription=".csv, bis 2 MB" />);
     expect(description()).toBe(".csv, bis 2 MB");
@@ -32,5 +51,6 @@ describe("Dropzone onError", () => {
     const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
     fireEvent.change(input, { target: { files: [new File(["a"], "a.csv")] } });
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0]?.[0].message).toBe("Unknown error");
   });
 });

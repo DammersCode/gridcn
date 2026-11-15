@@ -6,6 +6,10 @@ function makeFile(name: string, type: string, size = 10): File {
 }
 
 describe("matchesAccept", () => {
+  it("accepts every file for an empty accept", () => {
+    expect(matchesAccept(makeFile("a.bin", ""), {})).toBe(true);
+  });
+
   it("matches an exact MIME type", () => {
     expect(matchesAccept(makeFile("a.csv", "text/csv"), { "text/csv": [".csv"] })).toBe(true);
   });
