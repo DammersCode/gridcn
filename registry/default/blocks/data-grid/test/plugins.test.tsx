@@ -299,6 +299,22 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it("a plugin binding that repeats another action's key with reordered modifiers and a changed case is dropped", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["shift+mod+K"] } };
+    const merged = mergePluginKeymaps([plugin], { selectAll: ["mod+shift+k"] }, warn);
+    expect(merged.fillDown).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
+  });
+
+  it("a plugin binding a case variant of the focusSearch key takes it from focusSearch", () => {
+    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["Mod+F"] } };
+    const merged = mergePluginKeymaps([plugin], undefined, vi.fn());
+    expect(merged.openFind).toEqual(["Mod+F"]);
+    expect(merged.focusSearch).toEqual([]);
+  });
+
   it("a plugin binding leaves focusSearch alone when the consumer binds it", () => {
     const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
     const merged = mergePluginKeymaps([plugin], { focusSearch: ["mod+j"] }, vi.fn());

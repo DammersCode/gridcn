@@ -220,9 +220,9 @@ export function mergePluginKeymaps(
       const taken = new Set<string>();
       for (const [other, otherBindings] of Object.entries(effective)) {
         if (other === name || (other === "focusSearch" && takesSearchKey)) continue;
-        for (const binding of otherBindings ?? []) taken.add(binding);
+        for (const binding of otherBindings ?? []) taken.add(bindingSignature(binding));
       }
-      const kept = given.filter((binding) => !taken.has(binding));
+      const kept = given.filter((binding) => !taken.has(bindingSignature(binding)));
       if (kept.length < given.length) {
         warn(
           `keymap-collide:${plugin.name}:${name}`,
@@ -230,7 +230,10 @@ export function mergePluginKeymaps(
         );
       }
       if (kept.length > 0 || given.length === 0) merged[name as GridAction] = kept;
-      if (takesSearchKey && merged.focusSearch) merged.focusSearch = merged.focusSearch.filter((binding) => !kept.includes(binding));
+      if (takesSearchKey && merged.focusSearch) {
+        const keptSignatures = new Set(kept.map(bindingSignature));
+        merged.focusSearch = merged.focusSearch.filter((binding) => !keptSignatures.has(bindingSignature(binding)));
+      }
     }
   }
   if (consumerKeymap) Object.assign(merged, consumerKeymap);
