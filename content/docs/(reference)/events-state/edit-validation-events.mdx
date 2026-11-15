@@ -61,7 +61,7 @@ Each session ends with exactly one `commit` or `cancel`. `rejected` fires once p
 These causes end a session with `cancel`:
 
 - The user presses Escape.
-- `actions.cancelEditing()`, `api.stopEditing()`, or the `cancel()` of an editor discards the draft.
+- `actions.cancelEditing()` or the `cancel()` of an editor discards the draft.
 - A second `startEditing` replaces the open session.
 - A filter, a hidden column, or a data change removes the edited cell from the view.
 - The grid becomes `readOnly`.

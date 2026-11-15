@@ -141,7 +141,7 @@ describe("Dropzone (browser)", () => {
     await screen.unmount();
   });
 
-  it("description replaces the screen-reader text", async () => {
+  it("accessibleDescription replaces the screen-reader text", async () => {
     const screen = await render(<Dropzone accept={{ "text/csv": [".csv"] }} accessibleDescription="Nur CSV" aria-label="Upload" />);
     await expect.element(page.getByText("Nur CSV")).toBeInTheDocument();
     await expect.element(page.getByText("Accepted file types", { exact: false })).not.toBeInTheDocument();
