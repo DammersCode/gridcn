@@ -150,6 +150,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Fixes to 1.x behavior
 
+- Fix: the column menu trigger shows a focus ring (`focus-visible:ring-2`) when the keyboard focuses it. It had `outline-none` and no replacement, so its only cue was the opacity change.
 - Fix: a `keymap` binding with an unknown modifier, such as `"Mod+Z"` (modifiers are lowercase), never matches. It matched the bare key, so a bare <kbd>z</kbd> on the active cell ran undo. The development warning stays.
 - Fix: `parseImportFile`, `useDataGridImportPreview`, and `DataGridImportDialog` read a `NaN` import limit as its default and a negative one as 0. A `NaN` bound, for example from `Number(process.env.MAX_ROWS)` with the variable unset, switched the bound off.
 - Fix: `printGrid`, `useDataGridPrint`, and `DataGridPrintButton` read a `NaN` or negative `maxRows` like `exportGrid`: `NaN` reads as the default (10,000 rows, cut to the 500,000-cell ceiling) and a negative value counts as 0. A `NaN` removed the ceiling and printed every row.

@@ -205,7 +205,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
               data-grid-header-menu-trigger=""
               tabIndex={viewIsEmpty && !showHeaderFilter ? 0 : -1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
-              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-1.5 pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
+              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-hidden transition-opacity focus-visible:ring-2 focus-visible:ring-ring/50 hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-1.5 pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
