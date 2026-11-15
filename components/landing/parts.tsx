@@ -1,8 +1,25 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { perfNote, perfStats, serverHighlights } from "./data";
+import { perfNote, perfRunHref, perfStats, serverHighlights } from "./data";
 
 export const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
+
+const isExternal = (href: string) => /^https?:\/\//.test(href);
+
+export function SiteLink({ href, className, children, ...rest }: { href: string; className?: string; children: ReactNode; "aria-label"?: string }) {
+  if (isExternal(href)) {
+    return (
+      <a href={href} className={className} target="_blank" rel="noreferrer" {...rest}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className} {...rest}>
+      {children}
+    </Link>
+  );
+}
 
 export function PerfStats() {
   return (
@@ -19,7 +36,12 @@ export function PerfStats() {
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-muted-foreground">{perfNote}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {perfNote}{" "}
+        <Link href={perfRunHref} className="inline-flex min-h-10 items-center underline underline-offset-4">
+          Run the benchmark on your machine
+        </Link>
+      </p>
     </div>
   );
 }
@@ -41,7 +63,7 @@ export function ServerHighlights() {
 
 export function DataModesLink({ children }: { children: ReactNode }) {
   return (
-    <Link href="/docs/data-modes" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 hover:text-foreground">
+    <Link href="/docs/data-modes/data-mode-support" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4 hover:text-foreground">
       {children}
     </Link>
   );

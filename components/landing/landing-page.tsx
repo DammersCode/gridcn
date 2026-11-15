@@ -2,22 +2,20 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { highlight } from "fumadocs-core/highlight";
 import { InstallCommand } from "@/components/install-command";
-import { SUBLINE } from "./data";
-import { addOnTiles, agentSkills, AgentIcon, comparison, coreTraits, headlineFeatures } from "./items";
+import { gitConfig } from "@/lib/shared";
+import { CLIENT_CODE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
+import { HeroGrid } from "./hero-grid";
+import { addOnTiles, agentSkills, AgentIcon, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
-import { DataModesLink, focus, PerfStats, ServerHighlights } from "./parts";
+import { DataModesLink, focus, PerfStats, ServerHighlights, SiteLink } from "./parts";
 
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
-const CODE = `const columns = defineColumns<Person>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text" },
-  { id: "age", header: "Age", accessorKey: "age", type: "number" },
-] as const);
+const repo = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 
-<DataGrid defaultData={rows} columns={columns} />`;
 const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
 
-async function HeroCode() {
-  const code = await highlight(CODE, {
+async function Code({ code, label }: { code: string; label: string }) {
+  return highlight(code, {
     lang: "tsx",
     themes: { light: "light-plus", dark: "github-dark" },
     components: {
@@ -25,12 +23,12 @@ async function HeroCode() {
         <pre
           {...props}
           tabIndex={0}
+          aria-label={label}
           className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
         />
       ),
     },
   });
-  return code;
 }
 
 function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
@@ -44,6 +42,113 @@ function Panel({ id, title, intro, children, className }: { id: string; title: s
       </div>
       {children}
     </section>
+  );
+}
+
+function TileGrid({ children, className }: { children: ReactNode; className: string }) {
+  return <ul className={`grid gap-px border bg-border ${className}`}>{children}</ul>;
+}
+
+function Hero() {
+  return (
+    <section aria-labelledby="hero" className="grid gap-x-8 gap-y-4 border bg-card p-6 sm:p-7 lg:grid-cols-2">
+      <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:col-start-1 lg:row-start-1 lg:items-start lg:text-start">
+        <ReleaseBadge />
+        <h1 id="hero" className="text-3xl font-bold tracking-tight sm:text-5xl">
+          A data grid you own, with spreadsheet-style editing
+        </h1>
+        <p className="text-base font-medium sm:text-xl">{SUBLINE}</p>
+      </div>
+      <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+        <HeroGrid />
+      </div>
+      <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:col-start-1 lg:row-start-2 lg:items-start lg:text-start">
+        <HeroActions className="justify-center lg:justify-start" />
+        <div className={`w-full max-w-md text-start ${installFit}`}>
+          <InstallCommand item="data-grid" />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Needs a shadcn/ui project, React 19 and Tailwind v4.{" "}
+          <Link href="/docs/learning-path/install-gridcn" className="underline underline-offset-4">
+            Install guide
+          </Link>
+        </p>
+        <Link href="/docs/try-automate/use-agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
+          <AgentIcon className="size-4" aria-hidden="true" />
+          Building with an AI agent? Install the gridcn agent skills
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function KitPanel() {
+  return (
+    <Panel id="kit" title="What you get" intro="Range selection, paste from Excel and a fill handle cost a paid tier in AG Grid and MUI X. In gridcn they are free.">
+      <TileGrid className="grid-cols-2 lg:grid-cols-4">
+        {kitTiles.map(({ icon: Icon, title, text, href }) => (
+          <li key={title} className="bg-card">
+            <Link href={href} className={tile}>
+              <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+              <h3 className="text-sm font-medium">{title}</h3>
+              <span className="text-xs text-muted-foreground max-sm:line-clamp-2">{text}</span>
+            </Link>
+          </li>
+        ))}
+      </TileGrid>
+    </Panel>
+  );
+}
+
+function NewPanel() {
+  return (
+    <Panel id="new" title="What is new in 2.0">
+      <ul className="grid gap-1 text-sm">
+        {newInTwo.map(({ text, href }) => (
+          <li key={href + text}>
+            <Link href={href} className={`flex min-h-10 items-center border px-3 py-2 transition-colors hover:bg-muted ${focus}`}>
+              {text}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        The{" "}
+        <a href={`${repo}/blob/${gitConfig.branch}/CHANGELOG.md`} className="underline underline-offset-4" target="_blank" rel="noreferrer">
+          changelog
+        </a>{" "}
+        lists every change.
+      </p>
+    </Panel>
+  );
+}
+
+function StartPanel() {
+  return (
+    <Panel id="start" title="Your first grid" intro="Run the install command, then add this file. The grid needs a bounded height, here h-96.">
+      <Code code={CLIENT_CODE} label="Client grid example" />
+      <Link href="/docs/learning-path/render-your-first-grid" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+        Render your first grid, step by step
+      </Link>
+    </Panel>
+  );
+}
+
+function ServerPanel() {
+  return (
+    <Panel id="server" title="Server mode" intro="A local array or server rows: the same grid. The grid sends the sort, the filter and the search text. You answer with rows.">
+      <Code code={SERVER_CODE} label="Server rows example" />
+      <ServerHighlights />
+      <DataModesLink>Which feature works in which data mode</DataModesLink>
+    </Panel>
+  );
+}
+
+function PerfPanel() {
+  return (
+    <Panel id="perf" title="Tested at 100,000 rows">
+      <PerfStats />
+    </Panel>
   );
 }
 
@@ -65,14 +170,20 @@ function CompareTable() {
             </tr>
           </thead>
           <tbody>
-            {comparison.rows.map(({ feature, values }) => (
+            {comparison.rows.map(({ feature, cells }) => (
               <tr key={feature} className="border-b last:border-0">
                 <th scope="row" className="px-3 py-2 text-start font-medium">
                   {feature}
                 </th>
-                {values.map((v, i) => (
-                  <td key={i} className={i === 0 ? "px-3 py-2 text-center font-medium" : "px-3 py-2 text-center text-muted-foreground"}>
-                    {v}
+                {cells.map((cell, i) => (
+                  <td key={comparison.columns[i]} className="px-1 py-1 text-center">
+                    <SiteLink
+                      href={cell.href}
+                      aria-label={`${comparison.columns[i]}, ${feature}: ${cell.value}`}
+                      className={`inline-flex min-h-10 items-center px-2 underline underline-offset-4 ${i === 0 ? "font-medium" : "text-muted-foreground"} ${focus}`}
+                    >
+                      {cell.value}
+                    </SiteLink>
                   </td>
                 ))}
               </tr>
@@ -81,104 +192,44 @@ function CompareTable() {
         </table>
       </div>
       <ul className="grid gap-2 sm:hidden">
-        {comparison.rows.map(({ feature, values }) => (
+        {comparison.rows.map(({ feature, cells }) => (
           <li key={feature} className="border p-3 text-sm">
-            <p className="mb-1 font-medium">{feature}</p>
-            <p className="text-xs text-muted-foreground">
-              {comparison.columns.map((c, i) => (
-                <span key={c} className="me-3 inline-block">
-                  <span className={i === 0 ? "font-semibold text-primary" : ""}>{c.replace(" Table", "")}</span> {values[i]}
-                </span>
+            <p className="font-medium">{feature}</p>
+            <ul className="mt-1 grid grid-cols-2 gap-x-3 text-xs">
+              {cells.map((cell, i) => (
+                <li key={comparison.columns[i]}>
+                  <SiteLink
+                    href={cell.href}
+                    aria-label={`${comparison.columns[i]}, ${feature}: ${cell.value}`}
+                    className={`inline-flex min-h-10 items-center gap-1 ${focus}`}
+                  >
+                    <span className={i === 0 ? "font-semibold text-primary" : "text-foreground"}>{comparison.columns[i]}</span>
+                    <span className="text-muted-foreground underline underline-offset-4">{cell.value}</span>
+                  </SiteLink>
+                </li>
               ))}
-            </p>
+            </ul>
           </li>
         ))}
       </ul>
-      <p className="text-xs text-muted-foreground">Tiers as of 09/2026 (AG Grid v36, MUI X v9, TanStack Table v9). Vendors change tiers: verify before relying on this.</p>
     </>
-  );
-}
-
-function TileGrid({ children, className }: { children: ReactNode; className: string }) {
-  return <ul className={`grid gap-px border bg-border ${className}`}>{children}</ul>;
-}
-
-function Hero() {
-  return (
-    <section className="flex flex-col gap-5 border bg-card p-6 sm:p-7">
-      <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:items-start lg:text-start">
-          <ReleaseBadge />
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Spreadsheet power. Fast, typed, complete.</h1>
-          <p className="text-lg font-medium sm:text-xl">{SUBLINE}</p>
-          <p className="text-sm text-muted-foreground">
-            Sort, filter, edit and paste like Excel. One command copies the code into your app: you own the code and install no gridcn runtime package.
-          </p>
-          <HeroActions className="justify-center lg:justify-start" />
-          <div className={`w-full max-w-md text-start ${installFit}`}>
-            <InstallCommand item="data-grid" />
-          </div>
-          <Link href="/docs/agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
-            <AgentIcon className="size-4" aria-hidden="true" />
-            Building with an AI agent? Install the gridcn agent skills
-          </Link>
-        </div>
-        <div role="group" aria-label="Usage example" className="min-w-0 max-sm:hidden">
-          <HeroCode />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function KitPanel() {
-  const capabilities = [...headlineFeatures, ...coreTraits];
-  return (
-    <Panel id="kit" title="What you get" intro="Range selection, spreadsheet paste and a fill handle are paid features in the big grids. gridcn ships them free, built the shadcn way.">
-      <TileGrid className="grid-cols-2 lg:grid-cols-4">
-        {capabilities.map(({ icon: Icon, title, text, href }) => (
-          <li key={title} className="bg-card">
-            {href ? (
-              <Link href={href} className={tile}>
-                <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-sm font-medium">{title}</h3>
-                <span className="text-xs text-muted-foreground max-sm:line-clamp-1">{text}</span>
-              </Link>
-            ) : (
-              <div className={tile}>
-                <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                <h3 className="text-sm font-medium">{title}</h3>
-                <span className="text-xs text-muted-foreground max-sm:line-clamp-1">{text}</span>
-              </div>
-            )}
-          </li>
-        ))}
-      </TileGrid>
-    </Panel>
-  );
-}
-
-function ServerPanel() {
-  return (
-    <Panel id="server" title="Server mode, built in" intro="Local array or server pages: the same grid, the same features.">
-      <ServerHighlights />
-      <DataModesLink>Which features work in which data mode →</DataModesLink>
-    </Panel>
-  );
-}
-
-function PerfPanel() {
-  return (
-    <Panel id="perf" title="Measured at 100k rows">
-      <PerfStats />
-    </Panel>
   );
 }
 
 function ComparePanel() {
   return (
-    <Panel id="compare" title="The gap, quantified" intro="Where the same features sit in the grids you are probably comparing: free tier, paid tier or your own code.">
+    <Panel
+      id="compare"
+      title="How gridcn compares"
+      intro="Each cell links to the page that states it. gridcn leads where editing is concerned and does not build grouping, tree data, pivoting or master-detail."
+    >
       <CompareTable />
+      <p className="text-xs text-muted-foreground">
+        Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. TanStack Table is headless: it ships no UI, so each cell means you build it. Vendors change tiers: check the linked page.{" "}
+        <Link href={FEATURE_MATRIX_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
+          Feature matrix of gridcn
+        </Link>
+      </p>
     </Panel>
   );
 }
@@ -192,7 +243,7 @@ function AgentsPanel() {
       <TileGrid className="grid-cols-1">
         {agentSkills.map(({ icon: Icon, title, text }) => (
           <li key={title} className="bg-card">
-            <Link href={`/docs/agent-skills#${title}`} className={tile}>
+            <Link href={`/docs/try-automate/use-agent-skills#${title}`} className={tile}>
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
               <h3 className="font-mono text-xs font-medium">{title}</h3>
               <span className="text-xs text-muted-foreground">{text}</span>
@@ -206,7 +257,7 @@ function AgentsPanel() {
 
 function AddOnsPanel() {
   return (
-    <Panel id="addons" title="Modular by design" intro="The core is selection, keyboard, editing, cell types, clipboard and validation. Each add-on is a separate registry item: install only the ones you want.">
+    <Panel id="addons" title="Modular by design" intro="Each add-on is a separate registry item. Install only the ones you want.">
       <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
@@ -220,7 +271,29 @@ function AddOnsPanel() {
           </li>
         ))}
       </TileGrid>
+      <Link href="/docs/fit-features/add-ons-a-z" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+        Every add-on, A to Z
+      </Link>
     </Panel>
+  );
+}
+
+function FooterLinks() {
+  const links = [
+    { label: "Docs", href: "/docs" },
+    { label: "Accessibility gaps", href: "/docs/accessibility/accessibility-gaps" },
+    { label: "License", href: "/docs/support-upgrades/license-credits" },
+    { label: "Changelog", href: `${repo}/blob/${gitConfig.branch}/CHANGELOG.md` },
+    { label: "GitHub", href: repo },
+  ];
+  return (
+    <nav aria-label="More" className="flex flex-wrap justify-center gap-x-4 text-sm">
+      {links.map((l) => (
+        <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
+          {l.label}
+        </SiteLink>
+      ))}
+    </nav>
   );
 }
 
@@ -231,13 +304,18 @@ export function LandingPage() {
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
       <Hero />
       <KitPanel />
-      <ServerPanel />
+      <div className={pair}>
+        <NewPanel />
+        <StartPanel />
+      </div>
       <PerfPanel />
+      <ServerPanel />
       <ComparePanel />
       <div className={pair}>
         <AgentsPanel />
         <AddOnsPanel />
       </div>
+      <FooterLinks />
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import {
   ArrowUpDown,
+  BookmarkCheck,
   Blocks,
   Bot,
   Clipboard,
-  CloudDownload,
+  Command,
   Database,
   FileSpreadsheet,
   Gauge,
+  Grid3x3,
   Keyboard,
   Languages,
   LayoutGrid,
@@ -14,69 +16,151 @@ import {
   ListOrdered,
   MousePointer2,
   PaintBucket,
+  PanelBottom,
   Palette,
   Pin,
+  Puzzle,
   Radio,
   RefreshCw,
-  Shapes,
-  Undo2,
-  Users,
   Search,
-  Command,
-  PanelBottom,
-  Rows3,
-  Puzzle,
+  Shapes,
+  TextSearch,
+  Undo2,
+  Upload,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
-export const headlineFeatures: { icon: LucideIcon; title: string; text: string; href?: string }[] = [
-  { icon: MousePointer2, title: "Range selection", text: "Anchor and rectangular range, Ctrl-click multi-range, keyboard extension." },
-  { icon: Clipboard, title: "Spreadsheet clipboard", text: "Native copy, cut and paste in TSV and HTML. Round-trips with Excel, Sheets and Numbers." },
-  { icon: PaintBucket, title: "Fill handle", text: "Drag to tile a selection, with series inference: \"Item 1\" becomes \"Item 2\"." },
+export const kitTiles: { icon: LucideIcon; title: string; text: string; href: string }[] = [
+  { icon: MousePointer2, title: "Range selection", text: "Drag a rectangular range. Select rows and columns with the pointer.", href: "/docs/selection-shortcuts/pointer-selection" },
+  { icon: Clipboard, title: "Clipboard", text: "Copy, cut and paste with Ctrl+C, Ctrl+X and Ctrl+V. Reads HTML and tab-separated text from Excel, Sheets and Numbers.", href: "/docs/clipboard-undo/clipboard" },
+  { icon: PaintBucket, title: "Fill handle", text: "Drag to tile a selection. A series continues: Item 1 becomes Item 2.", href: "/docs/clipboard-undo/fill-handle" },
+  { icon: Keyboard, title: "Typed columns", text: "defineColumns infers the value type of each column.", href: "/docs/learning-path/define-columns" },
+  { icon: LayoutGrid, title: "Virtualized DOM", text: "Real DOM cells. The grid draws only the rows and columns in view.", href: "/docs/performance/virtualization" },
+  { icon: Palette, title: "shadcn tokens", text: "The grid takes your theme colors and radius, in light and dark mode.", href: "/docs/theme-style-language/colors-radius" },
+  { icon: Radio, title: "Streaming updates", text: "updateCells pushes live values by row id.", href: "/docs/rows-live-data/stream-updates" },
+  { icon: Languages, title: "Labels and RTL", text: "One typed labels object translates the grid. Right-to-left layout has browser tests.", href: "/docs/theme-style-language/labels-i18n" },
 ];
 
-export const coreTraits = [
-  { icon: LayoutGrid, title: "Real DOM, real virtualization", text: "CSS Grid and subgrid, virtualized rows, smooth at 100k rows.", href: "/docs/performance" },
-  { icon: Keyboard, title: "Typed columns", text: "defineColumns<TData>() infers value types. Accessor typos are compile errors.", href: "/docs/quick-start#define-columns" },
-  { icon: Palette, title: "shadcn tokens only", text: "No bespoke palette. Dark mode works the moment your theme does.", href: "/docs/styling-theming" },
-  { icon: Radio, title: "Streaming updates", text: "updateCells and updateRows push live rows into the view.", href: "/docs/streaming-updates" },
-  { icon: Languages, title: "i18n and RTL", text: "Typed label objects, mirrored pinning and pointer math.", href: "/docs/i18n" },
-];
+export type AddOnTile = { block: string; icon: LucideIcon; title: string; href: string };
 
-export const addOnTiles = [
-  { icon: PaintBucket, title: "Fill handle", href: "/docs/addons/fill" },
-  { icon: Undo2, title: "Undo and redo", href: "/docs/addons/undo-redo" },
-  { icon: Search, title: "Find and replace", href: "/docs/addons/find-replace" },
-  { icon: FileSpreadsheet, title: "Import and export", href: "/docs/addons/import-export" },
-  { icon: Link2, title: "URL state", href: "/docs/addons/url-state" },
-  { icon: Pin, title: "Pinned rows and aggregates", href: "/docs/addons/pinned-rows" },
-  { icon: Users, title: "Multiplayer presence", href: "/docs/addons/presence" },
-  { icon: Blocks, title: "Context menu", href: "/docs/addons/context-menu" },
-  { icon: Command, title: "Keybindings dialog", href: "/docs/addons/keybindings" },
-  { icon: PanelBottom, title: "Status bar", href: "/docs/addons/status-bar" },
-  { icon: ArrowUpDown, title: "Toolbar and search", href: "/docs/addons/toolbar" },
-  { icon: ListOrdered, title: "Sort list", href: "/docs/addons/sort-list" },
-  { icon: Rows3, title: "Pagination", href: "/docs/pagination" },
-  { icon: CloudDownload, title: "Server rows", href: "/docs/lazy-loading" },
+export const addOnTiles: AddOnTile[] = [
+  { block: "data-grid", icon: Grid3x3, title: "Core grid", href: "/docs/learning-path/install-gridcn#install-the-core-grid" },
+  { block: "data-grid-fill", icon: PaintBucket, title: "Fill handle", href: "/docs/clipboard-undo/fill-handle" },
+  { block: "data-grid-history", icon: Undo2, title: "Undo and redo", href: "/docs/clipboard-undo/undo-redo" },
+  { block: "data-grid-find-replace", icon: TextSearch, title: "Find and replace", href: "/docs/sort-filter-search/find-replace" },
+  { block: "data-grid-io", icon: FileSpreadsheet, title: "Import and export", href: "/docs/import-export/import" },
+  { block: "dropzone", icon: Upload, title: "File dropzone", href: "/docs/import-export/import" },
+  { block: "data-grid-url-state", icon: Link2, title: "URL state", href: "/docs/sort-filter-search/url-state" },
+  { block: "data-grid-views", icon: BookmarkCheck, title: "Saved views", href: "/docs/sort-filter-search/saved-views" },
+  { block: "data-grid-pinned-rows", icon: Pin, title: "Pinned rows and totals", href: "/docs/rows-pages-menus/pinned-rows" },
+  { block: "data-grid-presence", icon: Users, title: "Presence", href: "/docs/rows-live-data/show-presence" },
+  { block: "data-grid-context-menu", icon: Blocks, title: "Context menu", href: "/docs/rows-pages-menus/context-menu" },
+  { block: "data-grid-keybindings", icon: Command, title: "Keybindings dialog", href: "/docs/selection-shortcuts/shortcut-remapping" },
+  { block: "data-grid-status-bar", icon: PanelBottom, title: "Status bar", href: "/docs/selection-shortcuts/status-bar" },
+  { block: "data-grid-toolbar", icon: Search, title: "Toolbar and search", href: "/docs/sort-filter-search/toolbar" },
+  { block: "data-grid-sort-list", icon: ArrowUpDown, title: "Sort list", href: "/docs/sort-filter-search/sorting" },
+  { block: "data-grid-pagination", icon: ListOrdered, title: "Client pagination", href: "/docs/rows-pages-menus/client-pagination" },
+  { block: "data-grid-server", icon: Database, title: "Server rows", href: "/docs/data-modes/query-server-rows" },
+  { block: "data-grid-lookup", icon: Search, title: "Lookup cell", href: "/docs/editing-cells/lookup-cell" },
 ];
 
 export const agentSkills = [
   { icon: Gauge, title: "gridcn-performance", text: "Audits a slow grid against the memoization and virtualization traps, in order." },
   { icon: Shapes, title: "gridcn-custom-cell-type", text: "Builds a cell type that pastes, sorts and edits like the built-ins." },
-  { icon: Database, title: "gridcn-data-source", text: "Picks client, streaming, lazy or paged data and wires server sort and filter." },
+  { icon: Database, title: "gridcn-data-source", text: "Picks plain data, server pages, scroll loading or streaming and wires server sort and filter." },
   { icon: Puzzle, title: "gridcn-addons", text: "Wires several add-ons into one grid, each output in the right place." },
   { icon: RefreshCw, title: "gridcn-upgrade", text: "Pulls upstream fixes into copied source and keeps your local edits." },
 ];
 
-export const comparison = {
+export const AgentIcon = Bot;
+
+export const COMPARISON_DATE = "2026-11-15";
+export const FEATURE_MATRIX_HREF = "/docs/fit-features/feature-matrix";
+
+const AG = "https://www.ag-grid.com/react-data-grid";
+const MUI = "https://mui.com/x/react-data-grid";
+const TANSTACK = "https://tanstack.com/table/latest/docs/overview";
+const BUILD = "You build the UI";
+const NOT_BUILT = "Not built";
+
+type Cell = { value: string; href: string };
+type Row = { feature: string; cells: [Cell, Cell, Cell, Cell] };
+
+export const comparison: { columns: string[]; rows: Row[] } = {
   columns: ["gridcn", "AG Grid", "MUI X", "TanStack Table"],
   rows: [
-    { feature: "Range selection", values: ["Free", "Enterprise", "Premium", "Headless"] },
-    { feature: "Excel / Sheets clipboard round-trip", values: ["Free", "Enterprise", "Premium", "Headless"] },
-    { feature: "Fill handle", values: ["Add-on", "Enterprise", "Premium (v9)", "—"] },
-    { feature: "Undo & redo", values: ["Add-on", "Community (v36)", "Premium", "Headless"] },
-    { feature: "npx shadcn add", values: ["One line", "—", "—", "Examples only"] },
+    {
+      feature: "Range selection",
+      cells: [
+        { value: "Free, core", href: "/docs/selection-shortcuts/pointer-selection" },
+        { value: "Enterprise", href: `${AG}/cell-selection/` },
+        { value: "Premium", href: `${MUI}/cell-selection/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Clipboard paste",
+      cells: [
+        { value: "Free, core", href: "/docs/clipboard-undo/clipboard" },
+        { value: "Enterprise", href: `${AG}/clipboard/` },
+        { value: "Premium", href: `${MUI}/clipboard/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Fill handle",
+      cells: [
+        { value: "Free, add-on", href: "/docs/clipboard-undo/fill-handle" },
+        { value: "Enterprise", href: `${AG}/cell-selection-fill-handle/` },
+        { value: "Premium", href: "https://mui.com/x/whats-new/" },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Undo and redo",
+      cells: [
+        { value: "Free, add-on", href: "/docs/clipboard-undo/undo-redo" },
+        { value: "Community", href: `${AG}/undo-redo-edits/` },
+        { value: "Premium", href: `${MUI}/undo-redo/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Row grouping",
+      cells: [
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
+        { value: "Enterprise", href: `${AG}/row-grouping/` },
+        { value: "Premium", href: `${MUI}/row-grouping/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Tree data",
+      cells: [
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
+        { value: "Enterprise", href: `${AG}/tree-data/` },
+        { value: "Pro", href: `${MUI}/tree-data/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Pivoting",
+      cells: [
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
+        { value: "Enterprise", href: `${AG}/pivoting/` },
+        { value: "Premium", href: `${MUI}/pivoting/` },
+        { value: "Not listed", href: TANSTACK },
+      ],
+    },
+    {
+      feature: "Master-detail",
+      cells: [
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
+        { value: "Enterprise", href: `${AG}/master-detail/` },
+        { value: "Pro", href: `${MUI}/master-detail/` },
+        { value: BUILD, href: TANSTACK },
+      ],
+    },
   ],
 };
-
-export const AgentIcon = Bot;

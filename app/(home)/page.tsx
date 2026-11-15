@@ -2,18 +2,16 @@ import type { Metadata } from "next";
 import { LandingBackground } from "@/components/landing/background";
 import { LandingPage } from "@/components/landing/landing-page";
 
+const title = "gridcn: a data grid you own";
 const description =
-  "Spreadsheet power for React: range selection, spreadsheet clipboard, typed cell editors, server data and virtualized rendering, smooth at 100k rows.";
+  "A React data grid for the shadcn ecosystem with range selection, paste from Excel, a fill handle, undo, server data and virtualized rows. One command copies the source into your app.";
 
 export const metadata: Metadata = {
+  title: { absolute: title },
   description,
-  openGraph: {
-    type: "website",
-    url: "/",
-    siteName: "gridcn",
-    title: "gridcn",
-    description,
-  },
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", url: "/", siteName: "gridcn", title, description },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function HomePage() {

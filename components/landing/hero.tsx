@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { gitConfig } from "@/lib/shared";
+import { appVersion, gitConfig } from "@/lib/shared";
 import { cn } from "@/lib/utils";
 
 function GithubIcon(props: ComponentProps<"svg">) {
@@ -34,6 +34,6 @@ export function HeroActions({ className }: { className?: string }) {
 }
 
 export function ReleaseBadge() {
-  return <Badge variant="outline">2.0 · shadcn registry</Badge>;
+  return <Badge variant="outline">v{appVersion} · shadcn registry</Badge>;
 }
 
